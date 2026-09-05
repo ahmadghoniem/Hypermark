@@ -6,7 +6,7 @@
  * ReadableStream APIs.
  *
  * The Pi extension has a mirror handler using node:http primitives at
- * apps/pi-extension/server/external-annotations.ts.
+ * the review server's external-annotations ingestion.
  */
 
 import {

@@ -353,9 +353,7 @@ jobs:
             (.paths.scanned | length) >= 500 and
             all(.results[]; .extra.engine_kind == "OSS") and
             any(.paths.scanned[]; startswith("/src/packages/server/")) and
-            any(.paths.scanned[]; startswith("/src/apps/pi-extension/server/")) and
             any(.paths.scanned[]; startswith("/src/packages/ui/")) and
-            any(.paths.scanned[]; startswith("/src/apps/paste-service/")) and
             any(.paths.scanned[]; startswith("/src/scripts/"))
           ' "$output_dir/semgrep.json" >/dev/null || {
             echo 'Semgrep JSON failed its OSS-engine, error-free, target-count, or required-surface assertions.' >&2
@@ -647,7 +645,6 @@ jobs:
             --skip-dirs '**/dist-ssr' \
             --skip-dirs '**/.astro' \
             --skip-dirs '**/coverage' \
-            --skip-dirs apps/pi-extension/generated \
             --format json \
             --output security-results/trivy.json \
             . 2>security-results/trivy-scan.log
@@ -680,7 +677,6 @@ jobs:
             --skip-dirs '**/dist-ssr' \
             --skip-dirs '**/.astro' \
             --skip-dirs '**/coverage' \
-            --skip-dirs apps/pi-extension/generated \
             --format json \
             --output security-results/trivy-license.json \
             . 2>security-results/trivy-license.log
@@ -725,8 +721,7 @@ jobs:
           expected_npm_targets="$RUNNER_TEMP/trivy-expected-npm-targets.txt"
           actual_npm_targets="$RUNNER_TEMP/trivy-actual-npm-targets.txt"
           git ls-files '*package-lock.json' \
-            | awk '$0 !~ /(^|\/)(node_modules|dist|dist-ssr|\.astro|coverage)(\/|$)/ &&
-              $0 !~ /^apps\/pi-extension\/generated\//' \
+            | awk '$0 !~ /(^|\/)(node_modules|dist|dist-ssr|\.astro|coverage)(\/|$)/' \
             | sort -u > "$expected_npm_targets"
           jq -r '.Results[] | select(
             .Class == "lang-pkgs" and .Type == "npm" and

@@ -10,15 +10,6 @@ import { saveConfig } from "./config";
 import { startAnnotateServer as startBunAnnotateServer } from "./annotate.ts?api-404-guard";
 import { startPlannotatorServer as startBunPlanServer } from "./index";
 import { startReviewServer as startBunReviewServer } from "./review";
-import {
-  startAnnotateServer as startPiAnnotateServer,
-  startPlanReviewServer as startPiPlanServer,
-  startReviewServer as startPiReviewServer,
-} from "../../apps/pi-extension/server";
-import {
-  handlePiAIRequest,
-  type PiAIRuntime,
-} from "../../apps/pi-extension/server/ai-runtime";
 
 const SPA_HTML = "<!doctype html><html><body>SPA fallback</body></html>";
 const AI_ENDPOINTS_REQUIRING_BACKEND = [
@@ -78,66 +69,6 @@ const serverCases = [
         filePath: "test.md",
         origin: "claude-code",
         htmlContent: SPA_HTML,
-      }),
-  },
-  {
-    name: "Pi plan",
-    knownApiPath: "/api/plan",
-    knownAIBackendUnavailable: true,
-    start: () =>
-      startPiPlanServer({
-        plan: "# Test Plan",
-        origin: "pi",
-        htmlContent: SPA_HTML,
-        mode: "archive",
-        customPlanPath: archivePath,
-      }),
-  },
-  {
-    name: "Pi review",
-    knownApiPath: "/api/diff",
-    start: () =>
-      startPiReviewServer({
-        rawPatch: "",
-        gitRef: "HEAD",
-        origin: "pi",
-        htmlContent: SPA_HTML,
-      }),
-  },
-  {
-    name: "Pi annotate",
-    knownApiPath: "/api/plan",
-    start: () =>
-      startPiAnnotateServer({
-        markdown: "# Test Document",
-        filePath: "test.md",
-        origin: "pi",
-        htmlContent: SPA_HTML,
-      }),
-  },
-] satisfies readonly ServerCase[];
-
-const archiveServerCases = [
-  {
-    name: "Bun plan",
-    start: () =>
-      startBunPlanServer({
-        plan: "# Test Plan",
-        origin: "claude-code",
-        htmlContent: SPA_HTML,
-        mode: "archive",
-        customPlanPath: archivePath,
-      }),
-  },
-  {
-    name: "Pi plan",
-    start: () =>
-      startPiPlanServer({
-        plan: "# Test Plan",
-        origin: "pi",
-        htmlContent: SPA_HTML,
-        mode: "archive",
-        customPlanPath: archivePath,
       }),
   },
 ] as const;
@@ -268,7 +199,7 @@ describe("API route 404 guards", () => {
           FAVICON_PNG_BYTES,
         );
 
-        // Cross-runtime parity for the classic style: Bun and Pi must agree on
+        // Parity for the classic style: every surface must agree on
         // both the bytes and the content type, since the entry HTML's
         // <link rel="icon"> declares no type of its own.
         saveConfig({ favicon: "classic" });
@@ -304,37 +235,4 @@ describe("API route 404 guards", () => {
       }
     });
   }
-
-  test("Pi serves a live runtime handler before unavailable-route classification", async () => {
-    const futurePath = "/api/ai/future-route";
-    const runtime: PiAIRuntime = {
-      endpoints: {
-        [futurePath]: async () => Response.json({ served: futurePath }),
-      },
-      dispose: () => {},
-    };
-    const nodeServer = createServer((req, res) => {
-      const url = new URL(req.url ?? "/", "http://localhost");
-      void handlePiAIRequest(req, res, url, runtime);
-    });
-
-    await new Promise<void>((resolve, reject) => {
-      nodeServer.once("error", reject);
-      nodeServer.listen(0, "127.0.0.1", resolve);
-    });
-
-    try {
-      const address = nodeServer.address();
-      if (!address || typeof address === "string") {
-        throw new Error("Expected an ephemeral TCP address");
-      }
-      const response = await fetch(`http://127.0.0.1:${address.port}${futurePath}`);
-      expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ served: futurePath });
-    } finally {
-      await new Promise<void>((resolve, reject) => {
-        nodeServer.close(error => error ? reject(error) : resolve());
-      });
-    }
-  });
 });

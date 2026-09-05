@@ -9,25 +9,13 @@ export const NATIVE_SUBJECTS = [
   "plannotator-linux-arm64",
   "plannotator-win32-x64.exe",
   "plannotator-win32-arm64.exe",
-  "plannotator-paste-darwin-arm64",
-  "plannotator-paste-darwin-x64",
-  "plannotator-paste-linux-x64",
-  "plannotator-paste-linux-arm64",
-  "plannotator-paste-win32-x64.exe",
-  "plannotator-paste-win32-arm64.exe",
 ];
 
-export const NPM_SUBJECTS = [
-  "npm-packages/plannotator-opencode.tgz",
-  "npm-packages/plannotator-pi-extension.tgz",
-];
+export const NPM_SUBJECTS = [];
 
 export const RELEASE_WORKSPACES = [
   "",
   "apps/hook",
-  "apps/opencode-plugin",
-  "apps/paste-service",
-  "apps/pi-extension",
   "apps/review",
   "packages/ai",
   "packages/core",
@@ -41,7 +29,6 @@ export const RELEASE_WORKSPACES = [
 export const SBOM_SENTINELS = [
   "@anthropic-ai/claude-agent-sdk",
   "@joplin/turndown-plugin-gfm",
-  "@opencode-ai/sdk",
   "@pierre/diffs",
   "@plannotator/webtui",
   "marked",

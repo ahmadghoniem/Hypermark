@@ -115,20 +115,9 @@ describe("favicon surfaces", () => {
       expect(html).not.toContain('rel="icon" type=');
     }
 
-    expect((await readRepoFile("apps/portal/index.html")).toString()).toContain(
-      STATIC_FAVICON_LINK,
-    );
 
-    expect((await readRepoFile("apps/marketing/src/layouts/Base.astro")).toString()).toContain(
-      MARKETING_FAVICON_LINK,
-    );
   });
 
-  test("the share portal emits its favicon from the shared application asset", async () => {
-    const portalConfig = (await readRepoFile("apps/portal/vite.config.ts")).toString();
-    expect(portalConfig).toContain("fileName: 'favicon.png'");
-    expect(portalConfig).toContain("source: FAVICON_PNG_BYTES");
-  });
 
   test("the shared application favicon is the selected production 64px asset", () => {
     expect(createHash("sha256").update(FAVICON_PNG_BYTES).digest("hex")).toBe(
@@ -150,15 +139,4 @@ describe("favicon surfaces", () => {
     );
   });
 
-  test("the marketing site ships the selected production 256px asset", async () => {
-    const favicon = await readRepoFile("apps/marketing/public/favicon.png");
-    expect(createHash("sha256").update(favicon).digest("hex")).toBe(
-      "4e99a26b076e421f654df83472c6186b62830d5db8fcd8e97d01947dffac28fd",
-    );
-    const stats = inspectRgbaPng(favicon);
-    expect(stats).toMatchObject({ width: 256, height: 256 });
-    expect(stats.transparentPixels).toBeGreaterThan(0);
-    expect(stats.partialAlphaPixels).toBeGreaterThan(0);
-    expect(stats.opaquePixels).toBeGreaterThan(0);
-  });
 });

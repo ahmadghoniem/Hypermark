@@ -44,8 +44,6 @@ describe("live proxy bridge delivery", () => {
     "packages/server/live-proxy.ts",
     "packages/server/annotate.ts",
     "apps/hook/server/index.ts",
-    "apps/pi-extension/plannotator-browser.ts",
-    "apps/pi-extension/server/serverAnnotate.ts",
   ])("%s never references the srcdoc URL seam or the generated asset", (path) => {
     const source = read(path);
     expect(source).not.toContain("bridgeScriptUrl");
@@ -55,7 +53,6 @@ describe("live proxy bridge delivery", () => {
 
   test("both runtimes still hand the inline string exports to the composer", () => {
     expect(read("apps/hook/server/index.ts")).toContain("bridgeScript: BRIDGE_SCRIPT,");
-    expect(read("apps/pi-extension/plannotator-browser.ts")).toContain("bridgeScript: bridge.BRIDGE_SCRIPT,");
     expect(read("packages/shared/live-proxy-core.ts")).toContain("+ sources.bridgeScript");
   });
 });

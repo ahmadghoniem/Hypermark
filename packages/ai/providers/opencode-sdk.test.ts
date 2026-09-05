@@ -183,7 +183,6 @@ describe("no eager opencode spawn at runtime startup", () => {
 	// `opencode serve` on every session for every user with opencode on PATH.
 	for (const relPath of [
 		"packages/server/ai-runtime.ts",
-		"apps/pi-extension/server/ai-runtime.ts",
 	]) {
 		test(`${relPath} defers opencode model discovery`, () => {
 			const src = readFileSync(resolve(repoRoot, relPath), "utf8");

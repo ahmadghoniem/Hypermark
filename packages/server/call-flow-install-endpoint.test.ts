@@ -57,16 +57,7 @@ const sharedMock = () => ({
 mock.module('@plannotator/shared/call-flow', sharedMock);
 mock.module('../shared/call-flow.ts', sharedMock);
 
-const actualPi = { ...(await import('../../apps/pi-extension/generated/call-flow.ts')) };
-mock.module('../../apps/pi-extension/generated/call-flow.ts', () => ({
-  ...actualPi,
-  installCallFlowRuntime: (onStage: (stage: CallFlowInstallStage) => void) => recordedInstall('javascript-typescript', onStage),
-  installCallFlowLanguagePack: (id: string, onStage: (stage: CallFlowInstallStage) => void) => recordedInstall(id, onStage),
-  preflightCallFlowNode: () => preflightImpl(),
-}));
-
 const { startReviewServer: startBunReviewServer } = await import('./review');
-const { startReviewServer: startPiReviewServer } = await import('../../apps/pi-extension/server');
 
 // Best-effort config hygiene: the /api/review-analysis POSTs below persist
 // { callFlow: true } through the process's frozen config module. When this
@@ -205,12 +196,10 @@ process.on('exit', () => {
 describe('Call flow install endpoints', () => {
   for (const [runtime, startServer] of [
     ['Bun', startBunReviewServer],
-    ['Pi', startPiReviewServer],
   ] as const) {
     const boot = async (options: { rawPatch?: string; coreInstalled?: boolean } = {}) => {
       process.env.PLANNOTATOR_DATA_DIR = makeTempDir('plannotator-call-flow-rt-');
       if (options.coreInstalled) materializeFakeRuntime();
-      if (runtime === 'Pi') process.env.PLANNOTATOR_PORT = String(await reservePort());
       return await startServer({
         rawPatch: options.rawPatch ?? '',
         gitRef: 'Working tree',

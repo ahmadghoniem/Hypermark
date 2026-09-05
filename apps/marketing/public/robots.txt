@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://plannotator.ai/sitemap-index.xml

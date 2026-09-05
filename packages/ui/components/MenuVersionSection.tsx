@@ -5,10 +5,7 @@ import type { Origin } from '@plannotator/core/agents';
 import { isWindows } from '../utils/platform';
 import { copyTextToClipboard } from '../utils/clipboard';
 
-const PI_INSTALL_COMMAND = 'pi install npm:@plannotator/pi-extension';
-
-function getInstallCommand(origin?: Origin | null, isWSL = false): string {
-  if (origin === 'pi') return PI_INSTALL_COMMAND;
+function getInstallCommand(isWSL = false): string {
   return isWindows && !isWSL
     ? 'powershell -c "irm https://plannotator.ai/install.ps1 | iex"'
     : 'curl -fsSL https://plannotator.ai/install.sh | bash';
@@ -33,7 +30,7 @@ export const MenuVersionSection: React.FC<MenuVersionSectionProps> = ({
   const hasUpdate = !!updateInfo?.updateAvailable;
 
   const handleCopy = async () => {
-    if (await copyTextToClipboard(getInstallCommand(origin, isWSL))) {
+    if (await copyTextToClipboard(getInstallCommand(isWSL))) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } else {

@@ -325,9 +325,9 @@ export function parseRgJsonOutput(
     const snippet = d.lines.text.trimEnd();
     const column = d.submatches?.[0]?.start ?? 0;
     const kind = classifyMatch(snippet, symbol, language);
-    const filePath = d.path.text.startsWith("./")
-      ? d.path.text.slice(2)
-      : d.path.text;
+    // ripgrep prints "./pay.js" on POSIX and ".\pay.js" on Windows. Both must
+    // reduce to the same repo-relative identity the diff and tree key on.
+    const filePath = d.path.text.replace(/\\/g, "/").replace(/^\.\//, "");
 
     locations.push({
       kind,

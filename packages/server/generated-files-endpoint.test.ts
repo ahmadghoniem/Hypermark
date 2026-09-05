@@ -20,7 +20,6 @@ import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startReviewServer as startBunReviewServer } from './review';
-import { startReviewServer as startPiReviewServer } from '../../apps/pi-extension/server';
 import { getVcsContext } from './vcs';
 
 const originalDataDir = process.env.PLANNOTATOR_DATA_DIR;
@@ -87,17 +86,22 @@ afterEach(() => {
   else process.env.PLANNOTATOR_DATA_DIR = originalDataDir;
   if (originalPort === undefined) delete process.env.PLANNOTATOR_PORT;
   else process.env.PLANNOTATOR_PORT = originalPort;
-  for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  for (const dir of tempDirs.splice(0)) {
+    try {
+      rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    } catch {
+      // Windows can hold a transient handle on a just-used temp git repo; the OS
+      // reclaims it. Teardown noise must not fail a passing assertion.
+    }
+  }
 });
 
 describe('generatedFiles sidecar (#1317)', () => {
   for (const [runtime, startServer] of [
     ['Bun', startBunReviewServer],
-    ['Pi', startPiReviewServer],
   ] as const) {
     test(`${runtime} resolves linguist-generated via git, honoring negated rules`, async () => {
       process.env.PLANNOTATOR_DATA_DIR = makeTempDir('plannotator-generated-data-');
-      if (runtime === 'Pi') process.env.PLANNOTATOR_PORT = String(await reservePort());
       const repoDir = initRepo();
       writeFileSync(
         join(repoDir, '.gitattributes'),
@@ -136,7 +140,6 @@ describe('generatedFiles sidecar (#1317)', () => {
 
     test(`${runtime} without local git access emits the sidecar from name defaults alone`, async () => {
       process.env.PLANNOTATOR_DATA_DIR = makeTempDir('plannotator-generated-data-');
-      if (runtime === 'Pi') process.env.PLANNOTATOR_PORT = String(await reservePort());
       const server = await startServer({
         rawPatch: [fileChunk('bun.lock'), fileChunk('src/app.ts')].join('\n'),
         gitRef: 'Piped diff',
@@ -156,7 +159,6 @@ describe('generatedFiles sidecar (#1317)', () => {
 
     test(`${runtime} omits the sidecar without git when no path matches a default`, async () => {
       process.env.PLANNOTATOR_DATA_DIR = makeTempDir('plannotator-generated-data-');
-      if (runtime === 'Pi') process.env.PLANNOTATOR_PORT = String(await reservePort());
       const server = await startServer({
         rawPatch: RAW_PATCH,
         gitRef: 'Piped diff',
@@ -176,7 +178,6 @@ describe('generatedFiles sidecar (#1317)', () => {
 
     test(`${runtime} applies built-in defaults with no .gitattributes and honors -linguist-generated un-marks`, async () => {
       process.env.PLANNOTATOR_DATA_DIR = makeTempDir('plannotator-generated-data-');
-      if (runtime === 'Pi') process.env.PLANNOTATOR_PORT = String(await reservePort());
       const repoDir = initRepo();
       // No .gitattributes: bun.lock collapses from the built-in list alone.
       // Then the second half: an explicit un-mark beats the built-in list.
@@ -199,8 +200,6 @@ describe('generatedFiles sidecar (#1317)', () => {
       } finally {
         bare.stop();
       }
-
-      if (runtime === 'Pi') process.env.PLANNOTATOR_PORT = String(await reservePort());
       writeFileSync(join(repoDir, '.gitattributes'), 'yarn.lock -linguist-generated\n');
       const unmarked = await startServer({
         rawPatch: patch,
@@ -222,7 +221,6 @@ describe('generatedFiles sidecar (#1317)', () => {
 
     test(`${runtime} omits the sidecar when neither attributes nor defaults mark anything`, async () => {
       process.env.PLANNOTATOR_DATA_DIR = makeTempDir('plannotator-generated-data-');
-      if (runtime === 'Pi') process.env.PLANNOTATOR_PORT = String(await reservePort());
       const repoDir = initRepo();
       const gitContext = await getVcsContext(repoDir, 'git');
       const server = await startServer({

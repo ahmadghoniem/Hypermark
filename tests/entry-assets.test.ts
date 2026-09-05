@@ -6,7 +6,7 @@ const root = resolve(import.meta.dir, '..');
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8');
 
 describe('review entry assets', () => {
-  test.each(['apps/portal/index.html', 'apps/hook/index.html', 'apps/review/index.html'])(
+  test.each(['apps/hook/index.html', 'apps/review/index.html'])(
     '%s has no externally hosted startup scripts or styles',
     (path) => {
       expect(read(path)).not.toMatch(
@@ -15,10 +15,7 @@ describe('review entry assets', () => {
     },
   );
 
-  // The portal mounts the same @plannotator/editor App as the hook, so it needs
-  // the identical shell: without it the mobile layout's safe-area tokens are
-  // inert and the document scrolls behind the app's own scroll ownership.
-  test.each(['apps/hook/index.html', 'apps/review/index.html', 'apps/portal/index.html'])(
+  test.each(['apps/hook/index.html', 'apps/review/index.html'])(
     '%s leaves scrolling to the visible-viewport application shell',
     (path) => {
       const html = read(path);
@@ -182,7 +179,6 @@ describe('review entry assets', () => {
     for (const config of [
       'apps/review/vite.config.ts',
       'apps/hook/vite.config.ts',
-      'apps/portal/vite.config.ts',
     ]) {
       expect(read(config)).toContain("'shiki/wasm': path.resolve(");
     }
@@ -208,24 +204,3 @@ describe('review entry assets', () => {
   }
 });
 
-describe('marketing embeds', () => {
-  const youtubePosts = [
-    'apps/marketing/src/content/blog/local-diff-review-for-coding-agents.md',
-    'apps/marketing/src/content/blog/plan-diff-see-what-changed.md',
-    'apps/marketing/src/content/blog/plannotator-meets-pi.md',
-    'apps/marketing/src/content/blog/sharing-plans-with-your-team.md',
-    'apps/marketing/src/content/blog/welcome.md',
-  ];
-
-  test.each(youtubePosts)('%s uses YouTube privacy-enhanced embeds', (path) => {
-    const content = read(path);
-    expect(content).not.toContain('www.youtube.com/embed/');
-    expect(content).toContain('www.youtube-nocookie.com/embed/');
-  });
-
-  test('the in-app help dialog uses YouTube privacy-enhanced embeds', () => {
-    const toolstrip = read('packages/ui/components/AnnotationToolstrip.tsx');
-    expect(toolstrip).not.toContain('www.youtube.com/embed/');
-    expect(toolstrip).toContain('www.youtube-nocookie.com/embed/');
-  });
-});

@@ -2,7 +2,7 @@
  * Loopback reverse proxy for live local app annotation — Node transport.
  *
  * The node:http mirror of packages/server/live-proxy.ts, run by the Pi
- * extension (vendored to apps/pi-extension/generated/). Every DECISION —
+ * extension. Every DECISION —
  * Host/Origin validation, the streaming injector state machine, the
  * CSP/X-Frame-Options policy, the redirect rewrite, the WS origin gate — is
  * imported from ./live-proxy-core and therefore byte-identical to the Bun

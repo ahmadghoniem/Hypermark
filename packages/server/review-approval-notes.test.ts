@@ -25,7 +25,6 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startReviewServer as startBunReviewServer } from "./review";
-import { startReviewServer as startPiReviewServer } from "../../apps/pi-extension/server";
 import { getVcsContext } from "./vcs";
 import { parseFeedbackIndex } from "@plannotator/shared/feedback-archive";
 
@@ -71,18 +70,6 @@ function enableArchive() {
   process.env.PLANNOTATOR_FEEDBACK_HISTORY = "1";
 }
 
-async function reservePiPort() {
-  const server = createServer();
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => resolve());
-  });
-  const address = server.address();
-  const port = typeof address === "object" && address ? address.port : 0;
-  await new Promise<void>((resolve) => server.close(() => resolve()));
-  saveEnv("PLANNOTATOR_PORT");
-  process.env.PLANNOTATOR_PORT = String(port);
-}
 
 function git(cwd: string, args: string[]): void {
   const result = spawnSync("git", args, { cwd, encoding: "utf-8" });
@@ -109,19 +96,24 @@ afterEach(() => {
     else process.env[key] = value;
     delete savedEnv[key];
   }
-  for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  for (const dir of tempDirs.splice(0)) {
+    try {
+      rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    } catch {
+      // Windows can hold a transient handle on a just-used temp git repo; the OS
+      // reclaims it. Teardown noise must not fail a passing assertion.
+    }
+  }
 });
 
 for (const [runtime, startServer] of [
   ["Bun", startBunReviewServer],
-  ["Pi", startPiReviewServer],
 ] as const) {
   describe(`review approval-notes advert (${runtime})`, () => {
     test("absent option advertises false; passed option advertises true and survives /api/diff/switch", async () => {
       useTempDataDir();
 
       // Old-caller compatibility: no option = not capable.
-      if (runtime === "Pi") await reservePiPort();
       const legacy = await startServer({
         rawPatch: PATCH,
         gitRef: "HEAD",
@@ -141,7 +133,6 @@ for (const [runtime, startServer] of [
       // advert cannot silently disappear after a diff switch.
       const repoDir = initRepo();
       const gitContext = await getVcsContext(repoDir, "git");
-      if (runtime === "Pi") await reservePiPort();
       const capable = await startServer({
         rawPatch: PATCH,
         gitRef: "Working tree",
@@ -174,7 +165,6 @@ for (const [runtime, startServer] of [
     test("approve-time feedback reaches waitForDecision unmodified and archives as approved-with-notes", async () => {
       const dataDir = useTempDataDir();
       enableArchive();
-      if (runtime === "Pi") await reservePiPort();
       const server = await startServer({
         rawPatch: PATCH,
         gitRef: "HEAD",
@@ -214,7 +204,6 @@ for (const [runtime, startServer] of [
     test("a bare approval (post-placeholder client shape) archives as lgtm with no sidecar", async () => {
       const dataDir = useTempDataDir();
       enableArchive();
-      if (runtime === "Pi") await reservePiPort();
       const server = await startServer({
         rawPatch: PATCH,
         gitRef: "HEAD",

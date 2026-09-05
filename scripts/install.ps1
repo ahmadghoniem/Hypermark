@@ -15,14 +15,10 @@ param(
     # the review UI offers a one-click install). Mirrors install.sh's
     # --with-call-flow.
     [switch]$WithCallFlow,
-    [switch]$SkipCodex,
-    [switch]$SkipGemini,
-    [switch]$SkipKiro,
-    [switch]$SkipOpencode,
     # Same shape as the per-agent switches, but scoped to the skills/slash
     # command sparse checkout rather than one agent's home: -SkipSkills turns
     # the whole fetch into a no-op for every scope it writes (Claude,
-    # ~/.agents, OpenCode, Gemini, Kiro), including the extras and the
+    # ~/.agents), including the extras and the
     # skill-scope cleanup sweeps. Mirrors install.sh's --skip-skills.
     [switch]$SkipSkills
 )
@@ -362,59 +358,19 @@ if ($WithCallFlow) { $installCallFlowResolved = $true }
 # written to nor cleaned up, and detected-but-skipped is reported honestly
 # as its own state. Each resolved skip remembers its source so the report
 # can name what the user set.
-$skipCodexResolved = $false;  $skipCodexSource = ""
-$skipGeminiResolved = $false; $skipGeminiSource = ""
-$skipKiroResolved = $false;   $skipKiroSource = ""
-$skipOpencodeResolved = $false; $skipOpencodeSource = ""
 # skipInstall.skills is not an agent - it opts out of the skills/slash-command
 # checkout for every scope at once - but it shares the same three layers.
 $skipSkillsResolved = $false; $skipSkillsSource = ""
 if ($cfg -and $cfg.skipInstall) {
-    if ($cfg.skipInstall.codex -is [bool] -and $cfg.skipInstall.codex) {
-        $skipCodexResolved = $true; $skipCodexSource = "config skipInstall.codex"
-    }
-    if ($cfg.skipInstall.gemini -is [bool] -and $cfg.skipInstall.gemini) {
-        $skipGeminiResolved = $true; $skipGeminiSource = "config skipInstall.gemini"
-    }
-    if ($cfg.skipInstall.kiro -is [bool] -and $cfg.skipInstall.kiro) {
-        $skipKiroResolved = $true; $skipKiroSource = "config skipInstall.kiro"
-    }
-    if ($cfg.skipInstall.opencode -is [bool] -and $cfg.skipInstall.opencode) {
-        $skipOpencodeResolved = $true; $skipOpencodeSource = "config skipInstall.opencode"
-    }
     if ($cfg.skipInstall.skills -is [bool] -and $cfg.skipInstall.skills) {
         $skipSkillsResolved = $true; $skipSkillsSource = "config skipInstall.skills"
     }
-}
-if ($env:PLANNOTATOR_SKIP_CODEX_INSTALL -match '^(1|true|yes)$') {
-    $skipCodexResolved = $true; $skipCodexSource = "PLANNOTATOR_SKIP_CODEX_INSTALL"
-} elseif ($env:PLANNOTATOR_SKIP_CODEX_INSTALL -match '^(0|false|no)$') {
-    $skipCodexResolved = $false; $skipCodexSource = ""
-}
-if ($env:PLANNOTATOR_SKIP_GEMINI_INSTALL -match '^(1|true|yes)$') {
-    $skipGeminiResolved = $true; $skipGeminiSource = "PLANNOTATOR_SKIP_GEMINI_INSTALL"
-} elseif ($env:PLANNOTATOR_SKIP_GEMINI_INSTALL -match '^(0|false|no)$') {
-    $skipGeminiResolved = $false; $skipGeminiSource = ""
-}
-if ($env:PLANNOTATOR_SKIP_KIRO_INSTALL -match '^(1|true|yes)$') {
-    $skipKiroResolved = $true; $skipKiroSource = "PLANNOTATOR_SKIP_KIRO_INSTALL"
-} elseif ($env:PLANNOTATOR_SKIP_KIRO_INSTALL -match '^(0|false|no)$') {
-    $skipKiroResolved = $false; $skipKiroSource = ""
-}
-if ($env:PLANNOTATOR_SKIP_OPENCODE_INSTALL -match '^(1|true|yes)$') {
-    $skipOpencodeResolved = $true; $skipOpencodeSource = "PLANNOTATOR_SKIP_OPENCODE_INSTALL"
-} elseif ($env:PLANNOTATOR_SKIP_OPENCODE_INSTALL -match '^(0|false|no)$') {
-    $skipOpencodeResolved = $false; $skipOpencodeSource = ""
 }
 if ($env:PLANNOTATOR_SKIP_SKILLS_INSTALL -match '^(1|true|yes)$') {
     $skipSkillsResolved = $true; $skipSkillsSource = "PLANNOTATOR_SKIP_SKILLS_INSTALL"
 } elseif ($env:PLANNOTATOR_SKIP_SKILLS_INSTALL -match '^(0|false|no)$') {
     $skipSkillsResolved = $false; $skipSkillsSource = ""
 }
-if ($SkipCodex)  { $skipCodexResolved = $true;  $skipCodexSource = "-SkipCodex" }
-if ($SkipGemini) { $skipGeminiResolved = $true; $skipGeminiSource = "-SkipGemini" }
-if ($SkipKiro)   { $skipKiroResolved = $true;   $skipKiroSource = "-SkipKiro" }
-if ($SkipOpencode) { $skipOpencodeResolved = $true; $skipOpencodeSource = "-SkipOpencode" }
 if ($SkipSkills) { $skipSkillsResolved = $true; $skipSkillsSource = "-SkipSkills" }
 
 # Pre-flight: if verification is requested, reject tags older than the first
@@ -717,85 +673,7 @@ if (Test-Path $pluginHooks) {
     Write-Host "Updated plugin hooks at $pluginHooks"
 }
 
-# Codex hooks on Windows are still experimental upstream. Do not mutate
-# the Codex home automatically from the Windows installer until that
-# path is verified end-to-end.
-# Codex stores config and state under $env:CODEX_HOME when set, falling back
-# to ~\.codex (https://developers.openai.com/codex/config-advanced). (#852)
-$codexDir = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { "$env:USERPROFILE\.codex" }
-$codexHomeHasUserConfig = $false
-if (Test-Path $codexDir) {
-    $codexHomeHasUserConfig = [bool](Get-ChildItem -Force $codexDir -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -ne "skills" -and $_.Name -ne ".DS_Store" } |
-        Select-Object -First 1)
-}
-$codexAvailable = [bool](Get-Command codex -ErrorAction SilentlyContinue) -or $codexHomeHasUserConfig
-# Kiro is auto-detected like Codex/Gemini: PATH executable or an existing ~/.kiro.
-$kiroAvailable = [bool](Get-Command kiro-cli -ErrorAction SilentlyContinue) -or (Test-Path "$env:USERPROFILE\.kiro")
-
-if ($codexAvailable -and $skipCodexResolved) {
-    # HONEST three-state reporting (#1178): detected-but-skipped is its own
-    # state, never conflated with "not detected". The Windows installer
-    # never writes the Codex home (hooks are experimental upstream); the
-    # skip suppresses the manual setup instructions and this run neither
-    # creates, updates, nor removes anything under the Codex home. The
-    # existing-integration note only fires when hooks.json actually
-    # references plannotator (M4) - mere existence of the file proves
-    # nothing, since it may hold only the user's own hooks.
-    Write-Host ""
-    Write-Host "Codex: detected, skipped ($skipCodexSource)."
-    Write-Host "The Windows installer only prints manual Codex setup instructions; they"
-    Write-Host "were suppressed."
-    $codexHooksProbe = Join-Path $codexDir "hooks.json"
-    if (Test-Path $codexHooksProbe) {
-        $codexHooksContent = Get-Content -Path $codexHooksProbe -Raw -ErrorAction SilentlyContinue
-        if ($codexHooksContent -match "plannotator") {
-            Write-Host "Your existing Codex Stop hook at $codexDir\hooks.json is unaffected."
-        }
-    }
-    Write-Host "Note: the shared agent skills in ~/.agents/skills serve multiple agents"
-    Write-Host "(Codex among them) and are still installed."
-} elseif ($codexAvailable) {
-    $codexExePath = "$installDir\plannotator.exe"
-    Write-Host ""
-    Write-Host "Codex detected."
-    Write-Host "Codex plan review hooks are experimental on Windows. To try them manually:"
-    Write-Host ""
-    Write-Host "  1. Add this to $codexDir\config.toml:"
-    Write-Host ""
-    Write-Host "     [features]"
-    Write-Host "     hooks = true"
-    Write-Host ""
-    Write-Host "  2. Add a Stop hook in $codexDir\hooks.json that runs:"
-    Write-Host ""
-    Write-Host "     $codexExePath"
-}
-
-# Clear OpenCode plugin cache. An OpenCode opt-out (#1178) leaves OpenCode's
-# own cache directory alone; the Bun package cache is a shared cache, not
-# OpenCode's home, and is always cleared.
-if (-not $skipOpencodeResolved) {
-    Remove-Item -Recurse -Force "$env:USERPROFILE\.cache\opencode\node_modules\@plannotator" -ErrorAction SilentlyContinue
-    Remove-Item -Recurse -Force "$env:USERPROFILE\.cache\opencode\packages\@plannotator" -ErrorAction SilentlyContinue
-}
 Remove-Item -Recurse -Force "$env:USERPROFILE\.bun\install\cache\@plannotator" -ErrorAction SilentlyContinue
-
-# Clear Pi jiti cache to force fresh download on next run
-Remove-Item -Recurse -Force "$env:TEMP\jiti" -ErrorAction SilentlyContinue
-
-function Update-PiExtensionIfPresent {
-    if (-not (Get-Command pi -ErrorAction SilentlyContinue)) {
-        return
-    }
-
-    Write-Host "Updating Pi extension..."
-    pi install npm:@plannotator/pi-extension
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "Pi extension updated."
-    } else {
-        Write-Host "Skipping Pi extension update (pi install failed)"
-    }
-}
 
 # Aggressive cleanup of stale install locations from prior versions.
 # Echo each removal and ignore anything that is already gone.
@@ -804,12 +682,6 @@ function Update-PiExtensionIfPresent {
 # a command file is only removed once its replacement skill is on disk, so a
 # failed or skipped skill install never leaves users with neither.
 $claudeCommandsDir = if ($env:CLAUDE_CONFIG_DIR) { "$env:CLAUDE_CONFIG_DIR\commands" } else { "$env:USERPROFILE\.claude\commands" }
-
-# NOTE: Codex stale-skill cleanup happens AFTER the skill install below - the
-# core skills are only removed from the Codex home once their replacement
-# exists in ~/.agents/skills, so an old pinned tag never strips Codex users
-# of working skills without a successor.
-$staleCodexSkillsDir = Join-Path $codexDir "skills"
 
 # Old installers (pre core/extra split) ran a wholesale skills copy against a
 # new-layout tag and could leave junk `core`/`extra` directory copies in the
@@ -1042,13 +914,10 @@ if ((-not $skipSkillsResolved) -and ($extrasChoice -eq "yes") -and (-not $extras
 
 # Install skills and command stubs (requires git).
 #
-# Core skills, Kiro skills/extras, OpenCode command stubs, and Gemini TOML
-# commands are all copied verbatim from a sparse checkout of the release tag.
+# Core skills are copied verbatim from a sparse checkout of the release tag.
 # copy-if-present means older pinned tags that lack a given path simply skip it
 # rather than failing. Hard requirement: without git we cannot install the
 # /plannotator-* skills, so fail loudly instead of leaving a partial install.
-# Hook/config writing above has already run; the Pi update and Gemini config
-# below are skipped on failure and complete when the user re-runs.
 #
 # Skills/commands opt-out (-SkipSkills / PLANNOTATOR_SKIP_SKILLS_INSTALL /
 # skipInstall.skills). HONEST reporting like the per-agent family: the skipped
@@ -1158,16 +1027,15 @@ try {
             # plain-clone fallback (#1238): that git has no sparse-checkout
             # subcommand, and the full checkout needs no narrowing.
             if ($sparseClone) {
-                & { $local:ErrorActionPreference = 'Continue'; git sparse-checkout set apps/skills apps/kiro-cli apps/opencode-plugin/commands apps/gemini/commands 2>$null }
+                & { $local:ErrorActionPreference = 'Continue'; git sparse-checkout set apps/skills 2>$null }
             }
 
-            # Claude Code and Codex consume different skill bodies. Claude Code
+            # Claude Code reads apps/skills/claude/* while the shared agent
             # reads apps/skills/claude/* (dynamic-context injection
             # `!`plannotator ... $ARGUMENTS`` + allowed-tools, so /plannotator-*
             # run with no permission prompt - like the old slash commands).
-            # Codex reads apps/skills/core/* (prose the model follows via its
-            # own shell). The `!`...`` injection is a Claude-Code-only extension,
-            # so the two are sourced separately rather than sharing one body.
+            # scope reads apps/skills/core/* (plain prose). The `!`...`` injection
+            # is a Claude-Code-only extension, so the two are sourced separately.
             # Route each through Copy-SkillIfPresent (which pre-removes the
             # existing target dir) so re-runs replace rather than nest.
             if ((Test-Path "apps\skills\claude") -and (Get-ChildItem "apps\skills\claude" -ErrorAction SilentlyContinue)) {
@@ -1177,7 +1045,7 @@ try {
                 }
                 # The plannotator knowledge skill (CLI reference) has no
                 # Claude-only injection form, so Claude installs the same
-                # single-sourced copy Codex gets from apps\skills\core.
+                # single-sourced copy from appsskillsre.
                 Copy-SkillIfPresent "apps\skills\core\plannotator" $claudeSkillsDir
                 Write-Host "Installed Claude Code skills to $claudeSkillsDir\"
             } else {
@@ -1192,56 +1060,6 @@ try {
                 Write-Host "Installed shared agent skills to $agentsSkillsDir\"
             } else {
                 Write-Host "Tag $latestTag predates the core/extra skill layout - skipping shared agent skill install"
-            }
-
-            # Kiro: hand-maintained skills (origin baked in) + two extras.
-            # A Kiro opt-out (#1178) leaves ~/.kiro entirely untouched.
-            if ($kiroAvailable -and -not $skipKiroResolved -and (Test-Path "apps\kiro-cli\skills")) {
-                $kiroSkillsDir = "$env:USERPROFILE\.kiro\skills"
-                New-Item -ItemType Directory -Force -Path $kiroSkillsDir | Out-Null
-                # Kiro-specific skills (origin baked in) come from apps/kiro-cli/skills.
-                Copy-SkillIfPresent "apps\kiro-cli\skills\plannotator-review" $kiroSkillsDir
-                Copy-SkillIfPresent "apps\kiro-cli\skills\plannotator-annotate" $kiroSkillsDir
-                # The plannotator knowledge skill (CLI reference) has no Kiro-specific
-                # form, so Kiro receives the single-sourced core copy like every other scope.
-                Copy-SkillIfPresent "apps\skills\core\plannotator" $kiroSkillsDir
-                # Two extras come from apps/skills/extra (not duplicated into apps/kiro-cli/skills).
-                Copy-SkillIfPresent "apps\skills\extra\plannotator-setup-goal" $kiroSkillsDir
-                Copy-SkillIfPresent "apps\skills\extra\plannotator-visual-explainer" $kiroSkillsDir
-                # Plannotator custom agent - don't clobber a user's existing one.
-                $kiroAgentsDir = "$env:USERPROFILE\.kiro\agents"
-                if (-not (Test-Path "$kiroAgentsDir\plannotator.json") -and (Test-Path "apps\kiro-cli\agents\plannotator.json")) {
-                    New-Item -ItemType Directory -Force -Path $kiroAgentsDir | Out-Null
-                    Copy-Item -Force "apps\kiro-cli\agents\plannotator.json" "$kiroAgentsDir\plannotator.json"
-                }
-                Write-Host "Installed Kiro skills to $kiroSkillsDir\ and agent to $kiroAgentsDir\plannotator.json"
-            }
-
-            # OpenCode command stubs -> ~/.config/opencode/commands (always,
-            # unless opted out via -SkipOpencode: #1178). The plugin
-            # intercepts execution; these stubs just register the slash
-            # commands in OpenCode.
-            if ((-not $skipOpencodeResolved) -and (Test-Path "apps\opencode-plugin\commands")) {
-                $opencodeCommandsDir = "$env:USERPROFILE\.config\opencode\commands"
-                $opencodeCmds = Get-ChildItem "apps\opencode-plugin\commands\*.md" -ErrorAction SilentlyContinue
-                if ($opencodeCmds) {
-                    New-Item -ItemType Directory -Force -Path $opencodeCommandsDir | Out-Null
-                    Copy-Item -Force "apps\opencode-plugin\commands\*.md" $opencodeCommandsDir
-                    Write-Host "Installed OpenCode commands to $opencodeCommandsDir\"
-                }
-            }
-
-            # Gemini TOML commands -> ~/.gemini/commands (only when ~/.gemini exists).
-            # These are Gemini's native command format. A Gemini opt-out
-            # (#1178) leaves ~/.gemini entirely untouched.
-            if ((Test-Path "$env:USERPROFILE\.gemini") -and -not $skipGeminiResolved -and (Test-Path "apps\gemini\commands")) {
-                $geminiCommandsDir = "$env:USERPROFILE\.gemini\commands"
-                $geminiCmds = Get-ChildItem "apps\gemini\commands\*.toml" -ErrorAction SilentlyContinue
-                if ($geminiCmds) {
-                    New-Item -ItemType Directory -Force -Path $geminiCommandsDir | Out-Null
-                    Copy-Item -Force "apps\gemini\commands\*.toml" $geminiCommandsDir
-                    Write-Host "Installed Gemini slash commands to $geminiCommandsDir\"
-                }
             }
         } finally {
             Pop-Location
@@ -1284,47 +1102,18 @@ foreach ($cmd in @("plannotator-review", "plannotator-annotate", "plannotator-la
 
 # plannotator-archive no longer ships as a skill. Remove any stale installed
 # copy from every skill scope so upgraders don't keep a dead skill around.
-foreach ($scope in @($claudeSkillsDir, $agentsSkillsDir, "$env:USERPROFILE\.kiro\skills")) {
+foreach ($scope in @($claudeSkillsDir, $agentsSkillsDir)) {
     # A skills opt-out leaves every skill scope untouched, sweep included.
     if ($skipSkillsResolved) { continue }
-    # A Kiro opt-out leaves ~/.kiro entirely untouched - including this sweep.
-    if ($skipKiroResolved -and ($scope -eq "$env:USERPROFILE\.kiro\skills")) { continue }
     $staleArchivePath = Join-Path $scope "plannotator-archive"
     if (Test-Path $staleArchivePath) {
         Write-Host "Removing stale plannotator-archive skill $staleArchivePath"
         Remove-Item -Recurse -Force $staleArchivePath -ErrorAction SilentlyContinue
     }
 }
-# The /plannotator-archive OpenCode command was removed too - sweep the stub.
-# An OpenCode opt-out suspends the sweep: skip means do-not-write, never remove.
-# A skills opt-out suspends it for the same reason.
-$staleOpencodeArchive = "$env:USERPROFILE\.config\opencode\commands\plannotator-archive.md"
-if ((-not $skipOpencodeResolved) -and (-not $skipSkillsResolved) -and (Test-Path $staleOpencodeArchive)) {
-    Write-Host "Removing stale plannotator-archive command $staleOpencodeArchive"
-    Remove-Item -Force $staleOpencodeArchive -ErrorAction SilentlyContinue
-}
-
-# Codex no longer hosts core skills (they now live in ~/.agents/skills).
-# Core skills are removed only once their replacement exists; the stale
-# shared-agent extras were never Codex's and are removed unconditionally.
-foreach ($skill in @("plannotator-review", "plannotator-annotate", "plannotator-last", "plannotator-compound", "plannotator-setup-goal")) {
-    # A Codex opt-out leaves the Codex home entirely untouched - including
-    # this stale-skill cleanup. Skip means do-not-write, never remove. A
-    # skills opt-out installed no replacement, so it suspends the sweep too.
-    if ($skipCodexResolved -or $skipSkillsResolved) { continue }
-    $staleSkillPath = Join-Path $staleCodexSkillsDir $skill
-    if (Test-Path $staleSkillPath) {
-        $isCore = $skill -in @("plannotator-review", "plannotator-annotate", "plannotator-last")
-        if ($isCore -and -not (Test-Path (Join-Path $agentsSkillsDir $skill))) { continue }
-        Write-Host "Removing stale Codex skill $staleSkillPath"
-        Remove-Item -Recurse -Force $staleSkillPath -ErrorAction SilentlyContinue
-    }
-}
-
 # Apply the saved model-invocation choices. Installed skill copies always
 # arrive locked (disable-model-invocation: true in SKILL.md); for each chosen
-# skill we unlock the INSTALLED copy by removing that line, and flip the Codex
-# sidecar's allow_implicit_invocation to match. Re-applied on every run
+# skill we unlock the INSTALLED copy by removing that line. Re-applied on every run
 # because installs replace the skill folders wholesale. Repo sources never
 # change.
 # A skills opt-out installed no skill copies this run, so there is nothing to
@@ -1350,148 +1139,6 @@ if ((-not $skipSkillsResolved) -and $invocableChoice -and ($invocableChoice -ne 
             }
         }
     }
-}
-
-# Update Pi extension if pi is installed. Pi keeps its extension commands and
-# the plannotator_submit_plan tool; it no longer bundles skills.
-Update-PiExtensionIfPresent
-
-# --- Gemini CLI support (only if Gemini is installed) ---
-$geminiDir = "$env:USERPROFILE\.gemini"
-if ((Test-Path $geminiDir) -and $skipGeminiResolved) {
-    # HONEST three-state reporting (#1178): detected-but-skipped is its own
-    # state. Nothing under ~/.gemini is created, updated, or removed.
-    Write-Host ""
-    Write-Host "Gemini: detected, skipped ($skipGeminiSource)."
-    $geminiSettingsProbe = "$geminiDir\settings.json"
-    if (Test-Path $geminiSettingsProbe) {
-        $geminiProbeContent = Get-Content -Path $geminiSettingsProbe -Raw -ErrorAction SilentlyContinue
-        if ($geminiProbeContent -match '"plannotator"') {
-            Write-Host "An existing Gemini integration at $geminiSettingsProbe was left untouched."
-        }
-    }
-} elseif (Test-Path $geminiDir) {
-    # Install policy file
-    $geminiPoliciesDir = "$geminiDir\policies"
-    New-Item -ItemType Directory -Force -Path $geminiPoliciesDir | Out-Null
-    @'
-# Plannotator policy for Gemini CLI
-# Allows exit_plan_mode without TUI confirmation so the browser UI is the sole gate.
-[[rule]]
-toolName = "exit_plan_mode"
-decision = "allow"
-priority = 100
-'@ | Set-Content -Path "$geminiPoliciesDir\plannotator.toml"
-    Write-Host "Installed Gemini policy to $geminiPoliciesDir\plannotator.toml"
-
-    # Configure hook in settings.json
-    $geminiSettings = "$geminiDir\settings.json"
-    if (Test-Path $geminiSettings) {
-        $content = Get-Content -Path $geminiSettings -Raw -ErrorAction SilentlyContinue
-        if ($content -notmatch '"plannotator"') {
-            # Merge hook into existing settings.json using node (ships with Gemini CLI)
-            if (Get-Command node -ErrorAction SilentlyContinue) {
-                $mergeScript = @"
-const fs = require('fs');
-const settings = JSON.parse(fs.readFileSync('$($geminiSettings.Replace('\','/'))', 'utf8'));
-if (!settings.hooks) settings.hooks = {};
-if (!settings.hooks.BeforeTool) settings.hooks.BeforeTool = [];
-settings.hooks.BeforeTool.push({"matcher":"exit_plan_mode","hooks":[{"type":"command","command":"plannotator","timeout":345600}]});
-fs.writeFileSync('$($geminiSettings.Replace('\','/'))', JSON.stringify(settings, null, 2) + '\n');
-"@
-                node -e $mergeScript
-                Write-Host "Added plannotator hook to $geminiSettings"
-            } else {
-                Write-Host ""
-                Write-Host "Add the following to your ~/.gemini/settings.json hooks:"
-                Write-Host ""
-                Write-Host '  "hooks": {'
-                Write-Host '    "BeforeTool": [{'
-                Write-Host '      "matcher": "exit_plan_mode",'
-                Write-Host '      "hooks": [{"type": "command", "command": "plannotator", "timeout": 345600}]'
-                Write-Host '    }]'
-                Write-Host '  }'
-            }
-        }
-    } else {
-        @'
-{
-  "hooks": {
-    "BeforeTool": [
-      {
-        "matcher": "exit_plan_mode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "plannotator",
-            "timeout": 345600
-          }
-        ]
-      }
-    ]
-  },
-  "experimental": {
-    "plan": true
-  }
-}
-'@ | Set-Content -Path $geminiSettings
-        Write-Host "Created Gemini settings at $geminiSettings"
-    }
-
-    # Gemini slash command TOMLs are copied from the sparse checkout
-    # (apps/gemini/commands) in the git-gated skills/commands install above.
-}
-
-Write-Host ""
-Write-Host "=========================================="
-Write-Host "  OPENCODE USERS"
-Write-Host "=========================================="
-Write-Host ""
-if ($skipOpencodeResolved) {
-    Write-Host "OpenCode: integration skipped ($skipOpencodeSource)."
-    Write-Host "No command stubs were written and OpenCode's plugin cache was left alone."
-    Write-Host "Re-run without the opt-out to install the command stubs."
-} elseif ($skipSkillsResolved) {
-    # The stubs ship in the skills checkout, so this run installed none.
-    Write-Host "Add the plugin to your opencode.json:"
-    Write-Host ""
-    Write-Host '  "plugin": ["@plannotator/opencode@latest"]'
-    Write-Host ""
-    Write-Host "Skills were skipped ($skipSkillsSource), so no /plannotator-* command"
-    Write-Host "stubs were installed. Re-run without the opt-out to add them."
-} else {
-    Write-Host "Add the plugin to your opencode.json:"
-    Write-Host ""
-    Write-Host '  "plugin": ["@plannotator/opencode@latest"]'
-    Write-Host ""
-    Write-Host "Then restart OpenCode. The /plannotator-review, /plannotator-annotate, and /plannotator-last commands are ready!"
-}
-Write-Host ""
-Write-Host "=========================================="
-Write-Host "  PI USERS"
-Write-Host "=========================================="
-Write-Host ""
-Write-Host "Install or update the extension:"
-Write-Host ""
-Write-Host "  pi install npm:@plannotator/pi-extension"
-Write-Host ""
-Write-Host "=========================================="
-Write-Host "  KIRO CLI USERS"
-Write-Host "=========================================="
-Write-Host ""
-if ($kiroAvailable -and $skipKiroResolved) {
-    Write-Host "Kiro was detected, but the integration was skipped ($skipKiroSource)."
-    Write-Host "No files under $env:USERPROFILE\.kiro were written or removed. Re-run"
-    Write-Host "without the opt-out to add Kiro skills."
-} elseif ($kiroAvailable -and $skipSkillsResolved) {
-    Write-Host "Kiro was detected, but skills were skipped ($skipSkillsSource), so no"
-    Write-Host "Kiro skills or agent were installed. Re-run without the opt-out to add them."
-} elseif ($kiroAvailable) {
-    Write-Host "Kiro skills are installed to $env:USERPROFILE\.kiro\skills\"
-    Write-Host "The Plannotator agent is installed to $env:USERPROFILE\.kiro\agents\plannotator.json"
-    Write-Host "Launch it: kiro-cli chat --agent plannotator"
-} else {
-    Write-Host "Kiro was not detected. After installing Kiro, rerun this installer to add Kiro skills."
 }
 Write-Host ""
 Write-Host "=========================================="

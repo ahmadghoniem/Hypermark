@@ -21,7 +21,6 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startReviewServer as startBunReviewServer } from "./review";
-import { startReviewServer as startPiReviewServer } from "../../apps/pi-extension/server";
 import { parseFeedbackIndex } from "@plannotator/shared/feedback-archive";
 
 const MINIMAL_HTML = "<html><body>Plannotator</body></html>";
@@ -81,7 +80,14 @@ afterEach(() => {
     else process.env[key] = value;
     delete savedEnv[key];
   }
-  for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  for (const dir of tempDirs.splice(0)) {
+    try {
+      rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    } catch {
+      // Windows can hold a transient handle on a just-used temp git repo; the OS
+      // reclaims it. Teardown noise must not fail a passing assertion.
+    }
+  }
 });
 
 interface RunningReview {
@@ -102,16 +108,6 @@ const runtimes: Array<{ name: string; start: () => Promise<RunningReview> }> = [
         rawPatch: PATCH,
         gitRef: "HEAD",
         origin: "claude-code",
-        htmlContent: MINIMAL_HTML,
-      }) as unknown as Promise<RunningReview>,
-  },
-  {
-    name: "Pi review",
-    start: () =>
-      startPiReviewServer({
-        rawPatch: PATCH,
-        gitRef: "HEAD",
-        origin: "pi",
         htmlContent: MINIMAL_HTML,
       }) as unknown as Promise<RunningReview>,
   },

@@ -27,17 +27,9 @@ REM Binary-only mode. Installs just plannotator.exe and no persistent state
 REM elsewhere. Set by --minimal (1) / --no-minimal (0); -1 = neither flag given
 REM (fall through to the PLANNOTATOR_MINIMAL env var, resolved after :args_done).
 set "MINIMAL_FLAG=-1"
-REM Per-agent integration opt-outs (#1178). Skip means do-not-write: a skipped
-REM agent's home is neither written to nor cleaned up, and detected-but-skipped
-REM is reported honestly. Resolution (flag > env var > config skipInstall.<agent>
-REM > default off) happens after _CONFIG_DIR is known.
-set "SKIP_CODEX_FLAG=0"
-set "SKIP_GEMINI_FLAG=0"
-set "SKIP_KIRO_FLAG=0"
-set "SKIP_OPENCODE_FLAG=0"
 REM Same shape, but scoped to the skills/slash-command sparse checkout rather
 REM than one agent's home: --skip-skills turns the whole fetch into a no-op for
-REM every scope it writes (Claude, .agents, OpenCode, Gemini, Kiro), including
+REM every scope it writes (Claude, .agents), including
 REM the extras and the skill-scope cleanup sweeps.
 set "SKIP_SKILLS_FLAG=0"
 
@@ -146,26 +138,6 @@ if /i "%~1"=="--no-minimal" (
     shift
     goto parse_args
 )
-if /i "%~1"=="--skip-codex" (
-    set "SKIP_CODEX_FLAG=1"
-    shift
-    goto parse_args
-)
-if /i "%~1"=="--skip-gemini" (
-    set "SKIP_GEMINI_FLAG=1"
-    shift
-    goto parse_args
-)
-if /i "%~1"=="--skip-kiro" (
-    set "SKIP_KIRO_FLAG=1"
-    shift
-    goto parse_args
-)
-if /i "%~1"=="--skip-opencode" (
-    set "SKIP_OPENCODE_FLAG=1"
-    shift
-    goto parse_args
-)
 if /i "%~1"=="--skip-skills" (
     set "SKIP_SKILLS_FLAG=1"
     shift
@@ -185,7 +157,7 @@ REM unquoted arg containing `&` would re-trigger metacharacter interpretation.
 set "CURRENT_ARG=%~1"
 if "!CURRENT_ARG:~0,1!"=="-" (
     echo Unknown option: "%~1" >&2
-    echo Usage: install.cmd [--version ^<tag^>] [--verify-attestation ^| --skip-attestation] [--with-call-flow] [--extras ^| --no-extras] [--model-invocable ^<list^>] [--minimal ^| --no-minimal] [--skip-codex] [--skip-gemini] [--skip-kiro] [--skip-opencode] [--skip-skills] [--non-interactive] [--reconfigure] >&2
+    echo Usage: install.cmd [--version ^<tag^>] [--verify-attestation ^| --skip-attestation] [--with-call-flow] [--extras ^| --no-extras] [--model-invocable ^<list^>] [--minimal ^| --no-minimal] [--skip-skills] [--non-interactive] [--reconfigure] >&2
     exit /b 1
 )
 REM Positional form: install.cmd vX.Y.Z (legacy interface).
@@ -472,85 +444,19 @@ if /i "!PLANNOTATOR_INSTALL_CALLDIFF!"=="false" set "INSTALL_CALL_FLOW=0"
 if /i "!PLANNOTATOR_INSTALL_CALLDIFF!"=="no"    set "INSTALL_CALL_FLOW=0"
 if "!WITH_CALL_FLOW_FLAG!"=="1" set "INSTALL_CALL_FLOW=1"
 
-REM Resolve the per-agent integration opt-outs (#1178). Same three-layer shape
-REM as verifyAttestation: CLI flag > env var > config skipInstall.<agent> >
-REM default (off). The config layer parses the REAL JSON with PowerShell
-REM (M2): findstr is line-oblivious, so a "codex": true under some OTHER key
-REM would have opted users out, and an explicit false inside skipInstall
-REM would have been ignored. PowerShell reads the actual skipInstall object
-REM (strict boolean check, matching install.ps1) and emits one agent name
-REM per enabled skip; the config path travels via an env var so nothing is
-REM re-parsed as code. Each resolved skip remembers its source so the
-REM detected-but-skipped report can name what the user set.
-set "SKIP_CODEX=0"
-set "SKIP_CODEX_SOURCE="
-set "SKIP_GEMINI=0"
-set "SKIP_GEMINI_SOURCE="
-set "SKIP_KIRO=0"
-set "SKIP_KIRO_SOURCE="
-set "SKIP_OPENCODE=0"
-set "SKIP_OPENCODE_SOURCE="
 REM skipInstall.skills is not an agent - it opts out of the skills/slash-command
 REM checkout for every scope at once - but it shares the same three layers.
 set "SKIP_SKILLS=0"
 set "SKIP_SKILLS_SOURCE="
 if exist "!_CONFIG_DIR!\config.json" (
     set "PLN_CONFIG_JSON=!_CONFIG_DIR!\config.json"
-    for /f "usebackq delims=" %%K in (`powershell -NoProfile -Command "try { $c = Get-Content $env:PLN_CONFIG_JSON -Raw | ConvertFrom-Json } catch { exit 0 }; if (-not $c.skipInstall) { exit 0 }; foreach ($k in @('codex','gemini','kiro','opencode','skills')) { $v = $c.skipInstall.$k; if ($v -is [bool] -and $v) { $k } }"`) do (
-        if /i "%%K"=="codex" (
-            set "SKIP_CODEX=1"
-            set "SKIP_CODEX_SOURCE=config skipInstall.codex"
-        )
-        if /i "%%K"=="gemini" (
-            set "SKIP_GEMINI=1"
-            set "SKIP_GEMINI_SOURCE=config skipInstall.gemini"
-        )
-        if /i "%%K"=="kiro" (
-            set "SKIP_KIRO=1"
-            set "SKIP_KIRO_SOURCE=config skipInstall.kiro"
-        )
-        if /i "%%K"=="opencode" (
-            set "SKIP_OPENCODE=1"
-            set "SKIP_OPENCODE_SOURCE=config skipInstall.opencode"
-        )
+    for /f "usebackq delims=" %%K in (`powershell -NoProfile -Command "try { $c = Get-Content $env:PLN_CONFIG_JSON -Raw | ConvertFrom-Json } catch { exit 0 }; if (-not $c.skipInstall) { exit 0 }; foreach ($k in @('skills')) { $v = $c.skipInstall.$k; if ($v -is [bool] -and $v) { $k } }"`) do (
         if /i "%%K"=="skills" (
             set "SKIP_SKILLS=1"
             set "SKIP_SKILLS_SOURCE=config skipInstall.skills"
         )
     )
     set "PLN_CONFIG_JSON="
-)
-for %%V in (1 true yes) do if /i "!PLANNOTATOR_SKIP_CODEX_INSTALL!"=="%%V" (
-    set "SKIP_CODEX=1"
-    set "SKIP_CODEX_SOURCE=PLANNOTATOR_SKIP_CODEX_INSTALL"
-)
-for %%V in (0 false no) do if /i "!PLANNOTATOR_SKIP_CODEX_INSTALL!"=="%%V" (
-    set "SKIP_CODEX=0"
-    set "SKIP_CODEX_SOURCE="
-)
-for %%V in (1 true yes) do if /i "!PLANNOTATOR_SKIP_GEMINI_INSTALL!"=="%%V" (
-    set "SKIP_GEMINI=1"
-    set "SKIP_GEMINI_SOURCE=PLANNOTATOR_SKIP_GEMINI_INSTALL"
-)
-for %%V in (0 false no) do if /i "!PLANNOTATOR_SKIP_GEMINI_INSTALL!"=="%%V" (
-    set "SKIP_GEMINI=0"
-    set "SKIP_GEMINI_SOURCE="
-)
-for %%V in (1 true yes) do if /i "!PLANNOTATOR_SKIP_KIRO_INSTALL!"=="%%V" (
-    set "SKIP_KIRO=1"
-    set "SKIP_KIRO_SOURCE=PLANNOTATOR_SKIP_KIRO_INSTALL"
-)
-for %%V in (0 false no) do if /i "!PLANNOTATOR_SKIP_KIRO_INSTALL!"=="%%V" (
-    set "SKIP_KIRO=0"
-    set "SKIP_KIRO_SOURCE="
-)
-for %%V in (1 true yes) do if /i "!PLANNOTATOR_SKIP_OPENCODE_INSTALL!"=="%%V" (
-    set "SKIP_OPENCODE=1"
-    set "SKIP_OPENCODE_SOURCE=PLANNOTATOR_SKIP_OPENCODE_INSTALL"
-)
-for %%V in (0 false no) do if /i "!PLANNOTATOR_SKIP_OPENCODE_INSTALL!"=="%%V" (
-    set "SKIP_OPENCODE=0"
-    set "SKIP_OPENCODE_SOURCE="
 )
 for %%V in (1 true yes) do if /i "!PLANNOTATOR_SKIP_SKILLS_INSTALL!"=="%%V" (
     set "SKIP_SKILLS=1"
@@ -559,22 +465,6 @@ for %%V in (1 true yes) do if /i "!PLANNOTATOR_SKIP_SKILLS_INSTALL!"=="%%V" (
 for %%V in (0 false no) do if /i "!PLANNOTATOR_SKIP_SKILLS_INSTALL!"=="%%V" (
     set "SKIP_SKILLS=0"
     set "SKIP_SKILLS_SOURCE="
-)
-if "!SKIP_CODEX_FLAG!"=="1" (
-    set "SKIP_CODEX=1"
-    set "SKIP_CODEX_SOURCE=--skip-codex"
-)
-if "!SKIP_GEMINI_FLAG!"=="1" (
-    set "SKIP_GEMINI=1"
-    set "SKIP_GEMINI_SOURCE=--skip-gemini"
-)
-if "!SKIP_KIRO_FLAG!"=="1" (
-    set "SKIP_KIRO=1"
-    set "SKIP_KIRO_SOURCE=--skip-kiro"
-)
-if "!SKIP_OPENCODE_FLAG!"=="1" (
-    set "SKIP_OPENCODE=1"
-    set "SKIP_OPENCODE_SOURCE=--skip-opencode"
 )
 if "!SKIP_SKILLS_FLAG!"=="1" (
     set "SKIP_SKILLS=1"
@@ -893,68 +783,6 @@ echo }
     echo Updated plugin hooks at !PLUGIN_HOOKS!
 )
 
-REM Codex hooks on Windows are still experimental upstream. Do not mutate
-REM the Codex home automatically from the cmd installer until that path
-REM is verified end-to-end.
-REM Codex stores config and state under CODEX_HOME when set, falling back to
-REM %%USERPROFILE%%\.codex (developers.openai.com/codex/config-advanced). (#852)
-set "CODEX_DIR=%USERPROFILE%\.codex"
-if defined CODEX_HOME set "CODEX_DIR=%CODEX_HOME%"
-set "CODEX_AVAILABLE=0"
-where codex >nul 2>&1
-if !ERRORLEVEL! equ 0 set "CODEX_AVAILABLE=1"
-if exist "!CODEX_DIR!" (
-    for /f "delims=" %%C in ('dir /b /a "!CODEX_DIR!" 2^>nul') do (
-        if /i not "%%C"=="skills" if /i not "%%C"==".DS_Store" set "CODEX_AVAILABLE=1"
-    )
-)
-REM Kiro is auto-detected like Codex/Gemini: PATH executable or an existing %USERPROFILE%\.kiro.
-set "KIRO_AVAILABLE=0"
-where kiro-cli >nul 2>&1
-if !ERRORLEVEL! equ 0 set "KIRO_AVAILABLE=1"
-if exist "%USERPROFILE%\.kiro" set "KIRO_AVAILABLE=1"
-REM HONEST three-state reporting (#1178): detected-but-skipped is its own
-REM state, never conflated with "not detected". A Codex opt-out leaves the
-REM Codex home entirely untouched (no writes, no cleanup, no removal).
-if "!CODEX_AVAILABLE!"=="1" if "!SKIP_CODEX!"=="1" (
-    echo.
-    echo Codex: detected, skipped ^(!SKIP_CODEX_SOURCE!^).
-    echo The Windows installer only prints manual Codex setup instructions; they
-    echo were suppressed.
-    REM M4: the existing-integration note only fires when hooks.json actually
-    REM references plannotator - mere existence proves nothing, since the
-    REM file may hold only the user's own hooks.
-    if exist "!CODEX_DIR!\hooks.json" (
-        findstr /c:"plannotator" "!CODEX_DIR!\hooks.json" >nul 2>&1
-        if !ERRORLEVEL! equ 0 echo Your existing Codex Stop hook at !CODEX_DIR!\hooks.json is unaffected.
-    )
-    echo Note: the shared agent skills in %USERPROFILE%\.agents\skills serve multiple
-    echo agents ^(Codex among them^) and are still installed.
-)
-if "!CODEX_AVAILABLE!"=="1" if "!SKIP_CODEX!"=="0" (
-    echo.
-    echo Codex detected.
-    echo Codex plan review hooks are experimental on Windows. To try them manually:
-    echo.
-    echo   1. Add this to !CODEX_DIR!\config.toml:
-    echo.
-    echo      [features]
-    echo      hooks = true
-    echo.
-    echo   2. Add a Stop hook in !CODEX_DIR!\hooks.json that runs:
-    echo.
-    echo      !INSTALL_PATH!
-    echo.
-)
-
-REM Clear any cached OpenCode plugin to force fresh download on next run.
-REM An OpenCode opt-out (#1178) leaves OpenCode's own cache directory alone;
-REM the Bun package cache is a shared cache, not OpenCode's home, and is
-REM always cleared.
-if "!SKIP_OPENCODE!"=="0" (
-    if exist "%USERPROFILE%\.cache\opencode\node_modules\@plannotator" rmdir /s /q "%USERPROFILE%\.cache\opencode\node_modules\@plannotator" >nul 2>&1
-    if exist "%USERPROFILE%\.cache\opencode\packages\@plannotator" rmdir /s /q "%USERPROFILE%\.cache\opencode\packages\@plannotator" >nul 2>&1
-)
 if exist "%USERPROFILE%\.bun\install\cache\@plannotator" rmdir /s /q "%USERPROFILE%\.bun\install\cache\@plannotator" >nul 2>&1
 
 REM ----------------------------------------------------------------------
@@ -968,10 +796,6 @@ REM Install matrix (all copies verbatim, copy-if-present so older-tag pinned
 REM installs never fail when a source dir is absent):
 REM   %%USERPROFILE%%\.claude\skills            <- apps\skills\core\* (all 4)
 REM   %%USERPROFILE%%\.agents\skills            <- apps\skills\core\* (all 4)
-REM   %%USERPROFILE%%\.kiro\skills              <- apps\kiro-cli\skills\* (3) + 2 extras (when kiro detected)
-REM   %%USERPROFILE%%\.config\opencode\commands <- apps\opencode-plugin\commands\*.md (always)
-REM   %%USERPROFILE%%\.gemini\commands          <- apps\gemini\commands\*.toml (when ~/.gemini exists)
-REM Nothing goes to the Codex home (CODEX_DIR\skills) anymore.
 REM ----------------------------------------------------------------------
 
 REM Aggressive cleanup on upgrade - echo each removal, ignore missing.
@@ -983,11 +807,6 @@ if defined CLAUDE_CONFIG_DIR (
 ) else (
     set "CLAUDE_COMMANDS_DIR=%USERPROFILE%\.claude\commands"
 )
-
-REM NOTE: Codex stale-skill cleanup happens AFTER the skill install below -
-REM the core skills are only removed from the Codex home once their
-REM replacement exists in %%USERPROFILE%%\.agents\skills.
-set "STALE_CODEX_SKILLS_DIR=!CODEX_DIR!\skills"
 
 REM Old installers (pre core/extra split) ran a wholesale skills copy against
 REM a new-layout tag and could leave junk core/extra directory copies in the
@@ -1121,8 +940,6 @@ if "!SKIP_SKILLS!"=="0" if "!EXTRAS_CHOICE!"=="yes" if "!EXTRAS_PRESENT!"=="0" (
 REM File-copy installs require git (sparse checkout). Hard requirement: without
 REM git we cannot install the /plannotator-* skills, so fail loudly instead of
 REM leaving a partial install. Hook/config writing above has already run; the
-REM Pi update and Gemini config below are skipped on failure and complete when
-REM the user re-runs the installer.
 REM
 REM Skills/commands opt-out (--skip-skills / PLANNOTATOR_SKIP_SKILLS_INSTALL /
 REM skipInstall.skills). HONEST reporting like the per-agent family: the skipped
@@ -1145,10 +962,6 @@ if "!SKIP_SKILLS!"=="1" (
     )
 )
 set "CHECKOUT_FAILED=0"
-set "KIRO_SKILLS_DIR=%USERPROFILE%\.kiro\skills"
-set "KIRO_AGENTS_DIR=%USERPROFILE%\.kiro\agents"
-set "OPENCODE_COMMANDS_DIR=%USERPROFILE%\.config\opencode\commands"
-set "GEMINI_COMMANDS_DIR=%USERPROFILE%\.gemini\commands"
 set "SKILLS_TMP=%TEMP%\plannotator-skills-%RANDOM%"
 REM git's stderr is captured OUTSIDE SKILLS_TMP (which is removed before the
 REM failure message prints) so a failed clone can show the real git error
@@ -1196,12 +1009,12 @@ if "!SPARSE_UNSUPPORTED!"=="1" (
 
 if "!CLONE_OK!"=="1" (
     pushd "!SKILLS_TMP!\repo"
-    if "!SPARSE_CLONE!"=="1" git sparse-checkout set apps/skills apps/kiro-cli apps/opencode-plugin/commands apps/gemini/commands >nul 2>&1
+    if "!SPARSE_CLONE!"=="1" git sparse-checkout set apps/skills >nul 2>&1
 
     REM Claude Code reads apps\skills\claude\* (injection `!`plannotator ... $ARGUMENTS``
-    REM + allowed-tools, so /plannotator-* run with no permission prompt); Codex
+    REM + allowed-tools, so /plannotator-* run with no permission prompt); the
     REM reads apps\skills\core\* (prose). The `!`...`` injection is Claude-Code-only,
-    REM so the two are sourced separately. Replace rather than merge on each run.
+    REM Claude-Code-only, so the two are sourced separately. Replace on each run.
     if exist "apps\skills\claude" (
         if not exist "!CLAUDE_SKILLS_DIR!" mkdir "!CLAUDE_SKILLS_DIR!"
         for %%S in (plannotator-review plannotator-annotate plannotator-last) do (
@@ -1232,54 +1045,8 @@ if "!CLONE_OK!"=="1" (
         echo Tag !TAG! predates the core/extra skill layout - skipping core skill install
     )
 
-    REM OpenCode command stubs -> always (plugin intercepts execution),
-    REM unless opted out via --skip-opencode (#1178).
-    if "!SKIP_OPENCODE!"=="0" if exist "apps\opencode-plugin\commands" (
-        if not exist "!OPENCODE_COMMANDS_DIR!" mkdir "!OPENCODE_COMMANDS_DIR!"
-        xcopy /y /q "apps\opencode-plugin\commands\*.md" "!OPENCODE_COMMANDS_DIR!\" >nul 2>&1
-        echo Installed OpenCode commands to !OPENCODE_COMMANDS_DIR!\
     )
 
-    REM Gemini TOML commands -> only when ~/.gemini exists (Gemini's native
-    REM format) and not opted out (#1178).
-    if exist "%USERPROFILE%\.gemini" if "!SKIP_GEMINI!"=="0" if exist "apps\gemini\commands" (
-        if not exist "!GEMINI_COMMANDS_DIR!" mkdir "!GEMINI_COMMANDS_DIR!"
-        xcopy /y /q "apps\gemini\commands\*.toml" "!GEMINI_COMMANDS_DIR!\" >nul 2>&1
-        echo Installed Gemini commands to !GEMINI_COMMANDS_DIR!\
-    )
-
-    REM Kiro -> hand-maintained kiro skills (3) + 2 extras, only when detected
-    REM and not opted out (#1178: a Kiro opt-out leaves ~/.kiro untouched).
-    if "!KIRO_AVAILABLE!"=="1" if "!SKIP_KIRO!"=="0" if exist "apps\kiro-cli\skills" (
-        if not exist "!KIRO_SKILLS_DIR!" mkdir "!KIRO_SKILLS_DIR!"
-        REM Kiro-specific skills with origin baked in come from apps\kiro-cli\skills.
-        for %%S in (plannotator-review plannotator-annotate) do (
-            if exist "apps\kiro-cli\skills\%%S" (
-                if exist "!KIRO_SKILLS_DIR!\%%S" rmdir /s /q "!KIRO_SKILLS_DIR!\%%S" >nul 2>&1
-                xcopy /s /i /y /q "apps\kiro-cli\skills\%%S" "!KIRO_SKILLS_DIR!\%%S\" >nul 2>&1
-            )
-        )
-        REM The plannotator knowledge skill (CLI reference) has no Kiro-specific
-        REM form, so Kiro receives the single-sourced core copy like every other scope.
-        if exist "apps\skills\core\plannotator" (
-            if exist "!KIRO_SKILLS_DIR!\plannotator" rmdir /s /q "!KIRO_SKILLS_DIR!\plannotator" >nul 2>&1
-            xcopy /s /i /y /q "apps\skills\core\plannotator" "!KIRO_SKILLS_DIR!\plannotator\" >nul 2>&1
-        )
-        REM The two extras Kiro keeps receiving come from apps\skills\extra.
-        if exist "apps\skills\extra\plannotator-setup-goal" (
-            if exist "!KIRO_SKILLS_DIR!\plannotator-setup-goal" rmdir /s /q "!KIRO_SKILLS_DIR!\plannotator-setup-goal" >nul 2>&1
-            xcopy /s /i /y /q "apps\skills\extra\plannotator-setup-goal" "!KIRO_SKILLS_DIR!\plannotator-setup-goal\" >nul 2>&1
-        )
-        if exist "apps\skills\extra\plannotator-visual-explainer" (
-            if exist "!KIRO_SKILLS_DIR!\plannotator-visual-explainer" rmdir /s /q "!KIRO_SKILLS_DIR!\plannotator-visual-explainer" >nul 2>&1
-            xcopy /s /i /y /q "apps\skills\extra\plannotator-visual-explainer" "!KIRO_SKILLS_DIR!\plannotator-visual-explainer\" >nul 2>&1
-        )
-        REM Plannotator custom agent - don't clobber a user's existing one.
-        if not exist "!KIRO_AGENTS_DIR!\plannotator.json" if exist "apps\kiro-cli\agents\plannotator.json" (
-            if not exist "!KIRO_AGENTS_DIR!" mkdir "!KIRO_AGENTS_DIR!"
-            copy /y "apps\kiro-cli\agents\plannotator.json" "!KIRO_AGENTS_DIR!\plannotator.json" >nul 2>&1
-        )
-        echo Installed Kiro skills to !KIRO_SKILLS_DIR!\ and agent to !KIRO_AGENTS_DIR!\plannotator.json
     )
 
     popd
@@ -1317,49 +1084,20 @@ for %%C in (plannotator-review plannotator-annotate plannotator-last) do (
 
 REM plannotator-archive no longer ships as a skill. Remove any stale installed
 REM copy from every skill scope so upgraders don't keep a dead skill around.
-for %%D in ("!CLAUDE_SKILLS_DIR!" "!AGENTS_SKILLS_DIR!" "!KIRO_SKILLS_DIR!") do (
-    REM A Kiro opt-out leaves ~/.kiro entirely untouched - including this sweep.
+for %%D in ("!CLAUDE_SKILLS_DIR!" "!AGENTS_SKILLS_DIR!") do (
     REM A skills opt-out leaves every skill scope untouched, sweep included.
     set "SCOPE_OK=1"
     if "!SKIP_SKILLS!"=="1" set "SCOPE_OK=0"
-    if /i "%%~D"=="!KIRO_SKILLS_DIR!" if "!SKIP_KIRO!"=="1" set "SCOPE_OK=0"
     if "!SCOPE_OK!"=="1" if exist "%%~D\plannotator-archive" (
         rmdir /s /q "%%~D\plannotator-archive" >nul 2>&1
         echo Removed stale plannotator-archive skill from %%~D\plannotator-archive
     )
 )
 
-REM The /plannotator-archive OpenCode command was removed too - sweep the stub.
-REM An OpenCode opt-out suspends the sweep: skip means do-not-write, never remove.
-REM A skills opt-out suspends it for the same reason.
-if "!SKIP_OPENCODE!"=="0" if "!SKIP_SKILLS!"=="0" if exist "!OPENCODE_COMMANDS_DIR!\plannotator-archive.md" (
-    del /q "!OPENCODE_COMMANDS_DIR!\plannotator-archive.md" >nul 2>&1
-    echo Removed stale plannotator-archive command from !OPENCODE_COMMANDS_DIR!
-)
-
-REM Codex no longer hosts core skills (they live in %%USERPROFILE%%\.agents\skills).
-REM Core skills are removed only once their replacement exists; the stale
-REM shared-agent extras were never Codex's and are removed unconditionally.
-for %%S in (plannotator-review plannotator-annotate plannotator-last plannotator-compound plannotator-setup-goal) do (
-    REM A Codex opt-out leaves the Codex home entirely untouched - including
-    REM this stale-skill cleanup. Skip means do-not-write, never remove. A
-    REM skills opt-out installed no replacement, so it suspends the sweep too.
-    if "!SKIP_CODEX!"=="0" if "!SKIP_SKILLS!"=="0" if exist "!STALE_CODEX_SKILLS_DIR!\%%S" (
-        set "OK_REMOVE=1"
-        if "%%S"=="plannotator-review" if not exist "!AGENTS_SKILLS_DIR!\%%S" set "OK_REMOVE=0"
-        if "%%S"=="plannotator-annotate" if not exist "!AGENTS_SKILLS_DIR!\%%S" set "OK_REMOVE=0"
-        if "%%S"=="plannotator-last" if not exist "!AGENTS_SKILLS_DIR!\%%S" set "OK_REMOVE=0"
-        if "!OK_REMOVE!"=="1" (
-            rmdir /s /q "!STALE_CODEX_SKILLS_DIR!\%%S" >nul 2>&1
-            echo Removed Plannotator skill from !STALE_CODEX_SKILLS_DIR!\%%S
-        )
-    )
-)
-
 REM Apply the saved model-invocation choices. Installed skill copies always
 REM arrive locked (disable-model-invocation: true in SKILL.md); for each
 REM chosen skill we unlock the INSTALLED copy by removing that line, and flip
-REM the Codex sidecar's allow_implicit_invocation to match. Re-applied on
+REM Re-applied on
 REM every run because installs replace the skill folders wholesale.
 REM A skills opt-out installed no skill copies this run, so there is nothing to
 REM unlock - and rewriting a PREVIOUS run's SKILL.md would be a write the
@@ -1385,123 +1123,15 @@ if "!SKIP_SKILLS!"=="0" if defined INVOCABLE_CHOICE if not "!INVOCABLE_CHOICE!"=
     )
 )
 
-REM Update Pi extension if pi is installed. Pi keeps its 6 extension commands
-REM and the plannotator_submit_plan tool; it no longer bundles skills, so there
-REM is no settings.json package-skills filter to configure.
-where pi >nul 2>&1
-if !ERRORLEVEL! equ 0 (
-    echo Updating Pi extension...
-    pi install npm:@plannotator/pi-extension
-    if !ERRORLEVEL! equ 0 (
-        echo Pi extension updated.
-    ) else (
-        echo Skipping Pi update ^(pi install failed^)
     )
 )
 
-REM --- Gemini CLI support (only if Gemini is installed) ---
-REM HONEST three-state reporting (#1178): detected-but-skipped is its own
-REM state. A Gemini opt-out leaves ~/.gemini entirely untouched.
-if exist "%USERPROFILE%\.gemini" if "!SKIP_GEMINI!"=="1" (
-    echo.
-    echo Gemini: detected, skipped ^(!SKIP_GEMINI_SOURCE!^).
-    if exist "%USERPROFILE%\.gemini\settings.json" (
-        findstr /c:"plannotator" "%USERPROFILE%\.gemini\settings.json" >nul 2>&1
-        if !ERRORLEVEL! equ 0 echo An existing Gemini integration at %USERPROFILE%\.gemini\settings.json was left untouched.
-    )
-)
-if exist "%USERPROFILE%\.gemini" if "!SKIP_GEMINI!"=="0" (
-    REM Install policy file
-    if not exist "%USERPROFILE%\.gemini\policies" mkdir "%USERPROFILE%\.gemini\policies"
-    (
-echo # Plannotator policy for Gemini CLI
-echo # Allows exit_plan_mode without TUI confirmation so the browser UI is the sole gate.
-echo [[rule]]
-echo toolName = "exit_plan_mode"
-echo decision = "allow"
-echo priority = 100
-    ) > "%USERPROFILE%\.gemini\policies\plannotator.toml"
-    echo Installed Gemini policy to %USERPROFILE%\.gemini\policies\plannotator.toml
-
-    REM Configure hook in settings.json
-    if not exist "%USERPROFILE%\.gemini\settings.json" (
-        (
-echo {
-echo   "hooks": {
-echo     "BeforeTool": [
-echo       {
-echo         "matcher": "exit_plan_mode",
-echo         "hooks": [
-echo           {
-echo             "type": "command",
-echo             "command": "plannotator",
-echo             "timeout": 345600
-echo           }
-echo         ]
-echo       }
-echo     ]
-echo   },
-echo   "experimental": {
-echo     "plan": true
-echo   }
-echo }
-        ) > "%USERPROFILE%\.gemini\settings.json"
-        echo Created Gemini settings at %USERPROFILE%\.gemini\settings.json
-    ) else (
-        findstr /c:"plannotator" "%USERPROFILE%\.gemini\settings.json" >nul 2>&1
-        if !ERRORLEVEL! neq 0 (
-            REM Merge hook into existing settings.json using node (ships with Gemini CLI)
-            where node >nul 2>&1
-            if !ERRORLEVEL! equ 0 (
-                set "GEMINI_SETTINGS_PATH=%USERPROFILE%\.gemini\settings.json"
-                set "GEMINI_SETTINGS_FWD=!GEMINI_SETTINGS_PATH:\=/!"
-                node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('!GEMINI_SETTINGS_FWD!','utf8'));s.hooks=s.hooks||{};s.hooks.BeforeTool=s.hooks.BeforeTool||[];s.hooks.BeforeTool.push({matcher:'exit_plan_mode',hooks:[{type:'command',command:'plannotator',timeout:345600}]});fs.writeFileSync('!GEMINI_SETTINGS_FWD!',JSON.stringify(s,null,2)+'\n');"
-                echo Added plannotator hook to !GEMINI_SETTINGS_PATH!
-            ) else (
-                echo.
-                echo Add the following to your ~/.gemini/settings.json hooks:
-                echo.
-                echo   "hooks": {
-                echo     "BeforeTool": [{
-                echo       "matcher": "exit_plan_mode",
-                echo       "hooks": [{"type": "command", "command": "plannotator", "timeout": 345600}]
-                echo     }]
-                echo   }
-            )
-        )
-    )
-
-    REM Gemini slash commands (plannotator-*.toml) are copied from the sparse
-    REM checkout in the git-gated skills/commands block above, not written here.
 )
 
-if "!SKIP_OPENCODE!"=="1" (
-    echo.
-    echo OpenCode: integration skipped ^(!SKIP_OPENCODE_SOURCE!^).
-    echo No command stubs were written and OpenCode's plugin cache was left alone.
-    echo Re-run without the opt-out to install the command stubs.
 )
 
 echo.
 echo ==========================================
-echo   KIRO CLI USERS
-echo ==========================================
-echo.
-if "!KIRO_AVAILABLE!"=="1" (
-    if "!SKIP_KIRO!"=="1" (
-        echo Kiro was detected, but the integration was skipped ^(!SKIP_KIRO_SOURCE!^).
-        echo No files under %USERPROFILE%\.kiro were written or removed. Re-run
-        echo without the opt-out to add Kiro skills.
-    ) else if "!SKIP_SKILLS!"=="1" (
-        echo Kiro was detected, but skills were skipped ^(!SKIP_SKILLS_SOURCE!^), so no
-        echo Kiro skills or agent were installed. Re-run without the opt-out to add them.
-    ) else (
-        echo Kiro skills are installed to %USERPROFILE%\.kiro\skills\
-        echo The Plannotator agent is installed to %USERPROFILE%\.kiro\agents\plannotator.json
-        echo Launch it: kiro-cli chat --agent plannotator
-    )
-) else (
-    echo Kiro was not detected. After installing Kiro, rerun this installer to add Kiro skills.
 )
 
 echo.

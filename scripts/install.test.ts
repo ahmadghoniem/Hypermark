@@ -591,7 +591,7 @@ describe("install.ps1", () => {
   test("installs core skills via git sparse-checkout to claude + agents", () => {
     expect(script).toContain("git clone --depth 1 --filter=blob:none --sparse");
     expect(script).toContain(
-      "git sparse-checkout set apps/skills apps/kiro-cli apps/opencode-plugin/commands apps/gemini/commands",
+      "git sparse-checkout set apps/skills",
     );
     expect(script).toContain("claudeSkillsDir");
     expect(script).toContain("agentsSkillsDir");
@@ -617,13 +617,6 @@ describe("install.ps1", () => {
     expect(script).toContain("checkoutFailed");
   });
 
-  test("installs OpenCode and Gemini commands from the checkout", () => {
-    expect(script).toContain('Copy-Item -Force "apps\\opencode-plugin\\commands\\*.md" $opencodeCommandsDir');
-    expect(script).toContain('Copy-Item -Force "apps\\gemini\\commands\\*.toml" $geminiCommandsDir');
-    // No Gemini command heredocs remain.
-    expect(script).not.toContain("GEMINI_CMD_EOF");
-  });
-
   test("aggressively cleans up deprecated commands and stale skills on upgrade", () => {
     expect(script).toContain("claudeCommandsDir");
     // Command cleanup is guarded on the replacement skill existing and runs
@@ -631,9 +624,6 @@ describe("install.ps1", () => {
     expect(script).toContain("(Test-Path $skillPath) -and (Test-Path $cmdPath)");
     // Legacy ~/.agents review/annotate/last cleanup is gone.
     expect(script).not.toContain("legacyAgentsSkillsDir");
-    // Codex cleanup includes the per-command skills now.
-    expect(script).toContain("staleCodexSkillsDir");
-    expect(script).toContain('"plannotator-review", "plannotator-annotate", "plannotator-last", "plannotator-compound", "plannotator-setup-goal"');
     // Extras removed from Claude + shared-agent scopes, once, via the ledger.
     expect(script).toContain('"plannotator-compound", "plannotator-setup-goal", "plannotator-visual-explainer"');
     expect(script).toContain("2026-06-extras-default-install-removed");
@@ -641,36 +631,14 @@ describe("install.ps1", () => {
     // plannotator-archive no longer ships as a skill — a stale installed copy
     // is removed unconditionally from every skill scope.
     expect(script).toContain(
-      'foreach ($scope in @($claudeSkillsDir, $agentsSkillsDir, "$env:USERPROFILE\\.kiro\\skills"))',
+      'foreach ($scope in @($claudeSkillsDir, $agentsSkillsDir))',
     );
     expect(script).toContain('Join-Path $scope "plannotator-archive"');
-    // The removed /plannotator-archive OpenCode command stub is swept too.
-    expect(script).toContain('Removing stale plannotator-archive command');
-  });
-
-  test("does not treat a skills-only Codex home as configured", () => {
-    expect(script).toContain("codexHomeHasUserConfig");
-    expect(script).toContain('$_.Name -ne "skills"');
-    expect(script).toContain("$codexAvailable");
   });
 
   test("suggests installing extras via npx skills add", () => {
     expect(script).toContain("Optional skills (compound planning, setup-goal, visual explainer):");
     expect(script).toContain("npx skills add backnotprop/plannotator/apps/skills/extra --global");
-  });
-
-  test("Pi extension update keeps no settings.json package-skills filter", () => {
-    expect(script).toContain("Update-PiExtensionIfPresent");
-    expect(script).toContain("npm:@plannotator/pi-extension");
-    expect(script).not.toContain("Configure-PiPlannotatorPackageFilter");
-    expect(script).not.toContain("Test-PlannotatorSharedAgentSkillsAvailable");
-    expect(script).not.toContain("PI_CODING_AGENT_DIR");
-    expect(script).not.toContain("skills = @()");
-
-    const skillsInstallIndex = script.indexOf("# Install skills and command stubs (requires git)");
-    const piUpdateCallIndex = script.lastIndexOf("Update-PiExtensionIfPresent");
-    expect(skillsInstallIndex).toBeGreaterThan(0);
-    expect(piUpdateCallIndex).toBeGreaterThan(skillsInstallIndex);
   });
 
   test("supports -Minimal / -BinaryOnly binary-only mode with env-var fallback", () => {
@@ -702,56 +670,6 @@ describe("install.ps1", () => {
     // The gate exits rather than falling through.
     const gateBody = script.slice(minimalExit, minimalExit + 400);
     expect(gateBody).toContain("exit 0");
-  });
-
-  test("per-agent skip opt-outs: switches, env vars, config keys, precedence (#1178)", () => {
-    expect(script).toContain("[switch]$SkipCodex");
-    expect(script).toContain("[switch]$SkipGemini");
-    expect(script).toContain("[switch]$SkipKiro");
-    expect(script).toContain("[switch]$SkipOpencode");
-    expect(script).toContain("PLANNOTATOR_SKIP_CODEX_INSTALL");
-    expect(script).toContain("PLANNOTATOR_SKIP_GEMINI_INSTALL");
-    expect(script).toContain("PLANNOTATOR_SKIP_KIRO_INSTALL");
-    expect(script).toContain("PLANNOTATOR_SKIP_OPENCODE_INSTALL");
-    // Config layer parses the real nested JSON (strict boolean check, like
-    // verifyAttestation).
-    expect(script).toContain("$cfg.skipInstall.codex -is [bool]");
-    expect(script).toContain("$cfg.skipInstall.gemini -is [bool]");
-    expect(script).toContain("$cfg.skipInstall.kiro -is [bool]");
-    expect(script).toContain("$cfg.skipInstall.opencode -is [bool]");
-    // Precedence by textual layering (later assignment wins): config, then
-    // env var, then switch.
-    const configIdx = script.indexOf('$skipCodexSource = "config skipInstall.codex"');
-    const envIdx = script.indexOf('$skipCodexSource = "PLANNOTATOR_SKIP_CODEX_INSTALL"');
-    const flagIdx = script.indexOf('$skipCodexSource = "-SkipCodex"');
-    expect(configIdx).toBeGreaterThan(0);
-    expect(envIdx).toBeGreaterThan(configIdx);
-    expect(flagIdx).toBeGreaterThan(envIdx);
-  });
-
-  test("skip states are reported honestly and never remove existing integrations (#1178)", () => {
-    // Three distinct Codex states (ps1 never writes the Codex home; the
-    // installed state prints manual instructions instead, and the skip
-    // wording says exactly that - M4).
-    expect(script).toContain('Codex: detected, skipped ($skipCodexSource)."');
-    expect(script).toContain('Write-Host "Codex detected."');
-    expect(script).toContain("The Windows installer only prints manual Codex setup instructions");
-    // M4: the existing-hook note requires plannotator CONTENT in hooks.json,
-    // never mere file existence (the file may hold only the user's own
-    // hooks), and its wording matches what this platform actually does.
-    expect(script).toContain('$codexHooksContent -match "plannotator"');
-    expect(script).toContain("Your existing Codex Stop hook at $codexDir\\hooks.json is unaffected.");
-    expect(script).not.toContain("An existing Codex integration at $codexDir\\hooks.json was left untouched.");
-    expect(script).toContain('Gemini: detected, skipped ($skipGeminiSource)."');
-    expect(script).toContain("Kiro was detected, but the integration was skipped");
-    // Skip suspends even plannotator's own cleanup inside the skipped
-    // agent's home (do-not-write, never remove).
-    // (A skills opt-out suspends the same sweep, hence the -or arm.)
-    expect(script).toContain("if ($skipCodexResolved -or $skipSkillsResolved) { continue }");
-    expect(script).toContain('if ($skipKiroResolved -and ($scope -eq "$env:USERPROFILE\\.kiro\\skills")) { continue }');
-    // Gated install sites for the mirrored opt-outs.
-    expect(script).toContain("-not $skipKiroResolved");
-    expect(script).toContain("-not $skipGeminiResolved");
   });
 
   test("-SkipSkills: switch, env var, config key, precedence (#1201)", () => {
@@ -795,9 +713,6 @@ describe("install.ps1", () => {
     // both suspended rather than partially applied.
     expect(script).toContain(
       '(-not $skipSkillsResolved) -and $invocableChoice -and ($invocableChoice -ne "none")',
-    );
-    expect(script).toContain(
-      "(-not $skipOpencodeResolved) -and (-not $skipSkillsResolved) -and (Test-Path $staleOpencodeArchive)",
     );
   });
 });
@@ -865,7 +780,7 @@ describe("install.cmd", () => {
   test("installs core skills via git sparse-checkout to claude + agents", () => {
     expect(script).toContain("git clone --depth 1 --filter=blob:none --sparse");
     expect(script).toContain(
-      "git sparse-checkout set apps/skills apps/kiro-cli apps/opencode-plugin/commands apps/gemini/commands",
+      "git sparse-checkout set apps/skills",
     );
     expect(script).toContain("CLAUDE_SKILLS_DIR");
     expect(script).toContain("AGENTS_SKILLS_DIR");
@@ -886,11 +801,6 @@ describe("install.cmd", () => {
     expect(script).toContain("CHECKOUT_FAILED");
   });
 
-  test("installs OpenCode and Gemini commands from the checkout", () => {
-    expect(script).toContain('xcopy /y /q "apps\\opencode-plugin\\commands\\*.md" "!OPENCODE_COMMANDS_DIR!\\"');
-    expect(script).toContain('xcopy /y /q "apps\\gemini\\commands\\*.toml" "!GEMINI_COMMANDS_DIR!\\"');
-  });
-
   test("aggressively cleans up deprecated commands and stale skills on upgrade", () => {
     expect(script).toContain("CLAUDE_COMMANDS_DIR");
     // Command cleanup is guarded on the replacement skill existing and runs
@@ -898,9 +808,6 @@ describe("install.cmd", () => {
     expect(script).toContain('if exist "!CLAUDE_SKILLS_DIR!\\%%C" if exist "!CLAUDE_COMMANDS_DIR!\\%%C.md"');
     // Legacy ~/.agents review/annotate/last cleanup is gone.
     expect(script).not.toContain("LEGACY_AGENTS_SKILLS_DIR");
-    // Codex cleanup includes the per-command skills now.
-    expect(script).toContain("STALE_CODEX_SKILLS_DIR");
-    expect(script).toContain("for %%S in (plannotator-review plannotator-annotate plannotator-last plannotator-compound plannotator-setup-goal) do");
     // Extras removed from Claude + shared-agent scopes, once, via the ledger.
     expect(script).toContain("for %%S in (plannotator-compound plannotator-setup-goal plannotator-visual-explainer) do");
     expect(script).toContain("2026-06-extras-default-install-removed");
@@ -908,46 +815,14 @@ describe("install.cmd", () => {
     // plannotator-archive no longer ships as a skill — a stale installed copy
     // is removed unconditionally from every skill scope.
     expect(script).toContain(
-      'for %%D in ("!CLAUDE_SKILLS_DIR!" "!AGENTS_SKILLS_DIR!" "!KIRO_SKILLS_DIR!") do',
+      'for %%D in ("!CLAUDE_SKILLS_DIR!" "!AGENTS_SKILLS_DIR!") do',
     );
     expect(script).toContain('rmdir /s /q "%%~D\\plannotator-archive"');
-    // The removed /plannotator-archive OpenCode command stub is swept too.
-    expect(script).toContain('del /q "!OPENCODE_COMMANDS_DIR!\\plannotator-archive.md"');
-  });
-
-  test("does not treat a skills-only Codex home as configured", () => {
-    expect(script).toContain("CODEX_AVAILABLE");
-    expect(script).toContain('if /i not "%%C"=="skills"');
   });
 
   test("suggests installing extras via npx skills add", () => {
     expect(script).toContain("Optional skills");
     expect(script).toContain("npx skills add backnotprop/plannotator/apps/skills/extra --global");
-  });
-
-  test("Gemini settings merge uses || idiom (issue #506 regression)", () => {
-    // cmd's delayed expansion parser eats `!` operators in `node -e "..."`
-    // blocks, turning `if(!s.hooks)` into a broken variable expansion and
-    // crashing node. The merge script must use `x = x || {}` instead, which
-    // contains no `!` chars. See backnotprop/plannotator#506.
-    expect(script).toContain("s.hooks=s.hooks||{}");
-    expect(script).toContain("s.hooks.BeforeTool=s.hooks.BeforeTool||[]");
-    expect(script).not.toContain("if(!s.hooks)");
-    expect(script).not.toContain("if(!s.hooks.BeforeTool)");
-  });
-
-  test("Pi extension update keeps no settings.json package-skills filter", () => {
-    expect(script).toContain("npm:@plannotator/pi-extension");
-    // The settings.json package-skills filter machinery is fully removed.
-    expect(script).not.toContain("PI_CODING_AGENT_DIR");
-    expect(script).not.toContain("PI_SETTINGS_PATH");
-    expect(script).not.toContain("skills=@()");
-    expect(script).not.toContain("PI_SHARED_SKILLS_AVAILABLE");
-
-    const skillsInstallIndex = script.indexOf("REM Skills + command stubs install (requires git)");
-    const piUpdateIndex = script.lastIndexOf("REM Update Pi extension if pi is installed.");
-    expect(skillsInstallIndex).toBeGreaterThan(0);
-    expect(piUpdateIndex).toBeGreaterThan(skillsInstallIndex);
   });
 
   test("attestation verification is off by default with three-layer opt-in", () => {
@@ -1001,66 +876,6 @@ describe("install.cmd", () => {
     expect(printPathAdvice).toBeGreaterThan(0);
   });
 
-  test("per-agent skip opt-outs: flags, env vars, config keys, precedence (#1178)", () => {
-    expect(script).toContain('if /i "%~1"=="--skip-codex"');
-    expect(script).toContain('if /i "%~1"=="--skip-gemini"');
-    expect(script).toContain('if /i "%~1"=="--skip-kiro"');
-    expect(script).toContain('if /i "%~1"=="--skip-opencode"');
-    expect(script).toContain("PLANNOTATOR_SKIP_CODEX_INSTALL");
-    expect(script).toContain("PLANNOTATOR_SKIP_GEMINI_INSTALL");
-    expect(script).toContain("PLANNOTATOR_SKIP_KIRO_INSTALL");
-    expect(script).toContain("PLANNOTATOR_SKIP_OPENCODE_INSTALL");
-    // Config layer (M2): the REAL JSON is parsed by PowerShell (strict
-    // boolean check, matching install.ps1) instead of a line-oblivious
-    // findstr - so a "codex": true under some OTHER key can never opt
-    // anyone out and an explicit false inside skipInstall is honored.
-    expect(script).toContain("$c.skipInstall.$k");
-    expect(script).toContain("@('codex','gemini','kiro','opencode','skills')");
-    expect(script).toContain("$v -is [bool] -and $v");
-    expect(script).toContain("PLN_CONFIG_JSON");
-    expect(script).toContain("skipInstall.codex");
-    expect(script).toContain("skipInstall.gemini");
-    expect(script).toContain("skipInstall.kiro");
-    expect(script).toContain("skipInstall.opencode");
-    // The old whole-file findstr form is gone.
-    expect(script).not.toContain('findstr /r /c:"\\"codex\\"');
-    // Precedence by textual layering (later assignment wins): config, then
-    // env var, then flag.
-    const configIdx = script.indexOf('set "SKIP_CODEX_SOURCE=config skipInstall.codex"');
-    const envIdx = script.indexOf('set "SKIP_CODEX_SOURCE=PLANNOTATOR_SKIP_CODEX_INSTALL"');
-    const flagIdx = script.indexOf('set "SKIP_CODEX_SOURCE=--skip-codex"');
-    expect(configIdx).toBeGreaterThan(0);
-    expect(envIdx).toBeGreaterThan(configIdx);
-    expect(flagIdx).toBeGreaterThan(envIdx);
-  });
-
-  test("skip states are reported honestly and never remove existing integrations (#1178)", () => {
-    // Three distinct Codex states (cmd never writes the Codex home; the
-    // installed state prints manual instructions instead, and the skip
-    // wording says exactly that - M4).
-    expect(script).toContain("Codex: detected, skipped ^(!SKIP_CODEX_SOURCE!^).");
-    expect(script).toContain("echo Codex detected.");
-    expect(script).toContain("The Windows installer only prints manual Codex setup instructions");
-    // M4: the existing-hook note requires plannotator CONTENT in hooks.json,
-    // never mere file existence, and its wording matches what this platform
-    // actually does.
-    expect(script).toContain('findstr /c:"plannotator" "!CODEX_DIR!\\hooks.json"');
-    expect(script).toContain("Your existing Codex Stop hook at !CODEX_DIR!\\hooks.json is unaffected.");
-    expect(script).not.toContain("An existing Codex integration at !CODEX_DIR!\\hooks.json was left untouched.");
-    expect(script).toContain("Gemini: detected, skipped ^(!SKIP_GEMINI_SOURCE!^).");
-    expect(script).toContain("Kiro was detected, but the integration was skipped");
-    // Skip suspends even plannotator's own cleanup inside the skipped
-    // agent's home (do-not-write, never remove).
-    // (A skills opt-out suspends the same sweep, hence the extra guard.)
-    expect(script).toContain(
-      'if "!SKIP_CODEX!"=="0" if "!SKIP_SKILLS!"=="0" if exist "!STALE_CODEX_SKILLS_DIR!\\%%S"',
-    );
-    expect(script).toContain('if /i "%%~D"=="!KIRO_SKILLS_DIR!" if "!SKIP_KIRO!"=="1" set "SCOPE_OK=0"');
-    // Gated install sites for the mirrored opt-outs.
-    expect(script).toContain('if "!KIRO_AVAILABLE!"=="1" if "!SKIP_KIRO!"=="0" if exist "apps\\kiro-cli\\skills"');
-    expect(script).toContain('if exist "%USERPROFILE%\\.gemini" if "!SKIP_GEMINI!"=="0"');
-  });
-
   test("--skip-skills: flag, env var, config key, precedence (#1201)", () => {
     expect(script).toContain('if /i "%~1"=="--skip-skills"');
     expect(script).toContain('set "SKIP_SKILLS_FLAG=0"');
@@ -1075,7 +890,7 @@ describe("install.cmd", () => {
     expect(envIdx).toBeGreaterThan(configIdx);
     expect(flagIdx).toBeGreaterThan(envIdx);
     // Advertised in the usage text alongside the per-agent opt-outs.
-    expect(script).toContain("[--skip-opencode] [--skip-skills]");
+    expect(script).toContain("[--skip-skills]");
   });
 
   test("--skip-skills jumps past the clone without tripping the guard (#1201)", () => {
@@ -1150,7 +965,6 @@ describe("Core Plannotator skills", () => {
     const skillRoots = [
       join(scriptsDir, "..", "apps", "skills", "core"),
       join(scriptsDir, "..", "apps", "skills", "extra"),
-      join(scriptsDir, "..", "apps", "kiro-cli", "skills"),
     ];
     let checked = 0;
     let invocableSeen = 0;
@@ -1168,8 +982,8 @@ describe("Core Plannotator skills", () => {
         checked++;
       }
     }
-    // 3 core + 3 extra + 2 kiro — bump when adding skills, never below.
-    expect(checked).toBeGreaterThanOrEqual(8);
+    // 3 core + 3 extra — bump when adding skills, never below.
+    expect(checked).toBeGreaterThanOrEqual(6);
     expect(invocableSeen).toBe(1);
   });
 
@@ -1200,29 +1014,12 @@ describe("install shared behavior", () => {
     }
   });
 
-  test("every installer copies the knowledge skill into the Kiro scope", () => {
-    // #1377 install reach: the Kiro leg copied only the two action skills, so
-    // Kiro users got launchers and no CLI reference. Each script spells the
-    // copy differently, so assert the source path reaches the Kiro skills dir
-    // in each dialect rather than one shared string.
-    const kiroKnowledgeSkillCopy: ReadonlyArray<readonly [string, string]> = [
-      ["install.sh", 'copy_skill_if_present apps/skills/core/plannotator "$KIRO_SKILLS_DIR"'],
-      ["install.ps1", 'Copy-SkillIfPresent "apps\\skills\\core\\plannotator" $kiroSkillsDir'],
-      ["install.cmd", 'xcopy /s /i /y /q "apps\\skills\\core\\plannotator" "!KIRO_SKILLS_DIR!\\plannotator\\"'],
-    ];
-    for (const [name, expected] of kiroKnowledgeSkillCopy) {
-      expect(readScript(name), name).toContain(expected);
-    }
-  });
-
   test("every extras install command uses global scope", () => {
     const files = [
       "scripts/install.sh",
       "scripts/install.ps1",
       "scripts/install.cmd",
       "AGENTS.md",
-      "apps/marketing/src/content/docs/getting-started/installation.md",
-      "apps/marketing/src/content/docs/guides/claude-code.md",
     ];
     const command = "npx skills add backnotprop/plannotator/apps/skills/extra";
 
@@ -1316,17 +1113,6 @@ describe("install shared behavior", () => {
     for (const s of [sh, ps, cmdScript]) {
       expect(s).toContain("allow_implicit_invocation: true");
     }
-  });
-
-  test("all installers respect CODEX_HOME for the Codex home directory", () => {
-    // Codex stores config and state under $CODEX_HOME when set, falling back
-    // to ~/.codex (developers.openai.com/codex/config-advanced). #852
-    const cmdScript = readScript("install.cmd");
-    expect(sh).toContain('CODEX_DIR="${CODEX_HOME:-$HOME/.codex}"');
-    expect(ps).toContain('if ($env:CODEX_HOME) { $env:CODEX_HOME } else { "$env:USERPROFILE\\.codex" }');
-    expect(cmdScript).toContain('if defined CODEX_HOME set "CODEX_DIR=%CODEX_HOME%"');
-    // The fallback definition must be the ONLY hardcoded ~/.codex path left.
-    expect((sh.match(/\$HOME\/\.codex/g) ?? []).length).toBe(1);
   });
 
   test("all installers explain the old-tag core-skill soft-skip", () => {

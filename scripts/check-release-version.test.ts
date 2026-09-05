@@ -7,10 +7,7 @@ const scriptPath = resolve(import.meta.dir, "check-release-version.mjs");
 const temporaryRoots: string[] = [];
 const jsonVersionPaths = [
   "package.json",
-  "apps/opencode-plugin/package.json",
-  "apps/pi-extension/package.json",
   "apps/hook/.claude-plugin/plugin.json",
-  "apps/copilot/plugin.json",
   "packages/server/package.json",
 ] as const;
 
@@ -49,13 +46,13 @@ describe("release version consistency check", () => {
 
   test("rejects a mismatched release-coupled manifest", () => {
     const root = createFixture();
-    writeFileSync(join(root, "apps/pi-extension/package.json"), '{"version":"1.2.4"}\n');
+    writeFileSync(join(root, "packages/server/package.json"), '{"version":"1.2.4"}\n');
 
     const result = runCheck(root);
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr.toString()).toContain("Release-coupled versions do not match");
-    expect(result.stderr.toString()).toContain("apps/pi-extension/package.json: 1.2.4");
+    expect(result.stderr.toString()).toContain("packages/server/package.json: 1.2.4");
   });
 
   test("rejects a tag that does not match the manifests", () => {

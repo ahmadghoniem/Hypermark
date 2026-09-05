@@ -4,7 +4,6 @@ import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startReviewServer as startBunReviewServer } from './review';
-import { startReviewServer as startPiReviewServer } from '../../apps/pi-extension/server';
 
 // Config reads resolve the data dir lazily, so per-test PLANNOTATOR_DATA_DIR
 // sandboxes genuinely isolate settings POSTs. Snapshot the real config anyway
@@ -60,7 +59,14 @@ afterEach(() => {
   else process.env.PATH = originalPath;
   if (originalCallDiffPath === undefined) delete process.env.PLANNOTATOR_CALLDIFF_PATH;
   else process.env.PLANNOTATOR_CALLDIFF_PATH = originalCallDiffPath;
-  for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  for (const dir of tempDirs.splice(0)) {
+    try {
+      rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    } catch {
+      // Windows can hold a transient handle on a just-used temp git repo; the OS
+      // reclaims it. Teardown noise must not fail a passing assertion.
+    }
+  }
 });
 
 afterAll(() => {
@@ -77,12 +83,10 @@ afterAll(() => {
 describe('Call flow endpoint capability guards', () => {
   for (const [runtime, startServer] of [
     ['Bun', startBunReviewServer],
-    ['Pi', startPiReviewServer],
   ] as const) {
     test(`${runtime} returns the server-authored install disclosure while Call flow is disabled`, async () => {
       process.env.PLANNOTATOR_DATA_DIR = makeDataDir();
       delete process.env.PLANNOTATOR_CALLDIFF_PATH;
-      if (runtime === 'Pi') process.env.PLANNOTATOR_PORT = String(await reservePort());
       const server = await startServer({
         rawPatch: [
           'diff --git a/tool.py b/tool.py',
@@ -128,7 +132,6 @@ describe('Call flow endpoint capability guards', () => {
 
     test(`${runtime} returns unsupported for All Files before runtime execution`, async () => {
       process.env.PLANNOTATOR_DATA_DIR = makeDataDir();
-      if (runtime === 'Pi') process.env.PLANNOTATOR_PORT = String(await reservePort());
       const server = await startServer({
         rawPatch: '',
         gitRef: 'All files',
@@ -185,7 +188,6 @@ describe('Call flow endpoint capability guards', () => {
       chmodSync(nodePath, 0o755);
       process.env.PLANNOTATOR_DATA_DIR = dataDir;
       process.env.PATH = `${binDir}:${originalPath ?? ''}`;
-      if (runtime === 'Pi') process.env.PLANNOTATOR_PORT = String(await reservePort());
       const server = await startServer({
         rawPatch: '',
         gitRef: 'Working tree',
@@ -234,7 +236,6 @@ describe('Call flow endpoint capability guards', () => {
       chmodSync(nodePath, 0o755);
       process.env.PLANNOTATOR_DATA_DIR = dataDir;
       process.env.PATH = `${binDir}:${originalPath ?? ''}`;
-      if (runtime === 'Pi') process.env.PLANNOTATOR_PORT = String(await reservePort());
       const server = await startServer({
         rawPatch: '',
         gitRef: 'Working tree',
@@ -288,7 +289,6 @@ describe('Call flow endpoint capability guards', () => {
       chmodSync(nodePath, 0o755);
       process.env.PLANNOTATOR_DATA_DIR = dataDir;
       process.env.PATH = `${binDir}:${originalPath ?? ''}`;
-      if (runtime === 'Pi') process.env.PLANNOTATOR_PORT = String(await reservePort());
       const server = await startServer({
         rawPatch: '',
         gitRef: 'Working tree',

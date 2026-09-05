@@ -65,28 +65,16 @@ async function verifyDisabledServers(): Promise<void> {
       { startAnnotateServer: startBunAnnotateServer },
       { startPlannotatorServer: startBunPlanServer },
       { startReviewServer: startBunReviewServer },
-      {
-        startAnnotateServer: startPiAnnotateServer,
-        startPlanReviewServer: startPiPlanServer,
-        startReviewServer: startPiReviewServer,
-      },
     ] = await Promise.all([
       import("./annotate"),
       import("./index"),
       import("./review"),
-      import("../../apps/pi-extension/server"),
     ]);
 
     servers.push(await startBunReviewServer({
       rawPatch: "",
       gitRef: "HEAD",
       origin: "claude-code",
-      htmlContent: SPA_HTML,
-    }));
-    servers.push(await startPiReviewServer({
-      rawPatch: "",
-      gitRef: "HEAD",
-      origin: "pi",
       htmlContent: SPA_HTML,
     }));
 
@@ -104,17 +92,6 @@ async function verifyDisabledServers(): Promise<void> {
         markdown: "# Test Document",
         filePath: "test.md",
         origin: "claude-code",
-        htmlContent: SPA_HTML,
-      }),
-      await startPiPlanServer({
-        plan: "# Test Plan",
-        origin: "pi",
-        htmlContent: SPA_HTML,
-      }),
-      await startPiAnnotateServer({
-        markdown: "# Test Document",
-        filePath: "test.md",
-        origin: "pi",
         htmlContent: SPA_HTML,
       }),
     ];
@@ -148,17 +125,17 @@ async function verifyDisabledServers(): Promise<void> {
       entries: function* () {},
       cleanup: async () => {},
     };
-    const piPRServer = await startPiReviewServer({
+    const prServer = await startBunReviewServer({
       rawPatch: "",
       gitRef: "HEAD",
-      origin: "pi",
+      origin: "claude-code",
       htmlContent: SPA_HTML,
       prMetadata,
       worktreePool,
     });
-    servers.push(piPRServer);
+    servers.push(prServer);
 
-    const disabledSessionResponse = await fetch(`${piPRServer.url}/api/ai/session`, {
+    const disabledSessionResponse = await fetch(`${prServer.url}/api/ai/session`, {
       method: "POST",
     });
     expect(disabledSessionResponse.status).toBe(503);

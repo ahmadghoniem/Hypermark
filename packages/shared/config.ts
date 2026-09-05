@@ -232,7 +232,7 @@ export interface PlannotatorConfig {
   /**
    * Base URL of the guide host that `plannotator guide share` and the
    * in-app "Create share link" upload Guided Reviews to (default
-   * https://guides.show; a self-hosted `apps/guides-show` origin otherwise).
+   * https://guides.show; a self-hosted origin otherwise).
    * Must be http(s); a trailing slash is trimmed. Mirrors the
    * PLANNOTATOR_GUIDE_SHARE_URL env var, which takes precedence. Guide sharing
    * is off entirely while `share` is "disabled".

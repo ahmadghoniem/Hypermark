@@ -116,7 +116,6 @@ describe("agent terminal runtime", () => {
     const manifests = [
       "packages/server/package.json",
       "packages/editor/package.json",
-      "apps/pi-extension/package.json",
     ];
 
     for (const manifest of manifests) {

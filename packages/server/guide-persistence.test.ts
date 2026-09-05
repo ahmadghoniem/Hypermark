@@ -1,7 +1,7 @@
 /**
  * Endpoint wiring for durable guide persistence (#1112), against BOTH server
  * runtimes (Bun packages/server/review.ts and the Pi mirror
- * apps/pi-extension/server/serverReview.ts):
+ * the Bun review server):
  *
  *   GET    /api/guides                    — repo-scoped list
  *   GET    /api/guide/saved:{id}          — serve a persisted guide
@@ -15,7 +15,6 @@
  * its repo key via the no-remote fallback (process.cwd()) — the tests seed the
  * store through @plannotator/shared/guide-store under that same key.
  *
- * Requires `bash apps/pi-extension/vendor.sh` to have been run (same as the
  * other cross-runtime tests).
  */
 
@@ -37,7 +36,6 @@ import { GUIDE_SNAPSHOT_SCRIPT_ID, parseGuideSnapshot, parseGuideSnapshotJson } 
 import { decompress } from "@plannotator/shared/compress";
 import { decrypt } from "@plannotator/shared/crypto";
 import { startReviewServer as startBunReviewServer } from "./review";
-import { startReviewServer as startPiReviewServer } from "../../apps/pi-extension/server";
 
 const SPA_HTML = "<!doctype html><html><body>SPA fallback</body></html>";
 
@@ -75,16 +73,6 @@ const serverCases = [
         rawPatch: "",
         gitRef: "HEAD",
         origin: "claude-code",
-        htmlContent: SPA_HTML,
-      }),
-  },
-  {
-    name: "Pi review",
-    start: () =>
-      startPiReviewServer({
-        rawPatch: "",
-        gitRef: "HEAD",
-        origin: "pi",
         htmlContent: SPA_HTML,
       }),
   },

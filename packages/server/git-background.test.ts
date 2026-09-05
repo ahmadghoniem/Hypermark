@@ -32,11 +32,6 @@ const fixtures: RuntimeFixture[] = [
     modulePath: resolve(import.meta.dir, "git.ts"),
     exportName: "runtime",
   },
-  {
-    name: "Pi",
-    modulePath: resolve(import.meta.dir, "../../apps/pi-extension/server/vcs.ts"),
-    exportName: "reviewRuntime",
-  },
 ];
 
 const tempDirs: string[] = [];

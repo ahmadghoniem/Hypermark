@@ -108,7 +108,14 @@ afterEach(() => {
     if (saved[key] === undefined) delete process.env[key];
     else process.env[key] = saved[key]!;
   }
-  for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  for (const dir of tempDirs.splice(0)) {
+    try {
+      rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
+    } catch {
+      // Windows can hold a transient handle on a just-used temp git repo; the OS
+      // reclaims it. Teardown noise must not fail a passing assertion.
+    }
+  }
 });
 
 afterAll(() => {
