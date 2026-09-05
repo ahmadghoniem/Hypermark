@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Hypermark · Gutter comments</title>
+  <style>
+    :root { color-scheme:dark; --bg:#0a0a0a; --fg:#fafafa; --panel:#171717; --panel2:#1c1c1c; --muted:#a3a3a3; --border:#303030; --hover:#272727; --blue:#85bff0; --green:#77c8a2; --red:#ed8790; --add:#07c4801a; --del:#ff2e3f1a; --focus:#009fff; --kw:#c5a5de; --str:#b7d9ae; --code:#dfdfdf; font-family:Inter,Arial,sans-serif; }
+    :root.light { color-scheme:light; --bg:#fff; --fg:#181818; --panel:#f5f5f5; --panel2:#fafafa; --muted:#686868; --border:#d8d8d8; --hover:#eaeaea; --blue:#226da1; --green:#147548; --red:#ba3543; --add:#18a46c1a; --del:#d52c361a; --kw:#8250a0; --str:#486d30; --code:#282828; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--fg); font-size:13px; }
+    button,input,textarea { font:inherit; }
+    button { color:inherit; cursor:pointer; }
+    button:focus-visible,textarea:focus-visible { outline:2px solid var(--focus); outline-offset:3px; }
+    button:disabled { cursor:default; opacity:.4; }
+    [hidden] { display:none !important; }
+    .icon { display:inline-block; width:16px; height:16px; flex:0 0 16px; background:currentColor; mask:var(--glyph) center/contain no-repeat; }
+    .designbar { padding:24px 30px 20px; background:var(--panel); border-bottom:1px solid var(--border); }
+    .eyebrow { color:var(--muted); font-size:10px; letter-spacing:1.6px; text-transform:uppercase; }
+    h1 { font-size:24px; letter-spacing:-.7px; font-weight:550; margin:8px 0 0; }
+    .design-title { display:flex; justify-content:space-between; align-items:center; gap:20px; }
+    .badge { font-size:10px; border:1px solid var(--border); border-radius:20px; padding:6px 10px; color:var(--muted); }
+    .caption { color:var(--muted); line-height:1.6; margin:13px 0 0; }
+    .workspace { margin:24px 30px 0; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    .appbar { min-height:59px; display:flex; align-items:center; justify-content:space-between; padding:10px 18px; border-bottom:1px solid var(--border); gap:20px; }
+    .appbar-left,.controls { display:flex; align-items:center; gap:22px; }
+    .controls { gap:10px; }
+    .brand { font-weight:650; letter-spacing:-.5px; font-size:18px; }
+    .monogram { background:var(--fg); color:var(--bg); padding:3px 6px; border-radius:4px; font-size:13px; margin-right:9px; }
+    .crumb { color:var(--muted); font-size:12px; }
+    .segmented { display:inline-flex; border:1px solid var(--border); padding:3px; gap:3px; border-radius:8px; }
+    .segmented button { border:0; border-radius:5px; background:transparent; color:var(--muted); padding:7px 11px; display:flex; align-items:center; gap:7px; font-size:12px; }
+    .segmented button[aria-pressed="true"] { color:var(--fg); background:var(--hover); }
+    .icon-button { border:0; border-radius:5px; background:transparent; color:var(--muted); padding:7px; display:inline-flex; align-items:center; justify-content:center; }
+    .icon-button:hover { background:var(--hover); color:var(--fg); }
+    .appbody { display:grid; grid-template-columns:190px minmax(0,1fr); min-height:568px; }
+    .tree { background:var(--panel); border-right:1px solid var(--border); padding:20px 11px; }
+    .tree .eyebrow { padding:0 9px 15px; }
+    .tree-row { display:flex; gap:8px; align-items:center; padding:10px 9px; color:var(--muted); border-radius:5px; font-size:12px; }
+    .tree-row.active { background:var(--hover); color:var(--fg); }
+    .tree-row.indent { padding-left:23px; }
+    .tree-note { border-top:1px solid var(--border); margin:27px 8px 0; padding-top:15px; color:var(--muted); font-size:11px; line-height:1.7; }
+    .diff { min-width:0; }
+    .filebar { height:48px; padding:0 18px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); }
+    .file-name { display:flex; align-items:center; gap:9px; font:12px ui-monospace,Consolas,monospace; }
+    .stat { font:11px ui-monospace,Consolas,monospace; }
+    .plus { color:var(--green); } .minus { color:var(--red); }
+    .columns { display:grid; grid-template-columns:minmax(0,1fr); }
+    .columns.split { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+    .codepane { min-width:0; overflow-x:auto; padding-bottom:24px; }
+    .codepane + .codepane { border-left:1px solid var(--border); }
+    .columnlabel { color:var(--muted); font:10px ui-monospace,Consolas,monospace; padding:10px 18px; border-bottom:1px solid var(--border); }
+    .hunk { color:var(--muted); font:11px ui-monospace,Consolas,monospace; background:var(--panel2); padding:12px 18px; margin-bottom:9px; white-space:nowrap; }
+    .line { display:grid; grid-template-columns:32px 28px 18px minmax(max-content,1fr); min-height:29px; align-items:center; border-left:2px solid transparent; font:12px/29px ui-monospace,Consolas,"Liberation Mono",monospace; color:var(--code); }
+    .num { color:var(--muted); font-size:10px; text-align:right; padding-right:5px; user-select:none; }
+    .sign { text-align:center; user-select:none; color:var(--muted); }
+    .line code { white-space:pre; padding:0 18px 0 3px; font:inherit; }
+    .line.add { background:var(--add); border-left-color:var(--green); }
+    .line.del { background:var(--del); border-left-color:var(--red); }
+    .line.add .sign { color:var(--green); } .line.del .sign { color:var(--red); }
+    .line.empty { height:29px; background:var(--panel2); }
+    .kw { color:var(--kw); } .str { color:var(--str); } .fn { color:var(--blue); }
+    .pin { width:24px; height:24px; padding:0; margin-left:3px; border:1px solid #009fff66; color:var(--blue); background:var(--panel); border-radius:6px; display:grid; place-items:center; }
+    .pin[aria-expanded="true"] { border-color:var(--focus); background:var(--hover); }
+    .pin.new { color:var(--muted); border-color:transparent; background:transparent; }
+    .pin.new:hover { color:var(--blue); border-color:var(--focus); }
+    .pin .icon { width:15px; height:15px; flex-basis:15px; }
+    .diffnote { margin:0 20px; padding:18px 0; color:var(--muted); font-size:11px; border-top:1px solid var(--border); display:flex; gap:8px; align-items:center; }
+    .popover { position:fixed; z-index:5; width:370px; max-width:calc(100vw - 24px); max-height:calc(100vh - 32px); overflow:auto; border:1px solid #454545; border-radius:11px; background:var(--panel); box-shadow:0 16px 55px #0007; }
+    .light .popover { border-color:var(--border); box-shadow:0 16px 55px #0002; }
+    .popover-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 10px 0 16px; }
+    .location { color:var(--muted); font:10px ui-monospace,Consolas,monospace; }
+    .preview-text { margin:9px 16px 12px; font-size:13px; line-height:1.65; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .preview-footer { padding:0 12px 12px; display:flex; justify-content:flex-end; }
+    .text-button { border:0; background:transparent; border-radius:5px; color:var(--muted); padding:6px 8px; display:inline-flex; align-items:center; gap:6px; font-size:11px; }
+    .text-button:hover { color:var(--fg); background:var(--hover); }
+    .composer { padding:0 10px 10px; }
+    textarea { display:block; width:100%; min-height:106px; resize:vertical; max-height:220px; border:0; border-radius:5px; background:transparent; color:var(--fg); font-size:13px; line-height:1.65; padding:9px 6px; }
+    .images { display:flex; flex-wrap:wrap; gap:9px; padding:4px 6px 10px; }
+    .preview-images { padding:0 16px 14px; }
+    .image-tile { position:relative; width:58px; height:58px; flex:0 0 58px; }
+    .image-tile img { display:block; width:100%; height:100%; object-fit:cover; border:1px solid var(--border); border-radius:8px; }
+    .image-tile .remove { position:absolute; top:-4px; right:-4px; width:19px; height:19px; border:1px solid var(--border); border-radius:50%; background:var(--panel2); color:var(--fg); padding:2px; }
+    .image-tile .remove .icon { width:12px; height:12px; flex-basis:12px; }
+    .composer-footer { display:flex; align-items:center; justify-content:space-between; padding-top:7px; border-top:1px solid var(--border); }
+    .composer-actions { display:flex; align-items:center; gap:6px; }
+    .primary { display:inline-flex; align-items:center; gap:6px; border:0; background:var(--fg); color:var(--bg); border-radius:6px; padding:7px 10px; font-size:11px; }
+    .error { color:var(--red); font-size:11px; margin:0 6px 10px; }
+    .bottom { display:flex; justify-content:space-between; gap:18px; padding:17px 30px 26px; color:var(--muted); font-size:11px; line-height:1.7; }
+    .bottom code { font-size:10px; }
+    @media(max-width:900px) { .tree { display:none; } .appbody { grid-template-columns:minmax(0,1fr); } .workspace { margin:16px 16px 0; } .designbar { padding:20px 16px; } .crumb,.badge { display:none; } .bottom { padding:16px; } }
+    @media(max-width:540px) { .appbar { flex-wrap:wrap; } .bottom { display:block; } .popover { width:calc(100vw - 24px); } }
+  </style>
+</head>
+<body>
+  <header class="designbar">
+    <div class="design-title"><div><div class="eyebrow">Hypermark / comment interaction</div><h1>A comment, right where it belongs.</h1></div><span class="badge">DESIGN PROTOTYPE</span></div>
+    <p class="caption">Hover a gutter marker to preview. Click to keep it open, then Edit to make changes or attach an image.</p>
+  </header>
+  <main class="workspace">
+    <div class="appbar"><div class="appbar-left"><div class="brand"><span class="monogram">h</span>Hypermark</div><span class="crumb">demo / composer &nbsp; / &nbsp; fix/attachments</span></div><div class="controls"><div class="segmented" aria-label="Diff layout"><button data-diff="unified" aria-pressed="true"><i class="icon" data-pierre="IconDiffUnified"></i>Unified</button><button data-diff="split" aria-pressed="false"><i class="icon" data-pierre="IconDiffSplit"></i>Split</button></div><button class="icon-button" id="theme" aria-label="Switch to light mode"><i class="icon" data-phosphor="sun"></i></button></div></div>
+    <div class="appbody">
+      <aside class="tree" aria-label="Example file tree"><div class="eyebrow">Changes</div><div class="tree-row"><i class="icon" data-pierre="IconFolder"></i>src</div><div class="tree-row indent active"><i class="icon" data-pierre="IconFileCode"></i>attachments.ts</div><div class="tree-row indent"><i class="icon" data-pierre="IconFileCode"></i>Composer.tsx</div><div class="tree-row indent"><i class="icon" data-pierre="IconFileCode"></i>composer.css</div><div class="tree-note">Comments stay on the code.<br>No separate editor panel.</div></aside>
+      <section class="diff" aria-label="Synthetic code diff"><div class="filebar"><div class="file-name"><i class="icon" data-pierre="IconFileCode"></i>src/attachments.ts</div><span class="stat"><span class="plus">+5</span> &nbsp; <span class="minus">−1</span></span></div><div id="columns" class="columns"></div><div class="diffnote"><i class="icon" data-phosphor="chat-circle"></i>Use a comment marker to review or edit. Use the + beside line 34 to try a new comment.</div></section>
+    </div>
+  </main>
+  <section id="popover" class="popover" role="dialog" aria-label="Comment" hidden></section>
+  <input id="file" type="file" accept="image/*" multiple hidden>
+  <footer class="bottom"><div id="status" role="status">Prototype only · images stay in this browser · changes reset on reload</div><div>Phosphor controls · Pierre diff &amp; tree icons</div></footer>
+  <script type="module" src="/prototype.mjs"></script>
+</body>
+</html>
