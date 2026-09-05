@@ -1030,12 +1030,12 @@ try {
                 & { $local:ErrorActionPreference = 'Continue'; git sparse-checkout set apps/skills 2>$null }
             }
 
-            # Claude Code reads apps/skills/claude/* while the shared agent
-            # reads apps/skills/claude/* (dynamic-context injection
+            # Claude Code reads apps/skills/claude/* (dynamic-context injection
             # `!`plannotator ... $ARGUMENTS`` + allowed-tools, so /plannotator-*
-            # run with no permission prompt - like the old slash commands).
-            # scope reads apps/skills/core/* (plain prose). The `!`...`` injection
-            # is a Claude-Code-only extension, so the two are sourced separately.
+            # run with no permission prompt - like the old slash commands). The
+            # shared-agent scope reads apps/skills/core/* (plain prose). The
+            # `!`...`` injection is a Claude-Code-only extension, so the two are
+            # sourced separately and are NOT interchangeable.
             # Route each through Copy-SkillIfPresent (which pre-removes the
             # existing target dir) so re-runs replace rather than nest.
             if ((Test-Path "apps\skills\claude") -and (Get-ChildItem "apps\skills\claude" -ErrorAction SilentlyContinue)) {
@@ -1045,7 +1045,7 @@ try {
                 }
                 # The plannotator knowledge skill (CLI reference) has no
                 # Claude-only injection form, so Claude installs the same
-                # single-sourced copy from appsskillsre.
+                # single-sourced copy from apps\skills\core.
                 Copy-SkillIfPresent "apps\skills\core\plannotator" $claudeSkillsDir
                 Write-Host "Installed Claude Code skills to $claudeSkillsDir\"
             } else {
@@ -1111,11 +1111,13 @@ foreach ($scope in @($claudeSkillsDir, $agentsSkillsDir)) {
         Remove-Item -Recurse -Force $staleArchivePath -ErrorAction SilentlyContinue
     }
 }
+
 # Apply the saved model-invocation choices. Installed skill copies always
 # arrive locked (disable-model-invocation: true in SKILL.md); for each chosen
-# skill we unlock the INSTALLED copy by removing that line. Re-applied on every run
-# because installs replace the skill folders wholesale. Repo sources never
-# change.
+# skill we unlock the INSTALLED copy by removing that line, and flip the
+# agents/openai.yaml sidecar's allow_implicit_invocation to match. Re-applied
+# on every run because installs replace the skill folders wholesale. Repo
+# sources never change.
 # A skills opt-out installed no skill copies this run, so there is nothing to
 # unlock - and rewriting a PREVIOUS run's SKILL.md would be a write the opt-out
 # promised not to make.

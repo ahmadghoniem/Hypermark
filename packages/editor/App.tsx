@@ -23,8 +23,6 @@ import { MarkdownEditor, type MarkdownEditorHandle } from '@plannotator/ui/compo
 import { AnnotationPanel } from '@plannotator/ui/components/AnnotationPanel';
 import { DocumentAIChatPanel } from '@plannotator/ui/components/ai/DocumentAIChatPanel';
 import { SparklesIcon } from '@plannotator/ui/components/SparklesIcon';
-import { ExportModal } from '@plannotator/ui/components/ExportModal';
-import { ImportModal } from '@plannotator/ui/components/ImportModal';
 import { ConfirmDialog } from '@plannotator/ui/components/ConfirmDialog';
 import { Annotation, AnnotationType, Block, EditorMode, type CodeAnnotation, type InputMethod, type ImageAttachment, type ActionsLabelMode } from '@plannotator/ui/types';
 import { ThemeProvider } from '@plannotator/ui/components/ThemeProvider';
@@ -33,8 +31,6 @@ import { AnnotationToolstrip } from '@plannotator/ui/components/AnnotationToolst
 import { StickyHeaderLane } from '@plannotator/ui/components/StickyHeaderLane';
 import { TaterSpriteRunning } from '@plannotator/ui/components/TaterSpriteRunning';
 import { TaterSpritePullup } from '@plannotator/ui/components/TaterSpritePullup';
-import { useSharing } from '@plannotator/ui/hooks/useSharing';
-import { getCallbackConfig, CallbackAction, executeCallback } from '@plannotator/ui/utils/callback';
 import { useAgents } from '@plannotator/ui/hooks/useAgents';
 import { useActiveSection } from '@plannotator/ui/hooks/useActiveSection';
 import { storage } from '@plannotator/ui/utils/storage';
@@ -44,10 +40,6 @@ import { configStore, useConfigValue } from '@plannotator/ui/config';
 import { CompletionOverlay } from '@plannotator/ui/components/CompletionOverlay';
 import { useUpdateCheck } from '@plannotator/ui/hooks/useUpdateCheck';
 import { LookAndFeelAnnouncementDialog } from '@plannotator/ui/components/LookAndFeelAnnouncementDialog';
-import { getObsidianSettings, getEffectiveVaultPath, isObsidianConfigured, CUSTOM_PATH_SENTINEL } from '@plannotator/ui/utils/obsidian';
-import { getBearSettings } from '@plannotator/ui/utils/bear';
-import { getOctarineSettings, isOctarineConfigured } from '@plannotator/ui/utils/octarine';
-import { getDefaultNotesApp } from '@plannotator/ui/utils/defaultNotesApp';
 import { getAgentSwitchSettings, getEffectiveAgentName } from '@plannotator/ui/utils/agentSwitch';
 import { getPlanSaveSettings } from '@plannotator/ui/utils/planSave';
 import { type AIProviderOption } from '@plannotator/ui/utils/aiProvider';
@@ -92,7 +84,6 @@ import { useUndoHistory } from '@plannotator/ui/hooks/useUndoHistory';
 import { buildPlanAgentInstructions } from '@plannotator/ui/utils/planAgentInstructions';
 import { useFileBrowser } from '@plannotator/ui/hooks/useFileBrowser';
 import { getFileEditStatus } from '@plannotator/ui/components/sidebar/FileBrowser';
-import { isVaultBrowserEnabled } from '@plannotator/ui/utils/obsidian';
 import { isFileBrowserEnabled, getFileBrowserSettings } from '@plannotator/ui/utils/fileBrowser';
 import { generateId } from '@plannotator/ui/utils/generateId';
 import { SidebarTabs } from '@plannotator/ui/components/sidebar/SidebarTabs';
@@ -242,12 +233,6 @@ import {
   pathIsInsideDir,
 } from './sourceDocumentPaths';
 import { pickRestoredSingleFileDraftToDisplay } from './draftRestoreSelection';
-
-type NoteAutoSaveResults = {
-  obsidian?: boolean;
-  bear?: boolean;
-  octarine?: boolean;
-};
 
 type MessageAnnotationState = {
   messageId: string;
@@ -425,8 +410,6 @@ const App: React.FC = () => {
     () => parseMarkdownToBlocks(displayedMarkdown, { frontmatter: parseFrontmatter }),
     [displayedMarkdown, parseFrontmatter],
   );
-  const [showExport, setShowExport] = useState(false);
-  const [showImport, setShowImport] = useState(false);
   const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false);
   const [showClaudeCodeWarning, setShowClaudeCodeWarning] = useState(false);
   const [showExitWarning, setShowExitWarning] = useState(false);
@@ -605,9 +588,6 @@ const App: React.FC = () => {
   const [pendingPasteImage, setPendingPasteImage] = useState<{ file: File; blobUrl: string; initialName: string } | null>(null);
   const [showPermissionModeSetup, setShowPermissionModeSetup] = useState(false);
   const [permissionMode, setPermissionMode] = useState<PermissionMode>('bypassPermissions');
-  const [sharingEnabled, setSharingEnabled] = useState(true);
-  const [shareBaseUrl, setShareBaseUrl] = useState<string | undefined>(undefined);
-  const [pasteApiUrl, setPasteApiUrl] = useState<string | undefined>(undefined);
   const [repoInfo, setRepoInfo] = useState<{ display: string; branch?: string; host?: string } | null>(null);
   const [projectRoot, setProjectRoot] = useState<string | null>(null);
   const [agentTerminalCapability, setAgentTerminalCapability] = useState<AgentTerminalCapability | null>(null);
@@ -633,7 +613,6 @@ const App: React.FC = () => {
     document.title = repoInfo ? `${repoInfo.display} · Plannotator` : "Plannotator";
   }, [repoInfo]);
 
-  const [initialExportTab, setInitialExportTab] = useState<'share' | 'annotations' | 'notes'>();
   const [isPlanDiffActive, setIsPlanDiffActive] = useState(false);
   const [planDiffMode, setPlanDiffMode] = useState<PlanDiffMode>('clean');
   const [previousPlan, setPreviousPlan] = useState<string | null>(null);
@@ -1395,13 +1374,6 @@ const App: React.FC = () => {
     onSnapshot: applyRefreshedHtml,
     onUnanchored: handleHtmlRefreshUnanchored,
   });
-  const htmlShareContext = useMemo(
-    () => ({ activePath: activeHtmlPath, reloadGeneration: htmlRefresh.reloadGeneration }),
-    [activeHtmlPath, htmlRefresh.reloadGeneration],
-  );
-  const latestHtmlShareContextRef = useRef(htmlShareContext);
-  latestHtmlShareContextRef.current = htmlShareContext;
-
   const canUseWideMode = useMemo(() => canUseAnnotateWideMode({
     archiveMode: archive.archiveMode,
     isPlanDiffActive,
@@ -1436,14 +1408,10 @@ const App: React.FC = () => {
     }
   }, [canUseWideMode, exitWideMode, wideModeType]);
 
-  // Markdown file browser (also handles vault dirs via isVault flag)
+  // Markdown file browser
   const fileBrowser = useFileBrowser();
-  const vaultPath = useMemo(() => {
-    if (!isVaultBrowserEnabled()) return '';
-    return getEffectiveVaultPath(getObsidianSettings());
-  }, [uiPrefs]);
   const showFilesTab = useMemo(
-    () => !!projectRoot || isFileBrowserEnabled() || isVaultBrowserEnabled(),
+    () => !!projectRoot || isFileBrowserEnabled(),
     [projectRoot, uiPrefs]
   );
 
@@ -1454,7 +1422,7 @@ const App: React.FC = () => {
     if (archive.archiveMode || goalSetupMode) return false;
     if (event.defaultPrevented) return false;
     if (document.querySelector('[data-plannotator-confirm-dialog="true"]')) return false;
-    if (showExport || showImport || showFeedbackPrompt || showClaudeCodeWarning ||
+    if (showFeedbackPrompt || showClaudeCodeWarning ||
         showSourceFileEditWarning ||
         showExitWarning || showAgentWarning || showPermissionModeSetup || pendingPasteImage) return false;
     if (submitted || isSubmitting || isExiting || isEditingMarkdown) return false;
@@ -1465,8 +1433,6 @@ const App: React.FC = () => {
   }, [
     archive.archiveMode,
     goalSetupMode,
-    showExport,
-    showImport,
     showFeedbackPrompt,
     showClaudeCodeWarning,
     showSourceFileEditWarning,
@@ -1569,27 +1535,16 @@ const App: React.FC = () => {
     if (!showFilesTab) fileBrowser.setActiveFile(null);
   }, [showFilesTab]);
 
-  // When vault is disabled, prune any stale vault dirs immediately
-  useEffect(() => {
-    if (!vaultPath) fileBrowser.clearVaultDirs();
-  }, [vaultPath]);
-
   useEffect(() => {
     if ((sidebar.activeTab === 'files' || isCompactFilesSurfaceOpen) && showFilesTab) {
-      // Load regular dirs
       if (fileBrowserDirs.length > 0) {
-        const regularLoaded = fileBrowser.dirs.filter(d => !d.isVault).map(d => d.path);
-        const needsRegular = fileBrowserDirs.some(d => !regularLoaded.includes(d))
-          || regularLoaded.some(d => !fileBrowserDirs.includes(d));
-        if (needsRegular) fileBrowser.fetchAll(fileBrowserDirs);
-      }
-      // Load vault dir; addVaultDir atomically replaces any existing vault entry so
-      // switching vault paths never accumulates stale sections
-      if (vaultPath && !fileBrowser.dirs.find(d => d.isVault && d.path === vaultPath && !d.error)) {
-        fileBrowser.addVaultDir(vaultPath);
+        const loaded = fileBrowser.dirs.map(d => d.path);
+        const needsReload = fileBrowserDirs.some(d => !loaded.includes(d))
+          || loaded.some(d => !fileBrowserDirs.includes(d));
+        if (needsReload) fileBrowser.fetchAll(fileBrowserDirs);
       }
     }
-  }, [fileBrowserDirs, isCompactFilesSurfaceOpen, showFilesTab, sidebar.activeTab, vaultPath]);
+  }, [fileBrowserDirs, isCompactFilesSurfaceOpen, showFilesTab, sidebar.activeTab]);
 
   const buildCurrentMessageState = React.useCallback((): MessageAnnotationState | null => {
     if (annotateSource !== 'message' || !selectedMessageId) return null;
@@ -1683,7 +1638,6 @@ const App: React.FC = () => {
   );
 
   // File browser file selection: open via linked doc system
-  // For vault dirs (isVault), use the Obsidian doc endpoint; otherwise use generic /api/doc
   const handleSelectMessage = React.useCallback((messageId: string) => {
     const msg = recentMessages.find((m) => m.messageId === messageId);
     if (!msg || messageId === selectedMessageId) return;
@@ -1750,24 +1704,17 @@ const App: React.FC = () => {
       return;
     }
 
-    const buildUrl = dirState?.isVault
-      ? (path: string) => `/api/reference/obsidian/doc?vaultPath=${encodeURIComponent(dirPath)}&path=${encodeURIComponent(path)}`
-      // `doc=1`: file-browser selections always want annotatable document
-      // rendering — without it, extensions that overlap the code-file set
-      // (.yaml, .json, .toml, …) would come back as code-file popout payloads.
-      : (path: string) => `/api/doc?path=${encodeURIComponent(path)}&base=${encodeURIComponent(dirPath)}&doc=1${convertHtml ? '&convert=1' : ''}`;
+    // `doc=1`: file-browser selections always want annotatable document
+    // rendering — without it, extensions that overlap the code-file set
+    // (.yaml, .json, .toml, …) would come back as code-file popout payloads.
+    const buildUrl = (path: string) => `/api/doc?path=${encodeURIComponent(path)}&base=${encodeURIComponent(dirPath)}&doc=1${convertHtml ? '&convert=1' : ''}`;
     fileBrowser.setActiveFile(absolutePath);
     await linkedDocHook.open(absolutePath, buildUrl, 'files');
   }, [editableDocuments, linkedDocHook, fileBrowser, convertHtml, isEditingMarkdown]);
 
   // Route linked doc opens through the correct endpoint based on current context
   const handleOpenLinkedDoc = React.useCallback((docPath: string) => {
-    const activeDirState = fileBrowser.dirs.find(d => d.path === fileBrowser.activeDirPath);
-    if (activeDirState?.isVault && fileBrowser.activeDirPath) {
-      linkedDocHook.open(docPath, (path) =>
-        `/api/reference/obsidian/doc?vaultPath=${encodeURIComponent(fileBrowser.activeDirPath!)}&path=${encodeURIComponent(path)}`
-      );
-    } else if (fileBrowser.activeFile && fileBrowser.activeDirPath) {
+    if (fileBrowser.activeFile && fileBrowser.activeDirPath) {
       // When viewing a file browser doc, resolve links relative to current file's directory
       const baseDir = linkedDocHook.filepath?.replace(/\/[^/]+$/, '') || fileBrowser.activeDirPath;
       linkedDocHook.open(docPath, (path) =>
@@ -2048,71 +1995,9 @@ const App: React.FC = () => {
     // contents land in the export registry (module state the exporters read).
   }, [blocks, allAnnotations, globalAttachments, linkedDocHook.getDocAnnotations, editorAnnotations, codeAnnotations, sourceConverted, annotateSource, linkedDocHook.isActive, linkedDocHook.filepath, skillContentGeneration]);
 
-  // Code-file comments are intentionally not serialized into share URLs in v1.
-  // Hide share entry points once they exist so we do not silently drop feedback.
-  const canShareCurrentSession = sharingEnabled && codeAnnotations.length === 0;
-
-  const resolveRawHtmlForShare = useCallback(async (): Promise<string | null> => {
-    if (renderAs !== 'html' || !rawHtml) return null;
-    if (shareHtml) return shareHtml;
-    if (!isApiMode) return rawHtml;
-
-    const params = new URLSearchParams();
-    const { activePath } = htmlShareContext;
-    if (activePath) params.set('path', activePath);
-    const query = params.toString();
-    const res = await fetch(`/api/share-html${query ? `?${query}` : ''}`);
-    const data = (await res.json().catch(() => ({}))) as { shareHtml?: unknown; error?: string };
-    if (!res.ok || data.error || typeof data.shareHtml !== 'string') {
-      throw new Error(data.error || 'Failed to prepare HTML for sharing');
-    }
-    if (latestHtmlShareContextRef.current !== htmlShareContext) {
-      throw new Error('HTML changed while preparing the share link');
-    }
-    setShareHtml(data.shareHtml);
-    return data.shareHtml;
-  }, [htmlShareContext, isApiMode, rawHtml, renderAs, shareHtml]);
-
-  // URL-based sharing
-  const {
-    isSharedSession,
-    isLoadingShared,
-    shareUrl,
-    shareUrlSize,
-    shortShareUrl,
-    isGeneratingShortUrl,
-    shortUrlError,
-    pendingSharedAnnotations,
-    sharedGlobalAttachments,
-    clearPendingSharedAnnotations,
-    generateShortUrl,
-    importFromShareUrl,
-    shareLoadError,
-    clearShareLoadError,
-  } = useSharing(
-    markdown,
-    allAnnotations,
-    globalAttachments,
-    setMarkdown,
-    setAnnotations,
-    setGlobalAttachments,
-    () => {
-      // When loaded from share, mark as loaded
-      setIsLoading(false);
-    },
-    shareBaseUrl,
-    pasteApiUrl,
-    renderAs === 'html' ? rawHtml : undefined,
-    resolveRawHtmlForShare,
-    setRawHtml,
-    setShareHtml,
-    setRenderAs,
-    htmlRefresh.reloadGeneration,
-  );
-
   useEffect(() => {
     if (initialSidebarPreferenceAppliedRef.current) return;
-    if (isLoading || isLoadingShared) return;
+    if (isLoading) return;
     if (wideModeType !== null) return;
 
     initialSidebarPreferenceAppliedRef.current = true;
@@ -2129,7 +2014,6 @@ const App: React.FC = () => {
     goalSetupMode,
     hasTocEntries,
     isLoading,
-    isLoadingShared,
     renderAs,
     sidebar.close,
     sidebar.open,
@@ -2148,7 +2032,7 @@ const App: React.FC = () => {
   // the way back.
   const prevHtmlChromeSurfaceRef = useRef(false);
   useEffect(() => {
-    if (isLoading || isLoadingShared) return;
+    if (isLoading) return;
     if (wideModeType !== null) return;
     const wasHtml = prevHtmlChromeSurfaceRef.current;
     prevHtmlChromeSurfaceRef.current = isHtmlSurface;
@@ -2167,7 +2051,6 @@ const App: React.FC = () => {
     goalSetupMode,
     isHtmlSurface,
     isLoading,
-    isLoadingShared,
     sidebar.close,
     sidebar.open,
     wideModeType,
@@ -2194,26 +2077,19 @@ const App: React.FC = () => {
     saveHtmlChromeState({ sidebarOpen: sidebar.isOpen, panelOpen: isPanelOpen, toolsHidden: htmlToolsHidden });
   }, [isHtmlSurface, sidebar.isOpen, isPanelOpen, htmlToolsHidden]);
 
-  const ensureShareLink = useCallback(async (): Promise<string | null> => {
-    const existing = shortShareUrl || shareUrl;
-    if (existing) return existing;
-    if (!canShareCurrentSession) return null;
-    return await generateShortUrl();
-  }, [canShareCurrentSession, generateShortUrl, shareUrl, shortShareUrl]);
-
   // useLayoutEffect + synchronous getBoundingClientRect so the initial
   // bucket is set before the browser paints. Otherwise narrow viewports
   // get a one-frame flash of "Global comment"/"Copy plan" labels before
   // the ResizeObserver callback collapses them.
   useLayoutEffect(() => {
-    if (isLoading && !isSharedSession) return;
+    if (isLoading) return;
 
     const el = planAreaRef.current;
     if (!el) return;
     return observeActionsLabelMode(el, (next) => {
       setActionsLabelMode((prev) => (prev === next ? prev : next));
     });
-  }, [isLoading, isSharedSession]);
+  }, [isLoading]);
 
   // The user's current direct-edit text: the open editor buffer, else the
   // last commit; null when there is none or it matches the baseline. Never
@@ -2247,7 +2123,8 @@ const App: React.FC = () => {
     getEditedDocuments: editableDocuments.getDraftDocuments,
     getSavedFileChanges: editableDocuments.getDraftSavedFileChanges,
     isApiMode: isApiMode && !goalSetupMode && !documentReadOnly,
-    isSharedSession,
+    // No share transport remains, so drafts always persist for a live session.
+    isSharedSession: false,
     // isSubmitting counts: a save firing while approve/deny is in flight can
     // land after the server's draft delete and ghost a "Draft Recovered"
     // banner into the next session for this plan. Saving resumes if it fails.
@@ -2257,27 +2134,9 @@ const App: React.FC = () => {
   // Fetch available agents for OpenCode (for validation on approve)
   const { agents: availableAgents, validateAgent, getAgentWarning } = useAgents(origin);
 
-  // Apply shared annotations to DOM after they're loaded
-  useEffect(() => {
-    if (pendingSharedAnnotations && pendingSharedAnnotations.length > 0) {
-      annotationHistory.clear();
-      // Small delay to ensure DOM is rendered
-      const timer = setTimeout(() => {
-        // Clear existing highlights first (important when loading new share URL)
-        viewerRef.current?.clearAllHighlights();
-        viewerRef.current?.applySharedAnnotations(pendingSharedAnnotations.filter(a => !a.diffContext));
-        clearPendingSharedAnnotations();
-        // `clearAllHighlights` wiped live external SSE highlights too;
-        // tell the external-highlight bookkeeper to re-apply them.
-        resetExternalHighlights();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [annotationHistory, pendingSharedAnnotations, clearPendingSharedAnnotations, resetExternalHighlights]);
-
   // Markdown edit mode: single consolidated gate. The editor only ever opens on
   // the main plan/file markdown — never on HTML surfaces, archive/goal-setup
-  // views, linked docs, messages, folder pickers, diff view, or shared sessions.
+  // views, linked docs, messages, folder pickers, or diff view.
   const canEditMarkdown =
     renderAs !== 'html' &&
     // editStats non-null keeps the toggle available after committing an
@@ -2288,7 +2147,6 @@ const App: React.FC = () => {
     !goalSetupMode &&
     (!linkedDocHook.isActive || (annotateSource === 'folder' && activeEditableDocument?.sourceSave?.enabled)) &&
     !isPlanDiffActive &&
-    !isSharedSession &&
     annotateSource !== 'message' &&
     !submitted;
 
@@ -3085,17 +2943,13 @@ const App: React.FC = () => {
   });
 
   // Check if we're in API mode (served from Bun hook server)
-  // Skip if we loaded from a shared URL
   useEffect(() => {
-    if (isLoadingShared) return; // Wait for share check to complete
-    if (isSharedSession) return; // Already loaded from share
-
     fetch('/api/plan')
       .then(res => {
         if (!res.ok) throw new Error('Not in API mode');
         return res.json();
       })
-      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last' | 'annotate-folder' | 'annotate-app' | 'archive' | 'goal-setup'; goalSetup?: GoalSetupBundle; filePath?: string; appUrl?: string; targetUrl?: string; liveToken?: string; sourceInfo?: string; sourceConverted?: boolean; sourceSave?: SourceSaveCapability; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; renderAs?: 'html' | 'markdown'; rawHtml?: string; shareHtml?: string; diffHtml?: string; convertHtml?: boolean; sharingEnabled?: boolean; shareBaseUrl?: string; pasteApiUrl?: string; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; archivePlans?: ArchivedPlan[]; projectRoot?: string; isWSL?: boolean; markdownExtensions?: string[]; serverConfig?: { displayName?: string; gitUser?: string }; recentMessages?: PickerMessage[]; agentTerminal?: AgentTerminalCapability; feedbackTemplates?: AnnotateFeedbackTemplates }) => {
+      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last' | 'annotate-folder' | 'annotate-app' | 'archive' | 'goal-setup'; goalSetup?: GoalSetupBundle; filePath?: string; appUrl?: string; targetUrl?: string; liveToken?: string; sourceInfo?: string; sourceConverted?: boolean; sourceSave?: SourceSaveCapability; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; renderAs?: 'html' | 'markdown'; rawHtml?: string; shareHtml?: string; diffHtml?: string; convertHtml?: boolean; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; archivePlans?: ArchivedPlan[]; projectRoot?: string; isWSL?: boolean; markdownExtensions?: string[]; serverConfig?: { displayName?: string; gitUser?: string }; recentMessages?: PickerMessage[]; agentTerminal?: AgentTerminalCapability; feedbackTemplates?: AnnotateFeedbackTemplates }) => {
         // Initialize config store with server-provided values (config file > cookie > default)
         configStore.init(data.serverConfig);
         // Extra extensions the user registered as markdown (#1307) — the
@@ -3111,17 +2965,15 @@ const App: React.FC = () => {
         if (data.mode === 'goal-setup' && data.goalSetup) {
           setGoalSetupBundle(data.goalSetup);
           setMarkdown('');
-          setSharingEnabled(false);
         } else if (data.mode === 'archive') {
           // Archive mode: show first archived plan or clear demo content
           setMarkdown(data.plan || '');
           if (data.archivePlans) archive.init(data.archivePlans);
           archive.fetchPlans();
-          setSharingEnabled(false);
           sidebar.open('archive');
         } else if (data.mode === 'annotate-app' && data.appUrl && data.liveToken) {
           // Live app annotation: full-viewport live surface on the loopback
-          // proxy origin. No rawHtml, no version fields, no sharing.
+          // proxy origin. No rawHtml and no version fields.
           setRenderAs('html');
           setMarkdown('');
           // Live sessions open ARMED like every HTML surface (htmlAnnotateArmed
@@ -3184,15 +3036,6 @@ const App: React.FC = () => {
             setSourceFilePath(data.filePath);
           }
         }
-        if (data.sharingEnabled !== undefined) {
-          setSharingEnabled(data.sharingEnabled);
-        }
-        if (data.shareBaseUrl) {
-          setShareBaseUrl(data.shareBaseUrl);
-        }
-        if (data.pasteApiUrl) {
-          setPasteApiUrl(data.pasteApiUrl);
-        }
         if (data.repoInfo) {
           setRepoInfo(data.repoInfo);
         }
@@ -3234,7 +3077,7 @@ const App: React.FC = () => {
         originalMarkdownRef.current = DEMO_PLAN_CONTENT;
       })
       .finally(() => setIsLoading(false));
-  }, [isLoadingShared, isSharedSession]);
+  }, []);
 
   // Client-lease: while a local direct structured annotate gate is open, keep
   // exactly one EventSource open so the server can detect this tab going away
@@ -3245,14 +3088,14 @@ const App: React.FC = () => {
   // payload is read from the stream.
   useEffect(() => {
     if (typeof EventSource === 'undefined') return;
-    if (!shouldConnectAnnotateClientLease({ annotateMode, isSharedSession, submitted, clientLease })) return;
+    if (!shouldConnectAnnotateClientLease({ annotateMode, submitted, clientLease })) return;
 
     const stream = openAnnotateClientLeaseStream(EventSource);
     return () => stream.close();
-  }, [annotateMode, isSharedSession, submitted, clientLease]);
+  }, [annotateMode, submitted, clientLease]);
 
   useEffect(() => {
-    if (!aiSessionEnabled || !isApiMode || isSharedSession) {
+    if (!aiSessionEnabled || !isApiMode) {
       setAiAvailable(false);
       setAiProviders([]);
       return;
@@ -3283,97 +3126,7 @@ const App: React.FC = () => {
       });
 
     return () => { cancelled = true; };
-  }, [aiSessionEnabled, isApiMode, isSharedSession, origin]);
-
-  // Auto-save to notes apps on plan arrival (each gated by its autoSave toggle)
-  const autoSaveAttempted = useRef(false);
-  const autoSaveResultsRef = useRef<NoteAutoSaveResults>({});
-  const autoSavePromiseRef = useRef<Promise<NoteAutoSaveResults> | null>(null);
-
-  useEffect(() => {
-    autoSaveAttempted.current = false;
-    autoSaveResultsRef.current = {};
-    autoSavePromiseRef.current = null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on mount;
-    // markdown changes from edit commits, linked docs, or discard must NOT reset
-    // the arrival auto-save (Bear creates a new note each time).
-  }, []);
-
-  useEffect(() => {
-    if (!isApiMode || !markdown || isSharedSession || annotateMode || archive.archiveMode) return;
-    if (autoSaveAttempted.current) return;
-
-    const body: { obsidian?: object; bear?: object; octarine?: object } = {};
-    const targets: string[] = [];
-
-    const obsSettings = getObsidianSettings();
-    if (obsSettings.autoSave && obsSettings.enabled) {
-      const vaultPath = getEffectiveVaultPath(obsSettings);
-      if (vaultPath) {
-        body.obsidian = {
-          vaultPath,
-          folder: obsSettings.folder || 'plannotator',
-          plan: markdown,
-          ...(obsSettings.filenameFormat && { filenameFormat: obsSettings.filenameFormat }),
-          ...(obsSettings.filenameSeparator && obsSettings.filenameSeparator !== 'space' && { filenameSeparator: obsSettings.filenameSeparator }),
-        };
-        targets.push('Obsidian');
-      }
-    }
-
-    const bearSettings = getBearSettings();
-    if (bearSettings.autoSave && bearSettings.enabled) {
-      body.bear = {
-        plan: markdown,
-        customTags: bearSettings.customTags,
-        tagPosition: bearSettings.tagPosition,
-      };
-      targets.push('Bear');
-    }
-
-    const octSettings = getOctarineSettings();
-    if (octSettings.autoSave && isOctarineConfigured()) {
-      body.octarine = {
-        plan: markdown,
-        workspace: octSettings.workspace,
-        folder: octSettings.folder || 'plannotator',
-      };
-      targets.push('Octarine');
-    }
-
-    if (targets.length === 0) return;
-    autoSaveAttempted.current = true;
-
-    const autoSavePromise = fetch('/api/save-notes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-      .then(res => res.json())
-      .then(data => {
-        const results: NoteAutoSaveResults = {
-          ...(body.obsidian ? { obsidian: Boolean(data.results?.obsidian?.success) } : {}),
-          ...(body.bear ? { bear: Boolean(data.results?.bear?.success) } : {}),
-          ...(body.octarine ? { octarine: Boolean(data.results?.octarine?.success) } : {}),
-        };
-        autoSaveResultsRef.current = results;
-
-        const failed = targets.filter(t => !data.results?.[t.toLowerCase()]?.success);
-        if (failed.length === 0) {
-          toast.success(`Auto-saved to ${targets.join(' & ')}`);
-        } else {
-          toast.error(`Auto-save failed for ${failed.join(' & ')}`);
-        }
-
-        return results;
-      })
-      .catch(() => {
-        autoSaveResultsRef.current = {};
-        toast.error('Auto-save failed');
-        return {};
-      });
-    autoSavePromiseRef.current = autoSavePromise;
-  }, [isApiMode, markdown, isSharedSession, annotateMode]);
+  }, [aiSessionEnabled, isApiMode, origin]);
 
   // Global paste listener for image attachments
   useEffect(() => {
@@ -3541,16 +3294,10 @@ const App: React.FC = () => {
       const currentMarkdown = isEditingMarkdown
         ? markdownEditorHandleRef.current?.getMarkdown() ?? displayedMarkdown
         : displayedMarkdown;
-      const obsidianSettings = getObsidianSettings();
-      const bearSettings = getBearSettings();
-      const octarineSettings = getOctarineSettings();
       const planSaveSettings = getPlanSaveSettings();
-      const autoSaveResults = bearSettings.autoSave && autoSavePromiseRef.current
-        ? await autoSavePromiseRef.current
-        : autoSaveResultsRef.current;
 
       // Build request body - include integrations if enabled
-      const body: { draftGeneration: number; obsidian?: object; bear?: object; octarine?: object; feedback?: string; agentSwitch?: string; planSave?: { enabled: boolean; customPath?: string }; permissionMode?: string } = {
+      const body: { draftGeneration: number; feedback?: string; agentSwitch?: string; planSave?: { enabled: boolean; customPath?: string }; permissionMode?: string } = {
         draftGeneration: getDraftGeneration(),
       };
 
@@ -3569,35 +3316,6 @@ const App: React.FC = () => {
         enabled: planSaveSettings.enabled,
         ...(planSaveSettings.customPath && { customPath: planSaveSettings.customPath }),
       };
-
-      const effectiveVaultPath = getEffectiveVaultPath(obsidianSettings);
-      if (obsidianSettings.enabled && effectiveVaultPath) {
-        body.obsidian = {
-          vaultPath: effectiveVaultPath,
-          folder: obsidianSettings.folder || 'plannotator',
-          plan: currentMarkdown,
-          ...(obsidianSettings.filenameFormat && { filenameFormat: obsidianSettings.filenameFormat }),
-          ...(obsidianSettings.filenameSeparator && obsidianSettings.filenameSeparator !== 'space' && { filenameSeparator: obsidianSettings.filenameSeparator }),
-        };
-      }
-
-      // Bear creates a new note each time, so don't send it again on approve
-      // if the arrival auto-save already succeeded.
-      if (bearSettings.enabled && !(bearSettings.autoSave && autoSaveResults.bear)) {
-        body.bear = {
-          plan: currentMarkdown,
-          customTags: bearSettings.customTags,
-          tagPosition: bearSettings.tagPosition,
-        };
-      }
-
-      if (isOctarineConfigured()) {
-        body.octarine = {
-          plan: currentMarkdown,
-          workspace: octarineSettings.workspace,
-          folder: octarineSettings.folder || 'plannotator',
-        };
-      }
 
       // Include annotations as feedback if any exist (for OpenCode "approve with notes").
       // Direct edits count as feedback too — without the editsSection check here,
@@ -4873,31 +4591,6 @@ const App: React.FC = () => {
     submitted, isApiMode, documentReadOnly, isEditingMarkdown, handleSaveEditedSourceFile, displayedMarkdown, annotationsOutput,
   ]);
 
-  // Cmd/Ctrl+P keyboard shortcut — print plan
-  useEffect(() => {
-    const handlePrintShortcut = (e: KeyboardEvent) => {
-      if (e.key !== 'p' || !(e.metaKey || e.ctrlKey)) return;
-
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-
-      if (showExport || showFeedbackPrompt || showClaudeCodeWarning ||
-          showSourceFileEditWarning ||
-          showExitWarning || showAgentWarning || showPermissionModeSetup || pendingPasteImage) return;
-
-      if (submitted) return;
-
-      e.preventDefault();
-      window.print();
-    };
-
-    window.addEventListener('keydown', handlePrintShortcut);
-    return () => window.removeEventListener('keydown', handlePrintShortcut);
-  }, [
-    showExport, showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning, showAgentWarning,
-    showPermissionModeSetup, pendingPasteImage, submitted,
-  ]);
-
   const agentName = useMemo(() => getAgentName(origin), [origin]);
 
   // Header handlers ref — stores latest handler references so the stable
@@ -5199,7 +4892,6 @@ const App: React.FC = () => {
   const handleOpenSettings = useCallback(() => setMobileSettingsOpen(true), []);
   const handleCloseSettings = useCallback(() => setMobileSettingsOpen(false), []);
   const handleOpenExport = useCallback(() => { setInitialExportTab(undefined); setShowExport(true); }, []);
-  const handlePrint = useCallback(() => window.print(), []);
   const handleOpenImport = useCallback(() => setShowImport(true), []);
   const handleSaveToObsidian = useCallback(() => headerHandlersRef.current.handleQuickSaveToNotes('obsidian'), []);
   const handleSaveToOctarine = useCallback(() => headerHandlersRef.current.handleQuickSaveToNotes('octarine'), []);
@@ -5702,7 +5394,6 @@ const App: React.FC = () => {
     <ThemeProvider defaultTheme="dark" manageFavicon>
       <TooltipProvider delayDuration={900} skipDelayDuration={200} disableHoverableContent>
       <div
-        data-print-region="root"
         data-pn-browser-canvas={browserCanvas}
         data-pn-compact-touch-layout={usesDocumentScroll ? 'true' : undefined}
         data-pn-document-scroll={usesDocumentScroll ? 'true' : undefined}
@@ -5774,7 +5465,6 @@ const App: React.FC = () => {
           onOpenExport={handleOpenExport}
           onCopyAgentInstructions={handleHeaderCopyAgentInstructions}
           onDownloadAnnotations={handleHeaderDownloadAnnotations}
-          onPrint={handlePrint}
           onCopyShareLink={handleHeaderCopyShareLink}
           onOpenImport={handleOpenImport}
           onSaveToObsidian={handleSaveToObsidian}
@@ -5903,7 +5593,7 @@ const App: React.FC = () => {
         )}
 
         {/* Main Content */}
-        <div data-print-region="content" className={`flex-1 flex ${usesDocumentScroll ? 'overflow-visible' : 'overflow-hidden'} relative z-0 ${isResizing ? 'select-none' : ''}`}>
+        <div className={`flex-1 flex ${usesDocumentScroll ? 'overflow-visible' : 'overflow-hidden'} relative z-0 ${isResizing ? 'select-none' : ''}`}>
           {/* Tater sprites — inside content wrapper so z-0 stacking context applies */}
           {taterMode && <TaterSpriteRunning />}
           {showAgentTerminalOnLeft && agentTerminalPanel}
@@ -5938,7 +5628,6 @@ const App: React.FC = () => {
           <OverlayScrollArea
             element="main"
             className={`flex-1 min-w-0 ${isHtmlSurface ? 'bg-background' : `${gridEnabled ? "bg-grid " : "bg-card "}${!goalSetupMode && !sidebar.isOpen && !isLeftAgentTerminalVisible && wideModeType === null ? 'lg:pl-[30px]' : ''}`}`}
-            data-print-region="document"
             overflowX={usesDocumentScroll ? 'visible' : 'hidden'}
             overflowY={usesDocumentScroll ? 'visible' : 'auto'}
             onViewportReady={handleDocumentViewportReady}
@@ -5988,7 +5677,6 @@ const App: React.FC = () => {
                   diff and archive browsing. */}
               {toolstripVisible && (
                 <div
-                  data-print-hide
                   className="w-full mb-3 md:mb-4 flex items-center justify-start"
                   style={annotateReaderMaxWidth == null ? undefined : { maxWidth: annotateReaderMaxWidth }}
                 >
@@ -6054,7 +5742,6 @@ const App: React.FC = () => {
               <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : `${isCompactTouchLayout && isEditingMarkdown ? 'flex flex-col items-center' : 'flex justify-center'}${isEditingMarkdown ? ' flex-1 min-h-0' : ''}`}`} style={{ display: goalSetupMode || (isPlanDiffActive && planDiff.diffBlocks) || (annotateSource === 'folder' && !markdown && !linkedDocHook.isActive) ? 'none' : undefined }}>
                 {!isCompactTouchLayout && (canUseWideMode || canEditMarkdown) && !isPlanDiffActive && !archive.archiveMode && !isHtmlSurface && (
                   <div
-                    data-print-hide
                     className="absolute -top-5 left-0 right-0 mx-auto w-full flex justify-end pointer-events-none"
                     style={annotateReaderMaxWidth === null ? undefined : { maxWidth: annotateReaderMaxWidth ?? 832 }}
                   >

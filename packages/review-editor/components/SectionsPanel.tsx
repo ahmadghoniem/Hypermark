@@ -13,7 +13,7 @@ import { PanelControlsRow, PanelSearchField } from './PanelChrome';
 import {
   ViewedControl,
   ChangeTypeLetter,
-  StageControl,
+  StagedDot,
   AnnotationBadge,
   DiffCounts,
   CommittedDot,
@@ -62,15 +62,8 @@ interface SectionsPanelProps {
   onToggleHideViewed?: () => void;
   showViewedControls?: boolean;
   onToggleShowViewedControls?: () => void;
-  /** EFFECTIVE staged set from useGitAdd (sidecar + session overrides).
-   *  REQUIRED and the ONLY staging source surfaces may render from — the
-   *  sidecar's own `staged` flag is a snapshot and must never be ORed in. */
+  /** Read-side staged set from the server's status sidecar — display only. */
   stagedFiles: Set<string>;
-  stagingFile?: string | null;
-  canStage?: boolean;
-  onStageFile?: (filePath: string) => void;
-  showStageControls?: boolean;
-  onToggleShowStageControls?: () => void;
   autoViewed?: boolean;
   onToggleAutoViewed?: () => void;
   isLoadingDiff?: boolean;
@@ -139,14 +132,7 @@ const SectionRow: React.FC<{
   onDoubleClick?: () => void;
   onToggleViewed?: () => void;
   showViewedControl: boolean;
-  showStageButton: boolean;
-  showStageControl: boolean;
-  /** Reserve the 16px stage slot even when this row can't stage (committed
-   * rows) so the view/add/count columns align across all sections. */
-  reserveStageSlot: boolean;
   isStaged: boolean;
-  isStaging: boolean;
-  onStage?: () => void;
 }> = ({
   item,
   isActive,
@@ -157,12 +143,7 @@ const SectionRow: React.FC<{
   onDoubleClick,
   onToggleViewed,
   showViewedControl,
-  showStageButton,
-  showStageControl,
-  reserveStageSlot,
   isStaged,
-  isStaging,
-  onStage,
 }) => {
   const { file } = item;
 
@@ -179,20 +160,20 @@ const SectionRow: React.FC<{
       style={{ paddingLeft: 8 }}
       title={file.path}
     >
-      {/* Leading rail: [view][add][letter] then path. View reveals on hover
-          or when the row is active; add (stage) and the change-type letter
-          are always shown. Fixed-width slots keep the rail aligned. Path
-          inherits the row font; only the letter/counts are the small size. */}
+      {/* Leading rail: [view][status][letter] then path. View reveals on hover
+          or when the row is active; the staged/committed dot and the
+          change-type letter are always shown. Fixed-width slots keep the rail
+          aligned. Path inherits the row font; only the letter/counts are the
+          small size. */}
       <div className="flex items-center gap-1.5 flex-1 min-w-0">
         {showViewedControl && <ViewedControl isViewed={isViewed} onToggle={onToggleViewed} forceVisible={isActive} />}
-        {showStageControl &&
-          (showStageButton || isStaged ? (
-            <StageControl isStaged={isStaged} isStaging={isStaging} onStage={onStage} />
-          ) : item.group === 'committed' ? (
-            <CommittedDot />
-          ) : reserveStageSlot ? (
-            <span className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-          ) : null)}
+        {isStaged ? (
+          <StagedDot />
+        ) : item.group === 'committed' ? (
+          <CommittedDot />
+        ) : (
+          <span className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+        )}
         <ChangeTypeLetter status={file.status} oldPath={file.oldPath} untracked={item.group === 'untracked'} />
         <TruncatedPath path={file.path} />
         <AnnotationBadge count={annotationCount} />
@@ -219,11 +200,6 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
   showViewedControls = true,
   onToggleShowViewedControls,
   stagedFiles,
-  stagingFile,
-  canStage,
-  onStageFile,
-  showStageControls = true,
-  onToggleShowStageControls,
   autoViewed,
   onToggleAutoViewed,
   isLoadingDiff,
@@ -280,23 +256,11 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
       // A file in the composite patch with no status entry has a clean
       // working tree — it is committed branch work.
       let group: SectionGroup = entry?.group ?? 'committed';
-      // stagedFiles is the EFFECTIVE set (sidecar + session overrides) — the
-      // sidecar's own flag must not be ORed back in, or a file unstaged this
-      // session would keep its stale staged dot until the next refresh.
+      // Read-side staged set from the server's status sidecar.
       const staged = stagedFiles.has(file.path);
-      // Staging an untracked file makes it tracked+staged in git, but the
-      // sidecar snapshot still says untracked until the next diff refresh —
-      // anticipate the server and show it under Changes now. Unstaging drops
-      // it from the effective set, which falls back to the sidecar group.
+      // A staged add is tracked in the index, so it belongs under Changes even
+      // though the working-tree scan still classifies it as untracked.
       if (group === 'untracked' && staged) group = 'changes';
-      // Mirror image: a file that was ALREADY staged when the sidecar was
-      // computed (entry.staged — the snapshot flag, deliberately used here
-      // to detect "was pre-staged") and is an ADD becomes untracked again
-      // when the session unstages it. Staged modifications correctly stay
-      // in Changes; staged renames are a refresh-heals edge.
-      else if (group === 'changes' && (entry?.staged ?? false) && !staged && file.status === 'added') {
-        group = 'untracked';
-      }
       grouped[group].push({ file, index, group, staged });
     });
     // Staged work floats to the top of Changes.
@@ -366,9 +330,8 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
     return () => observer.disconnect();
   }, [remeasureCommittedFit]);
 
-  // "N added" mirrors the rows' staged dots. stagedFiles is the EFFECTIVE
-  // set (sidecar + session overrides), so its size IS the count — unioning
-  // the sidecar back in would resurrect files unstaged this session.
+  // "N added" mirrors the rows' staged dots — read-side status from the
+  // server's sidecar, display only.
   const stagedCount = stagedFiles.size;
 
   // Keyboard file navigation (j/k/arrows/Home/End) over the panel's VISIBLE
@@ -454,12 +417,7 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
         onDoubleClick={onDoubleClickFile ? () => onDoubleClickFile(item.index) : undefined}
         onToggleViewed={onToggleViewed ? () => onToggleViewed(item.file.path) : undefined}
         showViewedControl={showViewedControls}
-        showStageButton={!!canStage && !!onStageFile && item.group !== 'committed'}
-        showStageControl={showStageControls}
-        reserveStageSlot={showStageControls && !!canStage && !!onStageFile}
         isStaged={item.staged}
-        isStaging={stagingFile === item.file.path}
-        onStage={onStageFile ? () => onStageFile(item.file.path) : undefined}
       />
     ));
 
@@ -495,8 +453,6 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
       copyRawDiffStatus={copyRawDiffStatus}
       showViewedControls={showViewedControls}
       onToggleShowViewedControls={onToggleShowViewedControls}
-      showStageControls={showStageControls}
-      onToggleShowStageControls={onToggleShowStageControls}
       autoViewed={autoViewed}
       onToggleAutoViewed={onToggleAutoViewed}
     />

@@ -1,10 +1,10 @@
 /**
- * The control-visibility preferences (#1277) must gate the per-file diff
- * header too: a reviewer who turned the Viewed / Git Add controls off in the
- * Tree controls popover should not see them anywhere. Guards the flag
- * threading DiffViewer -> FileHeader (each flag hides only its own button,
- * and a visible button still fires its handler). The V / A shortcuts bypass
- * these buttons by design and are not exercised here.
+ * The control-visibility preference (#1277) must gate the per-file diff
+ * header too: a reviewer who turned the Viewed controls off in the Tree
+ * controls popover should not see them anywhere. Guards the flag threading
+ * DiffViewer -> FileHeader (the flag hides its button, and a visible button
+ * still fires its handler). The V shortcut bypasses the button by design and
+ * is not exercised here.
  *
  * DOM-gated (DOM_TESTS=1) and registered in .github/workflows/test.yml's
  * "Run diff-renderer DOM tests" step.
@@ -51,7 +51,6 @@ const TEXT_PATCH = [
 ].join('\n');
 
 const VIEWED_BUTTON = 'button[title*="viewed (V)"]';
-const STAGE_BUTTON = 'button[title*="this file (A)"]';
 
 describe.if(hasDom)('header control visibility (DOM)', () => {
   let root: Root | null = null;
@@ -104,33 +103,23 @@ describe.if(hasDom)('header control visibility (DOM)', () => {
         onSelectAnnotation={() => {}}
         onDeleteAnnotation={() => {}}
         onToggleViewed={onToggleViewed}
-        onStage={() => {}}
-        canStage
         {...props}
       />
     );
   }
 
-  test('both header buttons render by default and Viewed fires its handler', async () => {
+  test('the Viewed header button renders by default and fires its handler', async () => {
     let toggled = 0;
     const el = await render(view({}, () => toggled++));
     const viewedBtn = el.querySelector<HTMLButtonElement>(VIEWED_BUTTON);
     expect(viewedBtn).not.toBeNull();
-    expect(el.querySelector(STAGE_BUTTON)).not.toBeNull();
     await act(async () => viewedBtn!.click());
     expect(toggled).toBe(1);
   });
 
-  test('showViewedControls={false} hides only the Viewed button', async () => {
+  test('showViewedControls={false} hides the Viewed button', async () => {
     const el = await render(view({ showViewedControls: false }, () => {}));
     expect(el.querySelector(VIEWED_BUTTON)).toBeNull();
-    expect(el.querySelector(STAGE_BUTTON)).not.toBeNull();
-  });
-
-  test('showStageControls={false} hides only the Git Add button', async () => {
-    const el = await render(view({ showStageControls: false }, () => {}));
-    expect(el.querySelector(STAGE_BUTTON)).toBeNull();
-    expect(el.querySelector(VIEWED_BUTTON)).not.toBeNull();
   });
 
 });

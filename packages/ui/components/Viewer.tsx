@@ -269,7 +269,6 @@ const ViewerDocumentHeader: React.FC<ViewerDocumentHeaderProps> = ({
       <div
         ref={headerRef}
         data-annotation-exclude
-        data-print-hide
         data-viewer-document-header
         data-header-layout={geometry.layout}
         className={`annotation-exclude ${sticky ? 'sticky top-3' : 'relative'} z-40 mb-3 md:mb-4 rounded-lg transition-colors duration-150 ${
@@ -915,7 +914,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
       {taterMode && <TaterSpriteSitting />}
       <article
         ref={containerRef}
-        data-print-region="article"
         className={`w-full bg-card rounded-xl py-5 md:py-8 lg:py-10 xl:py-12 relative ${gridEnabled ? 'px-5 md:px-8 lg:px-10 xl:px-12 shadow-xl border border-border/50' : ''} ${inputMethod === 'pinpoint' ? 'cursor-pointer' : ''}`}
         style={{
           WebkitTouchCallout: 'none',
@@ -923,7 +921,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
       >
         {/* Legacy badge placement remains byte-for-byte opt-out behavior. */}
         {!viewerAnnotationHeader && (repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo || archiveInfo || sourceInfo || openInAppPath) && (
-          <div ref={docBadgesRef} data-print-hide className={`absolute top-3 md:top-4 ${gridEnabled ? 'left-3 md:left-5' : 'left-0'}`}>
+          <div ref={docBadgesRef} className={`absolute top-3 md:top-4 ${gridEnabled ? 'left-3 md:left-5' : 'left-0'}`}>
             <DocBadges
               layout="column"
               repoInfo={repoInfo}
@@ -969,9 +967,9 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
           />
         ) : (
           <>
-            {badgeClearance > 0 && <div data-print-hide style={{ height: badgeClearance }} aria-hidden="true" />}
+            {badgeClearance > 0 && <div style={{ height: badgeClearance }} aria-hidden="true" />}
             {stickyActions && <div ref={stickySentinelRef} className="h-0 w-0 float-right" aria-hidden="true" />}
-            <div data-print-hide data-sticky-actions className={`${stickyActions ? 'sticky top-3' : ''} z-30 float-right flex items-start gap-1 md:gap-2 rounded-lg p-1 md:p-2 transition-colors duration-150 ${isStuck ? 'bg-card/95 backdrop-blur-sm shadow-sm' : ''} ${gridEnabled ? '-mr-3 md:-mr-5 lg:-mr-7 xl:-mr-9' : '-mr-1 md:-mr-2'} mt-6 md:-mt-5 lg:-mt-7 xl:-mt-9`}>
+            <div data-sticky-actions className={`${stickyActions ? 'sticky top-3' : ''} z-30 float-right flex items-start gap-1 md:gap-2 rounded-lg p-1 md:p-2 transition-colors duration-150 ${isStuck ? 'bg-card/95 backdrop-blur-sm shadow-sm' : ''} ${gridEnabled ? '-mr-3 md:-mr-5 lg:-mr-7 xl:-mr-9' : '-mr-1 md:-mr-2'} mt-6 md:-mt-5 lg:-mt-7 xl:-mt-9`}>
               {documentActions}
             </div>
           </>

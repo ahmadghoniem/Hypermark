@@ -11,7 +11,7 @@
 
 import { isRemoteSession, getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
 import type { Origin } from "@plannotator/shared/agents";
-import { type DiffType, type GitContext, runVcsDiff, getVcsFileContentsForDiff, getVcsDiffFingerprint, canStageFiles, stageFile, unstageFile, resolveVcsCwd, validateFilePath, getVcsContext, detectRemoteDefaultCompareTarget, vcsOwnsDiffType, vcsSupportsSnapshot, materializeVcsSnapshot, gitRuntime } from "./vcs";
+import { type DiffType, type GitContext, runVcsDiff, getVcsFileContentsForDiff, getVcsDiffFingerprint, resolveVcsCwd, validateFilePath, getVcsContext, detectRemoteDefaultCompareTarget, vcsOwnsDiffType, vcsSupportsSnapshot, materializeVcsSnapshot, gitRuntime } from "./vcs";
 import { basename } from "node:path";
 import { existsSync } from "node:fs";
 import { SingleFlight } from "@plannotator/shared/single-flight";
@@ -62,7 +62,6 @@ import {
   checkoutPRHead,
   type PRDiffScope,
 } from "@plannotator/shared/pr-stack";
-import { type AgentJobInfo, REVIEW_OUTPUT_FAILED, getAgentJobAnnotationContext, markJobReviewFailed } from "@plannotator/shared/agent-jobs";
 import { createCommitAvatarResolver } from "@plannotator/shared/commit-avatars";
 import { detectGeneratedFiles, detectGeneratedFilesByName } from "@plannotator/shared/generated-files";
 import { getRepoInfo } from "./repo";
@@ -70,34 +69,8 @@ import { handleImage, handleUpload, handleAgents, handleServerReady, handleDraft
 import { contentHash, deleteDraft } from "./draft";
 import { createEditorAnnotationHandler } from "./editor-annotations";
 import { createExternalAnnotationHandler } from "./external-annotations";
-import { createAgentJobHandler } from "./agent-jobs";
-import {
-  composeCodexReviewPrompt,
-  buildCodexCommand,
-  generateOutputPath,
-  parseCodexOutput,
-  transformReviewFindings,
-} from "./codex-review";
-import { buildAgentReviewUserMessage, buildAgentReviewUserMessageForTarget, type WorkspaceReviewPromptContext } from "./agent-review-message";
-import {
-  composeClaudeReviewPrompt,
-  buildClaudeCommand,
-  parseClaudeStreamOutput,
-  transformClaudeFindings,
-} from "./claude-review";
 import { resolveSharingEnabled } from "@plannotator/shared/config";
-import {
-  MARKER_ENGINES,
-  composeMarkerReviewPrompt,
-  buildMarkerCommand,
-  parseMarkerStreamOutput,
-  reduceMarkerStream,
-  transformMarkerFindings,
-  makeMarkerNonce,
-  extractMarkerNonce,
-  type MarkerEngineId,
-} from "./marker-review";
-import { loadConfig, saveConfig, detectGitUser, getServerConfig, parseReviewAnalysisConfig, resolveAIEnabled, resolveCursorSandbox, resolveFeedbackHistory } from "./config";
+import { loadConfig, saveConfig, detectGitUser, getServerConfig, parseReviewAnalysisConfig, resolveFeedbackHistory } from "./config";
 import { appendFeedbackRecord, countChangedFiles, deriveFeedbackProject, type FeedbackDecision, type FeedbackReviewTarget } from "@plannotator/shared/feedback-archive";
 import { isFaviconStyle, type FaviconStyle } from "@plannotator/shared/favicon";
 import { type PRMetadata, type PRRef, type PRReviewFileComment, type PRStackTree, type PRListItem, fetchPR, fetchPRFileContent, fetchPRContext, submitPRReview, fetchPRViewedFiles, markPRFilesViewed, fetchPRStack, fetchPRList, getPRUser, parsePRUrl, prRefFromMetadata, isSameProject, getDisplayRepo, getMRLabel, getMRNumberLabel, prCommandRuntime } from "./pr";
@@ -112,21 +85,10 @@ import {
   fetchPRArtifactDocument,
   PRArtifactDocumentError,
 } from "@plannotator/shared/pr-artifact-document";
-import { AI_QUERY_ENDPOINT, createAIRuntime } from "./ai-runtime";
-import { isAIEndpointPath, type AIEndpoints } from "@plannotator/ai";
 import { isWSL } from "./browser";
 import { handleOpenInApps, handleOpenIn } from "./open-in";
 import type { LocalWorkspaceReview, WorkspaceDiffType } from "./review-workspace";
 import { handleCodeNavResolve, handleCodeNavHover, extractChangedFiles } from "./code-nav";
-import { discoverCuratedSkills, resolveRequestedReviewProfile, listAllSkills, enableReviewSkill } from "./review-skill-loader";
-
-import {
-  BUILTIN_DEFAULT_PROFILE,
-  type ReviewProfilesResponse,
-} from "@plannotator/shared/review-profiles";
-
-// Review ingestion completion semantics (REVIEW_OUTPUT_FAILED,
-// markJobReviewFailed) now live in @plannotator/shared/agent-jobs.
 
 // Re-export utilities
 export { isRemoteSession, getServerPort } from "./remote";
@@ -247,7 +209,6 @@ export async function startReviewServer(
   // option's doc). Absent option = false, so old callers advertise honestly.
   const approvalNotesSupported = options.approvalNotesSupported === true;
   const submitPlatformReview = options.prReviewSubmitter ?? submitPRReview;
-  const aiEnabled = resolveAIEnabled();
 
   let prMetadata = options.prMetadata;
   const isPRMode = !!prMetadata;
@@ -716,12 +677,7 @@ export async function startReviewServer(
     return generated.length > 0 ? generated : undefined;
   };
 
-  // Agent jobs — background process manager (late-binds serverUrl via getter).
-  // Spawned jobs run on this machine, so their API URL is pinned to loopback
-  // and never inherits the advertised-URL host override (a tailnet-only
-  // hostname must not break local agent jobs).
   let serverUrl = "";
-  let agentApiUrl = "";
   const resolveAgentCwd = (): string => {
     if (workspace) return workspace.root;
     if (options.worktreePool && prMetadata) {
@@ -750,11 +706,6 @@ export async function startReviewServer(
     }
     return resolveAgentCwd();
   };
-  const getWorkspacePromptContext = (): WorkspaceReviewPromptContext | undefined => {
-    if (!workspace) return undefined;
-    return workspace.getPromptContext();
-  };
-
   // GitButler's picker topology is live session state: stacks and branches can
   // change without changing the currently-rendered patch. Carry a compact
   // revision in the snapshot id so another tab cannot rebaseline the shared
@@ -864,31 +815,6 @@ export async function startReviewServer(
     return written !== null || !hasContent;
   };
 
-  const buildCurrentAiReviewContext = (
-    patch: string = currentPatch,
-    base: string = currentBase,
-    diffType: DiffType = currentDiffType as DiffType,
-  ): string | undefined => {
-    if (!aiEnabled) return undefined;
-    const workspacePrompt = getWorkspacePromptContext();
-    if (workspacePrompt) {
-      return buildAgentReviewUserMessageForTarget(
-        { kind: "workspace", patch, workspace: workspacePrompt },
-        true,
-      );
-    }
-    const hasLocalAccess = !!gitContext ||
-      (options.worktreePool && prMetadata
-        ? resolvePRLocalCwd(prMetadata) !== undefined
-        : !!options.agentCwd);
-    return buildAgentReviewUserMessage(
-      patch,
-      diffType,
-      { defaultBranch: base, hasLocalAccess, prDiffScope: currentPRDiffScope },
-      prMetadata,
-      true,
-    );
-  };
   const semanticDiffScratchCwd = getSemanticDiffScratchCwd();
   const resolveSemanticDiffCwd = (diffType: DiffType = currentDiffType as DiffType): string => {
     if (workspace) return workspace.root;
@@ -1064,313 +990,6 @@ export async function startReviewServer(
     });
   };
 
-  const agentJobs = createAgentJobHandler({
-    mode: "review",
-    getServerUrl: () => agentApiUrl,
-    getCwd: resolveAgentCwd,
-
-    async buildCommand(provider, config) {
-      // Snapshot ALL launch-relevant state before any await: waiting out the
-      // checkout warmup below yields to other requests (e.g. pr-switch), and
-      // the job's cwd, prompt, and PR attribution must describe the same PR.
-      const launchMetadata = prMetadata;
-      const launchPatch = currentPatch;
-      const launchDiffType = currentDiffType;
-      const launchBase = currentBase;
-      const launchScope = currentPRDiffScope;
-      const launchGitRef = currentGitRef;
-      const launchSnapshotId = currentSnapshotId();
-      const launchWorkspacePrompt = getWorkspacePromptContext();
-      // Snapshotted WITH the patch it describes: layerPatchIncomplete is live
-      // mutable state (a concurrent layer upgrade or pr-switch can flip it),
-      // and the guide branch's recompute below must decide against the SAME
-      // moment launchPatch was captured — positional same-sync-segment
-      // coherence held today, but a future await inserted between here and
-      // that read would silently break it.
-      const launchLayerPatchIncomplete = layerPatchIncomplete;
-
-      const requestedProfileId =
-        typeof config?.reviewProfileId === "string" ? config.reviewProfileId : undefined;
-      // Resolve the requested review, or throw a clear error. An unresolvable
-      // non-default id (renamed/removed skill, stale cookie, malformed request)
-      // never silently downgrades to the default — explicit selection is
-      // authoritative at this boundary.
-      const reviewProfile = resolveRequestedReviewProfile(requestedProfileId);
-
-      // Agents run inside the PR checkout — wait out the background warmup so
-      // the spawn-time getCwd() below resolves to a path that exists.
-      let cwd: string;
-      if (options.worktreePool && launchMetadata) {
-        const checkout = await ensurePRLocalCwd(launchMetadata);
-        if (!checkout) {
-          // Fail fast: without the checkout the job would run in whatever
-          // directory the CLI was launched from — possibly an unrelated repo.
-          throw new Error(
-            "Local PR checkout unavailable — the agent can't run against the PR files. Retry shortly (the checkout may still be recovering).",
-          );
-        }
-        cwd = checkout;
-      } else {
-        cwd = await resolveAgentCwdReady();
-      }
-      const workspacePrompt = launchWorkspacePrompt;
-      // Honest local-access claim: in PR mode the checkout must actually be
-      // available (warmup done, not failed) — the prompt tells the agent it
-      // can read PR files, so a bare pool/agentCwd existence check would have
-      // it confidently reviewing whatever directory it landed in.
-      const hasAgentLocalAccess = !!workspacePrompt || !!gitContext ||
-        (options.worktreePool && launchMetadata
-          ? resolvePRLocalCwd(launchMetadata) !== undefined
-          : !!options.agentCwd);
-      const userMessageOptions = {
-        defaultBranch: launchBase,
-        hasLocalAccess: hasAgentLocalAccess,
-        prDiffScope: launchScope,
-        ...(workspacePrompt && { workspace: workspacePrompt }),
-      };
-
-      // Snapshot the diff context at launch — stored on the job so
-      // downstream "Copy All" produces the same markdown as /api/feedback
-      // would right now, even if the reviewer switches modes/bases later.
-      // Skipped in PR mode (prMetadata carries equivalent context).
-      const worktreeParts = String(launchDiffType).startsWith("worktree:")
-        ? parseWorktreeDiffType(launchDiffType as DiffType)
-        : null;
-      const launchPrUrl = launchMetadata?.url;
-      const launchDiffScope = isPRMode ? launchScope : undefined;
-      const diffContext: AgentJobInfo["diffContext"] | undefined = workspacePrompt
-        ? { mode: String(launchDiffType), worktreePath: null }
-        : launchMetadata
-        ? undefined
-        : {
-            mode: (worktreeParts?.subType ?? launchDiffType) as string,
-            base: launchBase,
-            worktreePath: worktreeParts?.path ?? null,
-            ...(String(launchDiffType).startsWith("gitbutler:") && {
-              label: launchGitRef,
-              snapshotId: launchSnapshotId,
-            }),
-          };
-
-
-
-      // A custom review skill carries its own instructions and becomes the whole
-      // prompt; strip the default framing prose from the user message so only the
-      // git/PR context remains. The default review keeps today's message verbatim.
-      const isCustomReview = reviewProfile.source === "user";
-      const userMessage = workspacePrompt
-        ? buildAgentReviewUserMessageForTarget({
-            kind: "workspace",
-            patch: launchPatch,
-            workspace: workspacePrompt,
-          }, isCustomReview)
-        : buildAgentReviewUserMessage(launchPatch, launchDiffType as DiffType, userMessageOptions, launchMetadata, isCustomReview);
-      const jobLabel = workspacePrompt ? "Workspace Review" : "Code Review";
-
-      if (provider === "codex") {
-        const model = typeof config?.model === "string" && config.model ? config.model : undefined;
-        const reasoningEffort = typeof config?.reasoningEffort === "string" && config.reasoningEffort ? config.reasoningEffort : undefined;
-        const fastMode = config?.fastMode === true;
-        const outputPath = generateOutputPath();
-        const prompt = composeCodexReviewPrompt(userMessage, reviewProfile);
-        const command = await buildCodexCommand({ cwd, outputPath, prompt, model, reasoningEffort, fastMode });
-        return { command, outputPath, prompt, cwd, label: jobLabel, model, reasoningEffort, fastMode: fastMode || undefined, prUrl: launchPrUrl, diffScope: launchDiffScope, diffContext, reviewProfileId: reviewProfile.id, reviewProfileLabel: reviewProfile.label };
-      }
-
-      if (provider === "claude") {
-        const model = typeof config?.model === "string" && config.model ? config.model : undefined;
-        const effort = typeof config?.effort === "string" && config.effort ? config.effort : undefined;
-        const prompt = composeClaudeReviewPrompt(userMessage, reviewProfile);
-        const { command, stdinPrompt } = buildClaudeCommand(prompt, model, effort);
-        return { command, stdinPrompt, prompt, cwd, label: jobLabel, captureStdout: true, model, effort, prUrl: launchPrUrl, diffScope: launchDiffScope, diffContext, reviewProfileId: reviewProfile.id, reviewProfileLabel: reviewProfile.label };
-      }
-
-      // Marker engines (Cursor, OpenCode, Pi) — one branch, same shape as Claude.
-      // None of the three has a schema flag, so composeMarkerReviewPrompt ALWAYS
-      // appends the marker-block output contract (even for a custom profile —
-      // it's the only thing that makes their prose output parseable). The
-      // engine's buildArgv passes the prompt as the trailing positional arg and
-      // threads the spawn cwd (--workspace for Cursor, --dir for OpenCode; Pi has
-      // no cwd flag — it always uses the process's actual cwd, which spawnJob
-      // already sets from this same cwd).
-      // captureStdout is required: the marker block comes back on stdout NDJSON.
-      const markerEngine = MARKER_ENGINES[provider as MarkerEngineId];
-      if (markerEngine) {
-        const model = typeof config?.model === "string" && config.model ? config.model : undefined;
-        const thinking = typeof config?.thinking === "string" && config.thinking ? config.thinking : undefined;
-        // Per-job nonce embedded in the marker contract; recovered from job.prompt
-        // at parse time so echoed/quoted bare tags can't be mistaken for the payload.
-        const nonce = makeMarkerNonce();
-        const prompt = composeMarkerReviewPrompt(reviewProfile, userMessage, nonce);
-        const { command } = buildMarkerCommand(markerEngine, prompt, model, cwd, { thinking, cursorSandbox: resolveCursorSandbox(loadConfig()) });
-        return { command, prompt, cwd, label: jobLabel, captureStdout: true, model, thinking, prUrl: launchPrUrl, diffScope: launchDiffScope, diffContext, reviewProfileId: reviewProfile.id, reviewProfileLabel: reviewProfile.label };
-      }
-
-      return null;
-    },
-
-    async onJobComplete(job, meta) {
-      const cwd = meta.cwd ?? resolveAgentCwd();
-      const jobPrUrl = job.prUrl;
-      const jobDiffScope = job.diffScope;
-      const jobPrMeta = jobPrUrl ? prSwitchCache.get(jobPrUrl)?.metadata : undefined;
-      const jobPrContext = jobPrMeta ? {
-        prUrl: jobPrUrl,
-        prNumber: jobPrMeta.platform === "github" ? jobPrMeta.number : jobPrMeta.iid,
-        prTitle: jobPrMeta.title,
-        prRepo: getDisplayRepo(jobPrMeta),
-      } : jobPrUrl ? { prUrl: jobPrUrl } : {};
-
-      // Only tag annotations with a *custom* profile — the default review needs no tag.
-      const profileLabel =
-        job.reviewProfileId && job.reviewProfileId !== BUILTIN_DEFAULT_PROFILE.id
-          ? job.reviewProfileLabel
-          : undefined;
-
-      // Map findings onto annotations and ingest. Shared by both engine branches;
-      // no-ops on an empty set so a clean (zero-finding) review stays "done".
-      const ingest = <T extends object>(transformed: readonly T[], logTag: string) => {
-        if (transformed.length === 0) return undefined;
-        const annotations = transformed.map((a) => ({
-          ...a,
-          ...jobPrContext,
-          ...(jobDiffScope && { diffScope: jobDiffScope }),
-          ...getAgentJobAnnotationContext(job.diffContext),
-          ...(profileLabel && { reviewProfileLabel: profileLabel }),
-        }));
-        const result = externalAnnotations.addAnnotations({ annotations });
-        if ("error" in result) console.error(`[${logTag}] addAnnotations error:`, result.error);
-        return result;
-      };
-
-      // --- Codex path ---
-      if (job.provider === "codex") {
-        const output = meta.outputPath ? await parseCodexOutput(meta.outputPath) : null;
-        if (!output) {
-          // Process exited 0 but output is missing/unparseable — not a green run.
-          markJobReviewFailed(job, REVIEW_OUTPUT_FAILED);
-          return;
-        }
-
-        // Override verdict if there are blocking findings (P0/P1) — Codex's
-        // freeform correctness string can say "mostly correct" with real bugs.
-        const hasBlockingFindings = output.findings.some(f => f.priority !== null && f.priority <= 1);
-        job.summary = {
-          correctness: hasBlockingFindings ? "Issues Found" : output.overall_correctness,
-          explanation: output.overall_explanation,
-          confidence: output.overall_confidence_score,
-        };
-
-        ingest(
-          transformReviewFindings(
-            output.findings,
-            job.source,
-            cwd,
-            "Codex",
-            workspace ? (filePath) => workspace.normalizeAnnotationPath(filePath) : undefined,
-          ),
-          "codex-review",
-        );
-        return;
-      }
-
-      // --- Claude path ---
-      if (job.provider === "claude") {
-        const stdout = meta.stdout ?? "";
-        const output = parseClaudeStreamOutput(stdout);
-        if (!output) {
-          console.error(`[claude-review] Failed to parse output (${stdout.length} bytes, last 200: ${stdout.slice(-200)})`);
-          markJobReviewFailed(job, REVIEW_OUTPUT_FAILED);
-          return;
-        }
-
-        // Recompute the verdict from the findings we actually render. Nothing is
-        // dropped now (un-pinnable findings become file/general comments), so the
-        // count reflects reality and the card can never claim more than it shows.
-        const transformed = transformClaudeFindings(
-          output.findings,
-          job.source,
-          cwd,
-          workspace ? (filePath) => workspace.normalizeAnnotationPath(filePath) : undefined,
-        );
-        const counts = { important: 0, nit: 0, pre_existing: 0 };
-        for (const a of transformed) counts[a.severity]++;
-        const total = counts.important + counts.nit + counts.pre_existing;
-        job.summary = {
-          correctness: counts.important === 0 ? "Correct" : "Issues Found",
-          explanation: `${counts.important} important, ${counts.nit} nit, ${counts.pre_existing} pre-existing`,
-          confidence: total === 0 ? 1.0 : Math.max(0, 1.0 - (counts.important * 0.2)),
-        };
-
-        ingest(transformed, "claude-review");
-        return;
-      }
-
-      // --- Marker path (Cursor, OpenCode, Pi) ---
-      // FAIL-CLOSED: marker output is prompt-enforced (no schema flag), so any
-      // missing/malformed/schema/transform/insertion failure must MUTATE the job
-      // to failed — NEVER throw (agent-jobs.ts swallows throws, silently leaving
-      // an exit-0 job marked done). Mirrors the Tour fail-closed pattern below.
-      // Findings carry nullable file/line, classified into line/whole-file/
-      // general by transformMarkerFindings — nothing is dropped (same as Claude).
-      const markerEngine = MARKER_ENGINES[job.provider as MarkerEngineId];
-      if (markerEngine) {
-        // Recover the per-job nonce embedded in the prompt; without it no block
-        // can be trusted, so parse fails closed below.
-        const nonce = extractMarkerNonce(job.prompt ?? "");
-        const output = nonce && meta.stdout ? parseMarkerStreamOutput(meta.stdout, markerEngine, nonce) : null;
-        if (!output) {
-          job.status = "failed";
-          const providerError = meta.stdout
-            ? reduceMarkerStream(meta.stdout, markerEngine).providerError
-            : null;
-          job.error = providerError
-            ?? `${markerEngine.author} review output missing or unparseable (no valid marker JSON).`;
-          if (providerError) {
-            console.error(`[${markerEngine.id}-review] Provider error for job ${job.id}: ${providerError}`);
-          }
-          return;
-        }
-
-        // Derive the verdict from finding severities (like Claude) rather than
-        // trusting the model's free-form `correctness` string. Marker engines
-        // have no schema flag, so a model value like "not correct" would be
-        // stored verbatim and the detail panel (any string containing "correct"
-        // except "incorrect" → green) would invert the displayed result.
-        const hasImportant = output.findings.some((f) => f.severity === "important");
-        job.summary = {
-          correctness: hasImportant ? "Issues Found" : "Correct",
-          explanation: output.summary.explanation,
-          confidence: output.summary.confidence,
-        };
-
-        // Reuse the shared ingest() decoration (PR context, diff scope, profile
-        // label); marker engines add a fail-closed check on the returned result.
-        const result = ingest(
-          transformMarkerFindings(
-            output.findings,
-            job.source,
-            markerEngine.author,
-            cwd,
-            workspace ? (filePath) => workspace.normalizeAnnotationPath(filePath) : undefined,
-          ),
-          `${markerEngine.id}-review`,
-        );
-        if (result && "error" in result) {
-          job.status = "failed";
-          job.error = `${markerEngine.author} annotation insertion failed: ${result.error}`;
-          return;
-        }
-        return;
-      }
-
-
-    },
-  });
-
-  // AI provider setup (graceful — capabilities report unavailable if no provider is registered)
-  const aiRuntime = aiEnabled ? await createAIRuntime({ getCwd: resolveAgentCwd }) : null;
-
   const isRemote = isRemoteSession();
   const wslFlag = await isWSL();
   const gitUser = detectGitUser();
@@ -1454,7 +1073,7 @@ export async function startReviewServer(
         port,
         // Bun's default 10s idleTimeout kills requests that legitimately park:
         // PR-mode endpoints await the background checkout warmup (a clone that
-        // can take minutes) and AI SSE streams can stall between bytes.
+        // can take minutes) and the SSE streams stall between events.
         idleTimeout: 0,
 
         async fetch(req, server) {
@@ -1485,8 +1104,6 @@ export async function startReviewServer(
             const generatedFiles = await buildGeneratedFilesSidecar(servedPatch, servedDiffType as string);
             return Response.json({
               rawPatch: servedPatch,
-              aiReviewContext: buildCurrentAiReviewContext(servedPatch, servedBase, servedDiffType as DiffType),
-              aiEnabled,
               gitRef: servedGitRef,
               snapshotId: servedSnapshotId,
               origin,
@@ -1854,7 +1471,6 @@ export async function startReviewServer(
                   rawPatch: currentPatch,
                   // Snapshot arg: robust against a future await sneaking in
                   // between the epoch check and this response.
-                  aiReviewContext: buildCurrentAiReviewContext(snapshot.rawPatch),
                   gitRef: currentGitRef,
                   snapshotId: currentSnapshotId(),
                   approvalNotesSupported,
@@ -1983,7 +1599,6 @@ export async function startReviewServer(
                 rawPatch: currentPatch,
                 // Snapshot args: robust against a future await sneaking in
                 // between the epoch check and this response.
-                aiReviewContext: buildCurrentAiReviewContext(result.patch, currentBase),
                 gitRef: currentGitRef,
                 snapshotId: currentSnapshotId(),
                 approvalNotesSupported,
@@ -2033,7 +1648,6 @@ export async function startReviewServer(
                 ]);
                 return Response.json({
                   rawPatch: currentPatch,
-                  aiReviewContext: buildCurrentAiReviewContext(),
                   gitRef: currentGitRef,
                   snapshotId: currentSnapshotId(),
                   approvalNotesSupported,
@@ -2090,7 +1704,6 @@ export async function startReviewServer(
                 captureDiffFingerprint();
                 return Response.json({
                   rawPatch: currentPatch,
-                  aiReviewContext: buildCurrentAiReviewContext(),
                   gitRef: currentGitRef,
                   snapshotId: currentSnapshotId(),
                   approvalNotesSupported,
@@ -2138,7 +1751,6 @@ export async function startReviewServer(
 
               return Response.json({
                 rawPatch: currentPatch,
-                aiReviewContext: buildCurrentAiReviewContext(),
                 gitRef: currentGitRef,
                 snapshotId: currentSnapshotId(),
                 approvalNotesSupported,
@@ -2267,7 +1879,6 @@ export async function startReviewServer(
 
               return Response.json({
                 rawPatch: currentPatch,
-                aiReviewContext: buildCurrentAiReviewContext(),
                 gitRef: currentGitRef,
                 snapshotId: currentSnapshotId(),
                 approvalNotesSupported,
@@ -2600,54 +2211,6 @@ export async function startReviewServer(
             }
           }
 
-          // API: Stage / unstage a file (disabled when VCS doesn't support it)
-          if (url.pathname === "/api/git-add" && req.method === "POST") {
-            try {
-              const body = (await req.json()) as { filePath?: unknown; undo?: boolean };
-              if (typeof body.filePath !== "string" || !body.filePath) {
-                return Response.json({ error: "Missing filePath" }, { status: 400 });
-              }
-              try { validateFilePath(body.filePath); } catch {
-                return Response.json({ error: "Invalid path" }, { status: 400 });
-              }
-
-              if (workspace) {
-                try {
-                  await workspace.stageFile(body.filePath, body.undo);
-                  return Response.json({ ok: true });
-                } catch (error) {
-                  return Response.json(
-                    { error: error instanceof Error ? error.message : "Failed to stage file" },
-                    { status: 400 },
-                  );
-                }
-              }
-
-              const stageCwd = resolveVcsCwd(currentDiffType as DiffType, gitContext?.cwd);
-              if (
-                isPRMode ||
-                (sessionVcsType && !vcsOwnsDiffType(sessionVcsType, currentDiffType as string)) ||
-                !(await canStageFiles(currentDiffType as DiffType, stageCwd))
-              ) {
-                return Response.json(
-                  { error: "Staging not available" },
-                  { status: 400 },
-                );
-              }
-
-              if (body.undo) {
-                await unstageFile(currentDiffType as DiffType, body.filePath, stageCwd);
-              } else {
-                await stageFile(currentDiffType as DiffType, body.filePath, stageCwd);
-              }
-
-              return Response.json({ ok: true });
-            } catch (err) {
-              const message = err instanceof Error ? err.message : "Failed to stage file";
-              return Response.json({ error: message }, { status: 500 });
-            }
-          }
-
           // API: Update user config (write-back to ~/.plannotator/config.json)
           if (url.pathname === "/api/config" && req.method === "POST") {
             try {
@@ -2687,70 +2250,6 @@ export async function startReviewServer(
           // API: Get available agents (OpenCode only)
           if (url.pathname === "/api/agents") {
             return handleAgents(options.opencodeClient);
-          }
-
-          // AI-disabled review sessions expose no agent discovery or launch
-          // surface. The exact endpoint above is feedback routing, not a job.
-          if (!aiEnabled && url.pathname.startsWith("/api/agents/")) {
-            if (
-              url.pathname.slice("/api/agents/".length) === "capabilities" &&
-              req.method === "GET"
-            ) {
-              return Response.json({ mode: "review", providers: [], available: false });
-            }
-            return Response.json({ error: "AI features disabled" }, { status: 503 });
-          }
-
-          // API: Review profiles (custom reviews discovery). Reloaded per
-          // request, no file watching. Profiles come from the user dir plus
-          // builtins.
-          if (url.pathname === "/api/agents/review-profiles" && req.method === "GET") {
-            // Catalog only — directory listing, no SKILL.md bodies read here.
-            // Bodies are read at launch, for the one selected skill.
-            const body: ReviewProfilesResponse = {
-              profiles: [
-                {
-                  id: BUILTIN_DEFAULT_PROFILE.id,
-                  label: BUILTIN_DEFAULT_PROFILE.label,
-                  source: BUILTIN_DEFAULT_PROFILE.source,
-                  default: BUILTIN_DEFAULT_PROFILE.default,
-                },
-                ...discoverCuratedSkills().map((s) => ({
-                  id: `skill:${s.name}`,
-                  label: s.name,
-                  source: "user" as const,
-                  sourcePath: s.sourcePath,
-                })),
-              ],
-            };
-            return Response.json(body);
-          }
-
-          // API: All discovered skills, for the "add a review" picker. Each is
-          // flagged with whether it is already enabled as a review.
-          if (url.pathname === "/api/agents/skills" && req.method === "GET") {
-            return Response.json({ skills: listAllSkills() });
-          }
-
-          // API: Enable a skill as a review (curation write to review-skills.json).
-          if (url.pathname === "/api/agents/review-skills" && req.method === "POST") {
-            let name: unknown;
-            try {
-              ({ name } = (await req.json()) as { name?: unknown });
-            } catch {
-              return Response.json({ error: "Invalid JSON" }, { status: 400 });
-            }
-            if (typeof name !== "string" || name.length === 0) {
-              return Response.json({ error: "`name` is required." }, { status: 400 });
-            }
-            try {
-              return Response.json(enableReviewSkill(name));
-            } catch (err) {
-              return Response.json(
-                { error: err instanceof Error ? err.message : "Could not enable review." },
-                { status: 400 },
-              );
-            }
           }
 
           // API: Annotation draft persistence
@@ -2829,12 +2328,6 @@ export async function startReviewServer(
             disableIdleTimeout: () => server.timeout(req, 0),
           });
           if (externalResponse) return externalResponse;
-
-          // API: Agent jobs (background review agents)
-          const agentResponse = await agentJobs.handle(req, url, {
-            disableIdleTimeout: () => server.timeout(req, 0),
-          });
-          if (agentResponse) return agentResponse;
 
           // API: Exit review session without feedback
           if (url.pathname === "/api/exit" && req.method === "POST") {
@@ -2972,41 +2465,6 @@ export async function startReviewServer(
             }
           }
 
-          // AI endpoints
-          if (url.pathname.startsWith("/api/ai/")) {
-            if (!aiRuntime) {
-              if (!isAIEndpointPath(url.pathname)) {
-                return handleApiNotFound(url.pathname);
-              }
-              if (url.pathname.slice("/api/ai/".length) === "capabilities" && req.method === "GET") {
-                return Response.json({ available: false, providers: [] });
-              }
-              return Response.json({ error: "AI backend not available" }, { status: 503 });
-            }
-            const handler = aiRuntime.endpoints[url.pathname as keyof AIEndpoints];
-            if (handler) {
-              // AI sessions pin their cwd at creation — wait out the PR
-              // checkout warmup so a session opened in the first seconds
-              // isn't rooted in a transient fallback directory for life.
-              // If the checkout can't be produced (warmup failed), refuse
-              // instead of starting a session in the wrong directory.
-              if (req.method === "POST" && url.pathname === "/api/ai/session" && options.worktreePool && prMetadata) {
-                const checkout = await ensurePRLocalCwd();
-                if (!checkout) {
-                  return Response.json(
-                    { error: "Local PR checkout unavailable — Ask AI can't read the PR files right now. Retry shortly." },
-                    { status: 503 },
-                  );
-                }
-              }
-              if (url.pathname === AI_QUERY_ENDPOINT) {
-                server.timeout(req, 0);
-              }
-              return handler(req);
-            }
-            return handleApiNotFound(url.pathname);
-          }
-
           // Favicon
           if (url.pathname === "/favicon.png") return handleFavicon();
 
@@ -3033,15 +2491,9 @@ export async function startReviewServer(
 
   const port = server.port!;
   serverUrl = buildAdvertisedUrl(port);
-  agentApiUrl = `http://127.0.0.1:${port}`;
-  const exitHandler = () => agentJobs.killAll();
-  process.once("exit", exitHandler);
 
   const stop = () => {
-    process.removeListener("exit", exitHandler);
-    agentJobs.killAll();
     callFlowService.cancelAll();
-    aiRuntime?.dispose();
     server.stop();
     // Invoke cleanup callback (e.g., remove temp worktree)
     if (options.onCleanup) {

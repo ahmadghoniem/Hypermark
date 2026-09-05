@@ -133,8 +133,6 @@ describe.if(hasDom)('FileHeader edit affordance (DOM)', () => {
         compactTouchLayout
         status="modified"
         onToggleViewed={() => {}}
-        onStage={() => {}}
-        canStage
         onFileComment={() => {}}
         onEditFile={() => {}}
         collapseToggle={<button type="button" aria-label="Collapse diff" />}

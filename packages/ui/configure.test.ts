@@ -8,7 +8,6 @@ import * as identity from './utils/identity';
 import * as useFileBrowser from './hooks/useFileBrowser';
 import * as useAnnotationDraft from './hooks/useAnnotationDraft';
 import * as useExternalAnnotations from './hooks/useExternalAnnotations';
-import * as useAIChat from './hooks/useAIChat';
 import * as webmcpPolicy from './webmcp/policy';
 import { configStore } from './config';
 
@@ -20,7 +19,6 @@ import type { IdentityProvider } from './utils/identity';
 import type { FileTreeBackend } from './hooks/useFileBrowser';
 import type { DraftTransport } from './hooks/useAnnotationDraft';
 import type { ExternalAnnotationTransport } from './hooks/useExternalAnnotations';
-import type { AITransport } from './hooks/useAIChat';
 
 // Capture the REAL exports at module-evaluation time (top-level, before any
 // mock.module() is installed). These are used to restore the module registry
@@ -42,8 +40,6 @@ const realSetDraftTransport = useAnnotationDraft.setDraftTransport;
 const realResetDraftTransport = useAnnotationDraft.resetDraftTransport;
 const realSetExternalAnnotationTransport = useExternalAnnotations.setExternalAnnotationTransport;
 const realResetExternalAnnotationTransport = useExternalAnnotations.resetExternalAnnotationTransport;
-const realSetAITransport = useAIChat.setAITransport;
-const realResetAITransport = useAIChat.resetAITransport;
 const realSetWebMcpPolicy = webmcpPolicy.setWebMcpPolicy;
 const realResetWebMcpPolicy = webmcpPolicy.resetWebMcpPolicy;
 const realGetWebMcpPolicy = webmcpPolicy.getWebMcpPolicy;
@@ -57,7 +53,6 @@ const setIdentityProvider = mock((_: IdentityProvider) => {});
 const setFileTreeBackend = mock((_: FileTreeBackend) => {});
 const setDraftTransport = mock((_: DraftTransport) => {});
 const setExternalAnnotationTransport = mock((_: ExternalAnnotationTransport<{ id: string; source?: string }>) => {});
-const setAITransport = mock((_: AITransport) => {});
 const setWebMcpPolicy = mock((_: webmcpPolicy.WebMcpPolicy) => {});
 
 // configStore is shared with sibling suites — spy on the real instance methods
@@ -88,12 +83,6 @@ const externalAnnotationTransport: ExternalAnnotationTransport<{ id: string; sou
   remove: async () => {},
   update: async () => {},
   clear: async () => {},
-};
-const aiTransport: AITransport = {
-  session: async () => new Response(),
-  query: async () => new Response(),
-  abort: async () => {},
-  permission: () => {},
 };
 const serverSync = (_payload: Record<string, unknown>) => {};
 
@@ -150,11 +139,6 @@ describe('configurePlannotatorUI routing', () => {
       setExternalAnnotationTransport,
       resetExternalAnnotationTransport: realResetExternalAnnotationTransport,
     }));
-    mock.module('./hooks/useAIChat', () => ({
-      ...useAIChat,
-      setAITransport,
-      resetAITransport: realResetAITransport,
-    }));
     mock.module('./webmcp/policy', () => ({
       ...webmcpPolicy,
       setWebMcpPolicy,
@@ -207,11 +191,6 @@ describe('configurePlannotatorUI routing', () => {
       setExternalAnnotationTransport: realSetExternalAnnotationTransport,
       resetExternalAnnotationTransport: realResetExternalAnnotationTransport,
     }));
-    mock.module('./hooks/useAIChat', () => ({
-      ...useAIChat,
-      setAITransport: realSetAITransport,
-      resetAITransport: realResetAITransport,
-    }));
     mock.module('./webmcp/policy', () => ({
       ...webmcpPolicy,
       setWebMcpPolicy: realSetWebMcpPolicy,
@@ -232,7 +211,6 @@ describe('configurePlannotatorUI routing', () => {
       identityProvider,
       draftTransport,
       externalAnnotationTransport,
-      aiTransport,
       serverSync,
       webmcp: { enabled: false, namePrefix: 'host.' },
       loadSettingsFromBackend: true,
@@ -247,7 +225,6 @@ describe('configurePlannotatorUI routing', () => {
     expect(setFileTreeBackend).toHaveBeenCalledWith(fileTreeBackend);
     expect(setDraftTransport).toHaveBeenCalledWith(draftTransport);
     expect(setExternalAnnotationTransport).toHaveBeenCalledWith(externalAnnotationTransport);
-    expect(setAITransport).toHaveBeenCalledWith(aiTransport);
     expect(setServerSync).toHaveBeenCalledWith(serverSync);
     expect(loadFromBackend).toHaveBeenCalledTimes(1);
 
@@ -263,7 +240,7 @@ describe('configurePlannotatorUI routing', () => {
     [
       setImageSrcResolver, setDocPreviewFetcher, setStorageBackend, setUploadTransport,
       setIdentityProvider, setFileTreeBackend, setDraftTransport, setExternalAnnotationTransport,
-      setAITransport, setServerSync, loadFromBackend, setWebMcpPolicy,
+      setServerSync, loadFromBackend, setWebMcpPolicy,
     ].forEach((m) => m.mockClear());
 
     configurePlannotatorUI({ storageBackend });
@@ -271,7 +248,6 @@ describe('configurePlannotatorUI routing', () => {
     expect(setStorageBackend).toHaveBeenCalledTimes(1);
     expect(setWebMcpPolicy).not.toHaveBeenCalled();
     expect(setImageSrcResolver).not.toHaveBeenCalled();
-    expect(setAITransport).not.toHaveBeenCalled();
     expect(loadFromBackend).not.toHaveBeenCalled();
   });
 });

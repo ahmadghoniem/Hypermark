@@ -1,7 +1,7 @@
 import React from 'react';
 import { ContextMenu } from '@base-ui/react/context-menu';
 import type { FileTreeNode as TreeNode } from '../utils/buildFileTree';
-import { ViewedControl, ChangeTypeLetter, StageControl, AnnotationBadge, DiffCounts, CommittedDot } from './FileRowBits';
+import { ViewedControl, ChangeTypeLetter, StagedDot, AnnotationBadge, DiffCounts, CommittedDot } from './FileRowBits';
 import { copyTextToClipboard } from '@plannotator/ui/utils/clipboard';
 
 interface FileTreeNodeProps {
@@ -16,19 +16,14 @@ interface FileTreeNodeProps {
   showViewedControls?: boolean;
   hideViewedFiles: boolean;
   getAnnotationCount: (filePath: string) => number;
-  /** EFFECTIVE staged set from useGitAdd (sidecar + session overrides).
-   *  REQUIRED and the ONLY staging source surfaces may render from — the
-   *  sidecar's own `staged` flag is a snapshot and must never be ORed in. */
+  /** Read-side staged set from the server's status sidecar — display only. */
   stagedFiles: Set<string>;
   scrollHighlightIndex?: number;
   /** Absolute repo root used to build the "Copy full path" menu item. Null in PR-review mode (files aren't on local disk). */
   repoRoot?: string | null;
   /** Since-base mode extras: sidecar lookup for untracked (U) / staged (dot)
-   * markers and the per-row stage button. Undefined outside since-base. */
+   * markers. Undefined outside since-base. */
   getSectionEntry?: (filePath: string) => { group: 'committed' | 'changes' | 'untracked'; staged: boolean } | undefined;
-  onStageFile?: (filePath: string) => void;
-  stagingFile?: string | null;
-  showStageControls?: boolean;
 }
 
 function hasVisibleChildren(
@@ -64,9 +59,6 @@ export const FileTreeNodeItem: React.FC<FileTreeNodeProps> = ({
   scrollHighlightIndex,
   repoRoot,
   getSectionEntry,
-  onStageFile,
-  stagingFile,
-  showStageControls = true,
 }) => {
   const paddingLeft = 4 + node.depth * 8;
 
@@ -123,9 +115,6 @@ export const FileTreeNodeItem: React.FC<FileTreeNodeProps> = ({
             scrollHighlightIndex={scrollHighlightIndex}
             repoRoot={repoRoot}
             getSectionEntry={getSectionEntry}
-            onStageFile={onStageFile}
-            stagingFile={stagingFile}
-            showStageControls={showStageControls}
           />
         ))}
       </>
@@ -138,15 +127,11 @@ export const FileTreeNodeItem: React.FC<FileTreeNodeProps> = ({
   const isViewed = viewedFiles.has(node.path);
   const isStaged = stagedFiles.has(node.path);
   const annotationCount = getAnnotationCount(node.path);
-  // Since-base mode: sidecar-driven markers (U for untracked, staged dot,
-  // stage button) replace the legacy staged treatment for this row.
+  // Since-base mode: sidecar-driven markers (U for untracked, staged dot)
+  // replace the legacy staged treatment for this row.
   const sectionEntry = getSectionEntry?.(node.path);
   const sinceBaseMode = getSectionEntry != null;
   const isUntracked = sectionEntry?.group === 'untracked';
-  // isStaged comes from the EFFECTIVE set (sidecar + session overrides) —
-  // the sidecar's own snapshot flag must never be ORed back in, or a file
-  // unstaged this session would render staged and invert the next toggle.
-  const isStageable = sinceBaseMode && !!onStageFile && sectionEntry != null && sectionEntry.group !== 'committed';
 
   if (hideViewedFiles && isViewed && !isActive) {
     return null;
@@ -164,29 +149,23 @@ export const FileTreeNodeItem: React.FC<FileTreeNodeProps> = ({
           />
         }
       >
-          {/* Leading rail: [view][add][letter] then name — same anatomy as
+          {/* Leading rail: [view][status][letter] then name — same anatomy as
               the sections view rows. View reveals on hover / when active; the
-              stage control (since-base mode only) and letter are always shown.
+              status dot (since-base mode only) and letter are always shown.
               Name inherits the row font; letter/counts stay the small size. */}
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
             {showViewedControls && (
               <ViewedControl isViewed={isViewed} onToggle={onToggleViewed ? () => onToggleViewed(node.path) : undefined} forceVisible={isActive} />
             )}
-            {showStageControls && (
-              sinceBaseMode && (isStageable || isStaged) ? (
-                <StageControl
-                  isStaged={isStaged}
-                  isStaging={stagingFile === node.path}
-                  onStage={onStageFile ? () => onStageFile(node.path) : undefined}
-                />
-              ) : sinceBaseMode && sectionEntry?.group === 'committed' ? (
-                <CommittedDot />
-              ) : sinceBaseMode && onStageFile ? (
-                <span className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-              ) : isStaged && !sinceBaseMode ? (
-                <span className="text-[10px] text-primary font-medium flex items-center justify-center w-4 flex-shrink-0" title="Staged (git add)">+</span>
-              ) : null
-            )}
+            {sinceBaseMode && isStaged ? (
+              <StagedDot />
+            ) : sinceBaseMode && sectionEntry?.group === 'committed' ? (
+              <CommittedDot />
+            ) : sinceBaseMode ? (
+              <span className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            ) : isStaged ? (
+              <span className="text-[10px] text-primary font-medium flex items-center justify-center w-4 flex-shrink-0" title="Staged (git add)">+</span>
+            ) : null}
             <ChangeTypeLetter status={node.file!.status} oldPath={node.file!.oldPath} untracked={isUntracked} />
             <span className="truncate">{node.name}</span>
             <AnnotationBadge count={annotationCount} />

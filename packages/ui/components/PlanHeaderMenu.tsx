@@ -19,21 +19,10 @@ interface PlanHeaderMenuProps {
   origin?: Origin | null;
   isWSL?: boolean;
   onOpenSettings: () => void;
-  onOpenExport: () => void;
   onCopyAgentInstructions: () => void;
   onDownloadAnnotations: () => void;
-  onPrint: () => void;
-  onCopyShareLink: () => void;
-  onOpenImport: () => void;
-  onSaveToObsidian: () => void;
-  onSaveToBear: () => void;
-  onSaveToOctarine: () => void;
-  sharingEnabled: boolean;
   isApiMode: boolean;
   agentInstructionsEnabled: boolean;
-  obsidianConfigured: boolean;
-  bearConfigured: boolean;
-  octarineConfigured: boolean;
   compactTouchLayout?: boolean;
   compactSessionActions?: CompactPlanAction[];
   compactDocumentActions?: CompactPlanAction[];
@@ -53,21 +42,10 @@ export const PlanHeaderMenu: React.FC<PlanHeaderMenuProps> = ({
   origin,
   isWSL = false,
   onOpenSettings,
-  onOpenExport,
   onCopyAgentInstructions,
   onDownloadAnnotations,
-  onPrint,
-  onCopyShareLink,
-  onOpenImport,
-  onSaveToObsidian,
-  onSaveToBear,
-  onSaveToOctarine,
-  sharingEnabled,
   isApiMode,
   agentInstructionsEnabled,
-  obsidianConfigured,
-  bearConfigured,
-  octarineConfigured,
   compactTouchLayout = false,
   compactSessionActions = [],
   compactDocumentActions = [],
@@ -75,9 +53,6 @@ export const PlanHeaderMenu: React.FC<PlanHeaderMenuProps> = ({
   const { theme, setTheme } = useTheme();
 
   const showUpdateDot = !!updateInfo?.updateAvailable && !updateInfo.dismissed;
-
-  const anyNotesAppConfigured =
-    isApiMode && (obsidianConfigured || bearConfigured || octarineConfigured);
 
   return (
     <ActionMenu
@@ -176,14 +151,6 @@ export const PlanHeaderMenu: React.FC<PlanHeaderMenuProps> = ({
             icon={<SettingsIcon />}
             label="Settings"
           />
-          <ActionMenuItem
-            onClick={() => {
-              closeMenu();
-              onOpenExport();
-            }}
-            icon={<ExportIcon />}
-            label="Export"
-          />
           {agentInstructionsEnabled && (
             <ActionMenuItem
               onClick={() => {
@@ -206,71 +173,6 @@ export const PlanHeaderMenu: React.FC<PlanHeaderMenuProps> = ({
             icon={<DownloadIcon />}
             label="Download Annotations"
           />
-          <ActionMenuItem
-            onClick={() => {
-              closeMenu();
-              onPrint();
-            }}
-            icon={<PrintIcon />}
-            label="Print / Save as PDF"
-            subtitle="Choose 'Save as PDF' in the print dialog"
-          />
-          {sharingEnabled && (
-            <ActionMenuItem
-              onClick={() => {
-                closeMenu();
-                onCopyShareLink();
-              }}
-              icon={<LinkIcon />}
-              label="Copy Share Link"
-            />
-          )}
-          {sharingEnabled && (
-            <ActionMenuItem
-              onClick={() => {
-                closeMenu();
-                onOpenImport();
-              }}
-              icon={<ImportIcon />}
-              label="Import Review"
-            />
-          )}
-
-          {anyNotesAppConfigured && (
-            <>
-              <ActionMenuDivider />
-              {obsidianConfigured && (
-                <ActionMenuItem
-                  onClick={() => {
-                    closeMenu();
-                    onSaveToObsidian();
-                  }}
-                  icon={<NoteIcon />}
-                  label="Save to Obsidian"
-                />
-              )}
-              {bearConfigured && (
-                <ActionMenuItem
-                  onClick={() => {
-                    closeMenu();
-                    onSaveToBear();
-                  }}
-                  icon={<NoteIcon />}
-                  label="Save to Bear"
-                />
-              )}
-              {octarineConfigured && (
-                <ActionMenuItem
-                  onClick={() => {
-                    closeMenu();
-                    onSaveToOctarine();
-                  }}
-                  icon={<NoteIcon />}
-                  label="Save to Octarine"
-                />
-              )}
-            </>
-          )}
 
           <ActionMenuDivider />
 
@@ -401,38 +303,8 @@ const SettingsIcon = () => (
   </svg>
 );
 
-const ExportIcon = () => (
-  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-  </svg>
-);
-
 const DownloadIcon = () => (
   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-  </svg>
-);
-
-const PrintIcon = () => (
-  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-  </svg>
-);
-
-const LinkIcon = () => (
-  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-  </svg>
-);
-
-const ImportIcon = () => (
-  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
-  </svg>
-);
-
-const NoteIcon = () => (
-  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
   </svg>
 );

@@ -142,14 +142,8 @@ export interface ReviewState {
   /** Cookie-only chrome preference (#1277): hide the Viewed controls everywhere
    *  they render. Shortcuts and viewed state itself are unaffected. */
   showViewedControls: boolean;
-  /** Same preference for the Git-add (stage) controls. */
-  showStageControls: boolean;
+  /** Read-side staged set from the server's status sidecar — display only. */
   stagedFiles: Set<string>;
-  stagingFile: string | null;
-  onStage: (filePath: string) => void;
-  canStageFiles: boolean;
-  /** Per-file staging gate — false for committed files in since-base mode. */
-  canStagePath?: (filePath: string) => boolean;
   /** Worktree path parsed from the live diffType when it's a
    *  `worktree:<path>:<subType>` string; null for the main tree and PR mode.
    *  Feeds jobMatchesReviewContext's third argument so context
@@ -157,7 +151,6 @@ export interface ReviewState {
    *  activeWorktreePath memo — the same parse that drives the sections/tree
    *  UI, so context matching aligns with what's on screen). */
   currentWorktreePath?: string | null;
-  stageError: string | null;
 
   // Search
   searchQuery: string;

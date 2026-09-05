@@ -59,12 +59,11 @@ describe("P4 provider non-regression", () => {
     chmodSync(p4Path, 0o755);
     const vcsPath = join(import.meta.dir, "vcs.ts");
     const script = [
-      `const { prepareLocalReviewDiff, canStageFiles, getVcsFileContentsForDiff } = await import(${JSON.stringify(vcsPath)});`,
+      `const { prepareLocalReviewDiff, getVcsFileContentsForDiff } = await import(${JSON.stringify(vcsPath)});`,
       `const cwd = ${JSON.stringify(workspace)};`,
       "const prepared = await prepareLocalReviewDiff({ cwd, configuredDiffType: 'since-base' });",
-      "const canStage = await canStageFiles('p4-default', cwd);",
       "const contents = await getVcsFileContentsForDiff('p4-default', '', 'file.txt', undefined, cwd);",
-      "console.log(JSON.stringify({ prepared, canStage, contents }));",
+      "console.log(JSON.stringify({ prepared, contents }));",
     ].join("\n");
     const child = Bun.spawn([process.execPath, "-e", script], {
       cwd: import.meta.dir,
@@ -89,7 +88,6 @@ describe("P4 provider non-regression", () => {
           diffOptions: [{ id: "p4-default", label: "Default changelist" }],
         },
       },
-      canStage: false,
       contents: { oldContent: "old\n", newContent: "new\n" },
     });
     expect(stdout).toContain("diff --git a/file.txt b/file.txt");

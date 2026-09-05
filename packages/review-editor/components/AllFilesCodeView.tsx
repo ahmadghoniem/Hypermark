@@ -218,18 +218,6 @@ export interface AllFilesCodeViewProps {
   /** Chrome preference (#1277): false hides the header Viewed buttons; the `v`
    *  shortcut and viewed state are unaffected. */
   showViewedControls?: boolean;
-  stagedFiles?: Set<string>;
-  onStage?: (filePath: string) => void;
-  canStageFiles?: boolean;
-  /** Same preference for the header Git Add buttons (`a` shortcut still works). */
-  showStageControls?: boolean;
-  /** Per-file staging gate — false for committed files in since-base mode. The
-   * All-files surface lists committed files too, so mode-level canStageFiles is
-   * not enough; without this the `a` shortcut / header would `git add` a
-   * committed file (a no-op that still flips local staged/viewed state). */
-  canStagePath?: (filePath: string) => boolean;
-  stagingFile?: string | null;
-  stageError?: string | null;
   /** Repo-relative paths marked `linguist-generated` in `.gitattributes`
    * (#1317). Their diffs SEED collapsed (GitHub-style) and their headers show
    * a "generated" tag. Presentation-only: the diff data is fully present, so
@@ -566,13 +554,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   viewedFiles,
   onToggleViewed,
   showViewedControls = true,
-  stagedFiles,
-  onStage,
-  canStageFiles = false,
-  showStageControls = true,
-  canStagePath,
-  stagingFile,
-  stageError,
   generatedFiles,
   expandedGeneratedFiles,
   onGeneratedFileCollapsedChange,
@@ -709,9 +690,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   // below). Declared up here with the other refs so the diff-switch reset effect
   // can resync them.
   const prevViewedRef = useRef<Set<string> | undefined>(viewedFiles);
-  const prevStagedRef = useRef<Set<string> | undefined>(stagedFiles);
-  const prevStagingRef = useRef<string | null | undefined>(stagingFile);
-  const prevStageErrorRef = useRef<string | null | undefined>(stageError);
   // Previous line-card snapshots for the per-item annotation-sync effect (P4).
   const prevAnnotationsRef = useRef<CodeAnnotation[]>(annotations);
   const prevAIMessagesRef = useRef<AIChatEntry[]>(aiMessages);
@@ -1040,9 +1018,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     // remount header-refresh effect computes deltas against THIS diff, not the
     // previous one (the remounted items already seed from live props).
     prevViewedRef.current = viewedFiles;
-    prevStagedRef.current = stagedFiles;
-    prevStagingRef.current = stagingFile;
-    prevStageErrorRef.current = stageError;
     // Line cards are seeded into the remounted items at build time, so resync
     // both snapshots here to avoid a spurious refresh post-remount.
     prevAnnotationsRef.current = annotations;
@@ -1191,10 +1166,9 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   // driven by an internal store that only republishes on item mount / unmount /
   // updateItem. Because `renderCustomHeader` is a stable callback (its identity
   // never changes), the memoized SlotPortals will NOT re-render when external
-  // React state captured by the closure (viewedFiles / stagedFiles /
-  // stagingFile / stageError) changes. Bumping `item.version` + `updateItem`
-  // republishes the slot so the header reflects the new state — the same path
-  // collapse already uses.
+  // React state captured by the closure (viewedFiles) changes. Bumping
+  // `item.version` + `updateItem` republishes the slot so the header reflects
+  // the new state — the same path collapse already uses.
   const refreshItem = useCallback((itemId: string) => {
     const handle = viewerRef.current;
     const item = handle?.getItem(itemId);
@@ -1775,15 +1749,14 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     setFileCommentAnchor({ el: anchorEl, filePath });
   });
 
-  // Header chrome (Viewed badge, staging spinner / Added checkmark, stage-error
-  // text) is driven by external React props, but the custom header is rendered
-  // into Pierre's slot portal which only republishes on updateItem — never when
-  // a stable render callback's captured props change. So whenever any of those
-  // header-driving props change, force a re-render of every affected item.
+  // Header chrome (the Viewed badge) is driven by external React props, but
+  // the custom header is rendered into Pierre's slot portal which only
+  // republishes on updateItem — never when a stable render callback's captured
+  // props change. So whenever a header-driving prop changes, force a re-render
+  // of every affected item.
   //
-  // Direct paths (the `a` key and the header Git Add button both call
-  // onStage(filePath) without bumping any version; the header Viewed button's
-  // un-view branch likewise) are all covered here, so the header stays in sync
+  // Direct paths (the header Viewed button's un-view branch calls the handler
+  // without bumping any version) are covered here, so the header stays in sync
   // regardless of which surface triggered the change. We track the previous
   // snapshots (declared with the other refs above) and refresh exactly the
   // items whose state actually changed.
@@ -1793,9 +1766,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       // Update snapshots even when no viewer is mounted yet so the first real
       // diff doesn't refresh everything spuriously.
       prevViewedRef.current = viewedFiles;
-      prevStagedRef.current = stagedFiles;
-      prevStagingRef.current = stagingFile;
-      prevStageErrorRef.current = stageError;
       return;
     }
 
@@ -1814,53 +1784,33 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     };
 
     collectSetDelta(viewedFiles, prevViewedRef.current);
-    collectSetDelta(stagedFiles, prevStagedRef.current);
     // Generated tags (#1317) deliberately have no delta here: any
     // content-changed generated set remounts CodeView via fileSetKey
     // (generatedKey), so a delta on the live items is unreachable.
-    // stagingFile / stageError are single-file scalars: the file that just
-    // started/stopped staging (or whose error appeared/cleared) needs a refresh.
-    if (stagingFile !== prevStagingRef.current) {
-      if (stagingFile) changedPaths.add(stagingFile);
-      if (prevStagingRef.current) changedPaths.add(prevStagingRef.current);
-    }
-    if (stageError !== prevStageErrorRef.current) {
-      // stageError is shown on the file currently/last staging, so refresh that
-      // file in both the appear and clear directions.
-      if (stagingFile) changedPaths.add(stagingFile);
-      if (prevStagingRef.current) changedPaths.add(prevStagingRef.current);
-    }
 
     prevViewedRef.current = viewedFiles;
-    prevStagedRef.current = stagedFiles;
-    prevStagingRef.current = stagingFile;
-    prevStageErrorRef.current = stageError;
 
     for (const path of changedPaths) {
-      // All twins of a duplicate path share viewed/staged state (it's keyed by
+      // All twins of a duplicate path share viewed state (it's keyed by
       // path), so refresh every item rendering it.
       for (const itemId of filePathToItemIds.get(path) ?? []) {
         refreshItem(itemId);
       }
     }
-  }, [viewedFiles, stagedFiles, stagingFile, stageError, filePathToItemIds, refreshItem]);
+  }, [viewedFiles, filePathToItemIds, refreshItem]);
 
-  // The control-visibility preferences affect every header at once, so a
+  // The control-visibility preference affects every header at once, so a
   // toggle refreshes all items (same slot-portal republish constraint as the
   // per-file sync above).
   const prevShowViewedRef = useRef(showViewedControls);
-  const prevShowStageRef = useRef(showStageControls);
   useEffect(() => {
-    const changed =
-      prevShowViewedRef.current !== showViewedControls ||
-      prevShowStageRef.current !== showStageControls;
+    const changed = prevShowViewedRef.current !== showViewedControls;
     prevShowViewedRef.current = showViewedControls;
-    prevShowStageRef.current = showStageControls;
     if (!changed || viewerRef.current == null) return;
     for (const itemIds of filePathToItemIds.values()) {
       for (const itemId of itemIds) refreshItem(itemId);
     }
-  }, [showViewedControls, showStageControls, filePathToItemIds, refreshItem]);
+  }, [showViewedControls, filePathToItemIds, refreshItem]);
 
   // --- Line selection through CodeView (replaces geometry-based inference) ---
 
@@ -2304,14 +2254,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
         return;
       }
 
-      // a — stage/unstage the current file (per-file gate: never a committed
-      // file in since-base mode).
-      if (e.key === 'a' && currentPath && (canStagePath ? canStagePath(currentPath) : canStageFiles)) {
-        e.preventDefault();
-        onStage?.(currentPath);
-        return;
-      }
-
       if (e.key !== '[' && e.key !== ']') return;
       e.preventDefault();
 
@@ -2338,9 +2280,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     isItemCollapsed,
     onAddFileCommentForFile,
     handleToggleViewedAndCollapse,
-    canStageFiles,
-    canStagePath,
-    onStage,
   ]);
 
   // --- Custom header render slot (the full Plannotator FileHeader) -----------
@@ -2380,12 +2319,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
         isGenerated={generatedFiles?.has(filePath) === true}
         onToggleViewed={onToggleViewed ? () => handleToggleViewedAndCollapse(filePath, item.id) : undefined}
         showViewedControl={showViewedControls}
-        isStaged={stagedFiles?.has(filePath)}
-        isStaging={stagingFile === filePath}
-        onStage={onStage ? () => onStage(filePath) : undefined}
-        canStage={canStagePath ? canStagePath(filePath) : canStageFiles}
-        showStageControl={showStageControls}
-        stageError={stagingFile === filePath ? stageError : null}
         onFileComment={onAddFileCommentForFile ? (anchorEl) => handleFileComment(filePath, anchorEl) : undefined}
         // Eager registration so the `c` shortcut can anchor the popover for a
         // file whose button was never clicked. Detach (null) deletes the entry

@@ -1462,20 +1462,6 @@ describe("review-workspace", () => {
         );
         expect(staleContentResponse.status).toBe(409);
 
-        const stageResponse = await fetch(`${server.url}/api/git-add`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ filePath: "web/new.txt" }),
-        });
-        expect(stageResponse.status).toBe(200);
-        expect(git(web, ["diff", "--staged", "--name-only"])).toContain("new.txt");
-
-        const invalidStageResponse = await fetch(`${server.url}/api/git-add`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ filePath: "api/../web/new.txt" }),
-        });
-        expect(invalidStageResponse.status).toBe(400);
       } finally {
         server.stop();
       }

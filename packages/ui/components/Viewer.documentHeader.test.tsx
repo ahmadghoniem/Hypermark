@@ -231,11 +231,10 @@ describe.if(hasDom)('Viewer annotationHeader', () => {
     expect(legacyActions?.classList.contains('mt-6')).toBe(true);
   });
 
-  test('owns one in-flow, printable-safe header and preserves operative controls', async () => {
+  test('owns one in-flow header and preserves operative controls', async () => {
     await mount(<ControlledViewer />);
 
     const sharedHeader = header();
-    expect(sharedHeader.hasAttribute('data-print-hide')).toBe(true);
     expect(sharedHeader.classList.contains('absolute')).toBe(false);
     expect(sharedHeader.classList.contains('mb-3')).toBe(true);
     expect(sharedHeader.querySelector('[data-viewer-annotation-controls]')).not.toBeNull();

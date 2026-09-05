@@ -464,6 +464,37 @@ describe('direct-edit draft persistence', () => {
     await session.unmount();
   });
 
+  test.skipIf(!hasDom)('legacy tuple drafts keep their images — annotation and top-level alike', async () => {
+    // Spec 05 converts top-level images; until then restore must hand them
+    // back untouched, in both encodings (bare path string and [path, name]).
+    saveDraft(DRAFT_KEY, {
+      a: [['G', 'overall note', null, ['/data/one.png']]],
+      g: ['/data/legacy.png', ['/data/two.png', 'Two']],
+      ts: Date.now(),
+    });
+
+    const session = await mountSession(options());
+    // Banner counts annotations AND global attachments.
+    expect(session.result.current!.draftBanner).toEqual({
+      count: 3,
+      timeAgo: 'just now',
+      hasEdits: false,
+    });
+    let restored: ReturnType<HookResult['restoreDraft']>;
+    act(() => {
+      restored = session.result.current!.restoreDraft();
+    });
+    expect(restored!.globalAttachments).toEqual([
+      { path: '/data/legacy.png', name: 'legacy' },
+      { path: '/data/two.png', name: 'Two' },
+    ]);
+    expect(restored!.annotations).toHaveLength(1);
+    expect(restored!.annotations[0].type).toBe(AnnotationType.GLOBAL_COMMENT);
+    expect(restored!.annotations[0].images).toEqual([{ path: '/data/one.png', name: 'one' }]);
+    expect(restored!.editedMarkdown).toBeNull();
+    await session.unmount();
+  });
+
   test.skipIf(!hasDom)('closing the page flushes a pending save — no lost debounce window', async () => {
     // Tab close inside the 500ms debounce would silently drop the last
     // keystrokes; pagehide/visibilitychange must flush the pending save.

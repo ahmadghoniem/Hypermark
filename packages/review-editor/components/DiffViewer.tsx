@@ -200,13 +200,6 @@ interface DiffViewerProps {
   isGenerated?: boolean;
   collapsed?: boolean;
   onToggleCollapsed?: () => void;
-  isStaged?: boolean;
-  isStaging?: boolean;
-  onStage?: () => void;
-  canStage?: boolean;
-  /** Same preference for the header Git Add button (`A` shortcut still works). */
-  showStageControls?: boolean;
-  stageError?: string | null;
   searchQuery?: string;
   searchMatches?: ReviewSearchMatch[];
   activeSearchMatchId?: string | null;
@@ -269,12 +262,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
   isGenerated = false,
   collapsed = false,
   onToggleCollapsed,
-  isStaged = false,
-  isStaging = false,
-  onStage,
-  canStage = false,
-  showStageControls = true,
-  stageError,
   searchQuery = '',
   searchMatches = [],
   activeSearchMatchId = null,
@@ -810,12 +797,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
           </svg>
         )}
         onCollapseToggle={onToggleCollapsed}
-        isStaged={isStaged}
-        isStaging={isStaging}
-        onStage={onStage}
-        canStage={canStage}
-        showStageControl={showStageControls}
-        stageError={stageError}
         onFileComment={setFileCommentAnchor}
       />
 

@@ -105,7 +105,6 @@ interface PanelProps {
   onSelectCodeAnnotation?: (id: string) => void;
   onDeleteCodeAnnotation?: (id: string) => void;
   onEditCodeAnnotation?: (id: string, updates: Partial<CodeAnnotation>) => void;
-  sharingEnabled?: boolean;
   width?: number | string;
   editorAnnotations?: EditorAnnotation[];
   onDeleteEditorAnnotation?: (id: string) => void;
@@ -114,7 +113,6 @@ interface PanelProps {
     *  `false` suppresses the "Copied" flash. A void resolution (existing hosts)
     *  is treated as success, preserving the original behavior. */
   onQuickCopy?: () => Promise<void | boolean>;
-  onShare?: () => void;
   otherFileAnnotations?: { count: number; files: number };
   onOtherFileAnnotationsClick?: () => void;
   /** Committed direct edits to one or more documents. Rendered as pinned cards
@@ -150,13 +148,11 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
   onSelectCodeAnnotation,
   onDeleteCodeAnnotation,
   onEditCodeAnnotation,
-  sharingEnabled = true,
   width,
   editorAnnotations,
   onDeleteEditorAnnotation,
   onClose,
   onQuickCopy,
-  onShare,
   otherFileAnnotations,
   onOtherFileAnnotationsClick,
   directEdits = null,
@@ -381,17 +377,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                   Copy
                 </>
               )}
-            </button>
-          )}
-          {sharingEnabled && onShare && (
-            <button
-              onClick={onShare}
-              className="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition-colors text-muted-foreground hover:bg-surface-1 hover:text-foreground"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-              </svg>
-              Share
             </button>
           )}
         </div>

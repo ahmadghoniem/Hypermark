@@ -165,7 +165,7 @@ function toolsToggle(): HTMLButtonElement | null {
 
 function floatingCluster(): HTMLElement | null {
   // The full-viewport comment/attachments cluster over the page.
-  return document.querySelector<HTMLElement>('[data-print-hide].absolute.top-3.right-3');
+  return document.querySelector<HTMLElement>('.absolute.top-3.right-3');
 }
 
 function sidebarTabs(): HTMLElement | null {

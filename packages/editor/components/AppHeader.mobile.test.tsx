@@ -55,7 +55,6 @@ const headerProps: React.ComponentProps<typeof AppHeader> = {
   onOpenExport: noop,
   onCopyAgentInstructions: noop,
   onDownloadAnnotations: noop,
-  onPrint: noop,
   onCopyShareLink: noop,
   onOpenImport: noop,
   onSaveToObsidian: noop,

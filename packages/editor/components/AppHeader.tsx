@@ -121,7 +121,6 @@ interface AppHeaderProps {
   onOpenExport: () => void;
   onCopyAgentInstructions: () => void;
   onDownloadAnnotations: () => void;
-  onPrint: () => void;
   onCopyShareLink: () => void;
   onOpenImport: () => void;
   onSaveToObsidian: () => void;
@@ -204,7 +203,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   onOpenExport,
   onCopyAgentInstructions,
   onDownloadAnnotations,
-  onPrint,
   onCopyShareLink,
   onOpenImport,
   onSaveToObsidian,
@@ -473,7 +471,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
           onOpenExport={onOpenExport}
           onCopyAgentInstructions={onCopyAgentInstructions}
           onDownloadAnnotations={onDownloadAnnotations}
-          onPrint={onPrint}
           onCopyShareLink={onCopyShareLink}
           onOpenImport={onOpenImport}
           onSaveToObsidian={onSaveToObsidian}

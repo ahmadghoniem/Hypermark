@@ -3,8 +3,6 @@
  *
  * Manages multiple directory file trees for the sidebar Files tab.
  * Each directory gets its own tree, loading, and error state.
- * Vault directories are supported via the isVault flag — they fetch
- * from the Obsidian vault endpoint instead of the generic files endpoint.
  */
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
@@ -20,8 +18,6 @@ export interface DirState {
   workspaceStatus?: WorkspaceStatusPayload;
   /** True after the first successful snapshot; live watching waits for this so watcher setup cannot block initial load. */
   hasLoadedTree?: boolean;
-  /** When true, fetches via /api/reference/obsidian/files and opens docs via /api/reference/obsidian/doc */
-  isVault?: boolean;
 }
 
 export interface UseFileBrowserReturn {
@@ -32,8 +28,6 @@ export interface UseFileBrowserReturn {
   toggleCollapse: (dirPath: string) => void;
   fetchTree: (dirPath: string, options?: { quiet?: boolean }) => void;
   fetchAll: (directories: string[]) => void;
-  addVaultDir: (vaultPath: string) => void;
-  clearVaultDirs: () => void;
   activeFile: string | null;
   activeDirPath: string | null;
   setActiveFile: (path: string | null) => void;
@@ -83,16 +77,14 @@ function remapWorkspaceStatusForDir(
 }
 
 /**
- * File-tree backend. Defaults to Plannotator's HTTP endpoints (generic files,
- * Obsidian vault, and the SSE live-watch stream) so Plannotator is unchanged. A
- * host (e.g. Workspaces) calls setFileTreeBackend once at startup to source the
- * tree from its own transport instead.
+ * File-tree backend. Defaults to Plannotator's HTTP endpoints (generic files
+ * and the SSE live-watch stream) so Plannotator is unchanged. A host calls
+ * setFileTreeBackend once at startup to source the tree from its own transport
+ * instead.
  */
 export interface FileTreeBackend {
   /** Load a directory tree. Resolves to the same shape the /api/reference/files endpoint returns: a Response whose JSON is { tree, workspaceStatus?, error? }. */
   loadTree(dirPath: string): Promise<Response>;
-  /** Load an Obsidian vault tree. Resolves to a Response whose JSON is { tree, error? }. */
-  loadVaultTree(vaultPath: string): Promise<Response>;
   /**
    * Begin live-watching the given directory paths. `onChange(path)` is invoked
    * (already debounced/deduped) whenever a watched tree should be re-fetched.
@@ -104,9 +96,6 @@ export interface FileTreeBackend {
 const defaultFileTreeBackend: FileTreeBackend = {
   loadTree(dirPath) {
     return fetch(`/api/reference/files?dirPath=${encodeURIComponent(dirPath)}`);
-  },
-  loadVaultTree(vaultPath) {
-    return fetch(`/api/reference/obsidian/files?vaultPath=${encodeURIComponent(vaultPath)}`);
   },
   watchTrees(paths, onChange) {
     if (typeof EventSource === "undefined") return undefined;
@@ -277,9 +266,7 @@ export function useFileBrowser(): UseFileBrowserReturn {
 
   const fetchAll = useCallback(
     (directories: string[]) => {
-      setDirs((prev) => {
-        // Preserve any vault dirs that were already loaded
-        const vaultDirs = prev.filter((d) => d.isVault);
+      setDirs(() => {
         const regularDirs = directories.map((path) => ({
           path,
           name: path.split("/").pop() || path,
@@ -292,61 +279,12 @@ export function useFileBrowser(): UseFileBrowserReturn {
           error: null,
           hasLoadedTree: false,
         }));
-        return [...regularDirs, ...vaultDirs];
+        return regularDirs;
       });
       directories.forEach((d) => fetchTree(d));
     },
     [fetchTree]
   );
-
-  const clearVaultDirs = useCallback(() => {
-    setDirs((prev) => prev.filter((d) => !d.isVault));
-  }, []);
-
-  const addVaultDir = useCallback(async (vaultPath: string) => {
-    const name = vaultPath.split("/").pop() || vaultPath;
-
-    // Atomically replace any existing vault dirs (handles vault path change without accumulating stale entries)
-    setDirs((prev) => {
-      const nonVaultDirs = prev.filter((d) => !d.isVault);
-      return [...nonVaultDirs, { path: vaultPath, name, tree: [], isLoading: true, error: null, isVault: true }];
-    });
-
-    try {
-      const res = await fileTreeBackend.loadVaultTree(vaultPath);
-      const data = await res.json();
-
-      if (!res.ok || data.error) {
-        setDirs((prev) =>
-          prev.map((d) =>
-            d.path === vaultPath ? { ...d, isLoading: false, error: data.error || "Failed to load" } : d
-          )
-        );
-        return;
-      }
-
-      setDirs((prev) =>
-        prev.map((d) =>
-          d.path === vaultPath ? { ...d, tree: data.tree, isLoading: false, isVault: true } : d
-        )
-      );
-
-      const rootFolders = (data.tree as VaultNode[])
-        .filter((n) => n.type === "folder")
-        .map((n) => `${vaultPath}:${n.path}`);
-      setExpandedFolders((prev) => {
-        const next = new Set(prev);
-        rootFolders.forEach((f) => next.add(f));
-        return next;
-      });
-    } catch {
-      setDirs((prev) =>
-        prev.map((d) =>
-          d.path === vaultPath ? { ...d, isLoading: false, error: "Failed to connect to server" } : d
-        )
-      );
-    }
-  }, []);
 
   const toggleFolder = useCallback((key: string) => {
     setExpandedFolders((prev) => {
@@ -362,11 +300,10 @@ export function useFileBrowser(): UseFileBrowserReturn {
 
   const watchDirsKey = useMemo(
     () => {
-      const regularDirs = dirs.filter((dir) => !dir.isVault);
-      const initialLoadPending = regularDirs.some((dir) => dir.isLoading && !dir.hasLoadedTree);
+      const initialLoadPending = dirs.some((dir) => dir.isLoading && !dir.hasLoadedTree);
       if (initialLoadPending) return "";
 
-      return regularDirs
+      return dirs
         // Subscribe only after the initial snapshot is visible. Live updates are
         // for future freshness; they must not compete with first paint.
         .filter((dir) => !dir.error && dir.hasLoadedTree)
@@ -393,8 +330,6 @@ export function useFileBrowser(): UseFileBrowserReturn {
     toggleCollapse,
     fetchTree,
     fetchAll,
-    addVaultDir,
-    clearVaultDirs,
     activeFile,
     activeDirPath: activeFile ? (dirs.find((d) => activeFile.startsWith(d.path + "/"))?.path ?? null) : null,
     setActiveFile,

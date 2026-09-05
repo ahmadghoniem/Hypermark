@@ -794,7 +794,7 @@ REM name (/plannotator-review etc.), so no command files are written anymore.
 REM
 REM Install matrix (all copies verbatim, copy-if-present so older-tag pinned
 REM installs never fail when a source dir is absent):
-REM   %%USERPROFILE%%\.claude\skills            <- apps\skills\core\* (all 4)
+REM   %%USERPROFILE%%\.claude\skills            <- apps\skills\claude\* (3) + apps\skills\core\plannotator
 REM   %%USERPROFILE%%\.agents\skills            <- apps\skills\core\* (all 4)
 REM ----------------------------------------------------------------------
 
@@ -939,7 +939,7 @@ if "!SKIP_SKILLS!"=="0" if "!EXTRAS_CHOICE!"=="yes" if "!EXTRAS_PRESENT!"=="0" (
 
 REM File-copy installs require git (sparse checkout). Hard requirement: without
 REM git we cannot install the /plannotator-* skills, so fail loudly instead of
-REM leaving a partial install. Hook/config writing above has already run; the
+REM leaving a partial install. Hook/config writing above has already run.
 REM
 REM Skills/commands opt-out (--skip-skills / PLANNOTATOR_SKIP_SKILLS_INSTALL /
 REM skipInstall.skills). HONEST reporting like the per-agent family: the skipped
@@ -1013,8 +1013,9 @@ if "!CLONE_OK!"=="1" (
 
     REM Claude Code reads apps\skills\claude\* (injection `!`plannotator ... $ARGUMENTS``
     REM + allowed-tools, so /plannotator-* run with no permission prompt); the
-    REM reads apps\skills\core\* (prose). The `!`...`` injection is Claude-Code-only,
-    REM Claude-Code-only, so the two are sourced separately. Replace on each run.
+    REM shared-agent scope reads apps\skills\core\* (prose). The `!`...`` injection
+    REM is Claude-Code-only, so the two are sourced separately and are NOT
+    REM interchangeable. Replace on each run.
     if exist "apps\skills\claude" (
         if not exist "!CLAUDE_SKILLS_DIR!" mkdir "!CLAUDE_SKILLS_DIR!"
         for %%S in (plannotator-review plannotator-annotate plannotator-last) do (
@@ -1043,10 +1044,6 @@ if "!CLONE_OK!"=="1" (
         echo Installed shared agent skills to !AGENTS_SKILLS_DIR!\
     ) else (
         echo Tag !TAG! predates the core/extra skill layout - skipping core skill install
-    )
-
-    )
-
     )
 
     popd
@@ -1097,8 +1094,8 @@ for %%D in ("!CLAUDE_SKILLS_DIR!" "!AGENTS_SKILLS_DIR!") do (
 REM Apply the saved model-invocation choices. Installed skill copies always
 REM arrive locked (disable-model-invocation: true in SKILL.md); for each
 REM chosen skill we unlock the INSTALLED copy by removing that line, and flip
-REM Re-applied on
-REM every run because installs replace the skill folders wholesale.
+REM the agents\openai.yaml sidecar's allow_implicit_invocation to match.
+REM Re-applied on every run because installs replace the skill folders wholesale.
 REM A skills opt-out installed no skill copies this run, so there is nothing to
 REM unlock - and rewriting a PREVIOUS run's SKILL.md would be a write the
 REM opt-out promised not to make.
@@ -1121,17 +1118,6 @@ if "!SKIP_SKILLS!"=="0" if defined INVOCABLE_CHOICE if not "!INVOCABLE_CHOICE!"=
             )
         )
     )
-)
-
-    )
-)
-
-)
-
-)
-
-echo.
-echo ==========================================
 )
 
 echo.

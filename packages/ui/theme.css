@@ -55,7 +55,6 @@
 @import "./themes/vitesse-black.css";
 @import "./themes/simple.css";
 @import "./themes/neutral.css";
-@import "./print.css";
 
 /* Skill-reference composer input (CommentPopover). The textarea's own glyphs
  * are transparent — a mirrored aria-hidden overlay behind it paints the text,

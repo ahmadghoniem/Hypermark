@@ -45,7 +45,6 @@ import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationM
 import type { CommentAskAIHandler } from '@plannotator/ui/components/CommentPopover';
 import { useResizablePanel } from '@plannotator/ui/hooks/useResizablePanel';
 import { useCodeAnnotationDraft } from '@plannotator/ui/hooks/useCodeAnnotationDraft';
-import { useGitAdd } from './hooks/useGitAdd';
 import { generateId } from './utils/generateId';
 import type { SuggestionHunk } from './edit/deriveSuggestions';
 import type { EditSelectionComment } from './edit/useEditSession';
@@ -225,13 +224,9 @@ function getFileTabTitle(filePath: string): string {
 // sections panel, the all-files view, file navigation — then shares one
 // top-down order instead of raw patch order.
 //
-// INVARIANT: this reads the sidecar's SNAPSHOT `staged` flag, which is only
-// valid at sidecar-fresh moments — every current call site (initial load,
-// diff switch, PR response) also resets the session staging overrides, so
-// snapshot ≡ effective when the order is computed. Do NOT call this
-// mid-session to re-sort on stage/unstage: live staged display belongs to
-// useGitAdd's effective stagedFiles set (see AGENTS.md), and the file order
-// deliberately stays stable until the next refresh.
+// INVARIANT: this reads the sidecar's `staged` flag, so it is only meaningful
+// at sidecar-fresh moments (initial load, diff switch, PR response). The file
+// order deliberately stays stable until the next refresh.
 function orderFilesBySections(files: DiffFile[], sections?: SinceBaseSections | null): DiffFile[] {
   if (!sections) return files;
   const rank = (file: DiffFile): number => {
@@ -439,7 +434,6 @@ const ReviewApp: React.FC = () => {
   const diffFontSize = useConfigValue('diffFontSize');
   const diffTabSize = useConfigValue('diffTabSize');
   const reviewShowViewedControls = useConfigValue('reviewShowViewedControls');
-  const reviewShowStageControls = useConfigValue('reviewShowStageControls');
   const tokenHoverTrigger = useConfigValue('tokenHoverTrigger');
   const tokenHoverDelay = useConfigValue('tokenHoverDelay');
   // EXPERIMENTAL: edit code in place to author suggestions (default OFF).
@@ -2356,26 +2350,14 @@ const ReviewApp: React.FC = () => {
   // order when the sections view is active, tree order otherwise.
   const allFilesOrder: 'tree' | 'list' = effectivePanelView === 'sections' ? 'list' : 'tree';
 
-  // Git add/staging logic
-  const handleFileViewedFromStage = useCallback(
-    (path: string) => {
-      setViewedFiles(prev => new Set(prev).add(path));
-      // Staging marks a file viewed, so it is a deliberate "I am done with
-      // this" exactly like `v`, the header button and the tree row — and like
-      // them it must clear any auto-view suppression, or a file the reviewer
-      // un-viewed and later staged would stay permanently off-limits.
-      applyAutoViewSuppression(path, true);
-    },
-    [applyAutoViewSuppression],
-  );
-  // Files already staged when the sidecar snapshot was taken — the hook folds
-  // these into the effective staged set so pre-staged files toggle correctly.
+  // Read-side staged set: the paths the server's status sidecar reports as
+  // already in the index. Display only — no client path stages or unstages.
   // Filtered to RENDERED paths: porcelain marks BOTH sides of a staged rename
   // staged, but an above-threshold rename renders as one file (the new path)
-  // — counting the hidden old path inflates "N added" and leaves a phantom
-  // entry the user can never unstage. Below-threshold renames render
-  // delete+add as two rows and both sides correctly pass this filter.
-  const sidecarStaged = useMemo(() => {
+  // — counting the hidden old path would inflate "N added" and leave a phantom
+  // entry. Below-threshold renames render delete+add as two rows and both
+  // sides correctly pass this filter.
+  const stagedFiles = useMemo(() => {
     const staged = new Set<string>();
     if (sections) {
       const rendered = new Set(files.map((file) => file.path));
@@ -2385,32 +2367,6 @@ const ReviewApp: React.FC = () => {
     }
     return staged;
   }, [sections, files]);
-  const { stagedFiles, stagingFile, canStageFiles: canStageRaw, stageFile, resetStagedFiles, stageError } = useGitAdd({
-    activeDiffBase,
-    onFileViewed: handleFileViewedFromStage,
-    sidecarStaged,
-  });
-  // Staging is never available in PR review mode — the server rejects it and the UI shouldn't offer it.
-  const canStageInWorkspace = reviewMode !== 'workspace' || workspaceDiffOptions?.some((option) => option.id === 'workspace-staged');
-  const canStageFiles = canStageRaw && !prMetadata && canStageInWorkspace;
-  // Per-file staging gate. In since-base mode only working-tree files
-  // (changes/untracked) are stageable; committed files — or files with no
-  // sidecar entry — are not: `git add` on them is a confusing no-op that would
-  // still flip the local staged/viewed state. Other stageable modes have no
-  // committed section, so the mode-level flag suffices there. Used everywhere
-  // staging is triggered without going through a per-row button (the `a`
-  // shortcut on the focused file, and the All-files surface).
-  const isPathStageable = useCallback((path: string | null | undefined): boolean => {
-    if (!canStageFiles || !path) return false;
-    if (activeDiffBase === 'since-base') {
-      // Sidecar not loaded yet → can't tell committed from working-tree, so
-      // don't offer staging (the panel is in its marker-less tree fallback
-      // anyway). Prevents a git-add no-op on a clean committed file.
-      if (!sections) return false;
-      return (sections.files[path]?.group ?? 'committed') !== 'committed';
-    }
-    return true;
-  }, [canStageFiles, activeDiffBase, sections]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -2422,14 +2378,11 @@ const ReviewApp: React.FC = () => {
       if (e.key === 'v') {
         e.preventDefault();
         handleToggleViewed(filePath);
-      } else if (e.key === 'a' && isPathStageable(filePath)) {
-        e.preventDefault();
-        stageFile(filePath);
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [files, activeFileIndex, isDiffPanelActive, handleToggleViewed, isPathStageable, stageFile]);
+  }, [files, activeFileIndex, isDiffPanelActive, handleToggleViewed]);
 
   // Shared function: apply a PR response (used by both initial load and PR switch)
   function applyPRResponse(data: PRSessionUpdate & {
@@ -2490,7 +2443,6 @@ const ReviewApp: React.FC = () => {
     } else if (isPRSwitch) {
       setAgentCwd(null);
     }
-    resetStagedFiles();
   }
 
   prStackCallbacksRef.current = {
@@ -2643,9 +2595,6 @@ const ReviewApp: React.FC = () => {
         // selection anchored to the old patch is stale — clear it (the
         // non-preserve branch below already does).
         clearPendingSelection();
-        // The refetched sidecar already reflects this session's staging;
-        // stale overrides would fight the fresh snapshot.
-        resetStagedFiles();
       } else {
         dockApi?.getPanel(REVIEW_DIFF_PANEL_ID)?.api.close();
         needsInitialDiffPanel.current = true;
@@ -2659,7 +2608,6 @@ const ReviewApp: React.FC = () => {
         }
         setActiveFileIndex(0);
         clearPendingSelection();
-        resetStagedFiles();
       }
       // Merge only the refreshable/per-cwd fields. This runs for in-place
       // staleness refreshes too: GitButler stacks and branches can change while
@@ -2690,7 +2638,7 @@ const ReviewApp: React.FC = () => {
     } finally {
       setIsLoadingDiff(false);
     }
-  }, [dockApi, resetStagedFiles, selectedBase, diffHideWhitespace, files, activeFileIndex, openDiffFile, applySemanticDiffAdvert, applyCallFlowAdvert, clearPendingSelection, autoViewedEnabled, diffType]);
+  }, [dockApi, selectedBase, diffHideWhitespace, files, activeFileIndex, openDiffFile, applySemanticDiffAdvert, applyCallFlowAdvert, clearPendingSelection, autoViewedEnabled, diffType]);
 
   // Switch the base branch the current diff compares against.
   // Only triggers a refetch when the active mode actually uses a base.
@@ -3304,14 +3252,8 @@ const ReviewApp: React.FC = () => {
     expandedGeneratedFiles,
     onGeneratedFileCollapsedChange: handleGeneratedFileCollapsedChange,
     showViewedControls: reviewShowViewedControls,
-    showStageControls: reviewShowStageControls,
     stagedFiles,
-    stagingFile,
-    onStage: stageFile,
-    canStageFiles,
-    canStagePath: isPathStageable,
     currentWorktreePath: activeWorktreePath,
-    stageError,
     searchQuery: isSearchPending ? '' : debouncedSearchQuery,
     isSearchPending,
     debouncedSearchQuery,
@@ -3380,8 +3322,8 @@ const ReviewApp: React.FC = () => {
     handleAddAnnotation, handleAddFileComment, handleAddFileCommentForFile, handleEditAnnotation,
     handleSelectAnnotation, handleNavigateToAnnotation, handleDeleteAnnotation, viewedFiles,
     generatedFiles, expandedGeneratedFiles, handleGeneratedFileCollapsedChange,
-    handleToggleViewed, reviewShowViewedControls, reviewShowStageControls, stagedFiles, stagingFile, stageFile,
-    canStageFiles, isPathStageable, activeWorktreePath, stageError, isSearchPending, debouncedSearchQuery,
+    handleToggleViewed, reviewShowViewedControls, stagedFiles,
+    activeWorktreePath, isSearchPending, debouncedSearchQuery,
     activeFileSearchMatches, activeSearchMatchId, activeSearchMatch, searchMatches,
     aiAvailable, aiMessages, aiIsCreatingSession, aiIsStreaming,
     handleAskAI, handleAskAIForFile, handleViewAIResponse, handleClickAIMarker,
@@ -3421,10 +3363,6 @@ const ReviewApp: React.FC = () => {
   const handleToggleAutoViewed = useCallback(() => {
     toggleAutoViewed(!autoViewedEnabled);
   }, [autoViewedEnabled]);
-
-  const handleToggleReviewStageControls = useCallback(() => {
-    configStore.set('reviewShowStageControls', !reviewShowStageControls);
-  }, [reviewShowStageControls]);
 
   const feedbackMarkdown = useMemo(() => {
     // Only include the code-review section when there ARE code annotations —
@@ -4706,11 +4644,6 @@ const ReviewApp: React.FC = () => {
                 showViewedControls={reviewShowViewedControls}
                 onToggleShowViewedControls={handleToggleReviewViewedControls}
                 stagedFiles={stagedFiles}
-                stagingFile={stagingFile}
-                canStage={canStageFiles}
-                onStageFile={stageFile}
-                showStageControls={reviewShowStageControls}
-                onToggleShowStageControls={handleToggleReviewStageControls}
                 autoViewed={autoViewedEnabled}
                 onToggleAutoViewed={handleToggleAutoViewed}
                 isLoadingDiff={isLoadingDiff}
@@ -4832,8 +4765,6 @@ const ReviewApp: React.FC = () => {
                 jjEvologs={prMetadata ? undefined : gitContext?.jjEvologs}
                 detectedEvoBase={prMetadata ? undefined : gitContext?.jjEvologs?.[1]?.commitId}
                 stagedFiles={stagedFiles}
-                showStageControls={reviewShowStageControls}
-                onToggleShowStageControls={handleToggleReviewStageControls}
                 autoViewed={autoViewedEnabled}
                 onToggleAutoViewed={handleToggleAutoViewed}
                 onCopyRawDiff={handleCopyDiff}
@@ -4858,8 +4789,6 @@ const ReviewApp: React.FC = () => {
                 onSwitchToCommits={commitsCapable ? () => handlePanelViewSelect('commits') : undefined}
                 onSwitchToTree={() => handlePanelViewSelect('tree')}
                 sinceBaseSections={activeDiffBase === 'since-base' ? sections : null}
-                onStageFile={canStageFiles ? stageFile : undefined}
-                stagingFile={stagingFile}
               />
             </ReviewNavigatorContainer>
           )}

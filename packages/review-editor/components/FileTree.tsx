@@ -59,12 +59,8 @@ interface FileTreeProps {
   jjEvologs?: JjEvoLogEntry[];
   /** Default evolog commit ID to compare against (second evolog entry). */
   detectedEvoBase?: string;
-  /** EFFECTIVE staged set from useGitAdd (sidecar + session overrides).
-   *  REQUIRED and the ONLY staging source surfaces may render from — the
-   *  sidecar's own `staged` flag is a snapshot and must never be ORed in. */
+  /** Read-side staged set from the server's status sidecar — display only. */
   stagedFiles: Set<string>;
-  showStageControls?: boolean;
-  onToggleShowStageControls?: () => void;
   autoViewed?: boolean;
   onToggleAutoViewed?: () => void;
   onCopyRawDiff?: () => void;
@@ -118,10 +114,8 @@ interface FileTreeProps {
   /** Selects the tree view through the app's shared panel-view funnel. */
   onSwitchToTree?: () => void;
   /** Sections sidecar while the since-base diff is displayed as a tree —
-   * powers per-row U/staged markers and the stage button. */
+   * powers per-row U/staged markers. */
   sinceBaseSections?: SinceBaseSections | null;
-  onStageFile?: (filePath: string) => void;
-  stagingFile?: string | null;
 }
 
 export const FileTree: React.FC<FileTreeProps> = ({
@@ -155,8 +149,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
   jjEvologs,
   detectedEvoBase,
   stagedFiles,
-  showStageControls = true,
-  onToggleShowStageControls,
   autoViewed,
   onToggleAutoViewed,
   onCopyRawDiff,
@@ -200,14 +192,12 @@ export const FileTree: React.FC<FileTreeProps> = ({
   onSwitchToCommits,
   onSwitchToTree,
   sinceBaseSections,
-  onStageFile,
-  stagingFile,
 }) => {
   const isSearchVisible = !!onSearchChange && (isSearchOpen || !!searchQuery.trim());
 
   const tree = useMemo(() => buildFileTree(files), [files]);
 
-  // Since-base sidecar lookup for per-row lifecycle markers + stage buttons.
+  // Since-base sidecar lookup for per-row lifecycle markers.
   const getSectionEntry = useMemo(() => {
     if (!sinceBaseSections) return undefined;
     return (filePath: string) => sinceBaseSections.files[filePath];
@@ -342,8 +332,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
       copyRawDiffStatus={copyRawDiffStatus}
       showViewedControls={showViewedControls}
       onToggleShowViewedControls={onToggleShowViewedControls}
-      showStageControls={showStageControls}
-      onToggleShowStageControls={onToggleShowStageControls}
       autoViewed={autoViewed}
       onToggleAutoViewed={onToggleAutoViewed}
     />
@@ -579,9 +567,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
                   stagedFiles={stagedFiles}
                   repoRoot={repoRoot}
                   getSectionEntry={getSectionEntry}
-                  onStageFile={onStageFile}
-                  stagingFile={stagingFile}
-                  showStageControls={showStageControls}
                 />
               ))}
             </>

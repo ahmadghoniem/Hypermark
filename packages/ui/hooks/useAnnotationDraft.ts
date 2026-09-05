@@ -11,14 +11,15 @@
  * getter is read at save time, not reactively, so per-keystroke saves don't
  * require pushing the full document through React state.
  *
- * Backward compatible: loads old tuple-serialized drafts via fromShareable().
+ * Backward compatible: loads old tuple-serialized drafts via fromShareable()
+ * from utils/annotationSerialization (the read-only decoder boundary).
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { SourceSaveCapability } from '@plannotator/core/source-save';
 import type { Annotation, CodeAnnotation, ImageAttachment } from '../types';
-import { fromShareable, parseShareableImages } from '../utils/sharing';
-import type { ShareableAnnotation } from '../utils/sharing';
+import { fromShareable, parseShareableImages } from '../utils/annotationSerialization';
+import type { ShareableAnnotation } from '../utils/annotationSerialization';
 
 const DEBOUNCE_MS = 500;
 

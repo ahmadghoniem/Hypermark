@@ -12,13 +12,6 @@ import { startPlannotatorServer as startBunPlanServer } from "./index";
 import { startReviewServer as startBunReviewServer } from "./review";
 
 const SPA_HTML = "<!doctype html><html><body>SPA fallback</body></html>";
-const AI_ENDPOINTS_REQUIRING_BACKEND = [
-  "/api/ai/session",
-  "/api/ai/query",
-  "/api/ai/abort",
-  "/api/ai/permission",
-  "/api/ai/sessions",
-] as const;
 let archivePath = "";
 let dataDirPath = "";
 let savedDataDir: string | undefined;
@@ -31,7 +24,6 @@ interface RunningServer {
 interface ServerCase {
   readonly name: string;
   readonly knownApiPath: string;
-  readonly knownAIBackendUnavailable?: boolean;
   readonly start: () => Promise<RunningServer>;
 }
 
@@ -39,7 +31,6 @@ const serverCases = [
   {
     name: "Bun plan",
     knownApiPath: "/api/plan",
-    knownAIBackendUnavailable: true,
     start: () =>
       startBunPlanServer({
         plan: "# Test Plan",
@@ -93,28 +84,6 @@ async function expectJsonNotFound(
     error: "Not found",
     path: new URL(requestPath, server.url).pathname,
   });
-}
-
-async function expectKnownAICapabilities(server: RunningServer): Promise<void> {
-  const response = await fetch(`${server.url}/api/ai/capabilities`);
-  expect(response.status).toBe(200);
-  expect(response.headers.get("content-type")).toContain("application/json");
-
-  const body = await response.json() as {
-    available?: unknown;
-    providers?: unknown;
-  };
-  expect(typeof body.available).toBe("boolean");
-  expect(Array.isArray(body.providers)).toBe(true);
-}
-
-async function expectKnownAIBackendUnavailable(server: RunningServer): Promise<void> {
-  for (const endpoint of AI_ENDPOINTS_REQUIRING_BACKEND) {
-    const response = await fetch(`${server.url}${endpoint}`);
-    expect(response.status).toBe(503);
-    expect(response.headers.get("content-type")).toContain("application/json");
-    expect(await response.json()).toEqual({ error: "AI backend not available" });
-  }
 }
 
 async function startOnRandomLocalPort(
@@ -173,7 +142,6 @@ describe("API route 404 guards", () => {
           server,
           "/api/nonexistent-route?ignored=query",
         );
-        await expectJsonNotFound(server, "/api/ai/nonexistent-route");
 
         const knownApiResponse = await fetch(
           `${server.url}${serverCase.knownApiPath}`,
@@ -183,10 +151,6 @@ describe("API route 404 guards", () => {
           "application/json",
         );
 
-        await expectKnownAICapabilities(server);
-        if (serverCase.knownAIBackendUnavailable) {
-          await expectKnownAIBackendUnavailable(server);
-        }
 
         const faviconResponse = await fetch(`${server.url}/favicon.png`);
         expect(faviconResponse.status).toBe(200);

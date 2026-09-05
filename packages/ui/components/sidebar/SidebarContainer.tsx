@@ -48,7 +48,6 @@ interface SidebarContainerProps {
   fileBrowser?: UseFileBrowserReturn;
   onFilesSelectFile?: (absolutePath: string, dirPath: string) => void;
   onFilesFetchAll?: () => void;
-  onFilesRetryVaultDir?: (vaultPath: string) => void;
   /** Compact-only file activation feedback; desktop does not pass this. */
   pendingFileLabel?: string | null;
   // Version Browser props
@@ -104,7 +103,6 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
   fileBrowser,
   onFilesSelectFile,
   onFilesFetchAll,
-  onFilesRetryVaultDir,
   pendingFileLabel,
   showVersionsTab,
   versionInfo,
@@ -167,10 +165,6 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
     <aside
       id={compact ? "pn-compact-plan-navigator" : undefined}
       data-pn-plan-navigator={compact ? "true" : undefined}
-      // The compact navigator (Contents / Versions / Archive) is the same kind
-      // of full-viewport transient surface as CompactPlanStage, so it must not
-      // print over the document either. Desktop rail printing is unchanged.
-      data-print-hide={compact ? true : undefined}
       role={compact ? "dialog" : undefined}
       aria-modal={compact ? true : undefined}
       aria-label={compact ? "Plan navigator" : undefined}
@@ -368,7 +362,6 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
             onSelectFile={onFilesSelectFile ?? (() => {})}
             activeFile={fileBrowser.activeFile}
             onFetchAll={onFilesFetchAll ?? (() => {})}
-            onRetryVaultDir={onFilesRetryVaultDir}
             annotationCounts={fileAnnotationCounts}
             highlightedFiles={highlightedFiles}
             editStatuses={fileEditStatuses}

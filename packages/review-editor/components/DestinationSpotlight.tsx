@@ -80,7 +80,7 @@ export function DestinationSpotlight({
   );
 
   return createPortal(
-    <div data-print-hide className="fixed inset-0 z-[90]" onClick={onDismiss} role="presentation">
+    <div className="fixed inset-0 z-[90]" onClick={onDismiss} role="presentation">
       {/* Cutout: the oversized shadow dims everything except the target. */}
       <div
         className="absolute rounded-lg ring-2 ring-primary pointer-events-none"

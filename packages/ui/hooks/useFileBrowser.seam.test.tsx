@@ -82,7 +82,6 @@ describe('FileTreeBackend seam', () => {
           headers: { 'Content-Type': 'application/json' },
         });
       },
-      loadVaultTree: async () => new Response(JSON.stringify({ tree: [] }), { status: 200 }),
       watchTrees: () => undefined,
     };
 
@@ -104,7 +103,6 @@ describe('FileTreeBackend seam', () => {
     const fakeCalls: string[] = [];
     const fakeBackend: FileTreeBackend = {
       loadTree: async (path: string) => { fakeCalls.push(path); return new Response('{}', { status: 200 }); },
-      loadVaultTree: async () => new Response('{}', { status: 200 }),
       watchTrees: () => undefined,
     };
 

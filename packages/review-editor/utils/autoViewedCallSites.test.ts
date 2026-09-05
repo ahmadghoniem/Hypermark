@@ -59,15 +59,14 @@ describe('Rule 5 call-site scope', () => {
   test('every path that marks a file viewed clears its suppression', () => {
     // Rule 3 says un-viewing is "come back to this" and marking viewed by hand
     // releases it. `v`, the header button and the tree row all funnel through
-    // handleToggleViewed, but STAGING marks viewed on its own path — and a
-    // file the reviewer un-viewed and later staged would otherwise stay
-    // permanently off-limits to auto-view.
-    const stageHandler = APP.slice(
-      APP.indexOf('const handleFileViewedFromStage'),
-      APP.indexOf('const sidecarStaged'),
+    // handleToggleViewed, which is now the only path that marks a file viewed
+    // by hand — so the release has to live there.
+    const toggleHandler = APP.slice(
+      APP.indexOf('const handleToggleViewed'),
+      APP.indexOf('// Auto-mark-viewed. The marker never decides'),
     );
-    expect(stageHandler).toContain('setViewedFiles');
-    expect(stageHandler).toContain('applyAutoViewSuppression');
+    expect(toggleHandler).toContain('setViewedFiles');
+    expect(toggleHandler).toContain('applyAutoViewSuppression');
   });
 
   test('the apply path routes through the scoped resolver, not the raw one', () => {

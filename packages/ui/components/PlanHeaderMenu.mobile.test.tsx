@@ -19,7 +19,6 @@ const baseProps = {
   onOpenExport: () => {},
   onCopyAgentInstructions: () => {},
   onDownloadAnnotations: () => {},
-  onPrint: () => {},
   onCopyShareLink: () => {},
   onOpenImport: () => {},
   onSaveToObsidian: () => {},

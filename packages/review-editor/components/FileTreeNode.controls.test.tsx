@@ -41,8 +41,6 @@ function Row({ compact }: { compact: boolean }) {
       getAnnotationCount={() => 0}
       stagedFiles={new Set()}
       getSectionEntry={() => ({ group: 'changes', staged: false })}
-      onStageFile={() => {}}
-      showStageControls={!compact}
     />
   );
 }
@@ -55,18 +53,16 @@ afterEach(async () => {
 });
 
 describe('FileTreeNodeItem compact controls', () => {
-  test.skipIf(!hasDom)('removes viewed and Git add controls without removing the file row', async () => {
+  test.skipIf(!hasDom)('removes viewed controls without removing the file row', async () => {
     host = document.createElement('div');
     document.body.appendChild(host);
     root = createRoot(host);
 
     await act(async () => root?.render(<Row compact={false} />));
     expect(host.querySelector('[role="checkbox"]')).not.toBeNull();
-    expect(host.querySelector('[aria-label="Stage file"]')).not.toBeNull();
 
     await act(async () => root?.render(<Row compact />));
     expect(host.querySelector('[role="checkbox"]')).toBeNull();
-    expect(host.querySelector('[aria-label="Stage file"]')).toBeNull();
     expect(host.textContent).toContain('example.ts');
   });
 });

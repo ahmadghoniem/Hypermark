@@ -1,12 +1,9 @@
 import {
-  canStageFiles,
   detectManagedVcs,
   getVcsContext,
   getVcsDiffFingerprint,
   getVcsFileContentsForDiff,
   runVcsDiff,
-  stageFile,
-  unstageFile,
 } from "./vcs";
 import {
   WorkspaceReviewSession,
@@ -42,9 +39,18 @@ const workspaceRuntime = {
   runVcsDiff,
   getVcsFileContentsForDiff,
   getVcsDiffFingerprint,
-  canStageFiles,
-  stageFile,
-  unstageFile,
+  // Staging was removed with the stage/unstage mutation routes (spec 02 step
+  // 4). The shared workspace contract still declares these members, so they
+  // are wired fail-closed rather than to a real index mutation: no server path
+  // can stage or unstage, and a future caller gets a refusal, never a silent
+  // write to the git index.
+  canStageFiles: async (): Promise<boolean> => false,
+  stageFile: async (): Promise<void> => {
+    throw new Error("Staging is not available");
+  },
+  unstageFile: async (): Promise<void> => {
+    throw new Error("Staging is not available");
+  },
 };
 
 export async function buildLocalWorkspaceReview(

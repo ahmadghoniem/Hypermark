@@ -43,7 +43,7 @@ import {
   type AnnotateClientLeaseStreamSession,
 } from "@plannotator/shared/annotate-client-lease";
 import { createAnnotateDecisionSettler } from "@plannotator/shared/annotate-decision";
-import { saveConfig, detectGitUser, getServerConfig, isAgentTerminalSide, loadConfig, resolveAIEnabled, resolveAnnotateHistory, resolveFeedbackHistory } from "./config";
+import { saveConfig, detectGitUser, getServerConfig, isAgentTerminalSide, loadConfig, resolveAnnotateHistory, resolveFeedbackHistory } from "./config";
 import { appendFeedbackRecord, type FeedbackDecision, type FeedbackSurface } from "@plannotator/shared/feedback-archive";
 import { isFaviconStyle, type FaviconStyle } from "@plannotator/shared/favicon";
 import { existsSync } from "fs";
@@ -51,8 +51,6 @@ import { dirname, resolve as resolvePath } from "path";
 import { isWithinDirectory } from "@plannotator/shared/html-assets-node";
 import { isWSL } from "./browser";
 import { handleOpenInApps, handleOpenIn } from "./open-in";
-import { AI_QUERY_ENDPOINT, createAIRuntime } from "./ai-runtime";
-import { isAIEndpointPath, type AIEndpoints } from "@plannotator/ai";
 import { createHtmlAssetRegistry } from "./html-assets";
 import { createBunAgentTerminalBridge } from "./agent-terminal";
 import { startLiveAppProxy, type LiveAppProxy } from "./live-proxy";
@@ -458,7 +456,6 @@ export async function startAnnotateServer(
     return legacyDurable && (archived || !hasContent);
   };
   const externalAnnotations = createExternalAnnotationHandler("plan");
-  const aiRuntime = resolveAIEnabled() ? await createAIRuntime() : null;
   const htmlAssets = createHtmlAssetRegistry();
   const agentTerminal = await createBunAgentTerminalBridge({
     enabled: supportsAnnotateAgentTerminalMode(mode),
@@ -682,8 +679,8 @@ export async function startAnnotateServer(
     Bun.serve({
         hostname: getServerHostname(),
         port,
-        // Bun's default 10s idleTimeout kills AI SSE streams that stall
-        // between bytes (e.g. while a permission prompt waits on the user).
+        // Bun's default 10s idleTimeout kills long-parked requests (e.g. the
+        // external-annotation SSE stream, which can stall between events).
         idleTimeout: 0,
 
         async fetch(req, server) {
@@ -1118,26 +1115,6 @@ export async function startAnnotateServer(
           });
           if (externalResponse) return externalResponse;
 
-          if (url.pathname.startsWith("/api/ai/")) {
-            if (!aiRuntime) {
-              if (!isAIEndpointPath(url.pathname)) {
-                return handleApiNotFound(url.pathname);
-              }
-              if (url.pathname.slice("/api/ai/".length) === "capabilities" && req.method === "GET") {
-                return Response.json({ available: false, providers: [] });
-              }
-              return Response.json({ error: "AI backend not available" }, { status: 503 });
-            }
-            const handler = aiRuntime.endpoints[url.pathname as keyof AIEndpoints];
-            if (handler) {
-              if (url.pathname === AI_QUERY_ENDPOINT) {
-                server.timeout(req, 0);
-              }
-              return handler(req);
-            }
-            return handleApiNotFound(url.pathname);
-          }
-
           // API: Exit annotation session without feedback
           if (url.pathname === "/api/exit" && req.method === "POST") {
             if (!decision.settle({ feedback: "", annotations: [], exit: true })) {
@@ -1323,7 +1300,6 @@ export async function startAnnotateServer(
           clientLease.cancel();
           clientLease.closeSessions();
         }],
-        ["AI runtime", () => aiRuntime?.dispose()],
         ["agent terminal", () => agentTerminal.dispose()],
         ["live proxy", () => liveProxy?.stop()],
       ],

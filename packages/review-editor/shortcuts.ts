@@ -82,13 +82,6 @@ export const reviewEditorShortcuts = defineShortcutScope({
       hint: 'Marks the active diff file as viewed (and auto-collapses in all-files view).',
       displayOrder: 10,
     },
-    stageFile: {
-      description: 'Stage current file',
-      bindings: ['A'],
-      section: 'File Actions',
-      hint: 'Available when staging is supported (not in PR review mode).',
-      displayOrder: 20,
-    },
   },
 });
 

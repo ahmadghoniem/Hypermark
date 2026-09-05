@@ -19,13 +19,6 @@ interface FileHeaderProps {
   /** Chrome preference: false hides the Viewed button (the `V` shortcut and
    *  viewed state are unaffected). */
   showViewedControl?: boolean;
-  isStaged?: boolean;
-  isStaging?: boolean;
-  onStage?: () => void;
-  canStage?: boolean;
-  /** Same preference for the Git Add button (the `A` shortcut still works). */
-  showStageControl?: boolean;
-  stageError?: string | null;
   onFileComment?: (anchorEl: HTMLElement) => void;
   /**
    * Eager registration of the comment button element on mount/unmount (ref
@@ -110,7 +103,7 @@ function countChanges(patch: string): { additions: number; deletions: number } {
   return { additions, deletions };
 }
 
-/** Sticky file header with file path, Viewed toggle, Git Add, and Copy Diff button */
+/** Sticky file header with file path, Viewed toggle, and Copy Diff button */
 export const FileHeader: React.FC<FileHeaderProps> = ({
   filePath,
   patch,
@@ -119,12 +112,6 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
   isViewed = false,
   onToggleViewed,
   showViewedControl = true,
-  isStaged = false,
-  isStaging = false,
-  onStage,
-  canStage = false,
-  showStageControl = true,
-  stageError,
   onFileComment,
   fileCommentButtonRef,
   collapseToggle,
@@ -164,7 +151,6 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  const stageLabel = isVeryTight ? '' : isCompact ? (isStaging ? 'Adding' : isStaged ? 'Added' : 'Add') : (isStaging ? 'Adding...' : isStaged ? 'Added' : 'Git Add');
   const commentLabel = isVeryTight ? '' : 'Comment';
   const viewedLabel = isVeryTight ? '' : 'Viewed';
   const { additions, deletions } = React.useMemo(() => countChanges(patch), [patch]);
@@ -264,41 +250,6 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
             {viewedLabel && <span>{viewedLabel}</span>}
           </button>
         )}
-        {showStageControl && canStage && onStage && (
-          <button
-            onClick={onStage}
-            disabled={isStaging}
-            className={`text-xs rounded transition-colors flex items-center ${stageLabel ? 'gap-1 px-2 py-1' : 'px-1.5 py-1'} ${
-              isStaging
-                ? 'opacity-50 cursor-not-allowed text-muted-foreground'
-                : isStaged
-                  ? 'bg-primary/15 text-primary'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            }`}
-            title={isStaged ? "Unstage this file (A)" : "Stage this file (A)"}
-          >
-            {isStaging ? (
-              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-            ) : isStaged ? (
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-            )}
-            {stageLabel && <span>{stageLabel}</span>}
-          </button>
-        )}
-        {stageError && (
-          <span className="max-w-24 truncate text-xs text-destructive" title={stageError}>
-            {stageError}
-          </span>
-        )}
         {onFileComment && (
           <button
             ref={(el) => {
@@ -319,7 +270,7 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
         <SemanticFileBadge filePath={filePath} />
         {/* Edit entry lives at the far right of the row, next to the file
             actions dropdown, so the experimental affordance stays out of the
-            everyday Viewed/Add/Comment cluster. */}
+            everyday Viewed/Comment cluster. */}
         {onEditFile && !isEditing && (
           <button
             onClick={(e) => {

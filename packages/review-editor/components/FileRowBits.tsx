@@ -6,11 +6,11 @@ import type { DiffFile } from '../types';
  * Shared atoms for file rows — used by both the tree view (FileTreeNode) and
  * the sections view (SectionsPanel), so the two lists render one visual
  * language: same viewed circle, same leading change-type letter, same
- * stage button/dot.
+ * staged/committed status dot.
  */
 
 /** Viewed checkbox — always visible: green check-circle when viewed, empty
- * circle otherwise. Fixed 16px slot, same as StageControl, so the two align
+ * circle otherwise. Fixed 16px slot, same as StagedDot, so the two align
  * as a column. (`forceVisible` retained as a no-op for call-site stability.) */
 export const ViewedControl: React.FC<{
   isViewed: boolean;
@@ -86,58 +86,17 @@ export const ChangeTypeLetter: React.FC<{
   </span>
 );
 
-/** Staging affordance — plus button on unstaged working files (always
- * visible, brightens on hover), primary dot when staged, spinner mid-flight.
- * Fixed 16px slot. */
-export const StageControl: React.FC<{
-  isStaged: boolean;
-  isStaging: boolean;
-  onStage?: () => void;
-}> = ({ isStaged, isStaging, onStage }) => {
-  if (isStaged) {
-    return (
-      <span className="w-4 h-4 flex items-center justify-center flex-shrink-0" title="Staged (git add)" aria-label="Staged">
-        <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-      </span>
-    );
-  }
-  return (
-    <Tooltip content="Stage file (git add)" side="bottom" delayDuration={300}>
-      <span
-        role="button"
-        // tabIndex + key handling: lives INSIDE the row <button> (a real nested
-        // <button> is invalid HTML), so it needs its own focus stop and
-        // Enter/Space activation to be keyboard-operable.
-        tabIndex={0}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (!isStaging) onStage?.();
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            e.stopPropagation();
-            if (!isStaging) onStage?.();
-          }
-        }}
-        className="stage-plus w-4 h-4 flex-shrink-0 rounded border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-muted-foreground/60 hover:bg-muted/50 transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-primary/60"
-        aria-label="Stage file"
-      >
-        {isStaging ? (
-          <span className="inline-block w-2 h-2 border border-current border-t-transparent rounded-full animate-spin" />
-        ) : (
-          <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-        )}
-      </span>
-    </Tooltip>
-  );
-};
+/** Read-only staged marker — primary dot when the file is already in the
+ * index, per the server's read-side status. Display only: nothing here
+ * mutates the index. Fixed 16px slot so it columns with CommittedDot. */
+export const StagedDot: React.FC = () => (
+  <span className="w-4 h-4 flex items-center justify-center flex-shrink-0" title="Staged (git add)" aria-label="Staged">
+    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+  </span>
+);
 
-/** Committed-file marker — green dot in the stage-slot column (committed rows
- * can't be staged, so the slot is otherwise empty). Mirrors StageControl's
- * primary staged dot: green = already committed, primary = staged. */
+/** Committed-file marker — green dot in the status-slot column. Mirrors
+ * StagedDot: green = already committed, primary = staged. */
 export const CommittedDot: React.FC = () => (
   <span className="w-4 h-4 flex items-center justify-center flex-shrink-0" title="Committed" aria-label="Committed">
     <span className="w-1.5 h-1.5 rounded-full bg-success" />

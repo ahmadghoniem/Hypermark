@@ -50,13 +50,6 @@ export const planEditorShortcuts = defineShortcutScope({
       hint: 'Available while plan diff is open.',
       displayOrder: 30,
     },
-    printPlan: {
-      description: 'Print',
-      bindings: ['Mod+P'],
-      section: 'Actions',
-      hint: 'Opens the browser print dialog for the current document.',
-      displayOrder: 40,
-    },
   },
 });
 
@@ -69,7 +62,6 @@ const planReviewEditorSettingsShortcuts = defineShortcutScope({
     submitPlan: planEditorShortcuts.shortcuts.submitPlan,
     quickSave: planEditorShortcuts.shortcuts.quickSave,
     exitPlanDiff: planEditorShortcuts.shortcuts.exitPlanDiff,
-    printPlan: planEditorShortcuts.shortcuts.printPlan,
   },
 });
 
@@ -79,7 +71,6 @@ const annotateEditorSettingsShortcuts = defineShortcutScope({
   shortcuts: {
     submitAnnotations: planEditorShortcuts.shortcuts.submitAnnotations,
     quickSave: planEditorShortcuts.shortcuts.quickSave,
-    printPlan: planEditorShortcuts.shortcuts.printPlan,
   },
 });
 

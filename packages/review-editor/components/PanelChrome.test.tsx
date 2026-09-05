@@ -10,7 +10,6 @@ let root: Root | null = null;
 
 function Harness({ onCopy }: { onCopy: () => void }) {
   const [showViewed, setShowViewed] = useState(true);
-  const [showStage, setShowStage] = useState(true);
   const [hideViewed, setHideViewed] = useState(true);
 
   return (
@@ -23,8 +22,6 @@ function Harness({ onCopy }: { onCopy: () => void }) {
       canCopyRawDiff
       showViewedControls={showViewed}
       onToggleShowViewedControls={() => setShowViewed((value) => !value)}
-      showStageControls={showStage}
-      onToggleShowStageControls={() => setShowStage((value) => !value)}
     />
   );
 }
@@ -38,7 +35,7 @@ afterEach(async () => {
 
 describe("PanelControlsRow", () => {
   test.skipIf(!hasDom)(
-    "copies from the utility row and toggles both per-file control columns",
+    "copies from the utility row and toggles the per-file viewed column",
     async () => {
       let copyCount = 0;
       host = document.createElement("div");
@@ -83,9 +80,8 @@ describe("PanelControlsRow", () => {
       expect(popup).not.toBeNull();
       const switches =
         popup?.querySelectorAll<HTMLButtonElement>('[role="switch"]');
-      expect(switches).toHaveLength(2);
+      expect(switches).toHaveLength(1);
       expect(switches?.[0]?.getAttribute("aria-checked")).toBe("true");
-      expect(switches?.[1]?.getAttribute("aria-checked")).toBe("true");
 
       await act(async () => switches?.[0]?.click());
       expect(host.querySelector("[data-panel-viewed-controls]")).toBeNull();
@@ -93,9 +89,7 @@ describe("PanelControlsRow", () => {
       expect(host.textContent).not.toContain("0/22");
       await act(async () => switches?.[0]?.click());
       expect(host.querySelector('[aria-label="Hide viewed files"]')).not.toBeNull();
-      await act(async () => switches?.[1]?.click());
       expect(switches?.[0]?.getAttribute("aria-checked")).toBe("true");
-      expect(switches?.[1]?.getAttribute("aria-checked")).toBe("false");
     },
   );
 
@@ -104,8 +98,8 @@ describe("PanelControlsRow", () => {
     async () => {
       // The gear popover is the easily-reachable off switch for auto-mark-
       // viewed, two clicks from where the behavior manifests. Guards both
-      // halves: hosts that do not wire it keep exactly two rows (the prop is
-      // optional), and wiring it produces a working third.
+      // halves: hosts that do not wire it keep exactly one row (the prop is
+      // optional), and wiring it produces a working second.
       host = document.createElement("div");
       document.body.appendChild(host);
       root = createRoot(host);
@@ -118,8 +112,6 @@ describe("PanelControlsRow", () => {
               totalCount={9}
               showViewedControls
               onToggleShowViewedControls={() => {}}
-              showStageControls
-              onToggleShowStageControls={() => {}}
               autoViewed={autoViewed}
               onToggleAutoViewed={() => { autoViewed = !autoViewed; void render(); }}
             />,

@@ -2,31 +2,16 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BUILTIN_DEFAULT_ID } from "@plannotator/shared/review-profiles";
 import {
-  BUILTIN_DEFAULT_PROFILE,
-  type ResolvedReviewProfile,
-} from "@plannotator/shared/review-profiles";
-import {
-  discoverCuratedSkills,
   discoverSkills,
-  enableReviewSkill,
-  listAllSkills,
   listReferenceSkills,
-  loadReviewProfiles,
   MAX_INJECTED_SKILL_CONTENT_LEN,
   MAX_REFERENCE_SKILLS,
   parseSkillFrontmatterMeta,
-  readCuratedSkillNames,
   readReferenceSkillContent,
-  resolveRequestedReviewProfile,
   SKILL_CONTENT_HEAD_BYTES,
   stripFrontmatter,
 } from "./review-skill-loader";
-
-// Launch-time resolution used by review.ts / serverReview.ts. Tested directly so
-// both runtimes' resolution stays pinned without standing up a full review server.
-const resolveLaunchProfile = resolveRequestedReviewProfile;
 
 // ---------------------------------------------------------------------------
 // Test 1 — Body extraction (no frontmatter parsing)
@@ -81,12 +66,6 @@ function writeSkill(root: string, name: string, body = `# ${name}\n\ninstruction
   return dir;
 }
 
-function writeCuration(enabled: unknown, version: unknown = 1) {
-  writeFileSync(
-    join(dataDir, "review-skills.json"),
-    JSON.stringify({ version, enabled }),
-  );
-}
 
 beforeEach(() => {
   const base = mkdtempSync(join(tmpdir(), "plannotator-skills-"));
@@ -220,136 +199,8 @@ describe("discoverSkills — symlinked skill directories", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Test 3 — Curation filter (membership; missing name; absent/malformed)
+// Trust gating: repo-local .claude/skills is NOT discovered
 // ---------------------------------------------------------------------------
-
-describe("loadReviewProfiles — curation filter", () => {
-  test("a discovered skill is a review iff its name is in `enabled`", () => {
-    const root = join(home, ".claude", "skills");
-    writeSkill(root, "security-review", "# Security\n\ncheck auth");
-    writeSkill(root, "not-curated");
-    writeCuration(["security-review"]);
-
-    const profiles = loadReviewProfiles();
-    const ids = profiles.map((p) => p.id);
-    expect(ids).toContain(BUILTIN_DEFAULT_ID);
-    expect(ids).toContain("skill:security-review");
-    expect(ids).not.toContain("skill:not-curated");
-
-    const sec = profiles.find((p) => p.id === "skill:security-review")!;
-    expect(sec.label).toBe("security-review");
-    expect(sec.source).toBe("user");
-    expect(sec.instructions).toBe("# Security\n\ncheck auth");
-    expect(sec.sourcePath).toBe(join(root, "security-review"));
-  });
-
-  test("an enabled name with no matching skill is dropped (not fatal)", () => {
-    writeSkill(join(home, ".claude", "skills"), "present");
-    writeCuration(["present", "ghost"]);
-
-    const ids = loadReviewProfiles().map((p) => p.id);
-    expect(ids).toContain("skill:present");
-    expect(ids).not.toContain("skill:ghost");
-  });
-
-  test("absent curation → only builtin:default", () => {
-    writeSkill(join(home, ".claude", "skills"), "available");
-    const profiles = loadReviewProfiles();
-    expect(profiles).toHaveLength(1);
-    expect(profiles[0].id).toBe(BUILTIN_DEFAULT_ID);
-  });
-
-  test("malformed curation (bad version) → only builtin:default", () => {
-    writeSkill(join(home, ".claude", "skills"), "available");
-    writeCuration(["available"], 2);
-    const profiles = loadReviewProfiles();
-    expect(profiles).toHaveLength(1);
-    expect(profiles[0].id).toBe(BUILTIN_DEFAULT_ID);
-  });
-
-  test("empty enabled array → only builtin:default", () => {
-    writeSkill(join(home, ".claude", "skills"), "available");
-    writeCuration([]);
-    const profiles = loadReviewProfiles();
-    expect(profiles).toHaveLength(1);
-    expect(profiles[0].id).toBe(BUILTIN_DEFAULT_ID);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Test 5 — Trust gating: repo-local .claude/skills is NOT discovered
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Launch-time resolution — reviewProfileId → curated skill body; absent → default
-// ---------------------------------------------------------------------------
-
-describe("launch resolution", () => {
-  test("a curated skill id resolves to that skill's live body", () => {
-    const root = join(home, ".claude", "skills");
-    writeSkill(root, "security-review", "# Security\n\ncheck auth");
-    writeCuration(["security-review"]);
-
-    const profile = resolveLaunchProfile("skill:security-review");
-    expect(profile.id).toBe("skill:security-review");
-    expect(profile.label).toBe("security-review");
-    expect(profile.source).toBe("user");
-    expect(profile.instructions).toBe("# Security\n\ncheck auth");
-  });
-
-  test("absent reviewProfileId → builtin:default", () => {
-    writeSkill(join(home, ".claude", "skills"), "security-review");
-    writeCuration(["security-review"]);
-    expect(resolveLaunchProfile(undefined)).toBe(BUILTIN_DEFAULT_PROFILE);
-  });
-
-  test("the reserved default id → builtin:default (no throw)", () => {
-    expect(resolveLaunchProfile(BUILTIN_DEFAULT_ID)).toBe(BUILTIN_DEFAULT_PROFILE);
-  });
-
-  test("an unknown / uncurated id throws instead of silently running default", () => {
-    writeSkill(join(home, ".claude", "skills"), "not-curated");
-    writeCuration([]);
-    // Renamed/removed skill or stale cookie — fail loud, never quietly downgrade.
-    expect(() => resolveLaunchProfile("skill:not-curated")).toThrow(/not available/);
-    expect(() => resolveLaunchProfile("skill:does-not-exist")).toThrow(/not available/);
-  });
-
-  test("a curated skill with an empty body throws (could not be loaded)", () => {
-    writeSkill(join(home, ".claude", "skills"), "blank", "");
-    writeCuration(["blank"]);
-    expect(() => resolveLaunchProfile("skill:blank")).toThrow(/could not be loaded/);
-  });
-});
-
-describe("skill files pointer (point at the real folder, no copy)", () => {
-  test("a skill with extra files prepends a pointer to its real directory", () => {
-    const root = join(home, ".claude", "skills");
-    const dir = writeSkill(root, "with-refs", "# Body\n\ncheck auth");
-    mkdirSync(join(dir, "references"), { recursive: true });
-    writeFileSync(join(dir, "references", "owasp.md"), "checklist");
-    writeCuration(["with-refs"]);
-
-    const profile = resolveLaunchProfile("skill:with-refs");
-    // Points at the skill's REAL directory — no copy is made.
-    expect(
-      profile.instructions.startsWith(
-        `This review skill's files (references, scripts, assets) are at: ${dir}`,
-      ),
-    ).toBe(true);
-    // The body still follows the pointer line.
-    expect(profile.instructions.endsWith("# Body\n\ncheck auth")).toBe(true);
-  });
-
-  test("an instruction-only skill (just SKILL.md) gets no pointer line", () => {
-    writeSkill(join(home, ".claude", "skills"), "plain", "# Body\n\njust instructions");
-    writeCuration(["plain"]);
-
-    const profile = resolveLaunchProfile("skill:plain");
-    expect(profile.instructions).toBe("# Body\n\njust instructions");
-    expect(profile.instructions).not.toContain("This review skill's files");
-  });
-});
 
 describe("trust gating — global roots only", () => {
   test("a repo-local .claude/skills/<name>/SKILL.md is not discovered", () => {
@@ -357,62 +208,20 @@ describe("trust gating — global roots only", () => {
     // .claude/skills — must never be scanned (global-only).
     const repo = join(home, "work", "some-repo");
     writeSkill(join(repo, ".claude", "skills"), "repo-only-skill");
-    writeCuration(["repo-only-skill"]);
 
-    const ids = loadReviewProfiles().map((p) => p.id);
-    expect(ids).not.toContain("skill:repo-only-skill");
-    expect(ids).toEqual([BUILTIN_DEFAULT_ID]);
+    expect(discoverSkills().map((s) => s.name)).not.toContain(
+      "repo-only-skill",
+    );
+    expect(listReferenceSkills().map((s) => s.name)).not.toContain(
+      "repo-only-skill",
+    );
   });
 });
 
 describe("the documented ~/.agents/skills root is scanned", () => {
-  test("a skill in ~/.agents/skills is discovered and loadable", () => {
+  test("a skill in ~/.agents/skills is discovered", () => {
     writeSkill(join(home, ".agents", "skills"), "agents-review");
-    writeCuration(["agents-review"]);
-    expect(loadReviewProfiles().map((p) => p.id)).toContain("skill:agents-review");
-  });
-});
-
-describe("listAllSkills — the add-a-review picker source", () => {
-  test("lists every discovered skill, flagged by enabled state", () => {
-    const root = join(home, ".claude", "skills");
-    writeSkill(root, "security-review");
-    writeSkill(root, "perf-review");
-    writeCuration(["security-review"]);
-
-    const all = listAllSkills();
-    const byName = new Map(all.map((s) => [s.name, s.enabled]));
-    expect(byName.get("security-review")).toBe(true);
-    expect(byName.get("perf-review")).toBe(false);
-  });
-
-  test("no curation file → everything is not-enabled", () => {
-    writeSkill(join(home, ".claude", "skills"), "perf-review");
-    expect(listAllSkills().every((s) => !s.enabled)).toBe(true);
-  });
-});
-
-describe("enableReviewSkill — curation write", () => {
-  test("adds a real skill name to review-skills.json (creates the file)", () => {
-    writeSkill(join(home, ".claude", "skills"), "security-review");
-    const { enabled } = enableReviewSkill("security-review");
-    expect(enabled).toEqual(["security-review"]);
-    expect([...(readCuratedSkillNames() ?? [])]).toEqual(["security-review"]);
-  });
-
-  test("dedupes and preserves existing enabled names", () => {
-    const root = join(home, ".claude", "skills");
-    writeSkill(root, "security-review");
-    writeSkill(root, "perf-review");
-    writeCuration(["security-review"]);
-
-    enableReviewSkill("security-review"); // already enabled → no duplicate
-    const { enabled } = enableReviewSkill("perf-review");
-    expect(enabled.sort()).toEqual(["perf-review", "security-review"]);
-  });
-
-  test("rejects a name with no matching discovered skill", () => {
-    expect(() => enableReviewSkill("does-not-exist")).toThrow();
+    expect(discoverSkills().map((s) => s.name)).toContain("agents-review");
   });
 });
 

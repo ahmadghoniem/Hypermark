@@ -51,13 +51,6 @@ export const ReviewAllFilesDiffPanel: React.FC<IDockviewPanelProps> = () => {
       expandedGeneratedFiles={state.expandedGeneratedFiles}
       onGeneratedFileCollapsedChange={state.onGeneratedFileCollapsedChange}
       showViewedControls={state.showViewedControls}
-      stagedFiles={state.stagedFiles}
-      onStage={state.onStage}
-      canStageFiles={state.canStageFiles}
-      showStageControls={state.showStageControls}
-      canStagePath={state.canStagePath}
-      stagingFile={state.stagingFile}
-      stageError={state.stageError}
       prUrl={state.prMetadata?.url}
       prDiffScope={state.prDiffScope}
       // Debounced like ReviewDiffPanel: searchMatches derive from the

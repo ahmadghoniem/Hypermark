@@ -6,7 +6,6 @@ import { setIdentityProvider, type IdentityProvider } from './utils/identity';
 import { setFileTreeBackend, type FileTreeBackend } from './hooks/useFileBrowser';
 import { setDraftTransport, type DraftTransport } from './hooks/useAnnotationDraft';
 import { setExternalAnnotationTransport, type ExternalAnnotationTransport } from './hooks/useExternalAnnotations';
-import { setAITransport, type AITransport } from './hooks/useAIChat';
 import { setSkillCatalogTransport, setSkillContentTransport, type SkillCatalogTransport, type SkillContentTransport } from './utils/skillCatalog';
 import { setWebMcpPolicy, type WebMcpPolicy } from './webmcp/policy';
 import { setMathRendererLoader, type MathRenderer, type MathRendererLoader } from './utils/math';
@@ -30,7 +29,6 @@ export type {
   DraftTransport,
   ExternalAnnotationTransport,
   ExternalAnnotationEvent,
-  AITransport,
   SkillCatalogTransport,
   SkillContentTransport,
   ServerSyncFn,
@@ -57,7 +55,6 @@ export interface PlannotatorUIConfig {
    * this front-door field intentionally pins the base constraint for ergonomics.
    */
   externalAnnotationTransport?: ExternalAnnotationTransport<ExternalAnnotationBase>;
-  aiTransport?: AITransport;
   /** Skill-reference catalog request. Default: `GET /api/skills` on the page origin. */
   skillCatalogTransport?: SkillCatalogTransport;
   /** Human-only skill contents request for feedback injection. Default: `GET /api/skills/content?name=` on the page origin. */
@@ -98,7 +95,6 @@ export function configurePlannotatorUI(config: PlannotatorUIConfig): void {
   if (config.identityProvider) setIdentityProvider(config.identityProvider);
   if (config.draftTransport) setDraftTransport(config.draftTransport);
   if (config.externalAnnotationTransport) setExternalAnnotationTransport(config.externalAnnotationTransport);
-  if (config.aiTransport) setAITransport(config.aiTransport);
   if (config.skillCatalogTransport) setSkillCatalogTransport(config.skillCatalogTransport);
   if (config.skillContentTransport) setSkillContentTransport(config.skillContentTransport);
   if (config.serverSync) configStore.setServerSync(config.serverSync);

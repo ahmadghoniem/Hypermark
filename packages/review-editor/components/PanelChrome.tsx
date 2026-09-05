@@ -28,8 +28,6 @@ export function PanelControlsRow({
   copyRawDiffStatus = "idle",
   showViewedControls = true,
   onToggleShowViewedControls,
-  showStageControls = true,
-  onToggleShowStageControls,
   autoViewed = true,
   onToggleAutoViewed,
 }: {
@@ -49,8 +47,6 @@ export function PanelControlsRow({
   copyRawDiffStatus?: "idle" | "success" | "error";
   showViewedControls?: boolean;
   onToggleShowViewedControls?: () => void;
-  showStageControls?: boolean;
-  onToggleShowStageControls?: () => void;
   /** Auto-mark-viewed (`reviewAutoViewed`). Optional: without the handler the
    *  switch row is not rendered, so hosts that don't have the feature are
    *  unchanged. */
@@ -129,7 +125,7 @@ export function PanelControlsRow({
       )}
 
       <div className="ml-auto flex items-center gap-1.5">
-        {showStageControls && stagedCount > 0 && (
+        {stagedCount > 0 && (
           <span className="text-xs text-primary font-medium">
             {stagedCount} added
           </span>
@@ -240,7 +236,7 @@ export function PanelControlsRow({
             </button>
           </Tooltip>
         )}
-        {onToggleShowViewedControls && onToggleShowStageControls && (
+        {onToggleShowViewedControls && (
           <Popover.Root>
             <Popover.Trigger
               render={
@@ -297,32 +293,6 @@ export function PanelControlsRow({
                     >
                       <span
                         className={`h-2.5 w-2.5 rounded-full ${showViewedControls ? "bg-primary-foreground" : "bg-muted-foreground/70"}`}
-                      />
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={showStageControls}
-                    onClick={onToggleShowStageControls}
-                    className="flex w-full items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted focus-visible:outline focus-visible:outline-1 focus-visible:outline-primary/60"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-xs">Git add controls</span>
-                      <span className="block text-[10px] leading-snug text-muted-foreground">
-                        Stage buttons and status markers
-                      </span>
-                    </span>
-                    <span
-                      aria-hidden="true"
-                      className={`flex h-4 w-7 flex-shrink-0 items-center rounded-full border px-0.5 ${
-                        showStageControls
-                          ? "justify-end border-primary/70 bg-primary"
-                          : "justify-start border-border bg-muted"
-                      }`}
-                    >
-                      <span
-                        className={`h-2.5 w-2.5 rounded-full ${showStageControls ? "bg-primary-foreground" : "bg-muted-foreground/70"}`}
                       />
                     </span>
                   </button>

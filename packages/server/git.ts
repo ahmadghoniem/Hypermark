@@ -23,8 +23,6 @@ import {
   getWorktrees as getWorktreesCore,
   getGitContext as getGitContextCore,
   getFileContentsForDiff as getFileContentsForDiffCore,
-  gitAddFile as gitAddFileCore,
-  gitResetFile as gitResetFileCore,
   parseWorktreeDiffType,
   prepareGitCommand,
   runGitDiff as runGitDiffCore,
@@ -174,20 +172,6 @@ export function getFileContentsForDiff(
     oldPath,
     cwd,
   );
-}
-
-export function gitAddFile(
-  filePath: string,
-  cwd?: string,
-): Promise<void> {
-  return gitAddFileCore(runtime, filePath, cwd);
-}
-
-export function gitResetFile(
-  filePath: string,
-  cwd?: string,
-): Promise<void> {
-  return gitResetFileCore(runtime, filePath, cwd);
 }
 
 export { parseWorktreeDiffType, validateFilePath };

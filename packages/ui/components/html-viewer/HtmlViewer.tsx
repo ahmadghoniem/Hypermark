@@ -829,13 +829,12 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
         >
           {/* Action bar — above the iframe in normal mode (outside overflow:hidden). */}
           {!fullViewport && hasActionButtons && (
-            <div data-print-hide className="flex justify-end gap-1 md:gap-2 mb-2">
+            <div className="flex justify-end gap-1 md:gap-2 mb-2">
               {actionButtons}
             </div>
           )}
 
           <article
-            data-print-region="article"
             className={fullViewport ? "relative overflow-hidden w-full flex-1" : "relative bg-card rounded-xl shadow-xl overflow-hidden w-full"}
           >
             {/* Armed affordance: a subtle accent ring floats over the iframe
@@ -846,7 +845,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
             {!readOnly && annotateModeActive && (onAnnotateModeExit || onAnnotateModeToggle) && (
               <div
                 aria-hidden
-                data-print-hide
                 data-annotate-armed-ring
                 className="pointer-events-none absolute inset-0 z-10"
                 style={{ boxShadow: "inset 0 0 0 2px color-mix(in srgb, var(--primary) 45%, transparent)" }}
@@ -857,7 +855,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
                 any HTML). The selection toolbar is portaled separately. */}
             {fullViewport && !hideControls && hasActionButtons && (
               <div
-                data-print-hide
                 className="absolute top-3 right-3 z-10 flex items-center gap-1 md:gap-2 rounded-lg border border-border/50 bg-background/80 px-1.5 py-1 shadow-md backdrop-blur-sm"
               >
                 {actionButtons}
@@ -872,7 +869,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
             {bridgeError && !bridgeErrorDismissed && bridgeErrorDisplay !== "none" && (
               <div
                 role="alert"
-                data-print-hide
                 data-bridge-error={bridgeError.kind}
                 className="absolute inset-x-0 top-0 z-20 border-b border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive backdrop-blur-sm"
                 style={{ display: "flex", alignItems: "flex-start", gap: 8 }}

@@ -10,7 +10,6 @@ import { Search, X } from "lucide-react";
 import type { VaultNode } from "../../types";
 import type { DirState } from "../../hooks/useFileBrowser";
 import { CountBadge } from "./CountBadge";
-import { ObsidianIconRaw } from "../icons/ObsidianIcons";
 import type { WorkspaceFileChange, WorkspaceStatusPayload } from "@plannotator/core/workspace-status-types";
 import { normalizeBrowserPath } from "@plannotator/core/browser-paths";
 
@@ -23,7 +22,6 @@ interface FileBrowserProps {
   onSelectFile: (absolutePath: string, dirPath: string) => void;
   activeFile: string | null;
   onFetchAll: () => void;
-  onRetryVaultDir?: (vaultPath: string) => void;
   annotationCounts?: Map<string, number>;
   highlightedFiles?: Set<string>;
   editStatuses?: Map<string, FileEditStatus>;
@@ -468,7 +466,6 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
   onSelectFile,
   activeFile,
   onFetchAll,
-  onRetryVaultDir,
   annotationCounts,
   highlightedFiles,
   editStatuses,
@@ -611,7 +608,6 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
-              {dir.isVault && <ObsidianIconRaw className="w-[11px] h-[13px] flex-shrink-0 opacity-70" />}
               <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider truncate">
                 {dir.name}
               </div>
@@ -623,7 +619,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
                 onToggleFolder={onToggleFolder}
                 onSelectFile={onSelectFile}
                 activeFile={activeFile}
-                onRetry={dir.isVault && onRetryVaultDir ? () => onRetryVaultDir(dir.path) : onFetchAll}
+                onRetry={onFetchAll}
                 annotationCounts={annotationCounts}
                 highlightedFiles={highlightedFiles}
                 editStatuses={editStatuses}

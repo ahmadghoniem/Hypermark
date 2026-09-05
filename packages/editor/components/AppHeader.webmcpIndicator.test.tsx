@@ -25,7 +25,7 @@ function baseProps(): React.ComponentProps<typeof headerModule extends null ? ne
     onCallbackFeedback: noop, onCallbackApprove: noop, onAnnotateExit: noop, onGoalSetupExit: noop, onGoalSetupSubmit: noop,
     onFeedback: noop, onApprove: noop, onAnnotationPanelToggle: noop, onAIChatToggle: noop,
     onArchiveCopy: noop, onArchiveDone: noop, onTaterModeChange: noop, onIdentityChange: noop, onUIPreferencesChange: noop,
-    onOpenSettings: noop, onCloseSettings: noop, onOpenExport: noop, onCopyAgentInstructions: noop, onDownloadAnnotations: noop, onPrint: noop,
+    onOpenSettings: noop, onCloseSettings: noop, onOpenExport: noop, onCopyAgentInstructions: noop, onDownloadAnnotations: noop,
     onCopyShareLink: noop, onOpenImport: noop, onSaveToObsidian: noop, onSaveToBear: noop, onSaveToOctarine: noop,
     appVersion: '0.0.0', agentInstructionsEnabled: false, obsidianConfigured: false, bearConfigured: false, octarineConfigured: false,
   };

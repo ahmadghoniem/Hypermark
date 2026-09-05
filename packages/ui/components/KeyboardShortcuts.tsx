@@ -125,8 +125,6 @@ const planActionShortcuts: ShortcutSection = {
   title: 'Actions',
   shortcuts: [
     { keys: [modKey, enter], desc: 'Submit / Approve' },
-    { keys: [modKey, 'S'], desc: 'Save to notes app' },
-    { keys: [modKey, 'P'], desc: 'Print plan' },
     { keys: ['Esc'], desc: 'Close dialog' },
   ],
 };
@@ -135,8 +133,6 @@ const annotateActionShortcuts: ShortcutSection = {
   title: 'Actions',
   shortcuts: [
     { keys: [modKey, enter], desc: 'Send annotations' },
-    { keys: [modKey, 'S'], desc: 'Save to notes app' },
-    { keys: [modKey, 'P'], desc: 'Print document' },
   ],
 };
 

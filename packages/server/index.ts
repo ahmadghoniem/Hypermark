@@ -41,7 +41,7 @@ import {
 } from "./storage";
 import { getRepoInfo } from "./repo";
 import { detectProjectName } from "./project";
-import { loadConfig, saveConfig, detectGitUser, getServerConfig, resolveAIEnabled, resolveFeedbackHistory } from "./config";
+import { loadConfig, saveConfig, detectGitUser, getServerConfig, resolveFeedbackHistory } from "./config";
 import { appendFeedbackRecord, type FeedbackDecision } from "@plannotator/shared/feedback-archive";
 import { isFaviconStyle, type FaviconStyle } from "@plannotator/shared/favicon";
 import { readImprovementHook, getImprovementHookExpectedPath } from "@plannotator/shared/improvement-hooks";
@@ -54,8 +54,6 @@ import { warmFileListCache } from "@plannotator/shared/resolve-file";
 import { createEditorAnnotationHandler } from "./editor-annotations";
 import { createExternalAnnotationHandler } from "./external-annotations";
 import { isWSL } from "./browser";
-import { AI_QUERY_ENDPOINT, createAIRuntime } from "./ai-runtime";
-import { isAIEndpointPath, type AIEndpoints } from "@plannotator/ai";
 import { isArchiveDocumentMutation } from "@plannotator/shared/archive-mode";
 
 // Re-export utilities
@@ -152,7 +150,6 @@ export async function startPlannotatorServer(
   const draftKey = mode !== "archive" ? contentHash(plan) : "";
   const editorAnnotations = mode !== "archive" ? createEditorAnnotationHandler() : null;
   const externalAnnotations = mode !== "archive" ? createExternalAnnotationHandler("plan") : null;
-  const aiRuntime = mode !== "archive" && resolveAIEnabled() ? await createAIRuntime() : null;
   const slug = mode !== "archive" ? generateSlug(plan) : "";
 
   // Lazy cache for in-session archive browsing (plan review sidebar tab)
@@ -252,8 +249,9 @@ export async function startPlannotatorServer(
     Bun.serve({
         hostname: getServerHostname(),
         port,
-        // Bun's default 10s idleTimeout kills AI SSE streams that stall
-        // between bytes (e.g. while a permission prompt waits on the user).
+        // Bun's default 10s idleTimeout kills long-parked requests (e.g. the
+        // external-annotation and file-browser SSE streams, which can stall
+        // between events).
         idleTimeout: 0,
 
         async fetch(req, server) {
@@ -478,26 +476,6 @@ export async function startPlannotatorServer(
           });
           if (externalResponse) return externalResponse;
 
-          if (url.pathname.startsWith("/api/ai/")) {
-            if (!aiRuntime) {
-              if (!isAIEndpointPath(url.pathname)) {
-                return handleApiNotFound(url.pathname);
-              }
-              if (url.pathname.slice("/api/ai/".length) === "capabilities" && req.method === "GET") {
-                return Response.json({ available: false, providers: [] });
-              }
-              return Response.json({ error: "AI backend not available" }, { status: 503 });
-            }
-            const handler = aiRuntime.endpoints[url.pathname as keyof AIEndpoints];
-            if (handler) {
-              if (url.pathname === AI_QUERY_ENDPOINT) {
-                server.timeout(req, 0);
-              }
-              return handler(req);
-            }
-            return handleApiNotFound(url.pathname);
-          }
-
           // API: Save to notes (decoupled from approve/deny)
           if (url.pathname === "/api/save-notes" && req.method === "POST") {
             return handleSaveNotes(req);
@@ -665,7 +643,6 @@ export async function startPlannotatorServer(
     stopPromise ??= (async () => {
       try {
         closeAllFileBrowserWatchers();
-        aiRuntime?.dispose();
       } finally {
         await server.stop(true);
       }
