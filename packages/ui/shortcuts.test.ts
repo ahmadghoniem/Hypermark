@@ -79,9 +79,6 @@ describe('shortcuts', () => {
       'View',
       'Input Method',
       'Annotations',
-      'Vim Document Navigation',
-      'Vim Text Navigation',
-      'Vim Annotation Actions',
       'Image Annotator',
       'History',
     ]);
@@ -92,9 +89,6 @@ describe('shortcuts', () => {
       'View',
       'Input Method',
       'Annotations',
-      'Vim Document Navigation',
-      'Vim Text Navigation',
-      'Vim Annotation Actions',
       'Image Annotator',
       'History',
     ]);
@@ -119,7 +113,6 @@ describe('shortcuts', () => {
       'Suggestion Editor',
       'AI Assistant',
       'PR Comments',
-      'Tour',
     ]);
   });
 

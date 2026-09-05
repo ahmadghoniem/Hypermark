@@ -61,7 +61,6 @@ import { getInputMethod, refreshInputMethodStamp, saveInputMethod } from '@plann
 import { getHtmlChromeState, saveHtmlChromeState } from '@plannotator/ui/utils/htmlChrome';
 import { useInputMethodSwitch } from '@plannotator/ui/hooks/useInputMethodSwitch';
 import { usePrintMode } from '@plannotator/ui/hooks/usePrintMode';
-import { requestVimDocumentFocus } from '@plannotator/ui/hooks/useVimDocumentFocus';
 import { useResizablePanel } from '@plannotator/ui/hooks/useResizablePanel';
 import { ResizeHandle } from '@plannotator/ui/components/ResizeHandle';
 import { OverlayScrollArea } from '@plannotator/ui/components/OverlayScrollArea';
@@ -473,13 +472,6 @@ const App: React.FC = () => {
     return stored === 'true';
   });
   const gridEnabled = useConfigValue('gridEnabled');
-  const vimModeEnabled = useConfigValue('vimModeEnabled');
-  const vimHudEnabled = useConfigValue('vimHudEnabled');
-  const vimHudKeyPanelEnabled = useConfigValue('vimHudKeyPanelEnabled');
-  const handleVimHudKeyPanelChange = useCallback((enabled: boolean) => {
-    configStore.set('vimHudKeyPanelEnabled', enabled);
-    requestVimDocumentFocus();
-  }, []);
   const [uiPrefs, setUiPrefs] = useState(() => getUIPreferences());
 
   // Plan-area width (inside the OverlayScrollArea, after sidebar/panel
@@ -579,7 +571,7 @@ const App: React.FC = () => {
   const [shareHtml, setShareHtml] = useState('');
   // Live app annotation (mode "annotate-app"): the HtmlViewer navigates the
   // loopback proxy origin instead of rendering srcdoc HTML. Pinpoint-only,
-  // vim/edit/diff/share hidden, annotations stamped with the page they were
+  // edit/diff/share hidden, annotations stamped with the page they were
   // made on.
   const [liveApp, setLiveApp] = useState<{ appUrl: string; origin: string; token: string } | null>(null);
   const [livePageUrl, setLivePageUrl] = useState('');
@@ -6207,10 +6199,6 @@ const App: React.FC = () => {
                     annotateModeActive={htmlAnnotateArmed}
                     onAnnotateModeExit={documentReadOnly ? undefined : handleHtmlAnnotateExit}
                     onAnnotateModeToggle={documentReadOnly ? undefined : handleHtmlAnnotateToggle}
-                    vimModeEnabled={liveApp ? false : vimModeEnabled && htmlAnnotateArmed}
-                    vimHudEnabled={!liveApp && vimModeEnabled && htmlAnnotateArmed && vimHudEnabled}
-                    vimHudKeyPanelEnabled={vimHudKeyPanelEnabled}
-                    onVimHudKeyPanelChange={handleVimHudKeyPanelChange}
                     globalAttachments={globalAttachments}
                     onAddGlobalAttachment={handleAddGlobalAttachment}
                     onRemoveGlobalAttachment={handleRemoveGlobalAttachment}
@@ -6250,10 +6238,6 @@ const App: React.FC = () => {
                     selectedAnnotationId={selectedAnnotationId}
                     mode={effectiveEditorMode}
                     inputMethod={effectiveInputMethod}
-                    vimModeEnabled={vimModeEnabled}
-                    vimHudEnabled={vimModeEnabled && vimHudEnabled}
-                    vimHudKeyPanelEnabled={vimHudKeyPanelEnabled}
-                    onVimHudKeyPanelChange={handleVimHudKeyPanelChange}
                     taterMode={taterMode}
                     gridEnabled={gridEnabled}
                     globalAttachments={globalAttachments}

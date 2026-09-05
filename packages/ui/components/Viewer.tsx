@@ -49,7 +49,6 @@ import { DocBadges, type DocBadgesProps, type LinkedDocBadgeInfo } from './DocBa
 import { PinpointOverlay } from './PinpointOverlay';
 import { usePinpoint } from '../hooks/usePinpoint';
 import { useAnnotationHighlighter } from '../hooks/useAnnotationHighlighter';
-import { useVimSelection } from '../hooks/useVimSelection';
 import {
   getScrollViewportIntersectionRoot,
   getScrollViewportRect,
@@ -58,7 +57,6 @@ import {
   useScrollViewport,
 } from '../hooks/useScrollViewport';
 import { decodeAnchorHash } from '../utils/anchors';
-import { VimModeOverlay } from './VimModeOverlay';
 import { AnnotationToolstrip } from './AnnotationToolstrip';
 import {
   resolveCompactHeaderGeometry,
@@ -159,14 +157,6 @@ export interface ViewerProps {
    *  comment, attachments, checkbox toggles). Existing annotations still
    *  render and remain selectable. Default false — today's behavior. */
   readOnly?: boolean;
-  /** Opt-in Vim-style keyboard selection. Default false for compatibility. */
-  vimModeEnabled?: boolean;
-  /** Replace the compact Vim badge with the live video-style key HUD. */
-  vimHudEnabled?: boolean;
-  /** Show the bottom-right key panel without affecting the HUD reticle. */
-  vimHudKeyPanelEnabled?: boolean;
-  /** Persist a user request to hide the bottom-right key panel. */
-  onVimHudKeyPanelChange?: (enabled: boolean) => void;
 }
 
 export interface ViewerHandle {
@@ -375,10 +365,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   onAskAI,
   allowImages = true,
   readOnly = false,
-  vimModeEnabled = false,
-  vimHudEnabled = false,
-  vimHudKeyPanelEnabled = true,
-  onVimHudKeyPanelChange,
 }, ref) => {
   const viewerAnnotationHeader = readOnly ? undefined : annotationHeader;
   const hasViewerAnnotationHeader = viewerAnnotationHeader !== undefined;
@@ -401,8 +387,8 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     }
   };
   const containerRef = useRef<HTMLDivElement>(null);
-  // The element that actually scrolls; shared by the Vim scroll math, the
-  // sticky-header observer, and the reticle geometry.
+  // The element that actually scrolls; shared by the sticky-header observer
+  // and the reticle geometry.
   const scrollViewport = useScrollViewport();
   // The badge cluster (repo chips / diff badge) is absolutely positioned in the
   // card's top padding. One row fits; a second row (diff badge) or mobile
@@ -477,7 +463,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     handleFloatingQuickLabel: hookFloatingQuickLabel,
     handleQuickLabelPickerDismiss: hookQuickLabelPickerDismiss,
     highlightRange,
-    highlightMathElement,
     removeHighlight: hookRemoveHighlight,
     clearAllHighlights,
     applyAnnotations,
@@ -616,97 +601,15 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     }
   }, [applyCodeBlockAnnotation, blocks]);
 
-  const handleKeyboardCodeBlockAction = useCallback((
-    blockId: string,
-    element: HTMLElement,
-    modeOverride?: EditorMode,
-  ) => {
-    if (readOnlyRef.current) return;
-
-    const block = blocks.find((candidate) => candidate.id === blockId);
-    const codeEl = element.querySelector('code');
-    if (!block || !codeEl) return;
-
-    const effectiveMode = modeOverride ?? modeRef.current;
-    if (effectiveMode === 'redline') {
-      applyCodeBlockAnnotation(blockId, codeEl, AnnotationType.DELETION);
-      return;
-    }
-    if (effectiveMode === 'quickLabel') {
-      setCodeBlockQuickLabelPicker({
-        anchorEl: element,
-        codeBlock: { block, element },
-      });
-      return;
-    }
-    if (effectiveMode === 'selection') {
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
-        hoverTimeoutRef.current = null;
-      }
-      setCodeBlockToolbar({ block, element, activation: 'keyboard' });
-      return;
-    }
-    setViewerCommentPopover({
-      anchorEl: element,
-      contextText: (codeEl.textContent || '').slice(0, 80),
-      selectedText: codeEl.textContent || '',
-      isGlobal: false,
-      codeBlock: { block, element },
-    });
-  }, [applyCodeBlockAnnotation, blocks]);
-
-  const vimModeActive = vimModeEnabled && !readOnly;
   const keyboardCodeBlockToolbarOpen = codeBlockToolbar?.activation === 'keyboard';
-  const vimBlocked = !!toolbarState
-    || !!hookCommentPopover
-    || !!viewerCommentPopover
-    || !!hookQuickLabelPicker
-    || !!codeBlockQuickLabelPicker
-    || keyboardCodeBlockToolbarOpen
-    || !!isPlanDiffActive
-    || !!popoutTable
-    || !!lightbox;
-  const clearPinpointHoverRef = useRef<() => void>(() => {});
-  const handleVimCommand = useCallback(() => {
-    clearPinpointHoverRef.current();
-  }, []);
-  const vim = useVimSelection({
-    containerRef,
-    scrollViewport,
-    enabled: vimModeActive,
-    hudEnabled: vimHudEnabled,
-    blocked: vimBlocked,
-    activeMode: mode,
-    contentVersion: blocks,
-    onHighlightRange: highlightRange,
-    onCodeBlockAction: handleKeyboardCodeBlockAction,
-    onMathAction: highlightMathElement,
-    onHandledCommand: handleVimCommand,
-  });
-
-  const { hoverTarget, clearHover: clearPinpointHover } = usePinpoint({
+  const { hoverTarget } = usePinpoint({
     containerRef,
     inputMethod,
-    enabled: !readOnly && !toolbarState && !hookCommentPopover && !viewerCommentPopover && !hookQuickLabelPicker && !codeBlockQuickLabelPicker && !(isPlanDiffActive ?? false) && !vim.helpOpen,
+    enabled: !readOnly && !toolbarState && !hookCommentPopover && !viewerCommentPopover && !hookQuickLabelPicker && !codeBlockQuickLabelPicker && !(isPlanDiffActive ?? false),
     onSelectRange: highlightRange,
     onCodeBlockClick: handlePinpointCodeBlockClick,
   });
-  clearPinpointHoverRef.current = clearPinpointHover;
-  const vimOwnsHudTarget = vimHudEnabled
-    && vim.state.phase !== 'inactive'
-    && (vim.focused || vim.state.phase === 'action');
-  const vimOwnsDocumentNavigation = vimModeActive
-    && vim.focused
-    && vim.state.phase !== 'inactive'
-    && vim.state.phase !== 'action';
-  const legacyVimTarget = !vimHudEnabled
-    && (vim.focused || vim.state.phase === 'action')
-    ? vim.activeTarget
-    : null;
-  const pinpointOverlayTarget = vimOwnsHudTarget
-    ? null
-    : (inputMethod === 'pinpoint' ? hoverTarget : null) ?? legacyVimTarget;
+  const pinpointOverlayTarget = inputMethod === 'pinpoint' ? hoverTarget : null;
 
   useEffect(() => {
     if (!readOnly) return;
@@ -719,18 +622,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     setViewerCommentPopover(null);
     setCodeBlockQuickLabelPicker(null);
   }, [readOnly]);
-
-  useEffect(() => {
-    if (!vimOwnsDocumentNavigation) return;
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
-    }
-    setCodeBlockToolbar((current) => (
-      current?.activation === 'pointer' ? null : current
-    ));
-    setIsCodeBlockToolbarExiting(false);
-  }, [vimOwnsDocumentNavigation]);
 
   // Suppress native context menu on touch devices (prevents cut/copy/paste overlay on mobile)
   useEffect(() => {
@@ -1025,19 +916,9 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
       <article
         ref={containerRef}
         data-print-region="article"
-        data-vim-mode={vimModeActive ? 'enabled' : undefined}
-        data-vim-phase={vimModeActive ? vim.state.phase : undefined}
-        data-vim-focused={vimModeActive ? String(vim.focused) : undefined}
-        data-vim-blocked={vimModeActive ? String(vimBlocked) : undefined}
-        data-vim-target-key={vimModeActive ? vim.activeTarget?.key : undefined}
-        tabIndex={vimModeActive ? 0 : undefined}
-        onFocus={vim.onFocus}
-        onBlur={vim.onBlur}
-        onMouseDown={vim.onMouseDown}
         className={`w-full bg-card rounded-xl py-5 md:py-8 lg:py-10 xl:py-12 relative ${gridEnabled ? 'px-5 md:px-8 lg:px-10 xl:px-12 shadow-xl border border-border/50' : ''} ${inputMethod === 'pinpoint' ? 'cursor-pointer' : ''}`}
         style={{
           WebkitTouchCallout: 'none',
-          ...(vimModeActive ? { outline: 'none' } : {}),
         } as React.CSSProperties}
       >
         {/* Legacy badge placement remains byte-for-byte opt-out behavior. */}
@@ -1171,7 +1052,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
                 // Only show hover toolbar if no selection toolbar is active
                 if (
                   !toolbarState
-                  && !vimOwnsDocumentNavigation
                   && !keyboardCodeBlockToolbarOpen
                 ) {
                   setCodeBlockToolbar({
@@ -1196,7 +1076,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               isHovered={
                 !readOnly
                 && inputMethod !== 'pinpoint'
-                && !vimOwnsDocumentNavigation
                 && codeBlockToolbar?.block.id === group.block.id
               }
             />
@@ -1260,7 +1139,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
         {!readOnly
           && codeBlockToolbar
           && !toolbarState
-          && !(vimOwnsDocumentNavigation && codeBlockToolbar.activation === 'pointer')
           && (
             <ToolbarErrorBoundary>
               <AnnotationToolbar
@@ -1310,30 +1188,10 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
         )}
 
         {/* Pinpoint hover overlay */}
-        {(inputMethod === 'pinpoint' || vim.activeTarget) && (
+        {inputMethod === 'pinpoint' && (
           <PinpointOverlay
             target={pinpointOverlayTarget}
             containerRef={containerRef}
-          />
-        )}
-        {vimModeActive && (
-          <VimModeOverlay
-            containerRef={containerRef}
-            inputMethod={inputMethod}
-            state={vim.state}
-            focused={vim.focused}
-            hudEnabled={vimHudEnabled}
-            keyPanelEnabled={vimHudKeyPanelEnabled}
-            hudCommand={vim.hudCommand}
-            activeTarget={vim.activeTarget}
-            helpOpen={vim.helpOpen}
-            onHelpOpenChange={vim.onHelpOpenChange}
-            onKeyPanelHide={
-              onVimHudKeyPanelChange
-                ? () => onVimHudKeyPanelChange(false)
-                : undefined
-            }
-            onHudFocusLeave={vim.onHudFocusLeave}
           />
         )}
 

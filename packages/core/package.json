@@ -6,8 +6,6 @@
     "./agents": "./agents.ts",
     "./diff-paths": "./diff-paths.ts",
     "./diff-files": "./diff-files.ts",
-    "./guide": "./guide.ts",
-    "./guide-format": "./guide-format.ts",
     "./annotatable": "./annotatable.ts",
     "./annotation-threads": "./annotation-threads.ts",
     "./agent-jobs": "./agent-jobs.ts",
@@ -32,9 +30,7 @@
     "./workspace-status-types": "./workspace-status-types.ts",
     "./ai-context": "./ai-context.ts",
     "./types": "./types.ts",
-    ".": "./index.ts",
-    "./guide-format-fixtures": "./guide-format-fixtures.ts",
-    "./guide-viewer-manifest": "./guide-viewer-manifest.ts"
+    ".": "./index.ts"
   },
   "files": [
     "**/*.ts",

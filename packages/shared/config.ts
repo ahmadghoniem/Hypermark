@@ -202,13 +202,6 @@ export interface PlannotatorConfig {
    */
   markdownExtensions?: string[];
   /**
-   * Persist successful Guided Reviews (guide content + per-section reviewed
-   * state) under ~/.plannotator/guides/ (or PLANNOTATOR_DATA_DIR) so they
-   * survive closing Plannotator. Set to false to disable writes; already-saved
-   * guides remain readable and listed. Default: true.
-   */
-  guideHistory?: boolean;
-  /**
    * Inject a Plannotator Flavored Markdown reminder into every EnterPlanMode
    * call so the agent is aware it can enrich plans with code-file links,
    * callouts, tables, diagrams, task lists, and the other PFM extensions.
@@ -229,15 +222,6 @@ export interface PlannotatorConfig {
    * env var value, which takes precedence over this setting.
    */
   share?: "enabled" | "disabled";
-  /**
-   * Base URL of the guide host that `plannotator guide share` and the
-   * in-app "Create share link" upload Guided Reviews to (default
-   * https://guides.show; a self-hosted origin otherwise).
-   * Must be http(s); a trailing slash is trimmed. Mirrors the
-   * PLANNOTATOR_GUIDE_SHARE_URL env var, which takes precedence. Guide sharing
-   * is off entirely while `share` is "disabled".
-   */
-  guideShareUrl?: string;
   /**
    * Pass `--sandbox enabled` when launching Cursor's `agent` CLI for review
    * jobs. When true (default), review jobs run with Cursor's sandbox forced
@@ -677,20 +661,6 @@ export function resolveFeedbackHistory(config: PlannotatorConfig): boolean {
   return coerceConfigBoolean(config.feedbackHistory, true);
 }
 
-/**
- * Resolve whether successful Guided Reviews are persisted to disk.
- *
- * Priority (highest wins):
- *   PLANNOTATOR_GUIDE_HISTORY env var  →  config.guideHistory  →  default true
- */
-export function resolveGuideHistory(config: PlannotatorConfig): boolean {
-  const envVal = process.env.PLANNOTATOR_GUIDE_HISTORY;
-  if (envVal !== undefined) {
-    return envVal === "1" || envVal.toLowerCase() === "true";
-  }
-  return coerceConfigBoolean(config.guideHistory, true);
-}
-
 export function resolveUseJina(cliNoJina: boolean, config: PlannotatorConfig): boolean {
   // CLI flag has highest priority
   if (cliNoJina) return false;
@@ -716,54 +686,6 @@ export function resolveSharingEnabled(config: PlannotatorConfig, env: NodeJS.Pro
   if (envVal !== undefined) return envVal !== "disabled";
   if (config.share !== undefined) return config.share !== "disabled";
   return true;
-}
-
-/** Where shared Guided Reviews are uploaded by default (guide share hosting contract, §7). */
-export const DEFAULT_GUIDE_SHARE_URL = "https://guides.show";
-
-/**
- * Validate and normalize a guide share service URL: http(s) only, credentials,
- * query and fragment dropped, trailing slashes trimmed so callers can append
- * `/api/g`. Null when the value must not be used.
- */
-export function normalizeGuideShareUrl(input: string): string | null {
-  let parsed: URL;
-  try {
-    parsed = new URL(input.trim());
-  } catch {
-    return null;
-  }
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
-  const path = parsed.pathname.replace(/\/+$/, "");
-  return `${parsed.protocol}//${parsed.host}${path}`;
-}
-
-const warnedInvalidGuideShareUrls = new Set<string>();
-
-/**
- * Resolve the guide host that guide share links are created on.
- *
- * Priority (highest wins):
- *   PLANNOTATOR_GUIDE_SHARE_URL env var  →  config.guideShareUrl  →  https://guides.show
- *
- * An empty (but set) env var counts as unset. A value that is not an http(s)
- * URL warns once per value on stderr and falls back to the default: a share
- * setting must never break a server launch or a CLI run. Whether sharing is
- * allowed at all is a separate question (`resolveSharingEnabled`).
- */
-export function resolveGuideShareUrl(config: PlannotatorConfig, env: NodeJS.ProcessEnv = process.env): string {
-  const envVal = env.PLANNOTATOR_GUIDE_SHARE_URL;
-  const raw = envVal !== undefined && envVal.trim() !== "" ? envVal : config.guideShareUrl;
-  if (typeof raw !== "string" || raw.trim() === "") return DEFAULT_GUIDE_SHARE_URL;
-  const normalized = normalizeGuideShareUrl(raw);
-  if (normalized) return normalized;
-  if (!warnedInvalidGuideShareUrls.has(raw)) {
-    warnedInvalidGuideShareUrls.add(raw);
-    process.stderr.write(
-      `[plannotator] Warning: invalid guide share URL ${JSON.stringify(raw)} — expected an http(s) URL; using ${DEFAULT_GUIDE_SHARE_URL}\n`,
-    );
-  }
-  return DEFAULT_GUIDE_SHARE_URL;
 }
 
 // Bare hostname or IPv4: letters/digits/dots/hyphens, no leading/trailing

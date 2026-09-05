@@ -1,8 +1,7 @@
 /**
  * Unified diff → per-file records. The one splitter/path resolver shared by
- * the review app, the guide chain, and the portable-format helpers
- * (`listGuidePatchFiles`, language preload detection), so every consumer
- * agrees on which files a patch contains.
+ * the review app and its consumers, so every consumer agrees on which files
+ * a patch contains.
  *
  * Browser-safe and dependency-free.
  */

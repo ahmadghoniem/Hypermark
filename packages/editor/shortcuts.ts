@@ -15,7 +15,6 @@ import {
   imageAnnotatorShortcuts,
   inputMethodShortcuts,
   viewerShortcuts,
-  vimSelectionShortcuts,
   type ShortcutSurface,
 } from '@plannotator/ui/shortcuts';
 
@@ -91,7 +90,6 @@ const sharedPlanSurfaceShortcuts = [
   annotationModeShortcuts,
   annotationToolbarShortcuts,
   viewerShortcuts,
-  vimSelectionShortcuts,
   commentPopoverShortcuts,
   annotationPanelShortcuts,
   imageAnnotatorShortcuts,

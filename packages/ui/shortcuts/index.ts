@@ -13,16 +13,6 @@ export { inputMethodShortcuts } from './plan-review/inputMethod.shortcuts';
 export { htmlAnnotateShortcuts, useHtmlAnnotateShortcuts } from './plan-review/htmlAnnotate.shortcuts';
 export { viewerShortcuts, useViewerShortcuts } from './plan-review/viewer.shortcuts';
 export { documentViewShortcuts, useDocumentViewShortcuts } from './plan-review/documentView.shortcuts';
-export {
-  describeVimSelectionAction,
-  isVimSelectionActionId,
-  vimSelectionShortcuts,
-  useVimSelectionShortcuts,
-} from './plan-review/vimSelection.shortcuts';
-export type {
-  VimSelectionActionId,
-  VimSelectionHudContext,
-} from './plan-review/vimSelection.shortcuts';
 export { goalSetupShortcuts, useGoalSetupShortcuts } from './plan-review/goalSetup.shortcuts';
 export { annotateSidebarShortcuts, useAnnotateSidebarShortcuts } from './plan-review/sidebar.shortcuts';
 
@@ -33,4 +23,4 @@ export { reviewPrCommentsShortcuts, useReviewPrCommentsShortcuts } from './code-
 export { reviewAllFilesDiffShortcuts, useReviewAllFilesDiffShortcuts } from './code-review/allFilesDiff.shortcuts';
 export { reviewAiShortcuts, useReviewAiShortcuts } from './code-review/ai.shortcuts';
 export { reviewSuggestionModalShortcuts, useReviewSuggestionModalShortcuts } from './code-review/suggestionModal.shortcuts';
-export { reviewTourDialogShortcuts, useReviewTourDialogShortcuts } from './code-review/tourDialog.shortcuts';
+

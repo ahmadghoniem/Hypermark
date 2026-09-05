@@ -36,7 +36,6 @@ const memoryBackend: StorageBackend = {
 
 function seedAnnouncementsSeen(): void {
   memory.set("plannotator-look-feel-announcement-seen", "2");
-  memory.set("plannotator-vim-mode-announcement-seen", "2");
   memory.set("plannotator-plan-ai-announcement-seen", "1");
 }
 

@@ -58,8 +58,6 @@ export interface TokenHoverAnnouncementGateState {
    * the next ordinary review still shows it.
    */
   featureAvailable: boolean;
-  /** Guided-review intro dialog is visible (first in the chain). */
-  guideIntroVisible: boolean;
   /** Look-and-feel announcement is pending (second in the chain). */
   lookAndFeelVisible: boolean;
   /** Review setup chooser is open (third in the chain). */
@@ -70,7 +68,7 @@ export interface TokenHoverAnnouncementGateState {
 
 /**
  * Chain gate for the announcement dialog. It is LAST in the first-run dialog
- * chain (guide intro, look-and-feel, review setup, edit mode, then this) and
+ * chain (look-and-feel, review setup, edit mode, then this) and
  * must never stack with any of them. Waiting for isLoading to clear matters:
  * showReviewSetup only latches during the initial diff load, so rendering
  * earlier could flash this dialog under a chain that is about to open.
@@ -82,7 +80,6 @@ export function tokenHoverAnnouncementCanShow(
     state.announcementPending &&
     state.featureAvailable &&
     !state.isLoading &&
-    !state.guideIntroVisible &&
     !state.lookAndFeelVisible &&
     !state.reviewSetupVisible &&
     !state.editModeVisible

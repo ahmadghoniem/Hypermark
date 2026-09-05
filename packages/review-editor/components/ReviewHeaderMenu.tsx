@@ -39,7 +39,6 @@ interface ReviewHeaderMenuProps {
   onCopyAgentInstructions: () => void;
   onToggleFileTree: () => void;
   onToggleSidebar: () => void;
-  onOpenGuide?: () => void;
   onOpenAnnotations?: () => void;
   onOpenAI?: () => void;
   onOpenAgents?: () => void;
@@ -62,7 +61,6 @@ export const ReviewHeaderMenu: React.FC<ReviewHeaderMenuProps> = ({
   onCopyAgentInstructions,
   onToggleFileTree,
   onToggleSidebar,
-  onOpenGuide,
   onOpenAnnotations,
   onOpenAI,
   onOpenAgents,
@@ -241,19 +239,9 @@ export const ReviewHeaderMenu: React.FC<ReviewHeaderMenuProps> = ({
             />
           )}
 
-          {(onOpenGuide || onOpenAnnotations || onOpenAI || onOpenAgents) && (
+          {(onOpenAnnotations || onOpenAI || onOpenAgents) && (
             <>
               <ActionMenuDivider />
-              {onOpenGuide && (
-                <ActionMenuItem
-                  onClick={() => {
-                    closeMenu();
-                    onOpenGuide();
-                  }}
-                  icon={<GuideIcon />}
-                  label="Guided Review"
-                />
-              )}
               {onOpenAnnotations && (
                 <ActionMenuItem
                   onClick={() => {
@@ -376,11 +364,6 @@ const SidebarIcon = () => (
   </svg>
 );
 
-const GuideIcon = () => (
-  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8 6h8M8 10h8M8 14h5M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z" />
-  </svg>
-);
 
 const AgentDestinationIcon = () => (
   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

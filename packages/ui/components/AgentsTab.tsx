@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import type { AgentJobInfo, AgentCapabilities } from '../types';
 import { isTerminalStatus } from '@plannotator/core/agent-jobs';
-import { GUIDE_ENGINE_LABEL } from '@plannotator/core/guide';
 import { cn } from '../lib/utils';
 import { ReviewAgentsIcon } from './ReviewAgentsIcon';
 import { ClaudeIcon, CodexIcon, CopilotIcon, CursorIcon, OpenCodeIcon, PiIcon } from './icons/AgentIcons';
@@ -27,7 +26,7 @@ import { CODEX_MODELS, CODEX_EFFORT_LABELS, codexReasoningOptions } from '../uti
 
 export type { AgentLaunchParams } from '../hooks/useAgentJobs';
 
-// --- Agent option catalogs (shared across review + tour engine dropdowns) ---
+// --- Agent option catalogs (shared across review engine dropdowns) ---
 
 export const CLAUDE_MODELS: Array<{ value: string; label: string }> = [
   { value: 'claude-fable-5', label: 'Fable 5' },
@@ -56,18 +55,6 @@ export const CLAUDE_EFFORT: Array<{ value: string; label: string }> = [
 // utils/codexModels (useAgentSettings needs them too, for effort clamping);
 // re-exported here so both launch surfaces keep one import site.
 export { CODEX_MODELS, codexReasoningOptions } from '../utils/codexModels';
-
-// Tour/guide Claude catalog: the CLI's latest-resolving aliases on top
-// (verified against `claude --help`: "Provide an alias for the latest model
-// (e.g. 'fable', 'opus', or 'sonnet') or a model's full name"), then every
-// pinned version from the review catalog.
-// Also reused by GuideEmptyState (packages/review-editor).
-export const TOUR_CLAUDE_MODELS: Array<{ value: string; label: string }> = [
-  { value: 'sonnet', label: 'Sonnet (latest)' },
-  { value: 'opus', label: 'Opus (latest)' },
-  { value: 'fable', label: 'Fable (latest)' },
-  ...CLAUDE_MODELS,
-];
 
 // Fallback Cursor model catalog (just `auto`). The real, account-specific list
 // is discovered server-side via `agent models` and delivered on the cursor
@@ -110,8 +97,6 @@ export const PI_THINKING: Array<{ value: string; label: string }> = [
 
 const MODE_LABEL: Record<AgentMode, string> = {
   review: 'Code Review',
-  tour: 'Code Tour',
-  guide: 'Guided Review',
 };
 
 const ENGINE_LABEL: Record<AgentEngine, string> = {
@@ -124,13 +109,16 @@ const ENGINE_ICON: Record<AgentEngine, React.FC<{ className?: string }>> = {
   codex: CodexIcon,
 };
 
-// Review-only label map. Keeps Tour's narrow AgentEngine maps valid while the
-// review surface offers the wider set (Cursor/OpenCode). Exported so the guide
-// takeover surfaces (GuideScreen, GuideEmptyState in packages/review-editor)
-// share this one source of truth instead of keeping their own copies in sync.
-export const REVIEW_ENGINE_LABEL: Record<ReviewEngine, string> = GUIDE_ENGINE_LABEL;
+export const REVIEW_ENGINE_LABEL: Record<ReviewEngine, string> = {
+  claude: 'Claude',
+  codex: 'Codex',
+  cursor: 'Cursor',
+  opencode: 'OpenCode',
+  pi: 'Pi',
+  copilot: 'Copilot',
+};
 
-// Review-only icon map — the wide set. Tour keeps the narrow ENGINE_ICON.
+// Review-only icon map — the wide set.
 const REVIEW_ENGINE_ICON: Record<ReviewEngine, React.FC<{ className?: string }>> = {
   claude: ClaudeIcon,
   codex: CodexIcon,
@@ -150,28 +138,9 @@ interface AgentsTabProps {
   onKillAll: () => void;
   externalAnnotations: Array<{ source?: string }>;
   onOpenJobDetail?: (jobId: string) => void;
-  onOpenGuide?: (jobId: string) => void;
-  /** Whether the current diff has any files a guide could reference — mirrors
-   *  the review-editor header's `hasSearchableFiles` gate (the "Guide" badge
-   *  and its keyboard shortcut). A guide organizes changed files into
-   *  chapters, so with none available there is nothing for it to do; default
-   *  true so callers that don't pass it (e.g. the plan editor, which has no
-   *  concept of "files") see unchanged behavior. */
-  guideLaunchable?: boolean;
-  /** Whether a given guide job's artifact can be opened from HERE — i.e. it
-   *  belongs to the review context currently on screen. The job list spans
-   *  every context visited this session, but opening only sets
-   *  activeGuideJobId/guideOpen (it does NOT switch PRs), so a cross-context
-   *  "Open guide" would land on the wrong guide or the empty state. Default
-   *  undefined ⇒ always openable (non-review callers have no contexts). */
-  canOpenGuideJob?: (job: AgentJobInfo) => boolean;
 }
 
 // --- Duration display ---
-// Exported so other agent-job surfaces (e.g. GuideGenerating in
-// review-editor) share this one implementation instead of keeping their own
-// copies in sync.
-
 export function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);
   if (seconds < 60) return `${seconds}s`;
@@ -233,11 +202,6 @@ function formatModel(provider: string, engine: string | undefined, model: string
   if (provider === 'pi') return model || 'Default';
   if (provider === 'copilot') return model || 'Default';
   if (provider === 'codex' || engine === 'codex') return catalogLabel(CODEX_MODELS, model);
-  if ((provider === 'tour' || provider === 'guide') && engine === 'claude') return catalogLabel(TOUR_CLAUDE_MODELS, model);
-  if (provider === 'tour' || provider === 'guide') {
-    if (engine === 'cursor') return catalogLabel(CURSOR_MODELS, model);
-    if (engine === 'opencode' || engine === 'pi' || engine === 'copilot') return model || 'Default';
-  }
   return catalogLabel(CLAUDE_MODELS, model);
 }
 
@@ -382,7 +346,6 @@ function JobCard({
   expanded,
   onToggle,
   onViewDetails,
-  onOpenGuide,
 }: {
   job: AgentJobInfo;
   annotationCount: number;
@@ -390,7 +353,6 @@ function JobCard({
   expanded: boolean;
   onToggle: () => void;
   onViewDetails?: () => void;
-  onOpenGuide?: () => void;
 }) {
   const isTerminal = isTerminalStatus(job.status);
 
@@ -457,19 +419,6 @@ function JobCard({
           </pre>
         </div>
       )}
-
-      {/* Open guide — a completed guide job's direct affordance into the takeover. */}
-      {job.provider === 'guide' && job.status === 'done' && onOpenGuide && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenGuide();
-          }}
-          className="mt-2 flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 font-medium text-[10px] text-primary transition-colors hover:bg-primary/20"
-        >
-          Open guide
-        </button>
-      )}
     </div>
   );
 }
@@ -513,9 +462,6 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({
   onKillAll,
   externalAnnotations,
   onOpenJobDetail,
-  onOpenGuide,
-  guideLaunchable = true,
-  canOpenGuideJob,
 }) => {
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [pendingLaunch, setPendingLaunch] = useState<{ label: string; provider?: string; startedAt: number } | null>(null);
@@ -526,8 +472,6 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({
     selectedMode,
     reviewEngine,
     reviewProfileId,
-    tourEngine,
-    guideEngine,
     claudeModel,
     claudeEffort,
     codexModel,
@@ -538,25 +482,9 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({
     piModel,
     piThinking,
     copilotModel,
-    tourClaudeModel,
-    tourClaudeEffort,
-    tourCodexModel,
-    tourCodexReasoning,
-    tourCodexFast,
-    guideClaudeModel,
-    guideClaudeEffort,
-    guideCodexModel,
-    guideCodexReasoning,
-    guideCursorModel,
-    guideOpencodeModel,
-    guidePiModel,
-    guidePiThinking,
-    guideCopilotModel,
     setSelectedMode,
     setReviewEngine,
     setReviewProfileId,
-    setTourEngine,
-    setGuideEngine,
     setClaudeModel,
     setClaudeEffort,
     setCodexModel,
@@ -567,20 +495,6 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({
     setPiModel,
     setPiThinking,
     setCopilotModel,
-    setTourClaudeModel,
-    setTourClaudeEffort,
-    setTourCodexModel,
-    setTourCodexReasoning,
-    setTourCodexFast,
-    setGuideClaudeModel,
-    setGuideClaudeEffort,
-    setGuideCodexModel,
-    setGuideCodexReasoning,
-    setGuideCursorModel,
-    setGuideOpencodeModel,
-    setGuidePiModel,
-    setGuidePiThinking,
-    setGuideCopilotModel,
   } = settings;
 
   // Review profiles (built-in default plus the user's enabled skills). Loaded
@@ -610,8 +524,6 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({
 
   const claudeAvailable = capabilities?.providers.some((p) => p.id === 'claude' && p.available) ?? false;
   const codexAvailable = capabilities?.providers.some((p) => p.id === 'codex' && p.available) ?? false;
-  const tourAvailable = capabilities?.providers.some((p) => p.id === 'tour' && p.available) ?? false;
-  const guideAvailable = capabilities?.providers.some((p) => p.id === 'guide' && p.available) ?? false;
   const cursorAvailable = capabilities?.providers.some((p) => p.id === 'cursor' && p.available) ?? false;
   const opencodeAvailable = capabilities?.providers.some((p) => p.id === 'opencode' && p.available) ?? false;
   const piAvailable = capabilities?.providers.some((p) => p.id === 'pi' && p.available) ?? false;
@@ -650,7 +562,6 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({
     return opts.length > 0 ? [...COPILOT_MODELS, ...opts] : COPILOT_MODELS;
   }, [capabilities]);
 
-  // Tour engines (narrow union). Cursor is NOT included here — it is review-only.
   const availableEngines = useMemo<AgentEngine[]>(() => {
     const engines: AgentEngine[] = [];
     if (claudeAvailable) engines.push('claude');
@@ -658,7 +569,7 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({
     return engines;
   }, [claudeAvailable, codexAvailable]);
 
-  // Review engines (wide union) = tour engines + cursor/opencode when available.
+  // Review engines (wide union) = claude/codex + cursor/opencode/pi/copilot when available.
   const availableReviewEngines = useMemo<ReviewEngine[]>(() => {
     const engines: ReviewEngine[] = [...availableEngines];
     if (cursorAvailable) engines.push('cursor');
@@ -671,17 +582,9 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({
   const availableModes = useMemo<AgentMode[]>(() => {
     const modes: AgentMode[] = [];
     if (availableReviewEngines.length > 0) modes.push('review');
-    if (tourAvailable && availableEngines.length > 0) modes.push('tour');
-    // Guide runs on the wide union — marker engines generate guides too.
-    // Also gated on guideLaunchable: a guide organizes changed files into
-    // chapters, so it has nothing to do against a diff with no files (same
-    // gate the review-editor header applies to the "Guide" badge/shortcut).
-    if (guideAvailable && availableReviewEngines.length > 0 && guideLaunchable) modes.push('guide');
     return modes;
-  }, [availableReviewEngines.length, availableEngines.length, tourAvailable, guideAvailable, guideLaunchable]);
-  // (availableReviewEngines.length covers the guide gate above.)
+  }, [availableReviewEngines.length]);
 
-  const firstAvailableEngine = availableEngines[0] ?? null;
   const firstAvailableReviewEngine = availableReviewEngines[0] ?? null;
   const engineAvailable = (engine: AgentEngine) => engine === 'claude' ? claudeAvailable : codexAvailable;
   const reviewEngineAvailable = (engine: ReviewEngine) =>
@@ -701,73 +604,44 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({
     if (firstAvailableReviewEngine && !reviewEngineAvailable(reviewEngine)) {
       setReviewEngine(firstAvailableReviewEngine);
     }
-    if (firstAvailableEngine && !engineAvailable(tourEngine)) {
-      setTourEngine(firstAvailableEngine);
-    }
-    if (firstAvailableReviewEngine && !reviewEngineAvailable(guideEngine)) {
-      setGuideEngine(firstAvailableReviewEngine);
-    }
   }, [
     capabilities,
     availableModes,
-    firstAvailableEngine,
     firstAvailableReviewEngine,
     selectedMode,
     reviewEngine,
-    tourEngine,
-    guideEngine,
     setSelectedMode,
     setReviewEngine,
-    setTourEngine,
-    setGuideEngine,
   ]);
 
   // Reconcile the saved Cursor/OpenCode model against the live catalog: a
   // persisted id can go stale after an account switch or discovery loss, and
   // posting it would fail the launch. Collapse it to the first option (auto/
-  // Default) when it's no longer offered. Each effect also reconciles the
-  // guide-scoped counterpart against the SAME catalog and availability guard
-  // — the catalog is per-engine, not per-surface, so review and guide share
-  // it here even though their model selections are kept independent.
+  // Default) when it's no longer offered.
   useEffect(() => {
-    // Only once the engine is actually available — before capabilities load,
-    // cursorModels is just the fallback, and reconciling here would wipe a valid
-    // saved model before the live catalog arrives.
     if (!cursorAvailable) return;
     if (!cursorModels.some((m) => m.value === cursorModel)) {
       setCursorModel(cursorModels[0]?.value ?? 'auto');
     }
-    if (!cursorModels.some((m) => m.value === guideCursorModel)) {
-      setGuideCursorModel(cursorModels[0]?.value ?? 'auto');
-    }
-  }, [cursorAvailable, cursorModels, cursorModel, setCursorModel, guideCursorModel, setGuideCursorModel]);
+  }, [cursorAvailable, cursorModels, cursorModel, setCursorModel]);
   useEffect(() => {
     if (!opencodeAvailable) return;
     if (!opencodeModels.some((m) => m.value === opencodeModel)) {
       setOpencodeModel(opencodeModels[0]?.value ?? '');
     }
-    if (!opencodeModels.some((m) => m.value === guideOpencodeModel)) {
-      setGuideOpencodeModel(opencodeModels[0]?.value ?? '');
-    }
-  }, [opencodeAvailable, opencodeModels, opencodeModel, setOpencodeModel, guideOpencodeModel, setGuideOpencodeModel]);
+  }, [opencodeAvailable, opencodeModels, opencodeModel, setOpencodeModel]);
   useEffect(() => {
     if (!piAvailable) return;
     if (!piModels.some((m) => m.value === piModel)) {
       setPiModel(piModels[0]?.value ?? '');
     }
-    if (!piModels.some((m) => m.value === guidePiModel)) {
-      setGuidePiModel(piModels[0]?.value ?? '');
-    }
-  }, [piAvailable, piModels, piModel, setPiModel, guidePiModel, setGuidePiModel]);
+  }, [piAvailable, piModels, piModel, setPiModel]);
   useEffect(() => {
     if (!copilotAvailable) return;
     if (!copilotModels.some((m) => m.value === copilotModel)) {
       setCopilotModel(copilotModels[0]?.value ?? '');
     }
-    if (!copilotModels.some((m) => m.value === guideCopilotModel)) {
-      setGuideCopilotModel(copilotModels[0]?.value ?? '');
-    }
-  }, [copilotAvailable, copilotModels, copilotModel, setCopilotModel, guideCopilotModel, setGuideCopilotModel]);
+  }, [copilotAvailable, copilotModels, copilotModel, setCopilotModel]);
 
   // Annotation counts per job source
   const annotationCounts = useMemo(() => {
@@ -857,87 +731,15 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({
       ...review,
     };
   };
-  const buildTourLaunch = (): LaunchParams => ({
-    provider: 'tour',
-    label: 'Code Tour',
-    engine: tourEngine,
-    model: tourEngine === 'claude' ? tourClaudeModel : tourCodexModel,
-    ...(tourEngine === 'claude'
-      ? { effort: tourClaudeEffort }
-      : { reasoningEffort: tourCodexReasoning, ...(tourCodexFast && { fastMode: true }) }),
-  });
-  // Guide extra instructions (#1265) are server-stored: this surface has no
-  // editor, so it sends none and the server applies the stored standing
-  // instructions itself, keeping sidebar launches identical to launch-page
-  // ones without a second read path.
-  const buildGuideLaunch = (): LaunchParams => buildGuideEngineParams();
-  const buildGuideEngineParams = (): LaunchParams => {
-    if (guideEngine === 'cursor') {
-      // Same omission rules as buildReviewLaunch: auto/empty ⇒ engine default.
-      // Guide-scoped model — deliberately NOT the shared cursorModel (see
-      // guideCursorModel's definition in useAgentSettings).
-      return {
-        provider: 'guide',
-        label: 'Guided Review',
-        engine: 'cursor',
-        ...(guideCursorModel && guideCursorModel.toLowerCase() !== 'auto' ? { model: guideCursorModel } : {}),
-      };
-    }
-    if (guideEngine === 'opencode') {
-      return {
-        provider: 'guide',
-        label: 'Guided Review',
-        engine: 'opencode',
-        ...(guideOpencodeModel ? { model: guideOpencodeModel } : {}),
-      };
-    }
-    if (guideEngine === 'pi') {
-      return {
-        provider: 'guide',
-        label: 'Guided Review',
-        engine: 'pi',
-        ...(guidePiModel ? { model: guidePiModel } : {}),
-        thinking: guidePiThinking,
-      };
-    }
-    if (guideEngine === 'copilot') {
-      return {
-        provider: 'guide',
-        label: 'Guided Review',
-        engine: 'copilot',
-        ...(guideCopilotModel ? { model: guideCopilotModel } : {}),
-      };
-    }
-    return {
-      provider: 'guide',
-      label: 'Guided Review',
-      engine: guideEngine,
-      model: guideEngine === 'claude' ? guideClaudeModel : guideCodexModel,
-      ...(guideEngine === 'claude'
-        ? { effort: guideClaudeEffort }
-        : { reasoningEffort: guideCodexReasoning }),
-    };
-  };
-
   // For a custom pick, hold launch until the profile list has loaded — otherwise
   // the saved id can't be found yet and the launch would quietly run Default. A
   // Default pick has nothing to resolve, so it never waits.
   const reviewReady = profilesLoaded || reviewProfileId === 'builtin:default';
-  const canLaunch = selectedMode === 'review'
-    ? reviewEngineAvailable(reviewEngine) && reviewReady
-    : selectedMode === 'tour'
-      ? tourAvailable && engineAvailable(tourEngine)
-      : selectedMode === 'guide'
-        ? guideAvailable && reviewEngineAvailable(guideEngine) && guideLaunchable
-        : false;
+  const canLaunch = selectedMode === 'review' && reviewEngineAvailable(reviewEngine) && reviewReady;
 
   const handleLaunch = async () => {
     if (!canLaunch || launchingRef.current) return;
-    const params = selectedMode === 'review'
-      ? buildReviewLaunch(reviewEngine)
-      : selectedMode === 'tour'
-        ? buildTourLaunch()
-        : buildGuideLaunch();
+    const params = buildReviewLaunch(reviewEngine);
     launchingRef.current = true;
     setPendingLaunch({
       label: params.label ?? 'Agent job',
@@ -967,10 +769,8 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({
     </div>
   );
 
-  // Icon-button engine row, shared by Tour (narrow claude/codex set) and Review
-  // (wide claude/codex/cursor/opencode set). The caller passes the engine list
-  // plus its icon/label maps so the same control renders four equal options for
-  // Review exactly as it renders two for Tour.
+  // Icon-button engine row for Review (wide claude/codex/cursor/opencode set).
+  // The caller passes the engine list plus its icon/label maps.
   function renderEngineSelect<E extends string>(
     value: E,
     onChange: (engine: E) => void,
@@ -1118,84 +918,6 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({
                 {reviewEngine === 'copilot' && renderMarkerEngineConfig(copilotModel, copilotModels, setCopilotModel)}
               </>
             )}
-
-            {selectedMode === 'tour' && (
-              <>
-                {renderEngineSelect(tourEngine, setTourEngine, availableEngines, ENGINE_ICON, ENGINE_LABEL)}
-                <ConfigRow label="Model" stacked>
-                  <SelectMenu
-                    value={tourEngine === 'claude' ? tourClaudeModel : tourCodexModel}
-                    options={tourEngine === 'claude' ? TOUR_CLAUDE_MODELS : CODEX_MODELS}
-                    onChange={tourEngine === 'claude' ? setTourClaudeModel : setTourCodexModel}
-                  />
-                </ConfigRow>
-
-                {/* Claude-only: effort level */}
-                {tourEngine === 'claude' && (
-                  <ConfigRow label="Effort" stacked>
-                    <SegmentedPicker options={CLAUDE_EFFORT} value={tourClaudeEffort} onChange={setTourClaudeEffort} />
-                  </ConfigRow>
-                )}
-
-                {/* Codex-only: reasoning effort + fast mode */}
-                {tourEngine === 'codex' && (
-                  <>
-                    <ConfigRow label="Reasoning" stacked>
-                      <SegmentedPicker options={codexReasoningOptions(tourCodexModel)} value={tourCodexReasoning} onChange={setTourCodexReasoning} />
-                    </ConfigRow>
-                    <ConfigRow label="Fast mode">
-                      <Toggle checked={tourCodexFast} onChange={setTourCodexFast} />
-                    </ConfigRow>
-                  </>
-                )}
-              </>
-            )}
-
-            {selectedMode === 'guide' && (
-              <>
-                {renderEngineSelect(guideEngine, setGuideEngine, availableReviewEngines, REVIEW_ENGINE_ICON, REVIEW_ENGINE_LABEL)}
-                {(guideEngine === 'claude' || guideEngine === 'codex') && (
-                  <ConfigRow label="Model" stacked>
-                    <SelectMenu
-                      value={guideEngine === 'claude' ? guideClaudeModel : guideCodexModel}
-                      options={guideEngine === 'claude' ? TOUR_CLAUDE_MODELS : CODEX_MODELS}
-                      onChange={guideEngine === 'claude' ? setGuideClaudeModel : setGuideCodexModel}
-                    />
-                  </ConfigRow>
-                )}
-
-                {/* Claude-only: effort level */}
-                {guideEngine === 'claude' && (
-                  <ConfigRow label="Effort" stacked>
-                    <SegmentedPicker options={CLAUDE_EFFORT} value={guideClaudeEffort} onChange={setGuideClaudeEffort} />
-                  </ConfigRow>
-                )}
-
-                {/* Codex-only: reasoning effort. No "Fast mode" toggle here
-                    (unlike review/tour's codex blocks above) — fast mode is
-                    deliberately not offered for guide. */}
-                {guideEngine === 'codex' && (
-                  <ConfigRow label="Reasoning" stacked>
-                    <SegmentedPicker options={codexReasoningOptions(guideCodexModel)} value={guideCodexReasoning} onChange={setGuideCodexReasoning} />
-                  </ConfigRow>
-                )}
-
-                {/* Marker engines: same live-catalog model picker as review mode,
-                    but bound to the guide-scoped settings (see useAgentSettings) so
-                    tuning these doesn't change the next Cursor/OpenCode/Pi review. */}
-                {guideEngine === 'cursor' && renderMarkerEngineConfig(guideCursorModel, cursorModels, setGuideCursorModel)}
-                {guideEngine === 'opencode' && renderMarkerEngineConfig(guideOpencodeModel, opencodeModels, setGuideOpencodeModel)}
-                {guideEngine === 'pi' && (
-                  <>
-                    {renderMarkerEngineConfig(guidePiModel, piModels, setGuidePiModel)}
-                    <ConfigRow label="Thinking" stacked>
-                      <SegmentedPicker options={PI_THINKING} value={guidePiThinking} onChange={setGuidePiThinking} />
-                    </ConfigRow>
-                  </>
-                )}
-                {guideEngine === 'copilot' && renderMarkerEngineConfig(guideCopilotModel, copilotModels, setGuideCopilotModel)}
-              </>
-            )}
           </div>
 
           <button
@@ -1242,7 +964,6 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({
               expanded={expandedJobId === job.id}
               onToggle={() => setExpandedJobId(expandedJobId === job.id ? null : job.id)}
               onViewDetails={onOpenJobDetail ? () => onOpenJobDetail(job.id) : undefined}
-              onOpenGuide={onOpenGuide && (canOpenGuideJob?.(job) ?? true) ? () => onOpenGuide(job.id) : undefined}
             />
           ))
         )}

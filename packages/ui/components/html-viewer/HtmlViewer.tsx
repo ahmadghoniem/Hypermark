@@ -8,21 +8,10 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { useVimDocumentFocus } from "../../hooks/useVimDocumentFocus";
-import {
-  isVimSelectionActionId,
-  type VimSelectionHudContext,
-} from "../../shortcuts";
 import type { Annotation, EditorMode, ImageAttachment, InputMethod } from "../../types";
 import { AnnotationType } from "../../types";
-import { copyTextPreservingFocus } from "../../utils/clipboard";
 import { getIdentity } from "../../utils/identity";
 import { THUMBS_UP_LABEL } from "../../utils/quickLabels";
-import {
-  createVimHudCommand,
-  getVimHudPhase,
-  type VimHudCommand,
-} from "../../utils/vimHud";
 import { AnnotationToolbar } from "../AnnotationToolbar";
 import { AttachmentsButton } from "../AttachmentsButton";
 import {
@@ -30,7 +19,6 @@ import {
   type CommentAskAIHandler,
   type CommentTargetChip,
 } from "../CommentPopover";
-import { VimKeyHud } from "../VimKeyHud";
 import type { ViewerHandle } from "../Viewer";
 import {
   computeComposerYield,
@@ -83,57 +71,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function parseVimSelectionHudContext(
-  value: unknown,
-): VimSelectionHudContext | null {
-  return value === "inactive"
-    || value === "block"
-    || value === "inline"
-    || value === "text"
-    || value === "visual"
-    || value === "visual-block"
-    || value === "action"
-    ? value
-    : null;
-}
-
-interface VimBridgeCommand {
-  readonly actionId: Parameters<typeof createVimHudCommand>[1];
-  readonly key: string;
-  readonly context: VimSelectionHudContext;
-}
-
-function parseVimBridgeCommand(value: unknown): VimBridgeCommand | null {
-  if (
-    !isRecord(value)
-    || value.type !== `${PREFIX}vim-command`
-    || !isVimSelectionActionId(value.actionId)
-    || typeof value.key !== "string"
-  ) {
-    return null;
-  }
-  const context = parseVimSelectionHudContext(value.context);
-  return context
-    ? { actionId: value.actionId, key: value.key, context }
-    : null;
-}
-
-function parseVimBridgeState(value: unknown): VimSelectionHudContext | null {
-  return isRecord(value) && value.type === `${PREFIX}vim-state`
-    ? parseVimSelectionHudContext(value.phase)
-    : null;
-}
-
-function parseVimBridgeHelp(value: unknown): boolean | null {
-  return isRecord(value)
-    && value.type === `${PREFIX}vim-help`
-    && typeof value.open === "boolean"
-    ? value.open
-    : null;
-}
-
-const MAX_VIM_COPY_TEXT_LENGTH = 2 * 1024 * 1024;
-
 /** Default wait for the bridge's `ready` on the `bridgeScriptUrl` path. */
 export const DEFAULT_BRIDGE_READY_TIMEOUT_MS = 5000;
 
@@ -164,16 +101,6 @@ export function formatBridgeUnavailableMessage(info: BridgeUnavailableInfo): str
   }
   const reported = info.reportedVersion === undefined ? "no version" : `version ${info.reportedVersion}`;
   return `Annotation tools may not work: this viewer expects bridge protocol version ${info.expectedVersion}, but the script at ${info.url} reported ${reported}. Serve the bridge-script asset from the same @plannotator/ui version as the viewer.`;
-}
-
-function parseVimBridgeCopy(value: unknown): string | null {
-  return isRecord(value)
-    && value.type === `${PREFIX}vim-copy`
-    && typeof value.text === "string"
-    && value.text.length > 0
-    && value.text.length <= MAX_VIM_COPY_TEXT_LENGTH
-    ? value.text
-    : null;
 }
 
 /** Inputs for the sandboxed raw-HTML viewer and its parent-side annotation UI. */
@@ -209,14 +136,6 @@ export interface HtmlViewerProps {
   onAnnotateModeExit?: () => void;
   /** Mod+Shift+A pressed while focus lived inside the iframe. */
   onAnnotateModeToggle?: () => void;
-  /** Opt-in Vim-style keyboard selection. Default false for compatibility. */
-  vimModeEnabled?: boolean;
-  /** Replace the iframe-local compact badge with the shared live key HUD. */
-  vimHudEnabled?: boolean;
-  /** Show the parent key panel without affecting the iframe HUD reticle. */
-  vimHudKeyPanelEnabled?: boolean;
-  /** Persist a user request to hide the parent key panel. */
-  onVimHudKeyPanelChange?: (enabled: boolean) => void;
   globalAttachments?: ImageAttachment[];
   onAddGlobalAttachment?: (image: ImageAttachment) => void;
   onRemoveGlobalAttachment?: (path: string) => void;
@@ -317,10 +236,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       annotateModeActive = true,
       onAnnotateModeExit,
       onAnnotateModeToggle,
-      vimModeEnabled = false,
-      vimHudEnabled = false,
-      vimHudKeyPanelEnabled = true,
-      onVimHudKeyPanelChange,
       globalAttachments = [],
       onAddGlobalAttachment,
       onRemoveGlobalAttachment,
@@ -349,13 +264,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
     // Increment on every bridge-ready event so srcdoc navigations re-send
     // state even though the iframe element and its WindowProxy are reused.
     const [iframeReadyVersion, setIframeReadyVersion] = useState(0);
-    const [iframeFocused, setIframeFocused] = useState(false);
-    const [vimBridgePhase, setVimBridgePhase] =
-      useState<VimSelectionHudContext>("inactive");
-    const [vimHudCommand, setVimHudCommand] = useState<VimHudCommand | null>(null);
-    const [vimHelpOpen, setVimHelpOpen] = useState(false);
-    const vimHudSequenceRef = useRef(0);
-    const vimHudActive = !readOnly && vimModeEnabled && vimHudEnabled;
     const [globalCommentPopover, setGlobalCommentPopover] = useState<{
       anchorEl: HTMLElement;
       contextText: string;
@@ -670,9 +578,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
             );
           }
           setIframeReadyVersion((version) => version + 1);
-          setVimBridgePhase("inactive");
-          setVimHudCommand(null);
-          setVimHelpOpen(false);
           // Live ready carries the page identity (validated like page-change)
           // so reloads and cross-page navigations re-anchor the restore filter.
           if (live && isRecord(e.data)) {
@@ -697,81 +602,10 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
           onAnnotateModeToggleRef.current?.();
           return;
         }
-        const vimCopy = parseVimBridgeCopy(e.data);
-        if (vimCopy !== null) {
-          const iframe = iframeRef.current;
-          if (
-            !readOnly
-            && vimModeEnabled
-            && iframe
-            && document.activeElement === iframe
-          ) {
-            copyTextPreservingFocus(vimCopy, iframe);
-          }
-          return;
-        }
-        if (!vimHudActive) return;
-        const vimHelp = parseVimBridgeHelp(e.data);
-        if (vimHelp !== null) {
-          setVimHelpOpen(vimHelp);
-          return;
-        }
-        const vimState = parseVimBridgeState(e.data);
-        if (vimState) {
-          setVimBridgePhase(vimState);
-          return;
-        }
-        const vimCommand = parseVimBridgeCommand(e.data);
-        if (vimCommand) {
-          vimHudSequenceRef.current += 1;
-          setVimHudCommand(createVimHudCommand(
-            vimHudSequenceRef.current,
-            vimCommand.actionId,
-            vimCommand.key,
-            vimCommand.context,
-          ));
-        }
       }
       window.addEventListener("message", handler);
       return () => window.removeEventListener("message", handler);
-    }, [readOnly, vimHudActive, vimModeEnabled]);
-
-    useEffect(() => {
-      if (vimHudActive) return;
-      setVimBridgePhase("inactive");
-      setVimHudCommand(null);
-      setVimHelpOpen(false);
-    }, [vimHudActive]);
-
-    const handleVimHelpOpenChange = useCallback((open: boolean) => {
-      setVimHelpOpen(open);
-      postToBridge(
-        { type: `${PREFIX}set-vim-help`, open },
-      );
-    }, []);
-
-    const handleVimHudFocusLeave = useCallback(() => {
-      if (iframeRef.current === document.activeElement) return;
-      setIframeFocused(false);
-    }, []);
-
-    const focusVimDocument = useCallback((): boolean => {
-      const iframe = iframeRef.current;
-      if (readOnly || !vimModeEnabled || !iframe) return false;
-      if (document.activeElement === iframe) return false;
-      iframe.focus({ preventScroll: true });
-      if (document.activeElement !== iframe) return false;
-      postToBridge(
-        { type: `${PREFIX}focus-vim` },
-      );
-      return true;
-    }, [readOnly, vimModeEnabled]);
-
-    useVimDocumentFocus({
-      enabled: !readOnly && vimModeEnabled,
-      blocked: !!hook.toolbarState || !!hook.commentPopover || !!hook.quickLabelPicker,
-      focusDocument: focusVimDocument,
-    });
+    }, [readOnly]);
 
     // Restore filter for live multi-page sessions: only annotations made on
     // the current page (or without page identity) are pushed for restoration.
@@ -886,46 +720,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       hook.quickLabelPicker,
       globalCommentPopover,
     ]);
-
-    useEffect(() => {
-      if (iframeReadyVersion === 0) return;
-      const iframe = iframeRef.current;
-      postToBridge(
-        {
-          type: `${PREFIX}set-vim-mode`,
-          enabled: !readOnly && vimModeEnabled,
-          hudEnabled: vimHudEnabled,
-          mode,
-        },
-      );
-      if (!readOnly && vimModeEnabled && iframe && iframe === document.activeElement) {
-        // The initial parent focus can land before the sandbox bridge is ready.
-        // Reassert it after configuration so raw HTML enters BLOCK immediately,
-        // matching the Markdown surface instead of waiting for the first key.
-        postToBridge(
-          { type: `${PREFIX}focus-vim` },
-        );
-      }
-    }, [iframeReadyVersion, mode, readOnly, vimHudEnabled, vimModeEnabled]);
-
-    const vimOverlayWasOpenRef = useRef(false);
-    useEffect(() => {
-      const overlayOpen = !!hook.toolbarState || !!hook.commentPopover || !!hook.quickLabelPicker;
-      const wasOpen = vimOverlayWasOpenRef.current;
-      vimOverlayWasOpenRef.current = overlayOpen;
-      if (
-        !readOnly
-        && vimModeEnabled
-        && wasOpen
-        && !overlayOpen
-        && (document.activeElement === document.body || document.activeElement === null)
-      ) {
-        iframeRef.current?.focus({ preventScroll: true });
-        postToBridge(
-          { type: `${PREFIX}focus-vim` },
-        );
-      }
-    }, [hook.commentPopover, hook.quickLabelPicker, hook.toolbarState, readOnly, vimModeEnabled]);
 
     useEffect(() => {
       if (iframeReadyVersion === 0) return;
@@ -1114,48 +908,11 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
                 border: "none",
                 display: "block",
                 colorScheme: "auto",
-                outline: !readOnly && vimModeEnabled ? "none" : undefined,
               }}
               title={title}
-              onFocus={() => setIframeFocused(true)}
-              onBlur={(event) => {
-                if (
-                  event.relatedTarget instanceof Element
-                  && event.relatedTarget.closest('[data-vim-key-hud]')
-                ) {
-                  return;
-                }
-                setIframeFocused(false);
-              }}
             />
           </article>
         </div>
-
-        {vimHudActive
-          && (vimHelpOpen || (
-            vimHudKeyPanelEnabled
-            && vimBridgePhase !== "inactive"
-          ))
-          && (iframeFocused || vimBridgePhase === "action" || vimHelpOpen)
-          && createPortal(
-            <VimKeyHud
-              command={vimHudCommand}
-              phase={getVimHudPhase(vimBridgePhase, vimHudCommand?.actionId)}
-              inputMethod={inputMethod}
-              expanded={vimHelpOpen}
-              onExpandedChange={handleVimHelpOpenChange}
-              onHide={
-                onVimHudKeyPanelChange
-                  ? () => {
-                    handleVimHelpOpenChange(false);
-                    onVimHudKeyPanelChange(false);
-                  }
-                  : undefined
-              }
-              onFocusLeave={handleVimHudFocusLeave}
-            />,
-            document.body,
-          )}
 
         {/* Toolbar portal */}
         {!readOnly && hook.toolbarState &&

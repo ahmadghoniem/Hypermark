@@ -1,4 +1,4 @@
-export type { DiffFile, DiffFileStatus } from '@plannotator/guide-viewer/types';
+export type { DiffFile, DiffFileStatus } from '@plannotator/core/diff-files';
 
 /**
  * A "scroll the diff to this comment" request, distinct from mere selection so

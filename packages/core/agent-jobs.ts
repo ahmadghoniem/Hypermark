@@ -63,11 +63,11 @@ export interface AgentJobInfo {
   id: string;
   /** Source identifier for external annotations — "agent-{id prefix}". */
   source: string;
-  /** Provider that spawned this job — "claude", "codex", "tour", "shell", etc. */
+  /** Provider that spawned this job — "claude", "codex", "shell", etc. */
   provider: string;
-  /** Underlying engine used (e.g., "claude" or "codex"). Set when provider is "tour". */
+  /** Underlying engine used (e.g., "claude" or "codex"). */
   engine?: string;
-  /** Model used (e.g., "sonnet", "opus"). Set when provider is "tour" with Claude engine. */
+  /** Model used (e.g., "sonnet", "opus"). */
   model?: string;
   /** Claude --effort level (e.g., "low", "medium", "high", "xhigh", "max"). */
   effort?: string;
@@ -111,19 +111,6 @@ export interface AgentJobInfo {
   reviewProfileId?: string;
   /** Resolved review profile label — rides on findings so the UI can show a profile tag. */
   reviewProfileLabel?: string;
-  /**
-   * Launch-time review-target snapshot for guide jobs (#1112). Guide jobs run
-   * for minutes while the session supports mid-generation PR/diff switching,
-   * so the persisted envelope must be labeled with the context the guide was
-   * GENERATED against — captured here at build time (same discipline as
-   * changedFilesSnapshot), never re-read from live session state at
-   * completion. Structurally matches guide-store's GuideLaunchContext.
-   */
-  guideContext?: {
-    pr?: { url: string; headSha: string; label: string } | null;
-    branchLabel?: string;
-    headSha?: string;
-  };
 }
 
 export interface AgentCapability {

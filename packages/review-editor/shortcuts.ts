@@ -11,7 +11,6 @@ import {
   reviewFileTreeShortcuts,
   reviewPrCommentsShortcuts,
   reviewSuggestionModalShortcuts,
-  reviewTourDialogShortcuts,
   type ShortcutSurface,
 } from '@plannotator/ui/shortcuts';
 
@@ -76,20 +75,6 @@ export const reviewEditorShortcuts = defineShortcutScope({
       section: 'Layout',
       displayOrder: 20,
     },
-    toggleTour: {
-      description: 'Toggle demo tour dialog',
-      bindings: ['Mod+Shift+T'],
-      section: 'Layout',
-      hint: 'Available in dev builds only.',
-      displayOrder: 30,
-    },
-    toggleGuide: {
-      description: 'Toggle guided review',
-      bindings: ['Mod+Shift+G'],
-      section: 'Layout',
-      hint: 'Opens or closes the guided review screen takeover.',
-      displayOrder: 40,
-    },
     toggleViewed: {
       description: 'Toggle file viewed',
       bindings: ['V'],
@@ -120,7 +105,6 @@ export const reviewSettingsShortcutRegistry = createShortcutRegistry([
   reviewSuggestionModalShortcuts,
   reviewAiShortcuts,
   reviewPrCommentsShortcuts,
-  reviewTourDialogShortcuts,
 ] as const);
 
 export const codeReviewSurface: ShortcutSurface = {

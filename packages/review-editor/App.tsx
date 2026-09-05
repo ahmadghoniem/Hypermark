@@ -41,7 +41,7 @@ import { useAIProviderConfig } from '@plannotator/ui/hooks/useAIProviderConfig';
 import { useAIProviderActivation } from '@plannotator/ui/hooks/useAIProviderActivation';
 import { LookAndFeelAnnouncementDialog } from '@plannotator/ui/components/LookAndFeelAnnouncementDialog';
 import { markLookAndFeelChoiceResolved, needsLookAndFeelAnnouncement } from '@plannotator/ui/utils/lookAndFeelAnnouncement';
-import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, Annotation, CommentAnnotation, AgentJobInfo, type ArtifactAnnotationMeta, type CallFlowAnnotationTarget } from '@plannotator/ui/types';
+import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, Annotation, CommentAnnotation, type ArtifactAnnotationMeta, type CallFlowAnnotationTarget } from '@plannotator/ui/types';
 import type { CommentAskAIHandler } from '@plannotator/ui/components/CommentPopover';
 import { useResizablePanel } from '@plannotator/ui/hooks/useResizablePanel';
 import { useCodeAnnotationDraft } from '@plannotator/ui/hooks/useCodeAnnotationDraft';
@@ -80,7 +80,7 @@ import {
   type CollectionMutation,
   type HistoryDirection,
 } from '@plannotator/ui/utils/undoHistory';
-import { useAgentJobs, jobMatchesReviewContext } from '@plannotator/ui/hooks/useAgentJobs';
+import { useAgentJobs } from '@plannotator/ui/hooks/useAgentJobs';
 import { exportEditorAnnotations } from '@plannotator/ui/utils/parser';
 import { buildReviewAgentInstructions } from '@plannotator/ui/utils/reviewAgentInstructions';
 import { ResizeHandle } from '@plannotator/ui/components/ResizeHandle';
@@ -153,8 +153,6 @@ import { ReviewSetupDialog } from './components/ReviewSetupDialog';
 import { initializeReviewSetup, markReviewSetupSeen } from './utils/reviewSetup';
 import { resolvePanelView } from './utils/resolvePanelView';
 import { isCommitDiffType, resolveCommitExitDiff, type CommitViewRestoreTarget } from './utils/commitViewRestore';
-import { GuideIntroDialog } from './components/GuideIntroDialog';
-import { needsGuideIntro, markGuideIntroSeen, needsGuideHint, markGuideHintSeen } from './utils/guideIntro';
 import { EditModeAnnouncementDialog } from './components/EditModeAnnouncementDialog';
 import {
   editModeAnnouncementCanShow,
@@ -177,10 +175,6 @@ import type { PRMetadata } from '@plannotator/shared/pr-types';
 import type { PRDiffScope, PRDiffScopeOption, PRStackInfo, PRStackTree } from '@plannotator/shared/pr-stack';
 import { altKey } from '@plannotator/ui/utils/platform';
 import { copyTextToClipboard } from '@plannotator/ui/utils/clipboard';
-import { TourDialog } from './components/tour/TourDialog';
-import { DEMO_TOUR_ID } from './demoTour';
-import { GuideScreen } from './components/guide/GuideScreen';
-import { DEMO_GUIDE_ID } from './demoGuide';
 import { buildPRArtifacts } from './utils/prArtifacts';
 import {
   submitPlatformReviewTargets,
@@ -498,27 +492,7 @@ const ReviewApp: React.FC = () => {
   }, [isCompactTouchLayout, reviewSidebar.isOpen]);
   // Guided Review screen takeover — file tree + center dock hidden (dock stays
   // mounted, just CSS-hidden; see the dock wrapper below), right sidebar untouched.
-  const [guideOpen, setGuideOpen] = useState(false);
-  // Latest completed `guide` job id (or DEMO_GUIDE_ID in standalone/demo mode).
-  const [activeGuideJobId, setActiveGuideJobId] = useState<string | null>(null);
-  // Guide-mode reveal channel (see ReviewStateContext.guideRevealFile): sidebar
-  // jumps while the guide is open route here instead of mutating the hidden
-  // dock. Cleared on guide close below so reopening doesn't replay the reveal.
-  const [guideRevealFile, setGuideRevealFile] = useState<{ path: string; token: number } | null>(null);
-  useEffect(() => {
-    // BACKSTOP only — this effect runs AFTER a switched guide's keyed cards
-    // have mounted (child effects before parent effects), so every
-    // setActiveGuideJobId site also clears synchronously in its own batch
-    // (see handleOpenGuide). This covers guide close and any future set
-    // site that forgets the synchronous clear.
-    setGuideRevealFile(null);
-  }, [guideOpen, activeGuideJobId]);
-  // Reveal entry point for jumps originating inside the guide itself (section
-  // file chips) — same fresh-token contract as the sidebar reveal sites below
-  // so repeat jumps to the same file re-fire the expand/focus/scroll effects.
-  const handleGuideRevealFile = useCallback((filePath: string) => {
-    setGuideRevealFile(prev => ({ path: filePath, token: (prev?.token ?? 0) + 1 }));
-  }, []);
+
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [copyRawDiffStatus, setCopyRawDiffStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [viewedFiles, setViewedFiles] = useState<Set<string>>(new Set());
@@ -554,7 +528,6 @@ const ReviewApp: React.FC = () => {
   // discovery from starting before the server reports that AI is enabled.
   const [aiEnabled, setAiEnabled] = useState<boolean | null>(null);
   const aiUIEnabled = aiEnabled === true;
-  const guideVisible = aiUIEnabled && guideOpen;
   const [gitUser, setGitUser] = useState<string | undefined>();
   const [isWSL, setIsWSL] = useState(false);
   const [reviewMode, setReviewMode] = useState<string | null>(null);
@@ -797,8 +770,6 @@ const ReviewApp: React.FC = () => {
   const { externalAnnotations, updateExternalAnnotation, deleteExternalAnnotation } = useExternalAnnotations<CodeAnnotation>({ enabled: !!origin });
   const agentJobs = useAgentJobs({ enabled: !!origin && aiUIEnabled });
 
-  // Tour dialog state — opens as an overlay instead of a dock panel
-  const [tourDialogJobId, setTourDialogJobId] = useState<string | null>(null);
 
   // Dockview center panel API for the review workspace.
   const [dockApi, setDockApi] = useState<DockviewApi | null>(null);
@@ -1014,37 +985,6 @@ const ReviewApp: React.FC = () => {
     markLookAndFeelChoiceResolved();
     setShowLookAndFeel(false);
   }, [gridEnabled]);
-  // One-time guided-review intro dialog + header Guide-button hint. The hint
-  // (shimmer + dot) is independent of the dialog: it runs until the first
-  // Guide click, even for users who dismissed the dialog without reading.
-  const [showGuideIntro, setShowGuideIntro] = useState(needsGuideIntro);
-  const [guideHintActive, setGuideHintActive] = useState(needsGuideHint);
-  // FIRST in the dialog chain (guide intro → look-and-feel → review setup →
-  // edit mode). The intro only shows when a Guide button exists to point at
-  // (hasSearchableFiles) — on an empty diff it is skipped WITHOUT consuming
-  // the one-shot cookie, so the next session with files shows it. The other
-  // chain dialogs' gates must use this same visibility (not the raw
-  // showGuideIntro), or an empty diff would block them forever.
-  //
-  // Eligibility is LATCHED at the first post-load render (dialogs only mount
-  // once isLoading clears, so the latch is always set before they render):
-  // hasSearchableFiles changes on mid-session diff switches, and an
-  // empty→non-empty switch must not pop the intro over work in progress or
-  // yank an open look-and-feel dialog out from under the user.
-  const guideIntroEligibleRef = useRef<boolean | null>(null);
-  if (!isLoading && guideIntroEligibleRef.current === null) {
-    guideIntroEligibleRef.current = hasSearchableFiles;
-  }
-  const guideIntroVisible = aiUIEnabled && showGuideIntro && guideIntroEligibleRef.current === true;
-  // Ack the hint on ANY path that opens the guide — keyboard shortcut,
-  // job-completion auto-open, job cards — not just the header button's own
-  // onClick; otherwise the shimmer resumes after the user closes a guide
-  // they already used.
-  useEffect(() => {
-    if (!guideOpen || !guideHintActive) return;
-    markGuideHintSeen();
-    setGuideHintActive(false);
-  }, [guideOpen, guideHintActive]);
   // One-time Edit Mode (edit-to-suggest) announcement. LAST in the dialog
   // chain (guide intro → look-and-feel → review setup → edit mode) — the
   // chain dialogs never stack. Skipped forever when the user already enabled
@@ -1056,7 +996,6 @@ const ReviewApp: React.FC = () => {
   const editModeIntroVisible = editModeAnnouncementCanShow({
     announcementPending: editModeIntroPending,
     isLoading,
-    guideIntroVisible,
     lookAndFeelVisible: showLookAndFeel,
     reviewSetupVisible: showReviewSetup,
   });
@@ -1268,24 +1207,14 @@ const ReviewApp: React.FC = () => {
   }, []);
 
   const handleScrollToAILines = useCallback((filePath: string, lineStart: number, lineEnd: number, side: 'old' | 'new') => {
-    // While the guide takeover is open, the dock is only CSS-hidden — the
-    // openDiffFile call would silently switch the hidden dock's file (an
-    // unexpected diff on leaving the guide) and reveal nothing on screen.
-    // Route the jump through the guide's reveal channel instead: the section
-    // containing the file expands/focuses/scrolls, and the selection below
-    // lands in that viewer.
-    if (guideOpen) {
-      setGuideRevealFile(prev => ({ path: filePath, token: (prev?.token ?? 0) + 1 }));
-    } else {
-      openDiffFile(filePath);
-    }
+    openDiffFile(filePath);
     // Set a selection to highlight the lines
     setPendingSelection({
       start: lineStart,
       end: lineEnd,
       side: side === 'new' ? 'additions' : 'deletions',
     });
-  }, [openDiffFile, guideOpen]);
+  }, [openDiffFile]);
 
 
   // AI messages overlapping the current selection in a GIVEN file (toolbar
@@ -1398,43 +1327,11 @@ const ReviewApp: React.FC = () => {
     });
   }, [dockApi, agentJobs.jobs]);
 
-  // Open tour as a dialog overlay
-  const handleOpenTour = useCallback((jobId: string) => {
-    setTourDialogJobId(jobId);
-  }, []);
-
-  // Open guide as a takeover (manual reopen from a completed job's card, distinct
-  // from the auto-open-on-completion effect below).
-  const handleOpenGuide = useCallback((jobId: string) => {
-    // Cleared in the SAME batch as the id switch: the clear-on-change effect
-    // below runs after the new guide's keyed cards have already mounted (child
-    // effects fire before parent effects), so a stale reveal would replay
-    // against a same-named file in the new guide for one commit.
-    setGuideRevealFile(null);
-    setActiveGuideJobId(jobId);
-    setGuideOpen(true);
-  }, []);
-
-  // Dev-only: Cmd/Ctrl+Shift+T toggles the demo tour for fast UI iteration.
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'T' || e.key === 't')) {
-        e.preventDefault();
-        setTourDialogJobId(prev => (prev === DEMO_TOUR_ID ? null : DEMO_TOUR_ID));
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
 
   // Derive worktree path and base diff type from the composite diffType
   // string. Hand-parsed rather than via shared/review-core's
   // parseWorktreeDiffType: that module imports node:path at top level and
-  // cannot enter the browser bundle. activeWorktreePath doubles as the
-  // worktree half of "where the review is" for jobMatchesReviewContext —
-  // using the SAME parse that drives the sections/tree UI keeps context
-  // matching aligned with what's actually on screen.
+  // cannot enter the browser bundle.
   const { activeWorktreePath, activeDiffBase } = useMemo(() => {
     if (diffType.startsWith('worktree:')) {
       const rest = diffType.slice('worktree:'.length);
@@ -1512,7 +1409,6 @@ const ReviewApp: React.FC = () => {
     announcementPending: tokenHoverIntroPending,
     isLoading,
     featureAvailable: tokenHoverAvailable === true,
-    guideIntroVisible,
     lookAndFeelVisible: showLookAndFeel,
     reviewSetupVisible: showReviewSetup,
     editModeVisible: editModeIntroVisible,
@@ -1567,82 +1463,6 @@ const ReviewApp: React.FC = () => {
     activeGitButlerContext,
   );
 
-  // Context rule shared by both auto-open effects below (and mirrored by
-  // GuideScreen's matchesContext): a job stamped with a PR url only belongs
-  // to that PR; a job with no PR url only belongs to local-diff mode, further
-  // scoped to the specific worktree (or main tree) it was launched against.
-  // Auto-opening a job from a DIFFERENT context than what's on screen would
-  // rip the reviewer away from what they're currently looking at into an
-  // unrelated PR/diff/worktree's artifact.
-  const jobMatchesCurrentContext = useCallback(
-    (job: AgentJobInfo) => jobMatchesReviewContext(job, prMetadata?.url, activeWorktreePath),
-    [prMetadata, activeWorktreePath],
-  );
-
-  // A `saved:{id}` guide has no AgentJobInfo, so GuideScreen's context match
-  // passes trivially (unknown ids are tolerated by design, for the demo path).
-  // Without this, switching PR or worktree while a saved guide is open would
-  // leave it mounted over the NEW context's diff with a stale `moved` flag.
-  // Clear it on any review-context switch — simplest and predictable; the
-  // user can reopen it from the Previous guides list. Live job ids are left
-  // alone: GuideScreen's own matchesContext already handles them.
-  useEffect(() => {
-    setActiveGuideJobId(prev => (prev?.startsWith('saved:') ? null : prev));
-  }, [prMetadata?.url, activeWorktreePath]);
-
-  // Auto-open tour dialog when a tour job completes — scoped to the current
-  // review context, same rule and same deferred-open semantics as the guide
-  // effect below (an away-context tour stays unmarked so it opens when the
-  // reviewer returns to its context).
-  const tourAutoOpenRef = useRef(new Set<string>());
-  useEffect(() => {
-    for (const job of agentJobs.jobs) {
-      if (job.provider !== 'tour' || job.status !== 'done' || tourAutoOpenRef.current.has(job.id)) {
-        continue;
-      }
-      if (!jobMatchesCurrentContext(job)) continue;
-      tourAutoOpenRef.current.add(job.id);
-      setTourDialogJobId(job.id);
-    }
-  }, [agentJobs.jobs, jobMatchesCurrentContext]);
-
-  // Auto-switch to the guide takeover when a guide job completes — mirrors the
-  // tour dialog's auto-open above, including the same caveat: on an SSE
-  // snapshot that already contains a done guide job (e.g. a page reload while
-  // one is in flight from a previous session), the ref-Set dedupe treats it as
-  // "not yet seen" and opens the guide takeover immediately. That matches
-  // tour's existing behavior; kept consistent rather than special-cased here.
-  const guideAutoOpenRef = useRef(new Set<string>());
-  useEffect(() => {
-    for (const job of agentJobs.jobs) {
-      if (job.provider !== 'guide' || job.status !== 'done' || guideAutoOpenRef.current.has(job.id)) {
-        continue;
-      }
-      if (!jobMatchesCurrentContext(job)) {
-        // Deliberately left OUT of guideAutoOpenRef: marking it here would
-        // permanently suppress the auto-open. Leaving it unmarked means that
-        // if the reviewer later returns to THIS job's context (switches back
-        // to that PR, or back to local-diff mode), this same effect re-runs,
-        // still sees it as "not yet seen", and auto-opens it then — the
-        // desired "your guide finished while you were elsewhere" behavior.
-        continue;
-      }
-      guideAutoOpenRef.current.add(job.id);
-      setGuideRevealFile(null); // same-batch clear — see handleOpenGuide
-      setActiveGuideJobId(job.id);
-      setGuideOpen(true);
-    }
-  }, [agentJobs.jobs, jobMatchesCurrentContext]);
-
-  // Standalone/demo mode (no origin ⇒ no real agent-jobs backend): opening the
-  // guide takeover shows the demo fixture so the UI can be iterated on without
-  // a live agent run, same spirit as the dev-only demo tour toggle below.
-  useEffect(() => {
-    if (import.meta.env.DEV && guideOpen && !origin && !activeGuideJobId) {
-      setGuideRevealFile(null); // same-batch clear — see handleOpenGuide
-      setActiveGuideJobId(DEMO_GUIDE_ID);
-    }
-  }, [guideOpen, origin, activeGuideJobId]);
 
   // Open the combined PR overview (summary + checks + comments) as a center dock panel
   const openPROverviewPanel = useCallback(() => {
@@ -1886,9 +1706,8 @@ const ReviewApp: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Cmd/Ctrl+F to focus file search when diff files are available.
-      // Bail while the guide takeover is open (file tree isn't rendered) and
-      // don't intercept in the Commits view (its rail has no search input) —
-      // in both cases capturing the key would mutate hidden state or no-op.
+      // Don't intercept in the Commits view (its rail has no search input) —
+      // capturing the key there would no-op.
       // Let the same shortcut reselect the current query when search already
       // has focus, while preserving native shortcuts in every other input.
       if (
@@ -1896,7 +1715,6 @@ const ReviewApp: React.FC = () => {
         && e.key.toLowerCase() === 'f'
         && shouldHandleReviewSearchShortcut(e.target, searchInputRef.current)
       ) {
-        if (guideOpen) return;
         if (hasSearchableFiles && !showCommitsPanel) {
           e.preventDefault();
           if (isCompactTouchLayout) setIsCompactNavigatorOpen(true);
@@ -1938,19 +1756,6 @@ const ReviewApp: React.FC = () => {
         e.preventDefault();
         toggleNavigator();
       }
-      // Cmd/Ctrl+Shift+G to toggle the guided review takeover — gated on the
-      // same hasSearchableFiles condition as the header badge so the shortcut
-      // and badge agree on availability.
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'g' && !isTypingTarget(e.target)) {
-        if (aiUIEnabled && hasSearchableFiles) {
-          e.preventDefault();
-          if (isCompactTouchLayout && !guideOpen) {
-            setIsCompactNavigatorOpen(false);
-            reviewSidebar.close();
-          }
-          setGuideOpen(prev => !prev);
-        }
-      }
       // Cmd/Ctrl+. to toggle sidebar
       if ((e.metaKey || e.ctrlKey) && e.key === '.' && !isTypingTarget(e.target)) {
         e.preventDefault();
@@ -1962,7 +1767,7 @@ const ReviewApp: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showExportModal, showDestinationMenu, isSearchOpen, searchQuery, searchMatches, isSearchPending, openSearch, stepSearchMatch, clearSearch, closeSearch, aiUIEnabled, hasSearchableFiles, showCommitsPanel, reviewSidebar.isOpen, reviewSidebar.open, reviewSidebar.close, isFileTreeOpen, guideOpen, isCompactTouchLayout, isCompactNavigatorOpen, toggleNavigator]);
+  }, [showExportModal, showDestinationMenu, isSearchOpen, searchQuery, searchMatches, isSearchPending, openSearch, stepSearchMatch, clearSearch, closeSearch, aiUIEnabled, hasSearchableFiles, showCommitsPanel, reviewSidebar.isOpen, reviewSidebar.open, reviewSidebar.close, isFileTreeOpen, isCompactTouchLayout, isCompactNavigatorOpen, toggleNavigator]);
 
 
   // Load diff content - try API first, fall back to demo
@@ -2482,10 +2287,10 @@ const ReviewApp: React.FC = () => {
   }, []);
   const handleAutoView = useCallback(() => {
     // The notice fires the first time auto-view demonstrates itself. Deferred
-    // (not lost) behind the guide takeover or a first-run dialog — the file
-    // still marks and the next auto-view retries the toast.
+    // (not lost) behind a first-run dialog — the file still marks and the
+    // next auto-view retries the toast.
     if (!needsAutoViewedNotice()) return;
-    if (guideOpen || guideIntroVisible || showLookAndFeel || showReviewSetup || editModeIntroVisible || tokenHoverIntroVisible) return;
+    if (showLookAndFeel || showReviewSetup || editModeIntroVisible || tokenHoverIntroVisible) return;
     markAutoViewedNoticeSeen();
     toast('Files are marked viewed as you scroll', {
       description: "Scroll past a file or move on to the next and it's checked off. Turn this off in Settings → Git, or from the gear above the file list.",
@@ -2505,13 +2310,12 @@ const ReviewApp: React.FC = () => {
         },
       },
     });
-  }, [guideOpen, guideIntroVisible, showLookAndFeel, showReviewSetup, editModeIntroVisible, tokenHoverIntroVisible]);
+  }, [showLookAndFeel, showReviewSetup, editModeIntroVisible, tokenHoverIntroVisible]);
   const { handleReadingFileChange: handleAutoViewReadingFile, handleFileScrolledPast } = useAutoViewed({
     enabled: autoViewedEnabled,
-    // Rule 4 — only the review target. The guide takeover CSS-hides the dock
-    // (so its files are not what the reviewer is reading), and a commit diff
-    // is a documented session-only detour, not the change under review.
-    suspended: guideOpen || activeDiffBase.startsWith('commit:'),
+    // Rule 4 — only the review target. A commit diff is a documented
+    // session-only detour, not the change under review.
+    suspended: activeDiffBase.startsWith('commit:'),
     viewedFiles,
     suppressedFiles: autoViewSuppressed,
     onMark: markFilesViewed,
@@ -2611,11 +2415,6 @@ const ReviewApp: React.FC = () => {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.shiftKey || isTypingTarget(e.target)) return;
-      // The guide takeover only CSS-hides the dock, so a diff panel can still
-      // be "active" underneath — without this gate, bare `a`/`v` while
-      // reading the guide would stage/mark-viewed that hidden file. The
-      // guide's own diffs surface visible per-file controls instead.
-      if (guideOpen) return;
       if (!isDiffPanelActive) return;
       const filePath = files[activeFileIndex]?.path;
       if (!filePath) return;
@@ -2630,7 +2429,7 @@ const ReviewApp: React.FC = () => {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [files, activeFileIndex, isDiffPanelActive, guideOpen, handleToggleViewed, isPathStageable, stageFile]);
+  }, [files, activeFileIndex, isDiffPanelActive, handleToggleViewed, isPathStageable, stageFile]);
 
   // Shared function: apply a PR response (used by both initial load and PR switch)
   function applyPRResponse(data: PRSessionUpdate & {
@@ -3395,23 +3194,13 @@ const ReviewApp: React.FC = () => {
       setSelectedAnnotationId(id);
       return;
     }
-    // While the guide takeover is open, the dock's active file is meaningless
-    // (guide renders its own per-section diffs) — skip the dock file-switch
-    // mutation so leaving the guide doesn't land on an unexpected file, and
-    // route through the reveal channel instead so the section containing the
-    // file expands (a collapsed reviewed section has no mounted viewer —
-    // without the reveal, the jump silently no-ops) and focuses before the
-    // selection/scroll-target below land in it.
-    if (guideOpen) {
-      const targetPath = annotation.filePath;
-      setGuideRevealFile(prev => ({ path: targetPath, token: (prev?.token ?? 0) + 1 }));
-    } else if (!isAllFilesActiveRef.current) {
+    if (!isAllFilesActiveRef.current) {
       const fileIndex = files.findIndex(f => f.path === annotation.filePath);
       if (fileIndex !== -1) handleFileSwitch(fileIndex);
     }
     setSelectedAnnotationId(id);
     setScrollTargetAnnotation(prev => ({ id, token: (prev?.token ?? 0) + 1 }));
-  }, [files, handleFileSwitch, prMetadata, prDiffScope, guideOpen, openCallFlowPanel]);
+  }, [files, handleFileSwitch, prMetadata, prDiffScope, openCallFlowPanel]);
 
   // Diff context bundled into local-mode feedback headers so the receiving
   // agent knows which diff the annotations are anchored to. Uses committedBase
@@ -3448,11 +3237,7 @@ const ReviewApp: React.FC = () => {
     files,
     rawPatch: diffData?.rawPatch ?? '',
     focusedFileIndex: activeFileIndex,
-    // Null while the guide takeover is open — the CSS-hidden dock's DiffViewer
-    // instances derive `isFocused` from this, so this one line strips their
-    // focus claim at the source instead of threading `guideOpen` through every
-    // dock panel. Guide-side DiffViewers arbitrate focus among themselves.
-    focusedFilePath: guideOpen ? null : (files[activeFileIndex]?.path ?? null),
+    focusedFilePath: files[activeFileIndex]?.path ?? null,
     diffStyle: effectiveDiffStyle,
     onDiffStyleChange: handleDiffStyleChange,
     isCompactTouchLayout,
@@ -3526,8 +3311,6 @@ const ReviewApp: React.FC = () => {
     canStageFiles,
     canStagePath: isPathStageable,
     currentWorktreePath: activeWorktreePath,
-    guideRevealFile,
-    onGuideRevealFile: handleGuideRevealFile,
     stageError,
     searchQuery: isSearchPending ? '' : debouncedSearchQuery,
     isSearchPending,
@@ -3577,8 +3360,6 @@ const ReviewApp: React.FC = () => {
     isCallFlowActive,
     openCallFlowPanel,
     callFlowInstall,
-    openTourPanel: handleOpenTour,
-    openGuide: handleOpenGuide,
     onCodeNavRequest: canUseLiveWorkspaceActions ? handleCodeNavRequest : undefined,
     onTokenHoverEnter: tokenHoverEnabled ? handleTokenHoverEnter : undefined,
     onTokenHoverLeave: tokenHoverEnabled ? tokenHover.onTokenHoverLeave : undefined,
@@ -3586,7 +3367,7 @@ const ReviewApp: React.FC = () => {
     codeNavIsLoading: codeNav.isLoading,
     codeNavActiveSymbol: codeNav.activeSymbol,
   }), [
-    files, diffData?.rawPatch, activeFileIndex, guideOpen, effectiveDiffStyle, handleDiffStyleChange, isCompactTouchLayout, diffOverflow, diffIndicators,
+    files, diffData?.rawPatch, activeFileIndex, effectiveDiffStyle, handleDiffStyleChange, isCompactTouchLayout, diffOverflow, diffIndicators,
     diffLineDiffType, diffShowLineNumbers, diffShowBackground,
     diffExpandUnchanged, diffFontFamily, diffFontSize, activeDiffBase, committedBase, feedbackDiffContext, prReviewScopeLabel, prDiffScope, agentCwd, canUseLiveWorkspaceActions,
     allAnnotations, externalAnnotations,
@@ -3600,14 +3381,14 @@ const ReviewApp: React.FC = () => {
     handleSelectAnnotation, handleNavigateToAnnotation, handleDeleteAnnotation, viewedFiles,
     generatedFiles, expandedGeneratedFiles, handleGeneratedFileCollapsedChange,
     handleToggleViewed, reviewShowViewedControls, reviewShowStageControls, stagedFiles, stagingFile, stageFile,
-    canStageFiles, isPathStageable, activeWorktreePath, guideRevealFile, handleGuideRevealFile, stageError, isSearchPending, debouncedSearchQuery,
+    canStageFiles, isPathStageable, activeWorktreePath, stageError, isSearchPending, debouncedSearchQuery,
     activeFileSearchMatches, activeSearchMatchId, activeSearchMatch, searchMatches,
     aiAvailable, aiMessages, aiIsCreatingSession, aiIsStreaming,
     handleAskAI, handleAskAIForFile, handleViewAIResponse, handleClickAIMarker,
     aiHistoryForSelection, getAIHistoryForFile, agentJobs.jobs, prMetadata, prContext, prArtifacts,
     isPRContextLoading, prContextError, fetchPRContext, platformUser, openDiffFile,
     handleAllFilesVisibleFileChange, handleFileScrolledPast,
-    handleOpenTour, handleOpenGuide, isAllFilesActive, allFilesOrder, allFilesAllCollapsed, onToggleAllFilesCollapsed, registerAllFilesCollapseToggle, commitInfo, isSemanticDiffActive, semanticDiffUsable,
+    isAllFilesActive, allFilesOrder, allFilesAllCollapsed, onToggleAllFilesCollapsed, registerAllFilesCollapseToggle, commitInfo, isSemanticDiffActive, semanticDiffUsable,
     handleSemanticDiffUnavailable, handleSemanticDiffLoadError, handleSemanticDiffLoadSuccess, handleAddAnnotationForFile,
     callFlowAvailable, callFlowAdvert, callFlowAnalysis, retryCallFlowAnalysis, isCallFlowNodeInPatch, isCallFlowActive, openCallFlowPanel, callFlowInstall,
     editSuggestionsEnabled, handleAddSuggestionsForFile, handleAddEditorCommentForFile,
@@ -4158,11 +3939,10 @@ const ReviewApp: React.FC = () => {
   const canHandleReviewHistoryShortcut = useCallback((event: KeyboardEvent): boolean => {
     if (event.defaultPrevented || isNativeHistoryOwner(event)) return false;
     if (submitted || isSendingFeedback || isApproving || isExiting || isPlatformActioning || isLoadingDiff) return false;
-    if (guideOpen || openSettingsMenu || showDestinationMenu || platformCommentDialog || showExportModal || showWorktreeDialog || showNoAnnotationsDialog || showExitWarning) return false;
-    if (showLookAndFeel || showGuideIntro || showReviewSetup || editModeIntroVisible || tokenHoverIntroVisible || tourDialogJobId) return false;
+    if (openSettingsMenu || showDestinationMenu || platformCommentDialog || showExportModal || showWorktreeDialog || showNoAnnotationsDialog || showExitWarning) return false;
+    if (showLookAndFeel || showReviewSetup || editModeIntroVisible || tokenHoverIntroVisible) return false;
     return !hasActiveHistoryOverlay(document);
   }, [
-    guideOpen,
     isApproving,
     isExiting,
     isLoadingDiff,
@@ -4177,11 +3957,9 @@ const ReviewApp: React.FC = () => {
     showExportModal,
     showNoAnnotationsDialog,
     showWorktreeDialog,
-    showGuideIntro,
     showLookAndFeel,
     showReviewSetup,
     submitted,
-    tourDialogJobId,
   ]);
 
   useHistoryShortcuts({
@@ -4448,33 +4226,6 @@ const ReviewApp: React.FC = () => {
               </>
             )}
             {isCompactTouchLayout && !shouldShowFileTree && <span aria-hidden />}
-            {!isCompactTouchLayout && aiUIEnabled && hasSearchableFiles && (
-              <>
-                <button
-                  onClick={() => {
-                    if (guideHintActive) {
-                      markGuideHintSeen();
-                      setGuideHintActive(false);
-                    }
-                    setGuideOpen(prev => !prev);
-                  }}
-                  className={`relative flex h-7 shrink-0 items-center gap-1 px-2 rounded-md text-xs font-medium transition-colors ${
-                    guideOpen ? 'bg-primary/15 text-primary' : 'bg-muted hover:bg-muted/80'
-                  }`}
-                  title={guideOpen ? 'Back to the diff workspace' : 'Open guided review'}
-                >
-                  {guideHintActive && !guideOpen ? (
-                    <>
-                      <TextShimmer>Guide</TextShimmer>
-                      <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                    </>
-                  ) : (
-                    guideOpen ? 'Go back' : 'Guide'
-                  )}
-                </button>
-                <div className="w-px h-5 bg-border/50 mx-1 hidden lg:block" />
-              </>
-            )}
             {prMetadata ? (
               <div className={isCompactTouchLayout
                 ? 'min-w-0 flex items-center justify-center overflow-hidden px-1'
@@ -4873,15 +4624,6 @@ const ReviewApp: React.FC = () => {
               onCopyAgentInstructions={handleCopyAgentInstructions}
               onToggleFileTree={toggleNavigator}
               onToggleSidebar={() => reviewSidebar.isOpen ? reviewSidebar.close() : reviewSidebar.open()}
-              onOpenGuide={isCompactTouchLayout && aiUIEnabled && hasSearchableFiles ? () => {
-                if (guideHintActive) {
-                  markGuideHintSeen();
-                  setGuideHintActive(false);
-                }
-                reviewSidebar.close();
-                setIsCompactNavigatorOpen(false);
-                setGuideOpen(true);
-              } : undefined}
               onOpenAnnotations={isCompactTouchLayout ? () => reviewSidebar.open('annotations') : undefined}
               onOpenAI={isCompactTouchLayout && aiAvailable ? () => reviewSidebar.open('ai') : undefined}
               onOpenAgents={isCompactTouchLayout && agentJobs.capabilities?.available ? () => reviewSidebar.open('agents') : undefined}
@@ -4940,7 +4682,7 @@ const ReviewApp: React.FC = () => {
 
         {/* Main content */}
         <div className={`relative flex-1 flex overflow-hidden ${isResizing ? 'select-none' : ''}`}>
-          {!guideOpen && shouldShowFileTree && isNavigatorOpen && sectionsAvailable && panelView === 'sections' && (
+          {shouldShowFileTree && isNavigatorOpen && sectionsAvailable && panelView === 'sections' && (
             <ReviewNavigatorContainer
               isCompactTouchLayout={isCompactTouchLayout}
               onClose={() => setIsCompactNavigatorOpen(false)}
@@ -5010,7 +4752,7 @@ const ReviewApp: React.FC = () => {
               />
             </ReviewNavigatorContainer>
           )}
-          {!guideOpen && shouldShowFileTree && isNavigatorOpen && showCommitsPanel && (
+          {shouldShowFileTree && isNavigatorOpen && showCommitsPanel && (
             <ReviewNavigatorContainer
               isCompactTouchLayout={isCompactTouchLayout}
               onClose={() => setIsCompactNavigatorOpen(false)}
@@ -5033,7 +4775,7 @@ const ReviewApp: React.FC = () => {
               />
             </ReviewNavigatorContainer>
           )}
-          {!guideOpen && shouldShowFileTree && isNavigatorOpen && !(sectionsAvailable && panelView === 'sections') && !showCommitsPanel && (
+          {shouldShowFileTree && isNavigatorOpen && !(sectionsAvailable && panelView === 'sections') && !showCommitsPanel && (
             <ReviewNavigatorContainer
               isCompactTouchLayout={isCompactTouchLayout}
               onClose={() => setIsCompactNavigatorOpen(false)}
@@ -5122,32 +4864,10 @@ const ReviewApp: React.FC = () => {
             </ReviewNavigatorContainer>
           )}
 
-          {/* Guide takeover — peer of the file tree / center dock, not a
-              replacement for either in the tree: the dock below stays
-              mounted (just CSS-hidden) so its layout/scroll state survives
-              toggling the guide open and closed. */}
-          {guideVisible && (
-            <div
-              className="flex-1 min-w-0 overflow-y-auto"
-              inert={isCompactTransientSurfaceOpen || undefined}
-              aria-hidden={isCompactTransientSurfaceOpen || undefined}
-            >
-              <GuideScreen
-                activeGuideJobId={activeGuideJobId}
-                jobs={agentJobs.jobs}
-                capabilities={agentJobs.capabilities}
-                launchJob={agentJobs.launchJob}
-                killJob={agentJobs.killJob}
-                onClose={() => setGuideOpen(false)}
-                onOpenFixedGuide={handleOpenGuide}
-                onOpenSavedGuide={handleOpenGuide}
-              />
-            </div>
-          )}
 
           {/* Center dock area */}
           <div
-            className={`flex-1 min-w-0 overflow-hidden relative ${guideVisible ? 'hidden' : ''}`}
+            className="flex-1 min-w-0 overflow-hidden relative"
             inert={isCompactTransientSurfaceOpen || undefined}
             aria-hidden={isCompactTransientSurfaceOpen || undefined}
           >
@@ -5305,9 +5025,6 @@ const ReviewApp: React.FC = () => {
                 onAgentKillAll={agentJobs.killAll}
                 externalAnnotations={externalAnnotations}
                 onOpenJobDetail={handleOpenJobDetail}
-                onOpenGuide={handleOpenGuide}
-                guideLaunchable={aiUIEnabled && hasSearchableFiles}
-                canOpenGuideJob={jobMatchesCurrentContext}
               />
             </div>
           )}
@@ -5466,33 +5183,20 @@ const ReviewApp: React.FC = () => {
 
         {/* First-use Grid/Clean choice. Its explicit-choice marker is shared
             with the plan editor, so resolving it in either app suppresses it everywhere.
-            Second in the dialog chain (guide intro → look-and-feel → review
-            setup → edit mode) — the chain dialogs never stack. */}
+            First in the dialog chain (look-and-feel → review setup → edit
+            mode) — the chain dialogs never stack. */}
         <LookAndFeelAnnouncementDialog
-          isOpen={showLookAndFeel && !guideIntroVisible}
+          isOpen={showLookAndFeel}
           gridEnabled={gridEnabled}
           onToggleGrid={(v) => configStore.set('gridEnabled', v)}
           onDismiss={dismissLookAndFeel}
         />
 
-        {/* One-time guided-review intro. First in the dialog chain, ahead of
-            the look-and-feel chooser, review setup, and edit-mode
-            announcement — the chain dialogs never stack. */}
-        {guideIntroVisible && (
-          <GuideIntroDialog
-            isOpen
-            onDismiss={() => {
-              markGuideIntroSeen();
-              setShowGuideIntro(false);
-            }}
-          />
-        )}
-
         {/* First-run review-view chooser (panel view + tree default diff).
-            Third in the dialog chain (guide intro → look-and-feel → review
-            setup → edit mode) so the chain dialogs never stack. On dismiss,
+            Second in the dialog chain (look-and-feel → review setup → edit
+            mode) so the chain dialogs never stack. On dismiss,
             apply the chosen default to the current session. */}
-        {showReviewSetup && !showLookAndFeel && !guideIntroVisible && (
+        {showReviewSetup && !showLookAndFeel && (
           <ReviewSetupDialog
             isOpen
             onDismiss={() => {
@@ -5512,7 +5216,7 @@ const ReviewApp: React.FC = () => {
         )}
 
         {/* One-time Edit Mode (edit-to-suggest) announcement. LAST in the
-            dialog chain (guide intro → look-and-feel → review setup
+            dialog chain (look-and-feel → review setup
             → edit mode) — editModeAnnouncementCanShow gates on every earlier dialog, so the
             chain dialogs never stack. */}
         {editModeIntroVisible && (
@@ -5524,7 +5228,7 @@ const ReviewApp: React.FC = () => {
         )}
 
         {/* One-time token hover card announcement. LAST in the dialog chain
-            (guide intro → look-and-feel → review setup → edit mode → token
+            (look-and-feel → review setup → edit mode → token
             hover) — tokenHoverAnnouncementCanShow gates on every earlier
             dialog, so the chain dialogs never stack. */}
         {tokenHoverIntroVisible && (
@@ -5532,11 +5236,11 @@ const ReviewApp: React.FC = () => {
         )}
 
         {/* One-time PR feedback-destination spotlight. Strictly AFTER the
-            first-run dialog chain (guide intro → look-and-feel → review
-            setup → edit mode → token hover): it only mounts once none of the five is
+            first-run dialog chain (look-and-feel → review
+            setup → edit mode → token hover): it only mounts once none of the four is
             showing, so it never stacks with them. PR mode only — the switcher
             it points at doesn't render otherwise. */}
-        {showDestSpotlight && !isCompactTouchLayout && !!prMetadata && !isLoading && !showLookAndFeel && !guideIntroVisible && !showReviewSetup && !editModeIntroVisible && !tokenHoverIntroVisible && (
+        {showDestSpotlight && !isCompactTouchLayout && !!prMetadata && !isLoading && !showLookAndFeel && !showReviewSetup && !editModeIntroVisible && !tokenHoverIntroVisible && (
           <DestinationSpotlight
             targetRef={destToggleRef}
             platformLabel={platformLabel}
@@ -5592,9 +5296,6 @@ const ReviewApp: React.FC = () => {
         />
       </div>
 
-      {/* Tour dialog overlay */}
-      <TourDialog jobId={tourDialogJobId} onClose={() => setTourDialogJobId(null)} />
-
       {lineAnnotationComposeRequest && (() => {
         const targetFile = files.find(file => file.path === lineAnnotationComposeRequest.filePath);
         if (!targetFile) return null;
@@ -5614,18 +5315,6 @@ const ReviewApp: React.FC = () => {
           />
         );
       })()}
-
-      {/* Dev-only: open a fully-formed demo tour without running the agent.
-          Stripped from production builds via import.meta.env.DEV. */}
-      {import.meta.env.DEV && (
-        <button
-          onClick={() => setTourDialogJobId(tourDialogJobId === DEMO_TOUR_ID ? null : DEMO_TOUR_ID)}
-          title="Open the demo tour (dev only). Cmd+Shift+T also works."
-          className="fixed bottom-3 right-3 z-[60] px-2.5 py-1 rounded-md bg-foreground/80 text-background text-[10px] font-mono uppercase tracking-wider shadow-lg hover:bg-foreground transition-colors"
-        >
-          {tourDialogJobId === DEMO_TOUR_ID ? 'Close tour' : 'Demo tour'}
-        </button>
-      )}
 
     {/* One instance for the whole app, portaled to <body> so it escapes the
         Dockview panels' overflow and stacking context. */}

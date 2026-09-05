@@ -75,10 +75,9 @@ import {
   saveFileBrowserSettings,
   type FileBrowserSettings,
 } from '../utils/fileBrowser';
-import { requestVimDocumentFocus } from '../hooks/useVimDocumentFocus';
 import { AnalysisLayerToggle } from './AnalysisLayerToggle';
 
-type SettingsTab = 'general' | 'theme' | 'git' | 'display' | 'analysis' | 'saving' | 'labels' | 'vim' | 'shortcuts' | 'ai' | 'files' | 'obsidian' | 'bear' | 'octarine' | 'comments' | 'hooks';
+type SettingsTab = 'general' | 'theme' | 'git' | 'display' | 'analysis' | 'saving' | 'labels' | 'shortcuts' | 'ai' | 'files' | 'obsidian' | 'bear' | 'octarine' | 'comments' | 'hooks';
 
 interface SettingsProps {
   taterMode: boolean;
@@ -257,87 +256,6 @@ function ToggleSwitch({ checked, onChange, label, description, disabled = false 
   );
 }
 
-interface VimSettingsTabProps {
-  readonly vimModeEnabled: boolean;
-  readonly vimHudEnabled: boolean;
-  readonly vimHudKeyPanelEnabled: boolean;
-  readonly onVimModeChange: (enabled: boolean) => void;
-  readonly onVimHudChange: (enabled: boolean) => void;
-  readonly onVimHudKeyPanelChange: (enabled: boolean) => void;
-}
-
-/** First-class Vim configuration, separate from the shortcut reference. */
-function VimSettingsTab({
-  vimModeEnabled,
-  vimHudEnabled,
-  vimHudKeyPanelEnabled,
-  onVimModeChange,
-  onVimHudChange,
-  onVimHudKeyPanelChange,
-}: VimSettingsTabProps) {
-  return (
-    <div className="space-y-5">
-      <div>
-        <div className="text-sm font-semibold">Vim mode</div>
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          Navigate, select, and annotate the rendered document without reaching for the mouse.
-        </p>
-      </div>
-
-      <div className="space-y-4 rounded-xl border border-border bg-muted/20 p-4">
-        <ToggleSwitch
-          checked={vimModeEnabled}
-          onChange={onVimModeChange}
-          label="Vim controls"
-          description="Use Vim-style keys for document navigation and annotation. Off by default."
-        />
-        <div className="border-t border-border" />
-        <ToggleSwitch
-          checked={vimModeEnabled && vimHudEnabled}
-          onChange={onVimHudChange}
-          label="Vim HUD"
-          description={
-            vimModeEnabled
-              ? 'Show the four-corner target reticle and navigation context.'
-              : 'Enable Vim controls first to use the target reticle.'
-          }
-          disabled={!vimModeEnabled}
-        />
-        <div className="border-t border-border" />
-        <ToggleSwitch
-          checked={vimModeEnabled && vimHudEnabled && vimHudKeyPanelEnabled}
-          onChange={onVimHudKeyPanelChange}
-          label="Key panel"
-          description={
-            vimModeEnabled && vimHudEnabled
-              ? 'Show the bottom-right live keypress legend and command panel.'
-              : 'Enable the Vim HUD first to use the live keypress legend.'
-          }
-          disabled={!vimModeEnabled || !vimHudEnabled}
-        />
-      </div>
-
-      <div className="rounded-xl border border-primary/20 bg-primary/[0.05] p-4">
-        <div className="flex items-start gap-3">
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-primary/15 font-mono text-xs font-bold text-primary">
-            ?
-          </span>
-          <div>
-            <div className="text-xs font-semibold">Learn while you navigate</div>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Vim takes focus automatically when the page is ready. From other app controls, press{' '}
-              <span className="font-mono text-foreground">Esc</span> to return to the document, then
-              use <span className="font-mono text-foreground">j</span> and{' '}
-              <span className="font-mono text-foreground">k</span> to move by block. Press{' '}
-              <span className="font-mono text-foreground">?</span> for the complete key map,
-              even when the Key panel is hidden.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function ReviewAnalysisTab() {
   const semanticDiffEnabled = useConfigValue('semanticDiffEnabled');
@@ -932,22 +850,7 @@ const CommentsTab: React.FC = () => {
 export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange, onIdentityChange, origin, mode = 'plan', onUIPreferencesChange, externalOpen, onExternalClose, aiProviders = [], gitUser, sinceBaseUnavailable, isCompactTouchLayout = false, onDetectObsidianVaults, agentTerminalAvailable = false, webmcpAvailable = false }) => {
   const webmcpTools = useWebMcpToolsEnabled();
   const [showDialog, setShowDialog] = useState(false);
-  const settingsWasOpenRef = useRef(false);
   const [themePreview, setThemePreview] = useState(false);
-
-  useEffect(() => {
-    const wasOpen = settingsWasOpenRef.current;
-    settingsWasOpenRef.current = showDialog;
-    if (
-      wasOpen
-      && !showDialog
-      && !themePreview
-      && mode !== 'review'
-      && configStore.get('vimModeEnabled')
-    ) {
-      requestVimDocumentFocus();
-    }
-  }, [mode, showDialog, themePreview]);
 
   useEffect(() => {
     if (!themePreview) return;
@@ -959,9 +862,6 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
   }, [themePreview]);
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const gridEnabled = useConfigValue('gridEnabled');
-  const vimModeEnabled = useConfigValue('vimModeEnabled');
-  const vimHudEnabled = useConfigValue('vimHudEnabled');
-  const vimHudKeyPanelEnabled = useConfigValue('vimHudKeyPanelEnabled');
   const agentTerminalSide = useConfigValue('agentTerminalSide');
   const [identity, setIdentity] = useState('');
   const [obsidian, setObsidian] = useState<ObsidianSettings>({
@@ -1012,9 +912,6 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
       if (aiProviders.length > 0) {
         t.push({ id: 'ai', label: 'AI' });
       }
-    }
-    if (mode !== 'review') {
-      t.push({ id: 'vim', label: 'Vim' });
     }
     t.push({ id: 'shortcuts', label: 'Shortcuts' });
     if (mode === 'plan') {
@@ -2097,22 +1994,9 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
                   </>
                 )}
 
-                {/* === VIM TAB === */}
-                {activeTab === 'vim' && mode !== 'review' && (
-                  <VimSettingsTab
-                    vimModeEnabled={vimModeEnabled}
-                    vimHudEnabled={vimHudEnabled}
-                    vimHudKeyPanelEnabled={vimHudKeyPanelEnabled}
-                    onVimModeChange={(enabled) => configStore.set('vimModeEnabled', enabled)}
-                    onVimHudChange={(enabled) => configStore.set('vimHudEnabled', enabled)}
-                    onVimHudKeyPanelChange={(enabled) =>
-                      configStore.set('vimHudKeyPanelEnabled', enabled)}
-                  />
-                )}
-
                 {/* === SHORTCUTS TAB === */}
                 {activeTab === 'shortcuts' && (
-                  <KeyboardShortcuts mode={mode} vimModeEnabled={vimModeEnabled} />
+                  <KeyboardShortcuts mode={mode} />
                 )}
 
                 {/* === COMMENTS TAB === */}

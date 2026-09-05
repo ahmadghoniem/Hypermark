@@ -19,9 +19,8 @@
  *     every AGENT_CONFIG key and no key the config does not have, so adding
  *     an origin (like oh-my-pi, #1373) cannot silently leave the row stale.
  *
- * Sources of truth: the usage text in cli.ts (plus GUIDE_CLI_USAGE via the
- * guide entry), the argument-parsing sites in the CLI source files, and
- * AGENT_CONFIG in packages/core/agents.ts.
+ * Sources of truth: the usage text in cli.ts, the argument-parsing sites in
+ * the CLI source files, and AGENT_CONFIG in packages/core/agents.ts.
  */
 
 import { describe, expect, test } from "bun:test";
@@ -60,7 +59,6 @@ const PARSER_SOURCES = [
   join(import.meta.dir, "index.ts"),
   join(import.meta.dir, "cli.ts"),
   join(import.meta.dir, "..", "..", "..", "packages", "shared", "review-args.ts"),
-  join(import.meta.dir, "..", "..", "..", "packages", "server", "guide", "guide-cli.ts"),
 ];
 
 const FLAG_TOKEN = /--[a-z][a-z0-9-]*/g;

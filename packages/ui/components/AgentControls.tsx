@@ -68,8 +68,8 @@ export function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: 
 // Lists longer than this get a type-to-filter input and provider grouping —
 // marker-engine catalogs (Cursor ~150, Pi ~59, OpenCode ~25) are unusable as a
 // flat list; the classic Claude/Codex catalogs (7–11) stay a plain menu.
-// Exported so other pickers over the same catalogs (e.g. GuideEmptyState's
-// InlinePicker in review-editor) share this one threshold instead of hardcoding it.
+// Exported so other pickers over the same catalogs share this one threshold
+// instead of hardcoding it.
 export const SEARCHABLE_THRESHOLD = 12;
 
 export interface SelectOptionGroup {

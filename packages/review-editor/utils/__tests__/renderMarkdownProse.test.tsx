@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { renderMarkdownProse } from "./renderMarkdownProse";
+import { renderMarkdownProse } from "../renderMarkdownProse";
 
 type El = { type: unknown; props: { children?: unknown } };
 

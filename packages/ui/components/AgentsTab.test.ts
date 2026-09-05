@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { CLAUDE_MODELS, CODEX_MODELS, TOUR_CLAUDE_MODELS, codexReasoningOptions } from "./AgentsTab";
+import { CLAUDE_MODELS, CODEX_MODELS, codexReasoningOptions } from "./AgentsTab";
 
 const catalogEntry = (value: string) => CODEX_MODELS.find((m) => m.value === value);
 
@@ -17,15 +17,6 @@ describe("CLAUDE_MODELS catalog", () => {
   test("5-series entries have no [1m] context variant", () => {
     for (const { value } of CLAUDE_MODELS) {
       if (/-5(\[|$)/.test(value)) expect(value).not.toContain("[1m]");
-    }
-  });
-
-  test("tour/guide catalog inherits every review model plus the latest aliases", () => {
-    for (const { value } of CLAUDE_MODELS) {
-      expect(TOUR_CLAUDE_MODELS.some((m) => m.value === value)).toBe(true);
-    }
-    for (const alias of ["sonnet", "opus", "fable"]) {
-      expect(TOUR_CLAUDE_MODELS.some((m) => m.value === alias)).toBe(true);
     }
   });
 });

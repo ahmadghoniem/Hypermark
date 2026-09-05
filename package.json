@@ -28,7 +28,7 @@
     "build": "bun run build:review && bun run build:hook",
     "check:release-version": "node scripts/check-release-version.mjs",
     "test": "bun test",
-    "typecheck": "tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p packages/shared/tsconfig.json && tsc --noEmit -p packages/ai/tsconfig.json && tsc --noEmit -p packages/server/tsconfig.json && tsc --noEmit -p packages/ui/tsconfig.json && tsc --noEmit -p packages/guide-viewer/tsconfig.json && tsc --noEmit -p packages/ui/tsconfig.strict-consumer.json",
+    "typecheck": "tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p packages/shared/tsconfig.json && tsc --noEmit -p packages/ai/tsconfig.json && tsc --noEmit -p packages/server/tsconfig.json && tsc --noEmit -p packages/ui/tsconfig.json && tsc --noEmit -p packages/ui/tsconfig.strict-consumer.json",
     "typecheck:editors": "tsc --noEmit -p packages/editor/tsconfig.json && tsc --noEmit -p packages/review-editor/tsconfig.json",
     "build:ui-css": "bun run --cwd packages/ui build:css"
   },

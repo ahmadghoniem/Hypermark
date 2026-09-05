@@ -279,8 +279,7 @@ export interface AllFilesCodeViewProps {
    */
   onFileScrolledPast?: (filePath: string) => void;
   /** Tokenized request to reveal a file through CodeView's own item navigation.
-   *  Guided Review uses this for outline chips and sidebar/AI jumps. The token
-   *  lets repeated requests for the same path fire again. */
+   *  The token lets repeated requests for the same path fire again. */
   fileScrollTarget?: { filePath: string; token: number } | null;
   // Which left panel drives the item order: 'tree' (folders-first visual
   // order) or 'list' (files array verbatim — the sections view's order).
@@ -292,7 +291,7 @@ export interface AllFilesCodeViewProps {
   /** Seed every file collapsed (commit diffs open as a folded overview under
    * the commit-description header). The collapse-all toggle still works. */
   defaultCollapsed?: boolean;
-  /** Guide-only seed captured once for this component mount. Local collapse
+  /** Mount-only seed captured once for this component mount. Local collapse
    * changes therefore do not alter CodeView's key; a true outer remount captures
    * the shell's latest value. */
   mountCollapsed?: boolean;
@@ -325,19 +324,15 @@ export interface AllFilesCodeViewProps {
    * viewer reaches either vertical boundary. Guided Review file cards opt in. */
   allowScrollChaining?: boolean;
   /**
-   * Portable / read-only host (the exported Guided Review viewer): no line or
+   * Portable / read-only host: no line or
    * gutter selection, no annotation toolbar or comment popovers, no global
    * keyboard shortcuts, no /api/file-content augmentation, no open-in
    * affordance. Everything the diff LOOKS like is unchanged — this only turns
    * off surfaces that require the review server or mutate review state.
-   * See adr/decisions/007-portable-guided-reviews-20260815.md (D2, D4).
    */
   readOnly?: boolean;
   /** EXPERIMENTAL flag-gated edit-to-suggestion mode. Only the plain all-files
-   * dock panel passes this — Guided Review surfaces deliberately do NOT (the
-   * GuideViewportManager evicts CodeViews beyond ~8 mounted, which would
-   * destroy an active editor's state; scoping edit mode to this surface is the
-   * simple safe v1 choice). When absent/false, no edit UI renders and no
+   * dock panel passes this. When absent/false, no edit UI renders and no
    * editor is ever constructed (code-split hosts also never fetch the editor
    * chunk; the single-file build inlines it, functionally inert). */
   enableEditSuggestions?: boolean;
@@ -798,7 +793,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     // fileOrder is part of the key: CodeView seeds initialItems once per
     // instance, so an order change must remount to re-seed in the new order.
     // seedCollapsed is part of the key: normal surfaces can change their live
-    // default, while guide mounts keep their captured seed stable.
+    // default, while outer mounts keep their captured seed stable.
     // generatedKey is part of the key (hashed — it can hold many paths): the
     // generated set only changes with a served payload, and a changed set must
     // remount so items re-seed through the new per-file collapse defaults.
@@ -1097,7 +1092,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     // Generated files (#1317): let the owner track explicit expansion so it
     // survives remounts. Every collapse mutation funnels through here —
     // toggle, viewed+collapse, collapse/expand-all, the collapsed-placeholder
-    // strip, and the navigation-driven expansions (guide outline, search
+    // strip, and the navigation-driven expansions (search
     // match, sidebar comment) — so the owner's set always mirrors the live
     // item state.
     if (generatedFiles?.has(filePath)) onGeneratedFileCollapsedChange?.(filePath, collapsed);
@@ -2123,8 +2118,8 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     return () => cancelAnimationFrame(raf);
   }, [reportVisibleFile, fileSetKey]);
 
-  // Outer Guide file shells survive while this CodeView is evicted. Restore
-  // their last inner position once after this component mount; later parent
+  // Outer virtualized shells survive while this CodeView is evicted. Restore
+  // its scroll position on mount once after this component mount; later parent
   // renders may expose a newer live ref value, but must not snap active scrolling.
   const hasRestoredInitialScrollRef = useRef(false);
   useEffect(() => {
@@ -2145,7 +2140,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   }, []);
 
   // File-level navigation for surfaces whose lightweight navigation UI lives
-  // outside CodeView (Guided Review's outline). Expand before scrolling so a
+  // outside CodeView. Expand before scrolling so a
   // viewed/collapsed target reveals code rather than only its file header.
   // rAF waits for CodeView's initial seed/remount to publish the imperative
   // handle; token semantics allow the same file to be requested repeatedly.
@@ -2466,7 +2461,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
         )}
         {/* File-scoped comments live in the header (below the path), shown only
             when the file is expanded. They ride the sticky header — fine for a
-            short guide note; long ones scroll within the banner. */}
+            short note; long ones scroll within the banner. */}
         {!collapsed && fileComments.length > 0 && (
           <FileCommentBanner
             comments={fileComments}

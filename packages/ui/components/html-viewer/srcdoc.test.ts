@@ -89,11 +89,8 @@ describe("viewer CSS/script namespace", () => {
   test("annotation CSS reads only --pn- variables", () => {
     expect(ANNOTATION_HIGHLIGHT_CSS).toContain("var(--pn-");
     expect(/var\(--(?!pn-)/.test(ANNOTATION_HIGHLIGHT_CSS)).toBe(false);
-    expect(ANNOTATION_HIGHLIGHT_CSS).toContain("[data-plannotator-vim-reticle]");
+    expect(ANNOTATION_HIGHLIGHT_CSS).toContain("body[data-plannotator-pinpoint-cursor]");
     expect(ANNOTATION_HIGHLIGHT_CSS).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(BRIDGE_SCRIPT).toContain("return 'PREVIOUS BLOCK'");
-    expect(BRIDGE_SCRIPT).toContain("return 'NEXT BLOCK'");
-    expect(BRIDGE_SCRIPT).toContain("return 'SWAPPED ENDS'");
   });
 
   test("bridge script reads only --pn- variables and guards bare writes", () => {
@@ -299,616 +296,10 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     root.classList.remove("light");
   });
 
-  test("Vim navigation is block-first, focus-safe, and posts through the normal selection protocol", async () => {
-    document.body.innerHTML = [
-      "<h1>Keyboard document</h1>",
-      "<p>First paragraph</p>",
-      "<p>Second paragraph</p>",
-      '<a href="#destination">Native link</a>',
-      '<input value="native typing">',
-    ].join("");
-
-    postBridge({
-      type: "plannotator-bridge-set-input-method",
-      method: "pinpoint",
-    });
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: false,
-    });
-
-    const disabledMove = new KeyboardEvent("keydown", {
-      key: "j",
-      bubbles: true,
-      cancelable: true,
-    });
-    document.body.dispatchEvent(disabledMove);
-    expect(disabledMove.defaultPrevented).toBe(false);
-    expect(document.querySelector("[data-plannotator-vim-badge]")).toBeNull();
-
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: true,
-    });
-    postBridge({
-      type: "plannotator-bridge-focus-vim",
-    });
-    expect(document.body.getAttribute("tabindex")).toBe("-1");
-    expect(document.body.hasAttribute("data-plannotator-vim-focus-owner")).toBe(true);
-    const initial = document.querySelector(".plannotator-pinpoint-hover");
-    expect(initial?.textContent).toBe("Keyboard document");
-    expect(document.querySelector("[data-plannotator-vim-badge]")?.textContent)
-      .toBe("BLOCK · PINPOINT");
-
-    const tab = new KeyboardEvent("keydown", {
-      key: "Tab",
-      bubbles: true,
-      cancelable: true,
-    });
-    document.body.dispatchEvent(tab);
-    expect(tab.defaultPrevented).toBe(false);
-    expect(document.querySelector(".plannotator-pinpoint-hover")?.textContent)
-      .toBe("Keyboard document");
-
-    const move = new KeyboardEvent("keydown", {
-      key: "j",
-      bubbles: true,
-      cancelable: true,
-    });
-    document.body.dispatchEvent(move);
-    expect(move.defaultPrevented).toBe(true);
-    expect(document.querySelector(".plannotator-pinpoint-hover")?.textContent)
-      .toBe("First paragraph");
-
-    const bridgeMessages: Array<Record<string, unknown>> = [];
-    const capture = (event: MessageEvent) => {
-      const data = bridgeMessageData(event);
-      if (data?.type === "plannotator-bridge-selection") bridgeMessages.push(data);
-    };
-    window.addEventListener("message", capture);
-    const comment = new KeyboardEvent("keydown", {
-      key: "c",
-      bubbles: true,
-      cancelable: true,
-    });
-    document.body.dispatchEvent(comment);
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    window.removeEventListener("message", capture);
-    expect(comment.defaultPrevented).toBe(true);
-    expect(bridgeMessages.at(-1)).toMatchObject({
-      type: "plannotator-bridge-selection",
-      text: "First paragraph",
-      modeOverride: "comment",
-    });
-
-    const input = document.querySelector<HTMLInputElement>("input");
-    if (!input) throw new Error("Missing bridge input fixture");
-    const typing = new KeyboardEvent("keydown", {
-      key: "d",
-      bubbles: true,
-      cancelable: true,
-    });
-    input.dispatchEvent(typing);
-    expect(typing.defaultPrevented).toBe(false);
-
-    const link = document.querySelector<HTMLAnchorElement>("a");
-    if (!link) throw new Error("Missing bridge link fixture");
-    const activateLink = new KeyboardEvent("keydown", {
-      key: "Enter",
-      bubbles: true,
-      cancelable: true,
-    });
-    link.dispatchEvent(activateLink);
-    expect(activateLink.defaultPrevented).toBe(false);
-
-    postBridge({
-      type: "plannotator-bridge-cancel-selection",
-    });
-    document.body.innerHTML = [
-      "<table><tbody>",
-      "<tr><td>A1</td><td>A2</td></tr>",
-      "<tr><td>B1</td><td>B2</td></tr>",
-      "</tbody></table>",
-      "<p>After table</p>",
-    ].join("");
-    postBridge({
-      type: "plannotator-bridge-set-input-method",
-      method: "pinpoint",
-    });
-    for (const key of ["l", "l"]) {
-      document.body.dispatchEvent(new KeyboardEvent("keydown", {
-        key,
-        bubbles: true,
-        cancelable: true,
-      }));
-    }
-    const a1 = document.querySelector(".plannotator-pinpoint-hover");
-    expect(a1?.tagName).toBe("TD");
-    expect(a1?.textContent).toBe("A1");
-    document.body.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "j",
-      bubbles: true,
-      cancelable: true,
-    }));
-    expect(document.querySelector(".plannotator-pinpoint-hover")?.textContent).toBe("A2");
-    document.body.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "h",
-      bubbles: true,
-      cancelable: true,
-    }));
-    expect(document.querySelector(".plannotator-pinpoint-hover")?.tagName).toBe("TR");
-    document.body.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "j",
-      bubbles: true,
-      cancelable: true,
-    }));
-    expect(document.querySelector(".plannotator-pinpoint-hover")?.textContent).toBe("B1B2");
-    document.body.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "h",
-      bubbles: true,
-      cancelable: true,
-    }));
-    expect(document.querySelector(".plannotator-pinpoint-hover")?.tagName).toBe("TABLE");
-    document.body.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "j",
-      bubbles: true,
-      cancelable: true,
-    }));
-    expect(document.querySelector(".plannotator-pinpoint-hover")?.textContent)
-      .toBe("After table");
-
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: false,
-    });
-    document.body.innerHTML = "<p>Alpha <strong>bravo</strong> charlie</p>";
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: true,
-    });
-    postBridge({
-      type: "plannotator-bridge-focus-vim",
-    });
-    document.body.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "l",
-      bubbles: true,
-      cancelable: true,
-    }));
-    expect(document.querySelector(".plannotator-pinpoint-hover")?.tagName).toBe("STRONG");
-    document.body.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "v",
-      bubbles: true,
-      cancelable: true,
-    }));
-    for (const key of ["w", "e"]) {
-      document.body.dispatchEvent(new KeyboardEvent("keydown", {
-        key,
-        bubbles: true,
-        cancelable: true,
-      }));
-      expect(window.getSelection()?.toString()).toBe("bravo");
-    }
-
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: false,
-    });
-    document.body.innerHTML = "<p>Alpha bravo charlie</p>";
-    postBridge({
-      type: "plannotator-bridge-set-input-method",
-      method: "drag",
-    });
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: true,
-    });
-    postBridge({
-      type: "plannotator-bridge-focus-vim",
-    });
-    const visual = new KeyboardEvent("keydown", {
-      key: "v",
-      bubbles: true,
-      cancelable: true,
-    });
-    document.body.dispatchEvent(visual);
-    const word = new KeyboardEvent("keydown", {
-      key: "w",
-      bubbles: true,
-      cancelable: true,
-    });
-    document.body.dispatchEvent(word);
-    expect(window.getSelection()?.toString()).toBe("Alpha ");
-    const action = new KeyboardEvent("keydown", {
-      key: " ",
-      bubbles: true,
-      cancelable: true,
-    });
-    document.body.dispatchEvent(action);
-    expect(document.querySelector("[data-plannotator-vim-badge]")?.textContent)
-      .toBe("ACTION · SELECT");
-
-    postBridge({
-      type: "plannotator-bridge-cancel-selection",
-    });
-    expect(document.querySelector("[data-plannotator-vim-badge]")?.textContent)
-      .toBe("VISUAL · SELECT");
-    expect(window.getSelection()?.toString()).toBe("Alpha ");
-
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: false,
-    });
-    document.body.innerHTML = "<p>Collapsed text target</p>";
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: true,
-    });
-    postBridge({
-      type: "plannotator-bridge-focus-vim",
-    });
-    document.body.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "l",
-      bubbles: true,
-      cancelable: true,
-    }));
-    const collapsedAction = new KeyboardEvent("keydown", {
-      key: "c",
-      bubbles: true,
-      cancelable: true,
-    });
-    document.body.dispatchEvent(collapsedAction);
-    expect(collapsedAction.defaultPrevented).toBe(false);
-    const collapsedCopy = new KeyboardEvent("keydown", {
-      key: "y",
-      bubbles: true,
-      cancelable: true,
-    });
-    document.body.dispatchEvent(collapsedCopy);
-    expect(collapsedCopy.defaultPrevented).toBe(false);
-    expect(document.querySelector("[data-plannotator-vim-badge]")?.textContent)
-      .toBe("NORMAL · SELECT");
-    document.body.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "Escape",
-      bubbles: true,
-      cancelable: true,
-    }));
-    document.body.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "Escape",
-      bubbles: true,
-      cancelable: true,
-    }));
-    const inactiveEscape = new KeyboardEvent("keydown", {
-      key: "Escape",
-      bubbles: true,
-      cancelable: true,
-    });
-    document.body.dispatchEvent(inactiveEscape);
-    expect(inactiveEscape.defaultPrevented).toBe(false);
-
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: false,
-    });
-    document.body.innerHTML = "<p>Block one</p><p>Block two</p>";
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: true,
-    });
-    postBridge({
-      type: "plannotator-bridge-focus-vim",
-    });
-    for (const key of ["V", "j"]) {
-      document.body.dispatchEvent(new KeyboardEvent("keydown", {
-        key,
-        bubbles: true,
-        cancelable: true,
-      }));
-    }
-    expect(window.getSelection()?.toString()).toContain("Block two");
-    document.body.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "k",
-      bubbles: true,
-      cancelable: true,
-    }));
-    expect(window.getSelection()?.toString()).toBe("Block one");
-
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: false,
-    });
-    expect(document.body.hasAttribute("tabindex")).toBe(false);
-    document.body.replaceChildren();
-  });
-
-  test("Vim HUD mode suppresses the iframe badge and emits handled command DTOs", async () => {
-    document.body.innerHTML = "<h1>First block</h1><p>Second block</p>";
-    const hudMessages: Array<Record<string, unknown>> = [];
-    const capture = (event: MessageEvent) => {
-      const data = bridgeMessageData(event);
-      if (
-        data
-        && [
-          "plannotator-bridge-vim-command",
-          "plannotator-bridge-vim-state",
-          "plannotator-bridge-vim-help",
-        ]
-          .includes(typeof data.type === "string" ? data.type : "")
-      ) {
-        hudMessages.push(data);
-      }
-    };
-    window.addEventListener("message", capture);
-
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: true,
-      hudEnabled: false,
-    });
-    postBridge({ type: "plannotator-bridge-focus-vim" });
-    document.body.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "j",
-      bubbles: true,
-      cancelable: true,
-    }));
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    expect(hudMessages).toEqual([]);
-    expect(document.querySelector("[data-plannotator-vim-badge]")).not.toBeNull();
-
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: false,
-    });
-    document.body.innerHTML = "<h1>First block</h1><p>Second block</p>";
-    postBridge({
-      type: "plannotator-bridge-set-input-method",
-      method: "pinpoint",
-    });
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: true,
-      hudEnabled: true,
-    });
-    postBridge({ type: "plannotator-bridge-focus-vim" });
-    document.body.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "j",
-      bubbles: true,
-      cancelable: true,
-    }));
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-
-    expect(document.querySelector("[data-plannotator-vim-badge]")).toBeNull();
-    expect(hudMessages).toContainEqual({
-      type: "plannotator-bridge-vim-state",
-      phase: "block",
-    });
-    expect(hudMessages).toContainEqual({
-      type: "plannotator-bridge-vim-command",
-      actionId: "moveDown",
-      key: "j",
-      context: "block",
-    });
-    const reticle = document.querySelector<HTMLElement>(
-      "[data-plannotator-vim-reticle]",
-    );
-    expect(reticle).not.toBeNull();
-    expect(reticle?.dataset.vimTargetPhase).toBe("block");
-    expect(reticle?.dataset.vimTargetLabel).toBe("BLOCK · PARAGRAPH");
-    expect(reticle?.querySelectorAll("[data-vim-reticle-corner]")).toHaveLength(4);
-    expect(document.querySelector(".plannotator-pinpoint-hover")).toBeNull();
-
-    document.body.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "?",
-      bubbles: true,
-      cancelable: true,
-    }));
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    expect(hudMessages).toContainEqual({
-      type: "plannotator-bridge-vim-help",
-      open: true,
-    });
-    expect(document.querySelector("[data-plannotator-vim-help]")).toBeNull();
-
-    postBridge({
-      type: "plannotator-bridge-set-vim-help",
-      open: false,
-    });
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    expect(hudMessages).toContainEqual({
-      type: "plannotator-bridge-vim-help",
-      open: false,
-    });
-
-    document.body.dispatchEvent(new KeyboardEvent("keydown", {
-      key: "l",
-      bubbles: true,
-      cancelable: true,
-    }));
-    expect(reticle?.dataset.vimTargetPhase).toBe("text");
-    expect(reticle?.dataset.vimTargetLabel).toBe("CURSOR · INLINE TEXT");
-
-    for (const key of ["v", "e"]) {
-      document.body.dispatchEvent(new KeyboardEvent("keydown", {
-        key,
-        bubbles: true,
-        cancelable: true,
-      }));
-    }
-    expect(reticle?.dataset.vimTargetPhase).toBe("visual");
-    expect(reticle?.dataset.vimTargetLabel).toBe("VISUAL · EXACT TOKEN");
-
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: false,
-    });
-    window.removeEventListener("message", capture);
-    document.body.replaceChildren();
-  });
-
-  test("routes Vim yank text to the trusted parent without sandbox clipboard access", async () => {
-    document.body.innerHTML = "<h1>Keyboard review fixture</h1><p>After</p>";
-    const copyMessages: Array<Record<string, unknown>> = [];
-    const capture = (event: MessageEvent) => {
-      const data = bridgeMessageData(event);
-      if (data?.type === "plannotator-bridge-vim-copy") {
-        copyMessages.push(data);
-      }
-    };
-    window.addEventListener("message", capture);
-
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: true,
-      hudEnabled: true,
-    });
-    postBridge({ type: "plannotator-bridge-focus-vim" });
-    for (const key of ["V", "y"]) {
-      document.body.dispatchEvent(new KeyboardEvent("keydown", {
-        key,
-        bubbles: true,
-        cancelable: true,
-      }));
-    }
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    window.removeEventListener("message", capture);
-
-    expect(copyMessages).toContainEqual({
-      type: "plannotator-bridge-vim-copy",
-      text: "Keyboard review fixture",
-    });
-    const reticle = document.querySelector<HTMLElement>(
-      "[data-plannotator-vim-reticle]",
-    );
-    expect(reticle?.dataset.vimTargetPhase).toBe("block");
-    expect(reticle?.dataset.vimTargetLabel).toBe("BLOCK · HEADING");
-
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: false,
-    });
-    document.body.replaceChildren();
-  });
-
-  test("restores the committed Visual range after annotation markup mutates the DOM", () => {
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: false,
-    });
-    document.body.innerHTML = "<p>Alpha bravo charlie</p>";
-    postBridge({
-      type: "plannotator-bridge-set-input-method",
-      method: "drag",
-    });
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: true,
-      hudEnabled: false,
-    });
-    postBridge({ type: "plannotator-bridge-focus-vim" });
-
-    for (const key of ["v", "w", "c"]) {
-      document.body.dispatchEvent(new KeyboardEvent("keydown", {
-        key,
-        bubbles: true,
-        cancelable: true,
-      }));
-    }
-    expect(document.querySelector("[data-plannotator-vim-badge]")?.textContent)
-      .toBe("ACTION · SELECT");
-
-    postBridge({
-      type: "plannotator-bridge-create-mark",
-      id: "vim-committed-range",
-      annotationType: "comment",
-    });
-
-    expect(document.querySelector("[data-plannotator-vim-badge]")?.textContent)
-      .toBe("VISUAL · SELECT");
-    expect(window.getSelection()?.toString()).toBe("Alpha ");
-    // Committed range EXTENT: the record's range binds exactly the visual
-    // selection ("Alpha ") — the pre-overlay test verified the inline mark
-    // wrapped exactly this text.
-    const committedVisualRanges = committedRanges("vim-committed-range");
-    expect(committedVisualRanges.length).toBe(1);
-    expect(committedVisualRanges[0]!.toString()).toBe("Alpha ");
-    // The committed annotation renders as an overlay marker + highlight —
-    // never as inline markup inside the page.
-    expect(markersFor("vim-committed-range").length).toBe(1);
-    expect(
-      visibleHighlights("pn-hl-comment").some(
-        (el) => el.getAttribute("data-annotation-id") === "vim-committed-range",
-      ),
-    ).toBe(true);
-    expect(document.querySelector("[data-bind-id]")).toBeNull();
-    expect(document.querySelector("mark")).toBeNull();
-
-    postBridge({ type: "plannotator-bridge-clear-marks" });
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: false,
-    });
-    document.body.replaceChildren();
-  });
-
-  test("restores a whole-block Visual range after annotation markup mutates the DOM", () => {
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: false,
-    });
-    document.body.innerHTML = "<p>Whole block target</p><p>After</p>";
-    postBridge({
-      type: "plannotator-bridge-set-input-method",
-      method: "drag",
-    });
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: true,
-      hudEnabled: false,
-    });
-    postBridge({ type: "plannotator-bridge-focus-vim" });
-
-    for (const key of ["V", "c"]) {
-      document.body.dispatchEvent(new KeyboardEvent("keydown", {
-        key,
-        bubbles: true,
-        cancelable: true,
-      }));
-    }
-    expect(document.querySelector("[data-plannotator-vim-badge]")?.textContent)
-      .toBe("ACTION · SELECT");
-
-    postBridge({
-      type: "plannotator-bridge-create-mark",
-      id: "vim-committed-block-range",
-      annotationType: "comment",
-    });
-
-    expect(document.querySelector("[data-plannotator-vim-badge]")?.textContent)
-      .toBe("VISUAL BLOCK · SELECT");
-    expect(window.getSelection()?.toString()).toBe("Whole block target");
-    // Committed range EXTENT: the whole-block commit binds exactly the
-    // block's text, not merely "some range that produced one marker".
-    const committedBlockRanges = committedRanges("vim-committed-block-range");
-    expect(committedBlockRanges.length).toBe(1);
-    expect(committedBlockRanges[0]!.toString()).toBe("Whole block target");
-    expect(markersFor("vim-committed-block-range").length).toBe(1);
-    expect(document.querySelector("[data-bind-id]")).toBeNull();
-
-    postBridge({ type: "plannotator-bridge-clear-marks" });
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: false,
-    });
-    document.body.replaceChildren();
-  });
-
   test("pinpoint click posts an anchored selection and never mutates the hovered element", async () => {
     document.body.innerHTML = [
       '<div id="hero"><p class="intro">Anchor target text</p><p>Second paragraph</p></div>',
     ].join("");
-    postBridge({
-      type: "plannotator-bridge-set-vim-mode",
-      enabled: false,
-    });
     postBridge({
       type: "plannotator-bridge-set-input-method",
       method: "pinpoint",
@@ -1217,7 +608,6 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
 
   test("chips and small buttons on div/span markup are individually targetable", async () => {
     document.body.innerHTML = SIGNOFF_MARKUP;
-    postBridge({ type: "plannotator-bridge-set-vim-mode", enabled: false });
     postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
 
     const chip = document.querySelector<HTMLElement>("span.rowchip");
@@ -1277,7 +667,6 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // where the card itself is the deepest rendered element — selects the
     // card, no keyboard or cycling involved.
     document.body.innerHTML = SIGNOFF_MARKUP;
-    postBridge({ type: "plannotator-bridge-set-vim-mode", enabled: false });
     postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
 
     const frame = document.querySelector<HTMLElement>("div.frame");
@@ -1313,7 +702,6 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     card.getBoundingClientRect = () => mockRect(5, 5, 200, 100);
 
     try {
-      postBridge({ type: "plannotator-bridge-set-vim-mode", enabled: false });
       postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
       hoverAt(dot, 12, 12);
       const box = document.querySelector<HTMLElement>("[data-plannotator-pinpoint-box]");
@@ -1344,7 +732,6 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       "<p id=\"l-known\">Paragraph text</p>",
       "</div>",
     ].join("");
-    postBridge({ type: "plannotator-bridge-set-vim-mode", enabled: false });
     postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
 
     const label = () =>
@@ -1382,7 +769,6 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       '<span class="icon-menu"></span>',
       "<p>Sibling text</p></div>",
     ].join("");
-    postBridge({ type: "plannotator-bridge-set-vim-mode", enabled: false });
     postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
 
     const close = document.querySelector<HTMLElement>("span.icon-close");
@@ -1443,7 +829,6 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       '<span class="icon"></span>',
       "</div>",
     ].join("");
-    postBridge({ type: "plannotator-bridge-set-vim-mode", enabled: false });
     postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
 
     const second = document.querySelectorAll<HTMLElement>("span.icon")[1];
@@ -1480,7 +865,6 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // A page element spoofing our marker attributes is NOT a viewer overlay:
     // it hovers and annotates like any other element.
     document.body.innerHTML = "<div data-plannotator-marker class=\"fake-marker\">7</div><p id=\"pin-me\">Pinned text</p>";
-    postBridge({ type: "plannotator-bridge-set-vim-mode", enabled: false });
     postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
 
     const spoof = document.querySelector<HTMLElement>("div.fake-marker");
@@ -1575,7 +959,6 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     primaryKey: string;
     keys: Map<string, string>; // className -> target key
   }> {
-    postBridge({ type: "plannotator-bridge-set-vim-mode", enabled: false });
     postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
     const alpha = document.querySelector<HTMLElement>("p.alpha")!;
     const selections = await collectMessages(
@@ -1885,7 +1268,6 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     const paragraphs: string[] = [];
     for (let i = 0; i < 20; i++) paragraphs.push(`<p class="cap-${i}">Cap target ${i}</p>`);
     document.body.innerHTML = `<div id="cap-stage">${paragraphs.join("")}</div>`;
-    postBridge({ type: "plannotator-bridge-set-vim-mode", enabled: false });
     postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
     const primarySelections = await collectMessages(
       ["plannotator-bridge-selection"],
@@ -1919,7 +1301,6 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     const paragraphs: string[] = [];
     for (let i = 0; i < 20; i++) paragraphs.push(`<p class="hcap-${i}">Host cap target ${i}</p>`);
     document.body.innerHTML = `<div id="hcap-stage">${paragraphs.join("")}</div>`;
-    postBridge({ type: "plannotator-bridge-set-vim-mode", enabled: false });
     postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
     const first = await collectMessages(
       ["plannotator-bridge-selection"],
@@ -2103,9 +1484,8 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // The old hover path rebuilt the semantic target graph (three
     // document-wide querySelectorAll sweeps) on every pointer frame. The new
     // path is per-event hit-testing: element identity plus closest() walks,
-    // zero document-wide queries. Graph builds remain click/vim-time only.
+    // zero document-wide queries. Graph builds remain click-time only.
     document.body.innerHTML = SIGNOFF_MARKUP;
-    postBridge({ type: "plannotator-bridge-set-vim-mode", enabled: false });
     postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
 
     const targets = Array.from(document.querySelectorAll<HTMLElement>("span, div, section"));
@@ -2236,7 +1616,6 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
   test("pinpoint click captures the normalized selected point onto the posted anchor", async () => {
     document.body.innerHTML = '<p id="cap">Capture me</p>';
     const cap = document.querySelector<HTMLElement>("#cap")!;
-    postBridge({ type: "plannotator-bridge-set-vim-mode", enabled: false });
     postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
     const originalBodyRect = document.body.getBoundingClientRect;
     document.body.getBoundingClientRect = () => rectOf(0, 0, 1024, 768);
@@ -2544,7 +1923,6 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
 
   test("draft selection highlight is overlay-projected and clears on cancel", async () => {
     document.body.innerHTML = "<p>Draft highlight target</p>";
-    postBridge({ type: "plannotator-bridge-set-vim-mode", enabled: false });
     postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
     const p = document.querySelector("p")!;
     const range = document.createRange();
@@ -2566,7 +1944,6 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
 
   test("hit-testing for new selections yields placed markers to reach the page beneath", async () => {
     document.body.innerHTML = '<p id="beneath">Beneath text</p><div data-testid="hit">H</div>';
-    postBridge({ type: "plannotator-bridge-set-vim-mode", enabled: false });
     // Materialize the overlay host + a marker.
     postBridge({
       type: "plannotator-bridge-find-and-mark",
@@ -3285,7 +2662,6 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
 
   test("clicking a committed highlight selects its annotation (M5 click-to-select)", async () => {
     document.body.innerHTML = "<p>big highlight target</p><p>small nested note</p>";
-    postBridge({ type: "plannotator-bridge-set-vim-mode", enabled: false });
     postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
     const originalGetClientRects = Range.prototype.getClientRects;
     const originalBodyRect = document.body.getBoundingClientRect;
@@ -3559,7 +2935,6 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
 
   test("pinpoint hover over a placed marker advertises the marker, not the element beneath (m6)", async () => {
     document.body.innerHTML = '<p id="under">Beneath paragraph</p><div id="m6-t">Marked</div>';
-    postBridge({ type: "plannotator-bridge-set-vim-mode", enabled: false });
     postBridge({
       type: "plannotator-bridge-find-and-mark",
       id: "hover-ann",

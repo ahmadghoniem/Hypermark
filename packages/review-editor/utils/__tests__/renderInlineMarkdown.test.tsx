@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { renderInlineMarkdown } from "./renderInlineMarkdown";
+import { renderInlineMarkdown } from "../renderInlineMarkdown";
 
 const isElement = (node: unknown): node is { type: string; props: { children?: unknown } } =>
   typeof node === "object" && node !== null && "type" in node && "props" in node;

@@ -84,8 +84,7 @@ export interface ReviewState {
   ) => boolean;
   onAddAnnotation: (type: CodeAnnotationType, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel, decorations?: ConventionalDecoration[], tokenMeta?: TokenAnnotationMeta) => void;
   onAddAnnotationForFile: (filePath: string, type: CodeAnnotationType, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel, decorations?: ConventionalDecoration[], tokenMeta?: TokenAnnotationMeta) => void;
-  /** EXPERIMENTAL edit-to-suggestion flag (cookie setting, default OFF). Only
-   * the plain all-files panel consumes it — Guided Review surfaces stay off. */
+  /** EXPERIMENTAL edit-to-suggestion flag (cookie setting, default OFF). */
   editSuggestionsEnabled: boolean;
   /** Sink for suggestions derived from a completed edit session (one hunk per
    * contiguous changed region; becomes normal suggestion annotations). */
@@ -153,24 +152,11 @@ export interface ReviewState {
   canStagePath?: (filePath: string) => boolean;
   /** Worktree path parsed from the live diffType when it's a
    *  `worktree:<path>:<subType>` string; null for the main tree and PR mode.
-   *  Feeds jobMatchesReviewContext's third argument so guide/tour context
+   *  Feeds jobMatchesReviewContext's third argument so context
    *  matching is worktree-aware (populated from App.tsx's
    *  activeWorktreePath memo — the same parse that drives the sections/tree
    *  UI, so context matching aligns with what's on screen). */
   currentWorktreePath?: string | null;
-  /** Guide-mode reveal channel: set (with a fresh token) when a jump —
-   *  sidebar annotation click, AI line citation, or a chapter file chip —
-   *  targets a file while the guide takeover is open. The containing chapter
-   *  card opens and its section CodeView expands + scrolls to the virtualized
-   *  file item. Cleared when the guide closes so a reopen doesn't replay the
-   *  last reveal. */
-  guideRevealFile?: { path: string; token: number } | null;
-  /** Sets guideRevealFile with a fresh token. Entry point for jumps that
-   *  originate INSIDE the guide (section file chips) so they get the same
-   *  expand-focus-scroll treatment as the sidebar paths above — a direct
-   *  scrollIntoView would land on a bare header when the target diff is
-   *  collapsed (marked viewed). */
-  onGuideRevealFile?: (filePath: string) => void;
   stageError: string | null;
 
   // Search
@@ -245,12 +231,6 @@ export interface ReviewState {
   openCallFlowPanel: () => void;
   /** Opt-in runtime install controller backing the Dock's install funnel. */
   callFlowInstall: CallFlowInstallController;
-
-  // Tour
-  openTourPanel: (jobId: string) => void;
-
-  // Guide — optional because not every host wires a guide takeover surface.
-  openGuide?: (jobId: string) => void;
 
   // Code navigation
   onCodeNavRequest?: (request: import('@plannotator/shared/code-nav').CodeNavRequest) => void;

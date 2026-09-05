@@ -2,7 +2,7 @@
  * Codex Model Catalog
  *
  * Single source of truth for the Codex models offered by the launch panels
- * (AgentsTab + GuideEmptyState) and their per-model reasoning efforts.
+ * (AgentsTab) and their per-model reasoning efforts.
  * Aligned with the Codex CLI's own model catalog (codex-cli 0.144): each
  * entry carries the efforts that model actually accepts plus the CLI's
  * default effort for it, so the UI never offers (or launches) an effort the

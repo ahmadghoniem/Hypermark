@@ -32,14 +32,6 @@ export type AgentLaunchParams = {
   thinking?: string;
   fastMode?: boolean;
   reviewProfileId?: string;
-  /** Launches a guide-repair job against a failed guide job's captured output
-   *  (see GuideEmptyState's failure-recovery panel). The server resolves a
-   *  schema-capable engine and starts a new, normal guide job rather than
-   *  mutating the failed one in place. */
-  repairOf?: string;
-  /** Reviewer-supplied extra instructions (#1265), appended to the Guided
-   *  Review organizer prompt. Guide launches only; other providers ignore it. */
-  instructions?: string;
 };
 
 /** Does a job belong to the given review context? Jobs launched against a PR

@@ -1,6 +1,6 @@
 ---
 name: plannotator
-description: "Reference for using the Plannotator CLI: plan review, code review, annotating files, URLs, folders, and running local apps, annotating the last assistant message, browsing archived plan decisions, and exporting or sharing Guided Reviews. Invoke when asked to use Plannotator for anything not covered by a more specific plannotator-* skill."
+description: "Reference for using the Plannotator CLI: plan review, code review, annotating files, URLs, folders, and running local apps, annotating the last assistant message, and browsing archived plan decisions. Invoke when asked to use Plannotator for anything not covered by a more specific plannotator-* skill."
 ---
 
 # Plannotator CLI Reference
@@ -23,7 +23,6 @@ This skill is the knowledge layer. The `plannotator-review`, `plannotator-annota
 | Pick a file to annotate from a folder | `plannotator annotate <folder/>` |
 | Annotate your latest assistant message | `plannotator last` |
 | Browse past plan decisions | `plannotator archive` |
-| Export or share a Guided Review | `plannotator guide export` / `plannotator guide share` |
 | Reopen or list live sessions | `plannotator sessions` |
 
 ## Session model
@@ -123,24 +122,6 @@ plannotator archive
 
 Opens a read-only browser over saved plan decisions (approved/denied badges) from the Plannotator data directory. No feedback comes back; the session ends when the user clicks Done.
 
-## plannotator guide
-
-```bash
-plannotator guide list
-plannotator guide export --id <savedGuideId> [--out <file.html>]
-plannotator guide export --guide <guide.json> --patch <diff.patch> [--out <file.html>]
-plannotator guide export --snapshot <snapshot.json> [--out <file.html>]
-plannotator guide share --id <savedGuideId> [--public] [--ttl <7d|24h|30m|3600>] [--json]
-plannotator guide unshare <id> --token <deleteToken>
-```
-
-Guided Reviews are AI-generated walkthroughs of a diff, produced inside the code review UI. The CLI works with saved ones:
-
-- `list` shows guides Plannotator has persisted for the current repo.
-- `export` writes one portable, self-contained HTML file (the viewer loads from guides.show). `--guide` + `--patch` exports a guide you authored yourself against a unified diff (`--patch -` reads stdin; validation is strict and names any file the guide references that the patch lacks). `--out -` writes to stdout. `--viewer-url` overrides the pinned viewer base.
-- `share` uploads the guide and prints a link. Encrypted by default: the key lives only in the URL fragment and the host stores ciphertext. `--public` stores it unencrypted so chat apps can unfurl a preview. `--ttl` sets an expiry; otherwise the link stays until `unshare`. A saved guide records its link, and a second `share --id` refuses rather than orphaning the first link's delete token.
-- `unshare <id> --token <t>` removes a link using the delete token printed at share time.
-
 ## plannotator sessions
 
 ```bash
@@ -170,7 +151,7 @@ plannotator improve-context
 | `PLANNOTATOR_PORT` | Fix the port instead of a random one. |
 | `PLANNOTATOR_ORIGIN` | Override agent-origin detection (`claude-code`, `codex`, `opencode`, `pi`, `oh-my-pi`, `amp`, `droid`, `copilot-cli`, `gemini-cli`, `kiro-cli`). Set it when launching Plannotator from a wrapper the detection cannot see through. |
 | `PLANNOTATOR_AI=disabled` | Disable Ask AI and agent-launched review surfaces in the UI. |
-| `PLANNOTATOR_SHARE=disabled` | Disable URL sharing, including guide share links. |
+| `PLANNOTATOR_SHARE=disabled` | Disable URL sharing. |
 | `PLANNOTATOR_DATA_DIR` | Move the data directory (default `~/.plannotator`): plans, history, drafts, config. |
 | `PLANNOTATOR_BROWSER` | Open sessions in a specific browser. |
 

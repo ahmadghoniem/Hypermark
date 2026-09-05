@@ -36,7 +36,6 @@ const hasDom = typeof document !== "undefined";
 
 if (hasDom) {
   document.cookie = "plannotator-look-feel-announcement-seen=2; path=/";
-  document.cookie = "plannotator-vim-mode-announcement-seen=2; path=/";
   document.cookie = "plannotator-plan-ai-announcement-seen=1; path=/";
 }
 
@@ -55,7 +54,6 @@ const memoryBackend: StorageBackend = {
 
 function seedAnnouncementsSeen(): void {
   memory.set("plannotator-look-feel-announcement-seen", "2");
-  memory.set("plannotator-vim-mode-announcement-seen", "2");
   memory.set("plannotator-plan-ai-announcement-seen", "1");
 }
 
