@@ -559,7 +559,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   // theme pair in step with the UI theme.
   const workerPoolReady = useIsWorkerPoolReadyOrDisabled();
   useWorkerPoolThemeSync(pierreTheme.syntaxTheme);
-  const viewerRef = useRef<CodeViewHandle<DiffAnnotationMetadata> | null>(null);
+  const viewerRef = useRef<CodeViewHandle<DiffAnnotationMetadata, undefined> | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   // State mirror of the scroll container so the leading-content portal can
   // mount once CodeView has rendered it (a plain ref can't trigger that).
@@ -2318,7 +2318,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     return Number.isFinite(px) && px > 0 ? Math.round(px * 1.5) : undefined;
   }, [fontSize]);
 
-  const options = useMemo<CodeViewOptions<DiffAnnotationMetadata>>(
+  const options = useMemo<CodeViewOptions<DiffAnnotationMetadata, undefined>>(
     () => ({
       themeType: pierreTheme.type,
       unsafeCSS: pierreTheme.css,

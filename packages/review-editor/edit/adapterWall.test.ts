@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, sep } from 'node:path';
 
 /**
  * Adapter-wall invariant: every reference to Pierre's experimental
@@ -29,7 +29,10 @@ describe('pierre edit adapter wall', () => {
     const offenders: string[] = [];
     for (const root of SCAN_ROOTS) {
       for (const file of walk(join(REPO_ROOT, root))) {
-        const rel = relative(REPO_ROOT, file);
+        // Normalized: relative() yields backslashes on Windows, so a raw
+        // comparison against ALLOWED never matched and the adapter reported
+        // itself as an offender.
+        const rel = relative(REPO_ROOT, file).split(sep).join('/');
         if (rel === ALLOWED || rel.endsWith('adapterWall.test.ts')) continue;
         const content = readFileSync(file, 'utf8');
         if (content.includes('@pierre/diffs/edit')) offenders.push(rel);

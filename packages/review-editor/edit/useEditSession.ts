@@ -3,7 +3,7 @@ import type React from 'react';
 import { processFile } from '@pierre/diffs';
 import type { CodeViewItem, FileDiffMetadata } from '@pierre/diffs';
 import { useStableCallback } from '@pierre/diffs/react';
-import type { CodeViewHandle, CreateEditor } from '@pierre/diffs/react';
+import type { CodeViewHandle, EditorFactory } from '@pierre/diffs/react';
 import type { CodeAnnotation, DiffAnnotationMetadata } from '@plannotator/ui/types';
 import type { DiffFile } from '../types';
 import { isContentConsistentWithPatch } from '../utils/patchConsistency';
@@ -98,7 +98,7 @@ export interface EditSelectionComment {
 
 interface UseEditSessionParams {
   enabled: boolean;
-  viewerRef: React.RefObject<CodeViewHandle<DiffAnnotationMetadata> | null>;
+  viewerRef: React.RefObject<CodeViewHandle<DiffAnnotationMetadata, undefined> | null>;
   itemIdToFileRef: React.RefObject<Map<string, DiffFile>>;
   fileSetKeyRef: React.RefObject<string>;
   reviewBaseRef: React.RefObject<string | undefined>;
@@ -175,9 +175,9 @@ export interface EditSessionApi {
   /** EditProvider factory. Returns undefined until the lazy editor chunk has
    * loaded — a defensive guard the wired flow never hits (startEdit awaits
    * the chunk before any item enters edit mode; the React wrapper would
-   * throw on an undefined return). Upstream's React `CreateEditor` type does
+   * throw on an undefined return). Upstream's React `EditorFactory` type does
    * not model the undefined return, hence the cast where this is produced. */
-  createEditor: CreateEditor<DiffAnnotationMetadata>;
+  createEditor: EditorFactory<DiffAnnotationMetadata, undefined>;
   /** Editor construction options (markers wired via onAttach). Structural
    * subset of Pierre's EditorOptions so the generic variance stays out of
    * app code. */
@@ -587,11 +587,11 @@ export function useEditSession(params: UseEditSessionParams): EditSessionApi {
   // Cast rationale: our factory returns undefined before the lazy chunk has
   // loaded — a guard the wired flow never hits (startEdit awaits the chunk
   // before flipping edit on; the React wrapper throws on an undefined
-  // return). Upstream's React `CreateEditor` type does not model the
+  // return). Upstream's React `EditorFactory` type does not model the
   // undefined return, hence the cast.
   const createEditor = useStableCallback((options: PierreEditorOptions) =>
     createPierreEditor(options),
-  ) as unknown as CreateEditor<DiffAnnotationMetadata>;
+  ) as unknown as EditorFactory<DiffAnnotationMetadata, undefined>;
 
   /** Marker projection is intentionally disabled: wavy underlines read as
    * errors in every editor's visual language, which misrepresents comments.
@@ -605,7 +605,7 @@ export function useEditSession(params: UseEditSessionParams): EditSessionApi {
     const editor = sessionRef.current?.editor;
     if (!editor) return;
     try {
-      const sel = editor.getState().selections?.at(-1);
+      const sel = editor.getViewState().selections?.at(-1);
       if (!sel) return;
       editor.setSelections([{ start: sel.end, end: sel.end, direction: 'none' }]);
     } catch {

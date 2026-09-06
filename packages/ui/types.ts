@@ -325,7 +325,8 @@ export interface DiffAnnotationMetadata {
 export interface SelectedLineRange {
   start: number;
   end: number;
-  side: 'deletions' | 'additions';
+  /** Optional to match @pierre/diffs, which omits it for single-side views. */
+  side?: 'deletions' | 'additions';
   endSide?: 'deletions' | 'additions';
 }
 

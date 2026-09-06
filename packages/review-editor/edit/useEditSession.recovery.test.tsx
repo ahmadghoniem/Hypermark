@@ -118,7 +118,7 @@ describe.if(hasDom)('useEditSession file-set change with a dirty session (DOM)',
     const handle = {
       getItem: (id: string) => (id === item.id ? item : undefined),
       updateItem: () => {},
-    } as unknown as CodeViewHandle<DiffAnnotationMetadata>;
+    } as unknown as CodeViewHandle<DiffAnnotationMetadata, undefined>;
     const file: DiffFile = {
       path: 'src/calc.ts',
       status: 'modified',
@@ -132,7 +132,7 @@ describe.if(hasDom)('useEditSession file-set change with a dirty session (DOM)',
     let api: EditSessionApi | null = null;
 
     function HookHost() {
-      const viewerRef = useRef<CodeViewHandle<DiffAnnotationMetadata> | null>(handle);
+      const viewerRef = useRef<CodeViewHandle<DiffAnnotationMetadata, undefined> | null>(handle);
       const itemIdToFileRef = useRef(new Map([[item.id, file]]));
       const reviewBaseRef = useRef<string | undefined>(undefined);
       const reviewSnapshotIdRef = useRef<string | undefined>(undefined);

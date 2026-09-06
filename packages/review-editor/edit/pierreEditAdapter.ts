@@ -10,7 +10,7 @@
  * from `@pierre/diffs/edit` directly. (`packages/review-editor/edit/
  * adapterWall.test.ts` enforces this.)
  *
- * Notes pinned to @pierre/diffs 1.3.1:
+ * Notes pinned to @pierre/diffs 1.4.1:
  * - The edit entry exports only `Editor` and `TextDocument`; sessions are
  *   driven by CodeView via `item.edit = true` + an `EditProvider` factory.
  * - `persistState` is deliberately NOT used (upstream bug, open PR #1048;
@@ -24,8 +24,12 @@ type EditModule = typeof import('@pierre/diffs/edit');
 
 /** The concrete editor class instance (structural — never import the class type directly elsewhere). */
 export type PierreEditorInstance = InstanceType<EditModule['Editor']>;
-/** Constructor options for the editor (Pierre's `EditorOptions`). */
-export type PierreEditorOptions = NonNullable<ConstructorParameters<EditModule['Editor']>[0]>;
+/** Constructor options for the editor (Pierre's `EditorOptions`).
+ * Derived from the resolved instance's own `setOptions` rather than from
+ * `ConstructorParameters`: since 1.4.x `Editor` is generic over
+ * `<EType, LAnnotation, Caret>`, and reading the constructor directly
+ * resolves those to `unknown` and erases the option fields. */
+export type PierreEditorOptions = NonNullable<Parameters<PierreEditorInstance['setOptions']>[0]>;
 /** Pierre's `Marker` type, re-derived structurally (it has no export path). */
 export type PierreEditorMarker = Parameters<PierreEditorInstance['setMarkers']>[0][number];
 /** Pierre's `SelectionActionContext`, re-derived structurally from the
