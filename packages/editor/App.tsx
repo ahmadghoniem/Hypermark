@@ -21,8 +21,6 @@ import { Viewer, ViewerHandle } from '@plannotator/ui/components/Viewer';
 import { HtmlViewer } from '@plannotator/ui/components/html-viewer';
 import { MarkdownEditor, type MarkdownEditorHandle } from '@plannotator/ui/components/MarkdownEditor';
 import { AnnotationPanel } from '@plannotator/ui/components/AnnotationPanel';
-import { DocumentAIChatPanel } from '@plannotator/ui/components/ai/DocumentAIChatPanel';
-import { SparklesIcon } from '@plannotator/ui/components/SparklesIcon';
 import { ConfirmDialog } from '@plannotator/ui/components/ConfirmDialog';
 import { Annotation, AnnotationType, Block, EditorMode, type CodeAnnotation, type InputMethod, type ImageAttachment, type ActionsLabelMode } from '@plannotator/ui/types';
 import { ThemeProvider } from '@plannotator/ui/components/ThemeProvider';
@@ -30,7 +28,6 @@ import { Tooltip, TooltipProvider } from '@plannotator/ui/components/Tooltip';
 import { AnnotationToolstrip } from '@plannotator/ui/components/AnnotationToolstrip';
 import { StickyHeaderLane } from '@plannotator/ui/components/StickyHeaderLane';
 import { TaterSpriteRunning } from '@plannotator/ui/components/TaterSpriteRunning';
-import { TaterSpritePullup } from '@plannotator/ui/components/TaterSpritePullup';
 import { useAgents } from '@plannotator/ui/hooks/useAgents';
 import { useActiveSection } from '@plannotator/ui/hooks/useActiveSection';
 import { storage } from '@plannotator/ui/utils/storage';
@@ -42,11 +39,7 @@ import { useUpdateCheck } from '@plannotator/ui/hooks/useUpdateCheck';
 import { LookAndFeelAnnouncementDialog } from '@plannotator/ui/components/LookAndFeelAnnouncementDialog';
 import { getAgentSwitchSettings, getEffectiveAgentName } from '@plannotator/ui/utils/agentSwitch';
 import { getPlanSaveSettings } from '@plannotator/ui/utils/planSave';
-import { type AIProviderOption } from '@plannotator/ui/utils/aiProvider';
-import { useAIProviderConfig } from '@plannotator/ui/hooks/useAIProviderConfig';
-import { useAIProviderActivation } from '@plannotator/ui/hooks/useAIProviderActivation';
 import { markLookAndFeelChoiceResolved, needsLookAndFeelAnnouncement } from '@plannotator/ui/utils/lookAndFeelAnnouncement';
-import { buildDefaultPrompt, useAIChat } from '@plannotator/ui/hooks/useAIChat';
 import { getUIPreferences, type UIPreferences, type PlanWidth } from '@plannotator/ui/utils/uiPreferences';
 import { getEditorMode, saveEditorMode } from '@plannotator/ui/utils/editorMode';
 import { getInputMethod, refreshInputMethodStamp, saveInputMethod } from '@plannotator/ui/utils/inputMethod';
@@ -99,8 +92,6 @@ import {
   type GoalSetupSurfaceHandle,
 } from '@plannotator/ui/components/goal-setup/GoalSetupSurface';
 import type { GoalSetupBundle } from '@plannotator/shared/goal-setup';
-import type { AIContext } from '@plannotator/ai';
-import type { CommentAskAIContext } from '@plannotator/ui/components/CommentPopover';
 import {
   hasSourceSaveConflictSnapshot,
   isSourceSaveFilePath,
@@ -186,7 +177,6 @@ import {
 } from './agentTerminalLayout';
 import {
   buildAgentTerminalDeliveryRecord,
-  buildTerminalAskPrompt,
   isMatchingAgentTerminalDelivery,
   shouldSendAgentTerminalFeedback,
   type AgentTerminalDeliveryRecord,
@@ -329,7 +319,7 @@ const feedbackLossDescription = (annotationCount: number, hasDirectEdits: boolea
 type SourceFileEditWarningAction = 'send-feedback' | 'approve' | 'close';
 type CompactPlanTransientSurface = Extract<
   CompactPlanSurface,
-  { readonly type: 'annotations' | 'ai' | 'review' }
+  { readonly type: 'annotations' | 'review' }
 >['type'];
 
 interface HistorySelection {
@@ -445,7 +435,6 @@ const App: React.FC = () => {
   const submitPrimaryDecisionRef = useRef<() => void>(() => {});
   const [agentWarningMessage, setAgentWarningMessage] = useState('');
   const [isPanelOpen, setIsPanelOpen] = useState(() => window.innerWidth >= 768);
-  const [rightSidebarTab, setRightSidebarTab] = useState<'annotations' | 'ai'>('annotations');
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<EditorMode>(getEditorMode);
   const [inputMethod, setInputMethod] = useState<InputMethod>(getInputMethod);
@@ -476,7 +465,6 @@ const App: React.FC = () => {
     if (isApiMode) primeSkillCatalog();
   }, [isApiMode]);
   const [origin, setOrigin] = useState<Origin | null>(null);
-  const [gitUser, setGitUser] = useState<string | undefined>();
   const [isWSL, setIsWSL] = useState(false);
   const updateInfo = useUpdateCheck();
   const updateToastShown = useRef(false);
@@ -617,26 +605,6 @@ const App: React.FC = () => {
   const [planDiffMode, setPlanDiffMode] = useState<PlanDiffMode>('clean');
   const [previousPlan, setPreviousPlan] = useState<string | null>(null);
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
-  const [aiSessionEnabled, setAISessionEnabled] = useState(false);
-  const [aiAvailable, setAiAvailable] = useState(false);
-  const [aiProviders, setAiProviders] = useState<Array<{ id: string; name: string; capabilities?: Record<string, boolean>; models?: Array<{ id: string; label: string; default?: boolean }> }>>([]);
-  const [aiDefaultProvider, setAiDefaultProvider] = useState<string | null>(null);
-  const { aiConfig, applyConfigChange } = useAIProviderConfig({
-    providers: aiProviders,
-    defaultProvider: aiDefaultProvider,
-    available: aiAvailable,
-    origin,
-  });
-  // Explicit provider activation: runs deferred (Codex) model discovery on a
-  // user gesture and merges the refreshed metadata, so the model picker and
-  // reasoning-effort control populate past the static fallback. Never called
-  // on load — that would reintroduce the eager `codex app-server` spawn.
-  const activateAIProvider = useAIProviderActivation({
-    onCapabilities: (providers, defaultProvider) => {
-      setAiProviders(providers);
-      setAiDefaultProvider(defaultProvider);
-    },
-  });
   const [showLookAndFeelAnnouncement, setShowLookAndFeelAnnouncement] = useState(needsLookAndFeelAnnouncement);
   const isMobile = useIsMobile();
   const isBelowAgentTerminalBreakpoint = useIsMobile(AGENT_TERMINAL_LG_BREAKPOINT);
@@ -655,16 +623,14 @@ const App: React.FC = () => {
   const isCompactContentsSurfaceOpen =
     isCompactNavigatorOpen && compactPlanSurface.type === 'navigator' && compactPlanSurface.tab === 'toc';
   const isCompactAnnotationsOpen = isCompactTouchLayout && compactPlanSurface.type === 'annotations';
-  const isCompactAIOpen = isCompactTouchLayout && compactPlanSurface.type === 'ai';
   const isCompactReviewOpen = isCompactTouchLayout && compactPlanSurface.type === 'review';
   const effectivePanelOpen = shouldPresentDesktopPlanPanel(isCompactTouchLayout, isPanelOpen);
 
   // Resolved high, not at render time, because `isRightPanelVisible` is what
-  // decides whether the right-hand annotations/AI surface is actually on screen
-  // — and consumers of that fact (notably the Ask AI model-discovery effect)
-  // read it well before the JSX. Computing it late let those consumers fall
-  // back to `effectivePanelOpen`, which stays true under a right-docked
-  // terminal and so reported an invisible surface as open.
+  // decides whether the right-hand annotations surface is actually on screen,
+  // and consumers of that fact read it well before the JSX. Computing it late
+  // let those consumers fall back to `effectivePanelOpen`, which stays true
+  // under a right-docked terminal and so reported an invisible surface as open.
   const showAgentTerminalControls =
     annotateMode &&
     annotateSource !== 'message' &&
@@ -943,14 +909,14 @@ const App: React.FC = () => {
    * RIGHT-SLOT INVARIANT (see also getAgentTerminalLayout in
    * ./agentTerminalLayout, and the panel render site below).
    *
-   * A right-docked Agent TUI and the annotations/AI panel compete for the same
+   * A right-docked Agent TUI and the annotations panel compete for the same
    * slot, and the coordination between them is deliberately ASYMMETRIC:
    *
-   *  - Panel wins over terminal, destructively. Asking for annotations or Ask
-   *    AI is a request for that specific surface, so the terminal gives up the
-   *    slot: `isAgentTerminalOpen` goes false. Nothing is lost — a running
-   *    agent stays mounted off-layout, so reopening returns to the same
-   *    session rather than a fresh PTY.
+   *  - Panel wins over terminal, destructively. Asking for annotations is a
+   *    request for that specific surface, so the terminal gives up the slot:
+   *    `isAgentTerminalOpen` goes false. Nothing is lost — a running agent
+   *    stays mounted off-layout, so reopening returns to the same session
+   *    rather than a fresh PTY.
    *  - Terminal wins over panel, non-destructively. Opening the terminal only
    *    suppresses the panel visually (`isRightPanelVisible`); `isPanelOpen`
    *    and the selected tab are left alone, so dismissing the terminal
@@ -961,9 +927,8 @@ const App: React.FC = () => {
    * from an annotation pass, and clearing the panel would make every detour
    * cost the user their place. The asymmetry is the UX, not an oversight.
    */
-  const replaceRightAgentTerminalWithPanel = useCallback((tab: 'annotations' | 'ai') => {
+  const replaceRightAgentTerminalWithPanel = useCallback(() => {
     hideAgentTerminal();
-    setRightSidebarTab(tab);
     setIsPanelOpen(true);
   }, [hideAgentTerminal]);
 
@@ -974,18 +939,16 @@ const App: React.FC = () => {
     }
     if (wideModeType !== null) {
       exitWideMode({ restore: false, panelOpen: true });
-      setRightSidebarTab('annotations');
       return;
     }
     // Right-slot invariant: only a VISIBLE right-docked terminal is holding the
     // slot. A collapsed-but-running one is off-layout and must not be evicted.
     if (agentTerminalPlacement === 'right' && isAgentTerminalVisible) {
-      replaceRightAgentTerminalWithPanel('annotations');
+      replaceRightAgentTerminalWithPanel();
       return;
     }
-    setRightSidebarTab('annotations');
-    setIsPanelOpen(prev => rightSidebarTab === 'annotations' ? !prev : true);
-  }, [agentTerminalPlacement, exitWideMode, isAgentTerminalVisible, isCompactTouchLayout, openCompactPlanSurface, replaceRightAgentTerminalWithPanel, rightSidebarTab, wideModeType]);
+    setIsPanelOpen(prev => !prev);
+  }, [agentTerminalPlacement, exitWideMode, isAgentTerminalVisible, isCompactTouchLayout, openCompactPlanSurface, replaceRightAgentTerminalWithPanel, wideModeType]);
 
   const dismissLookAndFeelAnnouncement = useCallback(() => {
     // Persist even when the user accepts the displayed default without first
@@ -994,25 +957,6 @@ const App: React.FC = () => {
     markLookAndFeelChoiceResolved();
     setShowLookAndFeelAnnouncement(false);
   }, [gridEnabled]);
-
-  const handleAIChatToggle = useCallback(() => {
-    if (isCompactTouchLayout) {
-      openCompactPlanSurface('ai');
-      return;
-    }
-    if (wideModeType !== null) {
-      exitWideMode({ restore: false, panelOpen: true });
-      setRightSidebarTab('ai');
-      return;
-    }
-    // Right-slot invariant: see replaceRightAgentTerminalWithPanel above.
-    if (agentTerminalPlacement === 'right' && isAgentTerminalVisible) {
-      replaceRightAgentTerminalWithPanel('ai');
-      return;
-    }
-    setRightSidebarTab('ai');
-    setIsPanelOpen(prev => rightSidebarTab === 'ai' ? !prev : true);
-  }, [agentTerminalPlacement, exitWideMode, isAgentTerminalVisible, isCompactTouchLayout, openCompactPlanSurface, replaceRightAgentTerminalWithPanel, rightSidebarTab, wideModeType]);
 
   /**
    * Record the durable placement. Writing through ConfigStore is the whole
@@ -2223,7 +2167,6 @@ const App: React.FC = () => {
         editedMarkdownRef.current = null;
         setEditStats(sourceEdited !== null ? computeEditStats(activeEditableDocument.diskBaseline, sourceEdited) : null);
         if (sourceEdited !== null && window.innerWidth >= 768) {
-          setRightSidebarTab('annotations');
           setIsPanelOpen(true);
         }
       } else {
@@ -2232,7 +2175,6 @@ const App: React.FC = () => {
         setEditStats(base !== null && normalizedEdited !== null ? computeEditStats(base, normalizedEdited) : null);
         // Surface the Direct Edits card so the user sees where their changes went.
         if (base !== null && normalizedEdited !== null && window.innerWidth >= 768) {
-          setRightSidebarTab('annotations');
           setIsPanelOpen(true);
         }
       }
@@ -2371,7 +2313,6 @@ const App: React.FC = () => {
     if (cleanSavedFileChanges.length > 0) {
       editableDocuments.restoreSavedFileChanges(cleanSavedFileChanges);
       if (window.innerWidth >= 768) {
-        setRightSidebarTab('annotations');
         setIsPanelOpen(true);
       }
     }
@@ -2404,7 +2345,6 @@ const App: React.FC = () => {
             if (restoredDocument.currentText !== restoredDocument.diskBaseline) {
               setEditStats(computeEditStats(restoredDocument.diskBaseline, restoredDocument.currentText));
               if (window.innerWidth >= 768) {
-                setRightSidebarTab('annotations');
                 setIsPanelOpen(true);
               }
             }
@@ -2422,7 +2362,6 @@ const App: React.FC = () => {
           if (activeRestoredDocument.currentText !== activeRestoredDocument.diskBaseline) {
             setEditStats(computeEditStats(activeRestoredDocument.diskBaseline, activeRestoredDocument.currentText));
             if (window.innerWidth >= 768) {
-              setRightSidebarTab('annotations');
               setIsPanelOpen(true);
             }
           }
@@ -2444,7 +2383,6 @@ const App: React.FC = () => {
       setEditorDiffersFromBaseline(false);
       setEditStats(computeEditStats(base, edited));
       if (window.innerWidth >= 768) {
-        setRightSidebarTab('annotations');
         setIsPanelOpen(true);
       }
       const remapped = applyEditedDocument(edited, restored);
@@ -2959,9 +2897,6 @@ const App: React.FC = () => {
         // Session-level force-markdown preference (--markdown); threaded into folder/linked
         // /api/doc requests so on-demand HTML files convert too.
         setConvertHtml(data.convertHtml ?? false);
-        setAISessionEnabled(data.mode !== 'archive' && data.mode !== 'goal-setup');
-        // gitUser drives the "Use git name" button in Settings; stays undefined (button hidden) when unavailable
-        setGitUser(data.serverConfig?.gitUser);
         if (data.mode === 'goal-setup' && data.goalSetup) {
           setGoalSetupBundle(data.goalSetup);
           setMarkdown('');
@@ -3071,7 +3006,6 @@ const App: React.FC = () => {
       .catch(() => {
         // Not in API mode - use default content
         setIsApiMode(false);
-        setAISessionEnabled(false);
         setAgentTerminalCapability(null);
         // Demo mode still exercises edit mode; baseline is the demo plan.
         originalMarkdownRef.current = DEMO_PLAN_CONTENT;
@@ -3093,40 +3027,6 @@ const App: React.FC = () => {
     const stream = openAnnotateClientLeaseStream(EventSource);
     return () => stream.close();
   }, [annotateMode, submitted, clientLease]);
-
-  useEffect(() => {
-    if (!aiSessionEnabled || !isApiMode) {
-      setAiAvailable(false);
-      setAiProviders([]);
-      return;
-    }
-
-    let cancelled = false;
-    fetch('/api/ai/capabilities')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (cancelled) return;
-        if (data?.available) {
-          const providers = data.providers ?? [];
-          setAiAvailable(true);
-          setAiProviders(providers);
-          // Provider/model is resolved by useAIProviderConfig's effect once these
-          // states land — just record the server default for it to use.
-          setAiDefaultProvider(data.defaultProvider ?? null);
-        } else {
-          setAiAvailable(false);
-          setAiProviders([]);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setAiAvailable(false);
-          setAiProviders([]);
-        }
-      });
-
-    return () => { cancelled = true; };
-  }, [aiSessionEnabled, isApiMode, origin]);
 
   // Global paste listener for image attachments
   useEffect(() => {
@@ -3579,7 +3479,7 @@ const App: React.FC = () => {
       if (document.querySelector('[data-plannotator-confirm-dialog="true"]')) return;
 
       // Don't intercept if any modal is open
-      if (showExport || showImport || showFeedbackPrompt || showClaudeCodeWarning ||
+      if (showFeedbackPrompt || showClaudeCodeWarning ||
           showSourceFileEditWarning ||
           showExitWarning || showAgentWarning || showPermissionModeSetup || pendingPasteImage) return;
 
@@ -3647,7 +3547,7 @@ const App: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-    showExport, showImport, showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning, showAgentWarning,
+    showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning, showAgentWarning,
     showPermissionModeSetup, pendingPasteImage,
     submitted, isSubmitting, isExiting, goalSetupAction.isSubmitting, isApiMode, documentReadOnly, isEditingMarkdown, linkedDocHook.isActive, annotations.length, codeAnnotations.length, externalAnnotations.length, annotateMode,
     hasFeedbackToSend, goalSetupMode, goalSetupAction.canSubmit, isAgentTerminalReady,
@@ -3928,7 +3828,6 @@ const App: React.FC = () => {
   const webmcpActivity = useWebMcpActivity();
   const webmcp = useDocumentWebMcp({
     isApiMode,
-    isSharedSession,
     goalSetupMode,
     annotateMode,
     annotateSource,
@@ -3977,17 +3876,6 @@ const App: React.FC = () => {
   });
   const agentHasComments = allAnnotations.some((a) => a.source === 'browser-agent');
 
-  const handleIdentityChange = useCallback((oldIdentity: string, newIdentity: string) => {
-    if (documentReadOnly) return;
-    annotationHistory.clear();
-    setAnnotations(prev => prev.map(ann =>
-      ann.author === oldIdentity ? { ...ann, author: newIdentity } : ann
-    ));
-    setCodeAnnotations(prev => prev.map(ann =>
-      ann.author === oldIdentity ? { ...ann, author: newIdentity } : ann
-    ));
-  }, [annotationHistory, documentReadOnly]);
-
   const handleAddGlobalAttachment = (image: ImageAttachment) => {
     if (documentReadOnly) return;
     setGlobalAttachments(prev => [...prev, image]);
@@ -4004,266 +3892,7 @@ const App: React.FC = () => {
     // This is just a placeholder for future custom logic
   };
 
-  const aiAnnotationsContext = useMemo(
-    () => hasAnyAnnotations ? annotationsOutput : undefined,
-    [annotationsOutput, hasAnyAnnotations],
-  );
-
-  const aiDocumentPath = linkedDocHook.isActive
-    ? linkedDocHook.filepath ?? 'linked document'
-    : sourceFilePath ?? (annotateSource === 'message' ? 'agent message' : annotateSource === 'folder' ? 'folder document' : 'plan');
-  const aiSourceInfo = linkedDocHook.isActive ? linkedDocHook.filepath ?? undefined : sourceInfo;
-  const aiSourceConverted = linkedDocHook.isActive
-    ? (linkedDocHook.getDocAnnotations().get(linkedDocHook.filepath ?? '')?.isConverted ?? false)
-    : sourceConverted;
-  // renderAs now tracks the active file (plan, linked doc, or folder file), so the AI
-  // sees the current surface's mode — raw HTML for an .html file, markdown otherwise.
-  const aiRenderAs = renderAs;
-  const aiDocumentMode = annotateMode || linkedDocHook.isActive;
-  const hasAIDocumentContext =
-    !aiDocumentMode ||
-    annotateSource !== 'folder' ||
-    linkedDocHook.isActive ||
-    !!sourceFilePath;
-
-  const aiContext = useMemo<AIContext | null>(() => {
-    if (!aiSessionEnabled || archive.archiveMode || goalSetupMode) return null;
-    if (aiDocumentMode && !hasAIDocumentContext) return null;
-
-    if (aiDocumentMode) {
-      return {
-        mode: 'annotate',
-        annotate: {
-          content: aiRenderAs === 'html' && rawHtml ? rawHtml : displayedMarkdown,
-          filePath: aiDocumentPath,
-          sourceInfo: aiSourceInfo,
-          sourceConverted: aiSourceConverted,
-          renderAs: aiRenderAs,
-          annotations: aiAnnotationsContext,
-        },
-      };
-    }
-
-    return {
-      mode: 'plan-review',
-      plan: {
-        plan: markdown,
-        previousPlan: previousPlan ?? undefined,
-        version: versionInfo?.version,
-        totalVersions: versionInfo?.totalVersions,
-        project: versionInfo?.project,
-        annotations: aiAnnotationsContext,
-      },
-    };
-  }, [
-    aiAnnotationsContext,
-    aiDocumentPath,
-    aiRenderAs,
-    aiSessionEnabled,
-    aiSourceConverted,
-    aiSourceInfo,
-    aiDocumentMode,
-    hasAIDocumentContext,
-    archive.archiveMode,
-    displayedMarkdown,
-    goalSetupMode,
-    markdown,
-    previousPlan,
-    rawHtml,
-    renderAs,
-    versionInfo,
-  ]);
-
-  const aiChat = useAIChat({
-    context: aiContext,
-    providerId: aiConfig.providerId,
-    model: aiConfig.model,
-    reasoningEffort: aiConfig.reasoningEffort,
-    threadTitle: aiDocumentMode ? 'Document chat' : 'Plan chat',
-  });
-  const {
-    messages: aiMessages,
-    isCreatingSession: aiIsCreatingSession,
-    isStreaming: aiIsStreaming,
-    permissionRequests: aiPermissionRequests,
-    respondToPermission: respondToAIPermission,
-    ask: askAI,
-    abort: abortAI,
-    resetSession: resetAISession,
-    resetThread: resetAIThread,
-    sessionId: aiSessionId,
-  } = aiChat;
-  const canUseAI = aiAvailable && aiContext !== null;
-  const canUseAskAI = canUseAI || isAgentTerminalReady;
-  const canUseDocumentAskAI = canUseAskAI;
-  const visibleAIMessages = isAgentTerminalReady ? [] : aiMessages;
-  const visibleAIProviders = useMemo<AIProviderOption[]>(
-    () => isAgentTerminalReady ? [{ id: 'agent-terminal', name: 'Agent terminal' }] : aiProviders,
-    [aiProviders, isAgentTerminalReady],
-  );
-  const visibleAIConfig = isAgentTerminalReady
-    ? { providerId: 'agent-terminal', model: null, reasoningEffort: null }
-    : aiConfig;
-
-  const terminalAskReadableFilePath = useMemo(() => {
-    if (linkedDocHook.isActive && linkedDocHook.filepath) return linkedDocHook.filepath;
-    if (sourceFilePath) return sourceFilePath;
-    if (fileBrowser.activeFile) return fileBrowser.activeFile;
-    return null;
-  }, [fileBrowser.activeFile, linkedDocHook.filepath, linkedDocHook.isActive, sourceFilePath]);
-
-  const buildAgentAskPrompt = useCallback((question: string, context?: CommentAskAIContext) => {
-    const scope = context ? {
-      kind: context.kind,
-      label: context.label,
-      text: context.text,
-      sourcePath: context.sourcePath ?? aiDocumentPath,
-    } : undefined;
-    const scopedQuestion = buildDefaultPrompt({
-      prompt: question,
-      scope,
-    });
-    return buildTerminalAskPrompt({
-      scopedQuestion,
-      documentPath: aiDocumentPath,
-      annotationsContext: aiAnnotationsContext,
-      readableFilePath: terminalAskReadableFilePath,
-      inlineDocument: terminalAskReadableFilePath
-        ? null
-        : {
-            label: aiRenderAs === 'html' ? 'Current document HTML' : 'Current document text',
-            content: aiRenderAs === 'html' && rawHtml ? rawHtml : displayedMarkdown,
-          },
-    });
-  }, [aiAnnotationsContext, aiDocumentPath, aiRenderAs, displayedMarkdown, rawHtml, terminalAskReadableFilePath]);
-
-  const aiDocumentKey = aiContext
-    ? `${aiDocumentMode ? 'document' : 'plan'}:${aiRenderAs}:${aiDocumentPath}:${versionInfo?.version ?? 'current'}`
-    : 'none';
-  const previousAIDocumentKeyRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!aiSessionEnabled) return;
-    if (previousAIDocumentKeyRef.current && previousAIDocumentKeyRef.current !== aiDocumentKey) {
-      resetAIThread();
-    }
-    previousAIDocumentKeyRef.current = aiDocumentKey;
-  }, [aiDocumentKey, aiSessionEnabled, resetAIThread]);
-
-  // Provider/model/effort selection logic lives in the shared hook above (incl.
-  // per-model reasoning effort); the app only composes the session reset (the
-  // hook can't own it — see the cycle note in useAIProviderConfig).
-  const handleAIConfigChange = useCallback((config: { providerId?: string | null; model?: string | null; reasoningEffort?: string | null }) => {
-    // Switching the picker to a provider is an explicit gesture — activate it
-    // so its deferred model discovery (Codex) refreshes the advertised list.
-    if (config.providerId) activateAIProvider(config.providerId);
-    applyConfigChange(config);
-    resetAISession();
-  }, [activateAIProvider, applyConfigChange, resetAISession]);
-
-  // Opening the Ask AI surface with a provider selected is the other explicit
-  // gesture that should surface the provider's real model list.
-  // isRightPanelVisible, not effectivePanelOpen: a right-docked Agent TUI
-  // suppresses the panel without closing it, and kicking off provider model
-  // discovery for a surface nobody can see is exactly the eager work this
-  // gesture-gated effect exists to avoid.
-  const aiSurfaceOpen = isCompactTouchLayout
-    ? compactPlanSurface.type === 'ai'
-    : isRightPanelVisible && rightSidebarTab === 'ai';
-  useEffect(() => {
-    if (!aiAvailable || !aiSurfaceOpen) return;
-    activateAIProvider(aiConfig.providerId);
-  }, [aiAvailable, aiSurfaceOpen, aiConfig.providerId, activateAIProvider]);
-
-  const openAIChat = useCallback(() => {
-    if (isCompactTouchLayout) {
-      openCompactPlanSurface('ai');
-      return;
-    }
-    if (wideModeType !== null) {
-      exitWideMode({ restore: false, panelOpen: true });
-    }
-    setRightSidebarTab('ai');
-    setIsPanelOpen(true);
-  }, [exitWideMode, isCompactTouchLayout, openCompactPlanSurface, wideModeType]);
-
-  const handleAskAI = useCallback((question: string, context?: CommentAskAIContext): boolean => {
-    if (isAgentTerminalReady) {
-      if (sendToAgentTerminal(buildAgentAskPrompt(question, context))) {
-        return true;
-      }
-      handleAgentTerminalReadyChange(false);
-      if (!canUseAI) {
-        toast.error('Agent terminal is not ready');
-        return false;
-      }
-    }
-
-    if (!canUseAI) {
-      toast.error('Ask AI is unavailable');
-      return false;
-    }
-    openAIChat();
-    askAI({
-      prompt: question,
-      scope: context ? {
-        kind: context.kind,
-        label: context.label,
-        text: context.text,
-        sourcePath: context.sourcePath ?? aiDocumentPath,
-      } : undefined,
-      contextUpdate: aiSessionId ? aiAnnotationsContext : undefined,
-    });
-    return true;
-  }, [
-    aiAnnotationsContext,
-    aiDocumentPath,
-    aiSessionId,
-    askAI,
-    buildAgentAskPrompt,
-    canUseAI,
-    handleAgentTerminalReadyChange,
-    isAgentTerminalReady,
-    openAIChat,
-    sendToAgentTerminal,
-  ]);
-
-  const handleAskGeneralAI = useCallback((question: string) => {
-    handleAskAI(question, { kind: 'general', label: aiDocumentMode ? 'Document' : 'Plan', sourcePath: aiDocumentPath });
-  }, [aiDocumentMode, aiDocumentPath, handleAskAI]);
-
-  // Bot callback config — read once from URL search params (?cb=&ct=)
-  // TODO: bot callbacks post shareUrl which doesn't include code-file annotations.
-  // If a user adds code comments and hits the callback button, those comments are silently dropped.
-  // Fix: either disable callbacks when codeAnnotations exist, or include annotationsOutput in the payload.
-  const callbackConfig = React.useMemo(() => getCallbackConfig(), []);
-
-  const callCallback = React.useCallback(async (action: CallbackAction) => {
-    if (!callbackConfig || isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      const callbackShareUrl = await ensureShareLink();
-      if (!callbackShareUrl) {
-        toast.error('Failed to create share link');
-        return;
-      }
-      const result = await executeCallback(action, callbackConfig, callbackShareUrl);
-      if (result) {
-        if (result.type === 'success') {
-          toast.success(result.message);
-          setSubmitted(action === CallbackAction.Approve ? 'approved' : 'denied');
-        } else {
-          toast.error(result.message);
-        }
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [callbackConfig, ensureShareLink, isSubmitting]);
-
-  const handleCallbackApprove = React.useCallback(() => callCallback(CallbackAction.Approve), [callCallback]);
-  const handleCallbackFeedback = React.useCallback(() => callCallback(CallbackAction.Feedback), [callCallback]);
-
-  // Quick-save handlers for export dropdown and keyboard shortcut
+  // Download handler for the options menu and the Mod+S shortcut
   const handleDownloadAnnotations = () => {
     const output = getCurrentFeedbackPayload();
     const blob = new Blob([output], { type: 'text/plain' });
@@ -4274,64 +3903,6 @@ const App: React.FC = () => {
     a.click();
     URL.revokeObjectURL(url);
     toast.success('Downloaded annotations');
-  };
-
-  const handleQuickSaveToNotes = async (target: 'obsidian' | 'bear' | 'octarine') => {
-    if (documentReadOnly) return;
-
-    const body: { obsidian?: object; bear?: object; octarine?: object } = {};
-    // Mid-edit saves describe the live buffer, matching handleApprove.
-    const quickSaveMarkdown = isEditingMarkdown
-      ? markdownEditorHandleRef.current?.getMarkdown() ?? displayedMarkdown
-      : displayedMarkdown;
-
-    if (target === 'obsidian') {
-      const s = getObsidianSettings();
-      const vaultPath = getEffectiveVaultPath(s);
-      if (vaultPath) {
-        body.obsidian = {
-          vaultPath,
-          folder: s.folder || 'plannotator',
-          plan: quickSaveMarkdown,
-          ...(s.filenameFormat && { filenameFormat: s.filenameFormat }),
-          ...(s.filenameSeparator && s.filenameSeparator !== 'space' && { filenameSeparator: s.filenameSeparator }),
-        };
-      }
-    }
-    if (target === 'bear') {
-      const bs = getBearSettings();
-      body.bear = {
-        plan: quickSaveMarkdown,
-        customTags: bs.customTags,
-        tagPosition: bs.tagPosition,
-      };
-    }
-    if (target === 'octarine') {
-      const os = getOctarineSettings();
-      body.octarine = {
-        plan: quickSaveMarkdown,
-        workspace: os.workspace,
-        folder: os.folder || 'plannotator',
-      };
-    }
-
-    const targetName = target === 'obsidian' ? 'Obsidian' : target === 'bear' ? 'Bear' : 'Octarine';
-    try {
-      const res = await fetch('/api/save-notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      const result = data.results?.[target];
-      if (result?.success) {
-        toast.success(`Saved to ${targetName}`);
-      } else {
-        toast.error(result?.error || 'Save failed');
-      }
-    } catch {
-      toast.error('Save failed');
-    }
   };
 
   const handleSaveEditedSourceFile = useCallback(async (options?: { overwriteDiskConflict?: boolean }): Promise<boolean> => {
@@ -4480,7 +4051,6 @@ const App: React.FC = () => {
         }
       }
       if (savedChangedFromOpen && window.innerWidth >= 768) {
-        setRightSidebarTab('annotations');
         setIsPanelOpen(true);
       }
       scheduleDraftSave();
@@ -4525,23 +4095,8 @@ const App: React.FC = () => {
     }
   };
 
-  const handleCopyShareLink = async () => {
-    const url = await ensureShareLink();
-    if (!url) {
-      setInitialExportTab('share');
-      setShowExport(true);
-      toast.error('Failed to create share link');
-      return;
-    }
-    if (await copyTextToClipboard(url)) {
-      toast.success('Share link copied');
-    } else {
-      toast.error('Failed to copy');
-    }
-  };
-
   // Cmd/Ctrl+S keyboard shortcut — while editing, save the active source file;
-  // otherwise keep the existing default notes/export behavior.
+  // otherwise download the annotations.
   useEffect(() => {
     const handleSaveShortcut = (e: KeyboardEvent) => {
       if (e.key !== 's' || !(e.metaKey || e.ctrlKey)) return;
@@ -4550,7 +4105,7 @@ const App: React.FC = () => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
-      if (showExport || showFeedbackPrompt || showClaudeCodeWarning ||
+      if (showFeedbackPrompt || showClaudeCodeWarning ||
           showSourceFileEditWarning ||
           showExitWarning || showAgentWarning || showPermissionModeSetup || pendingPasteImage) return;
 
@@ -4563,30 +4118,13 @@ const App: React.FC = () => {
       }
 
       e.preventDefault();
-
-      const defaultApp = getDefaultNotesApp();
-      const obsOk = isObsidianConfigured();
-      const bearOk = getBearSettings().enabled;
-      const octOk = isOctarineConfigured();
-
-      if (defaultApp === 'download') {
-        handleDownloadAnnotations();
-      } else if (defaultApp === 'obsidian' && obsOk) {
-        handleQuickSaveToNotes('obsidian');
-      } else if (defaultApp === 'bear' && bearOk) {
-        handleQuickSaveToNotes('bear');
-      } else if (defaultApp === 'octarine' && octOk) {
-        handleQuickSaveToNotes('octarine');
-      } else {
-        setInitialExportTab('notes');
-        setShowExport(true);
-      }
+      handleDownloadAnnotations();
     };
 
     window.addEventListener('keydown', handleSaveShortcut);
     return () => window.removeEventListener('keydown', handleSaveShortcut);
   }, [
-    showExport, showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning, showAgentWarning,
+    showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning, showAgentWarning,
     showPermissionModeSetup, pendingPasteImage,
     submitted, isApiMode, documentReadOnly, isEditingMarkdown, handleSaveEditedSourceFile, displayedMarkdown, annotationsOutput,
   ]);
@@ -4602,10 +4140,8 @@ const App: React.FC = () => {
     handleAnnotateApprove,
     handleAnnotateFeedback,
     handleAnnotateExit,
-    handleQuickSaveToNotes,
     handleDownloadAnnotations,
     handleCopyAgentInstructions,
-    handleCopyShareLink,
     getAgentWarning,
     getDocAnnotations: linkedDocHook.getDocAnnotations,
   });
@@ -4615,10 +4151,8 @@ const App: React.FC = () => {
     handleAnnotateApprove,
     handleAnnotateFeedback,
     handleAnnotateExit,
-    handleQuickSaveToNotes,
     handleDownloadAnnotations,
     handleCopyAgentInstructions,
-    handleCopyShareLink,
     getAgentWarning,
     getDocAnnotations: linkedDocHook.getDocAnnotations,
   };
@@ -4888,14 +4422,8 @@ const App: React.FC = () => {
   }, [compactComposerItem, compactConfirmItem, compactDecisionComposer, compactDecisionConfirm]);
   const handleHeaderDownloadAnnotations = useCallback(() => headerHandlersRef.current.handleDownloadAnnotations(), []);
   const handleHeaderCopyAgentInstructions = useCallback(() => headerHandlersRef.current.handleCopyAgentInstructions(), []);
-  const handleHeaderCopyShareLink = useCallback(() => headerHandlersRef.current.handleCopyShareLink(), []);
   const handleOpenSettings = useCallback(() => setMobileSettingsOpen(true), []);
   const handleCloseSettings = useCallback(() => setMobileSettingsOpen(false), []);
-  const handleOpenExport = useCallback(() => { setInitialExportTab(undefined); setShowExport(true); }, []);
-  const handleOpenImport = useCallback(() => setShowImport(true), []);
-  const handleSaveToObsidian = useCallback(() => headerHandlersRef.current.handleQuickSaveToNotes('obsidian'), []);
-  const handleSaveToOctarine = useCallback(() => headerHandlersRef.current.handleQuickSaveToNotes('octarine'), []);
-  const handleSaveToBear = useCallback(() => headerHandlersRef.current.handleQuickSaveToNotes('bear'), []);
 
   const compactDocumentTitle = useMemo(() => {
     const path = linkedDocHook.filepath ?? sourceFilePath ?? fileBrowser.activeFile;
@@ -4906,89 +4434,71 @@ const App: React.FC = () => {
     return 'Plan';
   }, [annotateSource, archive.currentInfo?.title, fileBrowser.activeFile, linkedDocHook.filepath, sourceFilePath]);
 
-  const callbackShareUrlReady = callbackConfig
-    ? Boolean(shareUrl || shortShareUrl || (renderAs === 'html' && (shareHtml || rawHtml)))
-    : true;
   const compactActionBusy = isSubmitting || isExiting || goalSetupAction.isSubmitting;
   const compactReviewActions: CompactPlanReviewAction[] = !isCompactTouchLayout
     ? []
-    : callbackConfig && !isApiMode && isSharedSession
+    : isApiMode && (!linkedDocHook.isActive || annotateMode) && !archive.archiveMode && !goalSetupMode
       ? [
-          {
-            id: 'feedback',
-            label: 'Send feedback to bot',
-            onSelect: handleCallbackFeedback,
-            disabled: compactActionBusy || !callbackShareUrlReady,
-          },
-          {
-            id: 'approve',
-            label: 'Approve design',
-            onSelect: handleCallbackApprove,
-            disabled: compactActionBusy || !callbackShareUrlReady,
-          },
-        ]
-      : isApiMode && (!linkedDocHook.isActive || annotateMode) && !archive.archiveMode && !goalSetupMode
-        ? [
-            ...(annotateMode
-              ? [
-                  // Spec-driven decision rows: a visible send action exists in
-                  // EVERY compact state (touch has no Mod+Enter — spec §3.1;
-                  // the missing positive outcome at zero was the defect).
-                  {
-                    id: 'exit' as const,
-                    label: 'Close session',
-                    onSelect: handleHeaderAnnotateExit,
-                    disabled: compactActionBusy,
-                  },
-                  {
-                    id: annotateCompactPrimaryId,
-                    label: annotateDecisionSpec.primary.mobileLabel ?? annotateDecisionSpec.primary.label,
-                    subtitle: feedbackAnnotationCount > 0
-                      ? `${feedbackAnnotationCount} annotation${feedbackAnnotationCount === 1 ? '' : 's'}`
-                      : hasFeedbackToSend
-                        ? 'Edited document'
-                        : undefined,
-                    onSelect: submitPrimaryDecision,
-                    disabled: compactActionBusy,
-                  },
-                  ...annotateDecisionSpec.items.map((item) => ({
-                    id: compactRowIdForDecisionItem(item.id),
-                    label: item.label,
-                    subtitle: item.subtitle,
-                    onSelect: () => {
-                      if (item.composer) {
-                        setCompactDecisionComposer(item.id);
-                        return;
-                      }
-                      if (item.confirm) {
-                        setCompactDecisionConfirm(item.id);
-                        return;
-                      }
-                      runAnnotateDecisionAction(item.id);
-                    },
-                    disabled: compactActionBusy,
-                  })),
-                ]
-              : [{
-                  id: 'feedback' as const,
-                  label: 'Send feedback',
-                  subtitle: hasFeedbackToSend
+          ...(annotateMode
+            ? [
+                // Spec-driven decision rows: a visible send action exists in
+                // EVERY compact state (touch has no Mod+Enter — spec §3.1;
+                // the missing positive outcome at zero was the defect).
+                {
+                  id: 'exit' as const,
+                  label: 'Close session',
+                  onSelect: handleHeaderAnnotateExit,
+                  disabled: compactActionBusy,
+                },
+                {
+                  id: annotateCompactPrimaryId,
+                  label: annotateDecisionSpec.primary.mobileLabel ?? annotateDecisionSpec.primary.label,
+                  subtitle: feedbackAnnotationCount > 0
                     ? `${feedbackAnnotationCount} annotation${feedbackAnnotationCount === 1 ? '' : 's'}`
-                    : 'Add general feedback',
-                  onSelect: handleHeaderFeedback,
+                    : hasFeedbackToSend
+                      ? 'Edited document'
+                      : undefined,
+                  onSelect: submitPrimaryDecision,
                   disabled: compactActionBusy,
-                }]),
-            ...(!annotateMode
-              ? [{
-                  id: 'approve' as const,
-                  label: 'Approve',
-                  subtitle: hasFeedbackToSend ? 'Feedback remains unsent' : undefined,
-                  onSelect: handleHeaderApprove,
+                },
+                ...annotateDecisionSpec.items.map((item) => ({
+                  id: compactRowIdForDecisionItem(item.id),
+                  label: item.label,
+                  subtitle: item.subtitle,
+                  onSelect: () => {
+                    if (item.composer) {
+                      setCompactDecisionComposer(item.id);
+                      return;
+                    }
+                    if (item.confirm) {
+                      setCompactDecisionConfirm(item.id);
+                      return;
+                    }
+                    runAnnotateDecisionAction(item.id);
+                  },
                   disabled: compactActionBusy,
-                }]
-              : []),
-          ]
-        : [];
+                })),
+              ]
+            : [{
+                id: 'feedback' as const,
+                label: 'Send feedback',
+                subtitle: hasFeedbackToSend
+                  ? `${feedbackAnnotationCount} annotation${feedbackAnnotationCount === 1 ? '' : 's'}`
+                  : 'Add general feedback',
+                onSelect: handleHeaderFeedback,
+                disabled: compactActionBusy,
+              }]),
+          ...(!annotateMode
+            ? [{
+                id: 'approve' as const,
+                label: 'Approve',
+                subtitle: hasFeedbackToSend ? 'Feedback remains unsent' : undefined,
+                onSelect: handleHeaderApprove,
+                disabled: compactActionBusy,
+              }]
+            : []),
+        ]
+      : [];
   const compactModeActions: CompactPlanAction[] = !isCompactTouchLayout
     ? []
     : isApiMode && !linkedDocHook.isActive && archive.archiveMode
@@ -5048,16 +4558,6 @@ const App: React.FC = () => {
                 ? `${feedbackAnnotationCount} item${feedbackAnnotationCount === 1 ? '' : 's'}`
                 : undefined,
               onSelect: () => openCompactPlanSurface('annotations'),
-            }]
-          : []),
-        ...(!goalSetupMode && canUseAskAI
-          ? [{
-              id: 'ai' as const,
-              label: 'Ask AI',
-              subtitle: visibleAIMessages.length > 0
-                ? `${visibleAIMessages.length} message${visibleAIMessages.length === 1 ? '' : 's'}`
-                : undefined,
-              onSelect: () => openCompactPlanSurface('ai'),
             }]
           : []),
         ...(compactReviewActions.length > 0
@@ -5159,12 +4659,10 @@ const App: React.FC = () => {
       )}
     </div>
   ) : null;
-  // Only greet in a normal authoring context — not on a read-only shared session
-  // (a viewer would also be able to flip the owner's gridEnabled), nor over the
-  // goal-setup / permission-mode flows. Deferred (not marked seen) until then.
+  // Only greet in a normal authoring context — never over the goal-setup /
+  // permission-mode flows. Deferred (not marked seen) until then.
   const shouldShowLookAndFeelAnnouncement =
     showLookAndFeelAnnouncement &&
-    !isSharedSession &&
     !goalSetupMode &&
     !showPermissionModeSetup;
   const compactNavigatorTabs: SidebarTab[] = [
@@ -5283,7 +4781,6 @@ const App: React.FC = () => {
         fileBrowser={fileBrowser}
         onFilesSelectFile={handleNavigatorFileSelect}
         onFilesFetchAll={() => fileBrowser.fetchAll(fileBrowserDirs)}
-        onFilesRetryVaultDir={(vaultPath) => fileBrowser.addVaultDir(vaultPath)}
         pendingFileLabel={compact && compactPendingFilePath
           ? compactPendingFilePath.replace(/\\/g, '/').split('/').pop() || compactPendingFilePath
           : null}
@@ -5328,7 +4825,6 @@ const App: React.FC = () => {
       onSelectCodeAnnotation={handleSelectCodeAnnotation}
       onDeleteCodeAnnotation={handleDeleteCodeAnnotation}
       onEditCodeAnnotation={handleEditCodeAnnotation}
-      sharingEnabled={canShareCurrentSession}
       width={presentation === 'panel' ? `var(--rpanel-w, ${panelResize.width}px)` : undefined}
       editorAnnotations={editorAnnotations}
       onDeleteEditorAnnotation={deleteEditorAnnotation}
@@ -5338,12 +4834,6 @@ const App: React.FC = () => {
         const output = getCurrentFeedbackPayload();
         return copyTextToClipboard(wrapCopiedFeedback(output));
       }}
-      onShare={canShareCurrentSession ? () => {
-        if (presentation === 'panel') setIsPanelOpen(false);
-        else closeCompactPlanSurface(false);
-        setInitialExportTab('share');
-        setShowExport(true);
-      } : undefined}
       otherFileAnnotations={otherFileAnnotations}
       directEdits={directEditsPanelInfo?.map((item) => ({
         ...item,
@@ -5351,21 +4841,6 @@ const App: React.FC = () => {
       })) ?? null}
       onOtherFileAnnotationsClick={handleFlashAnnotatedFiles}
       readOnly={documentReadOnly}
-    />
-  );
-
-  const renderDocumentAIChat = () => (
-    <DocumentAIChatPanel
-      messages={visibleAIMessages}
-      isCreatingSession={isAgentTerminalReady ? false : aiIsCreatingSession}
-      isStreaming={isAgentTerminalReady ? false : aiIsStreaming}
-      onAskGeneral={handleAskGeneralAI}
-      onStop={isAgentTerminalReady ? undefined : abortAI}
-      permissionRequests={isAgentTerminalReady ? [] : aiPermissionRequests}
-      onRespondToPermission={isAgentTerminalReady ? undefined : respondToAIPermission}
-      aiProviders={visibleAIProviders}
-      aiConfig={visibleAIConfig}
-      onAIConfigChange={isAgentTerminalReady ? undefined : handleAIConfigChange}
     />
   );
 
@@ -5382,7 +4857,7 @@ const App: React.FC = () => {
   // canvas, not from the nested document scroller. Keep that canvas continuous
   // with the active surface so a card-backed plan does not end in a dark band.
   const browserCanvas = isHtmlSurface || gridEnabled ? 'background' : 'card';
-  if (isLoading && !isSharedSession) {
+  if (isLoading) {
     return (
       <ThemeProvider defaultTheme="dark" manageFavicon>
         <div className="pn-app-viewport bg-background" />
@@ -5423,60 +4898,39 @@ const App: React.FC = () => {
           goalSetupCanSubmit={goalSetupAction.canSubmit}
           goalSetupIsSubmitting={goalSetupAction.isSubmitting}
           goalSetupSubmitLabel={goalSetupAction.submitLabel}
-          isSharedSession={isSharedSession}
           origin={origin}
           isSubmitting={isSubmitting}
           isExiting={isExiting}
-          isPanelOpen={isRightPanelVisible && rightSidebarTab === 'annotations'}
-          aiAvailable={canUseAskAI}
-          isAIChatOpen={isRightPanelVisible && rightSidebarTab === 'ai'}
-          aiHasMessages={visibleAIMessages.length > 0}
+          isPanelOpen={isRightPanelVisible}
           annotationCount={feedbackAnnotationCount}
           linkedDocIsActive={linkedDocHook.isActive}
-          callbackShareUrlReady={callbackShareUrlReady}
-          canShareCurrentSession={canShareCurrentSession}
           agentName={agentName}
           availableAgents={availableAgents}
           showAnnotationsWarning={hasFeedbackToSend}
           annotateDecision={annotateMode ? annotateDecision : undefined}
-          callbackConfig={callbackConfig}
           taterMode={taterMode}
           mobileSettingsOpen={mobileSettingsOpen}
-          gitUser={gitUser}
           agentTerminalAvailable={showAgentTerminalControls}
           webmcpAvailable={webmcp.available}
           agentConnected={webmcpActivity.calls > 0}
-          onCallbackFeedback={handleCallbackFeedback}
-          onCallbackApprove={handleCallbackApprove}
           onAnnotateExit={handleHeaderAnnotateExit}
           onGoalSetupExit={handleGoalSetupExit}
           onGoalSetupSubmit={handleGoalSetupSubmit}
           onFeedback={handleHeaderFeedback}
           onApprove={handleHeaderApprove}
           onAnnotationPanelToggle={handleAnnotationPanelToggle}
-          onAIChatToggle={handleAIChatToggle}
           onArchiveCopy={archive.copy}
           onArchiveDone={archive.done}
           onTaterModeChange={handleTaterModeChange}
-          onIdentityChange={handleIdentityChange}
           onUIPreferencesChange={setUiPrefs}
           onOpenSettings={handleOpenSettings}
           onCloseSettings={handleCloseSettings}
-          onOpenExport={handleOpenExport}
           onCopyAgentInstructions={handleHeaderCopyAgentInstructions}
           onDownloadAnnotations={handleHeaderDownloadAnnotations}
-          onCopyShareLink={handleHeaderCopyShareLink}
-          onOpenImport={handleOpenImport}
-          onSaveToObsidian={handleSaveToObsidian}
-          onSaveToBear={handleSaveToBear}
-          onSaveToOctarine={handleSaveToOctarine}
           appVersion={typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0'}
           updateInfo={updateInfo}
           isWSL={isWSL}
           agentInstructionsEnabled={isApiMode && !archive.archiveMode && !annotateMode && !goalSetupMode}
-          obsidianConfigured={isObsidianConfigured()}
-          bearConfigured={getBearSettings().enabled}
-          octarineConfigured={isOctarineConfigured()}
         />
 
         {/* The provider is render-transparent (context only, no DOM), so it can
@@ -5502,20 +4956,6 @@ const App: React.FC = () => {
           </CompactPlanStage>
         )}
 
-        {isCompactAIOpen && canUseAskAI && (
-          <CompactPlanStage
-            id="pn-compact-plan-ai"
-            title="Ask AI"
-            subtitle={compactDocumentTitle}
-            count={visibleAIMessages.length}
-            onClose={closeCompactPlanSurface}
-          >
-            <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1">
-              {renderDocumentAIChat()}
-            </div>
-          </CompactPlanStage>
-        )}
-
         {isCompactReviewOpen && compactReviewActions.length > 0 && (
           <CompactPlanStage
             id="pn-compact-plan-review"
@@ -5528,7 +4968,6 @@ const App: React.FC = () => {
               actions={compactReviewActions}
               primaryActionId={compactPrimaryReviewActionId}
               onOpenAnnotations={() => switchCompactPlanSurface('annotations')}
-              onOpenAI={canUseAskAI ? () => switchCompactPlanSurface('ai') : undefined}
             />
           </CompactPlanStage>
         )}
@@ -5899,7 +5338,6 @@ const App: React.FC = () => {
                     diffAvailable={!liveApp && !!htmlDiffHtml}
                     diffActive={!liveApp && isPlanDiffActive && !!htmlDiffHtml}
                     onToggleDiff={() => setIsPlanDiffActive((v) => !v)}
-                    onAskAI={canUseDocumentAskAI ? handleAskAI : undefined}
                     onUnanchoredChange={htmlRefresh.reportAnnotationRestore}
                     readOnly={documentReadOnly}
                   />
@@ -5938,7 +5376,7 @@ const App: React.FC = () => {
                     hasPreviousVersion={planDiff.hasPreviousVersion}
                     planDiffBaselineLabel={annotateMode ? 'since last review' : undefined}
                     planDiffBaselineTooltip={annotateMode ? 'Changes since you last reviewed this file' : undefined}
-                    showDemoBadge={!isApiMode && !isLoadingShared && !isSharedSession}
+                    showDemoBadge={!isApiMode}
                     maxWidth={annotateReaderMaxWidth}
                     onOpenLinkedDoc={handleOpenLinkedDoc}
                     onOpenCodeFile={codeFilePopout.open}
@@ -5949,9 +5387,7 @@ const App: React.FC = () => {
                             onBack: handleLinkedDocBack,
                             label: annotateSource === 'folder'
                               ? undefined
-                              : fileBrowser.dirs.find(d => d.path === fileBrowser.activeDirPath)?.isVault
-                                ? 'Vault File'
-                                : fileBrowser.activeFile ? 'File' : undefined,
+                              : fileBrowser.activeFile ? 'File' : undefined,
                             backLabel,
                             variant: annotateSource === 'folder' ? 'folder-file' : 'breadcrumb',
                           }
@@ -5977,7 +5413,6 @@ const App: React.FC = () => {
                     onToggleCheckbox={checkbox.toggle}
                     checkboxOverrides={checkbox.overrides}
                     actionsLabelMode={actionsLabelMode}
-                    onAskAI={canUseDocumentAskAI ? handleAskAI : undefined}
                     readOnly={documentReadOnly}
                   />
                 )}
@@ -6000,50 +5435,12 @@ const App: React.FC = () => {
               ancestor (`contents` = no layout box). */}
           <div className="contents group/sidebar">
           {/* Resize Handle */}
-          {isRightPanelVisible && wideModeType === null && !goalSetupMode && (rightSidebarTab === 'annotations' || canUseAskAI) && <ResizeHandle {...panelResize.handleProps} className="hidden md:block z-[55]" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => setIsPanelOpen(false)} />}
+          {isRightPanelVisible && wideModeType === null && !goalSetupMode && <ResizeHandle {...panelResize.handleProps} className="hidden md:block z-[55]" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => setIsPanelOpen(false)} />}
 
           {/* Annotation Panel */}
           {renderAnnotationPanel(
             'panel',
-            isRightPanelVisible && rightSidebarTab === 'annotations' && wideModeType === null && !goalSetupMode,
-          )}
-          {isRightPanelVisible && rightSidebarTab === 'ai' && wideModeType === null && !goalSetupMode && canUseAskAI && (
-            <aside
-              data-annotation-panel="true"
-              className={`border-l border-border/50 bg-card flex flex-col flex-shrink-0 ${
-                isMobile ? 'fixed top-12 bottom-0 right-0 z-[60] w-full max-w-sm shadow-2xl bg-card' : ''
-              }`}
-              style={isMobile ? undefined : { width: `var(--rpanel-w, ${panelResize.width ?? 288}px)` }}
-            >
-              <div className="border-b border-border/50">
-                <div className="flex h-10 items-center justify-between px-3">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <SparklesIcon className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                    <h2 className="text-xs font-medium text-foreground">
-                      AI
-                    </h2>
-                    {visibleAIMessages.length > 0 && (
-                      <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary/10 px-1 font-mono text-[10px] font-medium tabular-nums text-primary">
-                        {visibleAIMessages.length}
-                      </span>
-                    )}
-                  </div>
-                  {isMobile && (
-                    <button
-                      onClick={() => setIsPanelOpen(false)}
-                      className="relative rounded-md p-1.5 text-muted-foreground transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:text-foreground md:hidden"
-                      title="Close panel"
-                      aria-label="Close AI panel"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              </div>
-              {renderDocumentAIChat()}
-            </aside>
+            isRightPanelVisible && wideModeType === null && !goalSetupMode,
           )}
           </div>
         </div>
@@ -6064,40 +5461,6 @@ const App: React.FC = () => {
             }}
           />
         )}
-
-        {/* Export Modal */}
-        <ExportModal
-          isOpen={showExport}
-          onClose={() => { setShowExport(false); setInitialExportTab(undefined); }}
-          shareUrl={shareUrl}
-          shareUrlSize={shareUrlSize}
-          shortShareUrl={shortShareUrl}
-          isGeneratingShortUrl={isGeneratingShortUrl}
-          shortUrlError={shortUrlError}
-          onGenerateShortUrl={generateShortUrl}
-          annotationsOutput={
-            // Computed only while the modal is open: composeFeedback runs a
-            // unified diff when edits exist — not per-render work.
-            showExport
-              ? getCurrentFeedbackPayload()
-              : ''
-          }
-          annotationCount={allAnnotations.length + codeAnnotations.length}
-          taterSprite={taterMode ? <TaterSpritePullup /> : undefined}
-          sharingEnabled={canShareCurrentSession}
-          markdown={markdown}
-          isApiMode={isApiMode && !documentReadOnly}
-          initialTab={initialExportTab}
-          wrapCopiedAnnotations={wrapCopiedFeedback}
-        />
-
-        {/* Import Modal */}
-        <ImportModal
-          isOpen={showImport}
-          onClose={() => setShowImport(false)}
-          onImport={importFromShareUrl}
-          shareBaseUrl={shareBaseUrl}
-        />
 
         {/* Feedback prompt dialog */}
         <ConfirmDialog
@@ -6246,16 +5609,6 @@ const App: React.FC = () => {
           cancelText="Cancel"
           variant="warning"
           showCancel
-        />
-
-        {/* Shared URL load failure warning */}
-        <ConfirmDialog
-          isOpen={!!shareLoadError && !isApiMode}
-          onClose={clearShareLoadError}
-          title="Shared Plan Could Not Be Loaded"
-          message={shareLoadError}
-          subMessage="You are viewing a demo plan. This is sample content — it is not your data or anyone else's."
-          variant="warning"
         />
 
         <Toaster

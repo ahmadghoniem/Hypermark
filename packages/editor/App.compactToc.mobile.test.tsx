@@ -87,7 +87,7 @@ const planFetch: typeof fetch = async (input) => {
   if (rawUrl.startsWith("https://api.github.com/")) return new Response(null, { status: 404 });
   const url = new URL(rawUrl, "http://localhost");
   if (url.pathname === "/api/plan") {
-    return Response.json({ plan: PLAN, origin: "codex", sharingEnabled: false, serverConfig: {} });
+    return Response.json({ plan: PLAN, origin: "codex", serverConfig: {} });
   }
   if (url.pathname === "/api/ai/capabilities") return Response.json({ available: false, providers: [] });
   if (url.pathname === "/api/draft") return Response.json({ error: "Not found" }, { status: 404 });

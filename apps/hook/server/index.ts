@@ -43,7 +43,7 @@
  *
  * 9. OpenCode Plan (`plannotator opencode-plan`):
  *    - Internal bridge mode used by the OpenCode plugin CLI fallback
- *    - Reads `{ plan, timeoutSeconds, sharingEnabled, agents }` from stdin
+ *    - Reads `{ plan, timeoutSeconds, agents }` from stdin
  *    - Outputs structured JSON for the plugin
  *
  * 10. OpenCode Review (`plannotator opencode-review`):
@@ -89,7 +89,7 @@ import {
   handleGoalSetupServerReady,
 } from "@plannotator/server/goal-setup";
 import { type DiffType, detectManagedVcs, prepareLocalReviewDiff, gitRuntime } from "@plannotator/server/vcs";
-import { loadConfig, resolveDefaultDiffType, resolveSharingEnabled } from "@plannotator/shared/config";
+import { loadConfig, resolveDefaultDiffType } from "@plannotator/shared/config";
 import { parseReviewArgs } from "@plannotator/shared/review-args";
 import {
   normalizeGoalSetupBundle,
@@ -103,7 +103,6 @@ import {
 } from "@plannotator/shared/annotate-target";
 import { createWorktreePool, type WorktreePool, type PoolEntry } from "@plannotator/shared/worktree-pool";
 import { parsePRUrl, checkPRAuth, fetchPR, getCliName, getCliInstallUrl, getMRLabel, getMRNumberLabel, getDisplayRepo } from "@plannotator/server/pr";
-import { writeRemoteShareLink } from "@plannotator/server/share-url";
 import { enableTailscaleServe } from "@plannotator/server/tailscale-serve";
 import { writeUrlQr } from "@plannotator/server/qr";
 import { resolveAnnotateTarget } from "./annotate-resolution";
@@ -128,7 +127,6 @@ import {
 import { supportsReviewApprovalNotes } from "./review-output";
 import { registerSession, unregisterSession, listSessions } from "@plannotator/server/sessions";
 import { openBrowser } from "@plannotator/server/browser";
-import { inlineHtmlLocalAssets } from "@plannotator/server/html-assets";
 import { installAgentTerminalRuntime } from "@plannotator/server/agent-terminal-runtime";
 import { installCallFlowRuntime } from "@plannotator/shared/call-flow";
 import {
@@ -489,15 +487,6 @@ process.on("exit", () => unregisterSession());
 process.once("SIGINT", () => process.exit(130));
 process.once("SIGTERM", () => process.exit(143));
 
-// Check if URL sharing is enabled (default: true)
-const sharingEnabled = resolveSharingEnabled(loadConfig());
-
-// Custom share portal URL for self-hosting
-const shareBaseUrl = process.env.PLANNOTATOR_SHARE_URL || undefined;
-
-// Paste service URL for short URL sharing
-const pasteApiUrl = process.env.PLANNOTATOR_PASTE_URL || undefined;
-
 // Detect calling agent from environment variables set by agent runtimes.
 // Priority:
 //   PLANNOTATOR_ORIGIN (explicit override, validated against AGENT_CONFIG)
@@ -532,9 +521,6 @@ type OpenCodeBridgeAgent = {
 };
 
 type OpenCodeBridgeInput = {
-  sharingEnabled?: unknown;
-  shareBaseUrl?: unknown;
-  pasteApiUrl?: unknown;
   agents?: unknown;
 };
 
@@ -548,18 +534,6 @@ function parseOpenCodeBridgeInput<T extends object>(
     console.error(`Failed to parse ${mode} input: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
-}
-
-function getBridgeSharingEnabled(input: OpenCodeBridgeInput): boolean {
-  return typeof input.sharingEnabled === "boolean" ? input.sharingEnabled : sharingEnabled;
-}
-
-function getBridgeShareBaseUrl(input: OpenCodeBridgeInput): string | undefined {
-  return typeof input.shareBaseUrl === "string" && input.shareBaseUrl ? input.shareBaseUrl : shareBaseUrl;
-}
-
-function getBridgePasteApiUrl(input: OpenCodeBridgeInput): string | undefined {
-  return typeof input.pasteApiUrl === "string" && input.pasteApiUrl ? input.pasteApiUrl : pasteApiUrl;
 }
 
 function normalizeOpenCodeBridgeAgents(value: unknown): OpenCodeBridgeAgent[] | undefined {
@@ -1043,8 +1017,6 @@ if (args[0] === "sessions") {
     workspace,
     agentCwd,
     worktreePool,
-    sharingEnabled,
-    shareBaseUrl,
     // The approved branch below prints result.feedback after the prompt, so
     // this CLI's origins may see approve-carrying menu items (spec §6.4).
     approvalNotesSupported: supportsReviewApprovalNotes(detectedOrigin),
@@ -1056,10 +1028,6 @@ if (args[0] === "sessions") {
         return;
       }
       handleReviewServerReady(url, isRemote, port);
-
-      if (isRemote && sharingEnabled && rawPatch) {
-        await writeRemoteShareLink(rawPatch, shareBaseUrl, "review changes", "diff only").catch(() => {});
-      }
     },
   });
 
@@ -1287,9 +1255,6 @@ if (args[0] === "sessions") {
     folderPath,
     sourceInfo,
     sourceConverted,
-    sharingEnabled,
-    shareBaseUrl,
-    pasteApiUrl,
     gate: gateFlag,
     approvalNotesSupported: supportsAnnotateApprovalNotes({
       gate: gateFlag,
@@ -1315,17 +1280,6 @@ if (args[0] === "sessions") {
         return;
       }
       handleAnnotateServerReady(url, isRemote, port);
-
-      if (isRemote && sharingEnabled) {
-        if (rawHtml) {
-          await writeRemoteShareLink("", shareBaseUrl, "annotate", "HTML document only", {
-            rawHtml: inlineHtmlLocalAssets(rawHtml, absolutePath),
-            pasteApiUrl,
-          }).catch(() => {});
-        } else if (markdown) {
-          await writeRemoteShareLink(markdown, shareBaseUrl, "annotate", "document only").catch(() => {});
-        }
-      }
     },
   });
 
@@ -1534,9 +1488,6 @@ if (args[0] === "sessions") {
     filePath: "last-message",
     origin: copilotDetected ? "copilot-cli" : detectedOrigin,
     mode: "annotate-last",
-    sharingEnabled,
-    shareBaseUrl,
-    pasteApiUrl,
     gate: gateFlag,
     approvalNotesSupported: supportsAnnotateApprovalNotes({
       gate: gateFlag,
@@ -1558,10 +1509,6 @@ if (args[0] === "sessions") {
         return;
       }
       handleAnnotateServerReady(url, isRemote, port);
-
-      if (isRemote && sharingEnabled) {
-        await writeRemoteShareLink(annotatedMessage.text, shareBaseUrl, "annotate", "message only").catch(() => {});
-      }
     },
   });
 
@@ -1595,8 +1542,6 @@ if (args[0] === "sessions") {
     plan: "",
     origin: detectedOrigin,
     mode: "archive",
-    sharingEnabled,
-    shareBaseUrl,
     htmlContent: planHtmlContent,
     onReady: (url, isRemote, port) => {
       handleServerReady(url, isRemote, port);
@@ -1646,23 +1591,13 @@ if (args[0] === "sessions") {
       : null;
 
   const planProject = (await detectProjectName()) ?? "_unknown";
-  const bridgeSharingEnabled = getBridgeSharingEnabled(input);
-  const bridgeShareBaseUrl = getBridgeShareBaseUrl(input);
-  const bridgePasteApiUrl = getBridgePasteApiUrl(input);
   const server = await startPlannotatorServer({
     plan: planContent,
     origin: "opencode",
-    sharingEnabled: bridgeSharingEnabled,
-    shareBaseUrl: bridgeShareBaseUrl,
-    pasteApiUrl: bridgePasteApiUrl,
     htmlContent: planHtmlContent,
     opencodeClient: makeOpenCodeBridgeClient(input.agents),
     onReady: async (url, isRemote, port) => {
       await handleServerReady(url, isRemote, port);
-
-      if (isRemote && bridgeSharingEnabled) {
-        await writeRemoteShareLink(planContent, bridgeShareBaseUrl, "review the plan", "plan only").catch(() => {});
-      }
     },
   });
 
@@ -1792,8 +1727,6 @@ if (args[0] === "sessions") {
     }
   }
 
-  const bridgeSharingEnabled = getBridgeSharingEnabled(input);
-  const bridgeShareBaseUrl = getBridgeShareBaseUrl(input);
   const reviewProject = (await detectProjectName()) ?? "_unknown";
 
   const server = await startReviewServer({
@@ -1809,8 +1742,6 @@ if (args[0] === "sessions") {
     prPatchIncomplete,
     workspace,
     agentCwd,
-    sharingEnabled: bridgeSharingEnabled,
-    shareBaseUrl: bridgeShareBaseUrl,
     // Fail-closed approval-notes handshake: this branch's JSON record already
     // carries feedback on approve, but DELIVERY to the agent lives in the
     // independently-versioned plugin (buildReviewPromptFromBridgeOutcome,
@@ -1892,9 +1823,6 @@ if (args[0] === "sessions") {
 
   console.error("Opening annotation UI for last message...");
 
-  const bridgeSharingEnabled = getBridgeSharingEnabled(input);
-  const bridgeShareBaseUrl = getBridgeShareBaseUrl(input);
-  const bridgePasteApiUrl = getBridgePasteApiUrl(input);
   const annotateProject = (await detectProjectName()) ?? "_unknown";
   const pickerMessages = recentMessages.length > 1 ? recentMessages : undefined;
 
@@ -1904,9 +1832,6 @@ if (args[0] === "sessions") {
     origin: "opencode",
     mode: "annotate-last",
     recentMessages: pickerMessages,
-    sharingEnabled: bridgeSharingEnabled,
-    shareBaseUrl: bridgeShareBaseUrl,
-    pasteApiUrl: bridgePasteApiUrl,
     gate: input.gate === true,
     approvalNotesSupported: input.gate === true,
     // Same predicate as the CLI-flag branches, with this transport's inputs
@@ -1984,16 +1909,9 @@ if (args[0] === "sessions") {
   const server = await startPlannotatorServer({
     plan: planContent,
     origin: "copilot-cli",
-    sharingEnabled,
-    shareBaseUrl,
-    pasteApiUrl,
     htmlContent: planHtmlContent,
     onReady: async (url, isRemote, port) => {
       handleServerReady(url, isRemote, port);
-
-      if (isRemote && sharingEnabled) {
-        await writeRemoteShareLink(planContent, shareBaseUrl, "review the plan", "plan only").catch(() => {});
-      }
     },
   });
 
@@ -2079,8 +1997,6 @@ if (args[0] === "sessions") {
     origin: "copilot-cli",
     mode: "annotate-last",
     recentMessages: pickerMessages,
-    sharingEnabled,
-    shareBaseUrl,
     gate: gateFlag,
     approvalNotesSupported: supportsAnnotateApprovalNotes({
       gate: gateFlag,
@@ -2096,10 +2012,6 @@ if (args[0] === "sessions") {
     htmlContent: planHtmlContent,
     onReady: async (url, isRemote, port) => {
       handleAnnotateServerReady(url, isRemote, port);
-
-      if (isRemote && sharingEnabled) {
-        await writeRemoteShareLink(msg.text, shareBaseUrl, "annotate", "message only").catch(() => {});
-      }
     },
   });
 
@@ -2194,16 +2106,9 @@ if (args[0] === "sessions") {
     const server = await startPlannotatorServer({
       plan: latestPlan.text,
       origin: "codex",
-      sharingEnabled,
-      shareBaseUrl,
-      pasteApiUrl,
       htmlContent: planHtmlContent,
       onReady: async (url, isRemote, port) => {
         handleServerReady(url, isRemote, port);
-
-        if (isRemote && sharingEnabled) {
-          await writeRemoteShareLink(latestPlan.text, shareBaseUrl, "review the plan", "plan only").catch(() => {});
-        }
       },
     });
 
@@ -2273,16 +2178,9 @@ if (args[0] === "sessions") {
     plan: planContent,
     origin: isGemini ? "gemini-cli" : detectedOrigin,
     permissionMode,
-    sharingEnabled,
-    shareBaseUrl,
-    pasteApiUrl,
     htmlContent: planHtmlContent,
     onReady: async (url, isRemote, port) => {
       handleServerReady(url, isRemote, port);
-
-      if (isRemote && sharingEnabled) {
-        await writeRemoteShareLink(planContent, shareBaseUrl, "review the plan", "plan only").catch(() => {});
-      }
     },
   });
 

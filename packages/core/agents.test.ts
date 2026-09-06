@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { AGENT_CONFIG, getAgentAIProviderTypes, getAgentBadge, getAgentName } from "./agents";
+import { AGENT_CONFIG, getAgentBadge, getAgentName } from "./agents";
 
 describe("getAgentName", () => {
   test("resolves oh-my-pi to its display name", () => {
@@ -16,12 +16,6 @@ describe("getAgentName", () => {
 describe("getAgentBadge", () => {
   test("resolves oh-my-pi badge classes", () => {
     expect(getAgentBadge("oh-my-pi")).toBe("bg-fuchsia-500/15 text-fuchsia-400");
-  });
-});
-
-describe("getAgentAIProviderTypes", () => {
-  test("oh-my-pi has no dedicated Ask AI provider", () => {
-    expect(getAgentAIProviderTypes("oh-my-pi")).toEqual([]);
   });
 });
 

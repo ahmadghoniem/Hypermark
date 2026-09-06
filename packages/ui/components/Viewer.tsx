@@ -36,7 +36,7 @@ class ToolbarErrorBoundary extends React.Component<
   }
 }
 
-import { CommentPopover, type CommentAskAIHandler } from './CommentPopover';
+import { CommentPopover } from './CommentPopover';
 import { TaterSpriteSitting } from './TaterSpriteSitting';
 import { AttachmentsButton } from './AttachmentsButton';
 import { MessagesIcon } from './icons/MessagesIcon';
@@ -147,7 +147,6 @@ export interface ViewerProps {
   // Checkbox toggle props
   onToggleCheckbox?: (blockId: string, checked: boolean) => void;
   checkboxOverrides?: Map<string, boolean>;
-  onAskAI?: CommentAskAIHandler;
   /** Whether comment popovers offer image attachments. Hosts without an
    *  uploadTransport pass false so the attach affordance never dead-ends.
    *  Default true — today's behavior. */
@@ -361,7 +360,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   messagePickerInfo,
   onToggleCheckbox,
   checkboxOverrides,
-  onAskAI,
   allowImages = true,
   readOnly = false,
 }, ref) => {
@@ -1205,13 +1203,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               onClose={hookCommentClose}
               allowImages={allowImages}
               skillReferences
-              onAskAI={onAskAI}
-              askAIContext={{
-                kind: 'selection',
-                label: 'Selected text',
-                text: hookCommentPopover.selectedText ?? hookCommentPopover.contextText,
-                sourcePath: linkedDocInfo?.filepath ?? sourceInfo,
-              }}
             />
           )}
         {!readOnly && viewerCommentPopover && (
@@ -1229,13 +1220,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
             onClose={handleViewerCommentClose}
             allowImages={allowImages}
             skillReferences
-            onAskAI={onAskAI}
-            askAIContext={{
-              kind: viewerCommentPopover.isGlobal ? 'general' : 'selection',
-              label: viewerCommentPopover.isGlobal ? 'Document' : 'Code block',
-              text: viewerCommentPopover.selectedText,
-              sourcePath: linkedDocInfo?.filepath ?? sourceInfo,
-            }}
           />
         )}
 

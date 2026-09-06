@@ -47,7 +47,6 @@ describe.if(hasDom)('PlanHeaderMenu compact actions', () => {
             compactTouchLayout
             compactSessionActions={[
               { id: 'annotations', label: 'Annotations', onSelect: () => selected.push('annotations') },
-              { id: 'ai', label: 'Ask AI', onSelect: () => selected.push('ai') },
               { id: 'review', label: 'Review and finish', onSelect: () => selected.push('review') },
             ]}
             compactDocumentActions={[
@@ -65,7 +64,6 @@ describe.if(hasDom)('PlanHeaderMenu compact actions', () => {
 
     expect(host.textContent).toContain('Review');
     expect(host.textContent).toContain('Annotations');
-    expect(host.textContent).toContain('Ask AI');
     expect(host.textContent).toContain('Review and finish');
     expect(host.textContent).toContain('Document');
     expect(host.textContent).toContain('Edit document');

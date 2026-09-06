@@ -75,12 +75,6 @@ export interface ServerOptions {
   htmlContent: string;
   /** Current permission mode to preserve (Claude Code only) */
   permissionMode?: string;
-  /** Whether URL sharing is enabled (default: true) */
-  sharingEnabled?: boolean;
-  /** Custom base URL for share links (default: https://share.plannotator.ai) */
-  shareBaseUrl?: string;
-  /** Base URL of the paste service API for short URL sharing */
-  pasteApiUrl?: string;
   /** Called when server starts with the URL, remote status, and port */
   onReady?: (url: string, isRemote: boolean, port: number) => void | Promise<void>;
   /** OpenCode client for querying available agents (OpenCode only) */
@@ -126,7 +120,7 @@ export interface ServerResult {
 export async function startPlannotatorServer(
   options: ServerOptions
 ): Promise<ServerResult> {
-  const { plan, origin, htmlContent, permissionMode, sharingEnabled = true, shareBaseUrl, pasteApiUrl, onReady, mode, customPlanPath } = options;
+  const { plan, origin, htmlContent, permissionMode, onReady, mode, customPlanPath } = options;
 
   const isRemote = isRemoteSession();
   const wslFlag = await isWSL();
@@ -323,13 +317,11 @@ export async function startPlannotatorServer(
                 origin,
                 mode: "archive",
                 archivePlans,
-                sharingEnabled,
-                shareBaseUrl,
                 isWSL: wslFlag,
                 serverConfig: getServerConfig(gitUser),
               });
             }
-            return Response.json({ plan, origin, permissionMode, sharingEnabled, shareBaseUrl, pasteApiUrl, repoInfo, previousPlan, versionInfo, projectRoot: process.cwd(), isWSL: wslFlag, serverConfig: getServerConfig(gitUser) });
+            return Response.json({ plan, origin, permissionMode, repoInfo, previousPlan, versionInfo, projectRoot: process.cwd(), isWSL: wslFlag, serverConfig: getServerConfig(gitUser) });
           }
 
           // API: Serve a linked markdown document

@@ -115,7 +115,6 @@ function annotatePlan(extra: Record<string, unknown> = {}) {
     origin: "codex",
     mode: "annotate",
     filePath: "/tmp/notes.md",
-    sharingEnabled: false,
     serverConfig: {},
     ...extra,
   };

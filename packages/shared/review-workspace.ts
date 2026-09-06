@@ -60,9 +60,6 @@ export interface WorkspaceReviewRuntime {
     oldPath?: string,
     cwd?: string,
   ): Promise<{ oldContent: string | null; newContent: string | null }>;
-  canStageFiles(diffType: string, cwd?: string): Promise<boolean>;
-  stageFile(diffType: string, filePath: string, cwd?: string): Promise<void>;
-  unstageFile(diffType: string, filePath: string, cwd?: string): Promise<void>;
   /** Optional staleness fingerprint probe (see vcs-core). Absent or `null`
    * results are treated as always-fresh. */
   getVcsDiffFingerprint?(
@@ -477,23 +474,5 @@ export class WorkspaceReviewSession implements WorkspaceReviewState {
       resolvedOld?.repoRelativePath,
       resolved.repo.cwd,
     );
-  }
-
-  async stageFile(filePath: string, undo?: boolean): Promise<void> {
-    const resolved = resolveWorkspaceFilePath(this.repos, filePath);
-    if (!resolved) throw new Error("File is not part of this workspace review");
-
-    const diffType = resolved.repo.diffType
-      ?? mapWorkspaceModeToRepoDiffType(this.diffType, resolved.repo.vcsType);
-    if (!diffType) throw new Error("VCS context is unavailable for this workspace repository");
-    if (!(await this.runtime.canStageFiles(diffType, resolved.repo.cwd))) {
-      throw new Error("Staging not available");
-    }
-
-    if (undo) {
-      await this.runtime.unstageFile(diffType, resolved.repoRelativePath, resolved.repo.cwd);
-    } else {
-      await this.runtime.stageFile(diffType, resolved.repoRelativePath, resolved.repo.cwd);
-    }
   }
 }

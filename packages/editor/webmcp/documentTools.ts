@@ -49,7 +49,7 @@ import {
 // Adapter contract
 // ---------------------------------------------------------------------------
 
-export type SessionMode = 'plan' | 'annotate' | 'annotate-last' | 'annotate-folder' | 'annotate-app' | 'archive' | 'shared';
+export type SessionMode = 'plan' | 'annotate' | 'annotate-last' | 'annotate-folder' | 'annotate-app' | 'archive';
 export type SessionDecision = 'pending' | 'approved' | 'feedback-sent' | 'exited';
 
 export interface DocumentSessionView {

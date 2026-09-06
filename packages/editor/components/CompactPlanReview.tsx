@@ -57,7 +57,6 @@ interface CompactPlanReviewProps {
   actions: CompactPlanReviewAction[];
   primaryActionId?: CompactPlanReviewAction['id'];
   onOpenAnnotations: () => void;
-  onOpenAI?: () => void;
 }
 
 /** Compact review summary and the incumbent session decision actions. */
@@ -66,7 +65,6 @@ export const CompactPlanReview: React.FC<CompactPlanReviewProps> = ({
   actions,
   primaryActionId,
   onOpenAnnotations,
-  onOpenAI,
 }) => {
   const orderedActions = [...actions].sort((left, right) => {
     if (left.id === primaryActionId) return -1;
@@ -84,7 +82,7 @@ export const CompactPlanReview: React.FC<CompactPlanReviewProps> = ({
           <h2 id="pn-compact-review-summary-title" className="mt-2 text-xl font-semibold tracking-tight text-foreground">
             {feedbackSummary}
           </h2>
-          <div className="mt-4 grid grid-cols-1 gap-2 min-[460px]:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-2">
             <button
               type="button"
               data-pn-touch-target="true"
@@ -94,17 +92,6 @@ export const CompactPlanReview: React.FC<CompactPlanReviewProps> = ({
               <span>Review annotations</span>
               <CommentIcon />
             </button>
-            {onOpenAI && (
-              <button
-                type="button"
-                data-pn-touch-target="true"
-                onClick={onOpenAI}
-                className="flex min-h-11 items-center justify-between gap-3 rounded-xl border border-border bg-background/40 px-4 py-3 text-left text-sm font-medium text-foreground outline-none transition-colors active:bg-muted focus-visible:ring-2 focus-visible:ring-ring/60"
-              >
-                <span>Ask AI</span>
-                <SparklesIcon />
-              </button>
-            )}
           </div>
         </section>
 

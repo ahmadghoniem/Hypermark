@@ -97,7 +97,6 @@ const htmlAnnotatePlan = {
   filePath: "/tmp/page.html",
   renderAs: "html",
   rawHtml: RAW_HTML,
-  sharingEnabled: false,
   serverConfig: {},
 };
 

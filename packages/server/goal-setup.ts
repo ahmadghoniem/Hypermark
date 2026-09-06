@@ -124,7 +124,6 @@ export async function startGoalSetupServer(
               projectRoot: process.cwd(),
               isWSL: wslFlag,
               serverConfig: getServerConfig(gitUser),
-              sharingEnabled: false,
             });
           }
 

@@ -117,7 +117,7 @@ afterAll(() => {
 
 describe.if(hasDom)("permission mode first-run chooser", () => {
   test("an unconfigured Claude Code plan review still offers it", async () => {
-    await mount({ plan: "# Plan\n\nBody.\n", origin: "claude-code", sharingEnabled: false, serverConfig: {} });
+    await mount({ plan: "# Plan\n\nBody.\n", origin: "claude-code", serverConfig: {} });
 
     expect(document.body.textContent).toContain(DIALOG_HEADING);
   });
@@ -128,7 +128,6 @@ describe.if(hasDom)("permission mode first-run chooser", () => {
       origin: "claude-code",
       mode: "annotate",
       filePath: "/tmp/notes.md",
-      sharingEnabled: false,
       serverConfig: {},
     });
 
@@ -141,7 +140,6 @@ describe.if(hasDom)("permission mode first-run chooser", () => {
       origin: "claude-code",
       mode: "archive",
       archivePlans: [],
-      sharingEnabled: false,
       serverConfig: {},
     });
 

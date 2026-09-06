@@ -74,7 +74,7 @@ function Harness({ folder = false, onAdd, onSelect }: HarnessProps) {
   const isSibling = openPath === SIBLING;
   const markdown = isSibling ? SIBLING_TEXT : PLAN;
   hookModule!.useDocumentWebMcp({
-    isApiMode: true, isSharedSession: false, goalSetupMode: false, annotateMode: folder, annotateSource: folder ? 'folder' : null,
+    isApiMode: true, goalSetupMode: false, annotateMode: folder, annotateSource: folder ? 'folder' : null,
     liveApp: null, livePageUrl: '', archiveMode: false, gate: false, submitted: null, renderAs: 'markdown', rawHtml: '',
     displayedMarkdown: markdown, blocks: parseMarkdownToBlocks(markdown), allAnnotations: annotations,
     isEditingMarkdown: false, editorDiffersFromBaseline: false, sourceStale: false, sourceFilePath: ROOT, sourceInfo: undefined,

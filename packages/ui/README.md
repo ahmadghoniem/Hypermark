@@ -6,11 +6,11 @@ Ships with **`@plannotator/core`**: a small, browser-safe, zero-dependency packa
 
 ## Why this exists
 
-Workspaces needs the same document experience Plannotator has — render docs, annotate, comment, theme, edit — but backed by its own infrastructure (its own storage, auth, realtime, AI). Rather than fork or rebuild, it **installs these packages and plugs in its own backend.** Plannotator passes nothing and behaves exactly as before.
+Workspaces needs the same document experience Plannotator has — render docs, annotate, comment, theme, edit — but backed by its own infrastructure (its own storage, auth, realtime). Rather than fork or rebuild, it **installs these packages and plugs in its own backend.** Plannotator passes nothing and behaves exactly as before.
 
 ## How it works: host-override seams
 
-Every place the UI talks to a backend (loading a doc preview, saving settings, persisting drafts, streaming comments, listing files, calling AI, etc.) is an **optional seam** that defaults to Plannotator's behavior. A host swaps in its own implementations through **one call at startup**:
+Every place the UI talks to a backend (loading a doc preview, saving settings, persisting drafts, streaming comments, listing files, etc.) is an **optional seam** that defaults to Plannotator's behavior. A host swaps in its own implementations through **one call at startup**:
 
 ```ts
 import { configurePlannotatorUI } from "@plannotator/ui/configure";
@@ -23,7 +23,6 @@ configurePlannotatorUI({
   fileTreeBackend,
   draftTransport,
   externalAnnotationTransport, // live/agent comments
-  aiTransport,
   skillCatalogTransport,       // skill-reference catalog for comment composers
   skillContentTransport,       // human-only skill contents for feedback injection
   serverSync,
@@ -249,7 +248,7 @@ npm install @plannotator/ui @plannotator/core
 
 - `@plannotator/core` — pure utils + types, zero deps, browser-safe (CI enforces no `node:` imports). Published.
 - `@plannotator/ui` — React components/hooks + theme + `configure()`. Depends on an exact published `@plannotator/core` version. Published.
-- `@plannotator/shared`, `@plannotator/ai` — stay private to the monorepo; `shared` re-exports `core`'s modules via shims so Plannotator's internals are untouched.
+- `@plannotator/shared` — stays private to the monorepo; it re-exports `core`'s modules via shims so Plannotator's internals are untouched.
 - Currently `@plannotator/ui` 0.38.0 depends exactly on `@plannotator/core` 0.25.1. `core` is bumped only when something under `packages/core` changes, so `ui` can advance alone. Keep the published core version exact in `packages/ui/package.json`; do not use a `workspace:` protocol there, because a directly published manifest must remain installable outside this monorepo. Bun still links the matching local workspace during development. When both packages change, publish `core` first, then build and publish the UI tarball. See HANDOFF.md "Publishing & versioning" for the verification command.
 
 ## The one rule

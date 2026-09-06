@@ -201,44 +201,10 @@ describe("createVcsApi", () => {
     });
   });
 
-  test("limits Git staging to working-tree diff modes", async () => {
-    const git = createVcsApi([createGitProvider(gitRuntime)]);
-
-    await expect(git.canStageFiles("uncommitted", "/repo")).resolves.toBe(true);
-    await expect(git.canStageFiles("unstaged", "/repo")).resolves.toBe(true);
-    await expect(git.canStageFiles("worktree:/repo:uncommitted", "/repo")).resolves.toBe(true);
-    await expect(git.canStageFiles("staged", "/repo")).resolves.toBe(false);
-    await expect(git.canStageFiles("branch", "/repo")).resolves.toBe(false);
-    await expect(git.canStageFiles("merge-base", "/repo")).resolves.toBe(false);
-    // Historical commit diffs have nothing stageable — plain and worktree forms.
-    await expect(git.canStageFiles("commit:abc1234", "/repo")).resolves.toBe(false);
-    await expect(git.canStageFiles("worktree:/repo:commit:abc1234", "/repo")).resolves.toBe(false);
-  });
-
   test("the git provider owns commit:<sha> diff types", () => {
     const git = createGitProvider(gitRuntime);
     expect(git.ownsDiffType("commit:abc1234")).toBe(true);
     expect(git.ownsDiffType("worktree:/repo:commit:abc1234")).toBe(true);
-  });
-
-  test("requires providers to explicitly opt into staging", async () => {
-    const stageFile = async () => {};
-    const unstageFile = async () => {};
-    const api = createVcsApi([
-      {
-        ...provider("custom", true, ["custom-diff"]),
-        stageFile,
-        unstageFile,
-      },
-    ]);
-
-    await expect(api.canStageFiles("custom-diff", "/repo")).resolves.toBe(false);
-    await expect(api.stageFile("custom-diff", "tracked.txt", "/repo")).rejects.toThrow(
-      "Staging not available for custom",
-    );
-    await expect(api.unstageFile("custom-diff", "tracked.txt", "/repo")).rejects.toThrow(
-      "Unstaging not available for custom",
-    );
   });
 
   test("prepares JJ local reviews by ignoring Git-shaped requested options", async () => {

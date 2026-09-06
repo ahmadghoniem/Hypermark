@@ -69,7 +69,6 @@ import { handleImage, handleUpload, handleAgents, handleServerReady, handleDraft
 import { contentHash, deleteDraft } from "./draft";
 import { createEditorAnnotationHandler } from "./editor-annotations";
 import { createExternalAnnotationHandler } from "./external-annotations";
-import { resolveSharingEnabled } from "@plannotator/shared/config";
 import { loadConfig, saveConfig, detectGitUser, getServerConfig, parseReviewAnalysisConfig, resolveFeedbackHistory } from "./config";
 import { appendFeedbackRecord, countChangedFiles, deriveFeedbackProject, type FeedbackDecision, type FeedbackReviewTarget } from "@plannotator/shared/feedback-archive";
 import { isFaviconStyle, type FaviconStyle } from "@plannotator/shared/favicon";
@@ -126,8 +125,6 @@ export interface ReviewServerOptions {
   initialBase?: string;
   /** Freshness token captured atomically with the initial provider patch. */
   initialFingerprint?: string;
-  /** Whether URL sharing is enabled (default: true) */
-  sharingEnabled?: boolean;
   /**
    * Whether this session's decision consumer delivers approve-time feedback
    * (decision-control spec §6.4). Echoed as `approvalNotesSupported` on every
@@ -139,8 +136,6 @@ export interface ReviewServerOptions {
    * approve-carrying items, exactly the pre-PR5 behavior.
    */
   approvalNotesSupported?: boolean;
-  /** Custom base URL for share links (default: https://share.plannotator.ai) */
-  shareBaseUrl?: string;
   /** Called when server starts with the URL, remote status, and port */
   onReady?: (url: string, isRemote: boolean, port: number) => void | Promise<void>;
   /** OpenCode client for querying available agents (OpenCode only) */
@@ -204,7 +199,7 @@ export interface ReviewServerResult {
 export async function startReviewServer(
   options: ReviewServerOptions
 ): Promise<ReviewServerResult> {
-  const { htmlContent, origin, gitContext, sharingEnabled = true, shareBaseUrl, onReady } = options;
+  const { htmlContent, origin, gitContext, onReady } = options;
   // Session-constant capability advert; rides every diff payload (see the
   // option's doc). Absent option = false, so old callers advertise honestly.
   const approvalNotesSupported = options.approvalNotesSupported === true;
@@ -1116,9 +1111,7 @@ export async function startReviewServer(
               hideWhitespace: servedHideWhitespace,
               ...(workspace && { diffOptions: workspace.diffOptions }),
               gitContext: hasLocalAccess ? servedGitContext : undefined,
-              sharingEnabled,
               approvalNotesSupported,
-              shareBaseUrl,
               repoInfo,
               isWSL: wslFlag,
               // PR mode advertises the ready PR checkout (null while warming), so

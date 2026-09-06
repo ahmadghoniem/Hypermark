@@ -10,8 +10,6 @@ import {
   getGitContext,
   getGitDiffFingerprint,
   getGitSnapshotMaterializationPatch,
-  gitAddFile,
-  gitResetFile,
   parseWorktreeDiffType,
   runGitDiff,
 } from "./review-core";
@@ -64,7 +62,6 @@ export interface VcsProvider {
   detect(cwd?: string): Promise<boolean>;
   getRoot?(cwd?: string): Promise<string | null>;
   ownsDiffType(diffType: string): boolean;
-  canStageFiles?(diffType: string): boolean;
   getContext(cwd?: string): Promise<GitContext>;
   runDiff(diffType: DiffType, defaultBranch: string, cwd?: string, options?: GitDiffOptions): Promise<DiffResult>;
   getFileContents(
@@ -82,8 +79,6 @@ export interface VcsProvider {
     cwd?: string,
     options?: GitDiffOptions,
   ): Promise<string | null>;
-  stageFile?(filePath: string, cwd?: string): Promise<void>;
-  unstageFile?(filePath: string, cwd?: string): Promise<void>;
   resolveCwd?(diffType: string, fallbackCwd?: string): string | undefined;
   detectRemoteDefaultCompareTarget?(cwd?: string): Promise<string | null>;
   supportsSnapshot?(diffType: string): boolean;
@@ -137,9 +132,6 @@ export interface VcsApi {
     cwd?: string,
     options?: GitDiffOptions,
   ): Promise<string | null>;
-  canStageFiles(diffType: string, cwd?: string): Promise<boolean>;
-  stageFile(diffType: string, filePath: string, cwd?: string): Promise<void>;
-  unstageFile(diffType: string, filePath: string, cwd?: string): Promise<void>;
   resolveVcsCwd(diffType: string, fallbackCwd?: string): string | undefined;
   vcsSupportsSnapshot(vcsType: Exclude<VcsSelection, "auto">, diffType: string): boolean;
   materializeVcsSnapshot(
@@ -228,16 +220,6 @@ export function createGitProvider(runtime: ReviewGitRuntime): VcsProvider {
       );
     },
 
-    canStageFiles(diffType: string): boolean {
-      const effectiveDiffType = parseWorktreeDiffType(diffType)?.subType ?? diffType;
-      return (
-        effectiveDiffType === "since-base" ||
-        effectiveDiffType === "local-vs-remote" ||
-        effectiveDiffType === "uncommitted" ||
-        effectiveDiffType === "unstaged"
-      );
-    },
-
     getContext(cwd?: string): Promise<GitContext> {
       return getGitContext(runtime, cwd);
     },
@@ -252,14 +234,6 @@ export function createGitProvider(runtime: ReviewGitRuntime): VcsProvider {
 
     getDiffFingerprint(diffType, defaultBranch, cwd?, options?) {
       return getGitDiffFingerprint(runtime, diffType, defaultBranch, cwd, options);
-    },
-
-    stageFile(filePath: string, cwd?: string): Promise<void> {
-      return gitAddFile(runtime, filePath, cwd);
-    },
-
-    unstageFile(filePath: string, cwd?: string): Promise<void> {
-      return gitResetFile(runtime, filePath, cwd);
     },
 
     detectRemoteDefaultCompareTarget(cwd?: string): Promise<string | null> {
@@ -573,27 +547,6 @@ export function createVcsApi(providers: readonly VcsProvider[]): VcsApi {
         // a user-facing error.
         return null;
       }
-    },
-
-    async canStageFiles(diffType: string, cwd?: string): Promise<boolean> {
-      const provider = await getProviderForOperation(diffType, cwd);
-      return provider.stageFile !== undefined && (provider.canStageFiles?.(diffType) ?? false);
-    },
-
-    async stageFile(diffType: string, filePath: string, cwd?: string): Promise<void> {
-      const provider = await getProviderForOperation(diffType, cwd);
-      if (!provider.stageFile || !(provider.canStageFiles?.(diffType) ?? false)) {
-        throw new Error(`Staging not available for ${provider.id}`);
-      }
-      return provider.stageFile(filePath, cwd);
-    },
-
-    async unstageFile(diffType: string, filePath: string, cwd?: string): Promise<void> {
-      const provider = await getProviderForOperation(diffType, cwd);
-      if (!provider.unstageFile || !(provider.canStageFiles?.(diffType) ?? false)) {
-        throw new Error(`Unstaging not available for ${provider.id}`);
-      }
-      return provider.unstageFile(filePath, cwd);
     },
 
     resolveVcsCwd(diffType: string, fallbackCwd?: string): string | undefined {

@@ -216,23 +216,6 @@ export interface PlannotatorConfig {
    */
   glimpse?: boolean;
   /**
-   * Control URL sharing (Share tab, copy link, short URLs, import review).
-   * Defaults to enabled. Set to "disabled" to hide all sharing UI — useful
-   * for teams working with sensitive plans. Mirrors the PLANNOTATOR_SHARE
-   * env var value, which takes precedence over this setting.
-   */
-  share?: "enabled" | "disabled";
-  /**
-   * Pass `--sandbox enabled` when launching Cursor's `agent` CLI for review
-   * jobs. When true (default), review jobs run with Cursor's sandbox forced
-   * on as part of their read-only posture. Set to false on systems where
-   * Cursor's sandbox cannot start (e.g. NixOS / AppArmor-restricted Linux):
-   * the flag pair is then OMITTED entirely, deferring to the user's own
-   * Cursor Agent sandbox configuration. Mirrors the
-   * PLANNOTATOR_CURSOR_SANDBOX env var, which takes precedence.
-   */
-  cursorSandbox?: boolean;
-  /**
    * Display-only hostname for advertised session URLs (issue #657). Lets a
    * remote-mode user hand out a reachable link (e.g. a Tailscale MagicDNS
    * name or tailnet IP) instead of localhost. Host only — the port is chosen
@@ -675,19 +658,6 @@ export function resolveUseJina(cliNoJina: boolean, config: PlannotatorConfig): b
   return coerceConfigBoolean(config.jina, true);
 }
 
-/**
- * Resolve whether URL sharing is enabled.
- *
- * Priority (highest wins):
- *   PLANNOTATOR_SHARE env var  →  config.share  →  default true
- */
-export function resolveSharingEnabled(config: PlannotatorConfig, env: NodeJS.ProcessEnv = process.env): boolean {
-  const envVal = env.PLANNOTATOR_SHARE;
-  if (envVal !== undefined) return envVal !== "disabled";
-  if (config.share !== undefined) return config.share !== "disabled";
-  return true;
-}
-
 // Bare hostname or IPv4: letters/digits/dots/hyphens, no leading/trailing
 // dot or hyphen. Covers MagicDNS names ("my-machine.tailnet.ts.net").
 const URL_HOST_HOSTNAME_RE = /^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$/;
@@ -737,38 +707,6 @@ export function resolveUrlHost(config: PlannotatorConfig): string | undefined {
     );
   }
   return undefined;
-}
-
-/**
- * Resolve whether Plannotator-managed AI features are enabled.
- *
- * Set PLANNOTATOR_AI=disabled to prevent provider runtime initialization and
- * hide the corresponding UI. External agents may still open Plannotator as a
- * review surface and submit annotations through the external annotation API.
- */
-export function resolveAIEnabled(
-  env: NodeJS.ProcessEnv = process.env,
-): boolean {
-  return env.PLANNOTATOR_AI?.toLowerCase() !== "disabled";
-}
-
-/**
- * Resolve whether Cursor review jobs pass `--sandbox enabled` to the `agent` CLI.
- *
- * Priority (highest wins):
- *   PLANNOTATOR_CURSOR_SANDBOX env var  →  config.cursorSandbox  →  default true
- *
- * Env values `0` / `false` / `disabled` turn the flag off (the pair is omitted
- * from the argv, deferring to the user's own Cursor Agent configuration);
- * anything else — including `1` / `true` / `enabled` — keeps the default.
- */
-export function resolveCursorSandbox(config: PlannotatorConfig): boolean {
-  const envVal = process.env.PLANNOTATOR_CURSOR_SANDBOX;
-  if (envVal !== undefined) {
-    const v = envVal.toLowerCase();
-    return v !== "0" && v !== "false" && v !== "disabled";
-  }
-  return coerceConfigBoolean(config.cursorSandbox, true);
 }
 
 /**

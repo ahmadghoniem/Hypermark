@@ -111,7 +111,6 @@ describe('shortcuts', () => {
       'All-Files View',
       'Annotations',
       'Suggestion Editor',
-      'AI Assistant',
       'PR Comments',
     ]);
   });

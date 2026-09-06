@@ -68,7 +68,6 @@ const uploadTransport: UploadTransport = { upload: async () => ({ path: '/tmp/x.
 const identityProvider: IdentityProvider = { getIdentity: () => 'tater', isCurrentUser: () => false };
 const fileTreeBackend: FileTreeBackend = {
   loadTree: async () => new Response('{}'),
-  loadVaultTree: async () => new Response('{}'),
   watchTrees: () => undefined,
 };
 const draftTransport: DraftTransport = {

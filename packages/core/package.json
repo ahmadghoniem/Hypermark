@@ -27,7 +27,6 @@
     "./config-types": "./config-types.ts",
     "./storage-types": "./storage-types.ts",
     "./workspace-status-types": "./workspace-status-types.ts",
-    "./ai-context": "./ai-context.ts",
     "./types": "./types.ts",
     ".": "./index.ts"
   },

@@ -4,7 +4,6 @@ import type { ImageAttachment } from '../types';
 import { AttachmentsButton } from './AttachmentsButton';
 import { submitHint } from '../utils/platform';
 import { useDraggable } from '../hooks/useDraggable';
-import { SparklesIcon } from './SparklesIcon';
 import { hasUnsavedCommentContent } from '../utils/commentContent';
 import { useSkillReferenceAutocomplete } from '../hooks/useSkillReferenceAutocomplete';
 import { HumanOnlySkillNotice, SkillReferenceMenu } from './SkillReferenceMenu';
@@ -15,18 +14,6 @@ import {
   useVisibleViewportBounds,
   type VisibleViewportBounds,
 } from '../hooks/useViewportEnvironment';
-
-export interface CommentAskAIContext {
-  kind: 'general' | 'selection';
-  label?: string;
-  text?: string;
-  sourcePath?: string;
-}
-
-export type CommentAskAIHandler = (
-  question: string,
-  context: CommentAskAIContext,
-) => boolean | void | Promise<boolean | void>;
 
 /** One selected target of a multi-target draft comment (HTML pinpoint multi-select). */
 export interface CommentTargetChip {
@@ -71,10 +58,6 @@ interface CommentPopoverProps {
   allowImages?: boolean;
   /** Whether submitting empty text is allowed, for editors that support clearing. */
   allowEmptySubmit?: boolean;
-  /** Optional Ask AI action. Absent by default so existing comment surfaces are unchanged. */
-  onAskAI?: CommentAskAIHandler;
-  askAIContext?: CommentAskAIContext;
-  askAIDisabled?: boolean;
   /** Opt-in: `/` and `$` skill-reference autocomplete (document UI surfaces). Off by default. */
   skillReferences?: boolean;
   /** Opt-in (HTML multi-select): selected targets rendered as horizontally
@@ -162,9 +145,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   draftKey,
   allowImages = true,
   allowEmptySubmit = false,
-  onAskAI,
-  askAIContext,
-  askAIDisabled = false,
   skillReferences = false,
   targetChips,
   onRemoveTargetChip,
@@ -460,32 +440,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     }
   }, [text, images, onSubmit, draftKey, allowImages, allowEmptySubmit, initialText, hasUnsavedContent, restoreOpeningFocus]);
 
-  const handleAskAI = useCallback(async () => {
-    const question = text.trim();
-    if (!question || !onAskAI) {
-      textareaRef.current?.focus();
-      return;
-    }
-    let accepted: boolean | void;
-    try {
-      accepted = await onAskAI(question, askAIContext ?? {
-        kind: isGlobal ? 'general' : 'selection',
-        text: contextText,
-      });
-    } catch (error) {
-      console.error('Ask AI action failed:', error);
-      textareaRef.current?.focus();
-      return;
-    }
-    if (accepted === false) {
-      textareaRef.current?.focus();
-      return;
-    }
-    if (draftKey) draftStore.delete(draftKey);
-    onDraftChange?.('', allowImages ? [] : undefined);
-    onClose();
-  }, [allowImages, askAIContext, contextText, draftKey, isGlobal, onAskAI, onClose, onDraftChange, text]);
-
   const skillAc = useSkillReferenceAutocomplete({
     text,
     setText,
@@ -528,7 +482,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   const canSubmit =
     hasUnsavedContent ||
     (allowEmptySubmit && initialText.trim().length > 0);
-  const canAskAI = !!onAskAI && !askAIDisabled && text.trim().length > 0;
 
   // Shared by both footers. Disabled once anything is typed or attached so a
   // click can never discard a draft; with content present, Save is the path.
@@ -657,17 +610,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
                 <span className="text-[10px] text-muted-foreground">{submitHint}</span>
               )}
               {quickLookGoodButton}
-              {onAskAI && (
-                <button
-                  onClick={handleAskAI}
-                  disabled={!canAskAI}
-                  className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium rounded-md text-muted-foreground hover:text-primary hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  title={canAskAI ? 'Ask AI this question' : 'Type a question to ask AI'}
-                >
-                  <SparklesIcon className="w-3 h-3" />
-                  Ask AI
-                </button>
-              )}
             </div>
             <div className="flex items-center gap-2">
               {allowImages && (
@@ -807,17 +749,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             <span className="text-[10px] text-muted-foreground">{submitHint}</span>
           )}
           {quickLookGoodButton}
-          {onAskAI && (
-            <button
-              onClick={handleAskAI}
-              disabled={!canAskAI}
-              className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium rounded-md text-muted-foreground hover:text-primary hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title={canAskAI ? 'Ask AI this question' : 'Type a question to ask AI'}
-            >
-              <SparklesIcon className="w-3 h-3" />
-              Ask AI
-            </button>
-          )}
         </div>
         <div className="flex items-center gap-2">
           {allowImages && (

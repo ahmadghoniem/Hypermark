@@ -2146,7 +2146,6 @@ describe("annotate server: live app mode (annotate-app)", () => {
       expect(plan.filePath).toBe(targetUrl);
       expect(plan.targetUrl).toBe(targetUrl);
       expect(plan.liveToken).toMatch(/^[0-9a-f]{32}$/);
-      expect(plan.sharingEnabled).toBe(false);
       expect(plan.convertHtml).toBe(false);
       // appUrl is the live loopback proxy under its LOCALHOST spelling (so
       // the framed app is same-site with the editor and shares the dev

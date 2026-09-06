@@ -984,11 +984,6 @@ describe("review-workspace", () => {
         async getVcsDiffFingerprint() {
           return "stable-binary-workspace";
         },
-        async canStageFiles() {
-          return false;
-        },
-        async stageFile() {},
-        async unstageFile() {},
       };
 
       const workspace = await WorkspaceReviewSession.create(runtime, root);
@@ -1062,11 +1057,6 @@ describe("review-workspace", () => {
         async getVcsFileContentsForDiff() {
           return { oldContent: null, newContent: null };
         },
-        async canStageFiles() {
-          return true;
-        },
-        async stageFile() {},
-        async unstageFile() {},
       };
 
       const workspace = await WorkspaceReviewSession.create(runtime, root, {
@@ -1133,11 +1123,6 @@ describe("review-workspace", () => {
         async getVcsFileContentsForDiff() {
           return { oldContent: null, newContent: null };
         },
-        async canStageFiles() {
-          return false;
-        },
-        async stageFile() {},
-        async unstageFile() {},
       };
 
       const workspace = await WorkspaceReviewSession.create(runtime, root, {
@@ -1188,11 +1173,6 @@ describe("review-workspace", () => {
         async getVcsFileContentsForDiff() {
           return { oldContent: null, newContent: null };
         },
-        async canStageFiles() {
-          return true;
-        },
-        async stageFile() {},
-        async unstageFile() {},
       };
 
       const workspace = await WorkspaceReviewSession.create(runtime, root);
@@ -1248,11 +1228,6 @@ describe("review-workspace", () => {
         async getVcsFileContentsForDiff() {
           return { oldContent: null, newContent: null };
         },
-        async canStageFiles() {
-          return true;
-        },
-        async stageFile() {},
-        async unstageFile() {},
       };
 
       const workspace = await WorkspaceReviewSession.create(runtime, root, {
@@ -1276,7 +1251,6 @@ describe("review-workspace", () => {
       mkdirSync(join(api, ".git"), { recursive: true });
       mkdirSync(join(broken, ".git"), { recursive: true });
       const fileContentDiffTypes: DiffType[] = [];
-      const stagingDiffTypes: string[] = [];
 
       const runtime = {
         async detectVcsType(cwd?: string) {
@@ -1301,12 +1275,6 @@ describe("review-workspace", () => {
           fileContentDiffTypes.push(diffType);
           return { oldContent: null, newContent: null };
         },
-        async canStageFiles(diffType: string) {
-          stagingDiffTypes.push(diffType);
-          return false;
-        },
-        async stageFile() {},
-        async unstageFile() {},
       };
 
       const workspace = await WorkspaceReviewSession.create(runtime, root, {
@@ -1317,9 +1285,7 @@ describe("review-workspace", () => {
       expect(workspace.diffOptions.map((option) => option.id)).toEqual(["workspace-current"]);
       expect(workspace.error).toContain("GitButler CLI missing");
       await workspace.getFileContents("broken/file.txt");
-      await expect(workspace.stageFile("broken/file.txt")).rejects.toThrow("Staging not available");
       expect(fileContentDiffTypes).toEqual(["gitbutler:workspace"]);
-      expect(stagingDiffTypes).toEqual(["gitbutler:workspace"]);
     });
 
     it("passes hide-whitespace through child repo diffs", async () => {

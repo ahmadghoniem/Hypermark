@@ -37,10 +37,10 @@ export const planEditorShortcuts = defineShortcutScope({
       displayOrder: 10,
     },
     quickSave: {
-      description: 'Save to notes app',
+      description: 'Download annotations',
       bindings: ['Mod+S'],
       section: 'Actions',
-      hint: 'Opens Export if no default notes app is configured.',
+      hint: 'Saves the current annotations to a Markdown file.',
       displayOrder: 20,
     },
     exitPlanDiff: {

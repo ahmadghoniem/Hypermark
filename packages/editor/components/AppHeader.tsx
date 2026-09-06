@@ -8,9 +8,7 @@ import { DecisionControl, type DecisionHandler } from '@plannotator/ui/component
 import type { DecisionActionId, DecisionSpec } from '@plannotator/ui/utils/decisionSpec';
 import { Settings } from '@plannotator/ui/components/Settings';
 import { PlanHeaderMenu } from '@plannotator/ui/components/PlanHeaderMenu';
-import type { CallbackConfig } from '@plannotator/ui/utils/callback';
 import type { UIPreferences } from '@plannotator/ui/utils/uiPreferences';
-import { SparklesIcon } from '@plannotator/ui/components/SparklesIcon';
 import type { CompactPlanAction } from '@plannotator/ui/components/PlanHeaderMenu';
 import { HtmlSurfaceControls } from '@plannotator/ui/components/HtmlSurfaceControls';
 
@@ -56,20 +54,14 @@ interface AppHeaderProps {
   goalSetupCanSubmit: boolean;
   goalSetupIsSubmitting: boolean;
   goalSetupSubmitLabel: string;
-  isSharedSession: boolean;
   origin: Origin | null;
 
   // Dynamic state
   isSubmitting: boolean;
   isExiting: boolean;
   isPanelOpen: boolean;
-  aiAvailable: boolean;
-  isAIChatOpen: boolean;
-  aiHasMessages: boolean;
   annotationCount: number;
   linkedDocIsActive: boolean;
-  callbackShareUrlReady: boolean;
-  canShareCurrentSession: boolean;
   agentName: string;
   availableAgents: Agent[];
   showAnnotationsWarning: boolean;
@@ -85,13 +77,9 @@ interface AppHeaderProps {
     dismissOnIframeFocus?: boolean;
   };
 
-  // Callback config (null when no bot callback)
-  callbackConfig: CallbackConfig | null;
-
   // Settings props
   taterMode: boolean;
   mobileSettingsOpen: boolean;
-  gitUser: string | undefined;
   /** This session offers the Agent TUI, so Settings shows its Position row. */
   agentTerminalAvailable: boolean;
   /** The browser exposes WebMCP, so Settings shows the "Agent tools" opt-out.
@@ -102,39 +90,26 @@ interface AppHeaderProps {
   agentConnected?: boolean;
 
   // Handlers — App owns all decision logic, header just calls these
-  onCallbackFeedback: () => void;
-  onCallbackApprove: () => void;
   onAnnotateExit: () => void;
   onGoalSetupExit: () => void;
   onGoalSetupSubmit: () => void;
   onFeedback: () => void;
   onApprove: () => void;
   onAnnotationPanelToggle: () => void;
-  onAIChatToggle: () => void;
   onArchiveCopy: () => void;
   onArchiveDone: () => void;
   onTaterModeChange: (enabled: boolean) => void;
-  onIdentityChange: (oldId: string, newId: string) => void;
   onUIPreferencesChange: (prefs: UIPreferences) => void;
   onOpenSettings: () => void;
   onCloseSettings: () => void;
-  onOpenExport: () => void;
   onCopyAgentInstructions: () => void;
   onDownloadAnnotations: () => void;
-  onCopyShareLink: () => void;
-  onOpenImport: () => void;
-  onSaveToObsidian: () => void;
-  onSaveToBear: () => void;
-  onSaveToOctarine: () => void;
 
   // PlanHeaderMenu config
   appVersion: string;
   updateInfo?: UpdateInfo | null;
   isWSL?: boolean;
   agentInstructionsEnabled: boolean;
-  obsidianConfigured: boolean;
-  bearConfigured: boolean;
-  octarineConfigured: boolean;
 }
 
 export const AppHeader = React.memo<AppHeaderProps>(({
@@ -161,60 +136,39 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   goalSetupCanSubmit,
   goalSetupIsSubmitting,
   goalSetupSubmitLabel,
-  isSharedSession,
   origin,
   isSubmitting,
   isExiting,
   isPanelOpen,
-  aiAvailable,
-  isAIChatOpen,
-  aiHasMessages,
   annotationCount,
   linkedDocIsActive,
-  callbackShareUrlReady,
-  canShareCurrentSession,
   agentName,
   availableAgents,
   showAnnotationsWarning,
   annotateDecision,
-  callbackConfig,
   taterMode,
   mobileSettingsOpen,
-  gitUser,
   agentTerminalAvailable,
   webmcpAvailable = false,
   agentConnected = false,
-  onCallbackFeedback,
-  onCallbackApprove,
   onAnnotateExit,
   onGoalSetupExit,
   onGoalSetupSubmit,
   onFeedback,
   onApprove,
   onAnnotationPanelToggle,
-  onAIChatToggle,
   onArchiveCopy,
   onArchiveDone,
   onTaterModeChange,
-  onIdentityChange,
   onUIPreferencesChange,
   onOpenSettings,
   onCloseSettings,
-  onOpenExport,
   onCopyAgentInstructions,
   onDownloadAnnotations,
-  onCopyShareLink,
-  onOpenImport,
-  onSaveToObsidian,
-  onSaveToBear,
-  onSaveToOctarine,
   appVersion,
   updateInfo,
   isWSL,
   agentInstructionsEnabled,
-  obsidianConfigured,
-  bearConfigured,
-  octarineConfigured,
 }) => {
   return (
     <header
@@ -247,25 +201,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
       )}
 
       <div className={`flex items-center gap-1 md:gap-2 ${compactTouchLayout ? 'justify-end' : ''}`}>
-        {/* Bot callback buttons — only shown when ?cb=&ct= params are present */}
-        {!compactTouchLayout && callbackConfig && !isApiMode && isSharedSession && (
-          <>
-            <div className="w-px h-5 bg-border/50 mx-1 hidden md:block" />
-            <FeedbackButton
-              onClick={onCallbackFeedback}
-              disabled={isSubmitting || !callbackShareUrlReady}
-              isLoading={isSubmitting}
-              title="Send feedback to bot"
-            />
-            <ApproveButton
-              onClick={onCallbackApprove}
-              disabled={isSubmitting || !callbackShareUrlReady}
-              isLoading={isSubmitting}
-              title="Approve design and notify bot"
-            />
-          </>
-        )}
-
         {!compactTouchLayout && isApiMode && !linkedDocIsActive && archiveMode && (
           <>
             <button
@@ -427,36 +362,17 @@ export const AppHeader = React.memo<AppHeaderProps>(({
             )}
           </button>
         )}
-        {!compactTouchLayout && !goalSetupMode && aiAvailable && (
-          <button
-            onClick={onAIChatToggle}
-            className={`relative p-1.5 rounded-md text-xs font-medium transition-all ${
-              isAIChatOpen
-                ? 'bg-primary/15 text-primary'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            }`}
-            title={isAIChatOpen ? 'Hide AI chat' : 'Show AI chat'}
-            aria-label={isAIChatOpen ? 'Hide AI chat' : 'Show AI chat'}
-          >
-            <SparklesIcon className="w-4 h-4" />
-            {aiHasMessages && !isAIChatOpen && (
-              <span className="absolute top-0 right-0 w-1.5 h-1.5 rounded-full bg-primary" />
-            )}
-          </button>
-        )}
 
         {/* Settings dialog (controlled, button hidden — opened from PlanHeaderMenu) */}
         <div className="hidden">
           <Settings
             taterMode={taterMode}
             onTaterModeChange={onTaterModeChange}
-            onIdentityChange={onIdentityChange}
             origin={origin}
             mode={annotateMode ? 'annotate' : 'plan'}
             onUIPreferencesChange={onUIPreferencesChange}
             externalOpen={mobileSettingsOpen}
             onExternalClose={onCloseSettings}
-            gitUser={gitUser}
             agentTerminalAvailable={agentTerminalAvailable}
             webmcpAvailable={webmcpAvailable}
           />
@@ -468,20 +384,10 @@ export const AppHeader = React.memo<AppHeaderProps>(({
           origin={origin}
           isWSL={isWSL}
           onOpenSettings={onOpenSettings}
-          onOpenExport={onOpenExport}
           onCopyAgentInstructions={onCopyAgentInstructions}
           onDownloadAnnotations={onDownloadAnnotations}
-          onCopyShareLink={onCopyShareLink}
-          onOpenImport={onOpenImport}
-          onSaveToObsidian={onSaveToObsidian}
-          onSaveToBear={onSaveToBear}
-          onSaveToOctarine={onSaveToOctarine}
-          sharingEnabled={canShareCurrentSession}
           isApiMode={isApiMode}
           agentInstructionsEnabled={agentInstructionsEnabled}
-          obsidianConfigured={!archiveMode && !goalSetupMode && obsidianConfigured}
-          bearConfigured={!archiveMode && !goalSetupMode && bearConfigured}
-          octarineConfigured={!archiveMode && !goalSetupMode && octarineConfigured}
           compactTouchLayout={compactTouchLayout}
           compactSessionActions={compactSessionActions}
           compactDocumentActions={compactDocumentActions}

@@ -25,8 +25,6 @@ import {
   getGitContext,
   getGitDiffFingerprint,
   getWorkingTreeDiffFromBase,
-  gitAddFile,
-  gitResetFile,
   isBinaryPatchFile,
   isSameCwdCommitSwitch,
   listPatchFiles,
@@ -1386,26 +1384,6 @@ describe("review-core", () => {
       const root = await getFileContentsForDiff(runtime, diffType, "main", "tracked.txt", undefined, subCwd);
       expect(root.newContent).toBe("root after\n");
     }
-  });
-
-  test("stage/unstage resolves root-relative pathspecs from a subdirectory CWD", async () => {
-    const repoDir = initRepo();
-    mkdirSync(join(repoDir, "pkg"), { recursive: true });
-    writeFileSync(join(repoDir, "root-new.txt"), "new\n", "utf-8");
-    writeFileSync(join(repoDir, "pkg", "sub-new.txt"), "new\n", "utf-8");
-
-    const subCwd = join(repoDir, "pkg");
-    const runtime = makeRuntime(subCwd);
-
-    // Root-relative paths, subdirectory cwd — `git add` must run at the
-    // toplevel or it fails with "pathspec did not match".
-    await gitAddFile(runtime, "root-new.txt", subCwd);
-    await gitAddFile(runtime, "pkg/sub-new.txt", subCwd);
-    expect(git(repoDir, ["status", "--porcelain"])).toContain("A  root-new.txt");
-    expect(git(repoDir, ["status", "--porcelain"])).toContain("A  pkg/sub-new.txt");
-
-    await gitResetFile(runtime, "root-new.txt", subCwd);
-    expect(git(repoDir, ["status", "--porcelain"])).toContain("?? root-new.txt");
   });
 
   test("uncommitted diff includes untracked files when CWD is a subdirectory", async () => {

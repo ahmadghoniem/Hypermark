@@ -33,12 +33,10 @@ import {
 export interface DocumentWebMcpFileBrowserDir {
   path: string;
   tree: VaultNode[];
-  isVault?: boolean;
 }
 
 export interface DocumentWebMcpInputs {
   isApiMode: boolean;
-  isSharedSession: boolean;
   goalSetupMode: boolean;
   annotateMode: boolean;
   annotateSource: 'file' | 'message' | 'folder' | null;
@@ -105,7 +103,6 @@ export function flattenFileBrowserDirs(dirs: readonly DocumentWebMcpFileBrowserD
     }
   };
   for (const dir of dirs) {
-    if (dir.isVault) continue;
     walk(dir.path, dir.tree);
   }
   return out;
@@ -166,7 +163,7 @@ export function useDocumentWebMcp(inputs: DocumentWebMcpInputs): { available: bo
   const surface: DocumentSurface = inputs.liveApp ? 'live-app' : inputs.renderAs === 'html' ? 'html' : 'markdown';
   const writable = !inputs.archiveMode && inputs.submitted === null;
   const folder = inputs.annotateSource === 'folder';
-  const active = (inputs.isApiMode || inputs.isSharedSession) && !inputs.goalSetupMode && toolsEnabled;
+  const active = inputs.isApiMode && !inputs.goalSetupMode && toolsEnabled;
 
   const adapter = useMemo<DocumentToolAdapter>(() => {
     const current = () => inputsRef.current;
@@ -195,7 +192,7 @@ export function useDocumentWebMcp(inputs: DocumentWebMcpInputs): { available: bo
     const isOpen = (path: string | null) => path === null || path === openPath();
     /** The file browser directory that contains `path` (folder sessions). */
     const dirFor = (path: string): string | null =>
-      current().fileBrowserDirs.find((d) => !d.isVault && path.startsWith(`${d.path}/`))?.path ?? null;
+      current().fileBrowserDirs.find((d) => path.startsWith(`${d.path}/`))?.path ?? null;
     /** Navigate to a sibling and resolve once React has committed it as the open document. */
     /** Whether the session knows `path` at all (folder tree or linked-doc cache). */
     const knowsPath = (path: string): boolean => {
@@ -227,11 +224,9 @@ export function useDocumentWebMcp(inputs: DocumentWebMcpInputs): { available: bo
         const i = current();
         const mode: SessionMode = i.archiveMode
           ? 'archive'
-          : i.isSharedSession && !i.isApiMode
-            ? 'shared'
-            : i.annotateMode
-              ? i.liveApp ? 'annotate-app' : i.annotateSource === 'folder' ? 'annotate-folder' : i.annotateSource === 'message' ? 'annotate-last' : 'annotate'
-              : 'plan';
+          : i.annotateMode
+            ? i.liveApp ? 'annotate-app' : i.annotateSource === 'folder' ? 'annotate-folder' : i.annotateSource === 'message' ? 'annotate-last' : 'annotate'
+            : 'plan';
         const decision: SessionDecision = i.submitted === 'approved' ? 'approved' : i.submitted === 'denied' ? 'feedback-sent' : i.submitted === 'exited' ? 'exited' : 'pending';
         const currentSurface: DocumentSurface = i.liveApp ? 'live-app' : i.renderAs === 'html' ? 'html' : 'markdown';
         return {

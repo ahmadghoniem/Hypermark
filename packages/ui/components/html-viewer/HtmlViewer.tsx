@@ -16,7 +16,6 @@ import { AnnotationToolbar } from "../AnnotationToolbar";
 import { AttachmentsButton } from "../AttachmentsButton";
 import {
   CommentPopover,
-  type CommentAskAIHandler,
   type CommentTargetChip,
 } from "../CommentPopover";
 import type { ViewerHandle } from "../Viewer";
@@ -152,7 +151,6 @@ export interface HtmlViewerProps {
   diffActive?: boolean;
   /** Toggle the diff-highlighted view on/off. */
   onToggleDiff?: () => void;
-  onAskAI?: CommentAskAIHandler;
   /** Disable every annotation mutation entry point while preserving reading and navigation. */
   readOnly?: boolean;
   /** Reports the full set of annotation ids with no live representation on
@@ -245,7 +243,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       diffAvailable,
       diffActive,
       onToggleDiff,
-      onAskAI,
       readOnly = false,
       onUnanchoredChange,
       maxAdditionalTargets,
@@ -949,12 +946,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
               onQuickLookGood={hook.handleCommentLooksGood}
               onClose={hook.handleCommentClose}
               skillReferences
-              onAskAI={onAskAI}
-              askAIContext={{
-                kind: "selection",
-                label: "Selected HTML",
-                text: hook.commentPopover.selectedText ?? hook.commentPopover.contextText,
-              }}
               targetChips={targetChips}
               onRemoveTargetChip={targetChips ? hook.removeDraftTarget : undefined}
               onHoverTargetChip={targetChips ? hook.flashDraftTarget : undefined}
@@ -975,8 +966,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
               onSubmit={handleGlobalCommentSubmit}
               onClose={() => setGlobalCommentPopover(null)}
               skillReferences
-              onAskAI={onAskAI}
-              askAIContext={{ kind: "general", label: "Document" }}
             />,
             document.body,
           )}

@@ -104,12 +104,6 @@ export interface AnnotateServerOptions {
    * and matches the legacy "last message" behavior.
    */
   recentMessages?: { messageId: string; text: string; timestamp?: string }[];
-  /** Whether URL sharing is enabled (default: true) */
-  sharingEnabled?: boolean;
-  /** Custom base URL for share links */
-  shareBaseUrl?: string;
-  /** Base URL of the paste service API for short URL sharing */
-  pasteApiUrl?: string;
   /** Source attribution: original URL or filename (e.g. "https://..." or "index.html") */
   sourceInfo?: string;
   /** True when `markdown` was produced by Turndown/Jina (HTML or URL) —
@@ -235,9 +229,6 @@ export async function startAnnotateServer(
     recentMessages,
     sourceInfo,
     sourceConverted,
-    sharingEnabled = true,
-    shareBaseUrl,
-    pasteApiUrl,
     gate = false,
     approvalNotesSupported = false,
     clientLeaseTestOverrides,
@@ -698,8 +689,8 @@ export async function startAnnotateServer(
 
           // API: Get plan content (reuse /api/plan so the plan editor UI works)
           if (url.pathname === "/api/plan" && req.method === "GET" && mode === "annotate-app" && liveApp) {
-            // Live app session: no rawHtml, no renderAs, no version fields,
-            // sharing off. The client frames appUrl (the loopback proxy) and
+            // Live app session: no rawHtml, no renderAs, no version fields.
+            // The client frames appUrl (the loopback proxy) and
             // authenticates the bridge with liveToken.
             return Response.json({
               plan: "",
@@ -715,7 +706,6 @@ export async function startAnnotateServer(
               clientLease: clientLeaseSupported
                 ? { enabled: true as const, reconnectGraceMs: clientLeaseGraceMs }
                 : { enabled: false as const },
-              sharingEnabled: false,
               convertHtml: false,
               repoInfo,
               projectRoot: process.cwd(),
@@ -778,9 +768,6 @@ export async function startAnnotateServer(
                     diffCurrent: servedIsSnapshot || !servedHtml ? annotateHistory.diffCurrent : servedHtml,
                   }
                 : {}),
-              sharingEnabled,
-              shareBaseUrl,
-              pasteApiUrl,
               repoInfo,
               projectRoot: folderPath || process.cwd(),
               isWSL: wslFlag,

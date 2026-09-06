@@ -24,11 +24,10 @@ describe('shouldConnectAnnotateClientLease', () => {
   const enabled: AnnotateClientLeaseConfig = { enabled: true, reconnectGraceMs: 30_000 };
   const disabled: AnnotateClientLeaseConfig = { enabled: false };
 
-  test('connects when annotate mode is active, not shared, not yet submitted, and the server enabled it', () => {
+  test('connects when annotate mode is active, not yet submitted, and the server enabled it', () => {
     expect(
       shouldConnectAnnotateClientLease({
         annotateMode: true,
-        isSharedSession: false,
         submitted: null,
         clientLease: enabled,
       }),
@@ -39,7 +38,6 @@ describe('shouldConnectAnnotateClientLease', () => {
     expect(
       shouldConnectAnnotateClientLease({
         annotateMode: true,
-        isSharedSession: false,
         submitted: undefined,
         clientLease: enabled,
       }),
@@ -50,7 +48,6 @@ describe('shouldConnectAnnotateClientLease', () => {
     expect(
       shouldConnectAnnotateClientLease({
         annotateMode: true,
-        isSharedSession: false,
         submitted: null,
         clientLease: disabled,
       }),
@@ -61,7 +58,6 @@ describe('shouldConnectAnnotateClientLease', () => {
     expect(
       shouldConnectAnnotateClientLease({
         annotateMode: true,
-        isSharedSession: false,
         submitted: null,
         clientLease: undefined,
       }),
@@ -69,7 +65,6 @@ describe('shouldConnectAnnotateClientLease', () => {
     expect(
       shouldConnectAnnotateClientLease({
         annotateMode: true,
-        isSharedSession: false,
         submitted: null,
         clientLease: null,
       }),
@@ -80,18 +75,6 @@ describe('shouldConnectAnnotateClientLease', () => {
     expect(
       shouldConnectAnnotateClientLease({
         annotateMode: false,
-        isSharedSession: false,
-        submitted: null,
-        clientLease: enabled,
-      }),
-    ).toBe(false);
-  });
-
-  test('does not connect for a shared/static session (no live server to lease against)', () => {
-    expect(
-      shouldConnectAnnotateClientLease({
-        annotateMode: true,
-        isSharedSession: true,
         submitted: null,
         clientLease: enabled,
       }),
@@ -103,7 +86,6 @@ describe('shouldConnectAnnotateClientLease', () => {
       expect(
         shouldConnectAnnotateClientLease({
           annotateMode: true,
-          isSharedSession: false,
           submitted,
           clientLease: enabled,
         }),

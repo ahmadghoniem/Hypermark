@@ -372,11 +372,3 @@ export type { EditorAnnotation } from '@plannotator/core/types';
 export type {
   ExternalAnnotationEvent,
 } from '@plannotator/core/external-annotation';
-
-export type {
-  AgentJobInfo,
-  AgentJobEvent,
-  AgentJobStatus,
-  AgentCapability,
-  AgentCapabilities,
-} from '@plannotator/core/agent-jobs';

@@ -2,14 +2,13 @@ import type { SidebarTab } from '@plannotator/ui/hooks/useSidebar';
 
 /**
  * The compact Plan shell presents one foreground task at a time. Navigator,
- * annotations, AI, and review all replace the artifact instead of competing
- * with it for horizontal space.
+ * annotations, and review all replace the artifact instead of competing with
+ * it for horizontal space.
  */
 export type CompactPlanSurface =
   | { readonly type: 'artifact' }
   | { readonly type: 'navigator'; readonly tab: SidebarTab }
   | { readonly type: 'annotations' }
-  | { readonly type: 'ai' }
   | { readonly type: 'review' };
 
 export const COMPACT_PLAN_ARTIFACT: CompactPlanSurface = { type: 'artifact' };

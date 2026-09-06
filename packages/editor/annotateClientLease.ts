@@ -21,7 +21,6 @@ export interface AnnotateClientLeaseConfig {
 
 export interface ShouldConnectAnnotateClientLeaseInput {
   annotateMode: boolean;
-  isSharedSession: boolean;
   /** Decision already taken, if any. Nullish means the session is still open. */
   submitted: string | null | undefined;
   clientLease: AnnotateClientLeaseConfig | null | undefined;
@@ -29,15 +28,14 @@ export interface ShouldConnectAnnotateClientLeaseInput {
 
 /**
  * Whether this tab should open the client-lease stream right now. Only one
- * live annotate session — not shared/static, not already decided — with the
- * server-advertised capability enabled should ever connect.
+ * live annotate session — not already decided — with the server-advertised
+ * capability enabled should ever connect.
  */
 export function shouldConnectAnnotateClientLease(
   input: ShouldConnectAnnotateClientLeaseInput,
 ): boolean {
   return (
     input.annotateMode &&
-    !input.isSharedSession &&
     input.submitted == null &&
     !!input.clientLease?.enabled
   );

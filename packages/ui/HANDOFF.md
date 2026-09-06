@@ -1,6 +1,6 @@
 # Handoff: reusing Plannotator's document UI in Workspaces
 
-This document is for the team building the commercial **Workspaces** app. It explains what this PR shipped, how the published packages are put together, and exactly how Workspaces plugs its own backend (storage, auth, realtime, AI) into the same document UI that Plannotator uses — without forking or rebuilding it.
+This document is for the team building the commercial **Workspaces** app. It explains what this PR shipped, how the published packages are put together, and exactly how Workspaces plugs its own backend (storage, auth, realtime) into the same document UI that Plannotator uses — without forking or rebuilding it.
 
 If you read nothing else, read **"The 60-second version"**, **"Supported imports"**, and **"The seam catalog"**.
 
@@ -19,7 +19,7 @@ If you read nothing else, read **"The 60-second version"**, **"Supported imports
 
 **New package: `@plannotator/core`** — a browser-safe, zero-dependency package carved out of `@plannotator/shared`. It holds the pure utilities and types `ui` depends on, so `ui` can be installed without dragging in Plannotator's Node/server code. Modules were moved with `git mv` (not copied). CI typechecks it with no `@types/node` so a `node:` import can't sneak in.
 
-Core modules: `agents`, `agent-jobs`, `agent-terminal`, `browser-paths`, `code-file`, `compress`, `crypto`, `external-annotation`, `extract-code-paths`, `favicon`, `feedback-templates`, `goal-setup`, `open-in-apps`, `project`, `source-save`, plus extracted type files (`config-types`, `storage-types`, `workspace-status-types`, `ai-context`, `types`).
+Core modules: `agents`, `agent-terminal`, `browser-paths`, `code-file`, `compress`, `crypto`, `external-annotation`, `extract-code-paths`, `favicon`, `feedback-templates`, `goal-setup`, `open-in-apps`, `project`, `source-save`, plus extracted type files (`config-types`, `storage-types`, `workspace-status-types`, `ai-context`, `types`).
 
 **`@plannotator/shared` re-exports core via one-line shims** — e.g. `packages/shared/project.ts` is just `export * from '@plannotator/core/project';`. This is why none of Plannotator's ~99 internal import sites changed: they still import from `@plannotator/shared/*` and get the moved code transparently.
 
@@ -89,7 +89,6 @@ Pass any subset of these to `configurePlannotatorUI({ ... })`. Anything omitted 
 | `fileTreeBackend` | `FileTreeBackend` | The file/folder browser tree + live-watch | `GET /api/reference/files`, EventSource watch |
 | `draftTransport` | `DraftTransport` | Auto-saved annotation drafts (survive a crash/reload) | `GET/POST/DELETE /api/draft` |
 | `externalAnnotationTransport` | `ExternalAnnotationTransport<T>` | Live/agent comments streamed into the doc | SSE `/api/external-annotations/stream` + polling snapshot + CRUD |
-| `aiTransport` | `AITransport` | The "Ask AI" chat session/query/abort/permission | `POST /api/ai/{session,query,abort,permission}` |
 | `serverSync` | `ServerSyncFn` | Push a settings change back to the server | No-op-ish (Plannotator's local sync) |
 | `loadSettingsFromBackend` | `boolean` | After install, re-hydrate settings from your `storageBackend` | off |
 | `mathRendererLoader` | `() => Promise<MathRenderer>` | How KaTeX is loaded when no renderer is registered before the first math node renders (see "Lazy renderers and eager entries"). Once registered, the package default is never called, not even as a fallback after a rejected load, and `resetMathRenderer()` keeps the registration (0.34.0); a default load already in flight at registration still fills the slot (pre-existing, see `setMathRendererLoader`), so register before the first math render | `utils/math-default-loader`'s `import('katex')`, JS only; CSS stays yours |
@@ -111,7 +110,7 @@ Pass any subset of these to `configurePlannotatorUI({ ... })`. Anything omitted 
 
 **`ExternalAnnotationTransport<T>`** — `subscribe(onEvent, onError) => unsubscribe`, `getSnapshot(since) => { annotations, version } | null` (return `null` for "no changes", i.e. the 304 case), plus `add/remove/update/clear`. For Workspaces this is your realtime layer — a Durable Object WebSocket or SSE fanning out comment events. `T` extends `{ id: string; source?: string }`; if your annotation type adds fields, call `setExternalAnnotationTransport<YourType>()` directly for full type safety (the `configure` front door pins the base type for ergonomics).
 
-**`AITransport`** and **`FileTreeBackend`** currently return `Response` objects** (the raw `fetch` response) rather than parsed domain types — `session/query` return `Promise<Response>`, `loadTree/loadVaultTree` return `Promise<Response>` whose JSON is a known shape. **This is a known rough edge** (see "Known rough edges"). To satisfy these today, Workspaces has to hand back something `Response`-shaped (status, `.json()`, and for `query`, an SSE body stream). It works, but it leaks the old HTTP contract. We deliberately left it as-is for the first cut (move-don't-rewrite); expect to clean it up in a v2 driven by what's actually painful when you wire it.
+**`FileTreeBackend`** currently returns `Response` objects** (the raw `fetch` response) rather than parsed domain types — `loadTree` returns `Promise<Response>` whose JSON is a known shape. **This is a known rough edge** (see "Known rough edges"). To satisfy this today, Workspaces has to hand back something `Response`-shaped (status, `.json()`). It works, but it leaks the old HTTP contract. We deliberately left it as-is for the first cut (move-don't-rewrite); expect to clean it up in a v2 driven by what's actually painful when you wire it.
 
 ---
 
@@ -140,7 +139,6 @@ configurePlannotatorUI({
   fileTreeBackend,                // your workspace file tree + realtime watch
   draftTransport,                 // your draft store
   externalAnnotationTransport,    // adapt your Yjs/WebSocket realtime onto this
-  // aiTransport,                 // omit — Workspaces has no AI backend yet (stays default/off)
   serverSync,                     // your settings push
   loadSettingsFromBackend: true,  // re-hydrate settings from storageBackend after install
 });
@@ -167,7 +165,6 @@ Grounded in a read of the Workspaces repo (`apps/app`, `apps/usercontent`, `apps
 | `fileTreeBackend` | `GET /v1/workspaces/:wsId/documents` (D1 doc list); live-watch via the DocumentDO. | thin adapter |
 | `draftTransport` | KV or a per-doc Durable Object; `sendBeacon` for keepalive. | thin adapter |
 | `externalAnnotationTransport` | **Transport kind differs** — Workspaces realtime is Yjs-over-WebSocket (DocumentDO), and comments are REST with no live push. Adapt comment events onto the DO awareness channel (or add an SSE endpoint). | biggest adapter |
-| `aiTransport` | **No AI backend exists** in Workspaces. Leave at default/off until one is built. | new infra (later) |
 | `serverSync` | A Worker endpoint that persists the settings delta. | thin adapter |
 
 **Backend follow-up (Workspaces side, not a UI change):** if you want readable author names instead of raw `user_…` ids in comments, the `Me`/annotation projections need to start carrying a display-name field (WorkOS has `first_name`/`last_name`; the current `Me` projection drops them).
@@ -184,7 +181,7 @@ We deliberately did **not** restructure the exports map in this PR (move-don't-r
 
 | Import | Notes |
 |---|---|
-| `configure` (`configurePlannotatorUI`) | The front door. Also re-exports **every seam contract type** (`StorageBackend`, `IdentityProvider`, `UploadTransport`/`UploadResult`, `DraftTransport`, `ExternalAnnotationTransport`/`ExternalAnnotationEvent`, `AITransport`, `FileTreeBackend`/`VaultNode`, `ImageSrcResolver`, `DocPreviewFetcher`/`DocPreviewResult`, `ServerSyncFn`) so host adapters need one import. |
+| `configure` (`configurePlannotatorUI`) | The front door. Also re-exports **every seam contract type** (`StorageBackend`, `IdentityProvider`, `UploadTransport`/`UploadResult`, `DraftTransport`, `ExternalAnnotationTransport`/`ExternalAnnotationEvent`, `FileTreeBackend`/`VaultNode`, `ImageSrcResolver`, `DocPreviewFetcher`/`DocPreviewResult`, `ServerSyncFn`) so host adapters need one import. |
 | `theme` / `styles.css` | Theme tokens + precompiled stylesheet. **Prefer `styles.css`.** The raw `theme` export still `@import`s KaTeX (re-acquiring the fonts `styles.css` deliberately excludes, as separate lazy files) and contains Tailwind v4 `@theme` at-rules, so it's inert without Tailwind processing. |
 | `types` | `Annotation`, `Block`, `AnnotationType`, etc. |
 | `utils/parser` (`parseMarkdownToBlocks`, `exportAnnotations`) | Pure — no backend. |
@@ -193,7 +190,7 @@ We deliberately did **not** restructure the exports map in this PR (move-don't-r
 | `components/Viewer` | The full annotatable document. Required props: `markdown` and `taterMode` (pass `false`). **Pass `disableCodePathValidation` unless you implement `/api/doc/exists`** — code-path validation is a prop-level opt-out, not a `configure` seam. `annotationHeader={{ onInputMethodChange, onModeChange, hideQuickLabel? }}` opts into one Viewer-owned, in-flow header containing the compact annotation controls and existing document actions. It reserves its measured responsive height, preserves all document badges, and follows `stickyActions` as one unit; omit it for the legacy action bar. Compact mode contains no help link. `hideQuickLabel` still requires the host to clamp restored mode state away from `'quickLabel'`. A host-owned scroll element must be supplied through `ScrollViewportProvider` (`hooks/useScrollViewport`) so stuck chrome and anchor clearance use the real scroller. |
 | `components/MarkdownEditor` | Theme-bridging wrapper over `@plannotator/markdown-editor`. Takes CM6 extensions via the `extensions` prop (captured ONCE per `documentId` — see "Wiki-link seams (0.27.0)") and re-exports `wikiLinks`, `embedPicker`, `embedSlashItem`, `planEmbedInsert`, and their public types. |
 | `components/MarkdownDiff` | Theme-bridging wrapper over `@plannotator/markdown-editor`'s frozen two-revision diff. Same shim pattern as `components/MarkdownEditor` (ThemeProvider bridge, `extensions` passthrough, grid card chrome); never editable. See "Frozen markdown diff (0.28.0)". |
-| `components/CommentPopover` | Anchor capture + comment entry. Ask-AI UI renders only if you pass `onAskAI`. |
+| `components/CommentPopover` | Anchor capture + comment entry. |
 | `components/AnnotationPanel` | Renders from your annotation state; no fetches of its own. |
 | `components/AnnotationToolstrip` | The annotation mode toolstrip (Select / Pinpoint / Markup / Comment / Redline / Label). **Pass `showHelpLink={false}` in a host** — the default help modal embeds Plannotator's own YouTube walkthroughs. `hideQuickLabel` omits only the Label button (`StickyHeaderLane` forwards it, so the pinned scroll header matches); it hides the control, it does **not** clamp the mode — keep host mode state out of `'quickLabel'` (including preferences restored through `utils/editorMode`, which accepts it from storage) or text selection silently opens the quick-label picker with no visible cause. `hideInputMethodSwitch` likewise omits the pinpoint/drag switch. *(Blessed in 0.35.0.)* |
 | `components/StickyHeaderLane` | The backward-compatible standalone ghost lane used by Plannotator beside Viewer's legacy action bar. Defaults remain hidden/inert at rest and visible only while stuck, including the incumbent hidden chrome during its fade. Its `visibility="always"` mode remains a zero-height overlay and therefore requires host-owned clearance. New hosts that need a visible in-flow header should use `Viewer.annotationHeader` instead; it owns both clusters and their clearance. **The `visibility="always"` / `sticky={false}` pair is soft-deprecated as of 0.37.0**: it shipped in 0.36.0, its one intended consumer moved to `Viewer.annotationHeader` before adopting it, and it has no known consumers. It is retained for compatibility and still tested, but do not build new integrations on it. `sticky={false}` uses normal-flow positioning, creates no intersection observer, and must be paired with `visibility="always"`. Wide active-label, tight icon-only, and narrow stacked fallbacks remain measurement-driven, and `hideQuickLabel` still forwards to the compact toolstrip. |
@@ -219,7 +216,7 @@ We deliberately did **not** restructure the exports map in this PR (move-don't-r
 | `utils/identity-tater` | Side-effect entry that registers the full username dictionary into the identity generator slot. Import it only if you rely on the default tater names and want the full dictionary; a host with `identityProvider` should not. |
 | `utils/mermaid` (`loadMermaidRuntime`, `getMermaidRuntime`, `getMermaidRuntimeSource`, `setMermaidRuntime`, `MERMAID_CONFIG`) and `utils/mermaid-eager` | The Mermaid runtime slot and its eager registration. Import `utils/mermaid-eager` to keep Mermaid in your entry chunk as Plannotator does; omit it for the lazy path with retry. See "Lazy renderers and eager entries". |
 
-**AI is fully avoidable** — with one precision worth knowing. No AI *UI* is reachable from the supported components: `useAIChat` is imported only by `components/ai/DocumentAIChatPanel` and `useAIProviderConfig`, neither of which any supported component imports, and `CommentPopover`'s Ask-AI affordance exists only behind the optional `onAskAI` prop. `configure.ts` does statically import the `useAIChat` module (it needs `setAITransport`), but if you never use AI the hook is dead code and bundlers eliminate it — verified empirically: a standalone consumer's production bundle importing the full supported surface contains zero `/api/ai` strings. Don't import `components/ai/*` and don't pass `aiTransport`, and you ship no AI code.
+**There is no AI in the package.** The Ask AI chat, its provider/config/settings UI and the `/api/ai/*` transport were removed; nothing under `components/`, `hooks/` or `utils/` calls an AI endpoint.
 
 ### Unsupported — calls Plannotator's local server, no seam
 
@@ -227,7 +224,7 @@ Don't import these in a host. Each hits hardcoded Plannotator endpoints:
 
 - `components/sidebar/VersionBrowser`, `hooks/usePlanDiff`, `components/plan-diff/*` — `/api/plan/version(s)` (Plannotator's version history; Workspaces builds its own versions UI anyway).
 - `hooks/useArchive`, `components/sidebar/ArchiveBrowser` — `/api/archive/*`.
-- `hooks/useAgents`, `hooks/useAgentJobs`, `components/AgentsTab` — `/api/agents/*`.
+- `hooks/useAgents` — `/api/agents`.
 - `components/Settings`, `components/settings/HooksTab` — Plannotator-specific tabs (Obsidian vaults, hooks, integrations).
 - `components/ExportModal`, `components/OpenInAppButton` — `/api/save-notes`, `/api/open-in` (Obsidian/Bear/editor integrations).
 - `components/goal-setup/*` — Plannotator's goal-package scaffolding endpoints.
@@ -290,7 +287,7 @@ interface Annotation {
 
 ## Known rough edges (and why they're fine for now)
 
-1. **`AITransport` / `FileTreeBackend` leak `Response`.** They return raw fetch `Response` objects instead of clean domain types (`{ sessionId }`, `AsyncIterable<AIMessage>`, `{ tree, workspaceStatus }`). A reviewer correctly flagged this. We kept it deliberately: the goal of this PR was **move-don't-rewrite**, and reshaping these contracts is exactly the kind of redesign that's better driven by the real consumer (Workspaces) once you feel the pain. Plan a v2 pass on these two once you've wired them.
+1. **`FileTreeBackend` leaks `Response`.** It returns raw fetch `Response` objects instead of a clean domain type (`{ tree, workspaceStatus }`). A reviewer correctly flagged this. We kept it deliberately: the goal of this PR was **move-don't-rewrite**, and reshaping this contract is exactly the kind of redesign that's better driven by the real consumer (Workspaces) once you feel the pain. Plan a v2 pass on it once you've wired it.
 
 2. **`InlineMarkdown.tsx` is large (~1k lines)** and now hosts the `docPreviewFetcher` seam inline. Cheap future cleanup: extract the doc-preview seam into its own module so the renderer shrinks. Not blocking.
 

@@ -17,17 +17,16 @@ const noop = () => {};
 function baseProps(): React.ComponentProps<typeof headerModule extends null ? never : NonNullable<typeof headerModule>['AppHeader']> {
   return {
     isApiMode: true, annotateMode: false, archiveMode: false, goalSetupMode: false, goalSetupCanSubmit: false, goalSetupIsSubmitting: false,
-    goalSetupSubmitLabel: 'Submit', isSharedSession: false, origin: null,
-    isSubmitting: false, isExiting: false, isPanelOpen: false, aiAvailable: false, isAIChatOpen: false, aiHasMessages: false,
-    annotationCount: 0, linkedDocIsActive: false, callbackShareUrlReady: false, canShareCurrentSession: false,
+    goalSetupSubmitLabel: 'Submit', origin: null,
+    isSubmitting: false, isExiting: false, isPanelOpen: false,
+    annotationCount: 0, linkedDocIsActive: false,
     agentName: 'Claude', availableAgents: [], showAnnotationsWarning: false,
-    callbackConfig: null, taterMode: false, mobileSettingsOpen: false, gitUser: undefined, agentTerminalAvailable: false,
-    onCallbackFeedback: noop, onCallbackApprove: noop, onAnnotateExit: noop, onGoalSetupExit: noop, onGoalSetupSubmit: noop,
-    onFeedback: noop, onApprove: noop, onAnnotationPanelToggle: noop, onAIChatToggle: noop,
-    onArchiveCopy: noop, onArchiveDone: noop, onTaterModeChange: noop, onIdentityChange: noop, onUIPreferencesChange: noop,
-    onOpenSettings: noop, onCloseSettings: noop, onOpenExport: noop, onCopyAgentInstructions: noop, onDownloadAnnotations: noop,
-    onCopyShareLink: noop, onOpenImport: noop, onSaveToObsidian: noop, onSaveToBear: noop, onSaveToOctarine: noop,
-    appVersion: '0.0.0', agentInstructionsEnabled: false, obsidianConfigured: false, bearConfigured: false, octarineConfigured: false,
+    taterMode: false, mobileSettingsOpen: false, agentTerminalAvailable: false,
+    onAnnotateExit: noop, onGoalSetupExit: noop, onGoalSetupSubmit: noop,
+    onFeedback: noop, onApprove: noop, onAnnotationPanelToggle: noop,
+    onArchiveCopy: noop, onArchiveDone: noop, onTaterModeChange: noop, onUIPreferencesChange: noop,
+    onOpenSettings: noop, onCloseSettings: noop, onCopyAgentInstructions: noop, onDownloadAnnotations: noop,
+    appVersion: '0.0.0', agentInstructionsEnabled: false,
   };
 }
 

@@ -32,7 +32,6 @@ interface PlanResponse {
     readonly timestamp: string;
     readonly title: string;
   }];
-  readonly sharingEnabled: false;
   readonly serverConfig: Record<string, never>;
 }
 
@@ -67,20 +66,14 @@ let requestedRoutes: string[] = [];
 let aiCapabilitiesAvailable = false;
 let documentLoadGate: Promise<void> | null = null;
 
-const noteSettings = new Map<string, string>();
+const storedSettings = new Map<string, string>();
 
-function configureNotesApps(): void {
+function configureStorage(): void {
   storageModule?.setStorageBackend({
-    getItem: (key) => noteSettings.get(key) ?? null,
-    setItem: (key, value) => noteSettings.set(key, value),
-    removeItem: (key) => { noteSettings.delete(key); },
+    getItem: (key) => storedSettings.get(key) ?? null,
+    setItem: (key, value) => storedSettings.set(key, value),
+    removeItem: (key) => { storedSettings.delete(key); },
   });
-  noteSettings.set("plannotator-obsidian-enabled", "true");
-  noteSettings.set("plannotator-obsidian-vault", "TestVault");
-  noteSettings.set("plannotator-bear-enabled", "true");
-  noteSettings.set("plannotator-octarine-enabled", "true");
-  noteSettings.set("plannotator-octarine-workspace", "TestWorkspace");
-  noteSettings.set("plannotator-default-notes-app", "obsidian");
 }
 
 function useCompactTouchMedia(): void {
@@ -102,7 +95,6 @@ function useSingleFileTree(): void {
     loadTree: async () => Response.json({
       tree: [{ name: "alpha.md", path: "alpha.md", type: "file" }],
     }),
-    loadVaultTree: async () => Response.json({ error: "Unavailable" }, { status: 404 }),
     watchTrees: () => undefined,
   });
 }
@@ -161,15 +153,6 @@ function responseFor(planResponse: PlanResponse): typeof fetch {
         renderAs: "markdown",
       });
     }
-    if (url.pathname === "/api/save-notes") {
-      return Response.json({
-        results: {
-          obsidian: { success: true },
-          bear: { success: true },
-          octarine: { success: true },
-        },
-      });
-    }
     return Response.json({});
   };
 }
@@ -203,7 +186,7 @@ afterEach(async () => {
   globalThis.fetch = originalFetch;
   globalThis.EventSource = originalEventSource;
   if (hasDom && originalMatchMedia) window.matchMedia = originalMatchMedia;
-  noteSettings.clear();
+  storedSettings.clear();
   aiCapabilitiesAvailable = false;
   documentLoadGate = null;
   storageModule?.resetStorageBackend();
@@ -213,7 +196,7 @@ afterEach(async () => {
 
 describe.if(hasDom)("App document permissions", () => {
   test("standalone archive renders Markdown without mutation entry points", async () => {
-    configureNotesApps();
+    configureStorage();
     await mountApp({
       plan: "# Archived document\n\n```typescript\nconst archived = true;\n```",
       origin: "codex",
@@ -224,7 +207,6 @@ describe.if(hasDom)("App document permissions", () => {
         timestamp: "2026-07-31T00:00:00.000Z",
         title: "Archived document",
       }],
-      sharingEnabled: false,
       serverConfig: {},
     });
 
@@ -256,6 +238,9 @@ describe.if(hasDom)("App document permissions", () => {
     const optionsButton = document.querySelector<HTMLButtonElement>('button[title="Options"]');
     if (!optionsButton) throw new Error("Options menu trigger did not render");
     await act(async () => optionsButton.click());
+    expect(findButton("Export")).toBeUndefined();
+    expect(findButton("Import Review")).toBeUndefined();
+    expect(findButton("Copy Share Link")).toBeUndefined();
     expect(findButton("Save to Obsidian")).toBeUndefined();
     expect(findButton("Save to Bear")).toBeUndefined();
     expect(findButton("Save to Octarine")).toBeUndefined();
@@ -284,21 +269,15 @@ describe.if(hasDom)("App document permissions", () => {
     });
     expect(requestedRoutes).not.toContain("POST /api/approve");
     expect(requestedRoutes).not.toContain("POST /api/deny");
-
-    const exportButton = findButton("Export");
-    if (!exportButton) throw new Error("Export menu item did not render");
-    await act(async () => exportButton.click());
-    expect(findButton("Notes")).toBeUndefined();
   });
 
   test("normal annotate remains writable", async () => {
-    configureNotesApps();
+    configureStorage();
     await mountApp({
       plan: "# Writable document",
       origin: "codex",
       mode: "annotate",
       filePath: "/tmp/writable.md",
-      sharingEnabled: false,
       serverConfig: {},
     });
 
@@ -310,9 +289,10 @@ describe.if(hasDom)("App document permissions", () => {
     const optionsButton = document.querySelector<HTMLButtonElement>('button[title="Options"]');
     if (!optionsButton) throw new Error("Options menu trigger did not render");
     await act(async () => optionsButton.click());
-    expect(findButton("Save to Obsidian")).not.toBeUndefined();
-    expect(findButton("Save to Bear")).not.toBeUndefined();
-    expect(findButton("Save to Octarine")).not.toBeUndefined();
+    expect(findButton("Download Annotations")).not.toBeUndefined();
+    expect(findButton("Save to Obsidian")).toBeUndefined();
+    expect(findButton("Save to Bear")).toBeUndefined();
+    expect(findButton("Save to Octarine")).toBeUndefined();
 
     requestedRoutes = [];
     await act(async () => {
@@ -322,12 +302,12 @@ describe.if(hasDom)("App document permissions", () => {
       }));
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
-    expect(requestedRoutes).toContain("POST /api/save-notes");
+    expect(requestedRoutes).not.toContain("POST /api/save-notes");
   });
 
   test("compact touch presents a reading-first file surface without mutating desktop preferences", async () => {
-    configureNotesApps();
-    noteSettings.set("plannotator-input-method", "pinpoint");
+    configureStorage();
+    storedSettings.set("plannotator-input-method", "pinpoint");
     aiCapabilitiesAvailable = true;
     useCompactTouchMedia();
     await mountApp({
@@ -348,7 +328,6 @@ describe.if(hasDom)("App document permissions", () => {
         eol: "lf",
       },
       gate: true,
-      sharingEnabled: false,
       serverConfig: {},
     });
 
@@ -366,7 +345,7 @@ describe.if(hasDom)("App document permissions", () => {
 
     await act(async () => findButtonContaining("Select text")?.click());
     expect(document.querySelector("[data-pn-compact-annotate-entry]")?.textContent).toContain("Select text");
-    expect(noteSettings.get("plannotator-input-method")).toBe("pinpoint");
+    expect(storedSettings.get("plannotator-input-method")).toBe("pinpoint");
 
     const optionsButton = document.querySelector<HTMLButtonElement>('button[aria-label="Options"]');
     if (!optionsButton) throw new Error("Options menu trigger did not render");
@@ -419,7 +398,7 @@ describe.if(hasDom)("App document permissions", () => {
   });
 
   test("compact review sends the incumbent approval request", async () => {
-    configureNotesApps();
+    configureStorage();
     useCompactTouchMedia();
     await mountApp({
       plan: "# Mobile decision\n\nReview this plan.",
@@ -427,7 +406,6 @@ describe.if(hasDom)("App document permissions", () => {
       mode: "annotate",
       filePath: "/repo/docs/decision.md",
       gate: true,
-      sharingEnabled: false,
       serverConfig: {},
     });
 
@@ -445,7 +423,7 @@ describe.if(hasDom)("App document permissions", () => {
   });
 
   test("compact folder selection closes the navigator after the async document activation", async () => {
-    configureNotesApps();
+    configureStorage();
     useCompactTouchMedia();
     useSingleFileTree();
     await mountApp({
@@ -454,7 +432,6 @@ describe.if(hasDom)("App document permissions", () => {
       mode: "annotate-folder",
       filePath: "/repo",
       projectRoot: "/repo",
-      sharingEnabled: false,
       serverConfig: {},
     });
 

@@ -2324,39 +2324,6 @@ export function validateFilePath(filePath: string): void {
   }
 }
 
-async function ensureGitSuccess(
-  runtime: ReviewGitRuntime,
-  args: string[],
-  cwd?: string,
-): Promise<void> {
-  const result = await runtime.runGit(args, { cwd });
-  if (result.exitCode !== 0) {
-    throw new Error(result.stderr.trim() || `git ${args.join(" ")} failed`);
-  }
-}
-
-export async function gitAddFile(
-  runtime: ReviewGitRuntime,
-  filePath: string,
-  cwd?: string,
-): Promise<void> {
-  validateFilePath(filePath);
-  // Patch paths are repo-root-relative; from a subdirectory launch the
-  // pathspec must be applied at the toplevel or `git add` fails with
-  // "did not match any files".
-  await ensureGitSuccess(runtime, ["add", "--", filePath], await resolveRepoToplevel(runtime, cwd));
-}
-
-export async function gitResetFile(
-  runtime: ReviewGitRuntime,
-  filePath: string,
-  cwd?: string,
-): Promise<void> {
-  validateFilePath(filePath);
-  // Toplevel for the same reason as gitAddFile.
-  await ensureGitSuccess(runtime, ["reset", "HEAD", "--", filePath], await resolveRepoToplevel(runtime, cwd));
-}
-
 export function parseP4DiffType(
   diffType: string,
 ): { changelist: string | "default" } | null {
