@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { FAVICON_PNG_BYTES } from "../core/favicon";
+import { CLASSIC_FAVICON_SVG } from "../core/favicon";
 import { normalizeGoalSetupBundle } from "@plannotator/shared/goal-setup";
 import { startGoalSetupServer, type GoalSetupServerResult } from "./goal-setup";
 
@@ -30,11 +30,12 @@ describe("goal setup server", () => {
     expect(plan.mode).toBe("goal-setup");
     expect(plan.goalSetup.questions[0].id).toBe("scope");
 
+    // Classic is the sole served favicon, so this route no longer depends on
+    // the persisted style -- and therefore no longer varies with whatever
+    // ~/.plannotator/config.json happens to say on the machine running this.
     const faviconResponse = await fetch(`${server.url}/favicon.png`);
-    expect(faviconResponse.headers.get("content-type")).toBe("image/png");
-    expect(new Uint8Array(await faviconResponse.arrayBuffer())).toEqual(
-      FAVICON_PNG_BYTES,
-    );
+    expect(faviconResponse.headers.get("content-type")).toBe("image/svg+xml");
+    expect(await faviconResponse.text()).toBe(CLASSIC_FAVICON_SVG);
 
     const decision = server.waitForDecision();
     const submitted = await fetch(`${server.url}/api/goal-setup/submit`, {

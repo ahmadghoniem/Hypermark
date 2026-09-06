@@ -35,7 +35,6 @@ import { getPlatformLabel, getMRLabel, getMRNumberLabel, getDisplayRepo } from '
 import type { SemanticDiffAdvert } from '@plannotator/shared/semantic-diff-types';
 import type { CallFlowAdvert, CallFlowNode } from '@plannotator/shared/call-flow-types';
 import { configStore, useConfigValue, setReviewPanelView } from '@plannotator/ui/config';
-import { loadDiffFont } from '@plannotator/ui/utils/diffFonts';
 import { getAgentSwitchSettings, getEffectiveAgentName } from '@plannotator/ui/utils/agentSwitch';
 import { LookAndFeelAnnouncementDialog } from '@plannotator/ui/components/LookAndFeelAnnouncementDialog';
 import { markLookAndFeelChoiceResolved, needsLookAndFeelAnnouncement } from '@plannotator/ui/utils/lookAndFeelAnnouncement';
@@ -432,10 +431,9 @@ const ReviewApp: React.FC = () => {
   // choice even though the visual result applies to plan/document surfaces.
   const gridEnabled = useConfigValue('gridEnabled');
 
-  // Load custom diff font and override --font-mono for surrounding review elements
+  // Apply custom diff font and override --font-mono for surrounding review elements
   useEffect(() => {
     if (diffFontFamily) {
-      loadDiffFont(diffFontFamily);
       document.documentElement.style.setProperty('--diff-font-override', `'${diffFontFamily}', monospace`);
     } else {
       document.documentElement.style.removeProperty('--diff-font-override');

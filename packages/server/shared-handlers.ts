@@ -13,8 +13,7 @@ import { isUrlHostOverridden } from "./remote";
 import { writeUrlQr } from "./qr";
 import { validateImagePath, validateUploadExtension, UPLOAD_DIR } from "./image";
 import { saveDraft, loadDraft, deleteDraft, getDraftGeneration } from "./draft";
-import { CLASSIC_FAVICON_SVG, FAVICON_PNG_BYTES } from "@plannotator/shared/favicon";
-import { getServerConfig } from "./config";
+import { CLASSIC_FAVICON_SVG } from "@plannotator/shared/favicon";
 import { saveToObsidian, saveToBear, saveToOctarine } from "./integrations";
 import type { ObsidianConfig, BearConfig, OctarineConfig, IntegrationResult } from "./integrations";
 import { listReferenceSkills, readReferenceSkillContent } from "./review-skill-loader";
@@ -201,24 +200,14 @@ export function handleApiNotFound(path: string): Response {
 /**
  * Serve the app favicon. Used by all 3 servers (plus goal-setup).
  *
- * Reads the persisted style so a classic user's first painted frame is already
- * classic. Without this the static route always answered Totman and the
- * preference only landed once React mounted, i.e. a visible flash on every load.
- *
- * The route is one URL with two possible payloads, so the response declares its
- * real type and is not cached: the entry HTML's <link rel="icon"> deliberately
- * carries no `type`/`sizes` (see apps/hook/index.html), leaving Content-Type the
- * single source of truth, and a day-long cache would re-paint the old icon after
- * a switch. loadConfig() is a small unmemoized JSON read, once per page load.
+ * Classic (dark-navy P tile SVG) is the sole offered favicon. A stored value
+ * of 'totman' resolves to Classic before first paint — no flash, no config
+ * rewrite. The response is SVG with no-cache so a browser tab reflects the
+ * correct icon on every load.
  */
 export function handleFavicon(): Response {
-  if (getServerConfig(null).favicon === "classic") {
-    return new Response(CLASSIC_FAVICON_SVG, {
-      headers: { "Content-Type": "image/svg+xml", "Cache-Control": "no-cache" },
-    });
-  }
-  return new Response(FAVICON_PNG_BYTES, {
-    headers: { "Content-Type": "image/png", "Cache-Control": "no-cache" },
+  return new Response(CLASSIC_FAVICON_SVG, {
+    headers: { "Content-Type": "image/svg+xml", "Cache-Control": "no-cache" },
   });
 }
 

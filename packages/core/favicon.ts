@@ -127,6 +127,13 @@ export const CLASSIC_FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" view
 
 export const CLASSIC_FAVICON_DATA_URL = `data:image/svg+xml;base64,${btoa(CLASSIC_FAVICON_SVG)}`;
 
-export function faviconDataUrl(style: FaviconStyle): string {
-  return style === 'classic' ? CLASSIC_FAVICON_DATA_URL : FAVICON_PNG_DATA_URL;
+/**
+ * Return the data URL for a given favicon style.
+ *
+ * Classic is the sole offered style. A stored value of 'totman' resolves to
+ * Classic at read time per spec 03 step 4 — no flash of the old icon, no
+ * config rewrite.
+ */
+export function faviconDataUrl(_style?: FaviconStyle): string {
+  return CLASSIC_FAVICON_DATA_URL;
 }

@@ -4,10 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { configStore } from '../config/configStore';
 import { resetStorageBackend, setStorageBackend } from '../utils/storage';
 import { ThemeProvider } from './ThemeProvider';
-import {
-  CLASSIC_FAVICON_DATA_URL,
-  FAVICON_PNG_DATA_URL,
-} from '@plannotator/core/favicon';
+import { CLASSIC_FAVICON_DATA_URL } from '@plannotator/core/favicon';
 
 const hasDom = typeof document !== 'undefined';
 
@@ -72,7 +69,10 @@ describe('ThemeProvider favicon synchronization', () => {
     resetStorageBackend();
   });
 
-  test.skipIf(!hasDom)('updates document link[rel="icon"] href, type, and sizes when faviconStyle changes', async () => {
+  test.skipIf(!hasDom)('resolves a stored totman preference to classic on the first painted frame', async () => {
+    // The retired style is still readable -- an old install keeps "totman" in
+    // its cookie -- but it must never paint. The link is written once, as SVG,
+    // and no PNG type/sizes pair is ever left behind to contradict the href.
     stored.set('plannotator-favicon', 'totman');
     configStore.loadFromBackend();
 
@@ -80,27 +80,22 @@ describe('ThemeProvider favicon synchronization', () => {
 
     const link = getFaviconLink();
     expect(link).not.toBeNull();
-    expect(link?.href).toBe(FAVICON_PNG_DATA_URL);
-    expect(link?.type).toBe('image/png');
-    expect(link?.getAttribute('sizes')).toBe('64x64');
+    expect(link?.href).toBe(CLASSIC_FAVICON_DATA_URL);
+    expect(link?.type).toBe('image/svg+xml');
+    expect(link?.hasAttribute('sizes')).toBe(false);
 
-    await act(async () => {
-      configStore.set('faviconStyle', 'classic');
-    });
+    // The stored value is resolved at read time, not rewritten.
+    expect(stored.get('plannotator-favicon')).toBe('totman');
 
-    const updatedLink = getFaviconLink();
-    expect(updatedLink?.href).toBe(CLASSIC_FAVICON_DATA_URL);
-    expect(updatedLink?.type).toBe('image/svg+xml');
-    expect(updatedLink?.hasAttribute('sizes')).toBe(false);
-
+    // And writing the retired value again cannot bring the old icon back.
     await act(async () => {
       configStore.set('faviconStyle', 'totman');
     });
 
     const revertedLink = getFaviconLink();
-    expect(revertedLink?.href).toBe(FAVICON_PNG_DATA_URL);
-    expect(revertedLink?.type).toBe('image/png');
-    expect(revertedLink?.getAttribute('sizes')).toBe('64x64');
+    expect(revertedLink?.href).toBe(CLASSIC_FAVICON_DATA_URL);
+    expect(revertedLink?.type).toBe('image/svg+xml');
+    expect(revertedLink?.hasAttribute('sizes')).toBe(false);
   });
 
   test.skipIf(!hasDom)('initializes with classic style when stored in backend', async () => {

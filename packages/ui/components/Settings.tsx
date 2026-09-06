@@ -6,7 +6,6 @@ import type { DiffLineBgIntensity } from '@plannotator/core/config-types';
 import type { TokenHoverDelay } from '@plannotator/core/token-hover';
 import { configStore, useConfigValue, setReviewPanelView, setReviewDefaultDiffType, setReviewAutoViewed } from '../config';
 import { setWebMcpToolsEnabled, useWebMcpToolsEnabled } from '../webmcp/preference';
-import { loadDiffFont } from '../utils/diffFonts';
 import { TaterSpritePullup } from './TaterSpritePullup';
 import {
   getAgentSwitchSettings,
@@ -81,6 +80,11 @@ interface SettingsProps {
 
 // --- Review-mode Display tab (diff display options) ---
 
+// These resolve against locally installed fonts: the CDN stylesheet injection
+// that used to fetch them is gone. A family the machine lacks falls back to the
+// generic monospace stack rather than failing. Whether this list should become a
+// bundled set, a free-text family name, or a permission-gated local enumeration
+// is the open localFontPickerPolicy decision, so it is left as-is for now.
 const DIFF_FONT_OPTIONS = [
   { value: '', label: 'Theme Default' },
   { value: 'Fira Code', label: 'Fira Code' },
@@ -379,11 +383,6 @@ const ReviewDisplayTab: React.FC<{ isCompactTouchLayout?: boolean }> = ({ isComp
   const diffFontSize = useConfigValue('diffFontSize');
   const tokenHoverTrigger = useConfigValue('tokenHoverTrigger');
   const tokenHoverDelay = useConfigValue('tokenHoverDelay');
-
-  // Load font for the preview swatch
-  useEffect(() => {
-    if (diffFontFamily) loadDiffFont(diffFontFamily);
-  }, [diffFontFamily]);
 
   return (
     <>

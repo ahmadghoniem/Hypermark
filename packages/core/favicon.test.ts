@@ -48,8 +48,14 @@ describe("favicon style switcher", () => {
     );
   });
 
-  test("faviconDataUrl('totman') returns exact production PNG data URL", () => {
-    expect(faviconDataUrl("totman")).toBe(FAVICON_PNG_DATA_URL);
+  test("faviconDataUrl resolves the retired totman style to classic", () => {
+    // Classic is the sole offered favicon. A saved "totman" is still a legal
+    // stored value (old installs keep theirs), so it must resolve here rather
+    // than be rejected as corrupt -- and it must resolve to the classic asset,
+    // never the retired PNG.
+    expect(faviconDataUrl("totman")).toBe(CLASSIC_FAVICON_DATA_URL);
+    expect(faviconDataUrl("classic")).toBe(CLASSIC_FAVICON_DATA_URL);
+    expect(faviconDataUrl()).toBe(CLASSIC_FAVICON_DATA_URL);
   });
 
   test("faviconDataUrl('classic') returns base64 SVG data URL matching historical asset", () => {

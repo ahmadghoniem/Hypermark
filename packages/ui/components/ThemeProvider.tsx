@@ -145,8 +145,6 @@ export function ThemeProvider({
   const storePair = useConfigValue('themePair');
   const pair = pendingSeed.current ?? storePair;
   const mode = pair.mode;
-  const faviconStyle = useConfigValue('faviconStyle');
-
   useEffect(() => {
     if (!manageFavicon) return;
     if (typeof document === 'undefined') return;
@@ -156,15 +154,12 @@ export function ThemeProvider({
       link.rel = 'icon';
       document.head.appendChild(link);
     }
-    if (faviconStyle === 'classic') {
-      link.type = 'image/svg+xml';
-      link.removeAttribute('sizes');
-    } else {
-      link.type = 'image/png';
-      link.setAttribute('sizes', '64x64');
-    }
-    link.href = faviconDataUrl(faviconStyle);
-  }, [faviconStyle, manageFavicon]);
+    // Classic is the sole favicon. A stored 'totman' resolves here, before the
+    // first painted frame, and the saved value is never rewritten.
+    link.type = 'image/svg+xml';
+    link.removeAttribute('sizes');
+    link.href = faviconDataUrl();
+  }, [manageFavicon]);
 
   // Hand the resolved pair to the store as a SEED, not a user choice: seeding
   // writes memory + cookies only. Routing it through set() would queue a

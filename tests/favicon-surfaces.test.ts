@@ -5,9 +5,9 @@ import { inflateSync } from "node:zlib";
 import { CLASSIC_FAVICON_SVG, FAVICON_PNG_BYTES } from "../packages/core/favicon";
 
 // The two server-served entry points declare no type/sizes: their /favicon.png
-// is answered by handleFavicon(), which picks PNG or the classic SVG from the
-// persisted style, so the response Content-Type is the only truthful
-// declaration. A re-added type="image/png" would be a lie for classic users.
+// is answered by handleFavicon(), which always serves the classic SVG, so the
+// response Content-Type is the only truthful declaration. A re-added
+// type="image/png" would be a lie about what the route returns.
 const SERVED_FAVICON_LINK = '<link rel="icon" href="/favicon.png">';
 // The portal is a static site with no Plannotator server, so its favicon really
 // is always the 64px PNG the vite plugin emits and it keeps the typed hints.
@@ -130,9 +130,8 @@ describe("favicon surfaces", () => {
     expect(stats.opaquePixels).toBeGreaterThan(0);
   });
 
-  test("the optional classic style is the archival pre-Totman asset", () => {
-    // The second thing /favicon.png can now answer with, so it belongs in this
-    // enumeration alongside the production PNG. Pinned to the exact bytes that
+  test("the served classic style is the archival pre-Totman asset", () => {
+    // The only thing /favicon.png answers with. Pinned to the exact bytes that
     // shipped at 5b91c543^.
     expect(createHash("sha256").update(CLASSIC_FAVICON_SVG).digest("hex")).toBe(
       "27d33cff3d4515801f48e1cbaceec777ba802a7d341b22b2c0444d82b303cb49",

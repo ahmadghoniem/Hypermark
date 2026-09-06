@@ -144,7 +144,7 @@ export const SETTINGS = {
     toServer: (v: ThemePair) => ({ theme: { mode: v.mode, light: v.light, dark: v.dark } }),
   },
   faviconStyle: {
-    defaultValue: 'totman' as FaviconStyle,
+    defaultValue: 'classic' as FaviconStyle,
     fromCookie: () => {
       const v = storage.getItem('plannotator-favicon');
       return isFaviconStyle(v) ? v : undefined;
