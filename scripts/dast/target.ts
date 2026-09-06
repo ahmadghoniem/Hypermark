@@ -15,13 +15,12 @@ if (process.env.PLANNOTATOR_DAST_ISOLATED !== "1") {
 
 // These are defense-in-depth defaults for the test target. The Docker network
 // is the primary outbound boundary; the application is also configured so an
-// accidentally reached feature cannot invoke agents, share content, persist
-// review data, open a browser, or install optional runtimes.
+// accidentally reached feature cannot invoke agents, persist review data,
+// open a browser, or install optional runtimes.
 Object.assign(process.env, {
   PLANNOTATOR_REMOTE: "0",
   PLANNOTATOR_PORT: String(APP_PORT),
   PLANNOTATOR_AI: "disabled",
-  PLANNOTATOR_SHARE: "disabled",
   PLANNOTATOR_JINA: "0",
   PLANNOTATOR_ANNOTATE_HISTORY: "0",
   PLANNOTATOR_GUIDE_HISTORY: "0",
@@ -50,7 +49,6 @@ const application = await startAnnotateServer({
   htmlContent,
   mode: "annotate-last",
   origin: "claude-code",
-  sharingEnabled: false,
   gate: false,
   project: "dast-fixture",
 });

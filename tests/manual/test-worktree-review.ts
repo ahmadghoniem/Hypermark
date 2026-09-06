@@ -1117,7 +1117,6 @@ const server = await startReviewServer({
   origin: "claude-code",
   diffType: "uncommitted",
   gitContext,
-  sharingEnabled: false,
   htmlContent: html as unknown as string,
   onReady: (url, isRemote, port) => handleReviewServerReady(url, isRemote, port),
 });

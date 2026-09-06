@@ -634,7 +634,6 @@ export function devMockApi(): Plugin {
               plan: '',
               origin: 'claude-code',
               mode: 'goal-setup',
-              sharingEnabled: false,
               goalSetup: GOAL_SETUP_DEMO === "facts" ? {
                 stage: "facts",
                 title: "Interactive goal setup facts",
@@ -781,7 +780,6 @@ export function devMockApi(): Plugin {
             origin: 'claude-code',
             previousPlan: PLAN_V2,
             versionInfo: { version: 3, totalVersions: 3, project: 'demo' },
-            sharingEnabled: true,
           }));
           return;
         }

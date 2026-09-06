@@ -11,8 +11,6 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  resolveAIEnabled,
-  resolveCursorSandbox,
   resolveUseGlimpse,
   resolveAnnotateHistory,
   resolveUseJina,
@@ -23,7 +21,6 @@ import {
   loadConfig,
   saveConfig,
   getServerConfig,
-  resolveSharingEnabled,
   resolveDefaultDiffType,
   __setConfigLockTimingsForTest,
   __setConfigSaveMergeWindowHookForTest,
@@ -57,22 +54,6 @@ describe("parseReviewAnalysisConfig", () => {
 
   test("ignores unknown keys instead of persisting them", () => {
     expect(parseReviewAnalysisConfig({ callFlow: true, futureFlag: true })).toEqual({ callFlow: true });
-  });
-});
-
-describe("resolveAIEnabled", () => {
-  test("defaults to enabled", () => {
-    expect(resolveAIEnabled({})).toBe(true);
-  });
-
-  test("disabled is case-insensitive", () => {
-    expect(resolveAIEnabled({ PLANNOTATOR_AI: "disabled" })).toBe(false);
-    expect(resolveAIEnabled({ PLANNOTATOR_AI: "Disabled" })).toBe(false);
-  });
-
-  test("other values keep AI enabled", () => {
-    expect(resolveAIEnabled({ PLANNOTATOR_AI: "enabled" })).toBe(true);
-    expect(resolveAIEnabled({ PLANNOTATOR_AI: "false" })).toBe(true);
   });
 });
 
@@ -218,51 +199,6 @@ describe("resolveUrlHost", () => {
   });
 });
 
-const ENV = "PLANNOTATOR_CURSOR_SANDBOX";
-const originalEnv = process.env[ENV];
-
-function restoreEnv() {
-  if (originalEnv === undefined) delete process.env[ENV];
-  else process.env[ENV] = originalEnv;
-}
-
-describe("resolveCursorSandbox", () => {
-  beforeEach(() => {
-    delete process.env[ENV];
-  });
-  afterAll(restoreEnv);
-
-  test("defaults to true with no env var and no config key", () => {
-    expect(resolveCursorSandbox({})).toBe(true);
-  });
-
-  test("config.cursorSandbox is honored when the env var is unset", () => {
-    expect(resolveCursorSandbox({ cursorSandbox: false })).toBe(false);
-    expect(resolveCursorSandbox({ cursorSandbox: true })).toBe(true);
-  });
-
-  test("env values 0 / false / disabled turn the sandbox flag off", () => {
-    for (const v of ["0", "false", "disabled", "FALSE", "Disabled"]) {
-      process.env[ENV] = v;
-      expect(resolveCursorSandbox({})).toBe(false);
-    }
-  });
-
-  test("env wins over the config key in both directions", () => {
-    process.env[ENV] = "0";
-    expect(resolveCursorSandbox({ cursorSandbox: true })).toBe(false);
-    process.env[ENV] = "1";
-    expect(resolveCursorSandbox({ cursorSandbox: false })).toBe(true);
-  });
-
-  test("env values 1 / true / enabled (and unrecognized values) keep the default", () => {
-    for (const v of ["1", "true", "enabled", "TRUE", "anything-else"]) {
-      process.env[ENV] = v;
-      expect(resolveCursorSandbox({})).toBe(true);
-    }
-  });
-});
-
 // config.json is hand-edited, so boolean settings often arrive as quoted
 // strings ("false" instead of false). Each boolean resolver must coerce those
 // instead of passing the raw string through to `=== false` checks downstream.
@@ -290,12 +226,6 @@ describe("config.json boolean coercion", () => {
       envVar: "PLANNOTATOR_JINA",
       key: "jina",
       resolve: (config) => resolveUseJina(false, config),
-    },
-    {
-      name: "resolveCursorSandbox",
-      envVar: "PLANNOTATOR_CURSOR_SANDBOX",
-      key: "cursorSandbox",
-      resolve: resolveCursorSandbox,
     },
   ];
 
@@ -544,11 +474,3 @@ async function waitForFile(path: string): Promise<void> {
   throw new Error(`timed out waiting for ${path}`);
 }
 
-describe("resolveSharingEnabled", () => {
-  test("env wins over config; default enabled", () => {
-    expect(resolveSharingEnabled({}, {})).toBe(true);
-    expect(resolveSharingEnabled({ share: "disabled" }, {})).toBe(false);
-    expect(resolveSharingEnabled({ share: "disabled" }, { PLANNOTATOR_SHARE: "enabled" })).toBe(true);
-    expect(resolveSharingEnabled({}, { PLANNOTATOR_SHARE: "disabled" })).toBe(false);
-  });
-});

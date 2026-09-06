@@ -17,7 +17,6 @@ import { startPlannotatorServer, handleServerReady } from "@plannotator/server";
 import html from "../../apps/hook/dist/index.html" with { type: "text" };
 
 const origin = process.argv[2] || "claude-code";
-const sharingEnabled = process.env.PLANNOTATOR_SHARE !== "disabled";
 
 // Use sample plan (stdin reading was blocking)
 const plan = `# Test Plan: Sample Feature
@@ -44,7 +43,6 @@ console.error(`Starting Plannotator server with origin: ${origin}`);
 const server = await startPlannotatorServer({
   plan,
   origin,
-  sharingEnabled,
   htmlContent: html as unknown as string,
   onReady: (url, isRemote, port) => handleServerReady(url, isRemote, port),
 });

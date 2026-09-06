@@ -16,20 +16,10 @@ afterEach(() => {
 const baseProps = {
   appVersion: '0.0.0',
   onOpenSettings: () => {},
-  onOpenExport: () => {},
   onCopyAgentInstructions: () => {},
   onDownloadAnnotations: () => {},
-  onCopyShareLink: () => {},
-  onOpenImport: () => {},
-  onSaveToObsidian: () => {},
-  onSaveToBear: () => {},
-  onSaveToOctarine: () => {},
-  sharingEnabled: false,
   isApiMode: true,
   agentInstructionsEnabled: false,
-  obsidianConfigured: false,
-  bearConfigured: false,
-  octarineConfigured: false,
 };
 
 describe.if(hasDom)('PlanHeaderMenu compact actions', () => {
