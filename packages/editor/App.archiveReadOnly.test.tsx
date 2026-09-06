@@ -350,11 +350,14 @@ describe.if(hasDom)("App document permissions", () => {
     const optionsButton = document.querySelector<HTMLButtonElement>('button[aria-label="Options"]');
     if (!optionsButton) throw new Error("Options menu trigger did not render");
     await act(async () => optionsButton.click());
-    for (let attempt = 0; attempt < 20 && !findButtonContaining("Ask AI"); attempt += 1) {
+    for (let attempt = 0; attempt < 20 && !findButtonContaining("Annotations"); attempt += 1) {
       await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
     }
     expect(findButtonContaining("Annotations")).not.toBeUndefined();
-    expect(findButtonContaining("Ask AI")).not.toBeUndefined();
+    // Spec 02 removed Ask AI from this editor, so the compact Options menu
+    // must no longer offer it -- and with the AI chat gone, Annotations is
+    // the only sidebar stage left.
+    expect(findButtonContaining("Ask AI")).toBeUndefined();
     expect(findButtonContaining("Review and finish")).not.toBeUndefined();
     expect(findButton("Close session")).toBeUndefined();
     expect(findButton("Approve")).toBeUndefined();
@@ -368,13 +371,10 @@ describe.if(hasDom)("App document permissions", () => {
     await act(async () => closeAnnotations.click());
     expect(document.querySelector('[data-pn-compact-plan-stage="true"]')).toBeNull();
 
-    await act(async () => optionsButton.click());
-    await act(async () => findButtonContaining("Ask AI")?.click());
-    expect(document.querySelector('[data-pn-compact-plan-stage="true"]')?.getAttribute("aria-label")).toBe("Ask AI");
-    expect(document.querySelector('textarea[placeholder="Ask about this document..."]')?.getAttribute("data-pn-mobile-editable")).toBe("true");
-    const closeAI = document.querySelector<HTMLButtonElement>('button[aria-label="Close Ask AI"]');
-    if (!closeAI) throw new Error("Compact Ask AI close control did not render");
-    await act(async () => closeAI.click());
+    // The Ask AI stage this used to open is gone with the feature (spec 02);
+    // nothing in the compact surface renders its prompt box any more.
+    expect(document.querySelector('textarea[placeholder="Ask about this document..."]')).toBeNull();
+    expect(document.querySelector('button[aria-label="Close Ask AI"]')).toBeNull();
 
     const completion = document.querySelector("[data-pn-compact-plan-completion]");
     expect(completion?.textContent).toContain("Ready to finish?");

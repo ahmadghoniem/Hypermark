@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { CallFlowNode, CallFlowTree } from '@plannotator/shared/call-flow-types';
-import { Search } from 'lucide-react';
+import { MagnifyingGlass } from '@phosphor-icons/react';
 import { CommentPopover, type CommentTargetChip } from '@plannotator/ui/components/CommentPopover';
 import type { CallFlowAnnotationTarget, SelectedLineRange } from '@plannotator/ui/types';
 import {
@@ -755,7 +755,7 @@ export function CallFlowTreeView({
                   aria-label="Search call paths"
                   title="Search call paths (Cmd/Ctrl+F)"
                 >
-                  <Search aria-hidden="true" size={14} />
+                  <MagnifyingGlass aria-hidden="true" size={14} />
                 </button>
               )}
               <button

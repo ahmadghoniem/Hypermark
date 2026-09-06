@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Check, Copy, MoreHorizontal } from 'lucide-react';
+import { CaretDown, Check, Copy, DotsThree } from '@phosphor-icons/react';
 import { AppIcon } from './icons/AppIcon';
 import { getLastOpenInApp, setLastOpenInApp } from '../utils/storage';
 import { copyTextToClipboard } from '../utils/clipboard';
@@ -223,9 +223,9 @@ export const OpenInAppButton: React.FC<OpenInAppButtonProps> = ({
             }
           >
             {openable ? (
-              <ChevronDown className="w-3 h-3" />
+              <CaretDown className="w-3 h-3" />
             ) : (
-              <MoreHorizontal className="w-3.5 h-3.5" />
+              <DotsThree className="w-3.5 h-3.5" />
             )}
           </DropdownMenuTrigger>
           <DropdownMenuContent

@@ -6,7 +6,7 @@
  */
 
 import React from "react";
-import { Search, X } from "lucide-react";
+import { MagnifyingGlass, X } from "@phosphor-icons/react";
 import type { VaultNode } from "../../types";
 import type { DirState } from "../../hooks/useFileBrowser";
 import { CountBadge } from "./CountBadge";
@@ -538,7 +538,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
             onBlur={handleFilterBlur}
             className="file-browser-filter-field flex h-6 items-center gap-1.5 rounded-sm bg-muted/25 px-1.5 text-muted-foreground focus-within:bg-muted/40"
           >
-            <Search size={12} className="shrink-0 text-muted-foreground/55" aria-hidden="true" />
+            <MagnifyingGlass size={12} className="shrink-0 text-muted-foreground/55" aria-hidden="true" />
             <input
               ref={inputRef}
               type="search"
@@ -580,7 +580,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
             aria-label="Filter files"
             title="Filter files"
           >
-            <Search size={12} className="shrink-0 text-muted-foreground/55" aria-hidden="true" />
+            <MagnifyingGlass size={12} className="shrink-0 text-muted-foreground/55" aria-hidden="true" />
             <span className="truncate">Filter</span>
           </button>
         )}

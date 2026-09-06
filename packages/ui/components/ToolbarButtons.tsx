@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from './ui/button';
 import { cn } from '../lib/utils';
-import { Send, Check, X } from 'lucide-react';
+import { PaperPlaneTilt, Check, X } from '@phosphor-icons/react';
 
 type ToolbarLabelBreakpoint = 'md' | 'lg';
 
@@ -34,7 +34,7 @@ export const FeedbackButton: React.FC<FeedbackButtonProps> = ({
     onClick={onClick}
     disabled={disabled}
     title={title}
-    iconLeft={<Send className="size-3.5" />}
+    iconLeft={<PaperPlaneTilt className="size-3.5" />}
   >
     {shortLabel ? (
       <>

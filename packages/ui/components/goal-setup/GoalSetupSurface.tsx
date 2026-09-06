@@ -1,15 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Check,
-  ChevronDown,
+  CaretDown,
   Copy,
-  Edit3,
-  MessageSquare,
+  PencilSimple,
+  ChatCircle,
   Plus,
-  TestTube2,
-  Trash2,
+  TestTube,
+  Trash,
   X,
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 import type {
   GoalSetupBundle,
   GoalSetupFactResult,
@@ -532,7 +532,7 @@ const InterviewSurface = React.forwardRef<GoalSetupSurfaceHandle, {
                 )}
                 {skipped && <Check className="h-3.5 w-3.5 shrink-0 text-warning" />}
                 {complete && !skipped && <Check className="h-3.5 w-3.5 shrink-0 text-success/85" />}
-                <ChevronDown
+                <CaretDown
                   className={cx(
                     'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-150',
                     isActive && 'rotate-180'
@@ -712,7 +712,7 @@ const QuestionAnswerControls: React.FC<{
                       : 'border-[1.5px] border-muted-foreground/35'
                   )}
                 >
-                  {selected && <Check className="h-2 w-2" strokeWidth={3} />}
+                  {selected && <Check className="h-2 w-2" weight="bold" />}
                 </span>
                 <span className="min-w-0 flex-1 text-[13px] leading-snug">
                   <span className="font-medium">{option.label}</span>
@@ -742,7 +742,7 @@ const QuestionAnswerControls: React.FC<{
                     : 'border-[1.5px] border-muted-foreground/35'
                 )}
               >
-                {answer.customAnswer.trim() ? <Check className="h-2 w-2" strokeWidth={3} /> : <Plus className="h-2 w-2" strokeWidth={3} />}
+                {answer.customAnswer.trim() ? <Check className="h-2 w-2" weight="bold" /> : <Plus className="h-2 w-2" weight="bold" />}
               </span>
               <input
                 value={answer.customAnswer}
@@ -793,7 +793,7 @@ const QuestionAnswerControls: React.FC<{
             <div className="mt-2 flex justify-end">
               <Button type="button" variant="ghost" size="sm" onClick={onSkip}>
                 {answer.note?.trim() ? 'Skip with note' : 'Skip'}
-                <ChevronDown className="h-3 w-3 -rotate-90" />
+                <CaretDown className="h-3 w-3 -rotate-90" />
               </Button>
             </div>
           </div>
@@ -805,7 +805,7 @@ const QuestionAnswerControls: React.FC<{
             </Button>
             <Button type="button" variant="ghost" size="sm" onClick={onSkip}>
               Skip
-              <ChevronDown className="h-3 w-3 -rotate-90" />
+              <CaretDown className="h-3 w-3 -rotate-90" />
             </Button>
           </div>
         )}
@@ -816,10 +816,10 @@ const QuestionAnswerControls: React.FC<{
 
 const FACTS_HELP_ITEMS = [
   { icon: Check, label: 'Accept', color: 'text-success', description: 'Mark a fact as accepted. Accepted facts become part of the final fact sheet.' },
-  { icon: Edit3, label: 'Edit', color: 'text-primary', description: 'Edit the fact text before accepting. Click again to finish editing.' },
-  { icon: MessageSquare, label: 'Comment', color: 'text-primary', description: 'Add a note or context to a fact. The agent sees your comments alongside the fact.' },
-  { icon: TestTube2, label: 'Auto-verify', color: 'text-primary', description: 'Flag this fact for automated verification. The agent will write concrete test checks for flagged facts in the plan.' },
-  { icon: Trash2, label: 'Remove', color: 'text-destructive', description: 'Remove a fact entirely. It won\'t appear in the final fact sheet or plan.' },
+  { icon: PencilSimple, label: 'Edit', color: 'text-primary', description: 'Edit the fact text before accepting. Click again to finish editing.' },
+  { icon: ChatCircle, label: 'Comment', color: 'text-primary', description: 'Add a note or context to a fact. The agent sees your comments alongside the fact.' },
+  { icon: TestTube, label: 'Auto-verify', color: 'text-primary', description: 'Flag this fact for automated verification. The agent will write concrete test checks for flagged facts in the plan.' },
+  { icon: Trash, label: 'Remove', color: 'text-destructive', description: 'Remove a fact entirely. It won\'t appear in the final fact sheet or plan.' },
 ];
 
 const FactsSurface = React.forwardRef<GoalSetupSurfaceHandle, {
@@ -1064,7 +1064,7 @@ const FactsSurface = React.forwardRef<GoalSetupSurfaceHandle, {
                     editing ? 'bg-primary/10 text-primary' : 'hover:bg-muted hover:text-foreground'
                   )}
                 >
-                  <Edit3 className="h-3.5 w-3.5" />
+                  <PencilSimple className="h-3.5 w-3.5" />
                 </button>
                 <button
                   type="button"
@@ -1079,7 +1079,7 @@ const FactsSurface = React.forwardRef<GoalSetupSurfaceHandle, {
                     fact.comment ? 'bg-primary/10 text-primary' : 'hover:bg-muted hover:text-foreground'
                   )}
                 >
-                  <MessageSquare className="h-3.5 w-3.5" />
+                  <ChatCircle className="h-3.5 w-3.5" />
                 </button>
                 <button
                   type="button"
@@ -1090,7 +1090,7 @@ const FactsSurface = React.forwardRef<GoalSetupSurfaceHandle, {
                     fact.automatedVerification ? 'bg-primary/10 text-primary' : 'hover:bg-muted hover:text-foreground'
                   )}
                 >
-                  <TestTube2 className="h-3.5 w-3.5" />
+                  <TestTube className="h-3.5 w-3.5" />
                 </button>
                 <button
                   type="button"
@@ -1098,7 +1098,7 @@ const FactsSurface = React.forwardRef<GoalSetupSurfaceHandle, {
                   title="Remove"
                   className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
@@ -1227,7 +1227,7 @@ const StatusDot: React.FC<{ complete: boolean; skipped?: boolean }> = ({ complet
           : 'border-[1.5px] border-muted-foreground/30 bg-transparent'
     )}
   >
-    {(complete || skipped) && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
+    {(complete || skipped) && <Check className="h-2.5 w-2.5" weight="bold" />}
   </span>
 );
 

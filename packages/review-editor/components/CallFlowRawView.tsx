@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Check, Copy, Search } from 'lucide-react';
+import { Check, Copy, MagnifyingGlass } from '@phosphor-icons/react';
 import { CommentPopover, type CommentTargetChip } from '@plannotator/ui/components/CommentPopover';
 import type { CallFlowAnnotationTarget } from '@plannotator/ui/types';
 import { copyTextToClipboard } from '@plannotator/ui/utils/clipboard';
@@ -286,7 +286,7 @@ export function CallFlowRawView({
             aria-label="Search raw call diff"
             title="Search raw output"
           >
-            <Search aria-hidden="true" size={14} />
+            <MagnifyingGlass aria-hidden="true" size={14} />
           </button>
         )}
         <button type="button" onClick={() => void copyRaw()} aria-label="Copy raw call diff">

@@ -3,7 +3,7 @@ import type { CallFlowAdvert, CallFlowInstallStage, CallFlowNode } from '@planno
 import { getCallFlowLanguage, type CallFlowLanguageId } from '@plannotator/shared/call-flow-languages';
 import type { CallFlowInstallController } from '../../hooks/useCallFlowInstall';
 import { Popover } from '@base-ui/react/popover';
-import { Check, Info, Settings2 } from 'lucide-react';
+import { Check, Info, GearSix } from '@phosphor-icons/react';
 import { Tooltip } from '@plannotator/ui/components/Tooltip';
 import { useReviewState } from '../ReviewStateContext';
 import {
@@ -65,7 +65,7 @@ function CallFlowLanguagesMenu({
           aria-busy={install.status.state === 'running'}
         />
       }>
-        <Settings2 aria-hidden="true" size={14} strokeWidth={1.75} />
+        <GearSix aria-hidden="true" size={14} />
         <span>Languages</span>
         <span className="call-flow-languages-trigger-count">{installed.length}/{languages.length}</span>
       </Popover.Trigger>
@@ -165,7 +165,7 @@ export function CallFlowInstallFunnel({
               return (
                 <li key={stage.id} data-stage={stage.id} data-stage-state={stageState}>
                   {stageState === 'complete' ? (
-                    <Check aria-hidden="true" size={13} strokeWidth={2} />
+                    <Check aria-hidden="true" size={13} />
                   ) : stageState === 'active' ? (
                     <span className="call-flow-spinner call-flow-spinner-small" aria-hidden="true" />
                   ) : (
@@ -334,7 +334,7 @@ export function ReviewCallFlowPanel() {
               wide
             >
               <button type="button" className="call-flow-info" aria-label="Call flow analysis details">
-                <Info aria-hidden="true" size={15} strokeWidth={1.75} />
+                <Info aria-hidden="true" size={15} />
               </button>
             </Tooltip>
           </div>

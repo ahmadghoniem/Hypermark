@@ -1,12 +1,12 @@
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
-import { Check, ChevronRight, Circle } from "lucide-react";
+import { Check, CaretRight, Circle } from "@phosphor-icons/react";
 import type * as React from "react";
 
 import { cn } from "../../lib/utils";
 
 /**
  * DropdownMenu — Base UI Menu-backed primitive (shadcn-style). Replaces the plan app's
- * hand-rolled Approve dropdown / label picker / header menus. Icons via lucide-react.
+ * hand-rolled Approve dropdown / label picker / header menus. Icons via @phosphor-icons/react.
  */
 function DropdownMenu({ ...props }: MenuPrimitive.Root.Props) {
   return <MenuPrimitive.Root {...props} />;
@@ -202,7 +202,7 @@ function DropdownMenuSubTrigger({
       {...props}
     >
       {children}
-      <ChevronRight className="ml-auto size-4" />
+      <CaretRight className="ml-auto size-4" />
     </MenuPrimitive.SubmenuTrigger>
   );
 }

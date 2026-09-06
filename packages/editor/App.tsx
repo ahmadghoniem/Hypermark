@@ -10,6 +10,7 @@ import '@plannotator/ui/utils/math-eager';
 import '@plannotator/ui/utils/identity-tater';
 import '@plannotator/ui/utils/mermaid-eager';
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
+import { IconContext } from '@phosphor-icons/react';
 import { toast, Toaster } from 'sonner';
 import { type Origin, getAgentName } from '@plannotator/shared/agents';
 import { shouldStripFrontmatter } from '@plannotator/shared/annotatable';
@@ -358,7 +359,7 @@ function annotationOwnsHighlight(annotation: Annotation): boolean {
 /** Hint shown following the cursor while hovering a sidebar/panel resize handle. */
 const RESIZE_HANDLE_TOOLTIP = 'Click to close · Drag to resize';
 
-const App: React.FC = () => {
+const AppInner: React.FC = () => {
   useViewportEnvironment();
   const [markdown, setMarkdown] = useState(DEMO_PLAN_CONTENT);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
@@ -5699,5 +5700,15 @@ const App: React.FC = () => {
     </ThemeProvider>
   );
 };
+
+// Spec 03 step 5: Phosphor's default weight ("regular") is the app-wide
+// default for every icon rendered under this root. Set once here instead of
+// repeating `weight="regular"` at each call site; only a control that
+// deliberately deviates overrides it per-call.
+const App: React.FC = () => (
+  <IconContext.Provider value={{ weight: 'regular' }}>
+    <AppInner />
+  </IconContext.Provider>
+);
 
 export default App;

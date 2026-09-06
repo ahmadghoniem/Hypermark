@@ -1,6 +1,6 @@
 import React from "react";
 import { Popover } from "@base-ui/react/popover";
-import { Check, Copy, Settings2, X } from "lucide-react";
+import { Check, Copy, GearSix, X } from "@phosphor-icons/react";
 import { Tooltip } from "@plannotator/ui/components/Tooltip";
 
 /**
@@ -246,7 +246,7 @@ export function PanelControlsRow({
                   aria-label="Tree controls"
                   title="Tree controls"
                 >
-                  <Settings2 className="w-3.5 h-3.5" aria-hidden="true" />
+                  <GearSix className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
               }
             />

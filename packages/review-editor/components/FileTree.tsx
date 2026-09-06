@@ -20,7 +20,7 @@ import { getReviewSearchSideLabel, type ReviewSearchFileGroup, type ReviewSearch
 import type { DiffFile } from '../types';
 import { OverlayScrollArea } from '@plannotator/ui/components/OverlayScrollArea';
 import { GitHubIcon } from '@plannotator/ui/components/GitHubIcon';
-import { Paperclip } from 'lucide-react';
+import { Paperclip } from '@phosphor-icons/react';
 
 import { SidebarActionRow, SemanticDiffRow, CallFlowRow, AllFilesRow } from './PanelNavRows';
 import { PanelControlsRow, PanelSearchField } from './PanelChrome';

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { IDockviewPanelProps } from 'dockview-react';
-import { EyeOff, ExternalLink, LayoutGrid, MessageSquarePlus, Paperclip, RotateCcw } from 'lucide-react';
+import { EyeSlash, ArrowSquareOut, GridFour, ChatCircleText, Paperclip, ArrowClockwise } from '@phosphor-icons/react';
 import { CommentPopover } from '@plannotator/ui/components/CommentPopover';
 import { HtmlViewer } from '@plannotator/ui/components/html-viewer';
 import { OverlayScrollArea } from '@plannotator/ui/components/OverlayScrollArea';
@@ -129,7 +129,7 @@ function ExternalArtifactState({
         rel="noopener noreferrer"
         className="inline-flex min-h-10 items-center gap-1.5 rounded-md px-3 text-xs font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        Open artifact <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+        Open artifact <ArrowSquareOut className="h-3.5 w-3.5" aria-hidden="true" />
       </a>
     </div>
   );
@@ -264,7 +264,7 @@ function VideoArtifactStage({
           className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-md bg-muted/60 px-3 text-xs font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onClick={(event) => onRequestComment({ anchorEl: event.currentTarget }, { kind: 'video', timestamp: currentTime })}
         >
-          <MessageSquarePlus className="h-4 w-4" aria-hidden="true" />
+          <ChatCircleText className="h-4 w-4" aria-hidden="true" />
           Comment at {formatArtifactTimestamp(currentTime)}
         </button>
         <div className="relative h-11 min-w-0 flex-1" aria-label="Video annotation timeline">
@@ -763,7 +763,7 @@ export const ReviewPRArtifactsPanel: React.FC<IDockviewPanelProps> = () => {
                 className="inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-[10px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => setHidden(() => new Set())}
               >
-                <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" /> Restore {hiddenCatalogCount}
+                <ArrowClockwise className="h-3.5 w-3.5" aria-hidden="true" /> Restore {hiddenCatalogCount}
               </button>
             )}
             {hasResolved && (
@@ -782,7 +782,7 @@ export const ReviewPRArtifactsPanel: React.FC<IDockviewPanelProps> = () => {
             onClick={() => setSelectedId(null)}
           >
             <span className="flex h-7 w-7 items-center justify-center">
-              <LayoutGrid className="h-4 w-4" aria-hidden="true" />
+              <GridFour className="h-4 w-4" aria-hidden="true" />
             </span>
             <span className="min-w-0 flex-1">Gallery</span>
             <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[9px] tabular-nums text-muted-foreground">
@@ -834,7 +834,7 @@ export const ReviewPRArtifactsPanel: React.FC<IDockviewPanelProps> = () => {
                         return ids;
                       })}
                     >
-                      <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
+                      <EyeSlash className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
                   </div>
                 );
@@ -863,7 +863,7 @@ export const ReviewPRArtifactsPanel: React.FC<IDockviewPanelProps> = () => {
         {selected === null ? (
           <>
             <header className="flex min-h-[var(--panel-header-h)] shrink-0 items-center gap-2 border-b border-border/50 px-3">
-              <LayoutGrid className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              <GridFour className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">Gallery</span>
             </header>
             <div className="min-h-0 flex-1 bg-muted/10">
@@ -887,13 +887,13 @@ export const ReviewPRArtifactsPanel: React.FC<IDockviewPanelProps> = () => {
                 className="inline-flex min-h-9 items-center gap-1.5 rounded-md bg-muted/55 px-2.5 text-[10px] font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={(event) => setPendingComment({ artifactId: selected.id, anchorEl: event.currentTarget, anchor: { kind: 'page' } })}
               >
-                <MessageSquarePlus className="h-3.5 w-3.5" aria-hidden="true" /> Add note
+                <ChatCircleText className="h-3.5 w-3.5" aria-hidden="true" /> Add note
               </button>
               <a href={selected.provenance.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-[10px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                Source <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                Source <ArrowSquareOut className="h-3 w-3" aria-hidden="true" />
               </a>
               <a href={selected.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center gap-1 rounded-md px-2 text-[10px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                Open <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                Open <ArrowSquareOut className="h-3 w-3" aria-hidden="true" />
               </a>
             </header>
             <div className="min-h-0 flex-1 bg-muted/10">

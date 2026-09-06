@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, ChevronUp, Search, X } from 'lucide-react';
+import { CaretDown, CaretUp, MagnifyingGlass, X } from '@phosphor-icons/react';
 
 export function CallFlowSearchControls({
   inputRef,
@@ -32,7 +32,7 @@ export function CallFlowSearchControls({
       }}
     >
       <label className="call-flow-search-field">
-        <Search aria-hidden="true" size={13} strokeWidth={1.75} />
+        <MagnifyingGlass aria-hidden="true" size={13} />
         <span className="sr-only">{label}</span>
         <input
           ref={inputRef}
@@ -66,7 +66,7 @@ export function CallFlowSearchControls({
         aria-label="Previous match"
         title="Previous match (Shift+Enter)"
       >
-        <ChevronUp aria-hidden="true" size={14} />
+        <CaretUp aria-hidden="true" size={14} />
       </button>
       <button
         type="button"
@@ -76,7 +76,7 @@ export function CallFlowSearchControls({
         aria-label="Next match"
         title="Next match (Enter)"
       >
-        <ChevronDown aria-hidden="true" size={14} />
+        <CaretDown aria-hidden="true" size={14} />
       </button>
       <button
         type="button"

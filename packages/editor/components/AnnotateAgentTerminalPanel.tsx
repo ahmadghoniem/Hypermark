@@ -37,13 +37,13 @@ import type { PtyBackend, PtyExit, PtySpawnOptions } from "@plannotator/webtui/c
 import type { WebTuiSession } from "@plannotator/webtui/browser";
 import {
   Check,
-  ChevronDown,
+  CaretDown,
   Minus,
   Play,
   Plus,
-  RotateCcw,
-  Settings as SettingsIcon,
-} from "lucide-react";
+  ArrowClockwise,
+  GearSix as SettingsIcon,
+} from "@phosphor-icons/react";
 import { useAnnotateAgentTerminalTheme } from "./annotateAgentTerminalTheme";
 
 export type AnnotateAgentTerminalPanelHandle = {
@@ -467,7 +467,7 @@ function AgentSelect({
         <span className="min-w-0 flex-1 truncate text-left">
           {selectedAgent?.name ?? "Select agent"}
         </span>
-        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <CaretDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
@@ -575,7 +575,7 @@ export function AgentTerminalDisplayPopover({
               onClick={() => onChange(DEFAULT_DISPLAY_SETTINGS)}
               className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
             >
-              <RotateCcw className="h-3.5 w-3.5" />
+              <ArrowClockwise className="h-3.5 w-3.5" />
             </button>
           </div>
 

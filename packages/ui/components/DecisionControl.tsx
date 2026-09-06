@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { Check, ChevronDown, Loader2, Send } from 'lucide-react';
+import { Check, CaretDown, CircleNotch, PaperPlaneTilt } from '@phosphor-icons/react';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from './ui/dialog';
 import { Tooltip } from './Tooltip';
@@ -64,7 +64,7 @@ const NOTE_MAX_HEIGHT_PX = 144;
 
 const ICONS: Record<'check' | 'send', React.ReactNode> = {
   check: <Check className="size-3.5" />,
-  send: <Send className="size-3.5" />,
+  send: <PaperPlaneTilt className="size-3.5" />,
 };
 
 function toneButtonVariant(tone: Exclude<DecisionTone, 'destructive'>): 'success' | 'default' {
@@ -450,7 +450,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
         data-decision-primary="true"
         iconLeft={
           isLoading
-            ? <Loader2 className="size-3.5 animate-spin" />
+            ? <CircleNotch className="size-3.5 animate-spin" />
             : spec.primary.icon ? ICONS[spec.primary.icon] : undefined
         }
         className={cn(
@@ -524,7 +524,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
         data-decision-caret="true"
         className="rounded-l-none px-1.5"
       >
-        <ChevronDown
+        <CaretDown
           className={cn('size-3.5 transition-transform duration-150', popover && 'rotate-180')}
           aria-hidden="true"
         />
@@ -569,7 +569,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
                 onClick={backToMenu}
                 className="mb-1.5 flex items-center gap-1 rounded px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
               >
-                <ChevronDown className="size-3 rotate-90" aria-hidden="true" />
+                <CaretDown className="size-3 rotate-90" aria-hidden="true" />
                 {activeItem.composer.title}
               </button>
               <DecisionNoteField

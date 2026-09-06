@@ -77,7 +77,7 @@ import {
 import { exportEditorAnnotations } from '@plannotator/ui/utils/parser';
 import { buildReviewAgentInstructions } from '@plannotator/ui/utils/reviewAgentInstructions';
 import { ResizeHandle } from '@plannotator/ui/components/ResizeHandle';
-import { FolderTree } from 'lucide-react';
+import { IconContext, Tree } from '@phosphor-icons/react';
 import { DockviewReact, type DockviewReadyEvent, type DockviewApi } from 'dockview-react';
 import {
   ReviewHeaderMenu,
@@ -324,7 +324,7 @@ function ReviewNavigatorContainer({
   );
 }
 
-const ReviewApp: React.FC = () => {
+const ReviewAppInner: React.FC = () => {
   useViewportEnvironment();
   const isCompactTouchLayout = useCompactTouchLayout();
   const { resolvedMode } = useTheme();
@@ -3903,7 +3903,7 @@ const ReviewApp: React.FC = () => {
                   aria-label={isNavigatorOpen ? 'Close review navigation' : 'Open review navigation'}
                   aria-expanded={isNavigatorOpen}
                 >
-                  <FolderTree className="w-3.5 h-3.5" />
+                  <Tree className="w-3.5 h-3.5" />
                 </button>
                 <div className="w-px h-5 bg-border/50 mx-1 hidden lg:block" />
               </>
@@ -4953,5 +4953,15 @@ const ReviewApp: React.FC = () => {
     </ThemeProvider>
   );
 };
+
+// Spec 03 step 5: Phosphor's default weight ("regular") is the app-wide
+// default for every icon rendered under this root. Set once here instead of
+// repeating `weight="regular"` at each call site; only a control that
+// deliberately deviates overrides it per-call.
+const ReviewApp: React.FC = () => (
+  <IconContext.Provider value={{ weight: 'regular' }}>
+    <ReviewAppInner />
+  </IconContext.Provider>
+);
 
 export default ReviewApp;

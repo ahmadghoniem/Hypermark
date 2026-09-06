@@ -33,6 +33,13 @@ describe('ToolbarButtons responsive labels', () => {
     expect(html).toContain('hidden xl:inline');
     expect(html).toContain('lg:hidden');
     expect(html).toContain('aria-label="Close session without sending feedback"');
-    expect(html).toContain('lucide-x');
+    // Icon migrated from lucide-react to @phosphor-icons/react (spec 03 step
+    // 5): assert the exit button still renders an icon, without coupling to
+    // either library's internal class-naming convention.
+    const closeButtonMarkup = html.match(
+      /aria-label="Close session without sending feedback"[\s\S]*?<\/button>/,
+    )?.[0];
+    expect(closeButtonMarkup).toBeDefined();
+    expect(closeButtonMarkup).toContain('<svg');
   });
 });

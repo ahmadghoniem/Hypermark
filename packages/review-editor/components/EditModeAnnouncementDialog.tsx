@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Ban, MessageSquarePlus, Pencil, Send } from 'lucide-react';
+import { Prohibit, ChatCircleText, PencilSimple, PaperPlaneTilt } from '@phosphor-icons/react';
 import { TextShimmer } from '@plannotator/ui/components/TextShimmer';
 import { EDIT_MODE_DEMO_POSTER_SRC, EDIT_MODE_DEMO_VIDEO_SRC } from './editModeDemoMedia';
 
@@ -68,7 +68,7 @@ function EditModeDemoPlaceholder() {
       <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-3.5 py-2">
         <span className="font-mono text-[11px] font-medium text-foreground/80">src/retry.ts</span>
         <span className="ml-auto inline-flex items-center gap-1 rounded border border-border bg-background/70 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-          <Pencil className="h-2.5 w-2.5" />
+          <PencilSimple className="h-2.5 w-2.5" />
           Edit
         </span>
       </div>
@@ -105,7 +105,7 @@ function EditModeDemoPlaceholder() {
       <div className="border-t border-border bg-background/60 px-3.5 py-3">
         <div className="rounded-lg border border-primary/25 bg-primary/[0.06] p-2.5">
           <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-            <MessageSquarePlus className="h-3 w-3" />
+            <ChatCircleText className="h-3 w-3" />
             Suggestion
           </div>
           <div className="mt-1 font-mono text-[10px] leading-4 text-muted-foreground">
@@ -229,22 +229,22 @@ export function EditModeAnnouncementDialog({
 
           <section aria-label="How Edit Mode works" className="flex min-w-0 flex-col gap-3">
             <FactRow
-              icon={<Pencil className="h-4 w-4" />}
+              icon={<PencilSimple className="h-4 w-4" />}
               title="Edit in the diff"
               description="Click Edit on a file in the all-files review view, then type your change directly into the diff in your browser. One file at a time."
             />
             <FactRow
-              icon={<Send className="h-4 w-4" />}
+              icon={<PaperPlaneTilt className="h-4 w-4" />}
               title="Edits become suggestions"
               description="When you finish, your net changes become ordinary suggestion annotations, the same kind the suggestion editor creates, and flow into your review feedback."
             />
             <FactRow
-              icon={<Ban className="h-4 w-4" />}
+              icon={<Prohibit className="h-4 w-4" />}
               title="Your files stay untouched"
               description="The browser never writes to your files on disk. The agent applies the suggestions from your feedback."
             />
             <FactRow
-              icon={<MessageSquarePlus className="h-4 w-4" />}
+              icon={<ChatCircleText className="h-4 w-4" />}
               title="Annotate mid-edit"
               description="You can also select text inside the diff while editing and turn the selection into an annotation."
             />
