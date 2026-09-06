@@ -141,7 +141,7 @@ export const PRCommentsTab: React.FC<PRCommentsTabProps> = React.memo(({ context
   const [excludedAuthors, setExcludedAuthors] = useState<Set<string>>(new Set());
 
   // Comment annotation: the "Annotate" button on a card opens one comment box.
-  const { onAddCommentAnnotation, onAskAIForComment, commentScrollTarget } = useReviewState();
+  const { onAddCommentAnnotation, commentScrollTarget } = useReviewState();
   const [annotating, setAnnotating] = useState<{ commentId: string; author: string; body: string; anchorEl: HTMLElement } | null>(null);
   const handleAnnotate = useCallback<AnnotateFn>((commentId, author, body, anchorEl) => {
     setAnnotating({ commentId, author, body, anchorEl });
@@ -561,8 +561,6 @@ export const PRCommentsTab: React.FC<PRCommentsTabProps> = React.memo(({ context
             setAnnotating(null);
           }}
           onClose={() => setAnnotating(null)}
-          onAskAI={onAskAIForComment}
-          askAIContext={{ kind: 'selection', label: 'PR comment', text: annotating.body }}
         />
       )}
     </div>

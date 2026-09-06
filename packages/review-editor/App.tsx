@@ -37,18 +37,14 @@ import type { CallFlowAdvert, CallFlowNode } from '@plannotator/shared/call-flow
 import { configStore, useConfigValue, setReviewPanelView } from '@plannotator/ui/config';
 import { loadDiffFont } from '@plannotator/ui/utils/diffFonts';
 import { getAgentSwitchSettings, getEffectiveAgentName } from '@plannotator/ui/utils/agentSwitch';
-import { useAIProviderConfig } from '@plannotator/ui/hooks/useAIProviderConfig';
-import { useAIProviderActivation } from '@plannotator/ui/hooks/useAIProviderActivation';
 import { LookAndFeelAnnouncementDialog } from '@plannotator/ui/components/LookAndFeelAnnouncementDialog';
 import { markLookAndFeelChoiceResolved, needsLookAndFeelAnnouncement } from '@plannotator/ui/utils/lookAndFeelAnnouncement';
 import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, Annotation, CommentAnnotation, type ArtifactAnnotationMeta, type CallFlowAnnotationTarget } from '@plannotator/ui/types';
-import type { CommentAskAIHandler } from '@plannotator/ui/components/CommentPopover';
 import { useResizablePanel } from '@plannotator/ui/hooks/useResizablePanel';
 import { useCodeAnnotationDraft } from '@plannotator/ui/hooks/useCodeAnnotationDraft';
 import { generateId } from './utils/generateId';
 import type { SuggestionHunk } from './edit/deriveSuggestions';
 import type { EditSelectionComment } from './edit/useEditSession';
-import { useAIChat } from './hooks/useAIChat';
 import { toast, Toaster } from 'sonner';
 import { useCodeNav, type CodeNavRequest } from './hooks/useCodeNav';
 import { useTokenHover } from './hooks/useTokenHover';
@@ -79,7 +75,6 @@ import {
   type CollectionMutation,
   type HistoryDirection,
 } from '@plannotator/ui/utils/undoHistory';
-import { useAgentJobs } from '@plannotator/ui/hooks/useAgentJobs';
 import { exportEditorAnnotations } from '@plannotator/ui/utils/parser';
 import { buildReviewAgentInstructions } from '@plannotator/ui/utils/reviewAgentInstructions';
 import { ResizeHandle } from '@plannotator/ui/components/ResizeHandle';
@@ -92,8 +87,6 @@ import {
 } from './components/ReviewHeaderMenu';
 import { ReviewSidebar } from './components/ReviewSidebar';
 import type { ReviewSidebarTab } from './components/ReviewSidebar';
-import { SparklesIcon } from '@plannotator/ui/components/SparklesIcon';
-import { ReviewAgentsIcon } from '@plannotator/ui/components/ReviewAgentsIcon';
 import { useSidebar } from '@plannotator/ui/hooks/useSidebar';
 import { useViewportEnvironment } from '@plannotator/ui/hooks/useViewportEnvironment';
 import { useCompactTouchLayout } from '@plannotator/ui/hooks/useIsMobile';
@@ -119,12 +112,10 @@ import {
   type SubmissionTarget,
 } from './components/ReviewSubmissionDialog';
 import {
-  buildContextualAIHandlers,
   ReviewStateProvider,
   type LineAnnotationComposeRequest,
   type ReviewState,
 } from './dock/ReviewStateContext';
-import { JobLogsProvider } from './dock/JobLogsContext';
 import { reviewPanelComponents } from './dock/reviewPanelComponents';
 import { ReviewDockTabRenderer } from './dock/ReviewDockTabRenderer';
 import { ReviewDockRightActions } from './dock/ReviewDockRightActions';
@@ -132,7 +123,6 @@ import { usePRContext } from './hooks/usePRContext';
 import {
   REVIEW_PANEL_TYPES,
   REVIEW_DIFF_PANEL_ID,
-  makeReviewAgentJobPanelId,
   getReviewDiffPanelFilePath,
   isReviewDiffPanelId,
   REVIEW_PR_OVERVIEW_PANEL_ID,
@@ -202,11 +192,8 @@ interface DiffData {
   gitRef: string;
   origin?: Origin;
   diffType?: string;
-  /** Server-built "changes under review" description for Ask AI (current view). */
-  aiReviewContext?: string;
   gitContext?: GitContext;
   diffOptions?: DiffOption[];
-  sharingEnabled?: boolean;
   prStackInfo?: PRStackInfo | null;
   prDiffScope?: PRDiffScope;
   prDiffScopeOptions?: PRDiffScopeOption[];
@@ -518,10 +505,6 @@ const ReviewApp: React.FC = () => {
     });
   }, []);
   const [origin, setOrigin] = useState<Origin | null>(null);
-  // Unknown until /api/diff responds. Keeping this tri-state prevents provider
-  // discovery from starting before the server reports that AI is enabled.
-  const [aiEnabled, setAiEnabled] = useState<boolean | null>(null);
-  const aiUIEnabled = aiEnabled === true;
   const [gitUser, setGitUser] = useState<string | undefined>();
   const [isWSL, setIsWSL] = useState(false);
   const [reviewMode, setReviewMode] = useState<string | null>(null);
@@ -602,7 +585,6 @@ const ReviewApp: React.FC = () => {
   // a spec update while a dialog is up can never show or confirm stale copy.
   const [compactDecisionComposer, setCompactDecisionComposer] = useState<DecisionMenuItem['id'] | null>(null);
   const [compactDecisionConfirm, setCompactDecisionConfirm] = useState<DecisionMenuItem['id'] | null>(null);
-  const [sharingEnabled, setSharingEnabled] = useState(true);
   // Server capability advert (spec §6.4): does this session's decision
   // consumer deliver approve-time feedback? Defaults false so an old server
   // that never sends the field renders no approve-carrying items (PR3
@@ -762,7 +744,6 @@ const ReviewApp: React.FC = () => {
   // The same !!origin proxy is used elsewhere in this file (draft hook, feedback guard, conditional UI)
   // so this should be addressed as a broader refactor.
   const { externalAnnotations, updateExternalAnnotation, deleteExternalAnnotation } = useExternalAnnotations<CodeAnnotation>({ enabled: !!origin });
-  const agentJobs = useAgentJobs({ enabled: !!origin && aiUIEnabled });
 
 
   // Dockview center panel API for the review workspace.
@@ -951,26 +932,6 @@ const ReviewApp: React.FC = () => {
     }
   }, []);
 
-  // AI Chat
-  const [aiAvailable, setAiAvailable] = useState(false);
-  const [aiProviders, setAiProviders] = useState<Array<{ id: string; name: string; capabilities: Record<string, boolean>; models?: Array<{ id: string; label: string; default?: boolean }> }>>([]);
-  const [aiDefaultProvider, setAiDefaultProvider] = useState<string | null>(null);
-  const { aiConfig, applyConfigChange } = useAIProviderConfig({
-    providers: aiProviders,
-    defaultProvider: aiDefaultProvider,
-    available: aiAvailable,
-    origin,
-  });
-  // Explicit provider activation: runs deferred (Codex) model discovery on a
-  // user gesture and merges the refreshed metadata, so the model picker and
-  // reasoning-effort control populate past the static fallback. Never called
-  // on load — that would reintroduce the eager `codex app-server` spawn.
-  const activateAIProvider = useAIProviderActivation({
-    onCapabilities: (providers, defaultProvider) => {
-      setAiProviders(providers);
-      setAiDefaultProvider(defaultProvider);
-    },
-  });
   // The explicit choice marker is shared, so resolving this in either app
   // suppresses the chooser everywhere without release-version milestones.
   const [showLookAndFeel, setShowLookAndFeel] = useState(needsLookAndFeelAnnouncement);
@@ -1018,31 +979,6 @@ const ReviewApp: React.FC = () => {
   useEffect(() => {
     if (shouldConsumeTokenHoverAnnouncement()) markTokenHoverAnnouncementSeen();
   }, []);
-  const aiChat = useAIChat({
-    patch: diffData?.rawPatch ?? '',
-    diffType,
-    base: committedBase,
-    reviewContext: diffData?.aiReviewContext,
-    viewing: {
-      scope: isAllFilesActive ? 'all' : 'file',
-      filePath: isAllFilesActive ? undefined : files[activeFileIndex]?.path,
-    },
-    providerId: aiConfig.providerId,
-    model: aiConfig.model,
-    reasoningEffort: aiConfig.reasoningEffort,
-  });
-  const {
-    messages: aiMessages,
-    isCreatingSession: aiIsCreatingSession,
-    isStreaming: aiIsStreaming,
-    permissionRequests: aiPermissionRequests,
-    respondToPermission: respondToAIPermission,
-    ask: askAI,
-    abort: abortAI,
-    resetSession: resetAISession,
-    sessionId: aiSessionId,
-  } = aiChat;
-
   const codeNav = useCodeNav();
   // The other half of the held-modifier gesture. The diff views paint
   // `pn-token-nav` from the pointer ENTER event, which covers "hold the key,
@@ -1123,130 +1059,6 @@ const ReviewApp: React.FC = () => {
     }
   }, [closeTokenHover, codeNav.resolve, dockApi, isAllFilesActive, isCallFlowActive, isSemanticDiffActive, gitContext, agentCwd]);
 
-  // Check AI capabilities only after /api/diff confirms AI is enabled.
-  useEffect(() => {
-    if (!aiUIEnabled) {
-      setAiAvailable(false);
-      setAiProviders([]);
-      setAiDefaultProvider(null);
-      return;
-    }
-    fetch('/api/ai/capabilities')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.available) {
-          setAiAvailable(true);
-          const providers = data.providers ?? [];
-          setAiProviders(providers);
-          setAiDefaultProvider(data.defaultProvider ?? null);
-        }
-      })
-      .catch(() => {});
-  }, [aiUIEnabled]);
-
-  // Provider/model/effort selection logic lives in the shared hook above; the
-  // app only composes the session reset (the hook can't own it — see the cycle
-  // note in useAIProviderConfig).
-  const handleAIConfigChange = useCallback((config: { providerId?: string | null; model?: string | null; reasoningEffort?: string | null }) => {
-    // Switching the picker to a provider is an explicit gesture — activate it
-    // so its deferred model discovery (Codex) refreshes the advertised list.
-    if (config.providerId) activateAIProvider(config.providerId);
-    applyConfigChange(config);
-    resetAISession();
-  }, [activateAIProvider, applyConfigChange, resetAISession]);
-
-  // Opening the Ask AI sidebar tab with a provider selected is the other
-  // explicit gesture that should surface the provider's real model list.
-  const aiSurfaceOpen = reviewSidebar.isOpen && reviewSidebar.activeTab === 'ai';
-  useEffect(() => {
-    if (!aiAvailable || !aiSurfaceOpen) return;
-    activateAIProvider(aiConfig.providerId);
-  }, [aiAvailable, aiSurfaceOpen, aiConfig.providerId, activateAIProvider]);
-
-  // File-aware Ask AI: the all-files surface resolves the owning file itself
-  // (its toolbar selection lives in a file the single-file panel may never
-  // have focused), so it must NOT go through activeFileIndex.
-  const handleAskAIForFile = useCallback((filePath: string, question: string) => {
-    if (!pendingSelection) return;
-    const file = files.find(f => f.path === filePath);
-    if (!file) return;
-    const lineStart = Math.min(pendingSelection.start, pendingSelection.end);
-    const lineEnd = Math.max(pendingSelection.start, pendingSelection.end);
-    const side = pendingSelection.side === 'additions' ? 'new' : 'old';
-    const selectedCode = extractLinesFromPatch(file.patch, lineStart, lineEnd, side);
-
-    askAI({
-      prompt: question,
-      filePath,
-      lineStart,
-      lineEnd,
-      side,
-      selectedCode: selectedCode || undefined,
-    });
-  }, [askAI, files, pendingSelection]);
-
-  // Single-file surface: the focused file IS files[activeFileIndex].
-  const handleAskAI = useCallback((question: string) => {
-    const file = files[activeFileIndex];
-    if (!file) return;
-    handleAskAIForFile(file.path, question);
-  }, [activeFileIndex, files, handleAskAIForFile]);
-
-  const handleViewAIResponse = useCallback((questionId?: string) => {
-    reviewSidebar.open('ai');
-    if (questionId) {
-      setScrollToQuestionId(questionId);
-      setTimeout(() => setScrollToQuestionId(null), 500);
-    }
-  }, []);
-
-  const handleScrollToAILines = useCallback((filePath: string, lineStart: number, lineEnd: number, side: 'old' | 'new') => {
-    openDiffFile(filePath);
-    // Set a selection to highlight the lines
-    setPendingSelection({
-      start: lineStart,
-      end: lineEnd,
-      side: side === 'new' ? 'additions' : 'deletions',
-    });
-  }, [openDiffFile]);
-
-
-  // AI messages overlapping the current selection in a GIVEN file (toolbar
-  // history). File-aware so the all-files surface can ask for its own active
-  // file instead of inheriting the single-file panel's focus.
-  const getAIHistoryForFile = useCallback((filePath: string) => {
-    if (!pendingSelection) return [];
-    const selStart = Math.min(pendingSelection.start, pendingSelection.end);
-    const selEnd = Math.max(pendingSelection.start, pendingSelection.end);
-    const side = pendingSelection.side === 'additions' ? 'new' : 'old';
-    return aiMessages.filter(m => {
-      const q = m.question;
-      return q.filePath === filePath && q.side === side &&
-        q.lineStart != null && q.lineEnd != null &&
-        q.lineStart <= selEnd && q.lineEnd >= selStart;
-    });
-  }, [pendingSelection, aiMessages]);
-
-  // Single-file surface variant (focused file = files[activeFileIndex]).
-  const aiHistoryForSelection = useMemo(() => {
-    const file = files[activeFileIndex];
-    return file ? getAIHistoryForFile(file.path) : [];
-  }, [files, activeFileIndex, getAIHistoryForFile]);
-
-  // Click AI marker in diff → scroll sidebar to that Q&A
-  const [scrollToQuestionId, setScrollToQuestionId] = useState<string | null>(null);
-  const handleClickAIMarker = useCallback((questionId: string) => {
-    setScrollToQuestionId(questionId);
-    reviewSidebar.open('ai');
-    // Clear after a tick so it can re-trigger for the same question
-    setTimeout(() => setScrollToQuestionId(null), 500);
-  }, []);
-
-  // General AI question from sidebar input
-  const handleAskGeneral = useCallback((question: string) => {
-    askAI({ prompt: question });
-  }, [askAI]);
-
   // Resizable panels
   const panelResize = useResizablePanel({
     storageKey: 'plannotator-review-panel-width',
@@ -1301,25 +1113,6 @@ const ReviewApp: React.FC = () => {
     // vanish exactly when it's most needed. The trade is a single tab showing
     // in those views, which is acceptable.
   }, []);
-
-  // Open agent job detail as center dock panel
-  const handleOpenJobDetail = useCallback((jobId: string) => {
-    const api = dockApi;
-    if (!api) return;
-    const panelId = makeReviewAgentJobPanelId(jobId);
-    const existing = api.getPanel(panelId);
-    if (existing) {
-      existing.api.setActive();
-      return;
-    }
-    const job = agentJobs.jobs.find(j => j.id === jobId);
-    api.addPanel({
-      id: panelId,
-      component: REVIEW_PANEL_TYPES.AGENT_JOB_DETAIL,
-      title: job?.label ?? `Job ${jobId.slice(0, 8)}`,
-      params: { jobId },
-    });
-  }, [dockApi, agentJobs.jobs]);
 
 
   // Derive worktree path and base diff type from the composite diffType
@@ -1761,7 +1554,7 @@ const ReviewApp: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showExportModal, showDestinationMenu, isSearchOpen, searchQuery, searchMatches, isSearchPending, openSearch, stepSearchMatch, clearSearch, closeSearch, aiUIEnabled, hasSearchableFiles, showCommitsPanel, reviewSidebar.isOpen, reviewSidebar.open, reviewSidebar.close, isFileTreeOpen, isCompactTouchLayout, isCompactNavigatorOpen, toggleNavigator]);
+  }, [showExportModal, showDestinationMenu, isSearchOpen, searchQuery, searchMatches, isSearchPending, openSearch, stepSearchMatch, clearSearch, closeSearch, hasSearchableFiles, showCommitsPanel, reviewSidebar.isOpen, reviewSidebar.open, reviewSidebar.close, isFileTreeOpen, isCompactTouchLayout, isCompactNavigatorOpen, toggleNavigator]);
 
 
   // Load diff content - try API first, fall back to demo
@@ -1774,8 +1567,6 @@ const ReviewApp: React.FC = () => {
       .then((data: {
         rawPatch: string;
         gitRef: string;
-        aiEnabled?: boolean;
-        aiReviewContext?: string;
         origin?: Origin;
         mode?: string;
         diffType?: string;
@@ -1783,7 +1574,6 @@ const ReviewApp: React.FC = () => {
         gitContext?: GitContext;
         diffOptions?: DiffOption[];
         agentCwd?: string | null;
-        sharingEnabled?: boolean;
         approvalNotesSupported?: boolean;
         repoInfo?: { display: string; branch?: string };
         prMetadata?: PRMetadata;
@@ -1812,7 +1602,6 @@ const ReviewApp: React.FC = () => {
         // gitUser drives the "Use git name" button in Settings; stays undefined (button hidden) when unavailable
         setGitUser(data.serverConfig?.gitUser);
         setSnapshotId(data.snapshotId);
-        setAiEnabled(data.aiEnabled !== false);
         const apiFiles = orderFilesBySections(parseDiffToFiles(data.rawPatch), data.sections);
         setDiffData({
           files: apiFiles,
@@ -1820,10 +1609,8 @@ const ReviewApp: React.FC = () => {
           gitRef: data.gitRef,
           origin: data.origin,
           diffType: data.diffType,
-          aiReviewContext: data.aiReviewContext,
           gitContext: data.gitContext,
           diffOptions: data.diffOptions,
-          sharingEnabled: data.sharingEnabled,
           semanticDiff: data.semanticDiff,
           callFlow: data.callFlow,
         });
@@ -1842,7 +1629,6 @@ const ReviewApp: React.FC = () => {
           setCommittedBase(initial);
         }
         if (data.agentCwd !== undefined) setAgentCwd(data.agentCwd);
-        if (data.sharingEnabled !== undefined) setSharingEnabled(data.sharingEnabled);
         setApprovalNotesSupported(readApprovalNotesAdvert(data.approvalNotesSupported));
         if (data.repoInfo) setRepoInfo(data.repoInfo);
         updatePRSession({
@@ -1895,7 +1681,6 @@ const ReviewApp: React.FC = () => {
       })
       .catch(() => {
         // Not in API mode - use demo content
-        setAiEnabled(true);
         const demoFiles = parseDiffToFiles(DEMO_DIFF);
         setDiffData({
           files: demoFiles,
@@ -2387,7 +2172,6 @@ const ReviewApp: React.FC = () => {
   // Shared function: apply a PR response (used by both initial load and PR switch)
   function applyPRResponse(data: PRSessionUpdate & {
     rawPatch: string; gitRef: string;
-    aiReviewContext?: string;
     snapshotId?: string;
     repoInfo?: { display: string; branch?: string };
     viewedFiles?: string[]; error?: string;
@@ -2406,7 +2190,7 @@ const ReviewApp: React.FC = () => {
     const nextFiles = parseDiffToFiles(data.rawPatch);
     dockApi?.getPanel(REVIEW_DIFF_PANEL_ID)?.api.close();
     needsInitialDiffPanel.current = true;
-    setDiffData(prev => prev ? { ...prev, rawPatch: data.rawPatch, gitRef: data.gitRef, aiReviewContext: data.aiReviewContext } : prev);
+    setDiffData(prev => prev ? { ...prev, rawPatch: data.rawPatch, gitRef: data.gitRef } : prev);
     setFiles(nextFiles);
     if (isPRSwitch) {
       setActiveFileIndex(0);
@@ -2494,7 +2278,6 @@ const ReviewApp: React.FC = () => {
       const data = await res.json() as {
         rawPatch: string;
         gitRef: string;
-        aiReviewContext?: string;
         snapshotId?: string;
         diffType: string;
         base?: string;
@@ -2571,7 +2354,7 @@ const ReviewApp: React.FC = () => {
         // Whitespace toggle: update patch in-place, keep the active file.
         // If the current file was removed (whitespace-only), retarget the
         // dock panel to the first remaining file.
-        setDiffData(prev => prev ? { ...prev, rawPatch: data.rawPatch, gitRef: data.gitRef, aiReviewContext: data.aiReviewContext } : prev);
+        setDiffData(prev => prev ? { ...prev, rawPatch: data.rawPatch, gitRef: data.gitRef } : prev);
         if (data.diffOptions) setWorkspaceDiffOptions(data.diffOptions);
         // Adopt the server's base even on in-place refreshes: the staleness
         // Refresh and post-Fetch paths both preserveFile, and they're exactly
@@ -2598,7 +2381,7 @@ const ReviewApp: React.FC = () => {
       } else {
         dockApi?.getPanel(REVIEW_DIFF_PANEL_ID)?.api.close();
         needsInitialDiffPanel.current = true;
-        setDiffData(prev => prev ? { ...prev, rawPatch: data.rawPatch, gitRef: data.gitRef, diffType: data.diffType, aiReviewContext: data.aiReviewContext } : prev);
+        setDiffData(prev => prev ? { ...prev, rawPatch: data.rawPatch, gitRef: data.gitRef, diffType: data.diffType } : prev);
         setFiles(nextFiles);
         setDiffType(data.diffType);
         if (data.diffOptions) setWorkspaceDiffOptions(data.diffOptions);
@@ -3021,15 +2804,6 @@ const ReviewApp: React.FC = () => {
     });
   }, [reviewHistory]);
 
-  // Ask AI about a description selection — file-less scope ask (same mechanism
-  // the HTML viewer uses). The popover passes the label + selected text.
-  const handleAskAIForDescription = useCallback<CommentAskAIHandler>((question, context) => {
-    askAI({
-      prompt: question,
-      scope: { kind: 'selection', label: context.label ?? 'PR description', text: context.text },
-    });
-  }, [askAI]);
-
   // --- PR comment annotations (button-driven notes attached to a whole comment) ---
   const handleAddCommentAnnotation = useCallback((commentId: string, commentAuthor: string, commentBody: string, text: string, options?: { id?: string; artifact?: ArtifactAnnotationMeta }) => {
     const ann: CommentAnnotation = {
@@ -3093,13 +2867,6 @@ const ReviewApp: React.FC = () => {
       afterSelection,
     });
   }, [reviewHistory]);
-
-  const handleAskAIForComment = useCallback<CommentAskAIHandler>((question, context) => {
-    askAI({
-      prompt: question,
-      scope: { kind: 'selection', label: context.label ?? 'PR comment', text: context.text },
-    });
-  }, [askAI]);
 
   // Prose notes for the ACTIVE PR only. The full arrays keep every PR's notes
   // (and persist them to the draft) so an in-place switch loses nothing; these
@@ -3236,10 +3003,6 @@ const ReviewApp: React.FC = () => {
     onAddDescriptionAnnotation: handleAddDescriptionAnnotation,
     onSelectDescriptionAnnotation: handleSelectDescriptionAnnotation,
     onDeleteDescriptionAnnotation: handleDeleteDescriptionAnnotation,
-    ...buildContextualAIHandlers(aiAvailable, {
-      onAskAIForDescription: handleAskAIForDescription,
-      onAskAIForComment: handleAskAIForComment,
-    }),
     commentAnnotations: visibleCommentAnnotations,
     selectedCommentAnnotationId,
     onAddCommentAnnotation: handleAddCommentAnnotation,
@@ -3262,16 +3025,6 @@ const ReviewApp: React.FC = () => {
     activeSearchMatch: activeSearchMatch?.filePath === files[activeFileIndex]?.path ? activeSearchMatch : null,
     searchMatches,
     allFilesActiveSearchMatch: activeSearchMatch,
-    aiAvailable,
-    aiMessages,
-    onAskAI: handleAskAI,
-    onAskAIForFile: handleAskAIForFile,
-    isAILoading: aiIsCreatingSession || aiIsStreaming,
-    onViewAIResponse: handleViewAIResponse,
-    onClickAIMarker: handleClickAIMarker,
-    aiHistoryForSelection,
-    getAIHistoryForFile,
-    agentJobs: agentJobs.jobs,
     prMetadata,
     prContext,
     prArtifacts,
@@ -3314,9 +3067,9 @@ const ReviewApp: React.FC = () => {
     diffExpandUnchanged, diffFontFamily, diffFontSize, activeDiffBase, committedBase, feedbackDiffContext, prReviewScopeLabel, prDiffScope, agentCwd, canUseLiveWorkspaceActions,
     allAnnotations, externalAnnotations,
     visibleDescriptionAnnotations, selectedDescriptionAnnotationId, handleAddDescriptionAnnotation,
-    handleSelectDescriptionAnnotation, handleDeleteDescriptionAnnotation, handleAskAIForDescription,
+    handleSelectDescriptionAnnotation, handleDeleteDescriptionAnnotation,
     visibleCommentAnnotations, selectedCommentAnnotationId, handleAddCommentAnnotation,
-    handleSelectCommentAnnotation, handleDeleteCommentAnnotation, handleAskAIForComment, commentScrollTarget,
+    handleSelectCommentAnnotation, handleDeleteCommentAnnotation, commentScrollTarget,
     selectedAnnotationId, scrollTargetAnnotation, pendingSelection, handleLineSelection,
     handleRequestLineAnnotation, handleAddCallFlowAnnotation,
     handleAddAnnotation, handleAddFileComment, handleAddFileCommentForFile, handleEditAnnotation,
@@ -3325,9 +3078,7 @@ const ReviewApp: React.FC = () => {
     handleToggleViewed, reviewShowViewedControls, stagedFiles,
     activeWorktreePath, isSearchPending, debouncedSearchQuery,
     activeFileSearchMatches, activeSearchMatchId, activeSearchMatch, searchMatches,
-    aiAvailable, aiMessages, aiIsCreatingSession, aiIsStreaming,
-    handleAskAI, handleAskAIForFile, handleViewAIResponse, handleClickAIMarker,
-    aiHistoryForSelection, getAIHistoryForFile, agentJobs.jobs, prMetadata, prContext, prArtifacts,
+    prMetadata, prContext, prArtifacts,
     isPRContextLoading, prContextError, fetchPRContext, platformUser, openDiffFile,
     handleAllFilesVisibleFileChange, handleFileScrolledPast,
     isAllFilesActive, allFilesOrder, allFilesAllCollapsed, onToggleAllFilesCollapsed, registerAllFilesCollapseToggle, commitInfo, isSemanticDiffActive, semanticDiffUsable,
@@ -3337,9 +3088,6 @@ const ReviewApp: React.FC = () => {
     handleCodeNavRequest, codeNav.result, codeNav.isLoading, codeNav.activeSymbol,
     tokenHoverEnabled, handleTokenHoverEnter, tokenHover.onTokenHoverLeave,
   ]);
-
-  // Separate context for high-frequency job logs — prevents re-rendering all panels on every SSE event
-  const jobLogsValue = useMemo(() => ({ jobLogs: agentJobs.jobLogs }), [agentJobs.jobLogs]);
 
   // Copy raw diff to clipboard
   const handleCopyDiff = useCallback(async () => {
@@ -4126,7 +3874,6 @@ const ReviewApp: React.FC = () => {
     <ThemeProvider defaultTheme="dark" manageFavicon>
       <TooltipProvider delayDuration={200} skipDelayDuration={100}>
       <ReviewStateProvider value={reviewStateValue}>
-      <JobLogsProvider value={jobLogsValue}>
       {isSwitchingPRScope && <PRSwitchOverlay />}
       <div
         className="pn-app-viewport flex flex-col bg-background overflow-hidden"
@@ -4520,39 +4267,6 @@ const ReviewApp: React.FC = () => {
                 )}
               </button>
             )}
-            {!isCompactTouchLayout && aiAvailable && (
-              <button
-                onClick={() => reviewSidebar.toggleTab('ai')}
-                className={`relative p-1.5 rounded-md transition-all ${
-                  reviewSidebar.isOpen && reviewSidebar.activeTab === 'ai'
-                    ? 'bg-primary/15 text-primary'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-                title="AI Chat"
-              >
-                <SparklesIcon className="w-4 h-4" />
-                {aiMessages.length > 0 && !(reviewSidebar.isOpen && reviewSidebar.activeTab === 'ai') && (
-                  <span className="absolute top-0 right-0 w-1.5 h-1.5 rounded-full bg-primary" />
-                )}
-              </button>
-            )}
-            {!isCompactTouchLayout && agentJobs.capabilities?.available && (
-              <button
-                onClick={() => reviewSidebar.toggleTab('agents')}
-                className={`relative p-1.5 rounded-md transition-all ${
-                  reviewSidebar.isOpen && reviewSidebar.activeTab === 'agents'
-                    ? 'bg-primary/15 text-primary'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-                title="Review Agents"
-              >
-                <ReviewAgentsIcon className="w-4 h-4" />
-                {agentJobs.jobs.some(j => j.status === 'running' || j.status === 'starting') && !(reviewSidebar.isOpen && reviewSidebar.activeTab === 'agents') && (
-                  <span className="absolute top-0 right-0 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                )}
-              </button>
-            )}
-
             <div className="w-px h-5 bg-border/50 mx-1 hidden lg:block" />
 
             <ReviewHeaderMenu
@@ -4563,8 +4277,6 @@ const ReviewApp: React.FC = () => {
               onToggleFileTree={toggleNavigator}
               onToggleSidebar={() => reviewSidebar.isOpen ? reviewSidebar.close() : reviewSidebar.open()}
               onOpenAnnotations={isCompactTouchLayout ? () => reviewSidebar.open('annotations') : undefined}
-              onOpenAI={isCompactTouchLayout && aiAvailable ? () => reviewSidebar.open('ai') : undefined}
-              onOpenAgents={isCompactTouchLayout && agentJobs.capabilities?.available ? () => reviewSidebar.open('agents') : undefined}
               compactDestination={compactReviewDestination}
               compactActions={compactReviewActions}
               isFileTreeOpen={isNavigatorOpen}
@@ -4932,28 +4644,6 @@ const ReviewApp: React.FC = () => {
                 onSelectCommentAnnotation={handleSelectCommentAnnotation}
                 onDeleteCommentAnnotation={handleDeleteCommentAnnotation}
                 prMetadata={prMetadata}
-                aiAvailable={aiAvailable}
-                aiMessages={aiMessages}
-                isAICreatingSession={aiIsCreatingSession}
-                isAIStreaming={aiIsStreaming}
-                onAIStop={abortAI}
-                onScrollToAILines={handleScrollToAILines}
-                activeFilePath={files[activeFileIndex]?.path}
-                scrollToQuestionId={scrollToQuestionId}
-                onAskGeneral={handleAskGeneral}
-                aiPermissionRequests={aiPermissionRequests}
-                onRespondToPermission={respondToAIPermission}
-                aiProviders={aiProviders}
-                aiConfig={aiConfig}
-                onAIConfigChange={handleAIConfigChange}
-                hasAISession={!!aiSessionId}
-                agentJobs={agentJobs.jobs}
-                agentCapabilities={agentJobs.capabilities}
-                onAgentLaunch={agentJobs.launchJob}
-                onAgentKillJob={agentJobs.killJob}
-                onAgentKillAll={agentJobs.killAll}
-                externalAnnotations={externalAnnotations}
-                onOpenJobDetail={handleOpenJobDetail}
               />
             </div>
           )}
@@ -5003,7 +4693,6 @@ const ReviewApp: React.FC = () => {
             onIdentityChange={handleIdentityChange}
             origin={origin}
             mode="review"
-            aiProviders={aiProviders}
             gitUser={gitUser}
             externalOpen={openSettingsMenu}
             onExternalClose={() => setOpenSettingsMenu(false)}
@@ -5236,11 +4925,6 @@ const ReviewApp: React.FC = () => {
             onLineSelection={handleLineSelection}
             onAddAnnotationForFile={handleAddAnnotationForFile}
             onEditAnnotation={handleEditAnnotation}
-            aiAvailable={aiAvailable}
-            onAskAIForFile={handleAskAIForFile}
-            isAILoading={aiIsCreatingSession || aiIsStreaming}
-            onViewAIResponse={handleViewAIResponse}
-            aiHistoryMessages={getAIHistoryForFile(targetFile.path)}
           />
         );
       })()}
@@ -5266,7 +4950,6 @@ const ReviewApp: React.FC = () => {
         } as React.CSSProperties,
       }}
     />
-    </JobLogsProvider>
     </ReviewStateProvider>
     </TooltipProvider>
     </ThemeProvider>

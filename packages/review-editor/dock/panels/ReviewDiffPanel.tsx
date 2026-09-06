@@ -34,15 +34,6 @@ export const ReviewDiffPanel: React.FC<IDockviewPanelProps> = (props) => {
     [state.allAnnotations, file, state.prMetadata, state.prDiffScope]
   );
 
-  const aiMessagesForFile = useMemo(
-    () =>
-      file
-        ? state.aiMessages.filter(
-            (m) => m.question.filePath === file.path
-          )
-        : [],
-    [state.aiMessages, file]
-  );
 
   const searchMatchesForFile = useMemo(
     () =>
@@ -108,13 +99,6 @@ export const ReviewDiffPanel: React.FC<IDockviewPanelProps> = (props) => {
             ? state.activeSearchMatch
             : null
         }
-        aiAvailable={state.aiAvailable}
-        onAskAI={state.onAskAI}
-        isAILoading={state.isAILoading}
-        onViewAIResponse={state.onViewAIResponse}
-        aiMessages={aiMessagesForFile}
-        onClickAIMarker={state.onClickAIMarker}
-        aiHistoryMessages={isFocusedFile ? state.aiHistoryForSelection : []}
         onCodeNavRequest={state.onCodeNavRequest}
         onTokenHoverEnter={state.onTokenHoverEnter}
         onTokenHoverLeave={state.onTokenHoverLeave}

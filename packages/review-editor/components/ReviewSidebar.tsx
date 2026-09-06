@@ -12,18 +12,13 @@ import { HighlightedCode } from './HighlightedCode';
 import { detectLanguage } from '../utils/detectLanguage';
 import { renderInlineMarkdown } from '../utils/renderInlineMarkdown';
 import { FileNameChip } from './FileNameChip';
-import { AITab } from './AITab';
-import { AgentsTab, type AgentLaunchParams, type AgentLaunchResult } from '@plannotator/ui/components/AgentsTab';
 import type { PRMetadata } from '@plannotator/shared/pr-types';
 import { OverlayScrollArea } from '@plannotator/ui/components/OverlayScrollArea';
-import type { AIChatEntry, PendingPermission } from '../hooks/useAIChat';
-import type { AgentJobInfo, AgentCapabilities } from '@plannotator/ui/types';
 import type { DiffFile } from '../types';
-import type { AIProviderOption } from '@plannotator/ui/utils/aiProvider';
 import { copyTextToClipboard } from '@plannotator/ui/utils/clipboard';
 import { artifactAnchorLabel, artifactAnnotationQuote } from '../utils/artifactAnnotations';
 
-export type ReviewSidebarTab = 'annotations' | 'ai' | 'agents';
+export type ReviewSidebarTab = 'annotations';
 
 
 interface ReviewSidebarProps {
@@ -58,30 +53,6 @@ interface ReviewSidebarProps {
   onSelectCommentAnnotation?: (id: string | null) => void;
   onDeleteCommentAnnotation?: (id: string) => void;
   prMetadata?: PRMetadata | null;
-  // AI props
-  aiAvailable?: boolean;
-  aiMessages?: AIChatEntry[];
-  isAICreatingSession?: boolean;
-  isAIStreaming?: boolean;
-  onAIStop?: () => void;
-  onScrollToAILines?: (filePath: string, lineStart: number, lineEnd: number, side: 'old' | 'new') => void;
-  activeFilePath?: string;
-  scrollToQuestionId?: string | null;
-  onAskGeneral?: (question: string) => void;
-  aiPermissionRequests?: PendingPermission[];
-  onRespondToPermission?: (requestId: string, allow: boolean) => void;
-  aiProviders?: AIProviderOption[];
-  aiConfig?: { providerId: string | null; model: string | null; reasoningEffort?: string | null };
-  onAIConfigChange?: (config: { providerId?: string | null; model?: string | null; reasoningEffort?: string | null }) => void;
-  hasAISession?: boolean;
-  // Agent props
-  agentJobs?: AgentJobInfo[];
-  agentCapabilities?: AgentCapabilities | null;
-  onAgentLaunch?: (params: AgentLaunchParams) => AgentLaunchResult | Promise<AgentLaunchResult>;
-  onAgentKillJob?: (id: string) => void;
-  onAgentKillAll?: () => void;
-  externalAnnotations?: Array<{ source?: string }>;
-  onOpenJobDetail?: (jobId: string) => void;
 }
 
 const SuggestionPreview: React.FC<{ code: string; originalCode?: string; language?: string }> = ({ code, originalCode, language }) => {
@@ -250,28 +221,6 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
   onSelectCommentAnnotation,
   onDeleteCommentAnnotation,
   prMetadata,
-  aiAvailable = false,
-  aiMessages = [],
-  isAICreatingSession = false,
-  isAIStreaming = false,
-  onAIStop,
-  onScrollToAILines,
-  activeFilePath,
-  scrollToQuestionId,
-  onAskGeneral,
-  aiPermissionRequests = [],
-  onRespondToPermission,
-  aiProviders,
-  aiConfig,
-  onAIConfigChange,
-  hasAISession,
-  agentJobs,
-  agentCapabilities,
-  onAgentLaunch,
-  onAgentKillJob,
-  onAgentKillAll,
-  externalAnnotations,
-  onOpenJobDetail,
 }) => {
   const totalCount = annotations.length + (editorAnnotations?.length ?? 0) + (descriptionAnnotations?.length ?? 0) + (commentAnnotations?.length ?? 0);
   const [copied, setCopied] = useState(false);
@@ -519,24 +468,13 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
         >
           <div className="flex items-center gap-2 w-full min-w-0">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate">
-              {activeTab === 'annotations' ? 'Annotations' : activeTab === 'ai' ? 'AI' : 'Review Agents'}
+              Annotations
             </h2>
             {activeTab === 'annotations' && totalCount > 0 && (
               <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
                 {totalCount}
               </span>
-            )}
-            {activeTab === 'agents' && (agentJobs?.length ?? 0) > 0 && (
-              <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                {agentJobs!.length}
-              </span>
-            )}
-            {activeTab === 'ai' && aiMessages.length > 0 && (
-              <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                {aiMessages.length}
-              </span>
-            )}
-            {presentation === 'overlay' && (
+            )}            {presentation === 'overlay' && (
               <button
                 data-pn-touch-target
                 data-pn-touch-target-icon
@@ -708,40 +646,6 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
 
             </div>
           )}
-
-          {/* AI tab */}
-          {activeTab === 'ai' && (
-            <AITab
-              messages={aiMessages}
-              isCreatingSession={isAICreatingSession}
-              isStreaming={isAIStreaming}
-              activeFilePath={activeFilePath}
-              scrollToQuestionId={scrollToQuestionId}
-              onScrollToLines={onScrollToAILines ?? (() => {})}
-              onAskGeneral={onAskGeneral}
-              onStop={onAIStop}
-              permissionRequests={aiPermissionRequests}
-              onRespondToPermission={onRespondToPermission}
-              aiProviders={aiProviders}
-              aiConfig={aiConfig}
-              onAIConfigChange={onAIConfigChange}
-              hasAISession={hasAISession}
-            />
-          )}
-
-          {/* Agents tab */}
-          {activeTab === 'agents' && (
-            <AgentsTab
-              jobs={agentJobs ?? []}
-              capabilities={agentCapabilities ?? null}
-              onLaunch={onAgentLaunch ?? (() => null)}
-              onKillJob={onAgentKillJob ?? (() => {})}
-              onKillAll={onAgentKillAll ?? (() => {})}
-              externalAnnotations={externalAnnotations ?? []}
-              onOpenJobDetail={onOpenJobDetail}
-            />
-          )}
-
         </OverlayScrollArea>
 
         {/* Quick Copy Footer — annotations tab only */}

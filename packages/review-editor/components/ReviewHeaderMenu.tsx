@@ -10,7 +10,6 @@ import { THEME_MODES } from '@plannotator/ui/components/themeModes';
 import { MenuVersionSection } from '@plannotator/ui/components/MenuVersionSection';
 import { ReviewAgentsIcon } from '@plannotator/ui/components/ReviewAgentsIcon';
 import { TextShimmer } from '@plannotator/ui/components/TextShimmer';
-import { SparklesIcon } from '@plannotator/ui/components/SparklesIcon';
 import { GitHubIcon } from '@plannotator/ui/components/GitHubIcon';
 import { GitLabIcon } from '@plannotator/ui/components/GitLabIcon';
 import { modKey } from '@plannotator/ui/utils/platform';
@@ -40,8 +39,6 @@ interface ReviewHeaderMenuProps {
   onToggleFileTree: () => void;
   onToggleSidebar: () => void;
   onOpenAnnotations?: () => void;
-  onOpenAI?: () => void;
-  onOpenAgents?: () => void;
   compactDestination?: CompactReviewDestination;
   compactActions?: CompactReviewAction[];
   isFileTreeOpen: boolean;
@@ -62,8 +59,6 @@ export const ReviewHeaderMenu: React.FC<ReviewHeaderMenuProps> = ({
   onToggleFileTree,
   onToggleSidebar,
   onOpenAnnotations,
-  onOpenAI,
-  onOpenAgents,
   compactDestination,
   compactActions = [],
   isFileTreeOpen,
@@ -239,7 +234,7 @@ export const ReviewHeaderMenu: React.FC<ReviewHeaderMenuProps> = ({
             />
           )}
 
-          {(onOpenAnnotations || onOpenAI || onOpenAgents) && (
+          {onOpenAnnotations && (
             <>
               <ActionMenuDivider />
               {onOpenAnnotations && (
@@ -250,26 +245,6 @@ export const ReviewHeaderMenu: React.FC<ReviewHeaderMenuProps> = ({
                   }}
                   icon={<SidebarIcon />}
                   label="Annotations"
-                />
-              )}
-              {onOpenAI && (
-                <ActionMenuItem
-                  onClick={() => {
-                    closeMenu();
-                    onOpenAI();
-                  }}
-                  icon={<SparklesIcon className="w-3.5 h-3.5" />}
-                  label="AI Chat"
-                />
-              )}
-              {onOpenAgents && (
-                <ActionMenuItem
-                  onClick={() => {
-                    closeMenu();
-                    onOpenAgents();
-                  }}
-                  icon={<ReviewAgentsIcon className="w-3.5 h-3.5" />}
-                  label="Review Agents"
                 />
               )}
             </>

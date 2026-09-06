@@ -1,6 +1,5 @@
 import { REVIEW_PANEL_TYPES } from './reviewPanelTypes';
 import { ReviewDiffPanel } from './panels/ReviewDiffPanel';
-import { ReviewAgentJobDetailPanel } from './panels/ReviewAgentJobDetailPanel';
 import { ReviewPROverviewPanel } from './panels/ReviewPROverviewPanel';
 import { ReviewPRArtifactsPanel } from './panels/ReviewPRArtifactsPanel';
 import { ReviewAllFilesDiffPanel } from './panels/ReviewAllFilesDiffPanel';
@@ -14,7 +13,6 @@ import { ReviewCallFlowPanel } from './panels/ReviewCallFlowPanel';
  */
 export const reviewPanelComponents = {
   [REVIEW_PANEL_TYPES.DIFF]: ReviewDiffPanel,
-  [REVIEW_PANEL_TYPES.AGENT_JOB_DETAIL]: ReviewAgentJobDetailPanel,
   [REVIEW_PANEL_TYPES.PR_OVERVIEW]: ReviewPROverviewPanel,
   [REVIEW_PANEL_TYPES.PR_ARTIFACTS]: ReviewPRArtifactsPanel,
   [REVIEW_PANEL_TYPES.ALL_FILES]: ReviewAllFilesDiffPanel,

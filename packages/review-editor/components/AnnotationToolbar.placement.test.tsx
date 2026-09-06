@@ -40,7 +40,7 @@ afterEach(async () => {
   }
 });
 
-async function mountToolbar(positionLeft: number, askAIMode: boolean): Promise<HTMLElement> {
+async function mountToolbar(positionLeft: number): Promise<HTMLElement> {
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
@@ -60,8 +60,6 @@ async function mountToolbar(positionLeft: number, askAIMode: boolean): Promise<H
         setSuggestedCode={() => {}}
         showSuggestedCode={false}
         setShowSuggestedCode={() => {}}
-        askAIMode={askAIMode}
-        setAskAIMode={() => {}}
         setShowCodeModal={() => {}}
         setShowCommentModal={() => {}}
         onSubmit={() => {}}
@@ -87,16 +85,14 @@ function toolbarHorizontalEdges(toolbar: HTMLElement): { left: number; right: nu
   return { left: center - width / 2, right: center + width / 2 };
 }
 
-for (const [mode, askAIMode] of [['Comment', false], ['Ask AI', true]] as const) {
-  describe(`${mode} toolbar placement`, () => {
-    test.skipIf(!hasDom)('keeps the full toolbar inside the left viewport edge', async () => {
-      const toolbar = await mountToolbar(0, askAIMode);
-      expect(toolbarHorizontalEdges(toolbar).left).toBeGreaterThanOrEqual(0);
-    });
-
-    test.skipIf(!hasDom)('keeps the full toolbar inside the right viewport edge', async () => {
-      const toolbar = await mountToolbar(window.innerWidth, askAIMode);
-      expect(toolbarHorizontalEdges(toolbar).right).toBeLessThanOrEqual(window.innerWidth);
-    });
+describe('Comment toolbar placement', () => {
+  test.skipIf(!hasDom)('keeps the full toolbar inside the left viewport edge', async () => {
+    const toolbar = await mountToolbar(0);
+    expect(toolbarHorizontalEdges(toolbar).left).toBeGreaterThanOrEqual(0);
   });
-}
+
+  test.skipIf(!hasDom)('keeps the full toolbar inside the right viewport edge', async () => {
+    const toolbar = await mountToolbar(window.innerWidth);
+    expect(toolbarHorizontalEdges(toolbar).right).toBeLessThanOrEqual(window.innerWidth);
+  });
+});

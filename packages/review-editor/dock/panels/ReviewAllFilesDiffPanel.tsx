@@ -69,11 +69,6 @@ export const ReviewAllFilesDiffPanel: React.FC<IDockviewPanelProps> = () => {
       registerCollapseAllToggle={state.registerAllFilesCollapseToggle}
       onAllCollapsedChange={state.onAllFilesCollapsedChange}
       isActive={state.isAllFilesActive}
-      aiAvailable={state.aiAvailable}
-      onAskAIForFile={state.onAskAIForFile}
-      isAILoading={state.isAILoading}
-      onViewAIResponse={state.onViewAIResponse}
-      getAIHistoryForFile={state.getAIHistoryForFile}
       defaultCollapsed={!!commitInfo}
       leadingContent={leadingContent}
       // EXPERIMENTAL edit-to-suggestion mode. This plain all-files panel is

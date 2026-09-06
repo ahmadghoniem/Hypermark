@@ -305,7 +305,6 @@ function AnnotatableMarkdownStage({
   selectedAnnotationId,
   onAddAnnotation,
   onSelectAnnotation,
-  onAskAI,
 }: {
   markdown: string;
   artifactUrl: string;
@@ -314,7 +313,6 @@ function AnnotatableMarkdownStage({
   selectedAnnotationId: string | null;
   onAddAnnotation: (annotation: Annotation) => void;
   onSelectAnnotation: (id: string | null) => void;
-  onAskAI: React.ComponentProps<typeof CommentPopover>['onAskAI'];
 }): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const hook = useAnnotationHighlighter({
@@ -352,12 +350,6 @@ function AnnotatableMarkdownStage({
           allowImages={false}
           onSubmit={hook.handleCommentSubmit}
           onClose={hook.handleCommentClose}
-          onAskAI={onAskAI}
-          askAIContext={{
-            kind: 'selection',
-            label: 'Artifact document',
-            text: hook.commentPopover.selectedText ?? hook.commentPopover.contextText,
-          }}
         />,
         document.body,
       )}
@@ -372,7 +364,6 @@ function MarkdownArtifactStage({
   selectedAnnotationId,
   onAddAnnotation,
   onSelectAnnotation,
-  onAskAI,
 }: {
   artifact: PRArtifact;
   provider: ArtifactProviderLocation;
@@ -380,7 +371,6 @@ function MarkdownArtifactStage({
   selectedAnnotationId: string | null;
   onAddAnnotation: (annotation: Annotation) => void;
   onSelectAnnotation: (id: string | null) => void;
-  onAskAI: React.ComponentProps<typeof CommentPopover>['onAskAI'];
 }): React.JSX.Element {
   const state = useRemoteArtifactDocument(artifact.url);
   if (state.status === 'loading') {
@@ -403,7 +393,6 @@ function MarkdownArtifactStage({
       selectedAnnotationId={selectedAnnotationId}
       onAddAnnotation={onAddAnnotation}
       onSelectAnnotation={onSelectAnnotation}
-      onAskAI={onAskAI}
     />
   );
 }
@@ -415,7 +404,6 @@ function HtmlArtifactStage({
   selectedAnnotationId,
   onAddAnnotation,
   onSelectAnnotation,
-  onAskAI,
 }: {
   artifact: PRArtifact;
   provider: ArtifactProviderLocation;
@@ -423,7 +411,6 @@ function HtmlArtifactStage({
   selectedAnnotationId: string | null;
   onAddAnnotation: (annotation: Annotation) => void;
   onSelectAnnotation: (id: string | null) => void;
-  onAskAI: React.ComponentProps<typeof CommentPopover>['onAskAI'];
 }): React.JSX.Element {
   const state = useRemoteArtifactDocument(artifact.url);
   if (state.status === 'loading') {
@@ -449,7 +436,6 @@ function HtmlArtifactStage({
       fullViewport
       hideControls
       title={`HTML artifact: ${artifact.name}`}
-      onAskAI={onAskAI}
     />
   );
 }
@@ -464,7 +450,6 @@ function ArtifactStage({
   onAddDocumentAnnotation,
   onRequestComment,
   onSelectAnnotation,
-  onAskAI,
 }: {
   artifact: PRArtifact;
   provider: ArtifactProviderLocation;
@@ -475,7 +460,6 @@ function ArtifactStage({
   onAddDocumentAnnotation: (annotation: Annotation) => void;
   onRequestComment: (target: PendingCommentTarget, anchor: ArtifactAnnotationAnchor) => void;
   onSelectAnnotation: (id: string | null) => void;
-  onAskAI: React.ComponentProps<typeof CommentPopover>['onAskAI'];
 }): React.JSX.Element {
   switch (artifact.kind) {
     case 'image':
@@ -507,7 +491,6 @@ function ArtifactStage({
           selectedAnnotationId={selectedAnnotationId}
           onAddAnnotation={onAddDocumentAnnotation}
           onSelectAnnotation={onSelectAnnotation}
-          onAskAI={onAskAI}
         />
       );
     case 'html':
@@ -519,7 +502,6 @@ function ArtifactStage({
           selectedAnnotationId={selectedAnnotationId}
           onAddAnnotation={onAddDocumentAnnotation}
           onSelectAnnotation={onSelectAnnotation}
-          onAskAI={onAskAI}
         />
       );
   }
@@ -537,12 +519,10 @@ export const ReviewPRArtifactsPanel: React.FC<IDockviewPanelProps> = () => {
     selectedDescriptionAnnotationId,
     onAddDescriptionAnnotation,
     onSelectDescriptionAnnotation,
-    onAskAIForDescription,
     commentAnnotations,
     selectedCommentAnnotationId,
     onAddCommentAnnotation,
     onSelectCommentAnnotation,
-    onAskAIForComment,
   } = useReviewState();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hideResolved, setHideResolved] = useState(false);
@@ -928,7 +908,6 @@ export const ReviewPRArtifactsPanel: React.FC<IDockviewPanelProps> = () => {
                 onAddDocumentAnnotation={(annotation) => addArtifactAnnotation(documentAnchorFromAnnotation(annotation), annotation.text ?? '', annotation)}
                 onRequestComment={(target, anchor) => setPendingComment({ artifactId: selected.id, ...target, anchor })}
                 onSelectAnnotation={selectAnnotation}
-                onAskAI={selectedIsDescription ? onAskAIForDescription : onAskAIForComment}
               />
             </div>
             <footer className="shrink-0 border-t border-border/50 px-3 py-2 text-[10px] text-muted-foreground">
@@ -964,16 +943,6 @@ export const ReviewPRArtifactsPanel: React.FC<IDockviewPanelProps> = () => {
             setPendingComment(null);
           }}
           onClose={() => setPendingComment(null)}
-          onAskAI={selectedIsDescription ? onAskAIForDescription : onAskAIForComment}
-          askAIContext={{
-            kind: pendingComment.anchor.kind === 'page' ? 'general' : 'selection',
-            label: selected.name,
-            text: pendingComment.anchor.kind === 'video'
-              ? `Video at ${formatArtifactTimestamp(pendingComment.anchor.timestamp)}`
-              : pendingComment.anchor.kind === 'image'
-                ? `Image point ${Math.round(pendingComment.anchor.x * 100)}%, ${Math.round(pendingComment.anchor.y * 100)}%`
-                : selected.name,
-          }}
         />,
         document.body,
       )}

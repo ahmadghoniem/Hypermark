@@ -14,7 +14,6 @@ import { AnnotationToolbar } from './AnnotationToolbar';
 import { SuggestionModal } from './SuggestionModal';
 import { ExpandedCommentDialog } from './ExpandedCommentDialog';
 import { getEnabledLabels } from './ConventionalLabelPicker';
-import type { AIChatEntry } from '../hooks/useAIChat';
 import { formatLineRange, formatTokenContext } from '../utils/formatLineRange';
 
 export interface ToolbarHostHandle {
@@ -46,12 +45,6 @@ interface ToolbarHostProps {
     conventionalLabel?: ConventionalLabel | null,
     decorations?: ConventionalDecoration[],
   ) => void;
-  // AI props (optional — DiffViewer and external source-selection bridges wire these)
-  aiAvailable?: boolean;
-  onAskAI?: (question: string) => void;
-  isAILoading?: boolean;
-  onViewAIResponse?: (questionId?: string) => void;
-  aiHistoryMessages?: AIChatEntry[];
 }
 
 /**
@@ -66,11 +59,6 @@ export const ToolbarHost = forwardRef<ToolbarHostHandle, ToolbarHostProps>(funct
     onLineSelection,
     onAddAnnotation,
     onEditAnnotation,
-    aiAvailable,
-    onAskAI,
-    isAILoading,
-    onViewAIResponse,
-    aiHistoryMessages,
   },
   ref,
 ) {
@@ -132,14 +120,6 @@ export const ToolbarHost = forwardRef<ToolbarHostHandle, ToolbarHostProps>(funct
     toolbar.setSuggestedCode,
     toolbar.suggestedCode,
   ]);
-  const handleExpandedAskAI = useCallback((question: string) => {
-    if (!onAskAI) return;
-    onAskAI(question);
-    toolbar.setCommentText('');
-    toolbar.setAskAIMode(true);
-    toolbar.setShowCommentModal(false);
-  }, [onAskAI, toolbar.setAskAIMode, toolbar.setCommentText, toolbar.setShowCommentModal]);
-
   const expandedCommentTitle = useMemo(() => {
     const toolbarState = toolbar.toolbarState;
     if (!toolbarState) return 'Comment';
@@ -163,8 +143,6 @@ export const ToolbarHost = forwardRef<ToolbarHostHandle, ToolbarHostProps>(funct
           showSuggestedCode={toolbar.showSuggestedCode}
           setShowSuggestedCode={toolbar.setShowSuggestedCode}
           selectedOriginalCode={toolbar.selectedOriginalCode}
-          askAIMode={toolbar.askAIMode}
-          setAskAIMode={toolbar.setAskAIMode}
           setShowCodeModal={toolbar.setShowCodeModal}
           setShowCommentModal={toolbar.setShowCommentModal}
           isEditing={!!toolbar.editingAnnotationId}
@@ -177,11 +155,6 @@ export const ToolbarHost = forwardRef<ToolbarHostHandle, ToolbarHostProps>(funct
           decorations={toolbar.decorations}
           onDecorationsChange={toolbar.setDecorations}
           enabledLabels={enabledLabels}
-          aiAvailable={aiAvailable}
-          onAskAI={onAskAI}
-          isAILoading={isAILoading}
-          onViewAIResponse={onViewAIResponse}
-          aiHistoryMessages={aiHistoryMessages}
         />
       )}
 
@@ -192,8 +165,6 @@ export const ToolbarHost = forwardRef<ToolbarHostHandle, ToolbarHostProps>(funct
           setCommentText={toolbar.setCommentText}
           isEditing={!!toolbar.editingAnnotationId}
           canSubmit={canSubmitAnnotation}
-          aiAvailable={aiAvailable && !toolbar.editingAnnotationId}
-          onAskAI={handleExpandedAskAI}
           onSubmit={toolbar.handleSubmitAnnotation}
           onCollapse={handleCollapseCommentModal}
           onCancel={handleCancelCommentModal}

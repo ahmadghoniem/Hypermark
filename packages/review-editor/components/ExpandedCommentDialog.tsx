@@ -1,6 +1,5 @@
 import React, { useRef } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
-import { SparklesIcon } from '@plannotator/ui/components/SparklesIcon';
 import { useReviewAnnotationToolbarShortcuts } from '@plannotator/ui/shortcuts';
 
 interface ExpandedCommentDialogProps {
@@ -9,8 +8,6 @@ interface ExpandedCommentDialogProps {
   setCommentText: (text: string) => void;
   isEditing: boolean;
   canSubmit: boolean;
-  aiAvailable?: boolean;
-  onAskAI?: (question: string) => void;
   onSubmit: () => void;
   onCollapse: () => void;
   onCancel: () => void;
@@ -26,8 +23,6 @@ export const ExpandedCommentDialog: React.FC<ExpandedCommentDialogProps> = ({
   setCommentText,
   isEditing,
   canSubmit,
-  aiAvailable = false,
-  onAskAI,
   onSubmit,
   onCollapse,
   onCancel,
@@ -38,7 +33,6 @@ export const ExpandedCommentDialog: React.FC<ExpandedCommentDialogProps> = ({
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const askAIEnabled = aiAvailable && !!onAskAI && commentText.trim().length > 0;
   const submitLabel = isEditing ? 'Update' : 'Add Comment';
 
   useReviewAnnotationToolbarShortcuts({
@@ -62,11 +56,6 @@ export const ExpandedCommentDialog: React.FC<ExpandedCommentDialogProps> = ({
       },
     },
   });
-
-  const handleAskAI = () => {
-    if (!askAIEnabled) return;
-    onAskAI?.(commentText.trim());
-  };
 
   return (
     <Dialog.Root
@@ -133,18 +122,6 @@ export const ExpandedCommentDialog: React.FC<ExpandedCommentDialogProps> = ({
 
           <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-border/50">
             <div className="flex flex-wrap items-center gap-3">
-              {aiAvailable && (
-                <button
-                  type="button"
-                  onClick={handleAskAI}
-                  disabled={!askAIEnabled}
-                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  title={askAIEnabled ? 'Ask AI this question' : 'Type a question to ask AI'}
-                >
-                  <SparklesIcon className="w-3 h-3" />
-                  Ask AI
-                </button>
-              )}
               {onEditSuggestion && (
                 <button
                   type="button"

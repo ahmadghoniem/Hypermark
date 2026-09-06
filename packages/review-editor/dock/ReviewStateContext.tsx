@@ -1,9 +1,6 @@
 import React, { createContext, useContext } from 'react';
 import type { CallFlowAnnotationTarget, CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, Annotation, CommentAnnotation, ArtifactAnnotationMeta } from '@plannotator/ui/types';
-import type { CommentAskAIHandler } from '@plannotator/ui/components/CommentPopover';
-import type { AgentJobInfo } from '@plannotator/ui/types';
 import type { DiffFile, AnnotationScrollTarget } from '../types';
-import type { AIChatEntry } from '../hooks/useAIChat';
 import type { ReviewSearchMatch } from '../utils/reviewSearch';
 import type { PRMetadata, PRContext } from '@plannotator/shared/pr-types';
 import type { PRArtifact } from '../utils/prArtifacts';
@@ -54,8 +51,8 @@ export interface ReviewState {
    *  part of the DiffViewer remount key so mode switches invalidate cached
    *  file content — branch and merge-base compute different "old" sides. */
   activeDiffBase?: string;
-  /** Diff context baked into exported feedback so downstream panels (agent job
-   * detail, etc.) produce the same markdown the main feedback path sends. */
+  /** Diff context baked into exported feedback so downstream consumers
+   * produce the same markdown the main feedback path sends. */
   feedbackDiffContext?: FeedbackDiffContext;
   /** PR/MR review scope label, e.g. "Layer diff" or "Full stack diff". */
   prReviewScope?: string;
@@ -108,8 +105,6 @@ export interface ReviewState {
   onAddDescriptionAnnotation: (ann: Annotation) => void;
   onSelectDescriptionAnnotation: (id: string | null) => void;
   onDeleteDescriptionAnnotation: (id: string) => void;
-  /** Ask AI about a selection in the PR description (file-less scope ask). */
-  onAskAIForDescription?: CommentAskAIHandler;
 
   // PR comment annotations (notes attached to a whole comment/review/thread).
   commentAnnotations: CommentAnnotation[];
@@ -123,8 +118,6 @@ export interface ReviewState {
   ) => void;
   onSelectCommentAnnotation: (id: string | null) => void;
   onDeleteCommentAnnotation: (id: string) => void;
-  /** Ask AI about a PR comment (file-less scope ask, comment body as text). */
-  onAskAIForComment?: CommentAskAIHandler;
   /** Sidebar-initiated "reveal this comment" signal (token bumps per click). */
   commentScrollTarget: { commentId: string; token: number } | null;
 
@@ -163,24 +156,6 @@ export interface ReviewState {
   // active match (activeSearchMatch above is filtered to the single-file panel).
   searchMatches: ReviewSearchMatch[];
   allFilesActiveSearchMatch: ReviewSearchMatch | null;
-
-  // AI
-  aiAvailable: boolean;
-  aiMessages: AIChatEntry[];
-  onAskAI: (question: string) => void;
-  /** File-aware Ask AI for the all-files surface. onAskAI above resolves the
-   *  file from the single-file panel's focus index, which is wrong when the
-   *  selection lives in the all-files CodeView. */
-  onAskAIForFile: (filePath: string, question: string) => void;
-  isAILoading: boolean;
-  onViewAIResponse: (questionId?: string) => void;
-  onClickAIMarker: (questionId: string) => void;
-  aiHistoryForSelection: AIChatEntry[];
-  /** File-aware variant of aiHistoryForSelection (same single-file caveat). */
-  getAIHistoryForFile: (filePath: string) => AIChatEntry[];
-
-  // Agent jobs
-  agentJobs: AgentJobInfo[];
 
   // PR
   prMetadata: PRMetadata | null;
@@ -236,22 +211,6 @@ export interface ReviewState {
   codeNavResult: import('@plannotator/shared/code-nav').CodeNavResponse | null;
   codeNavIsLoading: boolean;
   codeNavActiveSymbol: string | null;
-}
-
-type ContextualAIHandlers = Pick<
-  ReviewState,
-  "onAskAIForDescription" | "onAskAIForComment"
->;
-
-/**
- * Contextual PR popovers render Ask AI from handler presence, so omit both
- * handlers until the server reports an available AI provider.
- */
-export function buildContextualAIHandlers(
-  aiAvailable: boolean,
-  handlers: Required<ContextualAIHandlers>,
-): ContextualAIHandlers {
-  return aiAvailable ? handlers : {};
 }
 
 const ReviewStateContext = createContext<ReviewState | null>(null);

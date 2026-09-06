@@ -3,11 +3,8 @@ import { createPortal } from 'react-dom';
 import { ToolbarState } from '../hooks/useAnnotationToolbar';
 import { useTabIndent } from '../hooks/useTabIndent';
 import { formatLineRange, formatTokenContext } from '../utils/formatLineRange';
-import { AskAIInput } from './AskAIInput';
-import { SparklesIcon } from '@plannotator/ui/components/SparklesIcon';
 import { ConventionalLabelPicker, type LabelDef } from './ConventionalLabelPicker';
 import type { ConventionalLabel, ConventionalDecoration } from '@plannotator/ui/types';
-import type { AIChatEntry } from '../hooks/useAIChat';
 import { useDraggable } from '@plannotator/ui/hooks/useDraggable';
 import {
   hasPrimaryCoarsePointer,
@@ -25,8 +22,6 @@ interface AnnotationToolbarProps {
   setShowSuggestedCode: (show: boolean) => void;
   selectedOriginalCode?: string;
   isEditing?: boolean;
-  askAIMode: boolean;
-  setAskAIMode: (show: boolean) => void;
   setShowCodeModal: (show: boolean) => void;
   setShowCommentModal: (show: boolean) => void;
   onSubmit: () => void;
@@ -39,13 +34,6 @@ interface AnnotationToolbarProps {
   decorations: ConventionalDecoration[];
   onDecorationsChange: (decorations: ConventionalDecoration[]) => void;
   enabledLabels?: LabelDef[];
-  // AI props
-  aiAvailable?: boolean;
-  onAskAI?: (question: string) => void;
-  isAILoading?: boolean;
-  onViewAIResponse?: (questionId?: string) => void;
-  /** AI messages that overlap the current line selection */
-  aiHistoryMessages?: AIChatEntry[];
 }
 
 // The 338px border box contains the 320px composer, padding, and border.
@@ -63,8 +51,6 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
   setShowSuggestedCode,
   selectedOriginalCode,
   isEditing = false,
-  askAIMode,
-  setAskAIMode,
   setShowCodeModal,
   setShowCommentModal,
   onSubmit,
@@ -76,11 +62,6 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
   decorations,
   onDecorationsChange,
   enabledLabels,
-  aiAvailable = false,
-  onAskAI,
-  isAILoading = false,
-  onViewAIResponse,
-  aiHistoryMessages = [],
 }) => {
   const coarsePointer = hasPrimaryCoarsePointer();
   const visibleBounds = useVisibleViewportBounds(coarsePointer ? 16 : 0);
@@ -94,27 +75,6 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
   useEffect(() => {
     resetDrag();
   }, [toolbarState.range.start, toolbarState.range.end, toolbarState.range.side, resetDrag]);
-
-  const handleAskAIClick = () => {
-    // If user already typed text in the comment box, send it directly as an AI question
-    if (commentText.trim()) {
-      onAskAI?.(commentText.trim());
-      setCommentText('');
-      setAskAIMode(true); // Switch to AI mode to show history/preview
-    } else {
-      setAskAIMode(true);
-    }
-  };
-
-  const handleAskAISubmit = (question: string) => {
-    onAskAI?.(question);
-    // Stay in AI mode so the history updates
-  };
-
-  const handleAskAIClose = () => {
-    setAskAIMode(false);
-    onCancel(); // close the whole toolbar
-  };
 
   const content = (
     <div
@@ -153,20 +113,7 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
           }
       }
     >
-      {askAIMode ? (
-        <AskAIInput
-          lineStart={toolbarState.range.start}
-          lineEnd={toolbarState.range.end}
-          onSubmit={handleAskAISubmit}
-          onCancel={handleAskAIClose}
-          isLoading={isAILoading}
-          aiHistory={aiHistoryMessages}
-          onViewResponse={onViewAIResponse}
-          onSwitchToComment={() => setAskAIMode(false)}
-          dragHandleProps={dragHandleProps}
-        />
-      ) : (
-        <div
+      <div
           className="w-80 max-w-full flex flex-col"
           style={{ width: Math.min(320, visibleBounds.width) }}
         >
@@ -288,23 +235,6 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
           )}
 
           <div className="flex items-center gap-2 mt-3">
-            {/* Ask AI button — left side */}
-            {aiAvailable && !isEditing && (
-              <button
-                onClick={handleAskAIClick}
-                className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors"
-                title={commentText.trim() ? 'Ask AI this question' : 'Switch to AI mode'}
-              >
-                <SparklesIcon className="w-3 h-3" />
-                Ask AI
-                {aiHistoryMessages.length > 0 && (
-                  <span className="text-[9px] font-mono bg-muted px-1 py-0.5 rounded">
-                    {aiHistoryMessages.length}
-                  </span>
-                )}
-              </button>
-            )}
-
             {/* Add Comment button — right side */}
             <button
               onClick={onSubmit}
@@ -315,7 +245,6 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
             </button>
           </div>
         </div>
-      )}
     </div>
   );
 

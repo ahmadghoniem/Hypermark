@@ -56,7 +56,6 @@ async function renderOverview(context: PRContext, compact: boolean): Promise<voi
     platformUser: null,
     isCompactTouchLayout: compact,
     onAddCommentAnnotation: () => {},
-    onAskAIForComment: undefined,
     commentScrollTarget: null,
   } as unknown as ReviewState;
 

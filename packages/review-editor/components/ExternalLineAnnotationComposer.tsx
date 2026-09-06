@@ -11,7 +11,6 @@ import type {
   LineAnnotationComposeRequest,
   ReviewState,
 } from '../dock/ReviewStateContext';
-import type { AIChatEntry } from '../hooks/useAIChat';
 import { ToolbarHost, type ToolbarHostHandle } from './ToolbarHost';
 
 interface ExternalLineAnnotationComposerProps {
@@ -20,11 +19,6 @@ interface ExternalLineAnnotationComposerProps {
   readonly onLineSelection: ReviewState['onLineSelection'];
   readonly onAddAnnotationForFile: ReviewState['onAddAnnotationForFile'];
   readonly onEditAnnotation: ReviewState['onEditAnnotation'];
-  readonly aiAvailable: boolean;
-  readonly onAskAIForFile: ReviewState['onAskAIForFile'];
-  readonly isAILoading: boolean;
-  readonly onViewAIResponse: ReviewState['onViewAIResponse'];
-  readonly aiHistoryMessages: AIChatEntry[];
 }
 
 /**
@@ -38,11 +32,6 @@ export function ExternalLineAnnotationComposer({
   onLineSelection,
   onAddAnnotationForFile,
   onEditAnnotation,
-  aiAvailable,
-  onAskAIForFile,
-  isAILoading,
-  onViewAIResponse,
-  aiHistoryMessages,
 }: ExternalLineAnnotationComposerProps) {
   const toolbarRef = useRef<ToolbarHostHandle>(null);
 
@@ -71,10 +60,6 @@ export function ExternalLineAnnotationComposer({
     );
   }, [file.path, onAddAnnotationForFile]);
 
-  const askAI = useCallback((question: string) => {
-    onAskAIForFile(file.path, question);
-  }, [file.path, onAskAIForFile]);
-
   return (
     <ToolbarHost
       ref={toolbarRef}
@@ -84,11 +69,6 @@ export function ExternalLineAnnotationComposer({
       onLineSelection={onLineSelection}
       onAddAnnotation={addAnnotation}
       onEditAnnotation={onEditAnnotation}
-      aiAvailable={aiAvailable}
-      onAskAI={askAI}
-      isAILoading={isAILoading}
-      onViewAIResponse={onViewAIResponse}
-      aiHistoryMessages={aiHistoryMessages}
     />
   );
 }

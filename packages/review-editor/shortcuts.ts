@@ -5,7 +5,6 @@ import {
   decisionControlShortcuts,
   defineShortcutScope,
   historyShortcuts,
-  reviewAiShortcuts,
   reviewAllFilesDiffShortcuts,
   reviewAnnotationToolbarShortcuts,
   reviewFileTreeShortcuts,
@@ -96,7 +95,6 @@ export const reviewSettingsShortcutRegistry = createShortcutRegistry([
   reviewAllFilesDiffShortcuts,
   reviewAnnotationToolbarShortcuts,
   reviewSuggestionModalShortcuts,
-  reviewAiShortcuts,
   reviewPrCommentsShortcuts,
 ] as const);
 

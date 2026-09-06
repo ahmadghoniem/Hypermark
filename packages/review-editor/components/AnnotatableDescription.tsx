@@ -28,7 +28,6 @@ export const AnnotatableDescription = React.memo(function AnnotatableDescription
     selectedDescriptionAnnotationId,
     onAddDescriptionAnnotation,
     onSelectDescriptionAnnotation,
-    onAskAIForDescription,
   } = useReviewState();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -69,12 +68,6 @@ export const AnnotatableDescription = React.memo(function AnnotatableDescription
             allowImages={false}
             onSubmit={hook.handleCommentSubmit}
             onClose={hook.handleCommentClose}
-            onAskAI={onAskAIForDescription}
-            askAIContext={{
-              kind: 'selection',
-              label: 'PR description',
-              text: hook.commentPopover.selectedText ?? hook.commentPopover.contextText,
-            }}
           />,
           document.body,
         )}

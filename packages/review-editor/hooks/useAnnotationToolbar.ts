@@ -73,7 +73,6 @@ export function useAnnotationToolbar({ patch, filePath, isFocused, onLineSelecti
   const [suggestedCode, setSuggestedCode] = useState('');
   const [showSuggestedCode, setShowSuggestedCode] = useState(false);
   const [selectedOriginalCode, setSelectedOriginalCode] = useState('');
-  const [askAIMode, setAskAIMode] = useState(false);
   const [showCodeModal, setShowCodeModal] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [modalLayout, setModalLayout] = useState<'horizontal' | 'vertical'>('horizontal');
@@ -139,7 +138,6 @@ export function useAnnotationToolbar({ patch, filePath, isFocused, onLineSelecti
     setSuggestedCode('');
     setSelectedOriginalCode('');
     setShowSuggestedCode(false);
-    setAskAIMode(false);
     setShowCodeModal(false);
     setShowCommentModal(false);
     setEditingAnnotationId(null);
@@ -162,7 +160,6 @@ export function useAnnotationToolbar({ patch, filePath, isFocused, onLineSelecti
   ) => {
     saveDraft();
     setEditingAnnotationId(null);
-    setAskAIMode(false);
     setShowCodeModal(false);
     setShowCommentModal(expandedComposerRequired);
 
@@ -265,7 +262,6 @@ export function useAnnotationToolbar({ patch, filePath, isFocused, onLineSelecti
     setSuggestedCode(annotation.suggestedCode || '');
     setSelectedOriginalCode(annotation.originalCode || '');
     setShowSuggestedCode(!!annotation.suggestedCode);
-    setAskAIMode(false);
     setShowCodeModal(false);
     setShowCommentModal(expandedComposerRequired);
     setConventionalLabel(annotation.conventionalLabel || null);
@@ -338,7 +334,6 @@ export function useAnnotationToolbar({ patch, filePath, isFocused, onLineSelecti
       setConventionalLabel(draft.conventionalLabel);
       setDecorations(draft.decorations);
       setEditingAnnotationId(null);
-      setAskAIMode(false);
       setShowCodeModal(false);
       setShowCommentModal(expandedComposerRequired);
       setToolbarState({
@@ -396,8 +391,6 @@ export function useAnnotationToolbar({ patch, filePath, isFocused, onLineSelecti
     showSuggestedCode,
     setShowSuggestedCode,
     selectedOriginalCode,
-    askAIMode,
-    setAskAIMode,
     showCodeModal,
     setShowCodeModal,
     showCommentModal,

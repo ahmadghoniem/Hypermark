@@ -83,16 +83,11 @@ jobs:
           packages/ui/components/html-viewer/srcdoc.test.ts
           packages/ui/components/html-viewer/htmlPinpointProtocol.test.tsx
           packages/ui/components/html-viewer/htmlLiveProtocol.test.tsx
-          packages/ui/components/html-viewer/HtmlViewer.vimHud.test.tsx
           packages/ui/components/html-viewer/HtmlViewer.bridgeAsset.test.tsx
-          packages/ui/components/Viewer.vimMode.integration.test.tsx
-          packages/ui/hooks/useVimSelection.test.tsx
           packages/ui/utils/codeHighlight.test.ts
           packages/ui/utils/htmlChrome.test.ts
           packages/ui/utils/inputMethod.test.ts
-          packages/ui/utils/vimNavigation.test.ts
           packages/ui/utils/clipboard.test.ts
-          packages/ui/utils/vimScroll.test.ts
           packages/ui/components/InlineMarkdown.resolveLinkedDoc.test.tsx
           packages/ui/components/MarkdownDiff.frozen.test.tsx
           packages/ui/components/MarkdownEditor.extensions.test.tsx
@@ -112,10 +107,6 @@ jobs:
           packages/review-editor/components/AllFilesCodeView.generated.test.tsx
           packages/review-editor/components/AllFilesCodeView.autoViewed.test.tsx
           packages/review-editor/components/DiffViewer.compactTouchSelection.test.tsx
-          packages/guide-viewer/GuideSectionCard.test.tsx
-          packages/guide-viewer/GuideView.test.tsx
-          packages/guide-viewer/GuideViewportManager.test.tsx
-          packages/review-editor/components/guide/GuideExportButton.test.tsx
           packages/review-editor/hooks/useReviewSearch.test.tsx
           packages/review-editor/hooks/useTokenHover.test.tsx
           packages/review-editor/components/TokenHoverCard.test.tsx
@@ -159,8 +150,6 @@ jobs:
           packages/ui/components/HtmlSurfaceControls.test.tsx
           packages/ui/components/AnnotationPanel.unanchored.test.tsx
           packages/ui/hooks/useHtmlRefresh.test.tsx
-          packages/ui/hooks/useSharing.contentRevision.test.tsx
-          packages/ui/hooks/useSharing.shortUrlLifecycle.test.tsx
           packages/ui/components/AnnotationToolbar.commentOnly.test.tsx
           packages/ui/components/AnnotationToolstrip.test.tsx
           packages/ui/components/StickyHeaderLane.test.tsx

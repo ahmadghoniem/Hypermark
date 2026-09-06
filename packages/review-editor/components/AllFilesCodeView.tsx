@@ -48,9 +48,7 @@ import type { EditSelectionAnnotationRequest, EditSelectionComment } from '../ed
 import type { SuggestionHunk } from '../edit/deriveSuggestions';
 import { lineAnnotationMetadata } from '../utils/annotationDisplay';
 import { InlineAnnotation } from './InlineAnnotation';
-import { InlineAIMarker } from './InlineAIMarker';
 import { detectLanguage } from '../utils/detectLanguage';
-import type { AIChatEntry } from '../hooks/useAIChat';
 import type { ReviewSearchMatch } from '../utils/reviewSearch';
 import {
   applyItemSearchHighlights,
@@ -91,8 +89,8 @@ import {
  *  - The annotation toolbar already flows through CodeView's
  *    `onGutterUtilityClick` / `onLineSelectionEnd` callbacks (P2): file identity
  *    comes from `context.item.id`, and ToolbarHost is fed that file's patch so
- *    original-code extraction reads the correct file. Drafts-by-file/range and
- *    AI markers are preserved by ToolbarHost/useAnnotationToolbar unchanged.
+ *    original-code extraction reads the correct file. Drafts-by-file/range are
+ *    preserved by ToolbarHost/useAnnotationToolbar unchanged.
  *
  * P5 (this phase) preserves lazy full-content hunk expansion through CodeView
  * item updates instead of LazyFileDiff's per-mount IntersectionObserver fetch:
@@ -296,18 +294,6 @@ export interface AllFilesCodeViewProps {
   leadingContent?: React.ReactNode;
   // Only handle [/]/z/v/a/c/x keyboard nav when this surface is the active panel.
   isActive?: boolean;
-  // AI props (optional — surfaced into the toolbar). File-aware variants: this
-  // surface owns which file the selection lives in (activeFilePath), so the
-  // index-based onAskAI/aiHistoryForSelection (which resolve the file from the
-  // single-file panel's focus) must not be used here.
-  aiAvailable?: boolean;
-  onAskAIForFile?: (filePath: string, question: string) => void;
-  isAILoading?: boolean;
-  onViewAIResponse?: (questionId?: string) => void;
-  /** Line-scoped questions rendered as inline sparkle markers. */
-  aiMessages?: AIChatEntry[];
-  onClickAIMarker?: (questionId: string) => void;
-  getAIHistoryForFile?: (filePath: string) => AIChatEntry[];
   /** Let wheel/touch gestures continue into a containing page when this nested
    * viewer reaches either vertical boundary. Guided Review file cards opt in. */
   allowScrollChaining?: boolean;
@@ -361,40 +347,13 @@ interface ItemIdentity {
 // lineNumber = lineEnd, metadata = DiffAnnotationMetadata). File-scoped comments
 // are deliberately excluded — they render in the file header (renderCustomHeader),
 // not the gutter (see fileCommentsByPath).
-export function projectFileAIMarkers(
-  aiMessages: AIChatEntry[],
-  filePath: string,
-): DiffLineAnnotation<DiffAnnotationMetadata>[] {
-  return aiMessages
-    .filter(
-      ({ question }) =>
-        question.filePath === filePath &&
-        question.lineStart != null &&
-        question.lineEnd != null,
-    )
-    .map(({ question, response }) => ({
-      side: question.side === 'new' ? ('additions' as const) : ('deletions' as const),
-      lineNumber: question.lineEnd!,
-      metadata: {
-        annotationId: question.id,
-        type: 'comment' as CodeAnnotationType,
-        kind: 'ai-marker' as const,
-        questionId: question.id,
-        promptPreview: question.prompt.slice(0, 40) + (question.prompt.length > 40 ? '...' : ''),
-        hasResponse: !!response.text && !response.error,
-        isStreaming: response.isStreaming,
-      },
-    }));
-}
-
 function projectFileAnnotations(
   annotations: CodeAnnotation[],
-  aiMessages: AIChatEntry[],
   filePath: string,
   prUrl: string | undefined,
   prDiffScope: string | undefined,
 ): DiffLineAnnotation<DiffAnnotationMetadata>[] {
-  const reviewAnnotations = annotations
+  return annotations
     .filter(
       (a) =>
         a.filePath === filePath &&
@@ -406,14 +365,12 @@ function projectFileAnnotations(
       lineNumber: ann.lineEnd,
       metadata: lineAnnotationMetadata(ann),
     }));
-  return [...reviewAnnotations, ...projectFileAIMarkers(aiMessages, filePath)];
 }
 
 function buildItemIdentity(
   files: DiffFile[],
   visualOrder: number[],
   annotations: CodeAnnotation[],
-  aiMessages: AIChatEntry[],
   prUrl: string | undefined,
   prDiffScope: string | undefined,
   patchHashes: string[],
@@ -468,7 +425,7 @@ function buildItemIdentity(
     fileDiff.cacheKey = `${id}#${patchHashes[index] ?? ''}`;
     // Seed annotations at build time so the first render (and any remount via
     // fileSetKey) already paints existing annotations without an extra update.
-    const fileAnnotations = projectFileAnnotations(annotations, aiMessages, file.path, prUrl, prDiffScope);
+    const fileAnnotations = projectFileAnnotations(annotations, file.path, prUrl, prDiffScope);
     // Generated files (#1317) seed collapsed like GitHub's diff view, unless
     // the user already expanded them this session. A view-state seed only —
     // the item carries the full fileDiff either way.
@@ -524,8 +481,6 @@ const HUNK_SEPARATOR_HEIGHT = 32;
 // (item growth + re-render) are allowed to land. Slightly above Pierre's own
 // post-interaction restore delay (120ms).
 const AUGMENT_APPLY_IDLE_MS = 150;
-const EMPTY_AI_MESSAGES: AIChatEntry[] = [];
-const noopAIMarkerClick = () => {};
 
 export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   files,
@@ -580,13 +535,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   leadingContent,
   isActive = true,
   readOnly = false,
-  aiAvailable = false,
-  onAskAIForFile,
-  isAILoading = false,
-  onViewAIResponse,
-  aiMessages = EMPTY_AI_MESSAGES,
-  onClickAIMarker,
-  getAIHistoryForFile,
   allowScrollChaining = false,
   enableEditSuggestions = false,
   onAddSuggestionsForFile,
@@ -668,9 +616,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   // keyed off this file's path + patch, but the value is sourced from the
   // CodeView callback context (item.id) — never from geometry inference.
   const [activeFilePath, setActiveFilePath] = useState<string | null>(null);
-  // Mirror ref so stable callbacks (Ask AI) read the active file at CALL time.
-  const activeFilePathRef = useRef(activeFilePath);
-  activeFilePathRef.current = activeFilePath;
   const [selectedLines, setSelectedLines] = useState<CodeViewLineSelection | null>(null);
   // A range whose toolbar must open only after the ToolbarHost remounts against
   // the newly-activated file (its patch/filePath props changed this render).
@@ -692,7 +637,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   const prevViewedRef = useRef<Set<string> | undefined>(viewedFiles);
   // Previous line-card snapshots for the per-item annotation-sync effect (P4).
   const prevAnnotationsRef = useRef<CodeAnnotation[]>(annotations);
-  const prevAIMessagesRef = useRef<AIChatEntry[]>(aiMessages);
 
   // Order items to mirror whichever left panel is active: 'tree' replays the
   // file-tree's visual order (folders-first); 'list' keeps the files array
@@ -720,12 +664,10 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   // FILE SET changes — otherwise every annotation add/edit/delete would remount
   // the whole CodeView and lose scroll/selection state. Existing annotations are
   // seeded into items on (re)build via the latest refs for the first paint;
-  // subsequent annotation/AI-message changes are applied incrementally per item
-  // by the annotation-sync effect below (updateItem on only the changed file).
+  // subsequent annotation changes are applied incrementally per item by the
+  // annotation-sync effect below (updateItem on only the changed file).
   const annotationsRef = useRef(annotations);
   annotationsRef.current = annotations;
-  const aiMessagesRef = useRef(aiMessages);
-  aiMessagesRef.current = aiMessages;
   // Per-file patch content hashes — shared by fileSetKey (remount detection)
   // and the items' cacheKeys (highlight cache identity). Hashed once per
   // files-identity change.
@@ -747,7 +689,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       files,
       visualOrder,
       annotationsRef.current,
-      aiMessagesRef.current,
       prUrl,
       prDiffScope,
       patchHashes,
@@ -893,21 +834,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     [activeFilePath, onAddAnnotationForFile],
   );
 
-  // Ask AI + AI history routed by THIS surface's active file (the file the
-  // toolbar selection lives in) — never by the single-file panel's focus index.
-  const handleAskAIForActiveFile = useMemo(() => {
-    if (!onAskAIForFile) return undefined;
-    return (question: string) => {
-      const filePath = activeFilePathRef.current;
-      if (filePath) onAskAIForFile(filePath, question);
-    };
-  }, [onAskAIForFile]);
-
-  const aiHistoryForActiveFile = useMemo(
-    () => (getAIHistoryForFile && activeFilePath ? getAIHistoryForFile(activeFilePath) : []),
-    [getAIHistoryForFile, activeFilePath],
-  );
-
   // Edit routes through the ToolbarHost handle (same as AllFilesDiffView). The
   // annotation's id resolves to the full CodeAnnotation so the toolbar opens
   // pre-filled. ToolbarHost is keyed to the active file's patch; startEdit
@@ -952,17 +878,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     ) => {
       if (!('side' in annotation) || item.type !== 'diff') return null;
       if (!annotation.metadata) return null;
-      if (annotation.metadata.kind === 'ai-marker') {
-        return (
-          <InlineAIMarker
-            questionId={annotation.metadata.questionId!}
-            promptPreview={annotation.metadata.promptPreview!}
-            hasResponse={annotation.metadata.hasResponse!}
-            isStreaming={annotation.metadata.isStreaming!}
-            onClick={onClickAIMarker ?? noopAIMarkerClick}
-          />
-        );
-      }
       const filePath = itemIdToFilePath.get(item.id);
       return (
         <InlineAnnotation
@@ -1019,9 +934,8 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     // previous one (the remounted items already seed from live props).
     prevViewedRef.current = viewedFiles;
     // Line cards are seeded into the remounted items at build time, so resync
-    // both snapshots here to avoid a spurious refresh post-remount.
+    // this snapshot here to avoid a spurious refresh post-remount.
     prevAnnotationsRef.current = annotations;
-    prevAIMessagesRef.current = aiMessages;
     // Garbage-collect STALE-generation content fetches. Generation-aware on
     // purpose: this passive effect runs AFTER the remounted CodeView's seed
     // layout effect has already fired the new diff's first postRender wave —
@@ -1626,22 +1540,20 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
 
   // --- Annotations through CodeView item state (P4) ---------------------------
 
-  // Set an item's review annotations and AI markers to the current per-file
-  // projection, then republish that item only. This preserves CodeView scroll
-  // state while streaming answers update their inline marker.
+  // Set an item's review annotations to the current per-file projection, then
+  // republish that item only. This preserves CodeView scroll state while
+  // incremental annotation changes update their inline marker.
   const syncItemAnnotations = useCallback(
     (
       filePath: string,
       itemId: string,
       allAnnotations: CodeAnnotation[],
-      allAIMessages: AIChatEntry[],
     ) => {
       const handle = viewerRef.current;
       const item = handle?.getItem(itemId);
       if (handle == null || item == null || item.type !== 'diff') return;
       item.annotations = projectFileAnnotations(
         allAnnotations,
-        allAIMessages,
         filePath,
         prUrl,
         prDiffScope,
@@ -1699,33 +1611,10 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
 
     for (const path of changedPaths) {
       for (const itemId of filePathToItemIds.get(path) ?? []) {
-        syncItemAnnotations(path, itemId, annotations, aiMessages);
+        syncItemAnnotations(path, itemId, annotations);
       }
     }
-  }, [annotations, aiMessages, prUrl, prDiffScope, filePathToItemIds, syncItemAnnotations]);
-
-  // AI answers stream independently of review annotations. Any message change
-  // republishes only the files represented by the previous or next message set;
-  // projectFileAnnotations performs the final line-scope/path filter.
-  useEffect(() => {
-    const handle = viewerRef.current;
-    const prev = prevAIMessagesRef.current;
-    // If the worker-pool gate still hides CodeView, retain the old snapshot.
-    // The workerPoolReady dependency replays this sync once the handle exists.
-    if (handle == null) return;
-    prevAIMessagesRef.current = aiMessages;
-    if (prev === aiMessages) return;
-
-    const changedPaths = new Set<string>();
-    for (const { question } of [...prev, ...aiMessages]) {
-      if (question.filePath) changedPaths.add(question.filePath);
-    }
-    for (const path of changedPaths) {
-      for (const itemId of filePathToItemIds.get(path) ?? []) {
-        syncItemAnnotations(path, itemId, annotations, aiMessages);
-      }
-    }
-  }, [aiMessages, annotations, filePathToItemIds, syncItemAnnotations, workerPoolReady]);
+  }, [annotations, prUrl, prDiffScope, filePathToItemIds, syncItemAnnotations]);
 
   // --- Header actions ---------------------------------------------------------
 
@@ -2599,11 +2488,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
         onLineSelection={onLineSelection}
         onAddAnnotation={handleAddAnnotation}
         onEditAnnotation={onEditAnnotation}
-        aiAvailable={aiAvailable}
-        onAskAI={handleAskAIForActiveFile}
-        isAILoading={isAILoading}
-        onViewAIResponse={onViewAIResponse}
-        aiHistoryMessages={aiHistoryForActiveFile}
       />
       )}
 

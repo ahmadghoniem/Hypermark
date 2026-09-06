@@ -18,7 +18,7 @@ interface LiveLogViewerProps {
  * Reusable streaming log viewer with auto-scroll, truncation, and copy.
  *
  * Auto-scrolls to bottom as new content arrives — unless the user has
- * scrolled up to read earlier output. Follows the AITab streaming pattern.
+ * scrolled up to read earlier output. Follows the streaming log pattern.
  */
 export const LiveLogViewer: React.FC<LiveLogViewerProps> = ({
   content,
