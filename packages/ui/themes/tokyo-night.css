@@ -1,5 +1,6 @@
-/* Tokyo Night — Storm (dark) + Day (light) */
+/* Tokyo Night — dark only (light mode lacks complete syntax mapping) */
 .theme-tokyo-night {
+  /* Chrome & Tree */
   --background: #24283b;
   --foreground: #c0caf5;
   --card: #1d202f;
@@ -12,51 +13,80 @@
   --secondary-foreground: #c0caf5;
   --muted: #343a52;
   --muted-foreground: #787c99;
-  --accent: #7dcfff;
-  --accent-foreground: #1d202f;
-  --destructive: #f7768e;
-  --destructive-foreground: #1d202f;
   --border: #414868;
   --input: #343a52;
+  --accent: #7dcfff;
+  --accent-foreground: #1d202f;
+
+  /* Surfaces */
+  --surface-0: #16161e;
+  --surface-1: #1d202f;
+  --surface-2: #292e42;
+
+  /* Sidebar / Tree */
+  --sidebar: #1d202f;
+  --sidebar-foreground: #c0caf5;
+  --sidebar-primary: #7aa2f7;
+  --sidebar-primary-foreground: #1d202f;
+  --sidebar-accent: #292e42;
+  --sidebar-accent-foreground: #c0caf5;
+  --sidebar-border: #16161e;
+  --sidebar-ring: #7aa2f7;
+
+  /* Diff Bridge */
+  --diffs-bg: #24283b;
+  --diffs-fg: #c0caf5;
+  --diffs-dark-bg: #24283b;
+  --diffs-light-bg: #ffffff;
+  --diffs-dark: #c0caf5;
+  --diffs-light: #0a0a0a;
+
+  /* Syntax */
+  --code-bg: #1a1b2e;
+
+  /* Terminal / ANSI */
+  --terminal-background: #1d202f;
+  --terminal-foreground: #c0caf5;
+  --terminal-cursor: #7aa2f7;
+  --terminal-cursor-accent: #1d202f;
+  --terminal-selection-background: #283457;
+  --terminal-selection-foreground: #c0caf5;
+  --terminal-selection-inactive-background: #16161e;
+  --terminal-black: #15161e;
+  --terminal-red: #f7768e;
+  --terminal-green: #9ece6a;
+  --terminal-yellow: #e0af68;
+  --terminal-blue: #7aa2f7;
+  --terminal-magenta: #bb9af7;
+  --terminal-cyan: #7dcfff;
+  --terminal-white: #a9b1d6;
+  --terminal-bright-black: #414868;
+  --terminal-bright-red: #f7768e;
+  --terminal-bright-green: #9ece6a;
+  --terminal-bright-yellow: #e0af68;
+  --terminal-bright-blue: #7aa2f7;
+  --terminal-bright-magenta: #bb9af7;
+  --terminal-bright-cyan: #7dcfff;
+  --terminal-bright-white: #c0caf5;
+
+  /* Focus */
   --ring: #7aa2f7;
+  --focus-highlight: #7dcfff;
+
+  /* Selection */
+  --selection-background: #283457;
+  --selection-foreground: #c0caf5;
+
+  /* Status & Annotation */
   --success: #9ece6a;
   --success-foreground: #1d202f;
   --warning: #e0af68;
   --warning-foreground: #1d202f;
+  --destructive: #f7768e;
+  --destructive-foreground: #1d202f;
+  --annotation-comment: #7dcfff;
 
-  --font-sans: system-ui, sans-serif;
-  --font-mono: ui-monospace, monospace;
+  --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', 'Geist Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
   --radius: 0.625rem;
-
-  --code-bg: #1a1b2e;
-  --focus-highlight: #7dcfff;
-}
-
-.theme-tokyo-night.light {
-  --background: #e1e2e7;
-  --foreground: #3760bf;
-  --card: #e9e9ed;
-  --card-foreground: #3760bf;
-  --popover: #e9e9ed;
-  --popover-foreground: #3760bf;
-  --primary: #2e7de9;
-  --primary-foreground: #e1e2e7;
-  --secondary: #a1a6c5;
-  --secondary-foreground: #3760bf;
-  --muted: #d0d3e1;
-  --muted-foreground: #848cb5;
-  --accent: #007197;
-  --accent-foreground: #e1e2e7;
-  --destructive: #f52a65;
-  --destructive-foreground: #e1e2e7;
-  --border: #a1a6c5;
-  --input: #d0d3e1;
-  --ring: #2e7de9;
-  --success: #587539;
-  --success-foreground: #e1e2e7;
-  --warning: #8c6c3e;
-  --warning-foreground: #e1e2e7;
-
-  --code-bg: #d5d6db;
-  --focus-highlight: #007197;
 }

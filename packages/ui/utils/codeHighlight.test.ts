@@ -24,25 +24,31 @@ describe('code block class', () => {
 
 describe('fence theme resolution', () => {
   test('matches the theme the diff pane resolves, per mode', () => {
-    expect(resolveFenceTheme('kanagawa-wave', 'dark')).toBe('kanagawa-wave');
+    expect(resolveFenceTheme('one-dark-pro', 'dark')).toBe('one-dark-pro');
     expect(resolveFenceTheme('github', 'light')).toBe('github-light');
-    expect(resolveFenceTheme('colorblind', 'dark')).toBe('pierre-dark-protanopia-deuteranopia');
-    expect(resolveFenceTheme('colorblind', 'light')).toBe('pierre-light-protanopia-deuteranopia');
+    expect(resolveFenceTheme('catppuccin', 'dark')).toBe('catppuccin-mocha');
+    expect(resolveFenceTheme('catppuccin', 'light')).toBe('catppuccin-latte');
   });
 
-  test('falls back to the Pierre defaults for unmapped palettes', () => {
-    // The default Plannotator palette has no Shiki counterpart, so it renders
-    // in exactly what @pierre/diffs uses when handed no theme at all.
-    expect(resolveSyntaxTheme('plannotator', 'dark')).toBeUndefined();
+  test('falls back to the Pierre defaults for palettes outside the map', () => {
+    // A palette id the map does not carry -- a removed built-in, or a
+    // user-supplied theme -- renders in exactly what @pierre/diffs uses when
+    // handed no theme at all.
+    expect(resolveSyntaxTheme('kanagawa-wave', 'dark')).toBeUndefined();
+    expect(resolveFenceTheme('kanagawa-wave', 'dark')).toBe(DEFAULT_SYNTAX_THEME.dark);
+    expect(resolveFenceTheme('kanagawa-wave', 'light')).toBe(DEFAULT_SYNTAX_THEME.light);
+
+    // Plannotator now names Pierre's syntax themes explicitly, so it resolves
+    // to the same pair by data rather than by lookup miss.
     expect(resolveFenceTheme('plannotator', 'dark')).toBe(DEFAULT_SYNTAX_THEME.dark);
     expect(resolveFenceTheme('plannotator', 'light')).toBe(DEFAULT_SYNTAX_THEME.light);
   });
 
   test('falls back per mode when a palette only defines one side', () => {
-    // dracula is dark-only; its light mode must still resolve to something.
-    expect(SHIKI_THEME_MAP['dracula']?.light).toBeNull();
-    expect(resolveFenceTheme('dracula', 'dark')).toBe('dracula');
-    expect(resolveFenceTheme('dracula', 'light')).toBe(DEFAULT_SYNTAX_THEME.light);
+    // tokyo-night is dark-only; its light mode must still resolve to something.
+    expect(SHIKI_THEME_MAP['tokyo-night']?.light).toBeNull();
+    expect(resolveFenceTheme('tokyo-night', 'dark')).toBe('tokyo-night');
+    expect(resolveFenceTheme('tokyo-night', 'light')).toBe(DEFAULT_SYNTAX_THEME.light);
   });
 
   test('every mapped theme name is non-empty', () => {

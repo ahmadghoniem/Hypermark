@@ -1,5 +1,6 @@
-/* GitHub — by GitHub */
+/* GitHub — Dark & Light */
 .theme-github {
+  /* Chrome & Tree */
   --background: #24292e;
   --foreground: #e1e4e8;
   --card: #1f2428;
@@ -12,27 +13,86 @@
   --secondary-foreground: #d1d5da;
   --muted: #2f363d;
   --muted-foreground: #6a737d;
-  --accent: #79b8ff;
-  --accent-foreground: #24292e;
-  --destructive: #f97583;
-  --destructive-foreground: #24292e;
   --border: #1b1f23;
   --input: #2f363d;
+  --accent: #79b8ff;
+  --accent-foreground: #24292e;
+
+  /* Surfaces */
+  --surface-0: #1b1f23;
+  --surface-1: #1f2428;
+  --surface-2: #2f363d;
+
+  /* Sidebar / Tree */
+  --sidebar: #1f2428;
+  --sidebar-foreground: #e1e4e8;
+  --sidebar-primary: #58a6ff;
+  --sidebar-primary-foreground: #24292e;
+  --sidebar-accent: #2f363d;
+  --sidebar-accent-foreground: #e1e4e8;
+  --sidebar-border: #1b1f23;
+  --sidebar-ring: #58a6ff;
+
+  /* Diff Bridge */
+  --diffs-bg: #24292e;
+  --diffs-fg: #e1e4e8;
+  --diffs-dark-bg: #24292e;
+  --diffs-light-bg: #ffffff;
+  --diffs-dark: #e1e4e8;
+  --diffs-light: #24292e;
+
+  /* Syntax */
+  --code-bg: #2f363d;
+
+  /* Terminal / ANSI */
+  --terminal-background: #1f2428;
+  --terminal-foreground: #e1e4e8;
+  --terminal-cursor: #58a6ff;
+  --terminal-cursor-accent: #1f2428;
+  --terminal-selection-background: #3392ff44;
+  --terminal-selection-foreground: #e1e4e8;
+  --terminal-selection-inactive-background: #2f363d;
+  --terminal-black: #24292e;
+  --terminal-red: #f97583;
+  --terminal-green: #28a745;
+  --terminal-yellow: #ffea7f;
+  --terminal-blue: #58a6ff;
+  --terminal-magenta: #b392f0;
+  --terminal-cyan: #79b8ff;
+  --terminal-white: #e1e4e8;
+  --terminal-bright-black: #6a737d;
+  --terminal-bright-red: #ff8591;
+  --terminal-bright-green: #34d058;
+  --terminal-bright-yellow: #ffee99;
+  --terminal-bright-blue: #79b8ff;
+  --terminal-bright-magenta: #ccb3ff;
+  --terminal-bright-cyan: #b1d8ff;
+  --terminal-bright-white: #f6f8fa;
+
+  /* Focus */
   --ring: #58a6ff;
+  --focus-highlight: #58a6ff;
+
+  /* Selection */
+  --selection-background: #3392ff44;
+  --selection-foreground: #e1e4e8;
+
+  /* Status & Annotation */
   --success: #28a745;
   --success-foreground: #24292e;
   --warning: #ffea7f;
   --warning-foreground: #24292e;
+  --destructive: #f97583;
+  --destructive-foreground: #24292e;
+  --annotation-comment: #79b8ff;
 
-  --font-sans: system-ui, sans-serif;
-  --font-mono: 'Fira Code', ui-monospace, monospace;
+  --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', 'Geist Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
   --radius: 0.625rem;
-
-  --code-bg: #2f363d;
-  --focus-highlight: #58a6ff;
 }
 
 .theme-github.light {
+  /* Chrome & Tree */
   --background: #ffffff;
   --foreground: #24292e;
   --card: #f6f8fa;
@@ -45,22 +105,80 @@
   --secondary-foreground: #586069;
   --muted: #fafbfc;
   --muted-foreground: #6a737d;
-  --accent: #0366d6;
-  --accent-foreground: #ffffff;
-  --destructive: #cb2431;
-  --destructive-foreground: #ffffff;
   --border: #e1e4e8;
   --input: #fafbfc;
+  --accent: #0366d6;
+  --accent-foreground: #ffffff;
+
+  /* Surfaces */
+  --surface-0: #fafbfc;
+  --surface-1: #f6f8fa;
+  --surface-2: #e1e4e8;
+
+  /* Sidebar / Tree */
+  --sidebar: #f6f8fa;
+  --sidebar-foreground: #24292e;
+  --sidebar-primary: #0366d6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e1e4e8;
+  --sidebar-accent-foreground: #24292e;
+  --sidebar-border: #e1e4e8;
+  --sidebar-ring: #2188ff;
+
+  /* Diff Bridge */
+  --diffs-bg: #ffffff;
+  --diffs-fg: #24292e;
+  --diffs-dark-bg: #24292e;
+  --diffs-light-bg: #ffffff;
+  --diffs-dark: #e1e4e8;
+  --diffs-light: #24292e;
+
+  /* Syntax */
+  --code-bg: #f6f8fa;
+
+  /* Terminal / ANSI */
+  --terminal-background: #f6f8fa;
+  --terminal-foreground: #24292e;
+  --terminal-cursor: #0366d6;
+  --terminal-cursor-accent: #f6f8fa;
+  --terminal-selection-background: #0366d625;
+  --terminal-selection-foreground: #24292e;
+  --terminal-selection-inactive-background: #e1e4e8;
+  --terminal-black: #24292e;
+  --terminal-red: #cb2431;
+  --terminal-green: #28a745;
+  --terminal-yellow: #b08800;
+  --terminal-blue: #0366d6;
+  --terminal-magenta: #5a32a3;
+  --terminal-cyan: #005cc5;
+  --terminal-white: #6a737d;
+  --terminal-bright-black: #959da5;
+  --terminal-bright-red: #d73a49;
+  --terminal-bright-green: #22863a;
+  --terminal-bright-yellow: #b08800;
+  --terminal-bright-blue: #005cc5;
+  --terminal-bright-magenta: #6f42c1;
+  --terminal-bright-cyan: #0366d6;
+  --terminal-bright-white: #24292e;
+
+  /* Focus */
   --ring: #2188ff;
+  --focus-highlight: #2188ff;
+
+  /* Selection */
+  --selection-background: #0366d625;
+  --selection-foreground: #24292e;
+
+  /* Status & Annotation */
   --success: #28a745;
   --success-foreground: #ffffff;
   --warning: #f9c513;
   --warning-foreground: #24292e;
+  --destructive: #cb2431;
+  --destructive-foreground: #ffffff;
+  --annotation-comment: #0366d6;
 
-  --font-sans: system-ui, sans-serif;
-  --font-mono: 'Fira Code', ui-monospace, monospace;
+  --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', 'Geist Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
   --radius: 0.625rem;
-
-  --code-bg: #f6f8fa;
-  --focus-highlight: #2188ff;
 }

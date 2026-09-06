@@ -1,4 +1,6 @@
+/* Plannotator — Retained Palette */
 .theme-plannotator {
+  /* Chrome & Tree */
   --background: oklch(0.15 0.02 260);
   --foreground: oklch(0.90 0.01 260);
   --card: oklch(0.22 0.02 260);
@@ -11,27 +13,86 @@
   --secondary-foreground: oklch(0.15 0.02 260);
   --muted: oklch(0.26 0.02 260);
   --muted-foreground: oklch(0.72 0.02 260);
-  --accent: oklch(0.70 0.20 60);
-  --accent-foreground: oklch(0.15 0.02 260);
-  --destructive: oklch(0.65 0.20 25);
-  --destructive-foreground: oklch(0.98 0 0);
   --border: oklch(0.35 0.02 260);
   --input: oklch(0.26 0.02 260);
+  --accent: oklch(0.70 0.20 60);
+  --accent-foreground: oklch(0.15 0.02 260);
+
+  /* Surfaces */
+  --surface-0: oklch(0.19 0.02 260);
+  --surface-1: oklch(0.26 0.02 260);
+  --surface-2: oklch(0.32 0.02 260);
+
+  /* Sidebar / Tree */
+  --sidebar: oklch(0.22 0.02 260);
+  --sidebar-foreground: oklch(0.90 0.01 260);
+  --sidebar-primary: oklch(0.75 0.18 280);
+  --sidebar-primary-foreground: oklch(0.15 0.02 260);
+  --sidebar-accent: oklch(0.26 0.02 260);
+  --sidebar-accent-foreground: oklch(0.90 0.01 260);
+  --sidebar-border: oklch(0.35 0.02 260);
+  --sidebar-ring: oklch(0.75 0.18 280);
+
+  /* Diff Bridge */
+  --diffs-bg: oklch(0.15 0.02 260);
+  --diffs-fg: oklch(0.90 0.01 260);
+  --diffs-dark-bg: oklch(0.15 0.02 260);
+  --diffs-light-bg: oklch(0.97 0.005 260);
+  --diffs-dark: oklch(0.90 0.01 260);
+  --diffs-light: oklch(0.18 0.02 260);
+
+  /* Syntax */
+  --code-bg: oklch(0.26 0.02 260);
+
+  /* Terminal / ANSI */
+  --terminal-background: oklch(0.22 0.02 260);
+  --terminal-foreground: oklch(0.90 0.01 260);
+  --terminal-cursor: oklch(0.75 0.18 280);
+  --terminal-cursor-accent: oklch(0.22 0.02 260);
+  --terminal-selection-background: oklch(0.35 0.08 280);
+  --terminal-selection-foreground: oklch(0.90 0.01 260);
+  --terminal-selection-inactive-background: oklch(0.35 0.02 260);
+  --terminal-black: oklch(0.22 0.02 260);
+  --terminal-red: oklch(0.65 0.20 25);
+  --terminal-green: oklch(0.72 0.17 150);
+  --terminal-yellow: oklch(0.75 0.15 85);
+  --terminal-blue: oklch(0.75 0.18 280);
+  --terminal-magenta: oklch(0.70 0.20 60);
+  --terminal-cyan: oklch(0.65 0.15 180);
+  --terminal-white: oklch(0.90 0.01 260);
+  --terminal-bright-black: oklch(0.72 0.02 260);
+  --terminal-bright-red: oklch(0.75 0.18 25);
+  --terminal-bright-green: oklch(0.80 0.15 150);
+  --terminal-bright-yellow: oklch(0.85 0.12 85);
+  --terminal-bright-blue: oklch(0.85 0.14 280);
+  --terminal-bright-magenta: oklch(0.80 0.16 60);
+  --terminal-bright-cyan: oklch(0.75 0.12 180);
+  --terminal-bright-white: oklch(0.98 0 0);
+
+  /* Focus */
   --ring: oklch(0.75 0.18 280);
+  --focus-highlight: oklch(0.70 0.20 200);
+
+  /* Selection */
+  --selection-background: oklch(0.75 0.18 280 / 0.3);
+  --selection-foreground: oklch(0.90 0.01 260);
+
+  /* Status & Annotation */
   --success: oklch(0.72 0.17 150);
   --success-foreground: oklch(0.15 0.02 260);
   --warning: oklch(0.75 0.15 85);
   --warning-foreground: oklch(0.20 0.02 260);
+  --destructive: oklch(0.65 0.20 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --annotation-comment: oklch(0.70 0.20 60);
 
   --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
   --font-mono: 'Geist Mono Variable', 'Geist Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
   --radius: 0.625rem;
-
-  --code-bg: oklch(0.26 0.02 260);
-  --focus-highlight: oklch(0.70 0.20 200);
 }
 
 .theme-plannotator.light {
+  /* Chrome & Tree */
   --background: oklch(0.97 0.005 260);
   --foreground: oklch(0.18 0.02 260);
   --card: oklch(1 0 0);
@@ -44,17 +105,80 @@
   --secondary-foreground: oklch(1 0 0);
   --muted: oklch(0.92 0.01 260);
   --muted-foreground: oklch(0.40 0.02 260);
-  --accent: oklch(0.60 0.22 50);
-  --accent-foreground: oklch(0.18 0.02 260);
-  --destructive: oklch(0.50 0.25 25);
-  --destructive-foreground: oklch(1 0 0);
   --border: oklch(0.88 0.01 260);
   --input: oklch(0.92 0.01 260);
+  --accent: oklch(0.60 0.22 50);
+  --accent-foreground: oklch(0.18 0.02 260);
+
+  /* Surfaces */
+  --surface-0: oklch(0.95 0.007 260);
+  --surface-1: oklch(0.92 0.01 260);
+  --surface-2: oklch(0.88 0.01 260);
+
+  /* Sidebar / Tree */
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.18 0.02 260);
+  --sidebar-primary: oklch(0.50 0.25 280);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.92 0.01 260);
+  --sidebar-accent-foreground: oklch(0.18 0.02 260);
+  --sidebar-border: oklch(0.88 0.01 260);
+  --sidebar-ring: oklch(0.50 0.25 280);
+
+  /* Diff Bridge */
+  --diffs-bg: oklch(0.97 0.005 260);
+  --diffs-fg: oklch(0.18 0.02 260);
+  --diffs-dark-bg: oklch(0.15 0.02 260);
+  --diffs-light-bg: oklch(0.97 0.005 260);
+  --diffs-dark: oklch(0.90 0.01 260);
+  --diffs-light: oklch(0.18 0.02 260);
+
+  /* Syntax */
+  --code-bg: oklch(0.92 0.01 260);
+
+  /* Terminal / ANSI */
+  --terminal-background: oklch(1 0 0);
+  --terminal-foreground: oklch(0.18 0.02 260);
+  --terminal-cursor: oklch(0.50 0.25 280);
+  --terminal-cursor-accent: oklch(1 0 0);
+  --terminal-selection-background: oklch(0.85 0.10 280);
+  --terminal-selection-foreground: oklch(0.18 0.02 260);
+  --terminal-selection-inactive-background: oklch(0.88 0.01 260);
+  --terminal-black: oklch(0.18 0.02 260);
+  --terminal-red: oklch(0.50 0.25 25);
+  --terminal-green: oklch(0.45 0.20 150);
+  --terminal-yellow: oklch(0.55 0.18 85);
+  --terminal-blue: oklch(0.50 0.25 280);
+  --terminal-magenta: oklch(0.60 0.22 50);
+  --terminal-cyan: oklch(0.50 0.18 180);
+  --terminal-white: oklch(0.92 0.01 260);
+  --terminal-bright-black: oklch(0.40 0.02 260);
+  --terminal-bright-red: oklch(0.45 0.22 25);
+  --terminal-bright-green: oklch(0.40 0.18 150);
+  --terminal-bright-yellow: oklch(0.50 0.16 85);
+  --terminal-bright-blue: oklch(0.45 0.22 280);
+  --terminal-bright-magenta: oklch(0.55 0.20 50);
+  --terminal-bright-cyan: oklch(0.45 0.16 180);
+  --terminal-bright-white: oklch(0.10 0.01 260);
+
+  /* Focus */
   --ring: oklch(0.50 0.25 280);
+  --focus-highlight: oklch(0.60 0.20 200);
+
+  /* Selection */
+  --selection-background: oklch(0.50 0.25 280 / 0.25);
+  --selection-foreground: oklch(0.18 0.02 260);
+
+  /* Status & Annotation */
   --success: oklch(0.45 0.20 150);
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.55 0.18 85);
   --warning-foreground: oklch(0.18 0.02 260);
+  --destructive: oklch(0.50 0.25 25);
+  --destructive-foreground: oklch(1 0 0);
+  --annotation-comment: oklch(0.60 0.22 50);
 
-  --code-bg: oklch(0.92 0.01 260);
+  --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', 'Geist Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  --radius: 0.625rem;
 }

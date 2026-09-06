@@ -1,5 +1,6 @@
 /* Catppuccin — Mocha (dark) + Latte (light) */
 .theme-catppuccin {
+  /* Chrome & Tree */
   --background: #1e1e2e;
   --foreground: #cdd6f4;
   --card: #313244;
@@ -12,27 +13,86 @@
   --secondary-foreground: #cdd6f4;
   --muted: #45475a;
   --muted-foreground: #a6adc8;
-  --accent: #f5c2e7;
-  --accent-foreground: #1e1e2e;
-  --destructive: #f38ba8;
-  --destructive-foreground: #1e1e2e;
   --border: #585b70;
   --input: #313244;
+  --accent: #f5c2e7;
+  --accent-foreground: #1e1e2e;
+
+  /* Surfaces */
+  --surface-0: #181825;
+  --surface-1: #313244;
+  --surface-2: #45475a;
+
+  /* Sidebar / Tree */
+  --sidebar: #181825;
+  --sidebar-foreground: #cdd6f4;
+  --sidebar-primary: #89b4fa;
+  --sidebar-primary-foreground: #1e1e2e;
+  --sidebar-accent: #313244;
+  --sidebar-accent-foreground: #cdd6f4;
+  --sidebar-border: #313244;
+  --sidebar-ring: #89b4fa;
+
+  /* Diff Bridge */
+  --diffs-bg: #1e1e2e;
+  --diffs-fg: #cdd6f4;
+  --diffs-dark-bg: #1e1e2e;
+  --diffs-light-bg: #eff1f5;
+  --diffs-dark: #cdd6f4;
+  --diffs-light: #4c4f69;
+
+  /* Syntax */
+  --code-bg: #181825;
+
+  /* Terminal / ANSI */
+  --terminal-background: #181825;
+  --terminal-foreground: #cdd6f4;
+  --terminal-cursor: #89b4fa;
+  --terminal-cursor-accent: #181825;
+  --terminal-selection-background: #45475a;
+  --terminal-selection-foreground: #cdd6f4;
+  --terminal-selection-inactive-background: #313244;
+  --terminal-black: #45475a;
+  --terminal-red: #f38ba8;
+  --terminal-green: #a6e3a1;
+  --terminal-yellow: #f9e2af;
+  --terminal-blue: #89b4fa;
+  --terminal-magenta: #f5c2e7;
+  --terminal-cyan: #94e2d5;
+  --terminal-white: #bac2de;
+  --terminal-bright-black: #585b70;
+  --terminal-bright-red: #f38ba8;
+  --terminal-bright-green: #a6e3a1;
+  --terminal-bright-yellow: #f9e2af;
+  --terminal-bright-blue: #89b4fa;
+  --terminal-bright-magenta: #f5c2e7;
+  --terminal-bright-cyan: #94e2d5;
+  --terminal-bright-white: #a6adc8;
+
+  /* Focus */
   --ring: #89b4fa;
+  --focus-highlight: #94e2d5;
+
+  /* Selection */
+  --selection-background: #585b7066;
+  --selection-foreground: #cdd6f4;
+
+  /* Status & Annotation */
   --success: #a6e3a1;
   --success-foreground: #1e1e2e;
   --warning: #f9e2af;
   --warning-foreground: #1e1e2e;
+  --destructive: #f38ba8;
+  --destructive-foreground: #1e1e2e;
+  --annotation-comment: #f5c2e7;
 
-  --font-sans: system-ui, sans-serif;
-  --font-mono: 'Fira Code', ui-monospace, monospace;
+  --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', 'Geist Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
   --radius: 0.625rem;
-
-  --code-bg: #181825;
-  --focus-highlight: #94e2d5;
 }
 
 .theme-catppuccin.light {
+  /* Chrome & Tree */
   --background: #eff1f5;
   --foreground: #4c4f69;
   --card: #e6e9ef;
@@ -45,18 +105,80 @@
   --secondary-foreground: #4c4f69;
   --muted: #ccd0da;
   --muted-foreground: #6c6f85;
-  --accent: #ea76cb;
-  --accent-foreground: #eff1f5;
-  --destructive: #d20f39;
-  --destructive-foreground: #eff1f5;
   --border: #acb0be;
   --input: #ccd0da;
+  --accent: #ea76cb;
+  --accent-foreground: #eff1f5;
+
+  /* Surfaces */
+  --surface-0: #e6e9ef;
+  --surface-1: #ccd0da;
+  --surface-2: #bcc0cc;
+
+  /* Sidebar / Tree */
+  --sidebar: #e6e9ef;
+  --sidebar-foreground: #4c4f69;
+  --sidebar-primary: #1e66f5;
+  --sidebar-primary-foreground: #eff1f5;
+  --sidebar-accent: #ccd0da;
+  --sidebar-accent-foreground: #4c4f69;
+  --sidebar-border: #ccd0da;
+  --sidebar-ring: #1e66f5;
+
+  /* Diff Bridge */
+  --diffs-bg: #eff1f5;
+  --diffs-fg: #4c4f69;
+  --diffs-dark-bg: #1e1e2e;
+  --diffs-light-bg: #eff1f5;
+  --diffs-dark: #cdd6f4;
+  --diffs-light: #4c4f69;
+
+  /* Syntax */
+  --code-bg: #e6e9ef;
+
+  /* Terminal / ANSI */
+  --terminal-background: #e6e9ef;
+  --terminal-foreground: #4c4f69;
+  --terminal-cursor: #1e66f5;
+  --terminal-cursor-accent: #e6e9ef;
+  --terminal-selection-background: #ccd0da;
+  --terminal-selection-foreground: #4c4f69;
+  --terminal-selection-inactive-background: #bcc0cc;
+  --terminal-black: #5c5f77;
+  --terminal-red: #d20f39;
+  --terminal-green: #40a02b;
+  --terminal-yellow: #df8e1d;
+  --terminal-blue: #1e66f5;
+  --terminal-magenta: #ea76cb;
+  --terminal-cyan: #179299;
+  --terminal-white: #acb0be;
+  --terminal-bright-black: #6c6f85;
+  --terminal-bright-red: #d20f39;
+  --terminal-bright-green: #40a02b;
+  --terminal-bright-yellow: #df8e1d;
+  --terminal-bright-blue: #1e66f5;
+  --terminal-bright-magenta: #ea76cb;
+  --terminal-bright-cyan: #179299;
+  --terminal-bright-white: #bcc0cc;
+
+  /* Focus */
   --ring: #1e66f5;
+  --focus-highlight: #179299;
+
+  /* Selection */
+  --selection-background: #acb0be66;
+  --selection-foreground: #4c4f69;
+
+  /* Status & Annotation */
   --success: #40a02b;
   --success-foreground: #eff1f5;
   --warning: #df8e1d;
   --warning-foreground: #eff1f5;
+  --destructive: #d20f39;
+  --destructive-foreground: #eff1f5;
+  --annotation-comment: #ea76cb;
 
-  --code-bg: #e6e9ef;
-  --focus-highlight: #179299;
+  --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', 'Geist Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  --radius: 0.625rem;
 }

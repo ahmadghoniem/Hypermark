@@ -3,58 +3,13 @@
 @import "katex/dist/katex.min.css";
 
 /* Theme files — each defines .theme-{name} (dark) and .theme-{name}.light */
+@import "./themes/pierre.css";
 @import "./themes/plannotator.css";
-@import "./themes/claude-plus.css";
-@import "./themes/soft-pop.css";
-@import "./themes/adwaita.css";
-@import "./themes/caffeine.css";
-@import "./themes/synthwave-84.css";
 @import "./themes/catppuccin.css";
-@import "./themes/rose-pine.css";
-@import "./themes/monokai-pro.css";
-@import "./themes/doom-64.css";
-@import "./themes/dracula.css";
-@import "./themes/gruvbox.css";
-@import "./themes/kanagawa-dragon.css";
-@import "./themes/kanagawa-lotus.css";
-@import "./themes/kanagawa-wave.css";
-@import "./themes/paulmillr.css";
-@import "./themes/quantum-rose.css";
-@import "./themes/solar-dusk.css";
-@import "./themes/terminal.css";
-@import "./themes/tokyo-night.css";
-@import "./themes/tinacious.css";
-@import "./themes/cursor.css";
-@import "./themes/cursor-hc.css";
-@import "./themes/cursor-midnight.css";
-@import "./themes/colorblind.css";
-@import "./themes/everforest.css";
-@import "./themes/everforest-hard.css";
-@import "./themes/everforest-soft.css";
-@import "./themes/nord.css";
-@import "./themes/solarized.css";
 @import "./themes/github.css";
-@import "./themes/one-dark-pro.css";
-@import "./themes/night-owl.css";
 @import "./themes/ayu-dark.css";
-@import "./themes/poimandres.css";
-@import "./themes/material.css";
-@import "./themes/vitesse.css";
-@import "./themes/vesper.css";
-@import "./themes/andromeeda.css";
-@import "./themes/aurora-x.css";
-@import "./themes/dark-plus.css";
-@import "./themes/houston.css";
-@import "./themes/laserwave.css";
-@import "./themes/min.css";
-@import "./themes/one-light.css";
-@import "./themes/plastic.css";
-@import "./themes/red.css";
-@import "./themes/slack.css";
-@import "./themes/snazzy-light.css";
-@import "./themes/vitesse-black.css";
-@import "./themes/simple.css";
-@import "./themes/neutral.css";
+@import "./themes/one-dark-pro.css";
+@import "./themes/tokyo-night.css";
 
 /* Skill-reference composer input (CommentPopover). The textarea's own glyphs
  * are transparent — a mirrored aria-hidden overlay behind it paints the text,
@@ -646,13 +601,32 @@ html:not(.transitions-ready) * {
   transition-duration: 0s !important;
 }
 
-/* Smooth transitions for theme switching and hover states.
-   Only color properties — transform/opacity are handled per-component
-   to avoid interfering with scroll compositing. */
-* {
+/* Interactive color motion — hover and focus feedback only.
+   This was a universal `*` rule, which meant a palette or mode switch
+   cross-faded the ENTIRE tree over 150ms. Every element interpolated
+   independently, so mid-transition the app genuinely rendered a mix of the
+   old and new theme; spec 03 step 3 requires that a switch cannot expose
+   mixed chrome. Scoping it to elements that actually respond to pointer and
+   keyboard keeps the intentional motion and drops the theme-wide cross-fade:
+   non-interactive surfaces now repaint in the frame the theme class flips.
+   Only color properties — transform/opacity are handled per-component to
+   avoid interfering with scroll compositing. */
+:where(a, button, summary, label, input, select, textarea,
+       [role='button'], [role='tab'], [role='menuitem'], [role='menuitemcheckbox'],
+       [role='menuitemradio'], [role='option'], [role='switch'], [role='checkbox'],
+       [role='radio'], [role='link'], [tabindex]) {
   transition-property: color, background-color, border-color, box-shadow;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(a, button, summary, label, input, select, textarea,
+         [role='button'], [role='tab'], [role='menuitem'], [role='menuitemcheckbox'],
+         [role='menuitemradio'], [role='option'], [role='switch'], [role='checkbox'],
+         [role='radio'], [role='link'], [tabindex]) {
+    transition-duration: 0s;
+  }
 }
 
 /* Focus states */

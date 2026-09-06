@@ -62,15 +62,15 @@ describe("resolveAnnotateAgentTerminalTheme", () => {
       foreground: "rgb(87, 82, 121)",
       primary: "rgb(144, 122, 169)",
     };
-    const theme = resolveAnnotateAgentTerminalTheme("rose-pine", "light", lightPalette);
+    const theme = resolveAnnotateAgentTerminalTheme("tokyo-night", "light", lightPalette);
 
     expect(theme.background).toBe(lightPalette.background);
-    expect(theme.background).not.toBe("#191724");
+    expect(theme.background).not.toBe("#1a1b26");
     expect(theme.foreground).toBe(lightPalette.foreground);
     expect(theme.blue).toBe(lightPalette.primary);
   });
 
   test("keeps dark-only app themes in dark terminal mode", () => {
-    expect(resolveAnnotateAgentTerminalMode("dracula", "light")).toBe("dark");
+    expect(resolveAnnotateAgentTerminalMode("ayu-dark", "light")).toBe("dark");
   });
 });

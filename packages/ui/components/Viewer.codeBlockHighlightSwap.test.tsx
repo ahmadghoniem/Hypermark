@@ -50,7 +50,7 @@ const codeBlocks: Block[] = [
 const TOKEN_COLOR: Record<string, string> = {
   'github-dark': '#79c0ff',
   'github-light': '#0550ae',
-  'kanagawa-wave': '#7e9cd8',
+  'one-dark-pro': '#61afef',
 };
 
 /**
@@ -233,7 +233,7 @@ describe('code-block annotations across highlight swaps', () => {
 
     // Switch the palette. This is the reported repro.
     await act(async () => {
-      controls.setColorTheme('kanagawa-wave');
+      controls.setColorTheme('one-dark-pro');
     });
     await flush();
 
@@ -245,7 +245,7 @@ describe('code-block annotations across highlight swaps', () => {
     expect(after.textContent).toBe(CODE);
     // ...and the tokens moved to the new theme.
     const styles = tokenColors().join(' ');
-    expect(styles).toContain(TOKEN_COLOR['kanagawa-wave']);
+    expect(styles).toContain(TOKEN_COLOR['one-dark-pro']);
     expect(styles).not.toContain(TOKEN_COLOR['github-dark']);
   });
 
@@ -274,12 +274,12 @@ describe('code-block annotations across highlight swaps', () => {
     expect(codeEl().querySelector(`[data-bind-id="${annotationId}"]`)).not.toBeNull();
 
     await act(async () => {
-      controls.setColorTheme('kanagawa-wave');
+      controls.setColorTheme('one-dark-pro');
     });
     await flush();
 
     expect(codeEl().querySelector(`[data-bind-id="${annotationId}"]`)).not.toBeNull();
-    expect(tokenColors().join(' ')).toContain(TOKEN_COLOR['kanagawa-wave']);
+    expect(tokenColors().join(' ')).toContain(TOKEN_COLOR['one-dark-pro']);
   });
 
   test.skipIf(!hasDom)(
@@ -360,11 +360,11 @@ describe('code-block annotations across highlight swaps', () => {
     // And a later palette change — after the tombstone has been retired —
     // still honours the removal.
     await act(async () => {
-      controls.setColorTheme('kanagawa-wave');
+      controls.setColorTheme('one-dark-pro');
     });
     await flush();
     expect(codeEl().querySelector(`[data-bind-id="${newer.id}"]`)).toBeNull();
     expect(codeEl().querySelector(`[data-bind-id="${older.id}"]`)).not.toBeNull();
-    expect(tokenColors().join(' ')).toContain(TOKEN_COLOR['kanagawa-wave']);
+    expect(tokenColors().join(' ')).toContain(TOKEN_COLOR['one-dark-pro']);
   });
 });

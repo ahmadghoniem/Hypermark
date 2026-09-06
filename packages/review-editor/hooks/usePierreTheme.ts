@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import type { DiffLineBgIntensity } from '@plannotator/shared/config';
 import { useTheme } from '@plannotator/ui/components/ThemeProvider';
 import { useConfigValue } from '@plannotator/ui/config';
@@ -198,6 +198,34 @@ const COMPACT_TOUCH_GUTTER_UTILITY_CSS = `
   }
 `;
 
+/**
+ * The theme bridge into Pierre's shadow root.
+ *
+ * Custom properties inherit THROUGH the shadow boundary, so this emits one
+ * static stylesheet that references `var(--background)`, `var(--foreground)`
+ * and friends directly. Switching palette or mode changes what those
+ * variables resolve to on `<html>`; the stylesheet itself never changes, so
+ * the whole surface repaints in the same frame the class flips.
+ *
+ * It used to work the other way round: read the resolved colors off
+ * `getComputedStyle(document.documentElement)`, wait a `requestAnimationFrame`,
+ * then serialize the hex values into CSS text held in React state. That
+ * mirror had three problems this replacement removes outright.
+ *   1. First paint ran a REDUCED stylesheet (colors only, no separators, no
+ *      split sizing, no font overrides) and swapped to the full one a frame
+ *      later, so the diff visibly restyled itself on every mount.
+ *   2. Two rapid mode changes raced. Each scheduled its own rAF against the
+ *      colors that were live when it ran, so a stale callback could resolve
+ *      last and win, leaving Pierre's shadow root on the previous palette
+ *      while the app chrome was already on the new one.
+ *   3. A palette that resolved to an empty `--background` bailed out and left
+ *      the previous theme's colors in place with no way to recover.
+ *
+ * Non-color values still have to be interpolated (they are layout inputs, not
+ * inherited paint), which is why fonts and the compact-touch block are still
+ * built as text. Everything structural — split grid sizing, separator
+ * geometry, editing and selection affordances — is unchanged.
+ */
 export function usePierreTheme(options?: {
   fontFamily?: string;
   fontSize?: string;
@@ -212,57 +240,29 @@ export function usePierreTheme(options?: {
   const compactTouchCSS = compactTouchLayout ? COMPACT_TOUCH_GUTTER_UTILITY_CSS : '';
   const lineBgIntensity = useConfigValue('diffLineBgIntensity');
 
-  const [pierreTheme, setPierreTheme] = useState<PierreTheme>(() => {
-    const styles = getComputedStyle(document.documentElement);
-    const bg = styles.getPropertyValue('--background').trim();
-    const fg = styles.getPropertyValue('--foreground').trim();
-    if (!bg || !fg) return { type: resolvedMode ?? 'dark', css: '', syntaxTheme: resolveSyntaxTheme(colorTheme, resolvedMode ?? 'dark') };
-    return { type: resolvedMode ?? 'dark', syntaxTheme: resolveSyntaxTheme(colorTheme, resolvedMode ?? 'dark'), css: `
-      :host, [data-diff], [data-file], [data-diffs-header], [data-error-wrapper], [data-virtualizer-buffer] {
-        --diffs-bg: ${bg} !important; --diffs-fg: ${fg} !important;
-        --diffs-dark-bg: ${bg}; --diffs-light-bg: ${bg}; --diffs-dark: ${fg}; --diffs-light: ${fg};
-      }
-      pre, code { background-color: ${bg} !important; }
-      :host { --diffs-bg-separator-override: color-mix(in srgb, ${fg} 8%, ${bg}); }
-      [data-separator='line-info'], [data-separator='line-info-basic'] { height: 24px !important; }
-      [data-separator='line-info'] { margin-block: 4px !important; }
-      ${buildLineBgOverrides(lineBgIntensity, resolvedMode ?? 'dark')}
-      ${compactTouchCSS}
-    `};
-  });
-
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      const styles = getComputedStyle(document.documentElement);
-      const bg = styles.getPropertyValue('--background').trim();
-      const fg = styles.getPropertyValue('--foreground').trim();
-      const muted = styles.getPropertyValue('--muted').trim();
-      const mutedFg = styles.getPropertyValue('--muted-foreground').trim();
-      const border = styles.getPropertyValue('--border').trim();
-      const primary = styles.getPropertyValue('--primary').trim();
-      if (!bg || !fg) return;
-
-      const fontCSS = fontFamily || fontSize ? `
+  return useMemo<PierreTheme>(() => {
+    const mode = resolvedMode ?? 'dark';
+    const fontCSS = fontFamily || fontSize ? `
           pre, code, [data-line-content], [data-column-number] {
             ${fontFamily ? `font-family: '${fontFamily}', monospace !important;` : ''}
             ${fontSize ? `font-size: ${fontSize} !important; line-height: 1.5 !important;` : ''}
           }` : '';
 
-      setPierreTheme({
-        type: resolvedMode,
-        syntaxTheme: resolveSyntaxTheme(colorTheme, resolvedMode),
-        css: `
+    return {
+      type: mode,
+      syntaxTheme: resolveSyntaxTheme(colorTheme, mode),
+      css: `
           :host, [data-diff], [data-file], [data-diffs-header], [data-error-wrapper], [data-virtualizer-buffer] {
-            --diffs-bg: ${bg} !important;
-            --diffs-fg: ${fg} !important;
-            --diffs-dark-bg: ${bg};
-            --diffs-light-bg: ${bg};
-            --diffs-dark: ${fg};
-            --diffs-light: ${fg};
+            --diffs-bg: var(--background) !important;
+            --diffs-fg: var(--foreground) !important;
+            --diffs-dark-bg: var(--background);
+            --diffs-light-bg: var(--background);
+            --diffs-dark: var(--foreground);
+            --diffs-light: var(--foreground);
           }
-          pre, code { background-color: ${bg} !important; }
-          [data-file-info] { background-color: ${muted} !important; }
-          [data-column-number] { background-color: ${bg} !important; }
+          pre, code { background-color: var(--background) !important; }
+          [data-file-info] { background-color: var(--muted) !important; }
+          [data-column-number] { background-color: var(--background) !important; }
           ${showFileHeader ? '' : '[data-diffs-header] [data-title] { display: none !important; }'}
           [data-diff-type='split'][data-overflow='scroll'] {
             grid-template-columns:
@@ -275,7 +275,7 @@ export function usePierreTheme(options?: {
           [data-diff-type='split'][data-overflow='scroll'] > [data-code][data-additions] [data-content] {
             min-width: 0 !important;
           }
-          .pn-token-hover {${tokenHoverUnderlineCss(primary || 'oklch(0.70 0.20 280)')}
+          .pn-token-hover {${tokenHoverUnderlineCss('var(--primary, oklch(0.70 0.20 280))')}
           }
           .pn-token-nav {
             text-decoration-thickness: 2px;
@@ -288,7 +288,7 @@ export function usePierreTheme(options?: {
 
           /* Separator bars — slimmer, semi-transparent, integrated with theme */
           :host {
-            --diffs-bg-separator-override: color-mix(in srgb, ${border || fg} 25%, ${bg});
+            --diffs-bg-separator-override: color-mix(in srgb, var(--border, var(--foreground)) 25%, var(--background));
           }
           [data-separator='line-info'],
           [data-separator='line-info-basic'] {
@@ -299,7 +299,7 @@ export function usePierreTheme(options?: {
           }
           [data-separator-content] {
             font-size: 11px !important;
-            color: ${mutedFg || fg} !important;
+            color: var(--muted-foreground, var(--foreground)) !important;
             opacity: 0.7;
           }
           [data-separator-content]:hover {
@@ -307,11 +307,11 @@ export function usePierreTheme(options?: {
           }
           [data-expand-button] {
             min-width: 24px !important;
-            color: ${mutedFg || fg} !important;
+            color: var(--muted-foreground, var(--foreground)) !important;
             opacity: 0.5;
           }
           [data-expand-button]:hover {
-            color: ${fg} !important;
+            color: var(--foreground) !important;
             opacity: 1;
           }
           [data-expand-index] [data-separator-wrapper] {
@@ -331,13 +331,10 @@ export function usePierreTheme(options?: {
 
           ${fontCSS}
 
-          ${buildLineBgOverrides(lineBgIntensity, resolvedMode)}
+          ${buildLineBgOverrides(lineBgIntensity, mode)}
 
           ${compactTouchCSS}
         `,
-      });
-    });
+    };
   }, [resolvedMode, colorTheme, fontFamily, fontSize, showFileHeader, lineBgIntensity, compactTouchCSS]);
-
-  return pierreTheme;
 }

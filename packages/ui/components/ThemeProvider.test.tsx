@@ -8,6 +8,8 @@ import {
   DEFAULT_COLOR_THEME,
   normalizeThemePair,
   resetDefaultThemePair,
+  resolveModeDescriptor,
+  resolvePairTheme,
   seedThemePair,
   themesForHalf,
   themeSupportsHalf,
@@ -182,28 +184,37 @@ describe('theme mode catalog', () => {
 });
 
 describe('theme registry', () => {
-  test('keeps ids unique and registers the colorblind palette for both modes', () => {
+  test('keeps ids unique and registers the catppuccin palette for both modes', () => {
     const ids = BUILT_IN_THEMES.map(({ id }) => id);
     expect(new Set(ids).size).toBe(ids.length);
 
-    const theme = BUILT_IN_THEMES.find(candidate => candidate.id === 'colorblind');
-    if (!theme) throw new Error('colorblind palette is not registered');
+    const theme = BUILT_IN_THEMES.find(candidate => candidate.id === 'catppuccin');
+    if (!theme) throw new Error('catppuccin palette is not registered');
     expect(theme.modeSupport).toBe('both');
     expect(theme.syntaxHighlighting).toBe(true);
-    expect(theme.colors.dark.background).not.toBe(theme.colors.light.background);
+    expect(theme.colors.dark?.background).not.toBe(theme.colors.light?.background);
   });
 
   test('offers each palette only for the half it can render', () => {
     const light = themesForHalf(BUILT_IN_THEMES, 'light').map(({ id }) => id);
     const dark = themesForHalf(BUILT_IN_THEMES, 'dark').map(({ id }) => id);
 
-    expect(light).toContain('kanagawa-lotus');
-    expect(light).not.toContain('kanagawa-wave');
-    expect(dark).toContain('kanagawa-wave');
-    expect(dark).not.toContain('kanagawa-lotus');
+    // The retained set offers no light-only palette.
+    expect(BUILT_IN_THEMES.some(theme => theme.modeSupport === 'light-only')).toBe(false);
 
-    // A `both` palette — the colorblind theme included — belongs to each half.
-    for (const id of ['rose-pine', 'colorblind']) {
+    // Dark-only palettes are offered only for the dark half while their light half resolves to Pierre Light.
+    const darkOnly = ['ayu-dark', 'one-dark-pro', 'tokyo-night'] as const;
+    for (const id of darkOnly) {
+      expect(dark).toContain(id);
+      expect(light).not.toContain(id);
+      expect(themeSupportsHalf(id, 'dark')).toBe(true);
+      expect(themeSupportsHalf(id, 'light')).toBe(false);
+      expect(resolveModeDescriptor(id, 'light').paletteId).toBe('pierre');
+      expect(resolvePairTheme({ mode: 'light', light: id, dark: id }, 'light')).toBe(DEFAULT_COLOR_THEME);
+    }
+
+    // A `both` palette belongs to each half.
+    for (const id of ['catppuccin', 'github']) {
       expect(light).toContain(id);
       expect(dark).toContain(id);
       expect(themeSupportsHalf(id, 'light')).toBe(true);
@@ -213,25 +224,31 @@ describe('theme registry', () => {
 
   test('seeds both halves from the single palette older releases stored', () => {
     // A palette that renders both modes takes over the whole pair.
-    expect(seedThemePair('rose-pine', 'system')).toEqual({
+    expect(seedThemePair('catppuccin', 'system')).toEqual({
       mode: 'system',
-      light: 'rose-pine',
-      dark: 'rose-pine',
+      light: 'catppuccin',
+      dark: 'catppuccin',
     });
 
     // A mode-restricted one keeps its half; the other half falls back.
-    expect(seedThemePair('kanagawa-wave', 'dark')).toEqual({
+    expect(seedThemePair('tokyo-night', 'dark')).toEqual({
       mode: 'dark',
       light: DEFAULT_COLOR_THEME,
-      dark: 'kanagawa-wave',
+      dark: 'tokyo-night',
     });
-    expect(seedThemePair('kanagawa-lotus', 'light')).toEqual({
+    // A dark-only palette seeded for light mode recovers its unsupported half to Pierre Light.
+    expect(seedThemePair('tokyo-night', 'light')).toEqual({
       mode: 'light',
-      light: 'kanagawa-lotus',
-      dark: DEFAULT_COLOR_THEME,
+      light: DEFAULT_COLOR_THEME,
+      dark: 'tokyo-night',
     });
 
     // Nothing stored, or a palette this build does not ship.
+    expect(seedThemePair('kanagawa-lotus', 'light')).toEqual({
+      mode: 'light',
+      light: DEFAULT_COLOR_THEME,
+      dark: DEFAULT_COLOR_THEME,
+    });
     expect(seedThemePair(null, 'system')).toEqual({
       mode: 'system',
       light: DEFAULT_COLOR_THEME,
@@ -245,19 +262,19 @@ describe('theme registry', () => {
   });
 
   test('repairs a pair whose halves hold unusable palettes', () => {
-    const fallback = { mode: 'system', light: 'rose-pine', dark: 'kanagawa-wave' } as const;
+    const fallback = { mode: 'system', light: 'github', dark: 'tokyo-night' } as const;
 
-    expect(normalizeThemePair({ mode: 'light', light: 'tinacious', dark: 'vesper' }, fallback)).toEqual({
+    expect(normalizeThemePair({ mode: 'light', light: 'catppuccin', dark: 'one-dark-pro' }, fallback)).toEqual({
       mode: 'light',
-      light: 'tinacious',
-      dark: 'vesper',
+      light: 'catppuccin',
+      dark: 'one-dark-pro',
     });
 
-    // A dark-only palette can never occupy the light half, and vice versa.
-    expect(normalizeThemePair({ mode: 'sepia', light: 'vesper', dark: 'tinacious' }, fallback)).toEqual({
+    // A dark-only palette can never occupy the light half, and an unknown palette recovers to fallback.
+    expect(normalizeThemePair({ mode: 'sepia', light: 'one-dark-pro', dark: 'tinacious' }, fallback)).toEqual({
       mode: 'system',
-      light: 'rose-pine',
-      dark: 'kanagawa-wave',
+      light: 'github',
+      dark: 'tokyo-night',
     });
 
     expect(normalizeThemePair(undefined)).toEqual({
@@ -330,36 +347,36 @@ describe('ThemeProvider', () => {
 
   test.skipIf(!hasDom)('flips between the two halves of the pair when the OS scheme changes', async () => {
     stored.set('plannotator-theme', 'system');
-    stored.set('plannotator-light-theme', 'kanagawa-lotus');
-    stored.set('plannotator-dark-theme', 'kanagawa-wave');
+    stored.set('plannotator-light-theme', 'github');
+    stored.set('plannotator-dark-theme', 'tokyo-night');
     const media = installMatchMedia(true);
 
     await mountTheme();
-    expect(themeState().lightTheme).toBe('kanagawa-lotus');
-    expect(themeState().darkTheme).toBe('kanagawa-wave');
-    expect(themeState().colorTheme).toBe('kanagawa-lotus');
+    expect(themeState().lightTheme).toBe('github');
+    expect(themeState().darkTheme).toBe('tokyo-night');
+    expect(themeState().colorTheme).toBe('github');
     expect(themeState().resolvedMode).toBe('light');
-    expect(document.documentElement.classList.contains('theme-kanagawa-lotus')).toBe(true);
+    expect(document.documentElement.classList.contains('theme-github')).toBe(true);
     expect(document.documentElement.classList.contains('light')).toBe(true);
 
     await act(async () => media.setMatches(false));
-    expect(themeState().colorTheme).toBe('kanagawa-wave');
+    expect(themeState().colorTheme).toBe('tokyo-night');
     expect(themeState().resolvedMode).toBe('dark');
-    expect(document.documentElement.classList.contains('theme-kanagawa-wave')).toBe(true);
+    expect(document.documentElement.classList.contains('theme-tokyo-night')).toBe(true);
     expect(document.documentElement.classList.contains('light')).toBe(false);
 
     // Older releases read the single-palette key, so it keeps tracking the
     // palette actually on screen — a downgrade never lands unstyled.
-    expect(stored.get('plannotator-color-theme')).toBe('kanagawa-wave');
+    expect(stored.get('plannotator-color-theme')).toBe('tokyo-night');
   });
 
   test.skipIf(!hasDom)('migrates a stored dark-only palette into the dark half only', async () => {
     stored.set('plannotator-theme', 'system');
-    stored.set('plannotator-color-theme', 'kanagawa-wave');
+    stored.set('plannotator-color-theme', 'tokyo-night');
     installMatchMedia(true);
 
     await mountTheme();
-    expect(themeState().darkTheme).toBe('kanagawa-wave');
+    expect(themeState().darkTheme).toBe('tokyo-night');
     expect(themeState().lightTheme).toBe(DEFAULT_COLOR_THEME);
     // The OS is light, so the migrated pair renders its light half — the mode
     // is no longer coerced to keep a dark-only palette on screen.
@@ -371,18 +388,18 @@ describe('ThemeProvider', () => {
     // The migrated pair is persisted on arrival — the legacy key it was
     // derived from is immediately overwritten with the active palette.
     expect(stored.get('plannotator-light-theme')).toBe(DEFAULT_COLOR_THEME);
-    expect(stored.get('plannotator-dark-theme')).toBe('kanagawa-wave');
+    expect(stored.get('plannotator-dark-theme')).toBe('tokyo-night');
     expect(stored.get('plannotator-color-theme')).toBe(DEFAULT_COLOR_THEME);
   });
 
   test.skipIf(!hasDom)('keeps every mode selectable while a dark-only palette owns the dark half', async () => {
     stored.set('plannotator-theme', 'dark');
-    stored.set('plannotator-light-theme', 'rose-pine');
-    stored.set('plannotator-dark-theme', 'dracula');
+    stored.set('plannotator-light-theme', 'catppuccin');
+    stored.set('plannotator-dark-theme', 'ayu-dark');
     installMatchMedia(false);
 
     await mountTheme(<ThemeTab />);
-    expect(themeState().colorTheme).toBe('dracula');
+    expect(themeState().colorTheme).toBe('ayu-dark');
 
     const modeButtons = Array.from(host!.querySelectorAll('button')).filter(button =>
       ['Light', 'Dark', 'System'].includes(button.textContent?.trim() ?? '')
@@ -392,23 +409,23 @@ describe('ThemeProvider', () => {
 
     await act(async () => themeState().setMode('light'));
     expect(themeState().mode).toBe('light');
-    expect(themeState().colorTheme).toBe('rose-pine');
+    expect(themeState().colorTheme).toBe('catppuccin');
     expect(themeState().resolvedMode).toBe('light');
     expect(stored.get('plannotator-theme')).toBe('light');
-    expect(stored.get('plannotator-dark-theme')).toBe('dracula');
+    expect(stored.get('plannotator-dark-theme')).toBe('ayu-dark');
   });
 
   test.skipIf(!hasDom)('repairs invalid persisted values before exposing state', async () => {
     stored.set('plannotator-theme', 'sepia');
-    stored.set('plannotator-light-theme', 'dracula');
+    stored.set('plannotator-light-theme', 'ayu-dark');
     stored.set('plannotator-dark-theme', 'gone-in-this-build');
-    stored.set('plannotator-color-theme', 'andromeeda');
+    stored.set('plannotator-color-theme', 'one-dark-pro');
     installMatchMedia(true);
 
     await mountTheme();
     expect(themeState().mode).toBe('dark');
     expect(themeState().lightTheme).toBe(DEFAULT_COLOR_THEME);
-    expect(themeState().darkTheme).toBe('andromeeda');
+    expect(themeState().darkTheme).toBe('one-dark-pro');
     expect(themeState().resolvedMode).toBe('dark');
     expect(stored.get('plannotator-theme')).toBe('dark');
   });
@@ -422,38 +439,39 @@ describe('ThemeProvider', () => {
     await mountTheme(<ThemeTab />);
 
     // The grid opens on the half the user is actually looking at.
-    expect(paletteNames()).toContain('Kanagawa Lotus');
-    expect(paletteNames()).not.toContain('Kanagawa Wave');
+    expect(paletteNames()).toContain('GitHub');
+    expect(paletteNames()).not.toContain('Tokyo Night');
 
-    await act(async () => clickButton(palette('Tinacious')));
-    expect(themeState().lightTheme).toBe('tinacious');
-    expect(themeState().colorTheme).toBe('tinacious');
+    await act(async () => clickButton(palette('GitHub')));
+    expect(themeState().lightTheme).toBe('github');
+    expect(themeState().colorTheme).toBe('github');
 
-    const swatches = palette('Tinacious').querySelectorAll<HTMLElement>('.rounded-full');
-    const tinacious = BUILT_IN_THEMES.find(theme => theme.id === 'tinacious');
-    if (!tinacious) throw new Error('Tinacious palette is not registered');
-    expect(swatches[3]?.style.backgroundColor).toBe(tinacious.colors.light.background);
+    const swatches = palette('GitHub').querySelectorAll<HTMLElement>('.rounded-full');
+    const github = BUILT_IN_THEMES.find(theme => theme.id === 'github');
+    if (!github) throw new Error('GitHub palette is not registered');
+    expect(swatches[3]?.style.backgroundColor).toBe(github.colors.light!.background);
 
     // Assigning the other half leaves the visible palette alone.
     await act(async () => clickButton(button('Dark theme')));
-    expect(paletteNames()).toContain('Kanagawa Wave');
-    expect(paletteNames()).not.toContain('Kanagawa Lotus');
+    expect(paletteNames()).toContain('Tokyo Night');
+    expect(paletteNames()).toContain('GitHub');
 
-    await act(async () => clickButton(palette('Dracula')));
-    expect(themeState().darkTheme).toBe('dracula');
+    await act(async () => clickButton(palette('Tokyo Night')));
+    expect(themeState().darkTheme).toBe('tokyo-night');
     expect(themeState().mode).toBe('light');
-    expect(themeState().colorTheme).toBe('tinacious');
+    expect(themeState().colorTheme).toBe('github');
 
     // The summary names both halves and jumps the grid back to the light one.
-    expect(host!.textContent).toContain('Tinacious');
-    expect(host!.textContent).toContain('Dracula');
+    expect(host!.textContent).toContain('GitHub');
+    expect(host!.textContent).toContain('Tokyo Night');
     await act(async () => clickButton(summaryButton('Light:')));
-    expect(paletteNames()).toContain('Kanagawa Lotus');
+    expect(paletteNames()).toContain('GitHub');
+    expect(paletteNames()).not.toContain('Tokyo Night');
   });
 
   test.skipIf(!hasDom)('honors a host\'s own storage keys when migrating to a pair', async () => {
     stored.set('host-mode', 'system');
-    stored.set('host-palette', 'kanagawa-wave');
+    stored.set('host-palette', 'tokyo-night');
     installMatchMedia(false);
 
     host = document.createElement('div');
@@ -469,11 +487,11 @@ describe('ThemeProvider', () => {
 
     // The host's stored preference is migrated, not discarded.
     expect(themeState().mode).toBe('system');
-    expect(themeState().darkTheme).toBe('kanagawa-wave');
-    expect(themeState().colorTheme).toBe('kanagawa-wave');
+    expect(themeState().darkTheme).toBe('tokyo-night');
+    expect(themeState().colorTheme).toBe('tokyo-night');
     // And the mirror keeps writing the host's keys, not Plannotator's.
     expect(stored.get('host-mode')).toBe('system');
-    expect(stored.get('host-palette')).toBe('kanagawa-wave');
+    expect(stored.get('host-palette')).toBe('tokyo-night');
   });
 });
 
@@ -538,12 +556,12 @@ describe('ThemeProvider server write-back', () => {
     installMatchMedia(false);
 
     await mountThemeFresh();
-    await act(async () => themeState().setHalfTheme('dark', 'vesper'));
+    await act(async () => themeState().setHalfTheme('dark', 'tokyo-night'));
     await afterServerSyncDebounce();
 
     expect(posts.length).toBe(1);
     expect(JSON.parse(posts[0]!)).toEqual({
-      theme: { mode: 'dark', light: DEFAULT_COLOR_THEME, dark: 'vesper' },
+      theme: { mode: 'dark', light: DEFAULT_COLOR_THEME, dark: 'tokyo-night' },
     });
   });
 
@@ -554,12 +572,12 @@ describe('ThemeProvider server write-back', () => {
     installMatchMedia(false);
 
     await mountThemeFresh();
-    await act(async () => themeState().setColorTheme('vesper'));
+    await act(async () => themeState().setColorTheme('tokyo-night'));
     await afterServerSyncDebounce();
 
     expect(posts).toEqual([]);
-    expect(themeState().darkTheme).toBe('vesper');
-    expect(stored.get('plannotator-dark-theme')).toBe('vesper');
+    expect(themeState().darkTheme).toBe('tokyo-night');
+    expect(stored.get('plannotator-dark-theme')).toBe('tokyo-night');
   });
 });
 
@@ -597,51 +615,51 @@ describe('ThemeProvider legacy setColorTheme', () => {
 
   test.skipIf(!hasDom)('assigns a both-mode palette to the half on screen only', async () => {
     stored.set('plannotator-theme', 'dark');
-    stored.set('plannotator-light-theme', 'one-light');
-    stored.set('plannotator-dark-theme', 'vesper');
+    stored.set('plannotator-light-theme', 'github');
+    stored.set('plannotator-dark-theme', 'tokyo-night');
     installMatchMedia(false);
 
     await mountTheme();
-    await act(async () => themeState().setColorTheme('gruvbox'));
+    await act(async () => themeState().setColorTheme('catppuccin'));
 
-    expect(themeState().darkTheme).toBe('gruvbox');
+    expect(themeState().darkTheme).toBe('catppuccin');
     // The other half keeps the user's assignment.
-    expect(themeState().lightTheme).toBe('one-light');
+    expect(themeState().lightTheme).toBe('github');
     expect(themeState().mode).toBe('dark');
   });
 
   test.skipIf(!hasDom)('assigns a mode-restricted palette without moving the mode', async () => {
     stored.set('plannotator-theme', 'system');
-    stored.set('plannotator-light-theme', 'one-light');
-    stored.set('plannotator-dark-theme', 'nord');
+    stored.set('plannotator-light-theme', 'github');
+    stored.set('plannotator-dark-theme', 'ayu-dark');
     const media = installMatchMedia(true);
 
     await mountTheme();
-    expect(themeState().colorTheme).toBe('one-light');
+    expect(themeState().colorTheme).toBe('github');
 
-    await act(async () => themeState().setColorTheme('vesper'));
-    expect(themeState().darkTheme).toBe('vesper');
-    expect(themeState().lightTheme).toBe('one-light');
+    await act(async () => themeState().setColorTheme('tokyo-night'));
+    expect(themeState().darkTheme).toBe('tokyo-night');
+    expect(themeState().lightTheme).toBe('github');
     // Still System: a dark-only palette does not yank the user out of it.
     expect(themeState().mode).toBe('system');
-    expect(themeState().colorTheme).toBe('one-light');
+    expect(themeState().colorTheme).toBe('github');
 
     // And it is what renders as soon as the OS goes dark.
     await act(async () => media.setMatches(false));
-    expect(themeState().colorTheme).toBe('vesper');
+    expect(themeState().colorTheme).toBe('tokyo-night');
   });
 
-  test.skipIf(!hasDom)('assigns a light-only palette to the light half from dark mode', async () => {
-    stored.set('plannotator-theme', 'dark');
-    stored.set('plannotator-light-theme', 'one-light');
-    stored.set('plannotator-dark-theme', 'nord');
-    installMatchMedia(false);
+  test.skipIf(!hasDom)('assigns a dark-only palette to the dark half from light mode', async () => {
+    stored.set('plannotator-theme', 'light');
+    stored.set('plannotator-light-theme', 'github');
+    stored.set('plannotator-dark-theme', 'tokyo-night');
+    installMatchMedia(true);
 
     await mountTheme();
-    await act(async () => themeState().setColorTheme('kanagawa-lotus'));
+    await act(async () => themeState().setColorTheme('ayu-dark'));
 
-    expect(themeState().lightTheme).toBe('kanagawa-lotus');
-    expect(themeState().darkTheme).toBe('nord');
-    expect(themeState().mode).toBe('dark');
+    expect(themeState().darkTheme).toBe('ayu-dark');
+    expect(themeState().lightTheme).toBe('github');
+    expect(themeState().mode).toBe('light');
   });
 });

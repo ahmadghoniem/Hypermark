@@ -6,6 +6,7 @@ import { faviconDataUrl } from '@plannotator/core/favicon';
 import { storage } from '../utils/storage';
 import {
   BUILT_IN_THEMES,
+  DEFAULT_COLOR_THEME,
   getUnsupportedMode,
   resolvePairTheme,
   resolveThemeMode,
@@ -119,7 +120,10 @@ interface ThemeProviderProps {
 export function ThemeProvider({
   children,
   defaultTheme = 'dark',
-  defaultColorTheme = 'plannotator',
+  // Pierre is the default and recovery palette (spec 03). A host can still
+  // override this, but a cookie-less visit must land on the same palette an
+  // unusable saved value recovers to, or first paint and recovery disagree.
+  defaultColorTheme = DEFAULT_COLOR_THEME,
   storageKey = 'plannotator-theme',
   colorThemeStorageKey = 'plannotator-color-theme',
   manageFavicon = false,

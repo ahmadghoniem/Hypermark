@@ -34,52 +34,52 @@ describe('theme pair setting', () => {
   test('round-trips both halves through cookies', () => {
     const values = installStorage();
 
-    SETTINGS.themePair.toCookie({ mode: 'system', light: 'kanagawa-lotus', dark: 'kanagawa-wave' });
+    SETTINGS.themePair.toCookie({ mode: 'system', light: 'github', dark: 'tokyo-night' });
     expect(values.get('plannotator-theme')).toBe('system');
-    expect(values.get('plannotator-light-theme')).toBe('kanagawa-lotus');
-    expect(values.get('plannotator-dark-theme')).toBe('kanagawa-wave');
+    expect(values.get('plannotator-light-theme')).toBe('github');
+    expect(values.get('plannotator-dark-theme')).toBe('tokyo-night');
 
     expect(SETTINGS.themePair.fromCookie()).toEqual({
       mode: 'system',
-      light: 'kanagawa-lotus',
-      dark: 'kanagawa-wave',
+      light: 'github',
+      dark: 'tokyo-night',
     });
   });
 
   test('seeds both halves from the single palette an older release stored', () => {
-    installStorage({ 'plannotator-theme': 'system', 'plannotator-color-theme': 'kanagawa-wave' });
+    installStorage({ 'plannotator-theme': 'system', 'plannotator-color-theme': 'tokyo-night' });
 
     expect(SETTINGS.themePair.fromCookie()).toEqual({
       mode: 'system',
       light: DEFAULT_COLOR_THEME,
-      dark: 'kanagawa-wave',
+      dark: 'tokyo-night',
     });
 
     // A palette that renders both modes migrates into the whole pair.
-    installStorage({ 'plannotator-theme': 'light', 'plannotator-color-theme': 'rose-pine' });
+    installStorage({ 'plannotator-theme': 'light', 'plannotator-color-theme': 'catppuccin' });
     expect(SETTINGS.themePair.fromCookie()).toEqual({
       mode: 'light',
-      light: 'rose-pine',
-      dark: 'rose-pine',
+      light: 'catppuccin',
+      dark: 'catppuccin',
     });
 
     // One half already assigned: the other still comes from the legacy key.
     installStorage({
       'plannotator-theme': 'system',
-      'plannotator-color-theme': 'rose-pine',
-      'plannotator-dark-theme': 'vesper',
+      'plannotator-color-theme': 'catppuccin',
+      'plannotator-dark-theme': 'one-dark-pro',
     });
     expect(SETTINGS.themePair.fromCookie()).toEqual({
       mode: 'system',
-      light: 'rose-pine',
-      dark: 'vesper',
+      light: 'catppuccin',
+      dark: 'one-dark-pro',
     });
   });
 
   test('drops a half whose palette cannot render it', () => {
     installStorage({
       'plannotator-theme': 'system',
-      'plannotator-light-theme': 'vesper',
+      'plannotator-light-theme': 'one-dark-pro',
       'plannotator-dark-theme': 'kanagawa-lotus',
     });
 
@@ -93,18 +93,18 @@ describe('theme pair setting', () => {
   test('round-trips through the ~/.plannotator/config.json theme key', () => {
     installStorage();
 
-    expect(SETTINGS.themePair.toServer({ mode: 'system', light: 'rose-pine', dark: 'vesper' })).toEqual({
-      theme: { mode: 'system', light: 'rose-pine', dark: 'vesper' },
+    expect(SETTINGS.themePair.toServer({ mode: 'system', light: 'github', dark: 'tokyo-night' })).toEqual({
+      theme: { mode: 'system', light: 'github', dark: 'tokyo-night' },
     });
 
-    expect(SETTINGS.themePair.fromServer({ theme: { mode: 'system', light: 'rose-pine', dark: 'vesper' } })).toEqual({
+    expect(SETTINGS.themePair.fromServer({ theme: { mode: 'system', light: 'github', dark: 'tokyo-night' } })).toEqual({
       mode: 'system',
-      light: 'rose-pine',
-      dark: 'vesper',
+      light: 'github',
+      dark: 'tokyo-night',
     });
 
     // A hand-edited config.json is repaired, not trusted.
-    expect(SETTINGS.themePair.fromServer({ theme: { mode: 'sepia', light: 'vesper' } })).toEqual({
+    expect(SETTINGS.themePair.fromServer({ theme: { mode: 'sepia', light: 'tokyo-night' } })).toEqual({
       mode: 'dark',
       light: DEFAULT_COLOR_THEME,
       dark: DEFAULT_COLOR_THEME,
@@ -124,11 +124,11 @@ describe('config store seeding', () => {
     const synced: Record<string, unknown>[] = [];
     store.setServerSync(payload => { synced.push(payload); });
 
-    store.seed('themePair', { mode: 'system', light: 'rose-pine', dark: 'vesper' });
+    store.seed('themePair', { mode: 'system', light: 'github', dark: 'tokyo-night' });
     await new Promise<void>(resolve => setTimeout(resolve, 350));
 
-    expect(store.get('themePair')).toEqual({ mode: 'system', light: 'rose-pine', dark: 'vesper' });
-    expect(values.get('plannotator-dark-theme')).toBe('vesper');
+    expect(store.get('themePair')).toEqual({ mode: 'system', light: 'github', dark: 'tokyo-night' });
+    expect(values.get('plannotator-dark-theme')).toBe('tokyo-night');
     expect(synced).toEqual([]);
   });
 
@@ -136,10 +136,10 @@ describe('config store seeding', () => {
     installStorage();
     const store = new ConfigStoreForTest();
 
-    store.init({ theme: { mode: 'light', light: 'kanagawa-lotus', dark: 'nord' } });
+    store.init({ theme: { mode: 'light', light: 'catppuccin', dark: 'one-dark-pro' } });
     store.seed('themePair', { mode: 'dark', light: DEFAULT_COLOR_THEME, dark: DEFAULT_COLOR_THEME });
 
-    expect(store.get('themePair')).toEqual({ mode: 'light', light: 'kanagawa-lotus', dark: 'nord' });
+    expect(store.get('themePair')).toEqual({ mode: 'light', light: 'catppuccin', dark: 'one-dark-pro' });
   });
 
   // A write queued before the server config arrives would otherwise flush
@@ -152,7 +152,7 @@ describe('config store seeding', () => {
 
     store.set('themePair', { mode: 'dark', light: DEFAULT_COLOR_THEME, dark: DEFAULT_COLOR_THEME });
     store.set('diffStyle', 'unified');
-    store.init({ theme: { mode: 'system', light: 'rose-pine', dark: 'vesper' } });
+    store.init({ theme: { mode: 'system', light: 'github', dark: 'tokyo-night' } });
     await new Promise<void>(resolve => setTimeout(resolve, 350));
 
     // The theme write is gone; the untouched setting still syncs.

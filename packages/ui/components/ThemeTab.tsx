@@ -145,6 +145,7 @@ export const ThemeTab: React.FC<ThemeTabProps> = ({ onPreview, compact }) => {
           {themes.map(theme => {
             const isSelected = pair[half] === theme.id;
             const colors = theme.colors[half];
+            if (!colors) return null;
             return (
               <button
                 key={theme.id}

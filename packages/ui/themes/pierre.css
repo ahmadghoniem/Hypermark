@@ -1,0 +1,180 @@
+/* Pierre — Default & Recovery Palette (based on @pierre/theme 2.0.0) */
+.theme-pierre {
+  /* Chrome & Tree */
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #171717;
+  --card-foreground: #fafafa;
+  --popover: #171717;
+  --popover-foreground: #fafafa;
+  --primary: #009fff;
+  --primary-foreground: #0a0a0a;
+  --secondary: #1d1d1d;
+  --secondary-foreground: #fafafa;
+  --muted: #1d1d1d;
+  --muted-foreground: #a3a3a3;
+  --border: #262626;
+  --input: #1d1d1d;
+
+  /* Surfaces */
+  --surface-0: #121212;
+  --surface-1: #171717;
+  --surface-2: #212121;
+
+  /* Sidebar / Tree */
+  --sidebar: #171717;
+  --sidebar-foreground: #a3a3a3;
+  --sidebar-primary: #009fff;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: #1d1d1d;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #0a0a0a;
+  --sidebar-ring: #009fff;
+
+  /* Diff Bridge */
+  --diffs-bg: #0a0a0a;
+  --diffs-fg: #fafafa;
+  --diffs-dark-bg: #0a0a0a;
+  --diffs-light-bg: #ffffff;
+  --diffs-dark: #fafafa;
+  --diffs-light: #0a0a0a;
+
+  /* Syntax */
+  --code-bg: #121212;
+
+  /* Terminal / ANSI */
+  --terminal-background: #171717;
+  --terminal-foreground: #a3a3a3;
+  --terminal-cursor: #009fff;
+  --terminal-cursor-accent: #171717;
+  --terminal-selection-background: #19283c;
+  --terminal-selection-foreground: #fafafa;
+  --terminal-selection-inactive-background: #1d1d1d;
+  --terminal-black: #171717;
+  --terminal-red: #ff2e3f;
+  --terminal-green: #0dbe4e;
+  --terminal-yellow: #ffca00;
+  --terminal-blue: #009fff;
+  --terminal-magenta: #e130ac;
+  --terminal-cyan: #08c0ef;
+  --terminal-white: #bcbcbc;
+  --terminal-bright-black: #737373;
+  --terminal-bright-red: #ff2e3f;
+  --terminal-bright-green: #86c427;
+  --terminal-bright-yellow: #ffca00;
+  --terminal-bright-blue: #009fff;
+  --terminal-bright-magenta: #e130ac;
+  --terminal-bright-cyan: #08c0ef;
+  --terminal-bright-white: #fafafa;
+
+  /* Focus */
+  --ring: #009fff;
+  --focus-highlight: #009fff;
+
+  /* Selection */
+  --selection-background: #19283c;
+  --selection-foreground: #fafafa;
+
+  /* Status & Annotation */
+  --success: #07c480;
+  --success-foreground: #0a0a0a;
+  --warning: #ffca00;
+  --warning-foreground: #0a0a0a;
+  --destructive: #ff2e3f;
+  --destructive-foreground: #fafafa;
+  --annotation-comment: #009fff;
+
+  --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', 'Geist Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  --radius: 0.625rem;
+}
+
+.theme-pierre.light {
+  /* Chrome & Tree */
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --card: #f5f5f5;
+  --card-foreground: #0a0a0a;
+  --popover: #f5f5f5;
+  --popover-foreground: #0a0a0a;
+  --primary: #009fff;
+  --primary-foreground: #ffffff;
+  --secondary: #ededed;
+  --secondary-foreground: #0a0a0a;
+  --muted: #ededed;
+  --muted-foreground: #737373;
+  --border: #e5e5e5;
+  --input: #ededed;
+
+  /* Surfaces */
+  --surface-0: #fafafa;
+  --surface-1: #f5f5f5;
+  --surface-2: #e5e5e5;
+
+  /* Sidebar / Tree */
+  --sidebar: #f5f5f5;
+  --sidebar-foreground: #525252;
+  --sidebar-primary: #009fff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ededed;
+  --sidebar-accent-foreground: #0a0a0a;
+  --sidebar-border: #e5e5e5;
+  --sidebar-ring: #009fff;
+
+  /* Diff Bridge */
+  --diffs-bg: #ffffff;
+  --diffs-fg: #0a0a0a;
+  --diffs-dark-bg: #0a0a0a;
+  --diffs-light-bg: #ffffff;
+  --diffs-dark: #fafafa;
+  --diffs-light: #0a0a0a;
+
+  /* Syntax */
+  --code-bg: #f5f5f5;
+
+  /* Terminal / ANSI */
+  --terminal-background: #f5f5f5;
+  --terminal-foreground: #525252;
+  --terminal-cursor: #009fff;
+  --terminal-cursor-accent: #f5f5f5;
+  --terminal-selection-background: #dfebff;
+  --terminal-selection-foreground: #0a0a0a;
+  --terminal-selection-inactive-background: #e5e5e5;
+  --terminal-black: #1d1d1d;
+  --terminal-red: #d52c36;
+  --terminal-green: #18a46c;
+  --terminal-yellow: #d5a910;
+  --terminal-blue: #1a85d4;
+  --terminal-magenta: #bd2e90;
+  --terminal-cyan: #1ca1c7;
+  --terminal-white: #737373;
+  --terminal-bright-black: #525252;
+  --terminal-bright-red: #d52c36;
+  --terminal-bright-green: #77a42a;
+  --terminal-bright-yellow: #d5a910;
+  --terminal-bright-blue: #1a85d4;
+  --terminal-bright-magenta: #bd2e90;
+  --terminal-bright-cyan: #1ca1c7;
+  --terminal-bright-white: #0a0a0a;
+
+  /* Focus */
+  --ring: #009fff;
+  --focus-highlight: #009fff;
+
+  /* Selection */
+  --selection-background: #dfebff;
+  --selection-foreground: #0a0a0a;
+
+  /* Status & Annotation */
+  --success: #18a46c;
+  --success-foreground: #ffffff;
+  --warning: #d5a910;
+  --warning-foreground: #ffffff;
+  --destructive: #d52c36;
+  --destructive-foreground: #ffffff;
+  --annotation-comment: #009fff;
+
+  --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', 'Geist Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  --radius: 0.625rem;
+}
