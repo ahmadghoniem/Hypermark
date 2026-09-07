@@ -143,6 +143,9 @@ export function createNodePtyWebSocketServer(options) {
       expect(bridge.capability.agents[0]).toHaveProperty("id");
       expect(bridge.capability.agents[0]).toHaveProperty("name");
       expect(bridge.capability.agents[0]).toHaveProperty("available");
+      // Spec 02 step 3: the chooser this payload feeds offers Claude and
+      // nothing else, however many agents WebTUI itself ships.
+      expect(bridge.capability.agents.map((agent) => agent.id)).toEqual(["claude"]);
     } finally {
       bridge.dispose();
     }

@@ -26,6 +26,22 @@ export type AgentTerminalAgent = {
   available: boolean;
 };
 
+/**
+ * The only agent this fork's terminal launches (spec 02 step 3: "restrict the
+ * retained terminal's chooser/launch configuration to Claude"). WebTUI still
+ * ships several built-in agents; the chooser, the capability payload, and the
+ * sidecar's spawn guard all intersect its list with this one.
+ *
+ * The Node sidecar (`packages/server/agent-terminal-node-sidecar.mjs`) runs
+ * outside the workspace's module resolution and repeats this literal — keep the
+ * two in step.
+ */
+export const RETAINED_AGENT_TERMINAL_AGENTS = ["claude"] as const;
+
+export function isRetainedAgentTerminalAgent(id: string): boolean {
+  return (RETAINED_AGENT_TERMINAL_AGENTS as readonly string[]).includes(id);
+}
+
 export type AgentTerminalCapability =
   | {
       enabled: true;

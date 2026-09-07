@@ -3,6 +3,7 @@ import {
   buildAgentTerminalWsPath,
   type AgentTerminalAgent,
   type AgentTerminalCapability,
+  isRetainedAgentTerminalAgent,
 } from "@plannotator/shared/agent-terminal";
 import { isRemoteSession } from "./remote";
 import {
@@ -346,7 +347,9 @@ function isAllowedOrigin(req: Request): boolean {
 }
 
 function listAgents(core: WebTuiCore): AgentTerminalAgent[] {
-  return core.listBuiltInAgents().map((id) => {
+  // Claude only. WebTUI's other built-ins stay out of the capability payload,
+  // which is the single source the panel's chooser renders from.
+  return core.listBuiltInAgents().filter(isRetainedAgentTerminalAgent).map((id) => {
     const config = core.BUILT_IN_AGENTS[id];
     return {
       id,

@@ -9,7 +9,12 @@ const { createNodePtyWebSocketServer, NodePtyBackend } = await import(webtuiServ
 
 const cwd = process.env.PLANNOTATOR_AGENT_CWD || process.cwd();
 const wsPath = process.env.PLANNOTATOR_AGENT_WS_PATH || "/api/agent-terminal/pty";
-const allowedAgents = new Set(listBuiltInAgents());
+// Claude only — the same restriction the capability payload applies, enforced
+// again here because the spawn request arrives from the client. Mirrors
+// RETAINED_AGENT_TERMINAL_AGENTS in packages/core/agent-terminal.ts, repeated
+// as a literal because this file runs outside the workspace's resolution.
+const RETAINED_AGENTS = new Set(["claude"]);
+const allowedAgents = new Set(listBuiltInAgents().filter((id) => RETAINED_AGENTS.has(id)));
 const sessions = new Set();
 let spawnInFlight = false;
 
@@ -62,7 +67,11 @@ function normalizeSpawnOptions(options) {
     throw new Error("Agent terminal requires a built-in WebTUI agent.");
   }
   if (!allowedAgents.has(options.agent)) {
-    throw new Error(`Unknown WebTUI agent: ${options.agent}`);
+    throw new Error(
+      RETAINED_AGENTS.has(options.agent)
+        ? `Unknown WebTUI agent: ${options.agent}`
+        : `Agent terminal is restricted to Claude; refusing to launch: ${options.agent}`,
+    );
   }
   const launch = buildAgentLaunchPlan({
     agent: options.agent,
