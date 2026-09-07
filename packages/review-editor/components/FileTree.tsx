@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState, useMemo } from 'react';
+import React, { useEffect, useCallback, useRef, useMemo, useState } from 'react';
 import { CodeAnnotation } from '@plannotator/ui/types';
 import type {
   AvailableBranches,
@@ -9,8 +9,17 @@ import type {
   SinceBaseSections,
   WorktreeInfo,
 } from '@plannotator/shared/types';
-import { buildFileTree, getAncestorPaths, getAllFolderPaths, getVisualFileOrder } from '../utils/buildFileTree';
-import { FileTreeNodeItem } from './FileTreeNode';
+import { FileTree as PierreFileTree, useFileTree, useFileTreeSelector } from '@pierre/trees/react';
+import { buildFileTree, getAncestorPaths, getVisualFileOrder } from '../utils/buildFileTree';
+import {
+  buildAnnotationCountMap,
+  buildFileTreePaths,
+  getSelectedPaths as getSelectedTreePaths,
+  isFileViewed,
+  resolveFileTreeTarget,
+  revealFileInTree,
+} from '../utils/fileTreeAdapter';
+import { buildRowDecoration } from '../utils/fileTreeRowDecoration';
 import { BaseBranchPicker } from './BaseBranchPicker';
 import { EvoLogPicker } from './EvoLogPicker';
 import { DiffTypePicker } from './DiffTypePicker';
@@ -195,14 +204,9 @@ export const FileTree: React.FC<FileTreeProps> = ({
 }) => {
   const isSearchVisible = !!onSearchChange && (isSearchOpen || !!searchQuery.trim());
 
+  // Kept for keyboard navigation only (j/k/Home/End, wired in step 4) — the
+  // Pierre tree below owns folder-expansion/flattening/search presentation.
   const tree = useMemo(() => buildFileTree(files), [files]);
-
-  // Since-base sidecar lookup for per-row lifecycle markers.
-  const getSectionEntry = useMemo(() => {
-    if (!sinceBaseSections) return undefined;
-    return (filePath: string) => sinceBaseSections.files[filePath];
-  }, [sinceBaseSections]);
-  const allFolderPaths = useMemo(() => getAllFolderPaths(tree), [tree]);
   const visualOrder = useMemo(() => getVisualFileOrder(tree), [tree]);
 
   // Keyboard navigation: j/k or arrow keys
@@ -259,61 +263,159 @@ export const FileTree: React.FC<FileTreeProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  const annotationCountMap = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const a of annotations) {
-      map.set(a.filePath, (map.get(a.filePath) ?? 0) + 1);
-    }
-    return map;
-  }, [annotations]);
+  // The active-file/overlay-panel forcing rule the tree has always applied:
+  // All files/Semantic/Call flow/PR overview/PR artifacts own the "active"
+  // slot while they're open, so the tree shows no selection of its own.
+  const effectiveActiveFileIndex =
+    isAllFilesActive || isSemanticDiffActive || isCallFlowActive || isPROverviewActive || isPRArtifactsActive
+      ? -1
+      : activeFileIndex;
 
-  const getAnnotationCount = useCallback(
-    (filePath: string) => {
-      return annotationCountMap.get(filePath) ?? 0;
-    },
-    [annotationCountMap],
-  );
+  // `hideViewedFiles` is expressed as which paths the Pierre tree is even
+  // given — mirroring the old renderer's rule that a fully-viewed file drops
+  // out of the tree unless it's the active file (kept so the current
+  // selection never vanishes out from under the user).
+  const activeFilePath = files[effectiveActiveFileIndex]?.path;
+  const treePaths = useMemo(() => {
+    const visibleFiles = hideViewedFiles
+      ? files.filter((file) => file.path === activeFilePath || !viewedFiles.has(file.path))
+      : files;
+    return buildFileTreePaths(visibleFiles);
+  }, [files, hideViewedFiles, viewedFiles, activeFilePath]);
 
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set(allFolderPaths));
-  const [prevTree, setPrevTree] = useState(tree);
-
-  // Expand all folders when tree changes (initial render + diff switch)
-  if (tree !== prevTree) {
-    setPrevTree(tree);
-    setExpandedFolders(new Set(allFolderPaths));
-  }
-
-  // Auto-expand ancestors of the active file so j/k nav always reveals the target
-  useEffect(() => {
-    if (files[activeFileIndex]) {
-      const ancestors = getAncestorPaths(files[activeFileIndex].path);
-      setExpandedFolders((prev) => {
-        const missing = ancestors.filter((p) => !prev.has(p));
-        if (missing.length === 0) return prev;
-        const next = new Set(prev);
-        for (const p of missing) next.add(p);
-        return next;
-      });
-    }
-  }, [activeFileIndex, files]);
-
-  const handleToggleFolder = useCallback((path: string) => {
-    setExpandedFolders((prev) => {
-      const next = new Set(prev);
-      if (next.has(path)) {
-        next.delete(path);
-      } else {
-        next.add(path);
-      }
-      return next;
-    });
+  // Stable across renders — `useFileTree` only reads its options once, at
+  // construction, so the selection-change callback must resolve against the
+  // LATEST files/onSelectFile via a ref rather than the closure it was built
+  // with. Every reported path is resolved through the step-2 adapter (path OR
+  // oldPath, normalized to the canonical `file.path`) — never dispatched raw.
+  const latestSelectionRef = useRef({ files, onSelectFile });
+  latestSelectionRef.current = { files, onSelectFile };
+  const handleModelSelectionChange = useCallback((selectedPaths: readonly string[]) => {
+    const [path] = selectedPaths;
+    if (!path) return;
+    const { files: currentFiles, onSelectFile: currentOnSelectFile } = latestSelectionRef.current;
+    const target = resolveFileTreeTarget(currentFiles, path);
+    if (target) currentOnSelectFile(target.fileIndex);
   }, []);
 
-  const areAllFoldersExpanded = allFolderPaths.length > 0 && allFolderPaths.every((path) => expandedFolders.has(path));
+  // Per-row metadata. spec/04-file-tree.md:67-68 requires viewed state,
+  // annotation counts, and change counts survive the tree replacement; the
+  // library gives one declarative decoration slot per row, so
+  // `buildRowDecoration` folds the old row's whole metadata column into it.
+  //
+  // Read through a ref for the same reason `onSelectionChange` is: `useFileTree`
+  // reads its options ONCE at construction, so a closure captured here would
+  // render decorations against a stale `files` array after a diff switch.
+  const annotationCountMap = useMemo(() => buildAnnotationCountMap(annotations), [annotations]);
+  const latestDecorationRef = useRef({
+    files,
+    viewedFiles,
+    annotationCountMap,
+    stagedFiles,
+    sinceBaseSections,
+  });
+  latestDecorationRef.current = { files, viewedFiles, annotationCountMap, stagedFiles, sinceBaseSections };
+
+  const handleRenderRowDecoration = useCallback(
+    ({ row }: { row: { kind: 'directory' | 'file'; path: string } }) => {
+      if (row.kind !== 'file') return null;
+      const current = latestDecorationRef.current;
+      // Resolve through the adapter so a decoration is never keyed by anything
+      // but canonical identity.
+      const target = resolveFileTreeTarget(current.files, row.path);
+      if (!target) return null;
+      return buildRowDecoration({
+        file: target.file,
+        isViewed: isFileViewed(current.viewedFiles, target.file),
+        annotationCount: current.annotationCountMap.get(target.canonicalPath) ?? 0,
+        isStaged: current.stagedFiles.has(target.canonicalPath),
+        sectionEntry: current.sinceBaseSections?.files[target.canonicalPath],
+      });
+    },
+    [],
+  );
+
+  // The fixed tree contract (spec 04 step 3) — applied exactly, density
+  // deliberately omitted. `gitStatus` is likewise never passed: spec 02 removed
+  // the per-file Git status UI and spec 04 forbids reintroducing it as a
+  // substitute. `paths` seeds construction only; `resetPaths` below keeps the
+  // live model in sync as `files`/hide-viewed change.
+  const { model } = useFileTree({
+    paths: treePaths,
+    initialExpansion: 'open',
+    flattenEmptyDirectories: true,
+    search: true,
+    fileTreeSearchMode: 'hide-non-matches',
+    icons: 'complete',
+    onSelectionChange: handleModelSelectionChange,
+    renderRowDecoration: handleRenderRowDecoration,
+  });
+
+  const didMountTreeRef = useRef(false);
+  useEffect(() => {
+    if (!didMountTreeRef.current) {
+      didMountTreeRef.current = true;
+      return;
+    }
+    // Re-applies the construction-time options (including initialExpansion:
+    // 'open') against the new path set — a fresh tree opens folders again on
+    // every diff/worktree switch, same as the old expand-on-tree-change rule.
+    model.resetPaths(treePaths);
+  }, [model, treePaths]);
+
+  // Feeds the existing content-search query into the tree's own
+  // hide-non-matches filtering. This is independent of the line-level search
+  // results list below — it drives whichever paths the Pierre tree itself
+  // will show if/when its browsing view is visible.
+  useEffect(() => {
+    model.setSearch(searchQuery.trim() ? searchQuery : null);
+  }, [model, searchQuery]);
+
+  // Ancestor-expansion-on-reveal is a side effect of activeFileIndex
+  // changing, not something the search hook does — preserved here exactly as
+  // before, just driven through the live Pierre model instead of local
+  // expandedFolders state. Routes through the step-2 adapter's
+  // revealFileInTree, which expands ancestors, selects, focuses, and scrolls.
+  useEffect(() => {
+    const [identifier] = getSelectedTreePaths(files, effectiveActiveFileIndex);
+    if (identifier) {
+      revealFileInTree(model, files, identifier);
+    } else {
+      for (const selectedPath of model.getSelectedPaths()) {
+        model.getItem(selectedPath)?.deselect();
+      }
+    }
+  }, [model, files, effectiveActiveFileIndex]);
+
+  // Real canonical directory paths (every ancestor of every file), not the
+  // collapsed display paths buildFileTree/getAllFolderPaths produce — the
+  // Pierre model's directory nodes are keyed by the former.
+  const allRealFolderPaths = useMemo(() => {
+    const paths = new Set<string>();
+    for (const file of files) {
+      for (const ancestor of getAncestorPaths(file.path)) paths.add(ancestor);
+    }
+    return Array.from(paths);
+  }, [files]);
+
+  const areAllFoldersExpanded = useFileTreeSelector(model, (currentModel) => {
+    if (allRealFolderPaths.length === 0) return false;
+    return allRealFolderPaths.every((path) => {
+      const item = currentModel.getItem(path);
+      return item != null && 'isExpanded' in item && item.isExpanded();
+    });
+  });
 
   const handleToggleAllFolders = useCallback(() => {
-    setExpandedFolders(areAllFoldersExpanded ? new Set() : new Set(allFolderPaths));
-  }, [allFolderPaths, areAllFoldersExpanded]);
+    const shouldExpand = !areAllFoldersExpanded;
+    for (const path of allRealFolderPaths) {
+      const item = model.getItem(path);
+      if (item != null && 'expand' in item) {
+        if (shouldExpand) item.expand();
+        else item.collapse();
+      }
+    }
+  }, [model, allRealFolderPaths, areAllFoldersExpanded]);
 
   const panelControls = (
     <PanelControlsRow
@@ -322,7 +424,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
       onOpenSearch={onOpenSearch}
       onToggleAllFolders={handleToggleAllFolders}
       areAllFoldersExpanded={areAllFoldersExpanded}
-      collapseDisabled={allFolderPaths.length === 0}
+      collapseDisabled={allRealFolderPaths.length === 0}
       onToggleHideViewed={onToggleHideViewed}
       hideViewedFiles={hideViewedFiles}
       viewedCount={viewedFiles.size}
@@ -473,106 +575,85 @@ export const FileTree: React.FC<FileTreeProps> = ({
           </div>
         )}
 
-      {/* File tree or search results */}
-      <OverlayScrollArea className="flex-1 min-h-0">
-        <div className="px-1 py-1">
-          {prOverviewNumber && prOverviewTitle && onSelectPROverview && (
-            <SidebarActionRow
-              active={isPROverviewActive}
-              onClick={onSelectPROverview}
-              title={`${prOverviewNumber} · ${prOverviewTitle}`}
-            >
-              <GitHubIcon className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="font-mono flex-shrink-0">{prOverviewNumber}</span>
-              <span className="truncate text-muted-foreground/80">{prOverviewTitle}</span>
-            </SidebarActionRow>
-          )}
-          {onSelectPRArtifacts && prArtifactCount !== undefined && (
-            <SidebarActionRow
-              active={isPRArtifactsActive}
-              onClick={onSelectPRArtifacts}
-              title="View attachments shared in this pull request or merge request"
-            >
-              <Paperclip className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>Artifacts</span>
-              <span className="ml-auto rounded bg-muted px-1.5 py-0.5 font-mono text-[9px] tabular-nums text-muted-foreground">
-                {prArtifactCount}
-              </span>
-            </SidebarActionRow>
-          )}
-          {callFlowEnabled && onSelectCallFlow && (
-            <CallFlowRow
-              active={isCallFlowActive}
-              onClick={onSelectCallFlow}
-              count={callFlowCount}
-              loading={callFlowLoading}
-              error={callFlowError}
-            />
-          )}
-          {semanticDiffAvailable && onSelectSemanticDiff && (
-            <SemanticDiffRow active={isSemanticDiffActive} onClick={onSelectSemanticDiff} />
-          )}
-          {onSelectAllFiles && (
-            <AllFilesRow
-              active={isAllFilesActive}
-              onClick={onSelectAllFiles}
-              additions={files.reduce((sum, file) => sum + file.additions, 0)}
-              deletions={files.reduce((sum, file) => sum + file.deletions, 0)}
-            />
-          )}
-          {panelControls}
-          {searchField}
+      {/* Nav rows, panel controls, and the search field keep their
+          established position directly below the "All files" row — above the
+          file tree's own scroll/virtualization region, which it owns itself
+          once mounted (see below). */}
+      <div className="px-1 py-1 flex-shrink-0">
+        {prOverviewNumber && prOverviewTitle && onSelectPROverview && (
+          <SidebarActionRow
+            active={isPROverviewActive}
+            onClick={onSelectPROverview}
+            title={`${prOverviewNumber} · ${prOverviewTitle}`}
+          >
+            <GitHubIcon className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="font-mono flex-shrink-0">{prOverviewNumber}</span>
+            <span className="truncate text-muted-foreground/80">{prOverviewTitle}</span>
+          </SidebarActionRow>
+        )}
+        {onSelectPRArtifacts && prArtifactCount !== undefined && (
+          <SidebarActionRow
+            active={isPRArtifactsActive}
+            onClick={onSelectPRArtifacts}
+            title="View attachments shared in this pull request or merge request"
+          >
+            <Paperclip className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>Artifacts</span>
+            <span className="ml-auto rounded bg-muted px-1.5 py-0.5 font-mono text-[9px] tabular-nums text-muted-foreground">
+              {prArtifactCount}
+            </span>
+          </SidebarActionRow>
+        )}
+        {callFlowEnabled && onSelectCallFlow && (
+          <CallFlowRow
+            active={isCallFlowActive}
+            onClick={onSelectCallFlow}
+            count={callFlowCount}
+            loading={callFlowLoading}
+            error={callFlowError}
+          />
+        )}
+        {semanticDiffAvailable && onSelectSemanticDiff && (
+          <SemanticDiffRow active={isSemanticDiffActive} onClick={onSelectSemanticDiff} />
+        )}
+        {onSelectAllFiles && (
+          <AllFilesRow
+            active={isAllFilesActive}
+            onClick={onSelectAllFiles}
+            additions={files.reduce((sum, file) => sum + file.additions, 0)}
+            deletions={files.reduce((sum, file) => sum + file.deletions, 0)}
+          />
+        )}
+        {panelControls}
+        {searchField}
+      </div>
 
-          {searchQuery.trim() ? (
-            isSearchPending ? (
-              <div className="py-6 text-center text-xs text-muted-foreground/50">Searching…</div>
-            ) : searchGroups.length > 0 ? (
-              searchGroups.map((group) => (
-                <SearchFileGroup
-                  key={group.filePath}
-                  group={group}
-                  searchQuery={searchQuery}
-                  activeSearchMatchId={activeSearchMatchId ?? null}
-                  onSelectMatch={onSelectSearchMatch}
-                />
-              ))
-            ) : (
-              <div className="py-6 text-center text-xs text-muted-foreground/50">No matches found</div>
-            )
-          ) : (
-            <>
-              {tree.map((node) => (
-                <FileTreeNodeItem
-                  key={node.type === 'file' ? node.path : `folder:${node.path}`}
-                  node={node}
-                  expandedFolders={expandedFolders}
-                  onToggleFolder={handleToggleFolder}
-                  activeFileIndex={
-                    isAllFilesActive ||
-                    isSemanticDiffActive ||
-                    isCallFlowActive ||
-                    isPROverviewActive ||
-                    isPRArtifactsActive
-                      ? -1
-                      : activeFileIndex
-                  }
-                  scrollHighlightIndex={isAllFilesActive ? scrollHighlightIndex : undefined}
-                  onSelectFile={onSelectFile}
-                  onDoubleClickFile={onDoubleClickFile}
-                  viewedFiles={viewedFiles}
-                  onToggleViewed={onToggleViewed}
-                  showViewedControls={showViewedControls}
-                  hideViewedFiles={hideViewedFiles}
-                  getAnnotationCount={getAnnotationCount}
-                  stagedFiles={stagedFiles}
-                  repoRoot={repoRoot}
-                  getSectionEntry={getSectionEntry}
-                />
-              ))}
-            </>
-          )}
-        </div>
-      </OverlayScrollArea>
+      {/* File tree or search results */}
+      <div className="flex-1 min-h-0 flex flex-col">
+        {searchQuery.trim() ? (
+          <OverlayScrollArea className="flex-1 min-h-0">
+            <div className="px-1 py-1">
+              {isSearchPending ? (
+                <div className="py-6 text-center text-xs text-muted-foreground/50">Searching…</div>
+              ) : searchGroups.length > 0 ? (
+                searchGroups.map((group) => (
+                  <SearchFileGroup
+                    key={group.filePath}
+                    group={group}
+                    searchQuery={searchQuery}
+                    activeSearchMatchId={activeSearchMatchId ?? null}
+                    onSelectMatch={onSelectSearchMatch}
+                  />
+                ))
+              ) : (
+                <div className="py-6 text-center text-xs text-muted-foreground/50">No matches found</div>
+              )}
+            </div>
+          </OverlayScrollArea>
+        ) : (
+          <PierreFileTree model={model} style={{ flex: 1, minHeight: 0 }} />
+        )}
+      </div>
     </aside>
   );
 };
