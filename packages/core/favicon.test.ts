@@ -5,7 +5,6 @@ import {
   CLASSIC_FAVICON_SVG,
   FAVICON_PNG_BYTES,
   FAVICON_PNG_DATA_URL,
-  FAVICON_SVG,
   faviconDataUrl,
   isFaviconStyle,
 } from "./favicon";
@@ -29,13 +28,6 @@ describe("production favicon", () => {
     expect(view.getUint8(24)).toBe(8);
     expect(view.getUint8(25)).toBe(6);
   });
-
-  test("keeps the SVG export as a wrapper around the canonical PNG", () => {
-    expect(FAVICON_PNG_DATA_URL).toStartWith("data:image/png;base64,");
-    expect(FAVICON_SVG).toContain(FAVICON_PNG_DATA_URL);
-    expect(FAVICON_SVG).not.toContain("<text");
-    expect(FAVICON_SVG).not.toContain("#070b14");
-  });
 });
 
 describe("favicon style switcher", () => {
@@ -46,16 +38,6 @@ describe("favicon style switcher", () => {
     expect(createHash("sha256").update(CLASSIC_FAVICON_SVG).digest("hex")).toBe(
       "27d33cff3d4515801f48e1cbaceec777ba802a7d341b22b2c0444d82b303cb49",
     );
-  });
-
-  test("faviconDataUrl resolves the retired totman style to classic", () => {
-    // Classic is the sole offered favicon. A saved "totman" is still a legal
-    // stored value (old installs keep theirs), so it must resolve here rather
-    // than be rejected as corrupt -- and it must resolve to the classic asset,
-    // never the retired PNG.
-    expect(faviconDataUrl("totman")).toBe(CLASSIC_FAVICON_DATA_URL);
-    expect(faviconDataUrl("classic")).toBe(CLASSIC_FAVICON_DATA_URL);
-    expect(faviconDataUrl()).toBe(CLASSIC_FAVICON_DATA_URL);
   });
 
   test("faviconDataUrl('classic') returns base64 SVG data URL matching historical asset", () => {
@@ -74,7 +56,7 @@ describe("favicon style switcher", () => {
   });
 
   test("isFaviconStyle validates only known styles", () => {
-    expect(isFaviconStyle("totman")).toBe(true);
+    expect(isFaviconStyle("totman")).toBe(false);
     expect(isFaviconStyle("classic")).toBe(true);
     expect(isFaviconStyle("")).toBe(false);
     expect(isFaviconStyle("unknown")).toBe(false);

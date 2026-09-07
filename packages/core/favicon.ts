@@ -100,18 +100,10 @@ export const FAVICON_PNG_BYTES = Uint8Array.from(
   (character) => character.charCodeAt(0),
 );
 
-/**
- * @deprecated Prefer FAVICON_PNG_DATA_URL for UI and FAVICON_PNG_BYTES for servers.
- * Kept so published @plannotator/core consumers retain the existing export.
- */
-export const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <image width="64" height="64" href="${FAVICON_PNG_DATA_URL}"/>
-</svg>`;
-
-export type FaviconStyle = 'totman' | 'classic';
+export type FaviconStyle = 'classic';
 
 export function isFaviconStyle(value: unknown): value is FaviconStyle {
-  return value === 'totman' || value === 'classic';
+  return value === 'classic';
 }
 
 /**
@@ -130,9 +122,7 @@ export const CLASSIC_FAVICON_DATA_URL = `data:image/svg+xml;base64,${btoa(CLASSI
 /**
  * Return the data URL for a given favicon style.
  *
- * Classic is the sole offered style. A stored value of 'totman' resolves to
- * Classic at read time per spec 03 step 4 — no flash of the old icon, no
- * config rewrite.
+ * Classic is the sole offered style.
  */
 export function faviconDataUrl(_style?: FaviconStyle): string {
   return CLASSIC_FAVICON_DATA_URL;

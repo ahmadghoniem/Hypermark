@@ -241,7 +241,7 @@ export interface PlannotatorConfig {
   todoProvider?: "auto" | "off";
   /**
    * Selected favicon style for Plannotator application surfaces:
-   * 'totman' (production brand mascot) or 'classic' (historical dark-navy P tile).
+   * 'classic' (historical dark-navy P tile).
    */
   favicon?: FaviconStyle;
 }

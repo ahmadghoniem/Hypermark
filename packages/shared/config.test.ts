@@ -303,10 +303,6 @@ describe("favicon config persistence", () => {
     saveConfig({ favicon: "classic" });
     expect(loadConfig().favicon).toBe("classic");
     expect(getServerConfig(null).favicon).toBe("classic");
-
-    saveConfig({ favicon: "totman" });
-    expect(loadConfig().favicon).toBe("totman");
-    expect(getServerConfig(null).favicon).toBe("totman");
   });
 
   test("omits unknown favicon styles from getServerConfig", () => {

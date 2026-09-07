@@ -319,6 +319,7 @@ describe('ThemeProvider', () => {
       originalFetch = null;
     }
     resetStorageBackend();
+    resetDefaultThemePair();
   });
 
   test.skipIf(!hasDom)('persists System and follows live OS changes across reloads', async () => {
@@ -364,32 +365,6 @@ describe('ThemeProvider', () => {
     expect(themeState().resolvedMode).toBe('dark');
     expect(document.documentElement.classList.contains('theme-tokyo-night')).toBe(true);
     expect(document.documentElement.classList.contains('light')).toBe(false);
-
-    // Older releases read the single-palette key, so it keeps tracking the
-    // palette actually on screen — a downgrade never lands unstyled.
-    expect(stored.get('plannotator-color-theme')).toBe('tokyo-night');
-  });
-
-  test.skipIf(!hasDom)('migrates a stored dark-only palette into the dark half only', async () => {
-    stored.set('plannotator-theme', 'system');
-    stored.set('plannotator-color-theme', 'tokyo-night');
-    installMatchMedia(true);
-
-    await mountTheme();
-    expect(themeState().darkTheme).toBe('tokyo-night');
-    expect(themeState().lightTheme).toBe(DEFAULT_COLOR_THEME);
-    // The OS is light, so the migrated pair renders its light half — the mode
-    // is no longer coerced to keep a dark-only palette on screen.
-    expect(themeState().mode).toBe('system');
-    expect(themeState().preferredMode).toBe('light');
-    expect(themeState().resolvedMode).toBe('light');
-    expect(themeState().colorTheme).toBe(DEFAULT_COLOR_THEME);
-
-    // The migrated pair is persisted on arrival — the legacy key it was
-    // derived from is immediately overwritten with the active palette.
-    expect(stored.get('plannotator-light-theme')).toBe(DEFAULT_COLOR_THEME);
-    expect(stored.get('plannotator-dark-theme')).toBe('tokyo-night');
-    expect(stored.get('plannotator-color-theme')).toBe(DEFAULT_COLOR_THEME);
   });
 
   test.skipIf(!hasDom)('keeps every mode selectable while a dark-only palette owns the dark half', async () => {
@@ -419,13 +394,12 @@ describe('ThemeProvider', () => {
     stored.set('plannotator-theme', 'sepia');
     stored.set('plannotator-light-theme', 'ayu-dark');
     stored.set('plannotator-dark-theme', 'gone-in-this-build');
-    stored.set('plannotator-color-theme', 'one-dark-pro');
     installMatchMedia(true);
 
     await mountTheme();
     expect(themeState().mode).toBe('dark');
     expect(themeState().lightTheme).toBe(DEFAULT_COLOR_THEME);
-    expect(themeState().darkTheme).toBe('one-dark-pro');
+    expect(themeState().darkTheme).toBe(DEFAULT_COLOR_THEME);
     expect(themeState().resolvedMode).toBe('dark');
     expect(stored.get('plannotator-theme')).toBe('dark');
   });
@@ -469,30 +443,6 @@ describe('ThemeProvider', () => {
     expect(paletteNames()).not.toContain('Tokyo Night');
   });
 
-  test.skipIf(!hasDom)('honors a host\'s own storage keys when migrating to a pair', async () => {
-    stored.set('host-mode', 'system');
-    stored.set('host-palette', 'tokyo-night');
-    installMatchMedia(false);
-
-    host = document.createElement('div');
-    document.body.appendChild(host);
-    root = createRoot(host);
-    await act(async () => {
-      root!.render(
-        <ThemeProvider storageKey="host-mode" colorThemeStorageKey="host-palette">
-          <Probe />
-        </ThemeProvider>,
-      );
-    });
-
-    // The host's stored preference is migrated, not discarded.
-    expect(themeState().mode).toBe('system');
-    expect(themeState().darkTheme).toBe('tokyo-night');
-    expect(themeState().colorTheme).toBe('tokyo-night');
-    // And the mirror keeps writing the host's keys, not Plannotator's.
-    expect(stored.get('host-mode')).toBe('system');
-    expect(stored.get('host-palette')).toBe('tokyo-night');
-  });
 });
 
 describe('ThemeProvider server write-back', () => {

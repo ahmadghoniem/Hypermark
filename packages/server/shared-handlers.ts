@@ -200,10 +200,8 @@ export function handleApiNotFound(path: string): Response {
 /**
  * Serve the app favicon. Used by all 3 servers (plus goal-setup).
  *
- * Classic (dark-navy P tile SVG) is the sole offered favicon. A stored value
- * of 'totman' resolves to Classic before first paint — no flash, no config
- * rewrite. The response is SVG with no-cache so a browser tab reflects the
- * correct icon on every load.
+ * Classic (dark-navy P tile SVG) is the sole offered favicon. The response is
+ * SVG with no-cache so a browser tab reflects the correct icon on every load.
  */
 export function handleFavicon(): Response {
   return new Response(CLASSIC_FAVICON_SVG, {

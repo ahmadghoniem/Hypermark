@@ -175,16 +175,6 @@ describe("API route 404 guards", () => {
         expect(faviconResponse.headers.get("cache-control")).toBe("no-cache");
         expect(await faviconResponse.text()).toBe(CLASSIC_FAVICON_SVG);
 
-        // The retired style is still a readable stored value, and must resolve
-        // to the same classic bytes and content type as everything else. The
-        // entry HTML's <link rel="icon"> declares no type of its own, so this
-        // response is the only truthful declaration of what is served.
-        saveConfig({ favicon: "totman" });
-        const legacyResponse = await fetch(`${server.url}/favicon.png`);
-        expect(legacyResponse.status).toBe(200);
-        expect(legacyResponse.headers.get("content-type")).toBe("image/svg+xml");
-        expect(await legacyResponse.text()).toBe(CLASSIC_FAVICON_SVG);
-
         const spaResponse = await fetch(`${server.url}/some/random/path`);
         expect(spaResponse.status).toBe(200);
         expect(spaResponse.headers.get("content-type")).toContain("text/html");

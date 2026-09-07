@@ -27,6 +27,7 @@ import {
   __setCodeHighlightModuleForTests,
 } from '../utils/codeHighlight';
 import { syncHistoryHighlight } from '../utils/undoHistory';
+import { storage } from '../utils/storage';
 
 const hasDom = typeof document !== 'undefined';
 
@@ -102,7 +103,6 @@ function codeBlockAnnotation(id: string, type: AnnotationType): Annotation {
 
 let root: Root | null = null;
 let host: HTMLElement | null = null;
-let keySeq = 0;
 
 interface Controls {
   setColorTheme: (theme: string) => void;
@@ -159,13 +159,9 @@ async function mountHarness(initial: Annotation[] = []): Promise<void> {
   await act(async () => {
     root = createRoot(host!);
     root.render(
-      // A fresh storage key per mount: ThemeProvider persists the palette, and
-      // a leftover cookie would otherwise decide the starting theme.
       <ThemeProvider
         defaultTheme="dark"
         defaultColorTheme="github"
-        colorThemeStorageKey={`plannotator-color-theme-swap-test-${++keySeq}`}
-        storageKey={`plannotator-theme-swap-test-${keySeq}`}
       >
         <Harness initial={initial} />
       </ThemeProvider>,
@@ -207,6 +203,9 @@ afterEach(async () => {
   controls.removeAnnotation = () => {};
   controls.repaintAnnotation = () => {};
   if (hasDom) document.body.innerHTML = '';
+  storage.removeItem('plannotator-theme');
+  storage.removeItem('plannotator-light-theme');
+  storage.removeItem('plannotator-dark-theme');
   __resetCodeHighlightCacheForTests();
 });
 

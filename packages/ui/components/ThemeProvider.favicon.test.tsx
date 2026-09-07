@@ -69,35 +69,6 @@ describe('ThemeProvider favicon synchronization', () => {
     resetStorageBackend();
   });
 
-  test.skipIf(!hasDom)('resolves a stored totman preference to classic on the first painted frame', async () => {
-    // The retired style is still readable -- an old install keeps "totman" in
-    // its cookie -- but it must never paint. The link is written once, as SVG,
-    // and no PNG type/sizes pair is ever left behind to contradict the href.
-    stored.set('plannotator-favicon', 'totman');
-    configStore.loadFromBackend();
-
-    await mount();
-
-    const link = getFaviconLink();
-    expect(link).not.toBeNull();
-    expect(link?.href).toBe(CLASSIC_FAVICON_DATA_URL);
-    expect(link?.type).toBe('image/svg+xml');
-    expect(link?.hasAttribute('sizes')).toBe(false);
-
-    // The stored value is resolved at read time, not rewritten.
-    expect(stored.get('plannotator-favicon')).toBe('totman');
-
-    // And writing the retired value again cannot bring the old icon back.
-    await act(async () => {
-      configStore.set('faviconStyle', 'totman');
-    });
-
-    const revertedLink = getFaviconLink();
-    expect(revertedLink?.href).toBe(CLASSIC_FAVICON_DATA_URL);
-    expect(revertedLink?.type).toBe('image/svg+xml');
-    expect(revertedLink?.hasAttribute('sizes')).toBe(false);
-  });
-
   test.skipIf(!hasDom)('initializes with classic style when stored in backend', async () => {
     stored.set('plannotator-favicon', 'classic');
     configStore.loadFromBackend();
@@ -169,7 +140,7 @@ describe('ThemeProvider favicon ownership is opt-in', () => {
 
     // And a later preference change is still ignored while ownership is off.
     await act(async () => {
-      configStore.set('faviconStyle', 'totman');
+      configStore.set('faviconStyle', 'classic');
     });
     expect(getFaviconLink()?.href).toBe('https://host.example/brand.png');
   });

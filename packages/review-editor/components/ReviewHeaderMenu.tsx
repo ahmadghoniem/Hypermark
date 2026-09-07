@@ -70,7 +70,7 @@ export const ReviewHeaderMenu: React.FC<ReviewHeaderMenuProps> = ({
   origin,
   isWSL = false,
 }) => {
-  const { theme, setTheme } = useTheme();
+  const { mode, setMode } = useTheme();
 
   const showUpdateDot = !!updateInfo?.updateAvailable && !updateInfo.dismissed;
 
@@ -175,10 +175,10 @@ export const ReviewHeaderMenu: React.FC<ReviewHeaderMenuProps> = ({
                   key={id}
                   onClick={() => {
                     closeMenu();
-                    setTheme(id);
+                    setMode(id);
                   }}
                   className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
-                    theme === id
+                    mode === id
                       ? 'bg-background text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}

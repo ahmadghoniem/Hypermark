@@ -3,7 +3,6 @@ import { configStore } from '../config/configStore';
 import { readThemePairCookies, writeThemePairCookies } from '../config/settings';
 import { useConfigValue } from '../config/useConfig';
 import { faviconDataUrl } from '@plannotator/core/favicon';
-import { storage } from '../utils/storage';
 import {
   BUILT_IN_THEMES,
   DEFAULT_COLOR_THEME,
@@ -23,9 +22,6 @@ import type { Mode } from './themeModes';
 export type { Mode } from './themeModes';
 
 type ThemeProviderState = {
-  // Mode (dark/light/system) — backward-compatible with old "theme" API
-  theme: Mode;
-  setTheme: (mode: Mode) => void;
   mode: Mode;
   setMode: (mode: Mode) => void;
   preferredMode: 'dark' | 'light';
@@ -47,8 +43,6 @@ type ThemeProviderState = {
 };
 
 const ThemeProviderContext = createContext<ThemeProviderState>({
-  theme: 'dark',
-  setTheme: () => null,
   mode: 'dark',
   setMode: () => null,
   preferredMode: 'dark',
@@ -89,21 +83,6 @@ interface ThemeProviderProps {
   defaultTheme?: Mode;
   defaultColorTheme?: string;
   /**
-   * Where the mode is stored. Read when resolving the initial pair and written
-   * by the legacy mirror, so a host's already-stored preference survives the
-   * upgrade to pairs.
-   */
-  storageKey?: string;
-  /**
-   * Where the single pre-pair palette is stored. Read as the migration source
-   * for both halves and kept in sync with the palette on screen.
-   *
-   * Note: the two halves themselves are a new concept with no pre-existing
-   * host data, so they always live under `plannotator-light-theme` /
-   * `plannotator-dark-theme`; these props rename only the two legacy values.
-   */
-  colorThemeStorageKey?: string;
-  /**
    * Opt in to letting this provider own `<link rel="icon">` on the document.
    *
    * OFF by default, and deliberately so: `@plannotator/ui` is installed into
@@ -124,21 +103,13 @@ export function ThemeProvider({
   // override this, but a cookie-less visit must land on the same palette an
   // unusable saved value recovers to, or first paint and recovery disagree.
   defaultColorTheme = DEFAULT_COLOR_THEME,
-  storageKey = 'plannotator-theme',
-  colorThemeStorageKey = 'plannotator-color-theme',
   manageFavicon = false,
 }: ThemeProviderProps) {
-  const legacyKeys = useMemo(
-    () => ({ mode: storageKey, colorTheme: colorThemeStorageKey }),
-    [storageKey, colorThemeStorageKey],
-  );
-
-  // Resolve the pair this provider starts on from ITS OWN storage keys: what
-  // the user persisted (migrating a host's pre-pair values), else these props.
+  // Resolve the pair this provider starts on: what the user persisted, else these props.
   // The config store is a singleton that may already have resolved a default of
   // its own, so storage is asked directly rather than trusting that value.
   const [initialPair] = useState<ThemePair>(() => {
-    const resolved = readThemePairCookies(legacyKeys)
+    const resolved = readThemePairCookies()
       ?? seedThemePair(defaultColorTheme, defaultTheme);
     setDefaultThemePair(resolved);
     return resolved;
@@ -158,8 +129,7 @@ export function ThemeProvider({
       link.rel = 'icon';
       document.head.appendChild(link);
     }
-    // Classic is the sole favicon. A stored 'totman' resolves here, before the
-    // first painted frame, and the saved value is never rewritten.
+    // Classic is the sole favicon.
     link.type = 'image/svg+xml';
     link.removeAttribute('sizes');
     link.href = faviconDataUrl();
@@ -258,21 +228,11 @@ export function ThemeProvider({
     configStore.setLocal('themePair', { ...current, [half]: newTheme });
   }, []);
 
-  // Mirror the resolved choice onto the keys older releases read, so a
-  // downgrade lands on the user's palette instead of an unstyled first frame.
-  // The pair itself is written first: a pair migrated from the legacy
-  // single-palette key is derived, and the mirror below overwrites the key it
-  // was derived from.
   useEffect(() => {
-    writeThemePairCookies(pair, legacyKeys);
-    if (storage.getItem(colorThemeStorageKey) !== colorTheme) {
-      storage.setItem(colorThemeStorageKey, colorTheme);
-    }
-  }, [pair, colorTheme, colorThemeStorageKey, legacyKeys]);
+    writeThemePairCookies(pair);
+  }, [pair]);
 
   const value = useMemo<ThemeProviderState>(() => ({
-    theme: mode,
-    setTheme: setMode,
     mode,
     setMode,
     preferredMode,

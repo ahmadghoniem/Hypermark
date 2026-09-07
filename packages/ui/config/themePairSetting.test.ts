@@ -46,35 +46,6 @@ describe('theme pair setting', () => {
     });
   });
 
-  test('seeds both halves from the single palette an older release stored', () => {
-    installStorage({ 'plannotator-theme': 'system', 'plannotator-color-theme': 'tokyo-night' });
-
-    expect(SETTINGS.themePair.fromCookie()).toEqual({
-      mode: 'system',
-      light: DEFAULT_COLOR_THEME,
-      dark: 'tokyo-night',
-    });
-
-    // A palette that renders both modes migrates into the whole pair.
-    installStorage({ 'plannotator-theme': 'light', 'plannotator-color-theme': 'catppuccin' });
-    expect(SETTINGS.themePair.fromCookie()).toEqual({
-      mode: 'light',
-      light: 'catppuccin',
-      dark: 'catppuccin',
-    });
-
-    // One half already assigned: the other still comes from the legacy key.
-    installStorage({
-      'plannotator-theme': 'system',
-      'plannotator-color-theme': 'catppuccin',
-      'plannotator-dark-theme': 'one-dark-pro',
-    });
-    expect(SETTINGS.themePair.fromCookie()).toEqual({
-      mode: 'system',
-      light: 'catppuccin',
-      dark: 'one-dark-pro',
-    });
-  });
 
   test('drops a half whose palette cannot render it', () => {
     installStorage({

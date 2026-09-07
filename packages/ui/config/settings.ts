@@ -27,65 +27,32 @@ import { generateIdentity } from '../utils/generateIdentity';
 import {
   getDefaultThemePair,
   normalizeThemePair,
-  seedThemePair,
   type ThemePair,
 } from '../utils/themeRegistry';
-import { parseThemeMode } from '../components/themeModes';
 
-/** Legacy single-palette key, still written so a downgrade renders styled. */
-const COLOR_THEME_COOKIE = 'plannotator-color-theme';
 const MODE_COOKIE = 'plannotator-theme';
 const LIGHT_THEME_COOKIE = 'plannotator-light-theme';
 const DARK_THEME_COOKIE = 'plannotator-dark-theme';
 
 /**
- * Where a host keeps the two PRE-PAIR values, if not under Plannotator's own
- * keys. These mirror ThemeProvider's `storageKey` / `colorThemeStorageKey`
- * props, which existed before the pair and are what a host's already-stored
- * user preference lives under.
- *
- * Only these two legacy keys are overridable. The pair halves are a new
- * concept with no pre-existing host data, so they always use the fixed
- * `plannotator-light-theme` / `plannotator-dark-theme` keys; two hosts sharing
- * one origin with different key prefixes would share those halves.
- */
-export interface ThemePairLegacyKeys {
-  /** Where the mode is stored (ThemeProvider's `storageKey`). */
-  mode?: string;
-  /** Where the single pre-pair palette is stored (`colorThemeStorageKey`). */
-  colorTheme?: string;
-}
-
-/**
  * Persist a pair to its cookies without touching the server.
- *
- * ThemeProvider calls this once it has resolved a pair, because a pair
- * migrated from the legacy single-palette key is DERIVED until it is written:
- * the provider then mirrors the active palette back onto that legacy key, so
- * leaving the halves underived would lose the migration on the next load.
  */
-export function writeThemePairCookies(pair: ThemePair, keys?: ThemePairLegacyKeys): void {
-  storage.setItem(keys?.mode ?? MODE_COOKIE, pair.mode);
+export function writeThemePairCookies(pair: ThemePair): void {
+  storage.setItem(MODE_COOKIE, pair.mode);
   storage.setItem(LIGHT_THEME_COOKIE, pair.light);
   storage.setItem(DARK_THEME_COOKIE, pair.dark);
 }
 
 /**
- * Read the persisted pair, seeding either half from the single palette older
- * releases stored. Returns undefined only when the user has never expressed a
+ * Read the persisted pair. Returns undefined only when the user has never expressed a
  * theme preference at all — ThemeProvider reads that as "my props decide".
- *
- * `keys` points the two legacy reads at a host's own storage keys so an
- * upgrade migrates that host's stored preference instead of discarding it.
  */
-export function readThemePairCookies(keys?: ThemePairLegacyKeys): ThemePair | undefined {
-  const mode = storage.getItem(keys?.mode ?? MODE_COOKIE);
+export function readThemePairCookies(): ThemePair | undefined {
+  const mode = storage.getItem(MODE_COOKIE);
   const light = storage.getItem(LIGHT_THEME_COOKIE);
   const dark = storage.getItem(DARK_THEME_COOKIE);
-  const legacy = storage.getItem(keys?.colorTheme ?? COLOR_THEME_COOKIE);
-  if (!mode && !light && !dark && !legacy) return undefined;
-  const seeded = seedThemePair(legacy, parseThemeMode(mode, getDefaultThemePair().mode));
-  return normalizeThemePair({ mode, light: light ?? seeded.light, dark: dark ?? seeded.dark }, seeded);
+  if (!mode && !light && !dark) return undefined;
+  return normalizeThemePair({ mode, light, dark }, getDefaultThemePair());
 }
 
 const DIFF_LINE_BG_INTENSITY_VALUES = ['subtle', 'normal', 'strong'] as const;
@@ -120,11 +87,8 @@ export const SETTINGS = {
    * Stored as one value because the three fields are only meaningful together —
    * `mode: system` picks between `light` and `dark` at render time.
    *
-   * Cookies: `plannotator-theme` (mode) keeps its meaning, joined by
-   * `plannotator-light-theme` / `plannotator-dark-theme`. A user arriving from
-   * an older release has neither half, so the pair is seeded from the single
-   * `plannotator-color-theme` palette they were on (ThemeProvider keeps writing
-   * that key, so a downgrade still finds a palette and never renders unstyled).
+   * Cookies: `plannotator-theme` (mode) joined by
+   * `plannotator-light-theme` / `plannotator-dark-theme`.
    *
    * Server: round-trips through `theme` in ~/.plannotator/config.json exactly
    * like `diffOptions` does, so the choice survives the random port each hook

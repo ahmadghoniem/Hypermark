@@ -3,7 +3,7 @@ import { useTheme } from './ThemeProvider';
 import { THEME_MODES } from './themeModes';
 
 export function ModeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { mode, setMode } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -53,9 +53,9 @@ export function ModeToggle() {
           {THEME_MODES.map(({ id, label }) => (
             <button
               key={id}
-              onClick={() => { setTheme(id); setIsOpen(false); }}
+              onClick={() => { setMode(id); setIsOpen(false); }}
               className={`w-full px-3 py-1.5 text-left text-xs transition-colors ${
-                theme === id
+                mode === id
                   ? 'text-primary bg-primary/10 font-medium'
                   : 'text-popover-foreground hover:bg-muted'
               }`}

@@ -342,61 +342,6 @@ const TERMINAL_THEME_PRESETS: Record<string, Partial<Record<TerminalThemeMode, A
   },
 };
 
-for (const themeId of ["everforest", "everforest-hard", "everforest-soft"]) {
-  TERMINAL_THEME_PRESETS[themeId] = {
-    dark: {
-      background: themeId === "everforest-hard" ? "#272e33" : themeId === "everforest-soft" ? "#333c43" : "#2d353b",
-      foreground: "#d3c6aa",
-      cursor: "#d3c6aa",
-      cursorAccent: "#2d353b",
-      selectionBackground: "#4b565c",
-      selectionForeground: "#d3c6aa",
-      selectionInactiveBackground: "#3f4a50",
-      black: "#4b565c",
-      red: "#e67e80",
-      green: "#a7c080",
-      yellow: "#dbbc7f",
-      blue: "#7fbbb3",
-      magenta: "#d699b6",
-      cyan: "#83c092",
-      white: "#d3c6aa",
-      brightBlack: "#5c6a72",
-      brightRed: "#e67e80",
-      brightGreen: "#a7c080",
-      brightYellow: "#dbbc7f",
-      brightBlue: "#7fbbb3",
-      brightMagenta: "#d699b6",
-      brightCyan: "#83c092",
-      brightWhite: "#fff9e8",
-    },
-    light: {
-      background: themeId === "everforest-hard" ? "#fffbef" : themeId === "everforest-soft" ? "#f3ead3" : "#fdf6e3",
-      foreground: "#5c6a72",
-      cursor: "#5c6a72",
-      cursorAccent: "#fdf6e3",
-      selectionBackground: "#e6e2cc",
-      selectionForeground: "#5c6a72",
-      selectionInactiveBackground: "#edeada",
-      black: "#5c6a72",
-      red: "#f85552",
-      green: "#8da101",
-      yellow: "#dfa000",
-      blue: "#3a94c5",
-      magenta: "#df69ba",
-      cyan: "#35a77c",
-      white: "#dfddc8",
-      brightBlack: "#a6b0a0",
-      brightRed: "#f85552",
-      brightGreen: "#8da101",
-      brightYellow: "#dfa000",
-      brightBlue: "#3a94c5",
-      brightMagenta: "#df69ba",
-      brightCyan: "#35a77c",
-      brightWhite: "#fffbef",
-    },
-  };
-}
-
 export function useAnnotateAgentTerminalTheme(): AnnotateAgentTerminalThemeState {
   const { colorTheme, resolvedMode } = useTheme();
   const terminalMode = resolveActiveAnnotateAgentTerminalMode(colorTheme, resolvedMode);
