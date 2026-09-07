@@ -1,6 +1,6 @@
 # 03 — Theme, icons, and fonts
 
-**Status:** NOT IMPLEMENTED
+**Status:** IMPLEMENTED (steps 1-6). `localFontPickerPolicy` remains an open user decision; see `adr/notes/spec-04-handoff.md`.
 
 **Objective:** Give Hypermark a coherent, recoverable visual system without
 changing retained review behavior or treating deferred visual choices as approval.

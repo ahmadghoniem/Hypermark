@@ -1,57 +1,45 @@
-# Hypermark spec 01-04 — session handoff (2026-09-07)
+# Hypermark spec 01-06 — session handoff
 
-Branch: `hypermark/implementation`.
+Branch: `hypermark/implementation`. Last updated 2026-09-07, after spec 05 steps
+1-5 landed.
 
 ## Where the specs stand
 
 | Spec | State |
 | --- | --- |
 | 01 foundation and scope | Complete. |
-| 02 feature removal and Claude | Complete. Step 5's orphan sweep closed by `6b079178`. |
-| 03 theme, icons, fonts | Steps 1-5 complete. Step 6 inventoried (below); deletions outstanding. |
-| 04 file tree | Steps 1-2 complete (`fa67d2db`, `b15c5010`). Step 3 attempted and PARKED (below). Steps 4-5 not started. |
-| 05, 06 | Not started. |
+| 02 feature removal and Claude | Complete. Step 5's orphan sweep closed by `6b079178`; step 3's Claude-only terminal restriction closed by `aa5d2bb3`. |
+| 03 theme, icons, fonts | Steps 1-6 complete (`b4f0a6c9` deleted the four temporary compatibility paths). `localFontPickerPolicy` is still an open user decision — see below. |
+| 04 file tree | Complete. Steps 3-5 landed in `769ca018`, `e7d98463`, `415591d7`; the parked `spec-04-step-3-wip` attempt was superseded, not merged. |
+| 05 comments and attachments | Steps 1-5 complete (`d0cf8237`, `06883210`, `4b104594`, `431fb2a0`). Step 6 (remove the global Images action and writable top-level `globalAttachments`) is the remaining work. |
+| 06 rename, package, verify | Not started. Gated on 05 step 6 and on the completion records specs 01-03 never recorded. |
 
-## Step 3 is parked on branch `spec-04-step-3-wip` — read before redoing it
+### What spec 05 looks like now
 
-A first attempt at step 3 exists on `spec-04-step-3-wip`. It is NOT merged and
-must not be merged as-is. Salvage from it; do not start from scratch, and do not
-trust it.
+- The comment composer owns its attachments on every surface: an image-only
+  thumbnail strip inside the composer (`packages/ui/components/AttachmentStrip.tsx`),
+  composer-scoped paste and drop (`packages/ui/hooks/useAttachmentUploads.ts`),
+  and upload-result validation in `packages/ui/utils/upload.ts`
+  (`assertUploadResult`). Both the document composer (`CommentPopover`) and the
+  review composer (`ToolbarHost` -> `AnnotationToolbar` / `ExpandedCommentDialog`)
+  use those same pieces.
+- Code comments render as zero-height gutter markers with a hover preview and a
+  pinned popup (`packages/review-editor/components/GutterAnnotations.tsx`), in
+  both `DiffViewer` and the virtualized `AllFilesCodeView`.
+  `packages/review-editor/components/InlineAnnotation.tsx` has no callers left
+  and is retained pending a parity check, not because anything uses it.
+- The design decisions behind the gutter are in
+  `adr/notes/spec-05-step4-decisions.md`; the step-1 investigation is in
+  `adr/notes/spec-05-baseline.md`.
 
-Right, and worth keeping:
+### Outstanding, repo-wide
 
-- The fixed tree contract is applied exactly as `spec/04-file-tree.md:39-48`
-  specifies, density omitted.
-- Selection routes through the step-2 adapter, so a reported path is normalized
-  (path OR oldPath -> canonical `file.path`) before `onSelectFile` sees it.
-- `onSelectionChange` reads `files`/`onSelectFile` through a ref, because
-  `useFileTree` reads its options ONCE at construction — the closure it was built
-  with goes stale. This is a real trap and the fix is correct.
-- `areAllFoldersExpanded` and expand/collapse-all are recomputed against real
-  canonical ancestor paths, because the Pierre model keys directory nodes by
-  those, not by the collapsed display paths `getAllFolderPaths` emits.
-
-Wrong, and why it cannot ship:
-
-- It drops `FileTreeNodeItem` along with `annotationCountMap`,
-  `getAnnotationCount`, and the `sinceBaseSections` `getSectionEntry` lookup.
-  `spec/04-file-tree.md:67-68` requires preserving viewed state/progress,
-  applicable annotation counts, and active-file highlighting. Nothing re-renders
-  that per-row metadata on the Pierre rows, so review progress and annotation
-  counts vanish from the tree. **This is the main thing to solve** — find out
-  how `@pierre/trees` allows per-row adornments before rewriting step 3.
-- Step 3's four acceptance behaviors have no tests: fresh tree opens folders,
-  empty directories flatten, query hides non-matches, and
-  clear/close/Enter/Shift+Enter search behavior stays correct.
-- It removes the old expansion/search rendering during step 3. That removal is
-  step 5's, and only after adapter parity is proven.
-- The DOM gate does NOT pass against it. A sweep run by the coordinator returned
-  **2014 pass / 1 skip / 1 fail across 231 files**, against a 2015/1/0/231
-  baseline — so it breaks one existing test. Treat that number with one caveat:
-  the run overlapped the branch switch that parked this work, so the single
-  failure could be an artifact of files moving mid-run. Re-run the sweep against
-  `spec-04-step-3-wip` in isolation before concluding which test broke and why.
-  `typecheck` exits 0 and both TS baselines hold (review-editor 51, editor 39).
+- Specs 01-03 never got their completion records (baseline SHA/measurements,
+  per-step test evidence, palette matrix). Spec 06 step 1 reads those records, so
+  they have to exist before the rename work starts.
+- `packages/review-editor` and `packages/editor` are not in the root `typecheck`
+  script and carry pre-existing errors (51 and 39 at their last baselines). Check
+  a delta, never an absolute zero, for those two.
 
 ## Gates (the ONLY correct ones)
 

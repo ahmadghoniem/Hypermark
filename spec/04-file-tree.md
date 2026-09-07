@@ -1,6 +1,6 @@
 # 04 — Review file tree
 
-**Status:** NOT IMPLEMENTED
+**Status:** IMPLEMENTED (steps 1-5). The PR/worktree-picker questions stay open by design.
 
 **Objective:** Replace the retained review navigator with the fixed, compact
 tree configuration while preserving review identity, search, navigation, and
