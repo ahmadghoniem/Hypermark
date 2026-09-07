@@ -4,11 +4,13 @@ import type {
   CodeAnnotationType,
   ConventionalDecoration,
   ConventionalLabel,
+  ImageAttachment,
   SelectedLineRange,
   TokenAnnotationMeta,
 } from '@plannotator/ui/types';
 import type { DiffTokenEventBaseProps } from '@pierre/diffs';
 import { useConfigValue } from '@plannotator/ui/config';
+import { useAttachmentUploads } from '@plannotator/ui/hooks/useAttachmentUploads';
 import { useAnnotationToolbar } from '../hooks/useAnnotationToolbar';
 import { AnnotationToolbar } from './AnnotationToolbar';
 import { SuggestionModal } from './SuggestionModal';
@@ -36,6 +38,7 @@ interface ToolbarHostProps {
     conventionalLabel?: ConventionalLabel,
     decorations?: ConventionalDecoration[],
     tokenMeta?: TokenAnnotationMeta,
+    images?: ImageAttachment[],
   ) => void;
   onEditAnnotation: (
     id: string,
@@ -44,6 +47,7 @@ interface ToolbarHostProps {
     originalCode?: string,
     conventionalLabel?: ConventionalLabel | null,
     decorations?: ConventionalDecoration[],
+    images?: ImageAttachment[],
   ) => void;
 }
 
@@ -70,6 +74,17 @@ export const ToolbarHost = forwardRef<ToolbarHostHandle, ToolbarHostProps>(funct
     onAddAnnotation,
     onEditAnnotation,
   });
+
+  // Spec 05 §3.2: the composer owns its attachments. Owned here (not inside
+  // AnnotationToolbar/ExpandedCommentDialog) so in-flight uploads survive the
+  // expand/collapse switch between those two composer surfaces for the same draft.
+  const addImage = useCallback((image: ImageAttachment) => {
+    toolbar.setImages((prev) => [...prev, image]);
+  }, [toolbar.setImages]);
+  const removeImage = useCallback((path: string) => {
+    toolbar.setImages((prev) => prev.filter((i) => i.path !== path));
+  }, [toolbar.setImages]);
+  const uploads = useAttachmentUploads({ images: toolbar.images, onAdd: addImage });
 
   const conventionalCommentsEnabled = useConfigValue('conventionalComments');
   const conventionalLabelsJson = useConfigValue('conventionalLabels');
@@ -128,7 +143,7 @@ export const ToolbarHost = forwardRef<ToolbarHostHandle, ToolbarHostProps>(funct
     return formatLineRange(toolbarState.range.start, toolbarState.range.end);
   }, [toolbar.editingAnnotationId, toolbar.toolbarState]);
 
-  const canSubmitAnnotation = toolbar.commentText.trim().length > 0 || toolbar.suggestedCode.trim().length > 0;
+  const canSubmitAnnotation = toolbar.commentText.trim().length > 0 || toolbar.suggestedCode.trim().length > 0 || toolbar.images.length > 0;
 
   return (
     <>
@@ -155,6 +170,13 @@ export const ToolbarHost = forwardRef<ToolbarHostHandle, ToolbarHostProps>(funct
           decorations={toolbar.decorations}
           onDecorationsChange={toolbar.setDecorations}
           enabledLabels={enabledLabels}
+          images={toolbar.images}
+          pendingAttachments={uploads.pending}
+          onAddImage={addImage}
+          onRemoveImage={removeImage}
+          onRemovePendingAttachment={uploads.removePending}
+          onRetryPendingAttachment={uploads.retry}
+          onAttachFiles={uploads.attachFiles}
         />
       )}
 
@@ -172,6 +194,13 @@ export const ToolbarHost = forwardRef<ToolbarHostHandle, ToolbarHostProps>(funct
           collapsible={!toolbar.expandedComposerRequired}
           onEditSuggestion={toolbar.expandedComposerRequired ? handleEditSuggestion : undefined}
           hasSuggestedCode={toolbar.suggestedCode.trim().length > 0}
+          images={toolbar.images}
+          pendingAttachments={uploads.pending}
+          onAddImage={addImage}
+          onRemoveImage={removeImage}
+          onRemovePendingAttachment={uploads.removePending}
+          onRetryPendingAttachment={uploads.retry}
+          onAttachFiles={uploads.attachFiles}
         />
       )}
 

@@ -1,15 +1,18 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ToolbarState } from '../hooks/useAnnotationToolbar';
 import { useTabIndent } from '../hooks/useTabIndent';
 import { formatLineRange, formatTokenContext } from '../utils/formatLineRange';
 import { ConventionalLabelPicker, type LabelDef } from './ConventionalLabelPicker';
-import type { ConventionalLabel, ConventionalDecoration } from '@plannotator/ui/types';
+import type { ConventionalLabel, ConventionalDecoration, ImageAttachment } from '@plannotator/ui/types';
 import { useDraggable } from '@plannotator/ui/hooks/useDraggable';
 import {
   hasPrimaryCoarsePointer,
   useVisibleViewportBounds,
 } from '@plannotator/ui/hooks/useViewportEnvironment';
+import { AttachmentStrip, type PendingAttachment } from '@plannotator/ui/components/AttachmentStrip';
+import { AttachmentsButton } from '@plannotator/ui/components/AttachmentsButton';
+import { imageFilesFrom } from '@plannotator/ui/hooks/useAttachmentUploads';
 
 interface AnnotationToolbarProps {
   toolbarState: ToolbarState;
@@ -34,6 +37,15 @@ interface AnnotationToolbarProps {
   decorations: ConventionalDecoration[];
   onDecorationsChange: (decorations: ConventionalDecoration[]) => void;
   enabledLabels?: LabelDef[];
+  // Spec 05 §3.2: comment-owned image attachments, owned by ToolbarHost so
+  // in-flight uploads survive the collapse/expand switch to ExpandedCommentDialog.
+  images: ImageAttachment[];
+  pendingAttachments: readonly PendingAttachment[];
+  onAddImage: (image: ImageAttachment) => void;
+  onRemoveImage: (path: string) => void;
+  onRemovePendingAttachment: (id: string) => void;
+  onRetryPendingAttachment: (id: string) => void;
+  onAttachFiles: (files: Iterable<File> | FileList | null | undefined) => void;
 }
 
 // The 338px border box contains the 320px composer, padding, and border.
@@ -62,6 +74,13 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
   decorations,
   onDecorationsChange,
   enabledLabels,
+  images,
+  pendingAttachments,
+  onAddImage,
+  onRemoveImage,
+  onRemovePendingAttachment,
+  onRetryPendingAttachment,
+  onAttachFiles,
 }) => {
   const coarsePointer = hasPrimaryCoarsePointer();
   const visibleBounds = useVisibleViewportBounds(coarsePointer ? 16 : 0);
@@ -70,6 +89,40 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
   const suggestedCodeRef = useRef<HTMLTextAreaElement>(null);
   const handleTabIndent = useTabIndent(setSuggestedCode);
   const { dragPosition, dragHandleProps, wasDragged, reset: resetDrag } = useDraggable(toolbarRef);
+
+  // Paste anywhere in this open composer attaches to this comment (spec 05 §3.2.5).
+  // Capture phase + stopPropagation keeps any document-level paste handler from
+  // also processing the same event.
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const target = e.target as Node | null;
+      if (!target || !toolbarRef.current?.contains(target)) return;
+      const files = imageFilesFrom(e.clipboardData);
+      if (files.length === 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      onAttachFiles(files);
+    };
+    document.addEventListener('paste', handlePaste, true);
+    return () => document.removeEventListener('paste', handlePaste, true);
+  }, [onAttachFiles, toolbarRef]);
+
+  const handleComposerDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer?.types?.includes('Files')) e.preventDefault();
+  }, []);
+  const handleComposerDrop = useCallback((e: React.DragEvent) => {
+    const files = imageFilesFrom(e.dataTransfer);
+    if (files.length === 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onAttachFiles(files);
+  }, [onAttachFiles]);
+
+  const focusAttachAction = useCallback(() => {
+    toolbarRef.current
+      ?.querySelector<HTMLButtonElement>('button[aria-label="Attachments"]')
+      ?.focus();
+  }, [toolbarRef]);
 
   // Reset drag when toolbar reopens for a new selection
   useEffect(() => {
@@ -156,22 +209,36 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
             />
           )}
 
-          <textarea
-            data-pn-mobile-editable="true"
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            placeholder="Leave feedback..."
-            className="w-full min-h-[4.5rem] max-h-[calc(var(--pn-viewport-height,100vh)-16rem)] px-3 py-2 bg-muted rounded-lg text-xs leading-6 resize-y border-0 focus:outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground"
-            rows={3}
-            autoFocus={!coarsePointer}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                e.stopPropagation();
-                onDismiss();
-              } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
-                onSubmit();
-              }
-            }}
+          <div onDragOver={handleComposerDragOver} onDrop={handleComposerDrop}>
+            <textarea
+              data-pn-mobile-editable="true"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Leave feedback..."
+              className="w-full min-h-[4.5rem] max-h-[calc(var(--pn-viewport-height,100vh)-16rem)] px-3 py-2 bg-muted rounded-lg text-xs leading-6 resize-y border-0 focus:outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground"
+              rows={3}
+              autoFocus={!coarsePointer}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.stopPropagation();
+                  onDismiss();
+                } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
+                  onSubmit();
+                }
+              }}
+            />
+          </div>
+
+          {/* Spec 05 §3.2.1: strip lives inside the composer, between the
+              textarea and the action row — never a floating card or footer-only preview. */}
+          <AttachmentStrip
+            images={images}
+            pending={pendingAttachments}
+            onRemove={onRemoveImage}
+            onRemovePending={onRemovePendingAttachment}
+            onRetryPending={onRetryPendingAttachment}
+            onFocusAfterLastRemoved={focusAttachAction}
+            className="mt-2"
           />
 
           {/* Optional suggested code section */}
@@ -235,10 +302,16 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
           )}
 
           <div className="flex items-center gap-2 mt-3">
+            <AttachmentsButton
+              images={images}
+              onAdd={onAddImage}
+              onRemove={onRemoveImage}
+              variant="inline"
+            />
             {/* Add Comment button — right side */}
             <button
               onClick={onSubmit}
-              disabled={!commentText.trim() && !suggestedCode.trim()}
+              disabled={!commentText.trim() && !suggestedCode.trim() && images.length === 0}
               className="review-toolbar-btn primary disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
             >
               {isEditing ? 'Update' : 'Add Comment'}

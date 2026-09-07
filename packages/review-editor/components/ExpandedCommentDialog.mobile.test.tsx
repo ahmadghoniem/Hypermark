@@ -47,6 +47,13 @@ describe('ExpandedCommentDialog mobile composition', () => {
         autoFocus={false}
         collapsible={false}
         onEditSuggestion={() => { suggestionOpens += 1; }}
+        images={[]}
+        pendingAttachments={[]}
+        onAddImage={() => {}}
+        onRemoveImage={() => {}}
+        onRemovePendingAttachment={() => {}}
+        onRetryPendingAttachment={() => {}}
+        onAttachFiles={() => {}}
       />,
     );
 

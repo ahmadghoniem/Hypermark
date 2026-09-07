@@ -1,6 +1,10 @@
-import React, { useRef } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { useReviewAnnotationToolbarShortcuts } from '@plannotator/ui/shortcuts';
+import type { ImageAttachment } from '@plannotator/ui/types';
+import { AttachmentStrip, type PendingAttachment } from '@plannotator/ui/components/AttachmentStrip';
+import { AttachmentsButton } from '@plannotator/ui/components/AttachmentsButton';
+import { imageFilesFrom } from '@plannotator/ui/hooks/useAttachmentUploads';
 
 interface ExpandedCommentDialogProps {
   title: string;
@@ -15,6 +19,15 @@ interface ExpandedCommentDialogProps {
   collapsible?: boolean;
   onEditSuggestion?: () => void;
   hasSuggestedCode?: boolean;
+  // Spec 05 §3.2: comment-owned image attachments, owned by ToolbarHost so
+  // in-flight uploads survive the collapse/expand switch to AnnotationToolbar.
+  images: ImageAttachment[];
+  pendingAttachments: readonly PendingAttachment[];
+  onAddImage: (image: ImageAttachment) => void;
+  onRemoveImage: (path: string) => void;
+  onRemovePendingAttachment: (id: string) => void;
+  onRetryPendingAttachment: (id: string) => void;
+  onAttachFiles: (files: Iterable<File> | FileList | null | undefined) => void;
 }
 
 export const ExpandedCommentDialog: React.FC<ExpandedCommentDialogProps> = ({
@@ -30,10 +43,49 @@ export const ExpandedCommentDialog: React.FC<ExpandedCommentDialogProps> = ({
   collapsible = true,
   onEditSuggestion,
   hasSuggestedCode = false,
+  images,
+  pendingAttachments,
+  onAddImage,
+  onRemoveImage,
+  onRemovePendingAttachment,
+  onRetryPendingAttachment,
+  onAttachFiles,
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const submitLabel = isEditing ? 'Update' : 'Add Comment';
+
+  // Paste anywhere in this open composer attaches to this comment (spec 05 §3.2.5).
+  React.useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const target = e.target as Node | null;
+      if (!target || !dialogRef.current?.contains(target)) return;
+      const files = imageFilesFrom(e.clipboardData);
+      if (files.length === 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      onAttachFiles(files);
+    };
+    document.addEventListener('paste', handlePaste, true);
+    return () => document.removeEventListener('paste', handlePaste, true);
+  }, [onAttachFiles]);
+
+  const handleComposerDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer?.types?.includes('Files')) e.preventDefault();
+  }, []);
+  const handleComposerDrop = useCallback((e: React.DragEvent) => {
+    const files = imageFilesFrom(e.dataTransfer);
+    if (files.length === 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onAttachFiles(files);
+  }, [onAttachFiles]);
+
+  const focusAttachAction = useCallback(() => {
+    dialogRef.current
+      ?.querySelector<HTMLButtonElement>('button[aria-label="Attachments"]')
+      ?.focus();
+  }, []);
 
   useReviewAnnotationToolbarShortcuts({
     target: 'document',
@@ -109,7 +161,11 @@ export const ExpandedCommentDialog: React.FC<ExpandedCommentDialogProps> = ({
             </div>
           </div>
 
-          <div className="px-4 py-3 min-h-0 flex-1 flex">
+          <div
+            className="px-4 py-3 min-h-0 flex-1 flex flex-col"
+            onDragOver={handleComposerDragOver}
+            onDrop={handleComposerDrop}
+          >
             <textarea
               data-pn-mobile-editable="true"
               ref={textareaRef}
@@ -120,8 +176,26 @@ export const ExpandedCommentDialog: React.FC<ExpandedCommentDialogProps> = ({
             />
           </div>
 
+          {/* Spec 05 §3.2.1: strip lives inside the composer, between the
+              textarea and the action row — never a floating card or footer-only preview. */}
+          <AttachmentStrip
+            images={images}
+            pending={pendingAttachments}
+            onRemove={onRemoveImage}
+            onRemovePending={onRemovePendingAttachment}
+            onRetryPending={onRetryPendingAttachment}
+            onFocusAfterLastRemoved={focusAttachAction}
+            className="px-4 pb-3"
+          />
+
           <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-border/50">
             <div className="flex flex-wrap items-center gap-3">
+              <AttachmentsButton
+                images={images}
+                onAdd={onAddImage}
+                onRemove={onRemoveImage}
+                variant="inline"
+              />
               {onEditSuggestion && (
                 <button
                   type="button"

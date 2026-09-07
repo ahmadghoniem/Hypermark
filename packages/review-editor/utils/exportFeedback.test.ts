@@ -67,6 +67,31 @@ describe("exportReviewFeedback", () => {
     expect(result.match(/This looks wrong/g)).toHaveLength(1);
   });
 
+  it("includes a line comment's attached images (spec 05 §4.1.4)", () => {
+    const result = exportReviewFeedback([ann({
+      images: [
+        { path: '/uploads/a.png', name: 'a.png' },
+        { path: '/uploads/b.png', name: 'b.png' },
+      ],
+    })]);
+
+    expect(result).toContain('**Attached images:**');
+    expect(result).toContain('- [a.png] `/uploads/a.png`');
+    expect(result).toContain('- [b.png] `/uploads/b.png`');
+  });
+
+  it("includes a file comment's attached images", () => {
+    const result = exportReviewFeedback([ann({
+      scope: 'file',
+      lineStart: 1,
+      lineEnd: 1,
+      images: [{ path: '/uploads/c.png', name: 'c.png' }],
+    })]);
+
+    expect(result).toContain('### File Comment');
+    expect(result).toContain('- [c.png] `/uploads/c.png`');
+  });
+
   it("exports file-scoped out-of-hunk Call Flow feedback without inventing an inline line", () => {
     const result = exportReviewFeedback([ann({
       scope: 'file',

@@ -38,7 +38,7 @@ import { configStore, useConfigValue, setReviewPanelView } from '@plannotator/ui
 import { getAgentSwitchSettings, getEffectiveAgentName } from '@plannotator/ui/utils/agentSwitch';
 import { LookAndFeelAnnouncementDialog } from '@plannotator/ui/components/LookAndFeelAnnouncementDialog';
 import { markLookAndFeelChoiceResolved, needsLookAndFeelAnnouncement } from '@plannotator/ui/utils/lookAndFeelAnnouncement';
-import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, Annotation, CommentAnnotation, type ArtifactAnnotationMeta, type CallFlowAnnotationTarget } from '@plannotator/ui/types';
+import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, Annotation, CommentAnnotation, type ArtifactAnnotationMeta, type CallFlowAnnotationTarget, type ImageAttachment } from '@plannotator/ui/types';
 import { useResizablePanel } from '@plannotator/ui/hooks/useResizablePanel';
 import { useCodeAnnotationDraft } from '@plannotator/ui/hooks/useCodeAnnotationDraft';
 import { generateId } from './utils/generateId';
@@ -1727,7 +1727,8 @@ const ReviewAppInner: React.FC = () => {
     originalCode?: string,
     conventionalLabel?: ConventionalLabel,
     decorations?: ConventionalDecoration[],
-    tokenMeta?: TokenAnnotationMeta
+    tokenMeta?: TokenAnnotationMeta,
+    images?: ImageAttachment[]
   ) => {
     if (!pendingSelection) return;
     const lineStart = Math.min(pendingSelection.start, pendingSelection.end);
@@ -1752,6 +1753,7 @@ const ReviewAppInner: React.FC = () => {
       author: identity,
       conventionalLabel,
       decorations,
+      images,
     };
     addCodeAnnotationsWithHistory([withPRContext(newAnnotation)]);
     clearPendingSelection();
@@ -1850,10 +1852,11 @@ const ReviewAppInner: React.FC = () => {
     originalCode?: string,
     conventionalLabel?: ConventionalLabel,
     decorations?: ConventionalDecoration[],
-    tokenMeta?: TokenAnnotationMeta
+    tokenMeta?: TokenAnnotationMeta,
+    images?: ImageAttachment[]
   ) => {
     if (!files[activeFileIndex]) return;
-    handleAddAnnotationForFile(files[activeFileIndex].path, type, text, suggestedCode, originalCode, conventionalLabel, decorations, tokenMeta);
+    handleAddAnnotationForFile(files[activeFileIndex].path, type, text, suggestedCode, originalCode, conventionalLabel, decorations, tokenMeta, images);
   }, [files, activeFileIndex, handleAddAnnotationForFile]);
 
   const handleAddFileComment = useCallback((text: string) => {
@@ -1905,6 +1908,7 @@ const ReviewAppInner: React.FC = () => {
     originalCode?: string,
     conventionalLabel?: ConventionalLabel | null,
     decorations?: ConventionalDecoration[],
+    images?: ImageAttachment[],
   ) => {
     const ann = allAnnotationsRef.current.find(a => a.id === id);
     if (ann?.source) reviewHistory.clear();
@@ -1915,6 +1919,10 @@ const ReviewAppInner: React.FC = () => {
       // null clears the label; undefined means "not provided, keep existing"
       ...(conventionalLabel !== undefined && { conventionalLabel: conventionalLabel ?? undefined }),
       ...(decorations !== undefined && { decorations }),
+      // The composer always sends its concrete image list (never omits it), so
+      // an edit that removed every image clears the saved list instead of
+      // leaving stale references behind (spec 05 §4.1.5).
+      ...(images !== undefined && { images: images.length > 0 ? images : undefined }),
     };
     if (ann?.source && externalAnnotations.some(e => e.id === id)) {
       updateExternalAnnotation(id, updates);

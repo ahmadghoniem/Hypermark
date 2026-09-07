@@ -70,6 +70,13 @@ async function mountToolbar(positionLeft: number): Promise<HTMLElement> {
         onConventionalLabelChange={() => {}}
         decorations={[]}
         onDecorationsChange={() => {}}
+        images={[]}
+        pendingAttachments={[]}
+        onAddImage={() => {}}
+        onRemoveImage={() => {}}
+        onRemovePendingAttachment={() => {}}
+        onRetryPendingAttachment={() => {}}
+        onAttachFiles={() => {}}
       />,
     );
   });

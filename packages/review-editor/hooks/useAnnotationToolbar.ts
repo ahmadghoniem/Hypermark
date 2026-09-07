@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { CodeAnnotation, SelectedLineRange, CodeAnnotationType, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration } from '@plannotator/ui/types';
+import { CodeAnnotation, SelectedLineRange, CodeAnnotationType, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, ImageAttachment } from '@plannotator/ui/types';
 import { useDismissOnOutsideAndEscape } from '@plannotator/ui/hooks/useDismissOnOutsideAndEscape';
 import {
   hasPrimaryCoarsePointer,
@@ -33,8 +33,8 @@ interface UseAnnotationToolbarArgs {
   filePath: string;
   isFocused: boolean;
   onLineSelection: (range: SelectedLineRange | null) => void;
-  onAddAnnotation: (type: CodeAnnotationType, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel, decorations?: ConventionalDecoration[], tokenMeta?: TokenAnnotationMeta) => void;
-  onEditAnnotation: (id: string, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel | null, decorations?: ConventionalDecoration[]) => void;
+  onAddAnnotation: (type: CodeAnnotationType, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel, decorations?: ConventionalDecoration[], tokenMeta?: TokenAnnotationMeta, images?: ImageAttachment[]) => void;
+  onEditAnnotation: (id: string, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel | null, decorations?: ConventionalDecoration[], images?: ImageAttachment[]) => void;
 }
 
 // Per-range draft storage (survives component remounts, e.g. file switches)
@@ -44,6 +44,7 @@ interface Draft {
   showSuggestedCode: boolean;
   conventionalLabel: ConventionalLabel | null;
   decorations: ConventionalDecoration[];
+  images: ImageAttachment[];
   range: SelectedLineRange;
   position: { top: number; left: number };
   tokenSelection?: TokenSelection;
@@ -79,10 +80,14 @@ export function useAnnotationToolbar({ patch, filePath, isFocused, onLineSelecti
   const [editingAnnotationId, setEditingAnnotationId] = useState<string | null>(null);
   const [conventionalLabel, setConventionalLabel] = useState<ConventionalLabel | null>(null);
   const [decorations, setDecorations] = useState<ConventionalDecoration[]>([]);
+  // Spec 05 §3.2/§4.1.5: images live on the same per-range draft as commentText,
+  // survive save/restore across remounts, and are forwarded to onAddAnnotation /
+  // onEditAnnotation exactly like the other composer fields.
+  const [images, setImages] = useState<ImageAttachment[]>([]);
 
   // Refs to avoid stale closures in saveDraft
-  const formRef = useRef({ commentText, suggestedCode, showSuggestedCode, conventionalLabel, decorations });
-  formRef.current = { commentText, suggestedCode, showSuggestedCode, conventionalLabel, decorations };
+  const formRef = useRef({ commentText, suggestedCode, showSuggestedCode, conventionalLabel, decorations, images });
+  formRef.current = { commentText, suggestedCode, showSuggestedCode, conventionalLabel, decorations, images };
   const toolbarStateRef = useRef(toolbarState);
   toolbarStateRef.current = toolbarState;
   const editingRef = useRef(editingAnnotationId);
@@ -95,7 +100,7 @@ export function useAnnotationToolbar({ patch, filePath, isFocused, onLineSelecti
     if (!range || editingRef.current) return;
     const form = formRef.current;
     const key = draftKey(filePath, range);
-    if (form.commentText.trim() || form.suggestedCode.trim() || form.conventionalLabel) {
+    if (form.commentText.trim() || form.suggestedCode.trim() || form.conventionalLabel || form.images.length > 0) {
       draftStore.set(key, {
         ...form,
         range,
@@ -143,6 +148,7 @@ export function useAnnotationToolbar({ patch, filePath, isFocused, onLineSelecti
     setEditingAnnotationId(null);
     setConventionalLabel(null);
     setDecorations([]);
+    setImages([]);
   }, []);
 
   // Track mouse position continuously for toolbar placement.
@@ -170,12 +176,14 @@ export function useAnnotationToolbar({ patch, filePath, isFocused, onLineSelecti
       setShowSuggestedCode(draft.showSuggestedCode);
       setConventionalLabel(draft.conventionalLabel);
       setDecorations(draft.decorations);
+      setImages(draft.images);
     } else {
       setCommentText('');
       setSuggestedCode('');
       setShowSuggestedCode(false);
       setConventionalLabel(null);
       setDecorations([]);
+      setImages([]);
     }
 
     setToolbarState({ position, range, tokenSelection });
@@ -224,16 +232,23 @@ export function useAnnotationToolbar({ patch, filePath, isFocused, onLineSelecti
   const handleSubmitAnnotation = useCallback(() => {
     const hasComment = commentText.trim().length > 0;
     const hasCode = suggestedCode.trim().length > 0;
-    if (!toolbarState || (!hasComment && !hasCode)) return;
+    const hasImages = images.length > 0;
+    // Spec 05 §3.2.1: an image-only comment must be submittable — text or code
+    // is no longer the only qualifying content.
+    if (!toolbarState || (!hasComment && !hasCode && !hasImages)) return;
 
     const text = hasComment ? commentText.trim() : undefined;
     const code = hasCode ? suggestedCode : undefined;
     const original = hasCode && selectedOriginalCode ? selectedOriginalCode : undefined;
 
     if (editingAnnotationId) {
-      // Edit path: pass null explicitly so a cleared label is removed from the annotation
-      onEditAnnotation(editingAnnotationId, text, code, original, conventionalLabel, decorations);
+      // Edit path: the composer always tracks a concrete image list, so it is
+      // sent unconditionally (unlike the has-content checks above) — an edit
+      // that removed every image must clear the annotation's saved list too,
+      // not leave it untouched the way "not provided" would.
+      onEditAnnotation(editingAnnotationId, text, code, original, conventionalLabel, decorations, images);
     } else {
+      const submittedImages = hasImages ? images : undefined;
       const tokenSel = toolbarState.tokenSelection;
       const tokenMeta = tokenSel ? {
         charStart: tokenSel.anchor.charStart,
@@ -248,12 +263,13 @@ export function useAnnotationToolbar({ patch, filePath, isFocused, onLineSelecti
         conventionalLabel ?? undefined,
         decorations.length > 0 ? decorations : undefined,
         tokenMeta,
+        submittedImages,
       );
     }
 
     clearDraft();
     resetForm();
-  }, [toolbarState, commentText, suggestedCode, selectedOriginalCode, editingAnnotationId, conventionalLabel, decorations, onAddAnnotation, onEditAnnotation, clearDraft, resetForm]);
+  }, [toolbarState, commentText, suggestedCode, selectedOriginalCode, images, editingAnnotationId, conventionalLabel, decorations, onAddAnnotation, onEditAnnotation, clearDraft, resetForm]);
 
   // Start editing an existing annotation
   const startEdit = useCallback((annotation: CodeAnnotation) => {
@@ -266,6 +282,7 @@ export function useAnnotationToolbar({ patch, filePath, isFocused, onLineSelecti
     setShowCommentModal(expandedComposerRequired);
     setConventionalLabel(annotation.conventionalLabel || null);
     setDecorations(annotation.decorations || []);
+    setImages(annotation.images || []);
 
     // Position toolbar near the annotation using last known mouse position
     const mousePos = lastMousePosition.current;
@@ -333,6 +350,7 @@ export function useAnnotationToolbar({ patch, filePath, isFocused, onLineSelecti
       setShowSuggestedCode(draft.showSuggestedCode);
       setConventionalLabel(draft.conventionalLabel);
       setDecorations(draft.decorations);
+      setImages(draft.images);
       setEditingAnnotationId(null);
       setShowCodeModal(false);
       setShowCommentModal(expandedComposerRequired);
@@ -403,6 +421,8 @@ export function useAnnotationToolbar({ patch, filePath, isFocused, onLineSelecti
     setConventionalLabel,
     decorations,
     setDecorations,
+    images,
+    setImages,
     // Refs
     toolbarRef,
     // Handlers

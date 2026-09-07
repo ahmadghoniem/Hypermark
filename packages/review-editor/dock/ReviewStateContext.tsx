@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import type { CallFlowAnnotationTarget, CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, Annotation, CommentAnnotation, ArtifactAnnotationMeta } from '@plannotator/ui/types';
+import type { CallFlowAnnotationTarget, CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, Annotation, CommentAnnotation, ArtifactAnnotationMeta, ImageAttachment } from '@plannotator/ui/types';
 import type { DiffFile, AnnotationScrollTarget } from '../types';
 import type { ReviewSearchMatch } from '../utils/reviewSearch';
 import type { PRMetadata, PRContext } from '@plannotator/shared/pr-types';
@@ -79,8 +79,8 @@ export interface ReviewState {
     targets: readonly CallFlowAnnotationTarget[],
     text: string,
   ) => boolean;
-  onAddAnnotation: (type: CodeAnnotationType, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel, decorations?: ConventionalDecoration[], tokenMeta?: TokenAnnotationMeta) => void;
-  onAddAnnotationForFile: (filePath: string, type: CodeAnnotationType, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel, decorations?: ConventionalDecoration[], tokenMeta?: TokenAnnotationMeta) => void;
+  onAddAnnotation: (type: CodeAnnotationType, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel, decorations?: ConventionalDecoration[], tokenMeta?: TokenAnnotationMeta, images?: ImageAttachment[]) => void;
+  onAddAnnotationForFile: (filePath: string, type: CodeAnnotationType, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel, decorations?: ConventionalDecoration[], tokenMeta?: TokenAnnotationMeta, images?: ImageAttachment[]) => void;
   /** EXPERIMENTAL edit-to-suggestion flag (cookie setting, default OFF). */
   editSuggestionsEnabled: boolean;
   /** Sink for suggestions derived from a completed edit session (one hunk per
@@ -91,7 +91,7 @@ export interface ReviewState {
   onAddEditorCommentForFile: (filePath: string, comment: EditSelectionComment) => void;
   onAddFileComment: (text: string) => void;
   onAddFileCommentForFile: (filePath: string, text: string) => void;
-  onEditAnnotation: (id: string, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel | null, decorations?: ConventionalDecoration[]) => void;
+  onEditAnnotation: (id: string, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel | null, decorations?: ConventionalDecoration[], images?: ImageAttachment[]) => void;
   /** Highlight a comment without moving the viewport (in-diff click). */
   onSelectAnnotation: (id: string | null) => void;
   /** Select AND scroll the diff to a comment (sidebar / findings-list click). */

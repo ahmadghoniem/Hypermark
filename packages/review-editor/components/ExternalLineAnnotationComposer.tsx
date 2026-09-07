@@ -3,6 +3,7 @@ import type {
   CodeAnnotationType,
   ConventionalDecoration,
   ConventionalLabel,
+  ImageAttachment,
   SelectedLineRange,
   TokenAnnotationMeta,
 } from '@plannotator/ui/types';
@@ -47,6 +48,7 @@ export function ExternalLineAnnotationComposer({
     conventionalLabel?: ConventionalLabel,
     decorations?: ConventionalDecoration[],
     tokenMeta?: TokenAnnotationMeta,
+    images?: ImageAttachment[],
   ) => {
     onAddAnnotationForFile(
       file.path,
@@ -57,6 +59,7 @@ export function ExternalLineAnnotationComposer({
       conventionalLabel,
       decorations,
       tokenMeta,
+      images,
     );
   }, [file.path, onAddAnnotationForFile]);
 
