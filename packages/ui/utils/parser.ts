@@ -1298,13 +1298,17 @@ export const exportAnnotations = (
           }
         } else {
           output += `Feedback on: "${ann.originalText}"\n`;
-          output += `> ${ann.text}\n`;
+          if (ann.text) {
+            output += `> ${ann.text}\n`;
+          }
         }
         break;
 
       case 'GLOBAL_COMMENT':
         output += `General feedback about the ${subject}\n`;
-        output += `> ${ann.text}\n`;
+        if (ann.text) {
+          output += `> ${ann.text}\n`;
+        }
         break;
     }
 
@@ -1409,12 +1413,16 @@ export const exportLinkedDocAnnotations = (
 
         case 'COMMENT':
           output += `Feedback on: "${ann.originalText}"\n`;
-          output += `> ${ann.text}\n`;
+          if (ann.text) {
+            output += `> ${ann.text}\n`;
+          }
           break;
 
         case 'GLOBAL_COMMENT':
           output += `General feedback about the document\n`;
-          output += `> ${ann.text}\n`;
+          if (ann.text) {
+            output += `> ${ann.text}\n`;
+          }
           break;
       }
 

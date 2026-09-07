@@ -1,4 +1,4 @@
-import type { CodeAnnotation, ConventionalLabel, ConventionalDecoration, CommentAnnotation, Annotation, ArtifactAnnotationMeta } from '@plannotator/ui/types';
+import type { CodeAnnotation, ConventionalLabel, ConventionalDecoration, CommentAnnotation, Annotation, ArtifactAnnotationMeta, ImageAttachment } from '@plannotator/ui/types';
 import type { PRMetadata } from '@plannotator/shared/pr-types';
 import { getMRLabel, getMRNumberLabel, getDisplayRepo } from '@plannotator/shared/pr-types';
 import { exportAnnotations, parseMarkdownToBlocks } from '@plannotator/ui/utils/parser';
@@ -152,6 +152,15 @@ export function formatCallFlowAnnotationTargets(annotation: CodeAnnotation): str
   return `\n\n**Selected call-flow steps:**\n${rows.join('\n')}`;
 }
 
+function formatAttachedImages(images?: ImageAttachment[]): string {
+  if (!images || images.length === 0) return '';
+  let output = '\n**Attached images:**\n';
+  for (const img of images) {
+    output += `- [${img.name}] \`${img.path}\`\n`;
+  }
+  return output;
+}
+
 function formatFileAnnotations(fileAnnotations: CodeAnnotation[], headingLevel = '###', currentDiff?: FeedbackDiffContext): string {
   let output = '';
 
@@ -179,6 +188,7 @@ function formatFileAnnotations(fileAnnotations: CodeAnnotation[], headingLevel =
       }
       output += formatCallFlowAnnotationTargets(ann);
       output += formatSuggestionBlocks(ann);
+      output += formatAttachedImages(ann.images);
       output += '\n';
       continue;
     }
@@ -204,6 +214,7 @@ function formatFileAnnotations(fileAnnotations: CodeAnnotation[], headingLevel =
     output += formatCallFlowAnnotationTargets(ann);
     output += formatSelectedTextBlock(ann);
     output += formatSuggestionBlocks(ann);
+    output += formatAttachedImages(ann.images);
     output += '\n';
   }
 
@@ -262,6 +273,7 @@ function renderGeneralComments(annotations: CodeAnnotation[]): string {
       output += `\n**Reasoning:** ${ann.reasoning}\n`;
     }
     output += formatCallFlowAnnotationTargets(ann);
+    output += formatAttachedImages(ann.images);
     output += '\n';
   }
   return output;
