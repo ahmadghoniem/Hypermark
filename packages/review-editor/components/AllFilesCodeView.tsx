@@ -46,8 +46,14 @@ import { annotationMatchesPrScope, isFileScopedAnnotation, lineRangeForAnnotatio
 import { useEditSession } from '../edit/useEditSession';
 import type { EditSelectionAnnotationRequest, EditSelectionComment } from '../edit/useEditSession';
 import type { SuggestionHunk } from '../edit/deriveSuggestions';
-import { lineAnnotationMetadata } from '../utils/annotationDisplay';
-import { InlineAnnotation } from './InlineAnnotation';
+import { projectFileAnnotations } from '../utils/lineAnnotationProjection';
+import {
+  GutterAnnotationMarker,
+  GutterAnnotationPopup,
+  groupAnchors,
+  useGutterAnnotations,
+  type GutterAnchor,
+} from './GutterAnnotations';
 import { detectLanguage } from '../utils/detectLanguage';
 import type { ReviewSearchMatch } from '../utils/reviewSearch';
 import {
@@ -343,30 +349,6 @@ interface ItemIdentity {
 // Pierre suppresses the header-prefix slot whenever a custom header is present
 // (renderDiffChildren makes them mutually exclusive), so file comments can't
 // live "between header and body" — instead they ride the line-annotation slot
-// Project a file's LINE annotations into Pierre's DiffLineAnnotation shape (side,
-// lineNumber = lineEnd, metadata = DiffAnnotationMetadata). File-scoped comments
-// are deliberately excluded — they render in the file header (renderCustomHeader),
-// not the gutter (see fileCommentsByPath).
-function projectFileAnnotations(
-  annotations: CodeAnnotation[],
-  filePath: string,
-  prUrl: string | undefined,
-  prDiffScope: string | undefined,
-): DiffLineAnnotation<DiffAnnotationMetadata>[] {
-  return annotations
-    .filter(
-      (a) =>
-        a.filePath === filePath &&
-        (a.scope ?? 'line') === 'line' &&
-        annotationMatchesPrScope(a, prUrl, prDiffScope),
-    )
-    .map((ann) => ({
-      side: ann.side === 'new' ? ('additions' as const) : ('deletions' as const),
-      lineNumber: ann.lineEnd,
-      metadata: lineAnnotationMetadata(ann),
-    }));
-}
-
 function buildItemIdentity(
   files: DiffFile[],
   visualOrder: number[],
@@ -701,6 +683,10 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   );
   const { filePathToItemId, filePathToItemIds, itemIdToFilePath, itemIdToFile } = identity;
 
+  // Gutter comment popup state for the whole virtualized list — one open popup
+  // at a time, owned here so a recycled row cannot strand it.
+  const gutter = useGutterAnnotations();
+
   // Stable identity of the current diff. Changes whenever the file set or any
   // file's patch CONTENT changes (diff type / base / whitespace / PR switch),
   // and is used as the CodeView `key` to force a remount + fresh seed.
@@ -846,8 +832,33 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   const handleEditAnnotation = useStableCallback((id: string) => {
     const ann = annotationsRef.current.find((a) => a.id === id);
     if (!ann) return;
+    // One surface per anchor: the popup closes as the composer opens.
+    gutter.close();
     toolbarHostRef.current?.startEdit(ann);
   });
+
+  // Every gutter anchor across the whole virtualized list, keyed by
+  // `path:side:line`. Markers are recycled with their rows, so the anchor data
+  // must live here (stable) rather than inside a rendered slot.
+  const gutterAnchors = useMemo(() => {
+    const all = new Map<string, GutterAnchor>();
+    for (const file of files) {
+      const projected = projectFileAnnotations(annotations, file.path, prUrl, prDiffScope);
+      for (const [key, anchor] of groupAnchors(projected, `${file.path}:`, file.path)) {
+        if (!all.has(key)) all.set(key, anchor);
+      }
+    }
+    return all;
+  }, [annotations, files, prDiffScope, prUrl]);
+  const gutterAnchorsRef = useRef(gutterAnchors);
+  gutterAnchorsRef.current = gutterAnchors;
+  const openGutterAnchor = gutter.state ? gutterAnchors.get(gutter.state.anchorKey) : undefined;
+
+  // A deleted comment, an edited range, or a diff switch can remove the anchor
+  // a popup is pinned to.
+  useEffect(() => {
+    if (gutter.state && !gutterAnchors.has(gutter.state.anchorKey)) gutter.close();
+  }, [gutter, gutterAnchors]);
 
   // Per-file file-scoped comments, namespaced to the active PR/diff-scope. These
   // render in the file HEADER (renderCustomHeader, below the path) when the file
@@ -879,14 +890,20 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       if (!('side' in annotation) || item.type !== 'diff') return null;
       if (!annotation.metadata) return null;
       const filePath = itemIdToFilePath.get(item.id);
+      if (!filePath) return null;
+      // The anchor carries every comment on this line; the renderer calls this
+      // once per entry, so only the anchor's first annotation draws the marker.
+      const key = `${filePath}:${annotation.side}:${annotation.lineNumber}`;
+      const anchor = gutterAnchorsRef.current.get(key);
+      if (!anchor || anchor.annotations[0].annotationId !== annotation.metadata.annotationId) {
+        return null;
+      }
       return (
-        <InlineAnnotation
-          metadata={annotation.metadata}
-          language={filePath ? detectLanguage(filePath) : undefined}
-          isSelected={selectedAnnotationId === annotation.metadata.annotationId}
-          onSelect={onSelectAnnotation}
-          onEdit={handleEditAnnotation}
-          onDelete={onDeleteAnnotation}
+        <GutterAnnotationMarker
+          anchor={anchor}
+          controller={gutter}
+          isOpen={gutter.state?.anchorKey === key}
+          isSelected={anchor.annotations.some((a) => a.annotationId === selectedAnnotationId)}
         />
       );
     },
@@ -2478,6 +2495,19 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
           </div>,
           scrollEl,
         )}
+
+      {openGutterAnchor && gutter.state && (
+        <GutterAnnotationPopup
+          anchor={openGutterAnchor}
+          state={gutter.state}
+          controller={gutter}
+          language={openGutterAnchor.filePath ? detectLanguage(openGutterAnchor.filePath) : undefined}
+          selectedAnnotationId={selectedAnnotationId}
+          onSelect={onSelectAnnotation}
+          onEdit={handleEditAnnotation}
+          onDelete={onDeleteAnnotation}
+        />
+      )}
 
       {!readOnly && (
       <ToolbarHost

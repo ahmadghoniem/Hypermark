@@ -23,7 +23,12 @@ import type { AnnotationScrollTarget } from '../types';
 import { getLineNumberFromNode, getSideFromNode, getDiffSelection } from '../utils/diffSelection';
 import { isContentConsistentWithPatch } from '../utils/patchConsistency';
 import { hashString } from '../utils/hashString';
-import { InlineAnnotation } from './InlineAnnotation';
+import {
+  GutterAnnotationMarker,
+  GutterAnnotationPopup,
+  groupAnchors,
+  useGutterAnnotations,
+} from './GutterAnnotations';
 import { type ReviewSearchMatch } from '../utils/reviewSearch';
 import {
   applySearchHighlights,
@@ -557,40 +562,69 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
     };
   }, [pendingSelection, filePath, augmentedDiff, viewport]);
 
-  // Map annotations to @pierre/diffs format
+  // Map annotations to @pierre/diffs format. A multi-line comment gets a marker
+  // on every line it covers, not only on `lineEnd` (spec 05 §4.3.5), so the
+  // reviewer can reach it from anywhere in the range.
   const lineAnnotations = useMemo(() => {
-    return annotations
-      .filter(ann => (ann.scope ?? 'line') === 'line')
-      .map(ann => ({
-        side: ann.side === 'new' ? 'additions' as const : 'deletions' as const,
-        lineNumber: ann.lineEnd,
-        metadata: lineAnnotationMetadata(ann),
-      }));
+    const entries: Array<{ side: 'additions' | 'deletions'; lineNumber: number; metadata: DiffAnnotationMetadata }> = [];
+    for (const ann of annotations) {
+      if ((ann.scope ?? 'line') !== 'line') continue;
+      const side = ann.side === 'new' ? ('additions' as const) : ('deletions' as const);
+      const metadata = lineAnnotationMetadata(ann);
+      const start = Math.min(ann.lineStart ?? ann.lineEnd, ann.lineEnd);
+      for (let line = start; line <= ann.lineEnd; line += 1) {
+        entries.push({ side, lineNumber: line, metadata });
+      }
+    }
+    return entries;
   }, [annotations]);
 
   const mergedAnnotations = lineAnnotations;
 
-  // Handle edit: find annotation and start editing in toolbar
+  // One anchor per (side, line); overlapping comments share it and are listed
+  // together in a single popup.
+  const gutterAnchors = useMemo(
+    () => groupAnchors(lineAnnotations, `${filePath}:`, filePath),
+    [filePath, lineAnnotations],
+  );
+  const gutter = useGutterAnnotations();
+  const openAnchor = gutter.state ? gutterAnchors.get(gutter.state.anchorKey) : undefined;
+
+  // A popup must not outlive its anchor: a diff switch, a deleted comment, or a
+  // file change can remove the line it was pinned to.
+  useEffect(() => {
+    if (gutter.state && !gutterAnchors.has(gutter.state.anchorKey)) gutter.close();
+  }, [gutter, gutterAnchors]);
+
+  // Handle edit: the pinned popup hands the annotation to the one review
+  // composer, anchored at the same lines (spec 05 §3.1.4 — one surface at the
+  // anchor at a time, never a popup and a composer together).
   const handleEdit = useCallback((id: string) => {
     const ann = annotations.find(a => a.id === id);
-    if (ann) toolbarHostRef.current?.startEdit(ann);
-  }, [annotations]);
+    if (!ann) return;
+    gutter.close();
+    toolbarHostRef.current?.startEdit(ann);
+  }, [annotations, gutter]);
 
-  // Render annotation in diff
+  // Render the gutter marker for this line. The renderer calls this once per
+  // line annotation, so an anchor carrying several comments would otherwise
+  // stack duplicate markers: only the anchor's first annotation draws it, and
+  // the marker itself represents all of them.
   const renderAnnotation = useCallback((annotation: { side: string; lineNumber: number; metadata?: DiffAnnotationMetadata }) => {
     if (!annotation.metadata) return null;
+    const key = `${filePath}:${annotation.side}:${annotation.lineNumber}`;
+    const anchor = gutterAnchors.get(key);
+    if (!anchor || anchor.annotations[0].annotationId !== annotation.metadata.annotationId) return null;
 
     return (
-      <InlineAnnotation
-        metadata={annotation.metadata}
-        language={detectLanguage(filePath)}
-        isSelected={annotation.metadata.annotationId === selectedAnnotationId}
-        onSelect={onSelectAnnotation}
-        onEdit={handleEdit}
-        onDelete={onDeleteAnnotation}
+      <GutterAnnotationMarker
+        anchor={anchor}
+        controller={gutter}
+        isOpen={gutter.state?.anchorKey === key}
+        isSelected={anchor.annotations.some((a) => a.annotationId === selectedAnnotationId)}
       />
     );
-  }, [filePath, selectedAnnotationId, onSelectAnnotation, handleEdit, onDeleteAnnotation]);
+  }, [filePath, gutter, gutterAnchors, selectedAnnotationId]);
 
   const handleLineSelectionInteraction = useCallback((
     source: LineSelectionSource,
@@ -799,6 +833,19 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
             />
           </div>
         </div>
+
+      {openAnchor && gutter.state && (
+        <GutterAnnotationPopup
+          anchor={openAnchor}
+          state={gutter.state}
+          controller={gutter}
+          language={detectLanguage(filePath)}
+          selectedAnnotationId={selectedAnnotationId}
+          onSelect={onSelectAnnotation}
+          onEdit={handleEdit}
+          onDelete={onDeleteAnnotation}
+        />
+      )}
 
       <ToolbarHost
         ref={toolbarHostRef}
