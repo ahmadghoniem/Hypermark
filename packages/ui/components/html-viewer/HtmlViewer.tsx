@@ -13,7 +13,6 @@ import { AnnotationType } from "../../types";
 import { getIdentity } from "../../utils/identity";
 import { THUMBS_UP_LABEL } from "../../utils/quickLabels";
 import { AnnotationToolbar } from "../AnnotationToolbar";
-import { AttachmentsButton } from "../AttachmentsButton";
 import {
   CommentPopover,
   type CommentTargetChip,
@@ -135,9 +134,6 @@ export interface HtmlViewerProps {
   onAnnotateModeExit?: () => void;
   /** Mod+Shift+A pressed while focus lived inside the iframe. */
   onAnnotateModeToggle?: () => void;
-  globalAttachments?: ImageAttachment[];
-  onAddGlobalAttachment?: (image: ImageAttachment) => void;
-  onRemoveGlobalAttachment?: (path: string) => void;
   maxWidth?: number | null;
   /** Render edge-to-edge: fill the viewport, drop the card chrome + action bar,
    *  and let the iframe own the full height instead of auto-resizing to content. */
@@ -234,9 +230,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       annotateModeActive = true,
       onAnnotateModeExit,
       onAnnotateModeToggle,
-      globalAttachments = [],
-      onAddGlobalAttachment,
-      onRemoveGlobalAttachment,
       maxWidth,
       fullViewport,
       hideControls,
@@ -789,14 +782,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
             </svg>
             <span>{diffActive ? "Hide changes" : "Show changes"}</span>
           </button>
-        )}
-        {!readOnly && onAddGlobalAttachment && onRemoveGlobalAttachment && (
-          <AttachmentsButton
-            images={globalAttachments}
-            onAdd={onAddGlobalAttachment}
-            onRemove={onRemoveGlobalAttachment}
-            variant="toolbar"
-          />
         )}
         {!readOnly && (
           <button

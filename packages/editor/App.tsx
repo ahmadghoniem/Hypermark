@@ -63,8 +63,6 @@ import {
   type PermissionMode,
 } from '@plannotator/ui/utils/permissionMode';
 import { PermissionModeSetup } from '@plannotator/ui/components/PermissionModeSetup';
-import { ImageAnnotator } from '@plannotator/ui/components/ImageAnnotator';
-import { deriveImageName } from '@plannotator/ui/components/AttachmentsButton';
 import { useSidebar, type SidebarTab } from '@plannotator/ui/hooks/useSidebar';
 import { usePlanDiff, type VersionInfo, type VersionEntry, type PlanDiffFetchers } from '@plannotator/ui/hooks/usePlanDiff';
 import { useLinkedDoc, type LinkedDocSessionState } from '@plannotator/ui/hooks/useLinkedDoc';
@@ -511,6 +509,12 @@ const AppInner: React.FC = () => {
   const editSessionBaseRef = useRef<string>('');
   const markdownEditorHandleRef = useRef<MarkdownEditorHandle | null>(null);
   const suspendedRootEditableKeyRef = useRef<string | null>(null);
+  // Legacy, read-only (spec 05 §4.1): the toolbar Images action and the
+  // document-level paste handler that used to write here are gone. This stays
+  // at [] for the life of a session — restore-time normalization folds any
+  // stored top-level images into a GLOBAL_COMMENT annotation instead — and is
+  // only still threaded through useLinkedDoc/useAnnotationDraft/export
+  // payload shapes that read it.
   const [globalAttachments, setGlobalAttachments] = useState<ImageAttachment[]>([]);
   const [annotateMode, setAnnotateMode] = useState(false);
   const [gate, setGate] = useState(false);
@@ -574,7 +578,6 @@ const AppInner: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [submitted, setSubmitted] = useState<'approved' | 'denied' | 'exited' | null>(null);
-  const [pendingPasteImage, setPendingPasteImage] = useState<{ file: File; blobUrl: string; initialName: string } | null>(null);
   const [showPermissionModeSetup, setShowPermissionModeSetup] = useState(false);
   const [permissionMode, setPermissionMode] = useState<PermissionMode>('bypassPermissions');
   const [repoInfo, setRepoInfo] = useState<{ display: string; branch?: string; host?: string } | null>(null);
@@ -1369,7 +1372,7 @@ const AppInner: React.FC = () => {
     if (document.querySelector('[data-plannotator-confirm-dialog="true"]')) return false;
     if (showFeedbackPrompt || showClaudeCodeWarning ||
         showSourceFileEditWarning ||
-        showExitWarning || showAgentWarning || showPermissionModeSetup || pendingPasteImage) return false;
+        showExitWarning || showAgentWarning || showPermissionModeSetup) return false;
     if (submitted || isSubmitting || isExiting || isEditingMarkdown) return false;
 
     const target = event.target as HTMLElement | null;
@@ -1384,7 +1387,6 @@ const AppInner: React.FC = () => {
     showExitWarning,
     showAgentWarning,
     showPermissionModeSetup,
-    pendingPasteImage,
     submitted,
     isSubmitting,
     isExiting,
@@ -1398,9 +1400,9 @@ const AppInner: React.FC = () => {
 
   const canHandleAnnotationHistoryShortcut = useCallback((event: KeyboardEvent) => {
     if (event.defaultPrevented || documentReadOnly || submitted || isSubmitting || isExiting) return false;
-    if (isEditingMarkdown || pendingPasteImage || isNativeHistoryOwner(event)) return false;
+    if (isEditingMarkdown || isNativeHistoryOwner(event)) return false;
     return !hasActiveHistoryOverlay(document);
-  }, [documentReadOnly, isEditingMarkdown, isExiting, isSubmitting, pendingPasteImage, submitted]);
+  }, [documentReadOnly, isEditingMarkdown, isExiting, isSubmitting, submitted]);
 
   useHistoryShortcuts({
     handlers: {
@@ -2286,13 +2288,15 @@ const AppInner: React.FC = () => {
     const {
       annotations: restored,
       codeAnnotations: restoredCode,
-      globalAttachments: restoredGlobal,
+      // Legacy top-level images arrive already folded into a GLOBAL_COMMENT
+      // inside `restored` by useAnnotationDraft's restore-time normalizer
+      // (spec 05 §4.1) — `globalAttachments` here is always empty and has no
+      // write path left.
       editedMarkdown,
       editedDocuments,
       savedFileChanges,
     } = restoreDraft();
     if (restoredCode.length > 0) setCodeAnnotations(restoredCode);
-    if (restoredGlobal.length > 0) setGlobalAttachments(restoredGlobal);
 
     const nestedSavedFileChanges = editedDocuments
       .map((doc) => doc.savedChange)
@@ -3029,62 +3033,11 @@ const AppInner: React.FC = () => {
     return () => stream.close();
   }, [annotateMode, submitted, clientLease]);
 
-  // Global paste listener for image attachments
-  useEffect(() => {
-    if (documentReadOnly) return;
-    const handlePaste = (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-
-      for (const item of items) {
-        if (item.type.startsWith('image/')) {
-          e.preventDefault();
-          const file = item.getAsFile();
-          if (file) {
-            // Derive name before showing annotator so user sees it immediately
-            const initialName = deriveImageName(file.name, globalAttachments.map(g => g.name));
-            const blobUrl = URL.createObjectURL(file);
-            setPendingPasteImage({ file, blobUrl, initialName });
-          }
-          break;
-        }
-      }
-    };
-
-    document.addEventListener('paste', handlePaste);
-    return () => document.removeEventListener('paste', handlePaste);
-  }, [documentReadOnly, globalAttachments]);
-
-  // Handle paste annotator accept — name comes from ImageAnnotator
-  const handlePasteAnnotatorAccept = async (blob: Blob, hasDrawings: boolean, name: string) => {
-    if (documentReadOnly || !pendingPasteImage) return;
-
-    try {
-      const formData = new FormData();
-      const fileToUpload = hasDrawings
-        ? new File([blob], 'annotated.png', { type: 'image/png' })
-        : pendingPasteImage.file;
-      formData.append('file', fileToUpload);
-
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      if (res.ok) {
-        const data = await res.json();
-        setGlobalAttachments(prev => [...prev, { path: data.path, name }]);
-      }
-    } catch {
-      // Upload failed silently
-    } finally {
-      URL.revokeObjectURL(pendingPasteImage.blobUrl);
-      setPendingPasteImage(null);
-    }
-  };
-
-  const handlePasteAnnotatorClose = () => {
-    if (pendingPasteImage) {
-      URL.revokeObjectURL(pendingPasteImage.blobUrl);
-      setPendingPasteImage(null);
-    }
-  };
+  // Document-level image paste was removed: global attachments are no longer
+  // a writable surface (spec 05 §4.1). A composer that is open claims its own
+  // paste (see CommentPopover's capture-phase listener); a paste with no
+  // composer open now simply does nothing, rather than filing the image
+  // under the document's top-level `globalAttachments`.
 
   const sendToAgentTerminal = useCallback((message: string) => {
     const sent = agentTerminalRef.current?.sendMessage(message) ?? false;
@@ -3482,7 +3435,7 @@ const AppInner: React.FC = () => {
       // Don't intercept if any modal is open
       if (showFeedbackPrompt || showClaudeCodeWarning ||
           showSourceFileEditWarning ||
-          showExitWarning || showAgentWarning || showPermissionModeSetup || pendingPasteImage) return;
+          showExitWarning || showAgentWarning || showPermissionModeSetup) return;
 
       // Don't intercept if already submitted, submitting, or exiting
       if (submitted || isSubmitting || isExiting || goalSetupAction.isSubmitting) return;
@@ -3549,7 +3502,7 @@ const AppInner: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning, showAgentWarning,
-    showPermissionModeSetup, pendingPasteImage,
+    showPermissionModeSetup,
     submitted, isSubmitting, isExiting, goalSetupAction.isSubmitting, isApiMode, documentReadOnly, isEditingMarkdown, linkedDocHook.isActive, annotations.length, codeAnnotations.length, externalAnnotations.length, annotateMode,
     hasFeedbackToSend, goalSetupMode, goalSetupAction.canSubmit, isAgentTerminalReady,
     annotateSource, origin, getAgentWarning,
@@ -3877,17 +3830,6 @@ const AppInner: React.FC = () => {
   });
   const agentHasComments = allAnnotations.some((a) => a.source === 'browser-agent');
 
-  const handleAddGlobalAttachment = (image: ImageAttachment) => {
-    if (documentReadOnly) return;
-    setGlobalAttachments(prev => [...prev, image]);
-  };
-
-  const handleRemoveGlobalAttachment = (path: string) => {
-    if (documentReadOnly) return;
-    setGlobalAttachments(prev => prev.filter(p => p.path !== path));
-  };
-
-
   const handleTocNavigate = (blockId: string) => {
     // Navigation handled by TableOfContents component
     // This is just a placeholder for future custom logic
@@ -4108,7 +4050,7 @@ const AppInner: React.FC = () => {
 
       if (showFeedbackPrompt || showClaudeCodeWarning ||
           showSourceFileEditWarning ||
-          showExitWarning || showAgentWarning || showPermissionModeSetup || pendingPasteImage) return;
+          showExitWarning || showAgentWarning || showPermissionModeSetup) return;
 
       if (submitted || !isApiMode) return;
 
@@ -4126,7 +4068,7 @@ const AppInner: React.FC = () => {
     return () => window.removeEventListener('keydown', handleSaveShortcut);
   }, [
     showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning, showAgentWarning,
-    showPermissionModeSetup, pendingPasteImage,
+    showPermissionModeSetup,
     submitted, isApiMode, documentReadOnly, isEditingMarkdown, handleSaveEditedSourceFile, displayedMarkdown, annotationsOutput,
   ]);
 
@@ -5326,9 +5268,6 @@ const AppInner: React.FC = () => {
                     annotateModeActive={htmlAnnotateArmed}
                     onAnnotateModeExit={documentReadOnly ? undefined : handleHtmlAnnotateExit}
                     onAnnotateModeToggle={documentReadOnly ? undefined : handleHtmlAnnotateToggle}
-                    globalAttachments={globalAttachments}
-                    onAddGlobalAttachment={handleAddGlobalAttachment}
-                    onRemoveGlobalAttachment={handleRemoveGlobalAttachment}
                     maxWidth={isHtmlSurface ? null : annotateReaderMaxWidth}
                     fullViewport={isHtmlSurface}
                     // Applied on every layout: desktop has the header eye
@@ -5366,9 +5305,6 @@ const AppInner: React.FC = () => {
                     inputMethod={effectiveInputMethod}
                     taterMode={taterMode}
                     gridEnabled={gridEnabled}
-                    globalAttachments={globalAttachments}
-                    onAddGlobalAttachment={handleAddGlobalAttachment}
-                    onRemoveGlobalAttachment={handleRemoveGlobalAttachment}
                     repoInfo={repoInfo}
                     stickyActions={uiPrefs.stickyActionsEnabled && !usesDocumentScroll}
                     planDiffStats={planDiff.diffStats}
@@ -5676,15 +5612,6 @@ const AppInner: React.FC = () => {
           gridEnabled={gridEnabled}
           onToggleGrid={(v) => configStore.set('gridEnabled', v)}
           onDismiss={dismissLookAndFeelAnnouncement}
-        />
-
-        {/* Image Annotator for pasted images */}
-        <ImageAnnotator
-          isOpen={!!pendingPasteImage}
-          imageSrc={pendingPasteImage?.blobUrl ?? ''}
-          initialName={pendingPasteImage?.initialName}
-          onAccept={handlePasteAnnotatorAccept}
-          onClose={handlePasteAnnotatorClose}
         />
 
         {/* Permission Mode Setup (Claude Code first-time) */}

@@ -284,7 +284,10 @@ describe.if(hasDom)("App document permissions", () => {
     expect(document.body.textContent).toContain("Writable document");
     expect(document.querySelector("[data-pn-compact-plan-completion]")).toBeNull();
     expect(document.querySelector('button[title="Add global comment"]')).not.toBeNull();
-    expect(document.querySelector('button[title="Attachments"]')).not.toBeNull();
+    // Spec 05 §4.1: the global Images toolbar action is gone — images are
+    // comment-owned only, so no top-level "Attachments" affordance exists
+    // outside an open comment composer.
+    expect(document.querySelector('button[title="Attachments"]')).toBeNull();
 
     const optionsButton = document.querySelector<HTMLButtonElement>('button[title="Options"]');
     if (!optionsButton) throw new Error("Options menu trigger did not render");

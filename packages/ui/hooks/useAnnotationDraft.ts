@@ -20,6 +20,7 @@ import type { SourceSaveCapability } from '@plannotator/core/source-save';
 import type { Annotation, CodeAnnotation, ImageAttachment } from '../types';
 import { fromShareable, parseShareableImages } from '../utils/annotationSerialization';
 import type { ShareableAnnotation } from '../utils/annotationSerialization';
+import { normalizeDocumentAnnotations } from '../utils/attachmentNormalization';
 
 const DEBOUNCE_MS = 500;
 
@@ -128,6 +129,11 @@ export interface DraftSavedFileChange {
 interface DraftData {
   annotations: Annotation[];
   codeAnnotations?: CodeAnnotation[];
+  /** Legacy field, read-only (spec 05 §4.1): images no longer write here —
+      `normalizeDocumentAnnotations` folds any stored top-level images into a
+      GLOBAL_COMMENT inside `annotations` on load, so this stays populated
+      only by an old draft body written before the migration and is always
+      empty going forward. Kept so old stored drafts still decode. */
   globalAttachments: ImageAttachment[];
   /** Direct-edit document text. Present only when it differs from the
       as-submitted baseline ('' is a real value: a committed emptied doc). */
@@ -251,6 +257,9 @@ function formatTimeAgo(ts: number): string {
 interface UseAnnotationDraftOptions {
   annotations: Annotation[];
   codeAnnotations?: CodeAnnotation[];
+  /** Legacy field, always empty from the host now (spec 05 §4.1): nothing
+      writes new top-level attachments any more, so this is only threaded
+      through to keep the save payload's shape stable for old readers. */
   globalAttachments: ImageAttachment[];
   /** Current direct-edit text (live buffer or last commit), or null when the
       document matches the as-submitted baseline. Read at save time. */
@@ -267,6 +276,9 @@ interface UseAnnotationDraftOptions {
 interface RestoredDraft {
   annotations: Annotation[];
   codeAnnotations: CodeAnnotation[];
+  /** Always empty — restore-time normalization already folded any legacy
+      top-level images into a GLOBAL_COMMENT inside `annotations`. Field kept
+      for callers that still destructure it. */
   globalAttachments: ImageAttachment[];
   editedMarkdown: string | null;
   editedDocuments: DraftEditedDocument[];
@@ -354,6 +366,22 @@ export function useAnnotationDraft({
         } else {
           hasMountedRef.current = true;
           return;
+        }
+
+        // Spec 05 §4.1: images live only on individual comments now. A legacy
+        // top-level `globalAttachments` list (or decoded tuple `g`) carries no
+        // comment/line anchor, so it is deterministically folded into one
+        // image-only GLOBAL_COMMENT annotation rather than kept as a parallel
+        // top-level array — idempotent across repeated restore/save cycles
+        // because the normalizer reuses the same comment id and dedupes by
+        // path against images already owned by an annotation.
+        if (restoredGlobal.length > 0) {
+          const normalized = normalizeDocumentAnnotations({
+            annotations: restoredAnnotations,
+            globalAttachments: restoredGlobal,
+          });
+          restoredAnnotations = normalized.annotations;
+          restoredGlobal = normalized.globalAttachments;
         }
 
         const restoredEdited =

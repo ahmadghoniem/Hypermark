@@ -20,7 +20,6 @@ import {
   fromShareable,
   parseShareableImages,
   type ShareableAnnotation,
-  type ShareableImage,
 } from './annotationSerialization';
 
 /**

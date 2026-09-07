@@ -92,27 +92,17 @@ function globalCommentButton(): Element | null {
 
 describe('Viewer consumer props', () => {
   test.skipIf(!hasDom)('default renders the global-comment composer entry (today’s behavior)', async () => {
-    await mount(
-      <Viewer
-        {...viewerProps}
-        onAddGlobalAttachment={() => {}}
-        onRemoveGlobalAttachment={() => {}}
-      />,
-    );
+    await mount(<Viewer {...viewerProps} />);
     expect(globalCommentButton()).not.toBeNull();
-    expect(document.querySelector('button[title="Attachments"]')).not.toBeNull();
+    // Spec 05 §4.1: the global Images toolbar action is gone — images are
+    // comment-owned only, so no top-level "Attachments" affordance exists
+    // outside an open comment composer.
+    expect(document.querySelector('button[title="Attachments"]')).toBeNull();
     expect(document.body.textContent).toContain('hello world');
   });
 
   test.skipIf(!hasDom)('readOnly hides composer entry points but still renders the document', async () => {
-    await mount(
-      <Viewer
-        {...viewerProps}
-        readOnly
-        onAddGlobalAttachment={() => {}}
-        onRemoveGlobalAttachment={() => {}}
-      />,
-    );
+    await mount(<Viewer {...viewerProps} readOnly />);
     expect(globalCommentButton()).toBeNull();
     expect(document.querySelector('button[title="Attachments"]')).toBeNull();
     expect(document.body.textContent).toContain('hello world');
@@ -183,8 +173,6 @@ describe('HtmlViewer consumer props', () => {
     selectedAnnotationId: null,
     mode: 'comment' as const,
     inputMethod: 'drag' as const,
-    onAddGlobalAttachment: () => {},
-    onRemoveGlobalAttachment: () => {},
   };
 
   function dispatchSelection(modeOverride?: 'redline'): void {
@@ -204,7 +192,9 @@ describe('HtmlViewer consumer props', () => {
   test.skipIf(!hasDom)('default remains writable for raw-HTML annotate surfaces', async () => {
     await mount(<HtmlViewer {...htmlViewerProps} />);
     expect(globalCommentButton()).not.toBeNull();
-    expect(document.querySelector('button[title="Attachments"]')).not.toBeNull();
+    // Spec 05 §4.1: no top-level "Attachments" affordance outside an open
+    // comment composer — images are comment-owned only.
+    expect(document.querySelector('button[title="Attachments"]')).toBeNull();
 
     await act(async () => dispatchSelection());
     expect(document.querySelector('textarea')).not.toBeNull();

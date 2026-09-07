@@ -77,6 +77,18 @@ describe("annotate approval submission", () => {
       originalText: "Runbook",
       images: undefined,
     };
+    // Spec 05 §4.1: a "global reference image" is comment-owned — an
+    // image-only GLOBAL_COMMENT annotation — not a parallel top-level list.
+    const globalImageAnnotation: Annotation = {
+      id: "global-attachments",
+      blockId: "",
+      startOffset: 0,
+      endOffset: 0,
+      type: AnnotationType.GLOBAL_COMMENT,
+      originalText: "",
+      createdA: 1,
+      images: [{ path: "/tmp/global.png", name: "global-reference" }],
+    };
     const linkedDocuments = new Map<string, LinkedDocAnnotationEntry>([
       ["/docs/runbook.md", {
         annotations: [linkedAnnotation],
@@ -107,8 +119,9 @@ describe("annotate approval submission", () => {
 
     const feedback = buildCompleteAnnotateFeedback({
       blocks,
-      annotations: [annotation],
-      globalAttachments: [{ path: "/tmp/global.png", name: "global-reference" }],
+      annotations: [annotation, globalImageAnnotation],
+      // Always empty now — no writer populates this parallel list any more.
+      globalAttachments: [],
       linkedDocuments,
       editorAnnotations: [editorAnnotation],
       codeAnnotations: [codeAnnotation],
@@ -121,6 +134,7 @@ describe("annotate approval submission", () => {
 
     expect(feedback).toContain("retry-diagram");
     expect(feedback).toContain("global-reference");
+    expect(feedback).not.toContain("Reference Images");
     expect(feedback).toContain("# Code File Feedback");
     expect(feedback).toContain("# Direct Edits");
     expect(feedback).toContain("# Linked Document Feedback");

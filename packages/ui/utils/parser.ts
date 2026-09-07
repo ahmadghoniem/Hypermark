@@ -1165,15 +1165,13 @@ export const exportAnnotations = (
     output += `> Note: Line numbers below refer to the converted markdown, not the original HTML/URL source.\n\n`;
   }
 
-  // Add global reference images section if any
-  if (globalAttachments.length > 0) {
-    output += `## Reference Images\n`;
-    output += `Please review these reference images (use the Read tool to view):\n`;
-    globalAttachments.forEach((img, idx) => {
-      output += `${idx + 1}. [${img.name}] \`${img.path}\`\n`;
-    });
-    output += `\n`;
-  }
+  // Spec 05 §4.1: a standalone "Reference Images" section is no longer
+  // emitted here. Legacy top-level `globalAttachments` are decoded (see
+  // `normalizeDocumentAnnotations`) into one image-only GLOBAL_COMMENT
+  // annotation before export, so those images already appear below under
+  // "Attached images" alongside that comment. `globalAttachments` stays a
+  // parameter only to keep this a no-op for any caller still passing decoded
+  // legacy data through — it is expected to always be empty by this point.
 
   if (annotations.length > 0) {
     output += `I've reviewed this ${subject} and have ${annotations.length} piece${annotations.length > 1 ? 's' : ''} of feedback:\n\n`;
@@ -1381,14 +1379,9 @@ export const exportLinkedDocAnnotations = (
 
     output += `## ${filepath}${isConverted ? ' (converted from HTML — line numbers refer to converted markdown)' : ''}\n\n`;
 
-    if (globalAttachments.length > 0) {
-      output += `### Reference Images\n`;
-      output += `Please review these reference images (use the Read tool to view):\n`;
-      globalAttachments.forEach((img, idx) => {
-        output += `${idx + 1}. [${img.name}] \`${img.path}\`\n`;
-      });
-      output += `\n`;
-    }
+    // Spec 05 §4.1: no standalone "Reference Images" section — legacy
+    // top-level images are decoded into a GLOBAL_COMMENT annotation and
+    // appear under "Attached images" with that comment below.
 
     // Sort annotations by block and offset
     const sortedAnns = [...annotations].sort((a, b) => {

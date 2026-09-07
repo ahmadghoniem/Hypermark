@@ -381,6 +381,9 @@ describe('attachmentNormalization', () => {
       expect(exported).toContain('**Attached images:**\n- [Architecture] `/uploads/plan-arch.png`');
       // Crucial: image-only GLOBAL_COMMENT without text must not output `> undefined`
       expect(exported).not.toContain('> undefined');
+      // Spec 05 §4.1: the standalone top-level section is gone — every image
+      // now rides with its owning comment instead.
+      expect(exported).not.toContain('Reference Images');
 
       // Image under line COMMENT
       expect(exported).toContain('Feedback on: "Some paragraph"');

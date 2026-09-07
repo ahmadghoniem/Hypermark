@@ -64,6 +64,10 @@ export interface UseLinkedDocOptions {
   markdown: string;
   annotations: Annotation[];
   selectedAnnotationId: string | null;
+  /** Legacy, read-only (spec 05 §4.1): the host no longer writes new images
+      here, so this — and `setGlobalAttachments` below — only carries the
+      (always-empty) value along while navigating between the root doc and
+      linked docs, for session-cache shape compatibility. */
   globalAttachments: ImageAttachment[];
   setMarkdown: (md: string) => void;
   setAnnotations: (anns: Annotation[]) => void;
@@ -103,6 +107,7 @@ interface SavedPlanState {
   markdown: string;
   annotations: Annotation[];
   selectedAnnotationId: string | null;
+  /** Legacy, always empty (spec 05 §4.1) — see UseLinkedDocOptions.globalAttachments. */
   globalAttachments: ImageAttachment[];
   renderAs: 'markdown' | 'html';
   rawHtml: string;
@@ -111,6 +116,7 @@ interface SavedPlanState {
 
 export interface CachedDocState {
   annotations: Annotation[];
+  /** Legacy, always empty (spec 05 §4.1) — see UseLinkedDocOptions.globalAttachments. */
   globalAttachments: ImageAttachment[];
   markdown?: string;
   isConverted?: boolean;

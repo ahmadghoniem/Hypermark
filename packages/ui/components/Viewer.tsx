@@ -38,7 +38,6 @@ class ToolbarErrorBoundary extends React.Component<
 
 import { CommentPopover } from './CommentPopover';
 import { TaterSpriteSitting } from './TaterSpriteSitting';
-import { AttachmentsButton } from './AttachmentsButton';
 import { MessagesIcon } from './icons/MessagesIcon';
 import { GraphvizBlock } from './GraphvizBlock';
 import { MermaidBlock } from './MermaidBlock';
@@ -85,9 +84,6 @@ export interface ViewerProps {
   mode: EditorMode;
   inputMethod?: InputMethod;
   taterMode: boolean;
-  globalAttachments?: ImageAttachment[];
-  onAddGlobalAttachment?: (image: ImageAttachment) => void;
-  onRemoveGlobalAttachment?: (path: string) => void;
   repoInfo?: { display: string; branch?: string; host?: string } | null;
   stickyActions?: boolean;
   /**
@@ -331,9 +327,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   mode,
   inputMethod = 'drag',
   taterMode,
-  globalAttachments = [],
-  onAddGlobalAttachment,
-  onRemoveGlobalAttachment,
   repoInfo,
   stickyActions = true,
   annotationHeader,
@@ -846,16 +839,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
             <span>{messagePickerInfo.current}/{messagePickerInfo.total}</span>
           )}
         </button>
-      )}
-
-      {!readOnly && onAddGlobalAttachment && onRemoveGlobalAttachment && (
-        <AttachmentsButton
-          images={globalAttachments}
-          onAdd={onAddGlobalAttachment}
-          onRemove={onRemoveGlobalAttachment}
-          variant="toolbar"
-          hideLabel={actionsLabelMode === 'icon'}
-        />
       )}
 
       {!readOnly && (

@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { useAnnotationDraft, type DraftEditedDocument, type DraftSavedFileChange } from './hooks/useAnnotationDraft';
 import { AnnotationType, type Annotation } from './types';
 import { saveDraft, loadDraft, deleteDraft, contentHash, getDraftGeneration } from '../shared/draft';
+import { exportAnnotations, parseMarkdownToBlocks } from './utils/parser';
 
 const hasDom = typeof document !== 'undefined';
 
@@ -464,9 +465,12 @@ describe('direct-edit draft persistence', () => {
     await session.unmount();
   });
 
-  test.skipIf(!hasDom)('legacy tuple drafts keep their images — annotation and top-level alike', async () => {
-    // Spec 05 converts top-level images; until then restore must hand them
-    // back untouched, in both encodings (bare path string and [path, name]).
+  test.skipIf(!hasDom)('legacy tuple drafts fold top-level images into one image-only GLOBAL_COMMENT', async () => {
+    // Spec 05 §4.1: images live only on individual comments now. A decoded
+    // annotation that already owns images (the 'G' tuple below) is left
+    // alone; the orphaned top-level `g` list — which carries no comment
+    // anchor — is deterministically converted into a *separate* image-only
+    // GLOBAL_COMMENT rather than merged into an unrelated comment's images.
     saveDraft(DRAFT_KEY, {
       a: [['G', 'overall note', null, ['/data/one.png']]],
       g: ['/data/legacy.png', ['/data/two.png', 'Two']],
@@ -474,9 +478,10 @@ describe('direct-edit draft persistence', () => {
     });
 
     const session = await mountSession(options());
-    // Banner counts annotations AND global attachments.
+    // Banner counts restored annotations (the migrated top-level images now
+    // arrive already folded into one of them, not counted separately).
     expect(session.result.current!.draftBanner).toEqual({
-      count: 3,
+      count: 2,
       timeAgo: 'just now',
       hasEdits: false,
     });
@@ -484,14 +489,95 @@ describe('direct-edit draft persistence', () => {
     act(() => {
       restored = session.result.current!.restoreDraft();
     });
-    expect(restored!.globalAttachments).toEqual([
+    // No writable top-level list survives restore.
+    expect(restored!.globalAttachments).toEqual([]);
+    expect(restored!.annotations).toHaveLength(2);
+    const [textComment, imageComment] = restored!.annotations;
+    expect(textComment.type).toBe(AnnotationType.GLOBAL_COMMENT);
+    expect(textComment.text).toBe('overall note');
+    expect(textComment.images).toEqual([{ path: '/data/one.png', name: 'one' }]);
+    expect(imageComment.type).toBe(AnnotationType.GLOBAL_COMMENT);
+    expect(imageComment.id).toBe('global-attachments');
+    expect(imageComment.images).toEqual([
       { path: '/data/legacy.png', name: 'legacy' },
       { path: '/data/two.png', name: 'Two' },
     ]);
-    expect(restored!.annotations).toHaveLength(1);
-    expect(restored!.annotations[0].type).toBe(AnnotationType.GLOBAL_COMMENT);
-    expect(restored!.annotations[0].images).toEqual([{ path: '/data/one.png', name: 'one' }]);
     expect(restored!.editedMarkdown).toBeNull();
+
+    // Both images ride with their comment in the export; no separate
+    // top-level "Reference Images" section is emitted for either input shape.
+    const blocks = parseMarkdownToBlocks(PLAN);
+    const exported = exportAnnotations(blocks, restored!.annotations, restored!.globalAttachments);
+    expect(exported).not.toContain('Reference Images');
+    expect(exported).toContain('**Attached images:**\n- [one] `/data/one.png`');
+    // Both migrated top-level images land under the SAME image-only
+    // GLOBAL_COMMENT, so they render as one combined list.
+    expect(exported).toContain(
+      '**Attached images:**\n- [legacy] `/data/legacy.png`\n- [Two] `/data/two.png`',
+    );
+
+    await session.unmount();
+  });
+
+  test.skipIf(!hasDom)('an all-empty legacy payload stays empty — no ghost draft banner or comment', async () => {
+    // The tombstone contract (spec 05 §4.2/§4.1): a draft with no annotations
+    // and no top-level images must not surface a banner or mint a
+    // GLOBAL_COMMENT out of nothing.
+    saveDraft(DRAFT_KEY, { a: [], g: [], ts: Date.now() });
+
+    const session = await mountSession(options());
+    expect(session.result.current!.draftBanner).toBeNull();
+
+    let restored: ReturnType<HookResult['restoreDraft']>;
+    act(() => {
+      restored = session.result.current!.restoreDraft();
+    });
+    expect(restored!.annotations).toEqual([]);
+    expect(restored!.globalAttachments).toEqual([]);
+    await session.unmount();
+  });
+
+  test.skipIf(!hasDom)('restoring and saving a legacy draft repeatedly is idempotent — no duplicate image comment', async () => {
+    saveDraft(DRAFT_KEY, {
+      a: [],
+      g: ['/data/legacy.png'],
+      ts: Date.now(),
+    });
+
+    // Session 1: restore the legacy draft (folds `g` into one GLOBAL_COMMENT),
+    // then the host applies the restored annotations and saves — exactly the
+    // real App.tsx handleRestoreDraft -> setAnnotations -> scheduleDraftSave flow.
+    let session = await mountSession(options());
+    let restored: ReturnType<HookResult['restoreDraft']>;
+    act(() => {
+      restored = session.result.current!.restoreDraft();
+    });
+    expect(restored!.annotations).toHaveLength(1);
+    expect(restored!.annotations[0].id).toBe('global-attachments');
+    expect(restored!.annotations[0].images).toEqual([{ path: '/data/legacy.png', name: 'legacy' }]);
+    const firstRestoreAnnotations = restored!.annotations;
+
+    await session.rerender(options({ annotations: firstRestoreAnnotations }));
+    act(() => session.result.current!.scheduleDraftSave());
+    await tick(DEBOUNCE_WAIT_MS);
+    await session.unmount();
+
+    const onDisk = loadDraft(DRAFT_KEY) as Record<string, unknown> | null;
+    expect(onDisk).not.toBeNull();
+    expect(onDisk!.annotations).toEqual(firstRestoreAnnotations);
+    expect(onDisk!.globalAttachments).toEqual([]);
+
+    // Session 2: fresh mount, restore again from the now-modern saved draft.
+    // Re-running normalization must not mint a second image-only comment or
+    // renumber the existing one.
+    session = await mountSession(options());
+    act(() => {
+      restored = session.result.current!.restoreDraft();
+    });
+    expect(restored!.annotations).toHaveLength(1);
+    expect(restored!.annotations[0].id).toBe(firstRestoreAnnotations[0].id);
+    expect(restored!.annotations[0].images).toEqual([{ path: '/data/legacy.png', name: 'legacy' }]);
+    expect(restored!.globalAttachments).toEqual([]);
     await session.unmount();
   });
 

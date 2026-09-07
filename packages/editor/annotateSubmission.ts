@@ -66,6 +66,10 @@ export function buildAnnotateApprovalBody(
 export interface CompleteAnnotateFeedbackInput {
   blocks: Block[];
   annotations: Annotation[];
+  /** Legacy, read-only (spec 05 §4.1): the host's `globalAttachments` state
+      is no longer written to, so this is always empty by the time it
+      reaches export — kept only so `exportAnnotations` still decodes an old
+      caller that hasn't gone through the restore-time normalizer. */
   globalAttachments: ImageAttachment[];
   linkedDocuments: Map<string, LinkedDocAnnotationEntry>;
   editorAnnotations: EditorAnnotation[];
