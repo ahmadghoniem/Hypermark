@@ -10,13 +10,16 @@ import type {
   WorktreeInfo,
 } from '@plannotator/shared/types';
 import { FileTree as PierreFileTree, useFileTree, useFileTreeSelector } from '@pierre/trees/react';
-import { buildFileTree, getAncestorPaths, getVisualFileOrder } from '../utils/buildFileTree';
+import { getAncestorPaths } from '../utils/buildFileTree';
 import {
   buildAnnotationCountMap,
   buildFileTreePaths,
+  getKeyboardFileOrder,
   getSelectedPaths as getSelectedTreePaths,
+  getVisibleFiles,
   isFileViewed,
   resolveFileTreeTarget,
+  resolveFileTreeTargetFromComposedPath,
   revealFileInTree,
 } from '../utils/fileTreeAdapter';
 import { buildRowDecoration } from '../utils/fileTreeRowDecoration';
@@ -204,10 +207,33 @@ export const FileTree: React.FC<FileTreeProps> = ({
 }) => {
   const isSearchVisible = !!onSearchChange && (isSearchOpen || !!searchQuery.trim());
 
-  // Kept for keyboard navigation only (j/k/Home/End, wired in step 4) — the
-  // Pierre tree below owns folder-expansion/flattening/search presentation.
-  const tree = useMemo(() => buildFileTree(files), [files]);
-  const visualOrder = useMemo(() => getVisualFileOrder(tree), [tree]);
+  // The active-file/overlay-panel forcing rule the tree has always applied:
+  // All files/Semantic/Call flow/PR overview/PR artifacts own the "active"
+  // slot while they're open, so the tree shows no selection of its own.
+  const effectiveActiveFileIndex =
+    isAllFilesActive || isSemanticDiffActive || isCallFlowActive || isPROverviewActive || isPRArtifactsActive
+      ? -1
+      : activeFileIndex;
+
+  // `hideViewedFiles` is expressed as which paths the Pierre tree is even
+  // given — mirroring the old renderer's rule that a fully-viewed file drops
+  // out of the tree unless it's the active file (kept so the current
+  // selection never vanishes out from under the user).
+  const activeFilePath = files[effectiveActiveFileIndex]?.path;
+  const visibleFiles = useMemo(
+    () => getVisibleFiles(files, viewedFiles, hideViewedFiles, activeFilePath),
+    [files, viewedFiles, hideViewedFiles, activeFilePath],
+  );
+  const treePaths = useMemo(() => buildFileTreePaths(visibleFiles), [visibleFiles]);
+
+  // Keyboard navigation order is derived from the same visible subset that
+  // feeds treePaths, then mapped back to indices into the full `files` array
+  // so j/k/Home/End never land on a hidden file while onSelectFile keeps its
+  // canonical index contract.
+  const visualOrder = useMemo(
+    () => getKeyboardFileOrder(files, visibleFiles),
+    [files, visibleFiles],
+  );
 
   // Keyboard navigation: j/k or arrow keys
   const handleKeyDown = useCallback(
@@ -263,25 +289,33 @@ export const FileTree: React.FC<FileTreeProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // The active-file/overlay-panel forcing rule the tree has always applied:
-  // All files/Semantic/Call flow/PR overview/PR artifacts own the "active"
-  // slot while they're open, so the tree shows no selection of its own.
-  const effectiveActiveFileIndex =
-    isAllFilesActive || isSemanticDiffActive || isCallFlowActive || isPROverviewActive || isPRArtifactsActive
-      ? -1
-      : activeFileIndex;
+  // Double-click activation (spec 04 step 4): @pierre/trees ships no
+  // double-click hook. We listen for `dblclick` on the element wrapping the
+  // tree, walk `event.composedPath()` across the shadow DOM boundary for the
+  // first `data-item-path`, and resolve to canonical identity.
+  //
+  // Read through a ref for the same reason `onSelectionChange` is: `useFileTree`
+  // reads its options ONCE at construction, so all adapter callbacks must read
+  // live files/onDoubleClickFile through a ref to avoid stale closures.
+  const latestDoubleClickRef = useRef({ files, onDoubleClickFile });
+  latestDoubleClickRef.current = { files, onDoubleClickFile };
 
-  // `hideViewedFiles` is expressed as which paths the Pierre tree is even
-  // given — mirroring the old renderer's rule that a fully-viewed file drops
-  // out of the tree unless it's the active file (kept so the current
-  // selection never vanishes out from under the user).
-  const activeFilePath = files[effectiveActiveFileIndex]?.path;
-  const treePaths = useMemo(() => {
-    const visibleFiles = hideViewedFiles
-      ? files.filter((file) => file.path === activeFilePath || !viewedFiles.has(file.path))
-      : files;
-    return buildFileTreePaths(visibleFiles);
-  }, [files, hideViewedFiles, viewedFiles, activeFilePath]);
+  const treeWrapperRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = treeWrapperRef.current;
+    if (!el) return;
+    const handleDblClick = (e: MouseEvent) => {
+      const { files: currentFiles, onDoubleClickFile: currentOnDoubleClickFile } = latestDoubleClickRef.current;
+      if (!currentOnDoubleClickFile) return;
+      const path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+      const target = resolveFileTreeTargetFromComposedPath(currentFiles, path);
+      if (target) {
+        currentOnDoubleClickFile(target.fileIndex);
+      }
+    };
+    el.addEventListener('dblclick', handleDblClick);
+    return () => el.removeEventListener('dblclick', handleDblClick);
+  }, []);
 
   // Stable across renders — `useFileTree` only reads its options once, at
   // construction, so the selection-change callback must resolve against the
@@ -376,6 +410,8 @@ export const FileTree: React.FC<FileTreeProps> = ({
   // before, just driven through the live Pierre model instead of local
   // expandedFolders state. Routes through the step-2 adapter's
   // revealFileInTree, which expands ancestors, selects, focuses, and scrolls.
+  // Re-runs on treePaths changes so reveal survives a path-set change that
+  // leaves files unchanged (e.g. toggling hideViewedFiles or marking a file viewed).
   useEffect(() => {
     const [identifier] = getSelectedTreePaths(files, effectiveActiveFileIndex);
     if (identifier) {
@@ -385,7 +421,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
         model.getItem(selectedPath)?.deselect();
       }
     }
-  }, [model, files, effectiveActiveFileIndex]);
+  }, [model, files, effectiveActiveFileIndex, treePaths]);
 
   // Real canonical directory paths (every ancestor of every file), not the
   // collapsed display paths buildFileTree/getAllFolderPaths produce — the
@@ -629,7 +665,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
       </div>
 
       {/* File tree or search results */}
-      <div className="flex-1 min-h-0 flex flex-col">
+      <div ref={treeWrapperRef} className="flex-1 min-h-0 flex flex-col">
         {searchQuery.trim() ? (
           <OverlayScrollArea className="flex-1 min-h-0">
             <div className="px-1 py-1">

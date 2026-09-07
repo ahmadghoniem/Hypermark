@@ -180,3 +180,76 @@ export function revealFileInTree(
 
   return target;
 }
+
+/**
+ * Resolves a row identity from an event's composed path by walking the path
+ * for the first element carrying a `data-item-path` attribute, then mapping it
+ * to its canonical target via `resolveFileTreeTarget`.
+ *
+ * Traverses shadow DOM boundaries via `composedPath` so the adapter can
+ * resolve clicks/double-clicks occurring inside `@pierre/trees`' shadow root.
+ * Returns null if no element with `data-item-path` is found or if the path
+ * does not resolve to any file in `files`.
+ */
+export function resolveFileTreeTargetFromComposedPath(
+  files: readonly DiffFile[],
+  composedPath: readonly (EventTarget | { getAttribute?: (name: string) => string | null })[],
+): FileTreeTarget | null {
+  for (const target of composedPath) {
+    if (target && typeof (target as { getAttribute?: unknown }).getAttribute === 'function') {
+      const itemPath = (target as Element).getAttribute('data-item-path');
+      if (itemPath) {
+        return resolveFileTreeTarget(files, itemPath);
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * The visible subset of files that feeds `treePaths` and keyboard order.
+ *
+ * When `hideViewedFiles` is true, fully-viewed files drop out unless the file
+ * is the active file (so the current selection never vanishes out from under
+ * the user). When false, all files are visible.
+ */
+export function getVisibleFiles(
+  files: readonly DiffFile[],
+  viewedFiles: ReadonlySet<string>,
+  hideViewedFiles: boolean,
+  activeFilePath?: string,
+): DiffFile[] {
+  if (!hideViewedFiles) return files as DiffFile[];
+  return files.filter(file => file.path === activeFilePath || !isFileViewed(viewedFiles, file));
+}
+
+/**
+ * Derives the visual keyboard navigation order from the visible subset of
+ * files (the same subset that feeds `treePaths`), mapping back to canonical
+ * indices into the full `files` array.
+ *
+ * When `hideViewedFiles` is active, keyboard navigation (`j`/`k`/`Home`/`End`)
+ * only traverses files visible in the tree, while `onSelectFile(index)`
+ * preserves its canonical index contract.
+ */
+export function getKeyboardFileOrder(
+  files: readonly DiffFile[],
+  visibleFiles: readonly DiffFile[],
+): number[] {
+  if (visibleFiles.length === 0) return [];
+  const tree = buildFileTree(visibleFiles as DiffFile[]);
+  const visualIndices = getVisualFileOrder(tree);
+  const result: number[] = [];
+  for (const idx of visualIndices) {
+    const file = visibleFiles[idx];
+    if (!file) continue;
+    const fileIndex = files.indexOf(file);
+    if (fileIndex !== -1) {
+      result.push(fileIndex);
+    } else {
+      const canonicalIndex = files.findIndex(f => f.path === file.path);
+      if (canonicalIndex !== -1) result.push(canonicalIndex);
+    }
+  }
+  return result;
+}
