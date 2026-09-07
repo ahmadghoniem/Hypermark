@@ -5,42 +5,9 @@ import { ImageAnnotator } from './ImageAnnotator';
 import type { ImageAttachment } from '../types';
 import { modKey } from '../utils/platform';
 import { getUploadTransport } from '../utils/upload';
+import { deriveImageName } from '../utils/imageNames';
 
-/**
- * Derive a clean, human-readable name from an original filename.
- * "Login Mockup.png" → "login-mockup"
- * "annotated.png" or generic names → "image-N"
- */
-export function deriveImageName(originalName: string, existingNames: string[]): string {
-  const base = originalName.replace(/\.[^.]+$/, '');
-  const generic = ['annotated', 'image', 'screenshot', 'paste', 'clipboard', 'untitled'];
-
-  if (generic.includes(base.toLowerCase())) {
-    let n = 1;
-    while (existingNames.includes(`image-${n}`)) n++;
-    return `image-${n}`;
-  }
-
-  let name = base.toLowerCase()
-    .replace(/[_\s]+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-
-  if (!name) {
-    let n = 1;
-    while (existingNames.includes(`image-${n}`)) n++;
-    return `image-${n}`;
-  }
-
-  if (existingNames.includes(name)) {
-    let n = 2;
-    while (existingNames.includes(`${name}-${n}`)) n++;
-    name = `${name}-${n}`;
-  }
-
-  return name;
-}
+export { deriveImageName };
 
 interface AttachmentsButtonProps {
   images: ImageAttachment[];
@@ -65,6 +32,7 @@ export const AttachmentsButton: React.FC<AttachmentsButtonProps> = ({
   const [dragOver, setDragOver] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const popoverContentRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
   // Annotator state
@@ -95,10 +63,15 @@ export const AttachmentsButton: React.FC<AttachmentsButtonProps> = ({
 
   // Paste image from clipboard when popover is open (per-annotation attachments).
   // Uses capture phase + stopPropagation to prevent the global paste handler in
-  // App.tsx from also processing the same event.
+  // App.tsx from also processing the same event. Scoped to this popover's own
+  // portal: a paste aimed at the surrounding composer belongs to the composer's
+  // attachment strip (spec 05 §3.2), and handling it here too would attach the
+  // same image twice.
   useEffect(() => {
     if (!isOpen || annotatorImage) return;
     const handlePaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && !popoverContentRef.current?.contains(target)) return;
       const items = e.clipboardData?.items;
       if (!items) return;
       for (const item of items) {
@@ -279,6 +252,7 @@ export const AttachmentsButton: React.FC<AttachmentsButtonProps> = ({
 
           {/* Popover content */}
           <div
+            ref={popoverContentRef}
             className="fixed z-[100] w-72 bg-card border border-border rounded-xl shadow-2xl p-3"
             data-popover-layer
             style={{ top: position.top, left: position.left }}

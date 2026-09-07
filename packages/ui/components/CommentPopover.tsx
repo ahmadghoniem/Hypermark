@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback, useId } from 'react';
 import { createPortal } from 'react-dom';
 import type { ImageAttachment } from '../types';
 import { AttachmentsButton } from './AttachmentsButton';
+import { AttachmentStrip } from './AttachmentStrip';
+import { imageFilesFrom, useAttachmentUploads } from '../hooks/useAttachmentUploads';
 import { submitHint } from '../utils/platform';
 import { useDraggable } from '../hooks/useDraggable';
 import { hasUnsavedCommentContent } from '../utils/commentContent';
@@ -178,6 +180,70 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   const [offscreen, setOffscreen] = useState<'above' | 'below' | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Spec 05 §3.2: a selected image lands in a strip inside this composer, not
+  // in the picker's own popover (which closes on selection) and never in the
+  // document-level global attachments.
+  const addImage = useCallback((image: ImageAttachment) => {
+    setImages((prev) => [...prev, image]);
+  }, []);
+  const removeImage = useCallback((path: string) => {
+    setImages((prev) => prev.filter((i) => i.path !== path));
+  }, []);
+  const uploads = useAttachmentUploads({ images, onAdd: addImage, enabled: allowImages });
+  const { attachFiles } = uploads;
+
+  /** Focus the attach action once the last thumbnail was removed. */
+  const focusAttachAction = useCallback(() => {
+    popoverRef.current
+      ?.querySelector<HTMLButtonElement>('button[aria-label="Attachments"]')
+      ?.focus();
+  }, []);
+
+  // Paste anywhere in the open composer attaches to *this* comment. Capture
+  // phase + stopPropagation keeps the document-level handler in the host app
+  // (which files pastes under globalAttachments) from seeing the same event.
+  useEffect(() => {
+    if (!allowImages) return;
+    const handlePaste = (e: ClipboardEvent) => {
+      const target = e.target as Node | null;
+      if (!target || !popoverRef.current?.contains(target)) return;
+      const files = imageFilesFrom(e.clipboardData);
+      if (files.length === 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      attachFiles(files);
+    };
+    document.addEventListener('paste', handlePaste, true);
+    return () => document.removeEventListener('paste', handlePaste, true);
+  }, [allowImages, attachFiles]);
+
+  const composerDropProps = allowImages
+    ? {
+        onDragOver: (e: React.DragEvent) => {
+          if (e.dataTransfer?.types?.includes('Files')) e.preventDefault();
+        },
+        onDrop: (e: React.DragEvent) => {
+          const files = imageFilesFrom(e.dataTransfer);
+          if (files.length === 0) return;
+          e.preventDefault();
+          e.stopPropagation();
+          attachFiles(files);
+        },
+      }
+    : {};
+
+  const attachmentStrip = allowImages ? (
+    <AttachmentStrip
+      images={images}
+      pending={uploads.pending}
+      onRemove={removeImage}
+      onRemovePending={uploads.removePending}
+      onRetryPending={uploads.retry}
+      onFocusAfterLastRemoved={focusAttachAction}
+      className={mode === 'dialog' ? 'px-4 pb-3' : 'px-3 pb-2'}
+    />
+  ) : null;
   const hasUnsavedContent = hasUnsavedCommentContent(text, allowImages ? images : []);
   const hasUnsavedContentRef = useRef(hasUnsavedContent);
   hasUnsavedContentRef.current = hasUnsavedContent;
@@ -570,7 +636,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           {chipsRow}
 
           {/* Textarea */}
-          <div className="relative px-4 py-3 min-h-0 flex-1 overflow-y-auto">
+          <div className="relative px-4 py-3 min-h-0 flex-1 overflow-y-auto" {...composerDropProps}>
             {skillAc.menu && (
               <SkillReferenceMenu
                 id={skillListboxId}
@@ -596,6 +662,8 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             <HumanOnlySkillNotice skills={skillAc.humanOnlyReferences} />
           </div>
 
+          {attachmentStrip}
+
           {/* Footer — DOM order sets tab order (Save first); row-reverse keeps the visual layout unchanged */}
           <div className="flex flex-row-reverse flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-border/50">
             <div className="flex flex-row-reverse flex-wrap items-center gap-3">
@@ -615,8 +683,8 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
               {allowImages && (
                 <AttachmentsButton
                   images={images}
-                  onAdd={(img) => setImages((prev) => [...prev, img])}
-                  onRemove={(path) => setImages((prev) => prev.filter((i) => i.path !== path))}
+                  onAdd={addImage}
+                  onRemove={removeImage}
                   variant="inline"
                 />
               )}
@@ -709,7 +777,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       {chipsRow}
 
       {/* Textarea */}
-      <div className="relative px-3 py-2">
+      <div className="relative px-3 py-2" {...composerDropProps}>
         {skillAc.menu && (
           <SkillReferenceMenu
             id={skillListboxId}
@@ -735,6 +803,8 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
         <HumanOnlySkillNotice skills={skillAc.humanOnlyReferences} />
       </div>
 
+      {attachmentStrip}
+
       {/* Footer — same DOM-order/row-reverse pattern as the dialog footer above */}
       <div className="flex flex-row-reverse items-center justify-between px-3 py-2 border-t border-border/50">
         <div className="flex flex-row-reverse items-center gap-3">
@@ -754,8 +824,8 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           {allowImages && (
             <AttachmentsButton
               images={images}
-              onAdd={(img) => setImages((prev) => [...prev, img])}
-              onRemove={(path) => setImages((prev) => prev.filter((i) => i.path !== path))}
+              onAdd={addImage}
+              onRemove={removeImage}
               variant="inline"
             />
           )}

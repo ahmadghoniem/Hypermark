@@ -58,7 +58,7 @@ describe('UploadTransport seam', () => {
     // @ts-expect-error minimal fetch stub for the test
     globalThis.fetch = async (url: string) => {
       hitUrl = String(url);
-      return { json: async () => ({ path: '/tmp/upload-123.png', originalName: 'pic.png' }) };
+      return { ok: true, status: 200, json: async () => ({ path: '/tmp/upload-123.png', originalName: 'pic.png' }) };
     };
     try {
       const result = await getUploadTransport().upload(makeFile());

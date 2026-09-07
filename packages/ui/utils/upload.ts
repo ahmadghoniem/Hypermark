@@ -25,16 +25,48 @@ export interface UploadTransport {
   upload(file: File): Promise<UploadResult>;
 }
 
-/** Default transport — Plannotator's `/api/upload` multipart POST, verbatim. */
+/**
+ * Default transport — Plannotator's `/api/upload` multipart POST.
+ *
+ * Spec 05 §3.2.5: a malformed or error response must be rejected rather than
+ * reported as a stored image. A non-OK status, an unparseable body, or a
+ * missing/empty `path` all throw, so the composer keeps the file and the typed
+ * text and offers a retry instead of recording an unusable reference.
+ */
 const defaultUploadTransport: UploadTransport = {
   async upload(file) {
     const formData = new FormData();
     formData.append('file', file);
     const res = await fetch('/api/upload', { method: 'POST', body: formData });
-    const data = await res.json();
-    return { path: data.path, originalName: data.originalName };
+    // `ok` is absent only on hand-rolled stubs; a real Response always has it.
+    if (res.ok === false) {
+      throw new Error(`Upload failed with status ${res.status}`);
+    }
+    let data: unknown;
+    try {
+      data = await res.json();
+    } catch {
+      throw new Error('Upload response was not valid JSON');
+    }
+    return assertUploadResult(data);
   },
 };
+
+/**
+ * Validate any transport's result before the UI treats it as a stored image.
+ * Exported so host transports and the composer share one definition of "usable".
+ */
+export function assertUploadResult(data: unknown): UploadResult {
+  const record = (data ?? {}) as { path?: unknown; originalName?: unknown };
+  const path = typeof record.path === 'string' ? record.path.trim() : '';
+  if (!path) {
+    throw new Error('Upload response did not include a stored image path');
+  }
+  return {
+    path,
+    originalName: typeof record.originalName === 'string' ? record.originalName : undefined,
+  };
+}
 
 // Module-level transport, stable identity. Defaults to Plannotator's behavior so
 // callers are unchanged. A host overrides it once at startup.
