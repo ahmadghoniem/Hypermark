@@ -45,8 +45,13 @@ Wrong, and why it cannot ship:
   clear/close/Enter/Shift+Enter search behavior stays correct.
 - It removes the old expansion/search rendering during step 3. That removal is
   step 5's, and only after adapter parity is proven.
-- The DOM gate never ran against it — the agent was cut off by a rate limit mid-
-  verification. `typecheck` exits 0 and review-editor holds at 51, nothing more.
+- The DOM gate does NOT pass against it. A sweep run by the coordinator returned
+  **2014 pass / 1 skip / 1 fail across 231 files**, against a 2015/1/0/231
+  baseline — so it breaks one existing test. Treat that number with one caveat:
+  the run overlapped the branch switch that parked this work, so the single
+  failure could be an artifact of files moving mid-run. Re-run the sweep against
+  `spec-04-step-3-wip` in isolation before concluding which test broke and why.
+  `typecheck` exits 0 and both TS baselines hold (review-editor 51, editor 39).
 
 ## Gates (the ONLY correct ones)
 
