@@ -9,8 +9,44 @@ Branch: `hypermark/implementation`.
 | 01 foundation and scope | Complete. |
 | 02 feature removal and Claude | Complete. Step 5's orphan sweep closed by `6b079178`. |
 | 03 theme, icons, fonts | Steps 1-5 complete. Step 6 inventoried (below); deletions outstanding. |
-| 04 file tree | Step 1 complete (`fa67d2db`). Steps 2-5 in progress. |
+| 04 file tree | Steps 1-2 complete (`fa67d2db`, `b15c5010`). Step 3 attempted and PARKED (below). Steps 4-5 not started. |
 | 05, 06 | Not started. |
+
+## Step 3 is parked on branch `spec-04-step-3-wip` — read before redoing it
+
+A first attempt at step 3 exists on `spec-04-step-3-wip`. It is NOT merged and
+must not be merged as-is. Salvage from it; do not start from scratch, and do not
+trust it.
+
+Right, and worth keeping:
+
+- The fixed tree contract is applied exactly as `spec/04-file-tree.md:39-48`
+  specifies, density omitted.
+- Selection routes through the step-2 adapter, so a reported path is normalized
+  (path OR oldPath -> canonical `file.path`) before `onSelectFile` sees it.
+- `onSelectionChange` reads `files`/`onSelectFile` through a ref, because
+  `useFileTree` reads its options ONCE at construction — the closure it was built
+  with goes stale. This is a real trap and the fix is correct.
+- `areAllFoldersExpanded` and expand/collapse-all are recomputed against real
+  canonical ancestor paths, because the Pierre model keys directory nodes by
+  those, not by the collapsed display paths `getAllFolderPaths` emits.
+
+Wrong, and why it cannot ship:
+
+- It drops `FileTreeNodeItem` along with `annotationCountMap`,
+  `getAnnotationCount`, and the `sinceBaseSections` `getSectionEntry` lookup.
+  `spec/04-file-tree.md:67-68` requires preserving viewed state/progress,
+  applicable annotation counts, and active-file highlighting. Nothing re-renders
+  that per-row metadata on the Pierre rows, so review progress and annotation
+  counts vanish from the tree. **This is the main thing to solve** — find out
+  how `@pierre/trees` allows per-row adornments before rewriting step 3.
+- Step 3's four acceptance behaviors have no tests: fresh tree opens folders,
+  empty directories flatten, query hides non-matches, and
+  clear/close/Enter/Shift+Enter search behavior stays correct.
+- It removes the old expansion/search rendering during step 3. That removal is
+  step 5's, and only after adapter parity is proven.
+- The DOM gate never ran against it — the agent was cut off by a rate limit mid-
+  verification. `typecheck` exits 0 and review-editor holds at 51, nothing more.
 
 ## Gates (the ONLY correct ones)
 
