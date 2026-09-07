@@ -152,16 +152,3 @@ export function getVisualFileOrder(nodes: FileTreeNode[]): number[] {
   }
   return order;
 }
-
-export function getAllFolderPaths(nodes: FileTreeNode[]): string[] {
-  const paths: string[] = [];
-  for (const node of nodes) {
-    if (node.type === 'folder') {
-      paths.push(node.path);
-      if (node.children) {
-        paths.push(...getAllFolderPaths(node.children));
-      }
-    }
-  }
-  return paths;
-}

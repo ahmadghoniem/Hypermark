@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { buildFileTree, getAncestorPaths, getAllFolderPaths } from "./buildFileTree";
+import { buildFileTree, getAncestorPaths } from "./buildFileTree";
 import type { DiffFile } from "../types";
 
 const diffFile = (path: string, overrides: Partial<DiffFile> = {}): DiffFile => ({
@@ -211,34 +211,5 @@ describe("getAncestorPaths - workspace mode", () => {
   it("handles flat repo structure", () => {
     const paths = getAncestorPaths("repo-a/file.ts");
     expect(paths).toEqual(["repo-a"]);
-  });
-});
-
-describe("getAllFolderPaths - workspace mode", () => {
-  it("collects all folder paths from repo-prefixed tree", () => {
-    const files = [
-      diffFile("repo-a/src/index.ts"),
-      diffFile("repo-b/src/app.ts"),
-    ];
-    const tree = buildFileTree(files);
-    const folders = getAllFolderPaths(tree);
-
-    // After collapseSingleChild, we get "repo-a/src" and "repo-b/src"
-    expect(folders).toContain("repo-a/src");
-    expect(folders).toContain("repo-b/src");
-  });
-
-  it("collects nested repo label folders", () => {
-    const files = [
-      diffFile("apps/api/src/server.ts"),
-      diffFile("apps/web/src/app.ts"),
-    ];
-    const tree = buildFileTree(files);
-    const folders = getAllFolderPaths(tree);
-
-    // After collapseSingleChild: apps stays, apps/api/src and apps/web/src
-    expect(folders).toContain("apps");
-    expect(folders).toContain("apps/api/src");
-    expect(folders).toContain("apps/web/src");
   });
 });

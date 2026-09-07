@@ -424,8 +424,8 @@ export const FileTree: React.FC<FileTreeProps> = ({
   }, [model, files, effectiveActiveFileIndex, treePaths]);
 
   // Real canonical directory paths (every ancestor of every file), not the
-  // collapsed display paths buildFileTree/getAllFolderPaths produce — the
-  // Pierre model's directory nodes are keyed by the former.
+  // collapsed display paths buildFileTree produces — the Pierre model's
+  // directory nodes are keyed by the former.
   const allRealFolderPaths = useMemo(() => {
     const paths = new Set<string>();
     for (const file of files) {

@@ -147,7 +147,7 @@ const SectionRow: React.FC<{
 }) => {
   const { file } = item;
 
-  // Same row anatomy as FileTreeNode's file rows — the file-tree-item class
+  // Same row anatomy the tree rows used before @pierre/trees — the file-tree-item class
   // and its .active/.has-annotations states come from theme.css, so the two
   // panel views share one visual language. The .staged class (green row tint)
   // is deliberately NOT applied here: green reads as "committed", and staged
