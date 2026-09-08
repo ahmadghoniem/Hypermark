@@ -323,8 +323,8 @@ describe('ThemeProvider', () => {
   });
 
   test.skipIf(!hasDom)('persists System and follows live OS changes across reloads', async () => {
-    stored.set('plannotator-theme', 'system');
-    stored.set('plannotator-color-theme', 'plannotator');
+    stored.set('hypermark-theme', 'system');
+    stored.set('hypermark-color-theme', 'hypermark');
     const media = installMatchMedia(false);
 
     await mountTheme();
@@ -337,7 +337,7 @@ describe('ThemeProvider', () => {
     expect(themeState().preferredMode).toBe('light');
     expect(themeState().resolvedMode).toBe('light');
     expect(document.documentElement.classList.contains('light')).toBe(true);
-    expect(stored.get('plannotator-theme')).toBe('system');
+    expect(stored.get('hypermark-theme')).toBe('system');
 
     await unmountTheme();
     media.setMatches(false);
@@ -347,9 +347,9 @@ describe('ThemeProvider', () => {
   });
 
   test.skipIf(!hasDom)('flips between the two halves of the pair when the OS scheme changes', async () => {
-    stored.set('plannotator-theme', 'system');
-    stored.set('plannotator-light-theme', 'github');
-    stored.set('plannotator-dark-theme', 'tokyo-night');
+    stored.set('hypermark-theme', 'system');
+    stored.set('hypermark-light-theme', 'github');
+    stored.set('hypermark-dark-theme', 'tokyo-night');
     const media = installMatchMedia(true);
 
     await mountTheme();
@@ -368,9 +368,9 @@ describe('ThemeProvider', () => {
   });
 
   test.skipIf(!hasDom)('keeps every mode selectable while a dark-only palette owns the dark half', async () => {
-    stored.set('plannotator-theme', 'dark');
-    stored.set('plannotator-light-theme', 'catppuccin');
-    stored.set('plannotator-dark-theme', 'ayu-dark');
+    stored.set('hypermark-theme', 'dark');
+    stored.set('hypermark-light-theme', 'catppuccin');
+    stored.set('hypermark-dark-theme', 'ayu-dark');
     installMatchMedia(false);
 
     await mountTheme(<ThemeTab />);
@@ -386,14 +386,14 @@ describe('ThemeProvider', () => {
     expect(themeState().mode).toBe('light');
     expect(themeState().colorTheme).toBe('catppuccin');
     expect(themeState().resolvedMode).toBe('light');
-    expect(stored.get('plannotator-theme')).toBe('light');
-    expect(stored.get('plannotator-dark-theme')).toBe('ayu-dark');
+    expect(stored.get('hypermark-theme')).toBe('light');
+    expect(stored.get('hypermark-dark-theme')).toBe('ayu-dark');
   });
 
   test.skipIf(!hasDom)('repairs invalid persisted values before exposing state', async () => {
-    stored.set('plannotator-theme', 'sepia');
-    stored.set('plannotator-light-theme', 'ayu-dark');
-    stored.set('plannotator-dark-theme', 'gone-in-this-build');
+    stored.set('hypermark-theme', 'sepia');
+    stored.set('hypermark-light-theme', 'ayu-dark');
+    stored.set('hypermark-dark-theme', 'gone-in-this-build');
     installMatchMedia(true);
 
     await mountTheme();
@@ -401,13 +401,13 @@ describe('ThemeProvider', () => {
     expect(themeState().lightTheme).toBe(DEFAULT_COLOR_THEME);
     expect(themeState().darkTheme).toBe(DEFAULT_COLOR_THEME);
     expect(themeState().resolvedMode).toBe('dark');
-    expect(stored.get('plannotator-theme')).toBe('dark');
+    expect(stored.get('hypermark-theme')).toBe('dark');
   });
 
   test.skipIf(!hasDom)('assigns one half at a time from its own grid', async () => {
-    stored.set('plannotator-theme', 'light');
-    stored.set('plannotator-light-theme', DEFAULT_COLOR_THEME);
-    stored.set('plannotator-dark-theme', DEFAULT_COLOR_THEME);
+    stored.set('hypermark-theme', 'light');
+    stored.set('hypermark-light-theme', DEFAULT_COLOR_THEME);
+    stored.set('hypermark-dark-theme', DEFAULT_COLOR_THEME);
     installMatchMedia(true);
 
     await mountTheme(<ThemeTab />);
@@ -485,7 +485,7 @@ describe('ThemeProvider server write-back', () => {
   });
 
   // A cookie-less visit (fresh profile, incognito, cleared cookies) must not
-  // write anything to ~/.plannotator/config.json: that POST would land after
+  // write anything to ~/.hypermark/config.json: that POST would land after
   // the server config arrives and reset the user's real theme to defaults.
   test.skipIf(!hasDom)('posts nothing when mounting with no stored preference', async () => {
     // Drain anything an earlier test's debounce still had in flight.
@@ -498,7 +498,7 @@ describe('ThemeProvider server write-back', () => {
     expect(posts).toEqual([]);
     // The pair still resolved and was persisted locally.
     expect(themeState().colorTheme).toBe(DEFAULT_COLOR_THEME);
-    expect(stored.get('plannotator-light-theme')).toBe(DEFAULT_COLOR_THEME);
+    expect(stored.get('hypermark-light-theme')).toBe(DEFAULT_COLOR_THEME);
   });
 
   test.skipIf(!hasDom)('posts a real choice, so the pair still reaches config.json', async () => {
@@ -527,7 +527,7 @@ describe('ThemeProvider server write-back', () => {
 
     expect(posts).toEqual([]);
     expect(themeState().darkTheme).toBe('tokyo-night');
-    expect(stored.get('plannotator-dark-theme')).toBe('tokyo-night');
+    expect(stored.get('hypermark-dark-theme')).toBe('tokyo-night');
   });
 });
 
@@ -564,9 +564,9 @@ describe('ThemeProvider legacy setColorTheme', () => {
   });
 
   test.skipIf(!hasDom)('assigns a both-mode palette to the half on screen only', async () => {
-    stored.set('plannotator-theme', 'dark');
-    stored.set('plannotator-light-theme', 'github');
-    stored.set('plannotator-dark-theme', 'tokyo-night');
+    stored.set('hypermark-theme', 'dark');
+    stored.set('hypermark-light-theme', 'github');
+    stored.set('hypermark-dark-theme', 'tokyo-night');
     installMatchMedia(false);
 
     await mountTheme();
@@ -579,9 +579,9 @@ describe('ThemeProvider legacy setColorTheme', () => {
   });
 
   test.skipIf(!hasDom)('assigns a mode-restricted palette without moving the mode', async () => {
-    stored.set('plannotator-theme', 'system');
-    stored.set('plannotator-light-theme', 'github');
-    stored.set('plannotator-dark-theme', 'ayu-dark');
+    stored.set('hypermark-theme', 'system');
+    stored.set('hypermark-light-theme', 'github');
+    stored.set('hypermark-dark-theme', 'ayu-dark');
     const media = installMatchMedia(true);
 
     await mountTheme();
@@ -600,9 +600,9 @@ describe('ThemeProvider legacy setColorTheme', () => {
   });
 
   test.skipIf(!hasDom)('assigns a dark-only palette to the dark half from light mode', async () => {
-    stored.set('plannotator-theme', 'light');
-    stored.set('plannotator-light-theme', 'github');
-    stored.set('plannotator-dark-theme', 'tokyo-night');
+    stored.set('hypermark-theme', 'light');
+    stored.set('hypermark-light-theme', 'github');
+    stored.set('hypermark-dark-theme', 'tokyo-night');
     installMatchMedia(true);
 
     await mountTheme();

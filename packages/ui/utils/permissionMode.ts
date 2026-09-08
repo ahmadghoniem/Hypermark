@@ -13,8 +13,8 @@
 
 import { storage } from './storage';
 
-const STORAGE_KEY_MODE = 'plannotator-permission-mode';
-const STORAGE_KEY_CONFIGURED = 'plannotator-permission-mode-configured';
+const STORAGE_KEY_MODE = 'hypermark-permission-mode';
+const STORAGE_KEY_CONFIGURED = 'hypermark-permission-mode-configured';
 
 export type PermissionMode = 'bypassPermissions' | 'acceptEdits' | 'auto' | 'default';
 

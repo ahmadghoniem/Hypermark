@@ -277,7 +277,7 @@ export async function startHypermarkServer(
             });
           }
 
-          // API: List archived plans (from ~/.plannotator/plans/)
+          // API: List archived plans (from ~/.hypermark/plans/)
           // Cached for session lifetime — new plans won't appear during a single review
           if (url.pathname === "/api/archive/plans" && req.method === "GET") {
             const customPath = url.searchParams.get("customPath") || undefined;
@@ -355,7 +355,7 @@ export async function startHypermarkServer(
             });
           }
 
-          // API: Update user config (write-back to ~/.plannotator/config.json)
+          // API: Update user config (write-back to ~/.hypermark/config.json)
           if (url.pathname === "/api/config" && req.method === "POST") {
             try {
               const body = (await req.json()) as { displayName?: string; diffOptions?: Record<string, unknown>; theme?: Record<string, unknown>; favicon?: FaviconStyle; conventionalComments?: boolean; conventionalLabels?: unknown[] | null; pfmReminder?: boolean };

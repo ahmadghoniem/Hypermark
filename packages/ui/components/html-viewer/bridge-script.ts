@@ -3,7 +3,7 @@
  *
  * Handles text selection, annotation marks, theme updates, and resize
  * notifications. Communicates with the parent via postMessage using a
- * "plannotator-bridge-*" message protocol.
+ * "hypermark-bridge-*" message protocol.
  *
  * This is a string constant — it gets prepended to the iframe's srcdoc.
  * No external dependencies.
@@ -22,18 +22,18 @@ export const ANNOTATION_HIGHLIGHT_CSS = `
 /* Vim pinpoint target tint. The MOUSE pinpoint path no longer mutates author
  * elements — it draws the dedicated overlay box below — but keyboard (vim)
  * navigation keeps this class-based visual. */
-.plannotator-pinpoint-hover {
+.hypermark-pinpoint-hover {
   background-color: oklch(from var(--pn-focus-highlight, #4493f8) l c h / 0.12) !important;
   border-radius: 3px;
   cursor: pointer !important;
 }
 /* SVG groups can't render a CSS background, so use a soft glow instead. */
-.plannotator-pinpoint-hover:is(g, svg) {
+.hypermark-pinpoint-hover:is(g, svg) {
   filter: drop-shadow(0 0 4px oklch(from var(--pn-focus-highlight, #4493f8) l c h / 0.55));
 }
 /* Mouse pinpoint hover: a fixed-position outline box sized to the hovered
  * element's rect. Never a class/style write on the page's own elements. */
-[data-plannotator-pinpoint-box] {
+[data-hypermark-pinpoint-box] {
   position: fixed;
   z-index: 2147483643;
   pointer-events: none;
@@ -43,10 +43,10 @@ export const ANNOTATION_HIGHLIGHT_CSS = `
   border-radius: 5px;
   background: oklch(from var(--pn-focus-highlight, #4493f8) l c h / 0.06);
 }
-[data-plannotator-pinpoint-box].pn-pin-enter {
+[data-hypermark-pinpoint-box].pn-pin-enter {
   animation: pn-pinpoint-in 0.12s ease-out;
 }
-[data-plannotator-pinpoint-box][data-pinned] {
+[data-hypermark-pinpoint-box][data-pinned] {
   border-color: var(--pn-accent, #d97757);
   background: oklch(from var(--pn-accent, #d97757) l c h / 0.08);
 }
@@ -56,12 +56,12 @@ export const ANNOTATION_HIGHLIGHT_CSS = `
 }
 /* Pinpoint mode affordance: crosshair everywhere. Placed markers live in the
  * shadow overlay and keep their own pointer cursor there. */
-body[data-plannotator-pinpoint-cursor],
-body[data-plannotator-pinpoint-cursor] * {
+body[data-hypermark-pinpoint-cursor],
+body[data-hypermark-pinpoint-cursor] * {
   cursor: crosshair !important;
 }
 @media (prefers-reduced-motion: reduce) {
-  [data-plannotator-pinpoint-box].pn-pin-enter {
+  [data-hypermark-pinpoint-box].pn-pin-enter {
     animation: none;
   }
 }
@@ -71,8 +71,8 @@ body[data-plannotator-pinpoint-cursor] * {
      print-hidden by print.css, but this CSS lives inside the iframe's own
      document and must carry its own rule. The annotation overlay host carries
      its own print rule inside its shadow root. */
-  [data-plannotator-pinpoint-box],
-  [data-plannotator-pinpoint-label] {
+  [data-hypermark-pinpoint-box],
+  [data-hypermark-pinpoint-label] {
     display: none !important;
   }
 }
@@ -81,7 +81,7 @@ body[data-plannotator-pinpoint-cursor] * {
  * afterprint (the fixed overlay cannot paginate). Guarded here so it can
  * never flash on screen even if an afterprint teardown is missed. */
 @media screen {
-  [data-plannotator-print-layer] {
+  [data-hypermark-print-layer] {
     display: none !important;
   }
 }
@@ -100,7 +100,7 @@ body[data-plannotator-pinpoint-cursor] * {
 export const BRIDGE_PROTOCOL_VERSION = 1;
 
 export const BRIDGE_SCRIPT = `(function() {
-  var PREFIX = 'plannotator-bridge-';
+  var PREFIX = 'hypermark-bridge-';
 
   // --- Live mode (proxied local app) ---
   // Srcdoc sessions carry no config: LIVE stays null and every branch below is
@@ -248,9 +248,9 @@ export const BRIDGE_SCRIPT = `(function() {
   function updatePinpointCursor() {
     if (!document.body) return;
     if (annotateModeActive && currentInputMethod === 'pinpoint') {
-      document.body.setAttribute('data-plannotator-pinpoint-cursor', '');
+      document.body.setAttribute('data-hypermark-pinpoint-cursor', '');
     } else {
-      document.body.removeAttribute('data-plannotator-pinpoint-cursor');
+      document.body.removeAttribute('data-hypermark-pinpoint-cursor');
     }
   }
   var pinpointHover = null;
@@ -676,7 +676,7 @@ export const BRIDGE_SCRIPT = `(function() {
         current.nodeType === 1
         && overlayNodes.has(current)
         && current.hasAttribute
-        && current.hasAttribute('data-plannotator-marker')
+        && current.hasAttribute('data-hypermark-marker')
       ) return current;
       current = current.parentElement
         || (current.getRootNode && current.getRootNode().host)
@@ -958,7 +958,7 @@ export const BRIDGE_SCRIPT = `(function() {
   function getPinpointLabelEl() {
     if (!pinpointLabelEl) {
       pinpointLabelEl = document.createElement('div');
-      pinpointLabelEl.setAttribute('data-plannotator-pinpoint-label', '');
+      pinpointLabelEl.setAttribute('data-hypermark-pinpoint-label', '');
       pinpointLabelEl.style.cssText = 'position:fixed;z-index:2147483647;pointer-events:none;display:none;font:600 11px/1.3 system-ui,-apple-system,sans-serif;padding:2px 7px;border-radius:5px;background:var(--pn-focus-highlight,#4493f8);color:#fff;white-space:nowrap;box-shadow:0 1px 5px rgba(0,0,0,.35);';
       overlayNodes.add(pinpointLabelEl);
     }
@@ -980,7 +980,7 @@ export const BRIDGE_SCRIPT = `(function() {
   function getPinpointBoxEl() {
     if (!pinpointBoxEl) {
       pinpointBoxEl = document.createElement('div');
-      pinpointBoxEl.setAttribute('data-plannotator-pinpoint-box', '');
+      pinpointBoxEl.setAttribute('data-hypermark-pinpoint-box', '');
       overlayNodes.add(pinpointBoxEl);
     }
     if (!pinpointBoxEl.isConnected) document.body.appendChild(pinpointBoxEl);
@@ -1150,7 +1150,7 @@ export const BRIDGE_SCRIPT = `(function() {
     '.pn-marker-num { pointer-events: none; position: relative; transform: translate(-0.5px, -1.5px); color: #fff; font: 700 10px/1 system-ui, -apple-system, sans-serif; user-select: none; }',
     '@keyframes pn-marker-in { from { opacity: 0; } to { opacity: 1; } }',
     '@media (prefers-reduced-motion: reduce) { .pn-marker { animation: none; } }',
-    ':host([data-pn-hittest]) .pn-marker, [data-plannotator-overlay-host][data-pn-hittest] .pn-marker { pointer-events: none !important; }',
+    ':host([data-pn-hittest]) .pn-marker, [data-hypermark-overlay-host][data-pn-hittest] .pn-marker { pointer-events: none !important; }',
     '@media print { .pn-layer { display: none !important; } }'
   ].join('\\n');
 
@@ -1165,7 +1165,7 @@ export const BRIDGE_SCRIPT = `(function() {
   function ensureOverlayHost() {
     if (!overlayHostEl) {
       overlayHostEl = document.createElement('div');
-      overlayHostEl.setAttribute('data-plannotator-overlay-host', '');
+      overlayHostEl.setAttribute('data-hypermark-overlay-host', '');
       var hostStyle = overlayHostEl.style;
       hostStyle.setProperty('position', 'fixed', 'important');
       hostStyle.setProperty('top', '0', 'important');
@@ -2101,7 +2101,7 @@ export const BRIDGE_SCRIPT = `(function() {
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'pn-marker';
-    btn.setAttribute('data-plannotator-marker', '');
+    btn.setAttribute('data-hypermark-marker', '');
     btn.setAttribute('data-annotation-id', annId);
     btn.innerHTML = MARKER_SVG + '<span class="pn-marker-num"></span>';
     btn.addEventListener('click', function(clickEvent) {
@@ -2582,7 +2582,7 @@ export const BRIDGE_SCRIPT = `(function() {
   // identity-tracked in overlayNodes like every viewer overlay).
   function createMultiTargetBox(el) {
     var box = document.createElement('div');
-    box.setAttribute('data-plannotator-pinpoint-box', '');
+    box.setAttribute('data-hypermark-pinpoint-box', '');
     box.setAttribute('data-pinned', '');
     overlayNodes.add(box);
     document.body.appendChild(box);
@@ -2761,7 +2761,7 @@ export const BRIDGE_SCRIPT = `(function() {
   function getMultiHoverBoxEl() {
     if (!multiHoverBoxEl) {
       multiHoverBoxEl = document.createElement('div');
-      multiHoverBoxEl.setAttribute('data-plannotator-pinpoint-box', '');
+      multiHoverBoxEl.setAttribute('data-hypermark-pinpoint-box', '');
       overlayNodes.add(multiHoverBoxEl);
     }
     if (!multiHoverBoxEl.isConnected) document.body.appendChild(multiHoverBoxEl);
@@ -2878,7 +2878,7 @@ export const BRIDGE_SCRIPT = `(function() {
     if (!annotateModeActive || currentInputMethod !== 'pinpoint') return;
     // Real placed markers (and any other viewer overlay) own their clicks —
     // checked by IDENTITY, not selector, so a page element spoofing
-    // [data-plannotator-marker] stays an ordinary annotatable target.
+    // [data-hypermark-marker] stays an ordinary annotatable target.
     if (isViewerOverlayNode(e.target)) return;
     // A drag that ended in this click owns the surface: the drag-selection
     // pass is about to post the selected text, and pinpoint-annotating the
@@ -3218,7 +3218,7 @@ export const BRIDGE_SCRIPT = `(function() {
     try {
       if (!annRecords.length || !document.body) return;
       var layer = document.createElement('div');
-      layer.setAttribute('data-plannotator-print-layer', '');
+      layer.setAttribute('data-hypermark-print-layer', '');
       layer.style.cssText = 'position:absolute;left:0;top:0;width:0;height:0;overflow:visible;pointer-events:none;';
       var sx = window.scrollX || 0;
       var sy = window.scrollY || 0;
@@ -3333,7 +3333,7 @@ export const LIVE_BRIDGE_BOOTSTRAP = `(function() {
   if (!config || typeof config.css !== 'string') return;
   try {
     var style = document.createElement('style');
-    style.setAttribute('data-plannotator-live-css', '');
+    style.setAttribute('data-hypermark-live-css', '');
     style.appendChild(document.createTextNode(config.css));
     (document.head || document.documentElement).appendChild(style);
   } catch (ex) {}

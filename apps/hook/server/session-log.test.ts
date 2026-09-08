@@ -954,7 +954,7 @@ describe("getRecentRenderedMessages — after a /compact", () => {
     // Right after a compaction the branch holds no assistant messages. An
     // empty result must not escape: callers treat it as "wrong log file" and
     // walk off to an older session. Fail open to the file-order read instead.
-    const dir = join(tmpdir(), `plannotator-compact-test-${process.pid}`);
+    const dir = join(tmpdir(), `hypermark-compact-test-${process.pid}`);
     mkdirSync(dir, { recursive: true });
     const logPath = join(dir, "session.jsonl");
     try {
@@ -975,7 +975,7 @@ describe("getRecentRenderedMessages — after a /compact", () => {
       compactedLog(),
       linkChain([assistantText("msg_post", "Post-compaction answer")], "u-after").join("\n"),
     ].join("\n");
-    const dir = join(tmpdir(), `plannotator-compact-test2-${process.pid}`);
+    const dir = join(tmpdir(), `hypermark-compact-test2-${process.pid}`);
     mkdirSync(dir, { recursive: true });
     const logPath = join(dir, "session.jsonl");
     try {
@@ -1011,7 +1011,7 @@ describe("findSessionLogsByAncestorWalk", () => {
   test("walks up to find parent directory session logs", () => {
     const { projectsDir, cleanup } = makeTempDirs("ancestor-walk");
     try {
-      const testId = `plannotator-test-${Date.now()}`;
+      const testId = `hypermark-test-${Date.now()}`;
       const testDir = join(tmpdir(), testId, "sub", "deep");
       const parentSlug = join(tmpdir(), testId).replace(/[^a-zA-Z0-9-]/g, "-");
       const slugDir = join(projectsDir, parentSlug);
@@ -1030,7 +1030,7 @@ describe("findSessionLogsByAncestorWalk", () => {
   test("does not return results for the exact CWD (caller already tried it)", () => {
     const { projectsDir, cleanup } = makeTempDirs("ancestor-exact");
     try {
-      const testId = `plannotator-test-exact-${Date.now()}`;
+      const testId = `hypermark-test-exact-${Date.now()}`;
       const testDir = join(tmpdir(), testId);
       const cwdSlug = testDir.replace(/[^a-zA-Z0-9-]/g, "-");
       const slugDir = join(projectsDir, cwdSlug);
@@ -1166,7 +1166,7 @@ function makeTempDirs(label: string): {
   projectsDir: string;
   cleanup: () => void;
 } {
-  const base = join(tmpdir(), `plannotator-resolver-${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+  const base = join(tmpdir(), `hypermark-resolver-${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
   const sessionsDir = join(base, "sessions");
   const projectsDir = join(base, "projects");
   mkdirSync(sessionsDir, { recursive: true });

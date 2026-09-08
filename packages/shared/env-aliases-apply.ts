@@ -1,7 +1,7 @@
 /**
  * Side-effect entry point for the legacy environment aliases.
  *
- * Importing this module applies `PLANNOTATOR_*` -> `HYPERMARK_*` to
+ * Importing this module applies `HYPERMARK_*` -> `HYPERMARK_*` to
  * `process.env` once, at import time. It is deliberately separate from
  * `env-aliases.ts`: that module is pure and testable, this one is the single
  * place allowed to mutate the real environment, so a test importing the rule

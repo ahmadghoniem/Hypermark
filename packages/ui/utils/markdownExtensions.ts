@@ -1,7 +1,7 @@
 /**
  * Extra markdown extensions, renderer side (#1307).
  *
- * The server resolves `markdownExtensions` from `~/.plannotator/config.json`
+ * The server resolves `markdownExtensions` from `~/.hypermark/config.json`
  * and ships the normalized list with the annotate payload. The renderer needs
  * it for one job: deciding whether a relative link or a wiki-link target names
  * a local document it should open in the linked-doc overlay (`/api/doc`) or a

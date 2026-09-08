@@ -6,7 +6,7 @@ import { createHtmlAssetRegistry, inlineHtmlLocalAssets } from "./html-assets";
 
 describe("annotate raw HTML assets", () => {
   test("rewrites raw HTML support assets and serves them from the source directory", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "plannotator-html-assets-"));
+    const dir = mkdtempSync(join(tmpdir(), "hypermark-html-assets-"));
     const htmlPath = join(dir, "page.html");
     const cssPath = join(dir, "style.css");
     const imagePath = join(dir, "logo.png");
@@ -40,7 +40,7 @@ describe("annotate raw HTML assets", () => {
   });
 
   test("inlines raw HTML support assets for portable share payloads", () => {
-    const dir = mkdtempSync(join(tmpdir(), "plannotator-html-share-"));
+    const dir = mkdtempSync(join(tmpdir(), "hypermark-html-share-"));
     const htmlPath = join(dir, "page.html");
     const cssDir = join(dir, "styles");
     const imageDir = join(dir, "images");
@@ -66,7 +66,7 @@ describe("annotate raw HTML assets", () => {
 
   test("does not serve a symlinked asset that escapes the source directory", async () => {
     // Attacker bundle: a symlink inside the HTML's dir pointing at a secret outside it.
-    const base = mkdtempSync(join(tmpdir(), "plannotator-html-symlink-"));
+    const base = mkdtempSync(join(tmpdir(), "hypermark-html-symlink-"));
     const htmlDir = join(base, "site");
     mkdirSync(htmlDir);
     const secretPath = join(base, "secret.css");
@@ -88,7 +88,7 @@ describe("annotate raw HTML assets", () => {
   });
 
   test("does not inline a symlinked asset that escapes the source directory", () => {
-    const base = mkdtempSync(join(tmpdir(), "plannotator-html-symlink-inline-"));
+    const base = mkdtempSync(join(tmpdir(), "hypermark-html-symlink-inline-"));
     const htmlDir = join(base, "site");
     mkdirSync(htmlDir);
     const secretPath = join(base, "secret.css");

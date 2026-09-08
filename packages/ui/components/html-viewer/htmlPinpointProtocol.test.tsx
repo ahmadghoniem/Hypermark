@@ -126,7 +126,7 @@ describe.if(hasDom)('parseBridgeMessage selection additions', () => {
 
   test('carries a validated anchor and the pinpoint flag', () => {
     const parsed = hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-selection',
+      type: 'hypermark-bridge-selection',
       text: 'Hello',
       rect,
       anchor: { selector: 'p.intro', tagName: 'p', text: 'Hello' },
@@ -141,7 +141,7 @@ describe.if(hasDom)('parseBridgeMessage selection additions', () => {
 
   test('a malformed anchor is dropped without rejecting the selection', () => {
     const parsed = hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-selection',
+      type: 'hypermark-bridge-selection',
       text: 'Hello',
       rect,
       anchor: { selector: 42 },
@@ -158,7 +158,7 @@ describe.if(hasDom)('parseBridgeMessage selection additions', () => {
     const cap = hookModule!.MAX_SELECTION_TEXT_LENGTH;
     const straddling = 'x'.repeat(cap - 1) + '\u{1F600}' + 'tail';
     const parsed = hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-selection',
+      type: 'hypermark-bridge-selection',
       text: straddling,
       rect,
     }) as { text: string };
@@ -168,7 +168,7 @@ describe.if(hasDom)('parseBridgeMessage selection additions', () => {
     // A pair that fits entirely under the cap is untouched.
     const fitting = 'y'.repeat(cap - 2) + '\u{1F600}';
     const kept = hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-selection',
+      type: 'hypermark-bridge-selection',
       text: fitting,
       rect,
     }) as { text: string };
@@ -181,7 +181,7 @@ describe.if(hasDom)('parseBridgeMessage selection additions', () => {
     // exported feedback, and share URLs.
     const cap = hookModule!.MAX_SELECTION_TEXT_LENGTH;
     const parsed = hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-selection',
+      type: 'hypermark-bridge-selection',
       text: 'x'.repeat(cap + 590_000),
       rect,
     });
@@ -189,7 +189,7 @@ describe.if(hasDom)('parseBridgeMessage selection additions', () => {
     expect((parsed as { text: string }).text.length).toBe(cap);
     // At or under the cap passes through untouched.
     const exact = hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-selection',
+      type: 'hypermark-bridge-selection',
       text: 'y'.repeat(cap),
       rect,
     });
@@ -235,7 +235,7 @@ describe.if(hasDom)('pinpoint click-to-pin flow', () => {
   }
 
   const selectionMessage = {
-    type: 'plannotator-bridge-selection',
+    type: 'hypermark-bridge-selection',
     text: 'Pinpoint target',
     rect: { top: 10, left: 10, width: 120, height: 24 },
     anchor: { selector: 'p:nth-of-type(1)', tagName: 'p', text: 'Pinpoint target' },
@@ -432,7 +432,7 @@ describe.if(hasDom)('ordered saved-annotation sync (placed-marker numbering)', (
       await act(async () => {
         window.dispatchEvent(new MessageEvent('message', {
           source: iframe.contentWindow,
-          data: { type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION },
+          data: { type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION },
         }));
       });
     };
@@ -461,7 +461,7 @@ describe.if(hasDom)('ordered saved-annotation sync (placed-marker numbering)', (
     const { postReady, postedToIframe } = await mountWithAnnotations(annotations);
     await postReady();
     const syncs = postedToIframe.filter(
-      (m) => m.type === 'plannotator-bridge-sync-annotations',
+      (m) => m.type === 'hypermark-bridge-sync-annotations',
     );
     expect(syncs.length).toBeGreaterThanOrEqual(1);
     // Numbered by ARRAY position of the full list INCLUDING globals — the
@@ -480,7 +480,7 @@ describe.if(hasDom)('ordered saved-annotation sync (placed-marker numbering)', (
   test('no sync is posted before the bridge is ready', async () => {
     const { postedToIframe } = await mountWithAnnotations([ann('a', 1)]);
     expect(
-      postedToIframe.some((m) => m.type === 'plannotator-bridge-sync-annotations'),
+      postedToIframe.some((m) => m.type === 'hypermark-bridge-sync-annotations'),
     ).toBe(false);
   });
 
@@ -494,7 +494,7 @@ describe.if(hasDom)('ordered saved-annotation sync (placed-marker numbering)', (
     const { postReady, postedToIframe } = await mountWithAnnotations(annotations);
     await postReady();
     const syncs = postedToIframe.filter(
-      (m) => m.type === 'plannotator-bridge-sync-annotations',
+      (m) => m.type === 'hypermark-bridge-sync-annotations',
     );
     const list = syncs.at(-1)!.annotations as Array<{ id: string; number: number }>;
     expect(list.length).toBe(512);
@@ -506,15 +506,15 @@ describe.if(hasDom)('ordered saved-annotation sync (placed-marker numbering)', (
 describe.if(hasDom)('mark-click validation (trust boundary)', () => {
   test('mark-click ids are capped at 256 chars like the bridge sync cap (m1)', () => {
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-mark-click',
+      type: 'hypermark-bridge-mark-click',
       id: 'x'.repeat(256),
-    })).toEqual({ type: 'plannotator-bridge-mark-click', id: 'x'.repeat(256) });
+    })).toEqual({ type: 'hypermark-bridge-mark-click', id: 'x'.repeat(256) });
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-mark-click',
+      type: 'hypermark-bridge-mark-click',
       id: 'x'.repeat(257),
     })).toBeNull();
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-mark-click',
+      type: 'hypermark-bridge-mark-click',
       id: 42,
     })).toBeNull();
   });
@@ -523,13 +523,13 @@ describe.if(hasDom)('mark-click validation (trust boundary)', () => {
 describe.if(hasDom)('multi-target bridge message validation (trust boundary)', () => {
   test('multi-target-added: well-formed DTO passes with validated anchor', () => {
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-multi-target-added',
+      type: 'hypermark-bridge-multi-target-added',
       key: 'ht-2',
       label: 'Button',
       text: 'Create',
       anchor: { selector: 'span.btn', tagName: 'span', text: 'Create' },
     })).toEqual({
-      type: 'plannotator-bridge-multi-target-added',
+      type: 'hypermark-bridge-multi-target-added',
       key: 'ht-2',
       label: 'Button',
       text: 'Create',
@@ -539,16 +539,16 @@ describe.if(hasDom)('multi-target bridge message validation (trust boundary)', (
 
   test('multi-target-added: missing/oversized key or text rejects the message', () => {
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-multi-target-added',
+      type: 'hypermark-bridge-multi-target-added',
       text: 'Create',
     })).toBeNull();
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-multi-target-added',
+      type: 'hypermark-bridge-multi-target-added',
       key: 'x'.repeat(65),
       text: 'Create',
     })).toBeNull();
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-multi-target-added',
+      type: 'hypermark-bridge-multi-target-added',
       key: 'ht-2',
       text: 42,
     })).toBeNull();
@@ -556,14 +556,14 @@ describe.if(hasDom)('multi-target bridge message validation (trust boundary)', (
 
   test('multi-target-added: anchor point validates like the primary anchor point', () => {
     const good = hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-multi-target-added',
+      type: 'hypermark-bridge-multi-target-added',
       key: 'ht-6',
       text: 'Create',
       anchor: { selector: 'span.btn', tagName: 'span', text: 'Create', point: { x: 0.9, y: 0.2 } },
     }) as { anchor?: { point?: { x: number; y: number } } };
     expect(good.anchor?.point).toEqual({ x: 0.9, y: 0.2 });
     const bad = hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-multi-target-added',
+      type: 'hypermark-bridge-multi-target-added',
       key: 'ht-7',
       text: 'Create',
       anchor: { selector: 'span.btn', tagName: 'span', text: 'Create', point: { x: 'evil', y: 0.2 } },
@@ -574,7 +574,7 @@ describe.if(hasDom)('multi-target bridge message validation (trust boundary)', (
 
   test('multi-target-added: hostile label is truncated, hostile anchor dropped, text capped', () => {
     const parsed = hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-multi-target-added',
+      type: 'hypermark-bridge-multi-target-added',
       key: 'ht-3',
       label: 'L'.repeat(500),
       text: 'x'.repeat(hookModule!.MAX_SELECTION_TEXT_LENGTH + 5000),
@@ -588,33 +588,33 @@ describe.if(hasDom)('multi-target bridge message validation (trust boundary)', (
 
   test('multi-target-removed and pointer messages validate their fields', () => {
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-multi-target-removed',
+      type: 'hypermark-bridge-multi-target-removed',
       key: 'ht-2',
-    })).toEqual({ type: 'plannotator-bridge-multi-target-removed', key: 'ht-2' });
+    })).toEqual({ type: 'hypermark-bridge-multi-target-removed', key: 'ht-2' });
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-multi-target-removed',
+      type: 'hypermark-bridge-multi-target-removed',
       key: 7,
     })).toBeNull();
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-pointer',
+      type: 'hypermark-bridge-pointer',
       x: 12,
       y: 34,
       shift: true,
-    })).toEqual({ type: 'plannotator-bridge-pointer', x: 12, y: 34, shift: true });
+    })).toEqual({ type: 'hypermark-bridge-pointer', x: 12, y: 34, shift: true });
     // shift is a strict boolean: absent or truthy-but-not-true reads false.
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-pointer',
+      type: 'hypermark-bridge-pointer',
       x: 12,
       y: 34,
-    })).toEqual({ type: 'plannotator-bridge-pointer', x: 12, y: 34, shift: false });
+    })).toEqual({ type: 'hypermark-bridge-pointer', x: 12, y: 34, shift: false });
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-pointer',
+      type: 'hypermark-bridge-pointer',
       x: 12,
       y: 34,
       shift: 1,
-    })).toEqual({ type: 'plannotator-bridge-pointer', x: 12, y: 34, shift: false });
+    })).toEqual({ type: 'hypermark-bridge-pointer', x: 12, y: 34, shift: false });
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-pointer',
+      type: 'hypermark-bridge-pointer',
       x: Infinity,
       y: 1,
     })).toBeNull();
@@ -622,14 +622,14 @@ describe.if(hasDom)('multi-target bridge message validation (trust boundary)', (
 
   test('hostile labels with newlines are collapsed at the trust boundary (D2)', () => {
     const parsed = hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-multi-target-added',
+      type: 'hypermark-bridge-multi-target-added',
       key: 'ht-4',
       label: 'Save\n## INJECTED HEADING',
       text: 'Save',
     }) as { label?: string };
     expect(parsed.label).toBe('Save ## INJECTED HEADING');
     const selection = hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-selection',
+      type: 'hypermark-bridge-selection',
       text: 'Save',
       rect: { top: 1, left: 1, width: 10, height: 10 },
       pinpoint: true,
@@ -639,7 +639,7 @@ describe.if(hasDom)('multi-target bridge message validation (trust boundary)', (
     expect(selection.targetLabel).toBe('a b');
     // Whitespace-only labels vanish instead of becoming empty brackets.
     const blank = hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-multi-target-added',
+      type: 'hypermark-bridge-multi-target-added',
       key: 'ht-5',
       label: ' \n\t ',
       text: 'x',
@@ -650,7 +650,7 @@ describe.if(hasDom)('multi-target bridge message validation (trust boundary)', (
   test('selection: targetKey validated, targetLabel truncated', () => {
     const rect = { top: 10, left: 10, width: 100, height: 20 };
     const parsed = hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-selection',
+      type: 'hypermark-bridge-selection',
       text: 'Hello',
       rect,
       pinpoint: true,
@@ -660,7 +660,7 @@ describe.if(hasDom)('multi-target bridge message validation (trust boundary)', (
     expect(parsed.targetKey).toBe('ht-1');
     expect(parsed.targetLabel!.length).toBe(64);
     const badKey = hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-selection',
+      type: 'hypermark-bridge-selection',
       text: 'Hello',
       rect,
       pinpoint: true,
@@ -722,7 +722,7 @@ describe.if(hasDom)('multi-target composer flow (chips, promotion, submit)', () 
 
   function primarySelection(overrides: Record<string, unknown> = {}) {
     return {
-      type: 'plannotator-bridge-selection',
+      type: 'hypermark-bridge-selection',
       text: 'Primary text',
       rect,
       pinpoint: true,
@@ -735,7 +735,7 @@ describe.if(hasDom)('multi-target composer flow (chips, promotion, submit)', () 
 
   function addedTarget(key: string, text: string) {
     return {
-      type: 'plannotator-bridge-multi-target-added',
+      type: 'hypermark-bridge-multi-target-added',
       key,
       label: 'Button',
       text,
@@ -822,7 +822,7 @@ describe.if(hasDom)('multi-target composer flow (chips, promotion, submit)', () 
     expect(chips().length).toBe(2);
 
     // Bridge-echoed removal of the primary (shift-click toggle-off).
-    await post({ type: 'plannotator-bridge-multi-target-removed', key: 'ht-1' });
+    await post({ type: 'hypermark-bridge-multi-target-removed', key: 'ht-1' });
     expect(chips().length).toBe(1);
     expect(chips()[0]!.getAttribute('data-target-chip')).toBe('ht-2');
     expect(chips()[0]!.getAttribute('data-target-chip-primary')).toBe('true');
@@ -843,7 +843,7 @@ describe.if(hasDom)('multi-target composer flow (chips, promotion, submit)', () 
     const { post } = await mountViewer(() => {});
     await post(primarySelection());
     expect(document.querySelector('[data-comment-popover]')).not.toBeNull();
-    await post({ type: 'plannotator-bridge-multi-target-removed', key: 'ht-1' });
+    await post({ type: 'hypermark-bridge-multi-target-removed', key: 'ht-1' });
     expect(document.querySelector('[data-comment-popover]')).toBeNull();
     expect(chips().length).toBe(0);
   });
@@ -891,7 +891,7 @@ describe.if(hasDom)('multi-target composer flow (chips, promotion, submit)', () 
     const { post, postedToIframe } = await mountViewer((ann) => added.push(ann), 'selection', { maxAdditionalTargets: 3 });
     await post(primarySelection());
     expect(postedToIframe).toContainEqual({
-      type: 'plannotator-bridge-arm-multi-select',
+      type: 'hypermark-bridge-arm-multi-select',
       key: 'ht-1',
       max: 3,
     });
@@ -922,8 +922,8 @@ describe.if(hasDom)('multi-target composer flow (chips, promotion, submit)', () 
     const added: Annotation[] = [];
     const { post, postedToIframe } = await mountViewer((ann) => added.push(ann));
     await post(primarySelection());
-    const arm = postedToIframe.find((m) => m.type === 'plannotator-bridge-arm-multi-select');
-    expect(arm).toEqual({ type: 'plannotator-bridge-arm-multi-select', key: 'ht-1' });
+    const arm = postedToIframe.find((m) => m.type === 'hypermark-bridge-arm-multi-select');
+    expect(arm).toEqual({ type: 'hypermark-bridge-arm-multi-select', key: 'ht-1' });
     expect('max' in arm!).toBe(false);
   });
 
@@ -931,20 +931,20 @@ describe.if(hasDom)('multi-target composer flow (chips, promotion, submit)', () 
     const { post, postedToIframe } = await mountViewer(() => {});
     // Drag selection (no pinpoint flag): opens the toolbar, arms nothing.
     await post({
-      type: 'plannotator-bridge-selection',
+      type: 'hypermark-bridge-selection',
       text: 'Dragged text',
       rect,
     });
     await post(addedTarget('ht-9', 'Stray'));
     expect(chips().length).toBe(0);
-    expect(postedToIframe.some((m) => m.type === 'plannotator-bridge-arm-multi-select')).toBe(false);
+    expect(postedToIframe.some((m) => m.type === 'hypermark-bridge-arm-multi-select')).toBe(false);
   });
 
   test('the composer flow arms the bridge with the primary key (D1)', async () => {
     const armed = await mountViewer(() => {});
     await armed.post(primarySelection());
     expect(armed.postedToIframe).toContainEqual({
-      type: 'plannotator-bridge-arm-multi-select',
+      type: 'hypermark-bridge-arm-multi-select',
       key: 'ht-1',
     });
   });
@@ -959,7 +959,7 @@ describe.if(hasDom)('multi-target composer flow (chips, promotion, submit)', () 
     await quick.post(primarySelection());
     expect(document.querySelector('[data-comment-popover]')).not.toBe(null);
     expect(quick.postedToIframe).toContainEqual({
-      type: 'plannotator-bridge-arm-multi-select',
+      type: 'hypermark-bridge-arm-multi-select',
       key: 'ht-1',
     });
     await quick.post(addedTarget('ht-2', 'Create'));
@@ -976,11 +976,11 @@ describe.if(hasDom)('multi-target composer flow (chips, promotion, submit)', () 
     // Hostile page forges the removal of the primary — the bridge never
     // performed it. The parent promotes AND echoes remove-target so the
     // bridge converges on the same promotion (idempotent if it already had).
-    await post({ type: 'plannotator-bridge-multi-target-removed', key: 'ht-1' });
+    await post({ type: 'hypermark-bridge-multi-target-removed', key: 'ht-1' });
     expect(chips().length).toBe(1);
     expect(chips()[0]!.getAttribute('data-target-chip')).toBe('ht-2');
     expect(postedToIframe).toContainEqual({
-      type: 'plannotator-bridge-remove-target',
+      type: 'hypermark-bridge-remove-target',
       key: 'ht-1',
     });
   });
@@ -995,11 +995,11 @@ describe.if(hasDom)('multi-target composer flow (chips, promotion, submit)', () 
 
     // Pointer over the composer (happy-dom rects are 0x0 at the origin) with
     // shift held — relayed FROM THE BRIDGE, no parent keydown involved.
-    await post({ type: 'plannotator-bridge-pointer', x: 0, y: 0, shift: true });
+    await post({ type: 'hypermark-bridge-pointer', x: 0, y: 0, shift: true });
     expect(popover.className).toContain('pn-composer-yield-over');
 
     // Shift released (still reported by the bridge): the composer restores.
-    await post({ type: 'plannotator-bridge-pointer', x: 0, y: 0, shift: false });
+    await post({ type: 'hypermark-bridge-pointer', x: 0, y: 0, shift: false });
     expect(popover.className).not.toContain('pn-composer-yield-over');
     expect(popover.className).not.toContain('pn-composer-yield-near');
   });
@@ -1116,23 +1116,23 @@ describe.if(hasDom)('readOnly view-only contract', () => {
           />,
         );
       });
-      return posted.filter((m) => m.type === 'plannotator-bridge-scroll-to');
+      return posted.filter((m) => m.type === 'hypermark-bridge-scroll-to');
     };
-    expect(await mountWith(undefined)).toEqual([{ type: 'plannotator-bridge-scroll-to', id: 'sel-1' }]);
-    expect(await mountWith('auto')).toEqual([{ type: 'plannotator-bridge-scroll-to', id: 'sel-1', behavior: 'auto' }]);
+    expect(await mountWith(undefined)).toEqual([{ type: 'hypermark-bridge-scroll-to', id: 'sel-1' }]);
+    expect(await mountWith('auto')).toEqual([{ type: 'hypermark-bridge-scroll-to', id: 'sel-1', behavior: 'auto' }]);
   });
 
   test('readOnly still restores markers and syncs export-matching numbers on ready', async () => {
     const { post, postedToIframe } = await mountReadOnly([committed('ro-1'), committed('ro-2')]);
-    await post({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
+    await post({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
 
-    const restores = postedToIframe.filter((m) => m.type === 'plannotator-bridge-find-and-mark');
+    const restores = postedToIframe.filter((m) => m.type === 'hypermark-bridge-find-and-mark');
     expect(restores.map((m) => m.id)).toEqual(['ro-1', 'ro-2']);
     // Anchor-first restore must survive readOnly: the anchor is forwarded so
     // the bridge can pin the marker at the element, not just text-search.
     expect((restores[0]!.anchor as { selector: string }).selector).toBe('p');
 
-    const syncs = postedToIframe.filter((m) => m.type === 'plannotator-bridge-sync-annotations');
+    const syncs = postedToIframe.filter((m) => m.type === 'hypermark-bridge-sync-annotations');
     expect(syncs.at(-1)!.annotations).toEqual([
       { id: 'ro-1', number: 1 },
       { id: 'ro-2', number: 2 },
@@ -1142,16 +1142,16 @@ describe.if(hasDom)('readOnly view-only contract', () => {
   test('readOnly marker clicks still navigate via onSelectAnnotation', async () => {
     const selected: Array<string | null> = [];
     const { post } = await mountReadOnly([committed('ro-1')], (id) => selected.push(id));
-    await post({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
-    await post({ type: 'plannotator-bridge-mark-click', id: 'ro-1' });
+    await post({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
+    await post({ type: 'hypermark-bridge-mark-click', id: 'ro-1' });
     expect(selected).toEqual(['ro-1']);
   });
 
   test('readOnly ignores selection messages: no toolbar, no composer', async () => {
     const { post } = await mountReadOnly([committed('ro-1')]);
-    await post({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
+    await post({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
     await post({
-      type: 'plannotator-bridge-selection',
+      type: 'hypermark-bridge-selection',
       text: 'Read-only target',
       rect: { top: 10, left: 10, width: 120, height: 24 },
       pinpoint: true,
@@ -1165,7 +1165,7 @@ describe.if(hasDom)('readOnly view-only contract', () => {
 });
 
 describe.if(hasDom)('unanchored report (trust boundary + delivery)', () => {
-  const MSG = 'plannotator-bridge-unanchored';
+  const MSG = 'hypermark-bridge-unanchored';
 
   test('accepts a bounded report, including the empty recovery set', () => {
     expect(hookModule!.parseBridgeMessage({ type: MSG, ids: ['a-1', 'b-2'] }))
@@ -1275,7 +1275,7 @@ describe.if(hasDom)('unanchored report (trust boundary + delivery)', () => {
         window.dispatchEvent(new MessageEvent('message', { source: iframe.contentWindow, data }));
       });
     };
-    const ready = () => post({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
+    const ready = () => post({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
     return { render, post, ready, added, postedToIframe };
   }
 
@@ -1288,10 +1288,10 @@ describe.if(hasDom)('unanchored report (trust boundary + delivery)', () => {
     const { ready, postedToIframe } = await mountUnion([pageRow('a-1'), pageRow('a-2')], received);
     await ready();
     const types = postedToIframe.map((m) => m.type);
-    const restores = types.filter((t) => t === 'plannotator-bridge-find-and-mark');
+    const restores = types.filter((t) => t === 'hypermark-bridge-find-and-mark');
     expect(restores.length).toBe(2);
-    expect(types.lastIndexOf('plannotator-bridge-find-and-mark')).toBeLessThan(
-      types.indexOf('plannotator-bridge-report-unanchored'),
+    expect(types.lastIndexOf('hypermark-bridge-find-and-mark')).toBeLessThan(
+      types.indexOf('hypermark-bridge-report-unanchored'),
     );
     // Nothing is delivered until the bridge answers.
     expect(received).toEqual([]);
@@ -1384,7 +1384,7 @@ describe.if(hasDom)('unanchored report (trust boundary + delivery)', () => {
     const received: string[][] = [];
     const { render, post, added } = await mountUnion([], received);
     await post({
-      type: 'plannotator-bridge-selection',
+      type: 'hypermark-bridge-selection',
       text: 'Page',
       rect: { top: 10, left: 10, width: 120, height: 24 },
       pinpoint: true,
@@ -1408,7 +1408,7 @@ describe.if(hasDom)('unanchored report (trust boundary + delivery)', () => {
 
     // Host swapped: its list carries the server row only.
     await render([pageRow('srv-1')]);
-    await post({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
+    await post({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
     await post({ type: MSG, ids: [localId, 'srv-1'] });
     expect(received.at(-1)).toEqual(['srv-1']);
 
@@ -1468,16 +1468,16 @@ describe.if(hasDom)('Interact/Annotate mode on static (srcdoc) surfaces', () => 
 
   test('static surfaces default to Annotate armed: set-annotate-mode active:true rides every ready', async () => {
     const { post, postedToIframe } = await mountModeViewer();
-    await post({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
-    const modePosts = postedToIframe.filter((m) => m.type === 'plannotator-bridge-set-annotate-mode');
+    await post({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
+    const modePosts = postedToIframe.filter((m) => m.type === 'hypermark-bridge-set-annotate-mode');
     expect(modePosts.length).toBe(1);
     expect(modePosts[0]!.active).toBe(true);
   });
 
   test('a host-driven Interact state is pushed instead of the default', async () => {
     const { post, postedToIframe } = await mountModeViewer({ annotateModeActive: false });
-    await post({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
-    const modePosts = postedToIframe.filter((m) => m.type === 'plannotator-bridge-set-annotate-mode');
+    await post({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
+    const modePosts = postedToIframe.filter((m) => m.type === 'hypermark-bridge-set-annotate-mode');
     expect(modePosts.length).toBe(1);
     expect(modePosts[0]!.active).toBe(false);
   });
@@ -1489,7 +1489,7 @@ describe.if(hasDom)('Interact/Annotate mode on static (srcdoc) surfaces', () => 
       onAnnotateModeExit: () => { exits += 1; },
     });
     await post({
-      type: 'plannotator-bridge-selection',
+      type: 'hypermark-bridge-selection',
       text: 'Mode target',
       rect: { top: 10, left: 10, width: 120, height: 24 },
       anchor: { selector: 'p:nth-of-type(1)', tagName: 'p', text: 'Mode target' },
@@ -1520,7 +1520,7 @@ describe.if(hasDom)('Interact/Annotate mode on static (srcdoc) surfaces', () => 
       annotateModeActive: false,
       onAnnotateModeToggle: () => { toggles += 1; },
     });
-    await post({ type: 'plannotator-bridge-annotate-toggle' });
+    await post({ type: 'hypermark-bridge-annotate-toggle' });
     expect(toggles).toBe(1);
   });
 });

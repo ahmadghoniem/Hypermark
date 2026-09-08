@@ -8,7 +8,7 @@ default review instructions are not added, and findings come back the same way.
 
 You already keep skills in your global folders (`~/.claude/skills`,
 `~/.codex/skills`, `~/.agents/skills`). List the ones you want as reviews in
-`~/.plannotator/review-skills.json`:
+`~/.hypermark/review-skills.json`:
 
 ```json
 { "version": 1, "enabled": ["security-review", "api-contracts"] }
@@ -42,6 +42,6 @@ a fork could otherwise drop instructions straight into your reviewer.)
 
 ## Coming from JSON profiles
 
-The old `~/.plannotator/reviews/*.json` profiles are gone. To move one over: put
+The old `~/.hypermark/reviews/*.json` profiles are gone. To move one over: put
 its instructions text in a `SKILL.md` under a global skill folder, then add that
-skill's name to `~/.plannotator/review-skills.json`.
+skill's name to `~/.hypermark/review-skills.json`.

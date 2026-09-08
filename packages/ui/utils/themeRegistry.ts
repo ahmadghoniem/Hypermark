@@ -22,7 +22,7 @@ export interface ThemeInfo {
 
 /**
  * The SEVEN retained palette IDs in Hypermark (Spec 03 locked scope).
- * pierre (default & recovery), plannotator, catppuccin, github,
+ * pierre (default & recovery), hypermark, catppuccin, github,
  * ayu-dark (dark-only), one-dark-pro (dark-only), tokyo-night (dark-only).
  */
 export const BUILT_IN_THEMES: ThemeInfo[] = [
@@ -38,7 +38,7 @@ export const BUILT_IN_THEMES: ThemeInfo[] = [
     },
   },
   {
-    id: 'plannotator',
+    id: 'hypermark',
     name: 'Hypermark',
     builtIn: true,
     modeSupport: 'both',
@@ -390,7 +390,7 @@ export interface ResolvedThemeDescriptor extends ResolvedModeDescriptor {
 
 export type PaletteId =
   | 'pierre'
-  | 'plannotator'
+  | 'hypermark'
   | 'catppuccin'
   | 'github'
   | 'ayu-dark'
@@ -568,7 +568,7 @@ export const PIERRE_PALETTE_DESCRIPTOR: PaletteDescriptor = {
 };
 
 export const HYPERMARK_PALETTE_DESCRIPTOR: PaletteDescriptor = {
-  id: 'plannotator',
+  id: 'hypermark',
   name: 'Hypermark',
   builtIn: true,
   modeSupport: 'both',
@@ -1293,7 +1293,7 @@ export const TOKYO_NIGHT_PALETTE_DESCRIPTOR: PaletteDescriptor = {
 
 export const PALETTE_DESCRIPTORS: Record<PaletteId, PaletteDescriptor> = {
   'pierre': PIERRE_PALETTE_DESCRIPTOR,
-  'plannotator': HYPERMARK_PALETTE_DESCRIPTOR,
+  'hypermark': HYPERMARK_PALETTE_DESCRIPTOR,
   'catppuccin': CATPPUCCIN_PALETTE_DESCRIPTOR,
   'github': GITHUB_PALETTE_DESCRIPTOR,
   'ayu-dark': AYU_DARK_PALETTE_DESCRIPTOR,

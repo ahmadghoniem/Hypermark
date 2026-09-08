@@ -8,7 +8,7 @@
  *
  * Two layers:
  *  1. Synthetic PFM fixtures (in-repo, deterministic, run everywhere).
- *  2. A runtime sample of real plans from ~/.plannotator/history — skipped
+ *  2. A runtime sample of real plans from ~/.hypermark/history — skipped
  *     when the directory doesn't exist (CI). Real user content deliberately
  *     stays OUT of the repo.
  *
@@ -28,7 +28,7 @@ import {
 } from '@plannotator/atomic-editor';
 
 const hasDom = typeof document !== 'undefined';
-const CORPUS_DIR = join(homedir(), '.plannotator', 'history');
+const CORPUS_DIR = join(homedir(), '.hypermark', 'history');
 const CORPUS_SAMPLE_SIZE = 150;
 const MAX_FILE_BYTES = 64 * 1024;
 

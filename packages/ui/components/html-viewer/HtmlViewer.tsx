@@ -42,7 +42,7 @@ import {
   resolveBridgeScriptUrl,
 } from "./srcdoc";
 
-const PREFIX = "plannotator-bridge-";
+const PREFIX = "hypermark-bridge-";
 
 function readThemeTokens(): Record<string, string> {
   const style = getComputedStyle(document.documentElement);
@@ -696,7 +696,7 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
         // A text field or dialog owns its own Escape.
         const target = e.target as HTMLElement | null;
         if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
-        if (document.querySelector('[data-plannotator-confirm-dialog="true"]')) return;
+        if (document.querySelector('[data-hypermark-confirm-dialog="true"]')) return;
         onAnnotateModeExit();
       };
       window.addEventListener('keydown', onKeyDown);

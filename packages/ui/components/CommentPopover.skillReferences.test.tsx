@@ -511,7 +511,7 @@ describe('CommentPopover skill references — no-preselection keyboard state mac
       expect(el.hasAttribute('aria-expanded')).toBe(false);
       await type(el, 'use $');
       expect(menu()).toBeNull();
-      await type(el, 'use $plannotator-rev');
+      await type(el, 'use $hypermark-rev');
       expect(menu()).toBeNull();
     },
   );

@@ -134,7 +134,7 @@ describe("configured extensions in the annotatable predicates", () => {
 describe("config-file integration (sandboxed data dir)", () => {
 	test("memoized config read feeds the predicates, once per process", () => {
 		const prevDataDir = process.env.HYPERMARK_DATA_DIR;
-		const dataDir = mkdtempSync(join(tmpdir(), "plannotator-mdext-"));
+		const dataDir = mkdtempSync(join(tmpdir(), "hypermark-mdext-"));
 		try {
 			process.env.HYPERMARK_DATA_DIR = dataDir;
 			writeFileSync(

@@ -4,7 +4,7 @@
 
 /* Theme files — each defines .theme-{name} (dark) and .theme-{name}.light */
 @import "./themes/pierre.css";
-@import "./themes/plannotator.css";
+@import "./themes/hypermark.css";
 @import "./themes/catppuccin.css";
 @import "./themes/github.css";
 @import "./themes/ayu-dark.css";
@@ -123,7 +123,7 @@
      * overrides it (neutral themes whose accent is an illegible gray). */
     --annotation-comment: var(--accent);
     /* Sensible amber default so a "warning" color utility exists even for
-     * themes that don't define --warning. Matches the plannotator theme;
+     * themes that don't define --warning. Matches the hypermark theme;
      * per-theme files override these. */
     --warning: oklch(0.75 0.15 85);
     --warning-foreground: oklch(0.20 0.02 260);

@@ -12,7 +12,7 @@ import { Avatar } from './Avatar';
 
 type AnnotateFn = (commentId: string, author: string, body: string, anchorEl: HTMLElement) => void;
 
-const HIDE_BOTS_KEY = 'plannotator-pr-hide-bots';
+const HIDE_BOTS_KEY = 'hypermark-pr-hide-bots';
 
 /** Small muted "bot" tag shown next to automation-account authors. */
 function BotTag() {

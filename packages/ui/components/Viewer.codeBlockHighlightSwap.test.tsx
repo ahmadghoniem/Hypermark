@@ -203,9 +203,9 @@ afterEach(async () => {
   controls.removeAnnotation = () => {};
   controls.repaintAnnotation = () => {};
   if (hasDom) document.body.innerHTML = '';
-  storage.removeItem('plannotator-theme');
-  storage.removeItem('plannotator-light-theme');
-  storage.removeItem('plannotator-dark-theme');
+  storage.removeItem('hypermark-theme');
+  storage.removeItem('hypermark-light-theme');
+  storage.removeItem('hypermark-dark-theme');
   __resetCodeHighlightCacheForTests();
 });
 

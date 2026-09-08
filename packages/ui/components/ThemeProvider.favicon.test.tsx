@@ -70,7 +70,7 @@ describe('ThemeProvider favicon synchronization', () => {
   });
 
   test.skipIf(!hasDom)('initializes with classic style when stored in backend', async () => {
-    stored.set('plannotator-favicon', 'classic');
+    stored.set('hypermark-favicon', 'classic');
     configStore.loadFromBackend();
 
     await mount();
@@ -115,7 +115,7 @@ describe('ThemeProvider favicon ownership is opt-in', () => {
   });
 
   test.skipIf(!hasDom)('a default mount creates no favicon link', async () => {
-    stored.set('plannotator-favicon', 'classic');
+    stored.set('hypermark-favicon', 'classic');
     configStore.loadFromBackend();
 
     await mount(false);
@@ -130,7 +130,7 @@ describe('ThemeProvider favicon ownership is opt-in', () => {
     hostLink.href = 'https://host.example/brand.png';
     document.head.appendChild(hostLink);
 
-    stored.set('plannotator-favicon', 'classic');
+    stored.set('hypermark-favicon', 'classic');
     configStore.loadFromBackend();
 
     await mount(false);
@@ -152,7 +152,7 @@ describe('ThemeProvider favicon ownership is opt-in', () => {
     hostLink.href = 'https://host.example/brand.png';
     document.head.appendChild(hostLink);
 
-    stored.set('plannotator-favicon', 'classic');
+    stored.set('hypermark-favicon', 'classic');
     configStore.loadFromBackend();
 
     await mount(true);

@@ -7,7 +7,7 @@ import { diffArrays } from "diff";
  * HTML string: the NEW document with changed TEXT wrapped in `<ins>...</ins>`
  * (added) and removed TEXT wrapped in `<del>...</del>` (deleted), so it can be
  * rendered to visually show what changed. Generated wrappers carry
- * `class="plannotator-diff"` so viewers can style diff output without touching
+ * `class="hypermark-diff"` so viewers can style diff output without touching
  * author-written `<ins>`/`<del>` markup (which passes through untagged).
  *
  * This is the classic "htmldiff" approach (à la the Ruby htmldiff / DaisyDiff
@@ -127,7 +127,7 @@ export function htmlDiff(oldHtml: string, newHtml: string): string {
       const flush = () => {
         if (buffer.length === 0) return;
         if (!isAllWhitespace(buffer)) {
-          out.push('<del class="plannotator-diff">');
+          out.push('<del class="hypermark-diff">');
           for (const t of buffer) out.push(t.value);
           out.push("</del>");
         }
@@ -156,7 +156,7 @@ export function htmlDiff(oldHtml: string, newHtml: string): string {
         // Added whitespace-only run: emit verbatim, no <ins> noise.
         for (const t of buffer) out.push(t.value);
       } else {
-        out.push('<ins class="plannotator-diff">');
+        out.push('<ins class="hypermark-diff">');
         for (const t of buffer) out.push(t.value);
         out.push("</ins>");
       }

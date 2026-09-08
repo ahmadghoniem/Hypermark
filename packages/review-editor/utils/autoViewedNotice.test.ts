@@ -7,7 +7,7 @@
  * insulting.
  *
  * Storage is a memory backend and the config store is a fresh instance, so
- * nothing here touches real cookies or ~/.plannotator.
+ * nothing here touches real cookies or ~/.hypermark.
  */
 import { afterEach, describe, expect, test } from 'bun:test';
 import { resetStorageBackend, setStorageBackend } from '@hypermark/ui/utils/storage';
@@ -50,7 +50,7 @@ describe('auto-mark-viewed notice gate', () => {
   test('a stale marker from an older version re-opens the gate', () => {
     // The marker is versioned so a meaningful revision of the behavior or the
     // copy can re-introduce itself instead of being silently swallowed.
-    installMemoryBackend({ 'plannotator-auto-viewed-notice-seen': '0' });
+    installMemoryBackend({ 'hypermark-auto-viewed-notice-seen': '0' });
     expect(needsAutoViewedNotice()).toBe(true);
   });
 

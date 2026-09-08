@@ -12,9 +12,9 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { resetStorageBackend, setStorageBackend } from '../utils/storage';
 import { SETTINGS } from './settings';
 
-const TRIGGER_KEY = 'plannotator-token-hover-trigger';
-const DELAY_KEY = 'plannotator-token-hover-delay';
-const LEGACY_KEY = 'plannotator-token-hover-cards';
+const TRIGGER_KEY = 'hypermark-token-hover-trigger';
+const DELAY_KEY = 'hypermark-token-hover-delay';
+const LEGACY_KEY = 'hypermark-token-hover-cards';
 
 function installBackend(seed: Record<string, string> = {}): Map<string, string> {
   const values = new Map(Object.entries(seed));

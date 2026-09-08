@@ -439,7 +439,7 @@ const AppInner: React.FC = () => {
   const [inputMethod, setInputMethod] = useState<InputMethod>(getInputMethod);
   const [compactInputMethod, setCompactInputMethod] = useState<InputMethod>(getInputMethod);
   const [taterMode, setTaterMode] = useState(() => {
-    const stored = storage.getItem('plannotator-tater-mode');
+    const stored = storage.getItem('hypermark-tater-mode');
     return stored === 'true';
   });
   const gridEnabled = useConfigValue('gridEnabled');
@@ -776,7 +776,7 @@ const AppInner: React.FC = () => {
 
   // Resizable panels
   const panelResize = useResizablePanel({
-    storageKey: 'plannotator-panel-width',
+    storageKey: 'hypermark-panel-width',
     // Drag the right panel skinny → snap it shut (matches the contents sidebar).
     onSnapClose: () => setIsPanelOpen(false),
     // Single click on the handle (no drag) collapses it.
@@ -786,7 +786,7 @@ const AppInner: React.FC = () => {
     apply: (w) => document.documentElement.style.setProperty('--rpanel-w', `${w}px`),
   });
   const tocResize = useResizablePanel({
-    storageKey: 'plannotator-toc-width',
+    storageKey: 'hypermark-toc-width',
     defaultWidth: 240, minWidth: 160, maxWidth: 400, side: 'left',
     // Drag the contents panel skinny → snap it shut (prototype behavior).
     onSnapClose: sidebar.close,
@@ -796,7 +796,7 @@ const AppInner: React.FC = () => {
     apply: (w) => document.documentElement.style.setProperty('--toc-w', `${w}px`),
   });
   const agentTerminalResize = useResizablePanel({
-    storageKey: 'plannotator-agent-terminal-width',
+    storageKey: 'hypermark-agent-terminal-width',
     defaultWidth: 360,
     minWidth: 280,
     maxWidth: 640,
@@ -1369,7 +1369,7 @@ const AppInner: React.FC = () => {
   const canHandleDocumentChromeShortcut = useCallback((event: KeyboardEvent) => {
     if (archive.archiveMode || goalSetupMode) return false;
     if (event.defaultPrevented) return false;
-    if (document.querySelector('[data-plannotator-confirm-dialog="true"]')) return false;
+    if (document.querySelector('[data-hypermark-confirm-dialog="true"]')) return false;
     if (showFeedbackPrompt || showClaudeCodeWarning ||
         showSourceFileEditWarning ||
         showExitWarning || showAgentWarning || showPermissionModeSetup) return false;
@@ -2798,7 +2798,7 @@ const AppInner: React.FC = () => {
 
   const handleTaterModeChange = useCallback((enabled: boolean) => {
     setTaterMode(enabled);
-    storage.setItem('plannotator-tater-mode', String(enabled));
+    storage.setItem('hypermark-tater-mode', String(enabled));
   }, []);
 
   const handleEditorModeChange = (mode: EditorMode) => {
@@ -3430,7 +3430,7 @@ const AppInner: React.FC = () => {
       const isTextField = tag === 'INPUT' || tag === 'TEXTAREA' || Boolean(target?.isContentEditable);
 
       // Let active confirmation dialogs own Cmd/Ctrl+Enter and Escape.
-      if (document.querySelector('[data-plannotator-confirm-dialog="true"]')) return;
+      if (document.querySelector('[data-hypermark-confirm-dialog="true"]')) return;
 
       // Don't intercept if any modal is open
       if (showFeedbackPrompt || showClaudeCodeWarning ||

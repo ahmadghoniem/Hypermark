@@ -6,8 +6,8 @@ import type { SourceSaveCapability } from "@hypermark/core/source-save";
 const hasDom = typeof document !== "undefined";
 
 if (hasDom) {
-  document.cookie = "plannotator-look-feel-announcement-seen=2; path=/";
-  document.cookie = "plannotator-plan-ai-announcement-seen=1; path=/";
+  document.cookie = "hypermark-look-feel-announcement-seen=2; path=/";
+  document.cookie = "hypermark-plan-ai-announcement-seen=1; path=/";
 }
 
 const storageModule = hasDom ? await import("@hypermark/ui/utils/storage") : null;
@@ -310,7 +310,7 @@ describe.if(hasDom)("App document permissions", () => {
 
   test("compact touch presents a reading-first file surface without mutating desktop preferences", async () => {
     configureStorage();
-    storedSettings.set("plannotator-input-method", "pinpoint");
+    storedSettings.set("hypermark-input-method", "pinpoint");
     aiCapabilitiesAvailable = true;
     useCompactTouchMedia();
     await mountApp({
@@ -348,7 +348,7 @@ describe.if(hasDom)("App document permissions", () => {
 
     await act(async () => findButtonContaining("Select text")?.click());
     expect(document.querySelector("[data-pn-compact-annotate-entry]")?.textContent).toContain("Select text");
-    expect(storedSettings.get("plannotator-input-method")).toBe("pinpoint");
+    expect(storedSettings.get("hypermark-input-method")).toBe("pinpoint");
 
     const optionsButton = document.querySelector<HTMLButtonElement>('button[aria-label="Options"]');
     if (!optionsButton) throw new Error("Options menu trigger did not render");

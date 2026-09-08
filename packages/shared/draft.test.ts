@@ -10,7 +10,7 @@ let dataDir = "";
 let previousDataDir: string | undefined;
 
 beforeEach(() => {
-  dataDir = mkdtempSync(join(tmpdir(), "plannotator-draft-generation-"));
+  dataDir = mkdtempSync(join(tmpdir(), "hypermark-draft-generation-"));
   previousDataDir = process.env.HYPERMARK_DATA_DIR;
   process.env.HYPERMARK_DATA_DIR = dataDir;
 });

@@ -55,7 +55,7 @@ function makeRuntime(baseCwd: string): ReviewGitRuntime {
 }
 
 function initRepo(initialBranch = "main"): string {
-  const repoDir = makeTempDir("plannotator-commit-history-");
+  const repoDir = makeTempDir("hypermark-commit-history-");
   git(repoDir, ["init"]);
   git(repoDir, ["branch", "-M", initialBranch]);
   git(repoDir, ["config", "user.email", "review-core@example.com"]);

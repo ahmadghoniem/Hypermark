@@ -240,7 +240,7 @@ describe("message builders", () => {
       words: ["the", "aim", "doc"],
     });
     expect(message).toContain("the aim doc");
-    expect(message).toContain("plannotator annotate <file.md | file.txt | file.html | https://... | folder/>");
+    expect(message).toContain("hypermark annotate <file.md | file.txt | file.html | https://... | folder/>");
     expect(message).not.toContain("If you are an agent");
   });
 
@@ -251,6 +251,6 @@ describe("message builders", () => {
       agentHandoff: true,
     });
     expect(message).toContain("If you are an agent reading this");
-    expect(message).toContain("plannotator annotate <path-or-url> --markdown --no-jina");
+    expect(message).toContain("hypermark annotate <path-or-url> --markdown --no-jina");
   });
 });

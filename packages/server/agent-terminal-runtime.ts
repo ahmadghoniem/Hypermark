@@ -155,7 +155,7 @@ async function resolveManagedAgentTerminalRuntime(
       ok: false,
       reason: "runtime-unavailable",
       message: installedVersion
-        ? `Agent terminal runtime has @plannotator/webtui ${installedVersion}; expected ${AGENT_TERMINAL_WEBTUI_VERSION}. Run plannotator install-runtime agent-terminal.`
+        ? `Agent terminal runtime has @plannotator/webtui ${installedVersion}; expected ${AGENT_TERMINAL_WEBTUI_VERSION}. Run hypermark install-runtime agent-terminal.`
         : "Agent terminal runtime is not installed. Run hypermark install-runtime agent-terminal or reinstall Hypermark.",
     };
   }
@@ -385,7 +385,7 @@ function resolveNativePackageDir(runtimeDir: string): string | null {
     join(
       runtimeDir,
       "node_modules",
-      "@plannotator",
+      "@hypermark",
       "webtui",
       "node_modules",
       AGENT_TERMINAL_NATIVE_PACKAGE,
@@ -395,7 +395,7 @@ function resolveNativePackageDir(runtimeDir: string): string | null {
 }
 
 function readInstalledWebTuiVersion(runtimeDir: string): string | null {
-  const packageJsonPath = join(runtimeDir, "node_modules", "@plannotator", "webtui", "package.json");
+  const packageJsonPath = join(runtimeDir, "node_modules", "@hypermark", "webtui", "package.json");
   if (!existsSync(packageJsonPath)) return null;
   try {
     const parsed = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { version?: unknown };

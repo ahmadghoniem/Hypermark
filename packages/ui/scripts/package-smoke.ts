@@ -203,7 +203,7 @@ try {
     join(consumerDir, "package.json"),
     `${JSON.stringify(
       {
-        name: "plannotator-ui-external-consumer-smoke",
+        name: "hypermark-ui-external-consumer-smoke",
         private: true,
         type: "module",
         dependencies: {

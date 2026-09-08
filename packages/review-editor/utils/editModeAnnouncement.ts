@@ -6,7 +6,7 @@ import { configStore } from '@hypermark/ui/config';
  * Cookie-backed like the other announcement gates, so the dismissal survives
  * Hypermark's random localhost ports.
  */
-const STORAGE_KEY = 'plannotator-edit-mode-announcement-seen';
+const STORAGE_KEY = 'hypermark-edit-mode-announcement-seen';
 // Bump to re-show the announcement after a meaningful revision.
 // '3': shimmer label on the enable switch. '2': footer redesigned from a Turn it on / Keep it off button pair to an
 // explicit enable switch plus a neutral Done (pre-release, so nobody re-sees).

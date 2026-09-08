@@ -47,7 +47,7 @@ function shellQuote(value: string): string {
 }
 
 function createSshFixture(): { repo: string; marker: string; command: string } {
-  const root = mkdtempSync(join(tmpdir(), "plannotator-git-background-"));
+  const root = mkdtempSync(join(tmpdir(), "hypermark-git-background-"));
   tempDirs.push(root);
   const repo = join(root, "repo");
   const marker = join(root, "ssh-invocations.jsonl");
@@ -77,7 +77,7 @@ appendFileSync(marker, JSON.stringify({
 const batchMode = args.some((arg) => /^(?:-o)?BatchMode=yes$/i.test(arg));
 const behavior = process.env.SSH_BEHAVIOR ?? "prompt";
 if (behavior === "hang" || (behavior === "prompt" && !batchMode)) {
-  const prompt = "Enter passphrase for key '/tmp/plannotator-test-key':\\n";
+  const prompt = "Enter passphrase for key '/tmp/hypermark-test-key':\\n";
   if (behavior === "prompt") {
     try {
       const tty = openSync("/dev/tty", "w");
@@ -104,7 +104,7 @@ process.exit(1);
 describe.skipIf(process.platform === "win32")("review runtime filesystem seam", () => {
   for (const fixture of fixtures) {
     test(`${fixture.name} resolves file metadata and symlink payloads`, async () => {
-      const root = mkdtempSync(join(tmpdir(), "plannotator-runtime-file-"));
+      const root = mkdtempSync(join(tmpdir(), "hypermark-runtime-file-"));
       tempDirs.push(root);
       const file = join(root, "file.txt");
       const link = join(root, "file-link");
@@ -136,7 +136,7 @@ function createHttpCredentialFixture(remoteUrl: string): {
   askpassMarker: string;
   askpass: string;
 } {
-  const root = mkdtempSync(join(tmpdir(), "plannotator-git-credentials-"));
+  const root = mkdtempSync(join(tmpdir(), "hypermark-git-credentials-"));
   tempDirs.push(root);
   const repo = join(root, "repo");
   const askpassMarker = join(root, "askpass-invoked");

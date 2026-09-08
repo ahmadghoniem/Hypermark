@@ -574,7 +574,7 @@ const versionPlans: Record<number, string> = {
 
 export function devMockApi(): Plugin {
   return {
-    name: 'plannotator-dev-mock-api',
+    name: 'hypermark-dev-mock-api',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         if (req.url === '/api/hooks/status') {
@@ -600,7 +600,7 @@ export function devMockApi(): Plugin {
           } catch {
             res.end(JSON.stringify({
               pfmReminder: { enabled: false },
-              improvementHook: { present: false, filePath: '~/.plannotator/hooks/compound/enterplanmode-improve-hook.txt', fileSize: null, content: null },
+              improvementHook: { present: false, filePath: '~/.hypermark/hooks/compound/enterplanmode-improve-hook.txt', fileSize: null, content: null },
               composedLength: null,
             }));
           }

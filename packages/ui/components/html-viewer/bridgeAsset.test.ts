@@ -41,7 +41,7 @@ const uiRoot = resolve(import.meta.dir, "../..");
 
 describe("generated bridge assets", () => {
   test("the asset is byte-for-byte BRIDGE_SCRIPT and the lite module keeps every other export", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "plannotator-bridge-asset-"));
+    const dir = mkdtempSync(join(tmpdir(), "hypermark-bridge-asset-"));
     try {
       const written = writeBridgeAssets(dir);
       expect(written.map((p) => p.slice(dir.length + 1)).sort()).toEqual(
@@ -194,7 +194,7 @@ describe("bridge protocol version", () => {
   test("the executed bridge posts a ready stamped with BRIDGE_PROTOCOL_VERSION", async () => {
     const posted = await runBridgeIsolated();
     const ready = posted.find(
-      (m) => typeof m === "object" && m !== null && (m as { type?: unknown }).type === "plannotator-bridge-ready",
+      (m) => typeof m === "object" && m !== null && (m as { type?: unknown }).type === "hypermark-bridge-ready",
     ) as { protocolVersion?: unknown } | undefined;
     expect(ready).toBeDefined();
     expect(ready!.protocolVersion).toBe(BRIDGE_PROTOCOL_VERSION);
@@ -203,16 +203,16 @@ describe("bridge protocol version", () => {
   });
 
   test("a stale asset's ready (no stamp, or another version) is a detected mismatch naming both versions", () => {
-    const stale = checkBridgeProtocolVersion({ type: "plannotator-bridge-ready" });
+    const stale = checkBridgeProtocolVersion({ type: "hypermark-bridge-ready" });
     expect(stale).toEqual({ ok: false, expected: BRIDGE_PROTOCOL_VERSION, reported: undefined });
     const other = checkBridgeProtocolVersion({
-      type: "plannotator-bridge-ready",
+      type: "hypermark-bridge-ready",
       protocolVersion: BRIDGE_PROTOCOL_VERSION + 1,
     });
     expect(other.ok).toBe(false);
     expect(other.reported).toBe(BRIDGE_PROTOCOL_VERSION + 1);
     // Non-numeric stamps are not a version.
-    expect(checkBridgeProtocolVersion({ type: "plannotator-bridge-ready", protocolVersion: "1" }).ok).toBe(false);
+    expect(checkBridgeProtocolVersion({ type: "hypermark-bridge-ready", protocolVersion: "1" }).ok).toBe(false);
 
     const warning = formatBridgeProtocolWarning(other, "https://h/bridge.js");
     expect(warning).toContain(`expects ${BRIDGE_PROTOCOL_VERSION}`);

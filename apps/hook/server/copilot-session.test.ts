@@ -21,7 +21,7 @@ import {
 let tempDirs: string[] = [];
 
 function makeSessionStateDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "plannotator-copilot-test-"));
+  const dir = mkdtempSync(join(tmpdir(), "hypermark-copilot-test-"));
   tempDirs.push(dir);
   return dir;
 }
@@ -201,7 +201,7 @@ describe("findCopilotSessionByAncestorPids", () => {
   });
 
   test("respects COPILOT_HOME for the default session-state dir", () => {
-    const home = mkdtempSync(join(tmpdir(), "plannotator-copilot-home-"));
+    const home = mkdtempSync(join(tmpdir(), "hypermark-copilot-home-"));
     tempDirs.push(home);
     const stateDir = join(home, "session-state");
     mkdirSync(stateDir, { recursive: true });

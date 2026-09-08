@@ -10,7 +10,7 @@ import type {
 } from "../../hooks/useAnnotationHighlighter";
 import { BRIDGE_PROTOCOL_VERSION } from "./bridge-script";
 
-const PREFIX = "plannotator-bridge-";
+const PREFIX = "hypermark-bridge-";
 
 /** Outcome of comparing a bridge `ready` message's stamp with this parent. */
 export interface BridgeProtocolVerdict {

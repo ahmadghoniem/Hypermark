@@ -69,7 +69,7 @@ function makeRuntime(baseCwd: string): ReviewGitRuntime {
 }
 
 function initRepo(): string {
-  const repoDir = makeTempDir("plannotator-generated-files-");
+  const repoDir = makeTempDir("hypermark-generated-files-");
   git(repoDir, ["init", "-q"]);
   return repoDir;
 }
@@ -129,7 +129,7 @@ describe("detectGeneratedFiles", () => {
   });
 
   test("outside a git work tree the name-based defaults still apply", async () => {
-    const plainDir = makeTempDir("plannotator-generated-nogit-");
+    const plainDir = makeTempDir("hypermark-generated-nogit-");
     const generated = await detectGeneratedFiles(makeRuntime(plainDir), plainDir, [
       "a.md",
       "bun.lock",

@@ -13,7 +13,7 @@ import { generateSlug, getPlanDir, savePlan, saveToHistory, getPlanVersion, getV
 const tempDirs: string[] = [];
 
 function makeTempDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "plannotator-storage-test-"));
+  const dir = mkdtempSync(join(tmpdir(), "hypermark-storage-test-"));
   tempDirs.push(dir);
   return dir;
 }
@@ -61,9 +61,9 @@ describe("getPlanDir", () => {
   });
 
   test("expands tilde in custom path", () => {
-    const result = getPlanDir("~/.plannotator/test-plans");
+    const result = getPlanDir("~/.hypermark/test-plans");
     expect(result).not.toContain("~");
-    expect(result).toMatch(/\.plannotator\/test-plans$/);
+    expect(result).toMatch(/\.hypermark\/test-plans$/);
   });
 
   test("uses default when no custom path", () => {

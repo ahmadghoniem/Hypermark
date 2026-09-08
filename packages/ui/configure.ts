@@ -63,7 +63,7 @@ export interface HypermarkUIConfig {
   /**
    * WebMCP provider policy: `{ enabled, namePrefix }`. Default: enabled
    * whenever the browser exposes `document.modelContext`, with the
-   * `plannotator.` prefix. There is no confirmation seam because the catalog
+   * `hypermark.` prefix. There is no confirmation seam because the catalog
    * exposes nothing consequential: no tool decides, submits or closes.
    */
   webmcp?: WebMcpPolicy;

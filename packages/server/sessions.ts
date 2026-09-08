@@ -1,7 +1,7 @@
 /**
  * Session Registry
  *
- * Tracks active Hypermark server sessions in ~/.plannotator/sessions/
+ * Tracks active Hypermark server sessions in ~/.hypermark/sessions/
  * so users can discover and reopen closed browser tabs.
  */
 

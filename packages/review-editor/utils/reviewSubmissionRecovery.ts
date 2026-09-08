@@ -5,7 +5,7 @@ import type {
 } from '../components/ReviewSubmissionDialog';
 import { parsePRReviewSubmissionPartial } from './prActionResponse';
 
-const STORAGE_KEY_PREFIX = 'plannotator-pr-review-recovery-v1:';
+const STORAGE_KEY_PREFIX = 'hypermark-pr-review-recovery-v1:';
 
 /** Minimal session-storage capability used by review recovery. */
 export interface ReviewRecoveryStorage {

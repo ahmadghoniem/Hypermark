@@ -112,11 +112,11 @@ bun "$workspace/scripts/release-security/release-evidence.mjs" prepare \
   --repository "$repository" \
   --commit "$commit"
 
-sbom_name="plannotator-${version}-release-sbom.cdx.json"
+sbom_name="hypermark-${version}-release-sbom.cdx.json"
 public_sbom="$public_dir/$sbom_name"
-private_sbom="$evidence_dir/plannotator-${version}-release.sbom.syft.json"
+private_sbom="$evidence_dir/hypermark-${version}-release.sbom.syft.json"
 "$tools_dir/syft" scan "dir:$sbom_input" \
-  --source-name plannotator-release \
+  --source-name hypermark-release \
   --source-version "$version" \
   -o "syft-json=$private_sbom" \
   -o "cyclonedx-json@1.6=$public_sbom"

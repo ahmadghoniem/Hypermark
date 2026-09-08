@@ -72,7 +72,7 @@ beforeAll(() => {
   }
 
   fixtureDir = mkdtempSync(join(tmpdir(), "hypermark-annotate-cli-"));
-  dataDir = join(fixtureDir, ".plannotator-data");
+  dataDir = join(fixtureDir, ".hypermark-data");
   mkdirSync(dataDir, { recursive: true });
   mkdirSync(join(fixtureDir, "out"));
   writeFileSync(join(fixtureDir, "notes.md"), "# Notes");

@@ -48,7 +48,7 @@ function git(cwd: string, args: string[]): void {
 }
 
 function initRepo(): string {
-  const repoDir = mkdtempSync(join(tmpdir(), "plannotator-oc-advert-repo-"));
+  const repoDir = mkdtempSync(join(tmpdir(), "hypermark-oc-advert-repo-"));
   tempDirs.push(repoDir);
   git(repoDir, ["init", "-q"]);
   git(repoDir, ["branch", "-M", "main"]);
@@ -82,7 +82,7 @@ async function runBridgeReview(stdinJson: object): Promise<{
   decision: string;
 }> {
   const repoDir = initRepo();
-  const dataDir = mkdtempSync(join(tmpdir(), "plannotator-oc-advert-data-"));
+  const dataDir = mkdtempSync(join(tmpdir(), "hypermark-oc-advert-data-"));
   tempDirs.push(dataDir);
   const port = await reservePort();
   const env = {

@@ -51,7 +51,7 @@ export const MERMAID_CONFIG: MermaidConfig = {
  * only reaches a bundle when `./mermaid-eager` is evaluated in it, which is
  * what `tests/entry-assets.test.ts` asserts on the built HTML.
  */
-export type MermaidRuntimeSource = 'plannotator-mermaid-eager' | 'loader' | 'host';
+export type MermaidRuntimeSource = 'hypermark-mermaid-eager' | 'loader' | 'host';
 
 export type MermaidRuntimeLoader = () => Promise<Mermaid>;
 

@@ -71,9 +71,9 @@ describe('configStore.setServerSync seam', () => {
 describe('configStore.loadFromBackend seam', () => {
   it('re-hydrates settings from the installed StorageBackend', () => {
     // Install a fake StorageBackend that returns a specific displayName.
-    // settings.ts reads 'plannotator-identity' for the displayName setting.
+    // settings.ts reads 'hypermark-identity' for the displayName setting.
     const prefetched = new Map<string, string>([
-      ['plannotator-identity', 'prefetched-workspace-user'],
+      ['hypermark-identity', 'prefetched-workspace-user'],
     ]);
     const fakeBackend = {
       getItem: (key: string) => prefetched.get(key) ?? null,
@@ -107,6 +107,6 @@ describe('configStore.loadFromBackend seam', () => {
     expect(configStore.get('displayName')).toBe('prior-value');
     // ...AND the empty host backend is now seeded with the resolved default, so a
     // reload reads it back from this backend instead of regenerating it.
-    expect(store.get('plannotator-identity')).toBe('prior-value');
+    expect(store.get('hypermark-identity')).toBe('prior-value');
   });
 });

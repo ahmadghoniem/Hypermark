@@ -3,7 +3,7 @@
  *
  * A user can teach annotate about additional plain-text document extensions
  * (for example `.livemd`, Livebook notebooks) with `markdownExtensions` in
- * `~/.plannotator/config.json`:
+ * `~/.hypermark/config.json`:
  *
  *   { "markdownExtensions": [".livemd"] }
  *

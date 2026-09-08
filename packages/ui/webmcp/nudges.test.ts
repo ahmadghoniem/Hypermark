@@ -9,7 +9,7 @@ import { AnnotationChangeTracker, BROWSER_AGENT_SOURCE } from './changes';
 import { MAX_NUDGE_IDS, buildNudges, type NudgeSnapshot } from './nudges';
 import type { NudgeCode } from './toolset';
 
-const toolName = (bare: string) => `plannotator.${bare}`;
+const toolName = (bare: string) => `hypermark.${bare}`;
 
 function quiet(overrides: Partial<NudgeSnapshot> = {}): NudgeSnapshot {
   return {
@@ -106,7 +106,7 @@ describe('buildNudges', () => {
       code: 'other_document_active',
       message: expect.any(String),
       path: 'docs/0.md',
-      action: { tool: 'plannotator.read_document', args: { path: 'docs/0.md' } },
+      action: { tool: 'hypermark.read_document', args: { path: 'docs/0.md' } },
     });
     // A quiet sibling (nothing new, no composer, not just opened) is silent.
     expect(codes(buildNudges(quiet({ otherDocuments: [{ ...docs[0]!, newSinceLastRead: 0 }] }), new AnnotationChangeTracker(), toolName))).toEqual([]);
@@ -114,7 +114,7 @@ describe('buildNudges', () => {
 
   test('truncated carries the continuation call with the original section args', () => {
     const nudges = buildNudges(quiet({ truncated: { nextOffset: 16000, args: { section: 'goal' } } }), new AnnotationChangeTracker(), toolName);
-    expect(nudges[0]?.action).toEqual({ tool: 'plannotator.read_document', args: { section: 'goal', offset: 16000 } });
+    expect(nudges[0]?.action).toEqual({ tool: 'hypermark.read_document', args: { section: 'goal', offset: 16000 } });
   });
 
   // A 10,000-annotation burst produced an 89 KB annotations_new nudge: the

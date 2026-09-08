@@ -12,7 +12,7 @@ describe("bun agent terminal bridge", () => {
     expect(nodePath).toBeTruthy();
     if (!nodePath) return;
 
-    const tmp = mkdtempSync(join(tmpdir(), "plannotator-agent-sidecar-"));
+    const tmp = mkdtempSync(join(tmpdir(), "hypermark-agent-sidecar-"));
     const normalizedPath = join(tmp, "normalized.json");
     const corePath = join(tmp, "webtui-core.mjs");
     const serverPath = join(tmp, "webtui-server.mjs");
@@ -111,7 +111,7 @@ export function createNodePtyWebSocketServer(options) {
   test("reports a disabled capability when annotate terminal support is off", async () => {
     const bridge = await createBunAgentTerminalBridge({
       enabled: false,
-      cwd: "/tmp/plannotator-agent-cwd",
+      cwd: "/tmp/hypermark-agent-cwd",
     });
 
     expect(bridge.capability).toEqual({
@@ -124,13 +124,13 @@ export function createNodePtyWebSocketServer(options) {
   test("loads WebTUI and reports browser-safe capability metadata", async () => {
     const bridge = await createBunAgentTerminalBridge({
       enabled: true,
-      cwd: "/tmp/plannotator-agent-cwd",
+      cwd: "/tmp/hypermark-agent-cwd",
     });
 
     try {
       expect(bridge.capability).toMatchObject({
         enabled: true,
-        cwd: "/tmp/plannotator-agent-cwd",
+        cwd: "/tmp/hypermark-agent-cwd",
       });
       if (!bridge.capability.enabled) {
         throw new Error("Expected enabled agent terminal capability");
@@ -159,7 +159,7 @@ export function createNodePtyWebSocketServer(options) {
     try {
       const bridge = await createBunAgentTerminalBridge({
         enabled: true,
-        cwd: "/tmp/plannotator-agent-cwd",
+        cwd: "/tmp/hypermark-agent-cwd",
       });
 
       expect(bridge.capability).toMatchObject({
@@ -184,7 +184,7 @@ export function createNodePtyWebSocketServer(options) {
     try {
       const bridge = await createBunAgentTerminalBridge({
         enabled: true,
-        cwd: "/tmp/plannotator-agent-cwd",
+        cwd: "/tmp/hypermark-agent-cwd",
       });
 
       try {

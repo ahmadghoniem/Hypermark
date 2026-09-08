@@ -1886,7 +1886,7 @@ describe("parseMarkdownToBlocks — non-markdown plain text (#1029)", () => {
    */
   test("YAML content parses into blocks without crashing", () => {
     const yaml = [
-      "name: plannotator",
+      "name: hypermark",
       "on:",
       "  push:",
       "    branches: [main]",
@@ -1899,15 +1899,15 @@ describe("parseMarkdownToBlocks — non-markdown plain text (#1029)", () => {
     const blocks = parseMarkdownToBlocks(yaml);
     expect(blocks.length).toBeGreaterThan(0);
     const joined = blocks.map((b) => b.content).join("\n");
-    expect(joined).toContain("name: plannotator");
+    expect(joined).toContain("name: hypermark");
     expect(joined).toContain("uses: actions/checkout@v4");
   });
 
   test("JSON content parses into blocks without crashing", () => {
-    const json = '{\n  "name": "plannotator",\n  "private": true\n}';
+    const json = '{\n  "name": "hypermark",\n  "private": true\n}';
     const blocks = parseMarkdownToBlocks(json);
     expect(blocks.length).toBeGreaterThan(0);
-    expect(blocks.map((b) => b.content).join("\n")).toContain('"name": "plannotator"');
+    expect(blocks.map((b) => b.content).join("\n")).toContain('"name": "hypermark"');
   });
 
   test("multi-document YAML keeps its first document with frontmatter: false", () => {

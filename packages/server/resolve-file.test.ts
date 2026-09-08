@@ -20,7 +20,7 @@ const tempDirs: string[] = [];
 
 function createTempProject(
   files: Record<string, string> = {},
-  baseDir = join(tmpdir(), "plannotator-resolve-file-"),
+  baseDir = join(tmpdir(), "hypermark-resolve-file-"),
 ): string {
   const root = mkdtempSync(baseDir);
   tempDirs.push(root);
@@ -133,7 +133,7 @@ describe("resolveMarkdownFile", () => {
   });
 
 	test("resolves tilde-prefixed absolute paths", async () => {
-		const homeRoot = createTempProject({}, join(homedir(), ".plannotator-resolve-file-"));
+		const homeRoot = createTempProject({}, join(homedir(), ".hypermark-resolve-file-"));
 		const absPath = resolve(homeRoot, "plan.md");
 		writeFileSync(absPath, "# Plan");
 		const relativeToHome = absPath.slice(homedir().length + 1).replace(/\\/g, "/");

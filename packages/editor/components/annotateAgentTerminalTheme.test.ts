@@ -38,7 +38,7 @@ describe("buildAnnotateAgentTerminalTheme", () => {
 
 describe("resolveAnnotateAgentTerminalTheme", () => {
   test("uses the active Hypermark palette instead of a separate terminal preset", () => {
-    const theme = resolveAnnotateAgentTerminalTheme("plannotator", "dark", palette);
+    const theme = resolveAnnotateAgentTerminalTheme("hypermark", "dark", palette);
 
     expect(theme.background).toBe(palette.background);
     expect(theme.background).not.toBe("#282c34");

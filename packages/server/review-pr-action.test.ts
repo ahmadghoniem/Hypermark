@@ -46,8 +46,8 @@ async function withReviewServer(
   run: (url: string) => Promise<void>,
 ): Promise<void> {
   process.env.HYPERMARK_AI = 'disabled';
-  process.env.HYPERMARK_DATA_DIR = makeTempDir('plannotator-pr-action-data-');
-  process.env.PATH = makeTempDir('plannotator-pr-action-path-');
+  process.env.HYPERMARK_DATA_DIR = makeTempDir('hypermark-pr-action-data-');
+  process.env.PATH = makeTempDir('hypermark-pr-action-path-');
   const server = await startReviewServer({
     rawPatch: 'diff --git a/src/failing.ts b/src/failing.ts\n',
     gitRef: 'MR !7',

@@ -21,7 +21,7 @@ export const PLAN_TOOL_NAMES: Record<PromptRuntime, string> = {
   "kiro-cli": "ExitPlanMode",
   opencode: "submit_plan",
   "copilot-cli": "exit_plan_mode",
-  pi: "plannotator_submit_plan",
+  pi: "hypermark_submit_plan",
   codex: "ExitPlanMode",
   "gemini-cli": "exit_plan_mode",
   "oh-my-pi": "ExitPlanMode",

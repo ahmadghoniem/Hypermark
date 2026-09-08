@@ -129,11 +129,11 @@ async function startOnRandomLocalPort(
 
 describe("API route 404 guards", () => {
   beforeAll(() => {
-    archivePath = mkdtempSync(join(tmpdir(), "plannotator-api-404-"));
+    archivePath = mkdtempSync(join(tmpdir(), "hypermark-api-404-"));
     // /favicon.png now answers from the persisted favicon style, so this suite
     // reads config.json. Point it at a temp dir: it must never depend on (or
-    // touch) the real ~/.plannotator of whoever runs the tests.
-    dataDirPath = mkdtempSync(join(tmpdir(), "plannotator-api-404-data-"));
+    // touch) the real ~/.hypermark of whoever runs the tests.
+    dataDirPath = mkdtempSync(join(tmpdir(), "hypermark-api-404-data-"));
     savedDataDir = process.env.HYPERMARK_DATA_DIR;
     process.env.HYPERMARK_DATA_DIR = dataDirPath;
   });

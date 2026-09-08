@@ -1,5 +1,5 @@
 /* Hypermark — Retained Palette */
-.theme-plannotator {
+.theme-hypermark {
   /* Chrome & Tree */
   --background: oklch(0.15 0.02 260);
   --foreground: oklch(0.90 0.01 260);
@@ -91,7 +91,7 @@
   --radius: 0.625rem;
 }
 
-.theme-plannotator.light {
+.theme-hypermark.light {
   /* Chrome & Tree */
   --background: oklch(0.97 0.005 260);
   --foreground: oklch(0.18 0.02 260);

@@ -180,7 +180,7 @@ export function buildAdvertisedUrl(port: number): string {
     if (!warnedLocalUrlHost) {
       warnedLocalUrlHost = true;
       process.stderr.write(
-        `[plannotator] Warning: advertised URL host ${JSON.stringify(host)} ignored — this is a local session, so the server binds loopback and only localhost is reachable. Set HYPERMARK_REMOTE=1 to use the override.\n`,
+        `[hypermark] Warning: advertised URL host ${JSON.stringify(host)} ignored — this is a local session, so the server binds loopback and only localhost is reachable. Set HYPERMARK_REMOTE=1 to use the override.\n`,
       );
     }
     return `http://localhost:${port}`;

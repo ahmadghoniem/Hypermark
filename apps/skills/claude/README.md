@@ -39,7 +39,7 @@ directories) never ship it.
 Command names are `/hypermark-*`, renamed together in spec 06 step 2;
 renaming them piecemeal is a bug, not a step. The `launcher-contract.test.ts`
 guard now runs the other way and fails if any launcher reintroduces an old
-`plannotator-` command name.
+`hypermark-` command name.
 
 ## Native `/btw` is not one of these
 

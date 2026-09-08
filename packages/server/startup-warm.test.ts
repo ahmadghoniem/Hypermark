@@ -26,8 +26,8 @@ function observeWarmState(projectRoot: string): Promise<"ready" | "warm"> {
 async function expectReadyBeforeWarm(
 	start: (onReady: ReadyCallback) => Promise<StartedServer>,
 ): Promise<void> {
-	const projectRoot = mkdtempSync(join(tmpdir(), "plannotator-startup-warm-"));
-	const dataRoot = mkdtempSync(join(tmpdir(), "plannotator-startup-data-"));
+	const projectRoot = mkdtempSync(join(tmpdir(), "hypermark-startup-warm-"));
+	const dataRoot = mkdtempSync(join(tmpdir(), "hypermark-startup-data-"));
 	const previousCwd = process.cwd();
 	const previousPort = process.env.HYPERMARK_PORT;
 	const previousRemote = process.env.HYPERMARK_REMOTE;

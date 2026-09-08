@@ -555,7 +555,7 @@ describe("submitGlMRReview", () => {
 
   async function withFailedCommentDataDir<T>(run: (dir: string) => Promise<T>): Promise<T> {
     const original = process.env.HYPERMARK_DATA_DIR;
-    const dir = mkdtempSync(join(tmpdir(), "plannotator-gitlab-submit-"));
+    const dir = mkdtempSync(join(tmpdir(), "hypermark-gitlab-submit-"));
     process.env.HYPERMARK_DATA_DIR = dir;
     try {
       return await run(dir);

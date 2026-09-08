@@ -146,7 +146,7 @@ function buildRollout(...lines: string[]): string {
 let tempFiles: string[] = [];
 
 function writeTempRollout(content: string): string {
-  const dir = mkdtempSync(join(tmpdir(), "plannotator-codex-test-"));
+  const dir = mkdtempSync(join(tmpdir(), "hypermark-codex-test-"));
   const path = join(dir, "rollout.jsonl");
   writeFileSync(path, content);
   tempFiles.push(dir);
@@ -163,7 +163,7 @@ afterEach(() => {
 
 describe("findCodexRolloutByThreadId", () => {
   test("respects CODEX_HOME for session discovery (#852)", () => {
-    const home = mkdtempSync(join(tmpdir(), "plannotator-codex-home-"));
+    const home = mkdtempSync(join(tmpdir(), "hypermark-codex-home-"));
     tempFiles.push(home);
     const threadId = "0196f8a2-aaaa-bbbb-cccc-1234567890ab";
     const dayDir = join(home, "sessions", "2026", "06", "04");

@@ -40,7 +40,7 @@ const ENV_KEYS = [
 const savedEnv: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>> = {};
 
 beforeAll(() => {
-  base = mkdtempSync(join(tmpdir(), "plannotator-skills-endpoint-"));
+  base = mkdtempSync(join(tmpdir(), "hypermark-skills-endpoint-"));
   home = join(base, "home");
   archivePath = join(base, "plans");
   mkdirSync(home, { recursive: true });

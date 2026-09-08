@@ -15,7 +15,7 @@ import {
 let tmp = "";
 
 beforeEach(() => {
-  tmp = join(tmpdir(), `plannotator-agent-runtime-${randomUUID()}`);
+  tmp = join(tmpdir(), `hypermark-agent-runtime-${randomUUID()}`);
   mkdirSync(tmp, { recursive: true });
 });
 

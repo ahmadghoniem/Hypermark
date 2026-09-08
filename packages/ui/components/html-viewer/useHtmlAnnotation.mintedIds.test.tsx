@@ -58,7 +58,7 @@ function mount(onAdd: (a: Annotation) => void): Promise<{ result: HookResult; if
 function fireSelection(iframe: HTMLIFrameElement, text: string) {
   act(() => {
     window.dispatchEvent(new MessageEvent('message', {
-      data: { type: 'plannotator-bridge-selection', text, rect: { top: 0, left: 0, width: 10, height: 10 } },
+      data: { type: 'hypermark-bridge-selection', text, rect: { top: 0, left: 0, width: 10, height: 10 } },
       source: iframe.contentWindow,
     }));
   });

@@ -21,8 +21,8 @@ describe("P4 provider non-regression", () => {
   const testIfUnix = process.platform === "win32" ? test.skip : test;
 
   testIfUnix("still detects, diffs, expands, and disables staging after GitButler registration", async () => {
-    const workspace = makeTempDir("plannotator-p4-workspace-");
-    const binDir = makeTempDir("plannotator-p4-bin-");
+    const workspace = makeTempDir("hypermark-p4-workspace-");
+    const binDir = makeTempDir("hypermark-p4-bin-");
     const localFile = join(workspace, "file.txt");
     writeFileSync(localFile, "new\n", "utf-8");
 

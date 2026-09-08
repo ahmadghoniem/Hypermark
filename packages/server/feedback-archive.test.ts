@@ -64,7 +64,7 @@ function makeTempDir(prefix: string): string {
 
 /** Point the archive (and drafts) at a fresh temp data dir for this test. */
 function useTempDataDir(): string {
-  const dir = makeTempDir("plannotator-feedback-wiring-");
+  const dir = makeTempDir("hypermark-feedback-wiring-");
   process.env.HYPERMARK_DATA_DIR = dir;
   return dir;
 }
@@ -98,7 +98,7 @@ beforeEach(() => {
   delete process.env.HYPERMARK_PORT;
   process.env.HYPERMARK_REMOTE = "0";
   process.env.HYPERMARK_AI = "disabled";
-  // A real ~/.plannotator/config.json must never decide these tests.
+  // A real ~/.hypermark/config.json must never decide these tests.
   process.env.HYPERMARK_FEEDBACK_HISTORY = "1";
   process.env.HYPERMARK_ANNOTATE_HISTORY = "1";
 });
@@ -220,9 +220,9 @@ describe("code review submissions are archived", () => {
     // at <sessionDir>/pool/pr-<n>, so deriving the project from the cwd filed
     // every PR review under `pr-123`. The caller's detected project wins.
     const dataDir = useTempDataDir();
-    const poolCwd = join(makeTempDir("plannotator-feedback-pool-"), "pool", "pr-123");
+    const poolCwd = join(makeTempDir("hypermark-feedback-pool-"), "pool", "pr-123");
     mkdirSync(poolCwd, { recursive: true });
-    const server = await startReview({ project: "plannotator", agentCwd: poolCwd });
+    const server = await startReview({ project: "hypermark", agentCwd: poolCwd });
     try {
       const response = await fetch(`${server.url}/api/feedback`, {
         method: "POST",
@@ -230,7 +230,7 @@ describe("code review submissions are archived", () => {
         body: JSON.stringify({ feedback: "Rebase before merging.", annotations: [] }),
       });
       expect(response.status).toBe(200);
-      expect(archivedProject(dataDir)).toBe("plannotator");
+      expect(archivedProject(dataDir)).toBe("hypermark");
       // The pool path is still recorded as provenance on the record itself.
       expect(readOnlyIndex(dataDir)[0].target?.review?.cwd).toBe(poolCwd);
     } finally {
@@ -285,7 +285,7 @@ describe("code review submissions are archived", () => {
     const dataDir = useTempDataDir();
     // The review project is derived from the review cwd; block exactly that
     // archive directory by planting a FILE where the directory must go.
-    const repoDir = join(makeTempDir("plannotator-feedback-repo-"), "widgets");
+    const repoDir = join(makeTempDir("hypermark-feedback-repo-"), "widgets");
     mkdirSync(repoDir, { recursive: true });
     mkdirSync(feedbackDir(dataDir), { recursive: true });
     writeFileSync(join(feedbackDir(dataDir), "widgets"), "blocked", "utf-8");
@@ -390,7 +390,7 @@ describe("annotate submissions are archived", () => {
     // annotated content, so the archive must honor it too.
     const dataDir = useTempDataDir();
     process.env.HYPERMARK_ANNOTATE_HISTORY = "0";
-    const dir = makeTempDir("plannotator-feedback-annotate-");
+    const dir = makeTempDir("hypermark-feedback-annotate-");
     const docPath = join(dir, "doc.md");
     writeFileSync(docPath, "# Doc\n\nBody\n", "utf-8");
     const server = await startAnnotateServer({
@@ -415,7 +415,7 @@ describe("annotate submissions are archived", () => {
 
   test("a single local file session records the submission and its file path", async () => {
     const dataDir = useTempDataDir();
-    const dir = makeTempDir("plannotator-feedback-annotate-file-");
+    const dir = makeTempDir("hypermark-feedback-annotate-file-");
     const docPath = join(dir, "notes.md");
     writeFileSync(docPath, "# Notes\n\nBody\n", "utf-8");
     const server = await startAnnotateServer({

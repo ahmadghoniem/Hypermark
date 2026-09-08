@@ -347,7 +347,7 @@ export function saveSourceFileAtomic(
 
 	const output = applySourceEolPolicy(text, outputEol);
 	const dir = dirname(filePath);
-	const tmp = join(dir, `.plannotator-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.tmp`);
+	const tmp = join(dir, `.hypermark-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.tmp`);
 
 	try {
 		writeFileSync(tmp, output, { encoding: "utf8", mode });

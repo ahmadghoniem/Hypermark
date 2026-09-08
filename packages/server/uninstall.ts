@@ -56,7 +56,7 @@ const EXTRA_SKILLS = [
 ] as const;
 
 // Claude Code command files this product replaced with skills of the same
-// name. Every entry is a name Hypermark itself writes: an existing Plannotator
+// name. Every entry is a name Hypermark itself writes: an existing Hypermark
 // installation's commands, skills and agent homes are another product's files
 // and are left untouched (spec 06, decision D5). Uninstall ownership does not
 // widen just because the label on the box changed.
@@ -581,7 +581,7 @@ function removeInstalledFiles(
   // Claude Code command files only. The Codex, Kiro, Gemini, OpenCode and Amp
   // sweeps that used to follow removed files this product never writes; they
   // went with the integrations spec 02 deleted. A machine that also ran
-  // Plannotator keeps those files — removing them is that product's uninstall
+  // Hypermark keeps those files — removing them is that product's uninstall
   // to run, not ours (spec 06, decision D5).
   for (const command of LEGACY_COMMAND_NAMES) {
     removePath(

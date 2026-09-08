@@ -6,8 +6,8 @@
 
 import { storage } from './storage';
 
-const CHOICE_RESOLVED_KEY = 'plannotator-plan-look-choice-resolved';
-const LEGACY_ANNOUNCEMENT_KEY = 'plannotator-look-feel-announcement-seen';
+const CHOICE_RESOLVED_KEY = 'hypermark-plan-look-choice-resolved';
+const LEGACY_ANNOUNCEMENT_KEY = 'hypermark-look-feel-announcement-seen';
 
 export function needsLookAndFeelAnnouncement(): boolean {
   if (storage.getItem(CHOICE_RESOLVED_KEY) === 'true') return false;

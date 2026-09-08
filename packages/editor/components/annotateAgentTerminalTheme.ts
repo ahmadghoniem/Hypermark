@@ -178,7 +178,7 @@ const TERMINAL_THEME_PRESETS: Record<string, Partial<Record<TerminalThemeMode, A
       brightWhite: "#ffffff",
     },
   },
-  plannotator: {
+  hypermark: {
     dark: HYPERMARK_DARK_TERMINAL_THEME,
     light: HYPERMARK_LIGHT_TERMINAL_THEME,
   },
@@ -553,7 +553,7 @@ function createFallbackTerminalPalette(
   mode: TerminalThemeMode,
 ): ResolvedTerminalPalette {
   const themeInfo = BUILT_IN_THEMES.find((theme) => theme.id === colorTheme)
-    ?? BUILT_IN_THEMES.find((theme) => theme.id === "plannotator");
+    ?? BUILT_IN_THEMES.find((theme) => theme.id === "hypermark");
   const colors = themeInfo?.colors[mode] ?? themeInfo?.colors.dark;
   const defaultTheme = mode === "light"
     ? HYPERMARK_LIGHT_TERMINAL_THEME

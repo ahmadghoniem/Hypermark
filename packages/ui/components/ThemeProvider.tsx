@@ -47,10 +47,10 @@ const ThemeProviderContext = createContext<ThemeProviderState>({
   setMode: () => null,
   preferredMode: 'dark',
   resolvedMode: 'dark',
-  colorTheme: 'plannotator',
+  colorTheme: 'hypermark',
   setColorTheme: () => null,
-  lightTheme: 'plannotator',
-  darkTheme: 'plannotator',
+  lightTheme: 'hypermark',
+  darkTheme: 'hypermark',
   setHalfTheme: () => null,
   availableThemes: BUILT_IN_THEMES,
   manageFavicon: false,
@@ -138,7 +138,7 @@ export function ThemeProvider({
   // Hand the resolved pair to the store as a SEED, not a user choice: seeding
   // writes memory + cookies only. Routing it through set() would queue a
   // server write of a value nobody picked, which (flushing after the server
-  // config arrives) would overwrite the user's real ~/.plannotator/config.json
+  // config arrives) would overwrite the user's real ~/.hypermark/config.json
   // theme from any cookie-less visit.
   useEffect(() => {
     const seed = pendingSeed.current;

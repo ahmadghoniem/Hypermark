@@ -32,7 +32,7 @@ describe("goal setup server", () => {
 
     // Classic is the sole served favicon, so this route no longer depends on
     // the persisted style -- and therefore no longer varies with whatever
-    // ~/.plannotator/config.json happens to say on the machine running this.
+    // ~/.hypermark/config.json happens to say on the machine running this.
     const faviconResponse = await fetch(`${server.url}/favicon.png`);
     expect(faviconResponse.headers.get("content-type")).toBe("image/svg+xml");
     expect(await faviconResponse.text()).toBe(CLASSIC_FAVICON_SVG);

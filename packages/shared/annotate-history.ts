@@ -89,7 +89,7 @@ export function computeAnnotateHistory(
     };
   } catch (error) {
     console.error(
-      `[plannotator] warning: annotate history unavailable (${error instanceof Error ? error.message : String(error)}); continuing without version diff`,
+      `[hypermark] warning: annotate history unavailable (${error instanceof Error ? error.message : String(error)}); continuing without version diff`,
     );
     return null;
   }
@@ -155,7 +155,7 @@ export function persistAnnotateSubmission(input: AnnotateSubmissionInput): strin
     return saveAnnotateSubmission(input.project, slug, content);
   } catch (error) {
     console.error(
-      `[plannotator] warning: could not persist submitted annotate feedback (${error instanceof Error ? error.message : String(error)}); keeping the annotation draft as the recovery copy`,
+      `[hypermark] warning: could not persist submitted annotate feedback (${error instanceof Error ? error.message : String(error)}); keeping the annotation draft as the recovery copy`,
     );
     return null;
   }

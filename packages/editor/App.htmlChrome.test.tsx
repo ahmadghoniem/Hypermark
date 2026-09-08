@@ -20,8 +20,8 @@ import {
 const hasDom = typeof document !== "undefined";
 
 if (hasDom) {
-  document.cookie = "plannotator-look-feel-announcement-seen=2; path=/";
-  document.cookie = "plannotator-plan-ai-announcement-seen=1; path=/";
+  document.cookie = "hypermark-look-feel-announcement-seen=2; path=/";
+  document.cookie = "hypermark-plan-ai-announcement-seen=1; path=/";
 }
 
 const appModule = hasDom ? await import("./App") : null;
@@ -58,8 +58,8 @@ const memoryBackend: StorageBackend = {
 };
 
 function seedAnnouncementsSeen(): void {
-  memory.set("plannotator-look-feel-announcement-seen", "2");
-  memory.set("plannotator-plan-ai-announcement-seen", "1");
+  memory.set("hypermark-look-feel-announcement-seen", "2");
+  memory.set("hypermark-plan-ai-announcement-seen", "1");
 }
 
 class SilentEventSource {
@@ -286,7 +286,7 @@ describe.if(hasDom)("HTML annotate chrome (tools toggle + pen toggle)", () => {
     setStorageBackend(memoryBackend);
     seedAnnouncementsSeen();
     memory.set(
-      "plannotator-html-chrome",
+      "hypermark-html-chrome",
       JSON.stringify({ toolsHidden: true, sidebarOpen: false, panelOpen: false, savedAt: Date.now() }),
     );
     await mountHtmlAnnotate();
@@ -305,7 +305,7 @@ describe.if(hasDom)("HTML annotate chrome (tools toggle + pen toggle)", () => {
     setStorageBackend(memoryBackend);
     seedAnnouncementsSeen();
     memory.set(
-      "plannotator-html-chrome",
+      "hypermark-html-chrome",
       JSON.stringify({ toolsHidden: true, sidebarOpen: false, panelOpen: false, savedAt: Date.now() }),
     );
     window.matchMedia = coarseMatchMedia as typeof window.matchMedia;
@@ -381,7 +381,7 @@ describe.if(hasDom)("HTML annotate chrome (tools toggle + pen toggle)", () => {
     setStorageBackend({
       getItem: (key) => memory.get(key) ?? null,
       setItem: (key, value) => {
-        if (key === "plannotator-html-chrome") chromeWrites.push(value);
+        if (key === "hypermark-html-chrome") chromeWrites.push(value);
         memory.set(key, value);
       },
       removeItem: (key) => void memory.delete(key),
@@ -389,7 +389,7 @@ describe.if(hasDom)("HTML annotate chrome (tools toggle + pen toggle)", () => {
     seedAnnouncementsSeen();
     const rememberedState = { toolsHidden: false, sidebarOpen: true, panelOpen: false };
     memory.set(
-      "plannotator-html-chrome",
+      "hypermark-html-chrome",
       JSON.stringify({ ...rememberedState, savedAt: Date.now() }),
     );
     await mountHtmlAnnotate();
@@ -403,14 +403,14 @@ describe.if(hasDom)("HTML annotate chrome (tools toggle + pen toggle)", () => {
     for (const write of chromeWrites) {
       expect(semantic(write)).toEqual(rememberedState);
     }
-    expect(semantic(memory.get("plannotator-html-chrome")!)).toEqual(rememberedState);
+    expect(semantic(memory.get("hypermark-html-chrome")!)).toEqual(rememberedState);
   });
 
   test("the sidebar is still reachable by keyboard (Mod+B) while tools are hidden", async () => {
     setStorageBackend(memoryBackend);
     seedAnnouncementsSeen();
     memory.set(
-      "plannotator-html-chrome",
+      "hypermark-html-chrome",
       JSON.stringify({ toolsHidden: true, sidebarOpen: false, panelOpen: false, savedAt: Date.now() }),
     );
     await mountHtmlAnnotate();
@@ -429,7 +429,7 @@ describe.if(hasDom)("HTML annotate chrome (tools toggle + pen toggle)", () => {
     setStorageBackend(memoryBackend);
     seedAnnouncementsSeen();
     memory.set(
-      "plannotator-html-chrome",
+      "hypermark-html-chrome",
       JSON.stringify({ sidebarOpen: true, panelOpen: false, savedAt: Date.now() }),
     );
     await mountHtmlAnnotate();
@@ -524,7 +524,7 @@ describe.if(hasDom)("HTML annotate chrome (tools toggle + pen toggle)", () => {
       await act(async () => {
         window.dispatchEvent(new MessageEvent("message", {
           source: iframe.contentWindow,
-          data: { type: "plannotator-bridge-unanchored", ids },
+          data: { type: "hypermark-bridge-unanchored", ids },
         }));
       });
     };

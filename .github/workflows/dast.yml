@@ -17,8 +17,8 @@ env:
   TARGET_IMAGE: oven/bun:1.3.11-slim@sha256:478281fdd196871c7e51ba6a820b7803a8ae97042ec86cdbc2e1c6b6626442d9
   ZAP_VERSION: 2.17.0
   ZAP_IMAGE: ghcr.io/zaproxy/zaproxy:stable@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef
-  DAST_NETWORK: plannotator-dast-${{ github.run_id }}-${{ github.run_attempt }}
-  DAST_TARGET: plannotator-dast-target-${{ github.run_id }}-${{ github.run_attempt }}
+  DAST_NETWORK: hypermark-dast-${{ github.run_id }}-${{ github.run_attempt }}
+  DAST_TARGET: hypermark-dast-target-${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
   passive-baseline:
@@ -114,7 +114,7 @@ jobs:
 
           docker network create \
             --internal \
-            --label plannotator.security-scan=dast \
+            --label hypermark.security-scan=dast \
             "$DAST_NETWORK"
           [[ "$(docker network inspect --format '{{.Internal}}' "$DAST_NETWORK")" == "true" ]]
           docker run --rm \
@@ -136,10 +136,10 @@ jobs:
 
           docker run --detach \
             --name "$DAST_TARGET" \
-            --label plannotator.security-scan=dast \
+            --label hypermark.security-scan=dast \
             --user 1000:1000 \
             --network "$DAST_NETWORK" \
-            --network-alias plannotator-dast-target \
+            --network-alias hypermark-dast-target \
             --read-only \
             --cap-drop ALL \
             --security-opt no-new-privileges \
@@ -148,7 +148,7 @@ jobs:
             --cpus 2 \
             --tmpfs /tmp:rw,nosuid,nodev,size=128m \
             --env HOME=/tmp/home \
-            --env HYPERMARK_DATA_DIR=/tmp/plannotator \
+            --env HYPERMARK_DATA_DIR=/tmp/hypermark \
             --env HYPERMARK_DAST_ISOLATED=1 \
             --volume "$GITHUB_WORKSPACE:/workspace:ro" \
             --workdir /workspace \
@@ -164,7 +164,7 @@ jobs:
               --security-opt no-new-privileges \
               "$TARGET_IMAGE" \
               bun -e '
-                const base = "http://plannotator-dast-target";
+                const base = "http://hypermark-dast-target";
                 const checks = [
                   [19432, "/", 200],
                   [19432, "/api/plan", 200],
@@ -226,7 +226,7 @@ jobs:
             "$ZAP_IMAGE" \
             zap-baseline.py \
               --autooff \
-              -t http://plannotator-dast-target:19433 \
+              -t http://hypermark-dast-target:19433 \
               -m 0 \
               -T 5 \
               -I \
@@ -269,37 +269,37 @@ jobs:
             "$ZAP_IMAGE" \
             zap-baseline.py \
               --autooff \
-              -t http://plannotator-dast-target:19432 \
+              -t http://hypermark-dast-target:19432 \
               -m 1 \
               -T 10 \
               -I \
               -z "-Xmx2048m -silent -config database.response.bodysize=33554432" \
               --hook /zap/hooks.py \
-              -J plannotator.json \
-              -r plannotator.html \
-              -w plannotator.md \
+              -J hypermark.json \
+              -r hypermark.html \
+              -w hypermark.md \
               -l WARN \
-              2>&1 | tee security-results/zap/plannotator.log
+              2>&1 | tee security-results/zap/hypermark.log
           scan_status=${PIPESTATUS[0]}
           set -e
           if [[ "$scan_status" -eq 3 || "$scan_status" -gt 3 ]]; then
             echo "ZAP application scan failed with exit $scan_status." >&2
             exit "$scan_status"
           fi
-          mv security-results/zap/zap.out security-results/zap/plannotator-zap.log
+          mv security-results/zap/zap.out security-results/zap/hypermark-zap.log
 
       - name: Validate and summarize DAST evidence
         shell: bash
         run: |
           set -euo pipefail
           bun run scripts/dast/report.ts \
-            --report security-results/zap/plannotator.json \
+            --report security-results/zap/hypermark.json \
             --sentinel-report security-results/zap/sentinel.json \
-            --scan-log security-results/zap/plannotator.log \
-            --zap-log security-results/zap/plannotator-zap.log \
+            --scan-log security-results/zap/hypermark.log \
+            --zap-log security-results/zap/hypermark-zap.log \
             --sentinel-zap-log security-results/zap/sentinel-zap.log \
             --minimum-urls 8 \
-            --expected-host plannotator-dast-target \
+            --expected-host hypermark-dast-target \
             --sentinel-rule 10020 \
             --summary security-results/zap/summary.md \
             --evidence security-results/zap/evidence.json

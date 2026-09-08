@@ -103,7 +103,7 @@ describe.if(hasDom)('getInputMethod / saveInputMethod (cookie round trip)', () =
 
   test('refreshInputMethodStamp re-stamps the HTML record', () => {
     inputMethodModule!.refreshInputMethodStamp('drag');
-    const raw = memory.get('plannotator-input-method-html');
+    const raw = memory.get('hypermark-input-method-html');
     expect(raw).toBeTruthy();
     const record = JSON.parse(raw!) as { m: string; savedAt: number };
     expect(record.m).toBe('drag');

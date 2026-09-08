@@ -183,7 +183,7 @@ describe("SIGHUP routing", () => {
   // Guards the nohup contract: any SIGHUP listener overrides the ignored
   // disposition `nohup` depends on, so a listener may exist ONLY while a
   // serve mapping does. An unconditional listener regressed
-  // `nohup plannotator review &` into dying on terminal close.
+  // `nohup hypermark review &` into dying on terminal close.
   test("installs the SIGHUP→exit route only once a mapping exists, and reset removes it", () => {
     const before = process.listenerCount("SIGHUP");
     const { runner } = makeRunner({});

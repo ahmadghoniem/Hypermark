@@ -41,10 +41,10 @@ describe('filled slot', () => {
       loads += 1;
       return fakeRuntime;
     });
-    setMermaidRuntime(fakeRuntime, 'plannotator-mermaid-eager');
+    setMermaidRuntime(fakeRuntime, 'hypermark-mermaid-eager');
 
     expect(getMermaidRuntime()).toBe(fakeRuntime);
-    expect(getMermaidRuntimeSource()).toBe('plannotator-mermaid-eager');
+    expect(getMermaidRuntimeSource()).toBe('hypermark-mermaid-eager');
     expect(await loadMermaidRuntime()).toBe(fakeRuntime);
     expect(await loadMermaidRuntime()).toBe(fakeRuntime);
     expect(loads).toBe(0);

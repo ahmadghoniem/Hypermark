@@ -24,7 +24,7 @@ describe('BUILT_IN_THEMES', () => {
     const ids = BUILT_IN_THEMES.map(t => t.id);
     expect(ids).toEqual([
       'pierre',
-      'plannotator',
+      'hypermark',
       'catppuccin',
       'github',
       'ayu-dark',
@@ -45,7 +45,7 @@ describe('BUILT_IN_THEMES', () => {
   test('mode support matches spec authority: 4 both, 3 dark-only', () => {
     const supportMap = Object.fromEntries(BUILT_IN_THEMES.map(t => [t.id, t.modeSupport]));
     expect(supportMap['pierre']).toBe('both');
-    expect(supportMap['plannotator']).toBe('both');
+    expect(supportMap['hypermark']).toBe('both');
     expect(supportMap['catppuccin']).toBe('both');
     expect(supportMap['github']).toBe('both');
     expect(supportMap['ayu-dark']).toBe('dark-only');
@@ -72,7 +72,7 @@ describe('BUILT_IN_THEMES', () => {
 
 describe('themeSupportsHalf and themesForHalf', () => {
   test('both-mode palettes support both halves', () => {
-    for (const id of ['pierre', 'plannotator', 'catppuccin', 'github']) {
+    for (const id of ['pierre', 'hypermark', 'catppuccin', 'github']) {
       expect(themeSupportsHalf(id, 'light')).toBe(true);
       expect(themeSupportsHalf(id, 'dark')).toBe(true);
     }
@@ -95,10 +95,10 @@ describe('themeSupportsHalf and themesForHalf', () => {
     const lightThemes = themesForHalf(BUILT_IN_THEMES, 'light');
     const darkThemes = themesForHalf(BUILT_IN_THEMES, 'dark');
 
-    expect(lightThemes.map(t => t.id)).toEqual(['pierre', 'plannotator', 'catppuccin', 'github']);
+    expect(lightThemes.map(t => t.id)).toEqual(['pierre', 'hypermark', 'catppuccin', 'github']);
     expect(darkThemes.map(t => t.id)).toEqual([
       'pierre',
-      'plannotator',
+      'hypermark',
       'catppuccin',
       'github',
       'ayu-dark',
@@ -251,7 +251,7 @@ describe('explicit palette descriptors (all 7 semantic groups)', () => {
   });
 
   test('both-mode palettes define all seven semantic groups in light mode', () => {
-    for (const id of ['pierre', 'plannotator', 'catppuccin', 'github'] as const) {
+    for (const id of ['pierre', 'hypermark', 'catppuccin', 'github'] as const) {
       const descriptor = PALETTE_DESCRIPTORS[id];
       expect(descriptor.modes.light).toBeDefined();
       for (const group of REQUIRED_GROUPS) {

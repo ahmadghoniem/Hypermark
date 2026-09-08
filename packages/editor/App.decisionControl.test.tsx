@@ -35,8 +35,8 @@ import { ANNOTATE_NO_FEEDBACK_SENTENCE } from "./annotateSubmission";
 const hasDom = typeof document !== "undefined";
 
 if (hasDom) {
-  document.cookie = "plannotator-look-feel-announcement-seen=2; path=/";
-  document.cookie = "plannotator-plan-ai-announcement-seen=1; path=/";
+  document.cookie = "hypermark-look-feel-announcement-seen=2; path=/";
+  document.cookie = "hypermark-plan-ai-announcement-seen=1; path=/";
 }
 
 const appModule = hasDom ? await import("./App") : null;
@@ -53,8 +53,8 @@ const memoryBackend: StorageBackend = {
 };
 
 function seedAnnouncementsSeen(): void {
-  memory.set("plannotator-look-feel-announcement-seen", "2");
-  memory.set("plannotator-plan-ai-announcement-seen", "1");
+  memory.set("hypermark-look-feel-announcement-seen", "2");
+  memory.set("hypermark-plan-ai-announcement-seen", "1");
 }
 
 /** External annotations delivered as the stream's opening snapshot, so a test

@@ -51,7 +51,7 @@ beforeEach(() => {
   // configStore is a process-global singleton and loadFromBackend keeps its
   // in-memory value when the new backend has nothing to say, so an empty map
   // would inherit whatever the previous test (or test FILE) last set.
-  stored = new Map([['plannotator-token-hover-trigger', 'hover']]);
+  stored = new Map([['hypermark-token-hover-trigger', 'hover']]);
   setStorageBackend({
     getItem: key => stored.get(key) ?? null,
     setItem: (key, value) => { stored.set(key, value); },

@@ -1,7 +1,7 @@
 /**
  * Annotate client-lease tracker — pure last-client abandonment detector.
  *
- * Local direct structured annotate gates (`plannotator annotate --gate --json`)
+ * Local direct structured annotate gates (`hypermark annotate --gate --json`)
  * block a CLI/hook caller on `waitForDecision()`. If the browser tab that owns
  * the decision goes away without ever sending `/api/exit`/`/api/approve`
  * (closed tab, killed terminal) the gate would otherwise hang forever.

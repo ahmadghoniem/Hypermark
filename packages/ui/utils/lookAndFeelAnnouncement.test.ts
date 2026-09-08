@@ -28,7 +28,7 @@ describe('plan look choice gate', () => {
     expect(needsLookAndFeelAnnouncement()).toBe(true);
     // ConfigStore seeds this default before the chooser initializes. It must
     // not be mistaken for a user decision.
-    values.set('plannotator-grid-enabled', 'true');
+    values.set('hypermark-grid-enabled', 'true');
     expect(needsLookAndFeelAnnouncement()).toBe(true);
 
     markLookAndFeelChoiceResolved();
@@ -37,14 +37,14 @@ describe('plan look choice gate', () => {
 
   test('migrates the old Grid/Clean chooser dismissal without another prompt', () => {
     setStorageBackend(memoryStorage);
-    values.set('plannotator-look-feel-announcement-seen', '2');
+    values.set('hypermark-look-feel-announcement-seen', '2');
 
     expect(needsLookAndFeelAnnouncement()).toBe(false);
   });
 
   test('does not treat an earlier release-only announcement as this decision', () => {
     setStorageBackend(memoryStorage);
-    values.set('plannotator-look-feel-announcement-seen', '1');
+    values.set('hypermark-look-feel-announcement-seen', '1');
 
     expect(needsLookAndFeelAnnouncement()).toBe(true);
   });

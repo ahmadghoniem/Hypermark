@@ -65,11 +65,11 @@ const memoryBackend: StorageBackend = {
 /** Suppress the one-time dialog chain (guide intro → look-and-feel → review
  *  setup → edit mode) so the header is interactable on first render. */
 function seedFirstRunSeen(): void {
-  memory.set("plannotator-plan-look-choice-resolved", "true");
-  memory.set("plannotator-guide-intro-seen", "2");
-  memory.set("plannotator-guide-hint-acked", "true");
+  memory.set("hypermark-plan-look-choice-resolved", "true");
+  memory.set("hypermark-guide-intro-seen", "2");
+  memory.set("hypermark-guide-hint-acked", "true");
   memory.set("hypermark-review-setup-seen", "true");
-  memory.set("plannotator-edit-mode-announcement-seen", "3");
+  memory.set("hypermark-edit-mode-announcement-seen", "3");
   memory.set("hypermark-review-dest-spotlight-seen", "1");
 }
 
@@ -163,7 +163,7 @@ function seedPlatformSession(options?: { selfAuthored?: boolean }): void {
   };
   // The submission's success path opens the PR in a new tab by default;
   // window.open is not a browser here, so keep the toggle off.
-  memory.set("plannotator-platform-open-pr", "false");
+  memory.set("hypermark-platform-open-pr", "false");
 }
 
 const PATCH = [
@@ -444,7 +444,7 @@ describe.if(hasDom)("review decision control (agent mode)", () => {
     if (!discardItem) throw new Error("discard menu item not found");
     await act(async () => discardItem.click());
     await settle();
-    if (!document.querySelector('[data-plannotator-confirm-dialog="true"]')) {
+    if (!document.querySelector('[data-hypermark-confirm-dialog="true"]')) {
       throw new Error("discard confirm did not open");
     }
 

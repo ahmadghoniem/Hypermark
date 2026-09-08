@@ -147,7 +147,7 @@
   background-color: color-mix(in oklch, var(--foreground) 6%, transparent) !important;
 }
 
-/* @pierre/diffs theme integration — pass plannotator theme colors into shadow DOM */
+/* @pierre/diffs theme integration — pass hypermark theme colors into shadow DOM */
 diffs-container {
   --diffs-dark-bg: var(--background);
   --diffs-light-bg: var(--background);

@@ -172,11 +172,11 @@ describe("jj compare targets", () => {
   // `immutable_heads()` alias or a non-default `git.push-bookmark-prefix` in a
   // real config would otherwise fail or silently reshape them.
   function createJjSandbox() {
-    const root = mkdtempSync(join(tmpdir(), "plannotator-jj-base-"));
+    const root = mkdtempSync(join(tmpdir(), "hypermark-jj-base-"));
     const configPath = join(root, "jj-config.toml");
     writeFileSync(
       configPath,
-      '[user]\nname = "Hypermark Test"\nemail = "test@plannotator.invalid"\n',
+      '[user]\nname = "Hypermark Test"\nemail = "test@hypermark.invalid"\n',
     );
     const env = { ...process.env, JJ_CONFIG: configPath };
 
@@ -424,7 +424,7 @@ describe("jj compare targets", () => {
 
   // The only live caller runs on the review startup path with no handler above
   // it, so an unresolvable base has to degrade to the previous default instead
-  // of aborting `plannotator review`.
+  // of aborting `hypermark review`.
   test("falls back to the trunk revset when JJ cannot resolve a line base", async () => {
     const runtimeFor = (stdout: string, stderr = "", exitCode = 0): ReviewJjRuntime => ({
       async runJj() {

@@ -82,7 +82,7 @@ export type ClipboardFeedbackContext =
  * Plan review keeps the deliberately forceful plan-deny framing. Annotate
  * sessions use the server-resolved template when the server shipped one
  * (matching what Send Feedback produces, including user-customized
- * prompts.annotate.* templates in ~/.plannotator/config.json), and fall back
+ * prompts.annotate.* templates in ~/.hypermark/config.json), and fall back
  * to the built-in annotate defaults when it did not (e.g. shared/static
  * sessions never enter annotate mode and keep plan-deny behavior).
  */

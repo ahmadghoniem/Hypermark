@@ -34,7 +34,7 @@ function makeRuntime(options: {
     calls,
     env: options.env ?? {},
     cwd: options.cwd ?? "/repo",
-    dataDir: "/home/user/.plannotator",
+    dataDir: "/home/user/.hypermark",
     pathDelimiter: options.pathDelimiter ?? ":",
     platform: options.platform ?? "linux",
     fileExists(path) {
@@ -222,7 +222,7 @@ describe("semantic diff runner", () => {
   });
 
   test("uses managed sidecar before PATH fallback", async () => {
-    const managed = getManagedSemBinaryPath("/home/user/.plannotator", "linux");
+    const managed = getManagedSemBinaryPath("/home/user/.hypermark", "linux");
     const runtime = makeRuntime({
       files: [managed],
       commands: {

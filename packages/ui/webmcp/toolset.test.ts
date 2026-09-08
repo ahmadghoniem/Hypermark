@@ -63,10 +63,10 @@ afterEach(() => {
 describe('createToolRegistry', () => {
   test('attach registers prefixed names and detach aborts them out of the context', async () => {
     const ctx = fakeContext();
-    const registry = createToolRegistry(ctx, { prefix: () => 'plannotator.' });
+    const registry = createToolRegistry(ctx, { prefix: () => 'hypermark.' });
     const detach = registry.attach('doc', [echo], quietHooks);
-    expect(registry.names()).toEqual(['plannotator.echo']);
-    expect([...ctx.tools.keys()]).toEqual(['plannotator.echo']);
+    expect(registry.names()).toEqual(['hypermark.echo']);
+    expect([...ctx.tools.keys()]).toEqual(['hypermark.echo']);
     detach();
     expect(registry.names()).toEqual([]);
     expect(ctx.tools.size).toBe(0);

@@ -91,12 +91,12 @@ describe.skipIf(!hasDom)('useToolset', () => {
     let last = { available: false, registered: false };
     const view = await mount(<Harness active handler={() => 'one'} onResult={(r) => { last = r; }} />);
     expect(last).toEqual({ available: true, registered: true });
-    expect([...ctx.tools.keys()]).toEqual(['plannotator.echo']);
+    expect([...ctx.tools.keys()]).toEqual(['hypermark.echo']);
     const before = ctx.registrations;
 
     await view.rerender(<Harness active handler={() => 'two'} onResult={(r) => { last = r; }} />);
     expect(ctx.registrations).toBe(before);
-    const response = (await ctx.tools.get('plannotator.echo')!.execute({}, { signal: new AbortController().signal })) as { data: string };
+    const response = (await ctx.tools.get('hypermark.echo')!.execute({}, { signal: new AbortController().signal })) as { data: string };
     expect(response.data).toBe('two');
 
     await view.unmount();
@@ -115,7 +115,7 @@ describe.skipIf(!hasDom)('useToolset', () => {
     expect(last.registered).toBe(false);
     expect(last.available).toBe(true);
     await view.rerender(<Harness active handler={handler} onResult={(r) => { last = r; }} />);
-    expect([...ctx.tools.keys()]).toEqual(['plannotator.echo']);
+    expect([...ctx.tools.keys()]).toEqual(['hypermark.echo']);
     await view.unmount();
   });
 

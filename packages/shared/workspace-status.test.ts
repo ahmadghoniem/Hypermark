@@ -16,7 +16,7 @@ function makeTempDir(prefix: string): string {
 }
 
 function tempRepo(): string {
-	const dir = makeTempDir("plannotator-workspace-status-");
+	const dir = makeTempDir("hypermark-workspace-status-");
 	git(dir, "init", "-b", "main");
 	git(dir, "config", "user.email", "test@test");
 	git(dir, "config", "user.name", "Test");
@@ -279,7 +279,7 @@ describe("workspace status", () => {
 		git(repo, "add", "-A");
 		git(repo, "commit", "-m", "init");
 
-		const wrapperDir = makeTempDir("plannotator-git-wrapper-");
+		const wrapperDir = makeTempDir("hypermark-git-wrapper-");
 		const signalPath = join(wrapperDir, "status-started");
 		installDelayedStatusGitWrapper(wrapperDir, signalPath);
 
@@ -304,7 +304,7 @@ describe("workspace status", () => {
 		git(repo, "add", "-A");
 		git(repo, "commit", "-m", "init");
 
-		const wrapperDir = makeTempDir("plannotator-git-timeout-");
+		const wrapperDir = makeTempDir("hypermark-git-timeout-");
 		const markerPath = join(wrapperDir, "status-hung");
 		installHangingOnceStatusGitWrapper(wrapperDir, markerPath);
 		process.env.HYPERMARK_GIT_TIMEOUT_MS = "1000";

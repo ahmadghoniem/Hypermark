@@ -44,7 +44,7 @@ function classifyNode(
   return { kind: 'navigate', url: node.url ?? '' };
 }
 
-const HIDE_MERGED_KEY = 'plannotator-stack-hide-merged';
+const HIDE_MERGED_KEY = 'hypermark-stack-hide-merged';
 
 export function StackedPRLabel({
   metadata,

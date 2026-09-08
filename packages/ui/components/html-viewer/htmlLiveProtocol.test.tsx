@@ -41,30 +41,30 @@ afterEach(async () => {
 describe.if(hasDom)('page-change message validation (trust boundary)', () => {
   test('accepts a bounded pageUrl string', () => {
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-page-change',
+      type: 'hypermark-bridge-page-change',
       pageUrl: '/settings?tab=git',
-    })).toEqual({ type: 'plannotator-bridge-page-change', pageUrl: '/settings?tab=git' });
+    })).toEqual({ type: 'hypermark-bridge-page-change', pageUrl: '/settings?tab=git' });
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-page-change',
+      type: 'hypermark-bridge-page-change',
       pageUrl: 'x'.repeat(hookModule!.MAX_PAGE_URL_LENGTH),
     })).not.toBeNull();
   });
 
   test('rejects oversize, empty, and non-string pageUrls', () => {
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-page-change',
+      type: 'hypermark-bridge-page-change',
       pageUrl: 'x'.repeat(hookModule!.MAX_PAGE_URL_LENGTH + 1),
     })).toBeNull();
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-page-change',
+      type: 'hypermark-bridge-page-change',
       pageUrl: '',
     })).toBeNull();
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-page-change',
+      type: 'hypermark-bridge-page-change',
       pageUrl: 42,
     })).toBeNull();
     expect(hookModule!.parseBridgeMessage({
-      type: 'plannotator-bridge-page-change',
+      type: 'hypermark-bridge-page-change',
     })).toBeNull();
   });
 
@@ -139,7 +139,7 @@ describe.if(hasDom)('live parent side (HtmlViewer with src + liveSession)', () =
   }
 
   const selectionMessage = {
-    type: 'plannotator-bridge-selection',
+    type: 'hypermark-bridge-selection',
     text: 'Live target',
     rect: { top: 10, left: 10, width: 120, height: 24 },
     anchor: { selector: 'p:nth-of-type(1)', tagName: 'p', text: 'Live target' },
@@ -177,7 +177,7 @@ describe.if(hasDom)('live parent side (HtmlViewer with src + liveSession)', () =
     const { post, postedToIframe } = await mountLiveViewer({
       annotations: [],
     });
-    await post({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION, pageUrl: '/', token: LIVE_TOKEN });
+    await post({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION, pageUrl: '/', token: LIVE_TOKEN });
     expect(postedToIframe.length).toBeGreaterThan(0);
     for (const posted of postedToIframe) {
       expect(posted.data.token).toBe(LIVE_TOKEN);
@@ -185,27 +185,27 @@ describe.if(hasDom)('live parent side (HtmlViewer with src + liveSession)', () =
     }
     // The bridge-config posts a ready surface always sends.
     const types = postedToIframe.map((p) => p.data.type);
-    expect(types).toContain('plannotator-bridge-set-input-method');
+    expect(types).toContain('hypermark-bridge-set-input-method');
   });
 
   test('an unauthenticated ready is ignored; an authenticated one forwards its pageUrl', async () => {
     const pages: string[] = [];
     const { post, postedToIframe } = await mountLiveViewer({ onPageChange: (p) => pages.push(p) });
-    await post({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION, pageUrl: '/spoofed' }, LIVE_ORIGIN);
+    await post({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION, pageUrl: '/spoofed' }, LIVE_ORIGIN);
     expect(pages).toEqual([]);
     expect(postedToIframe.length).toBe(0);
-    await post({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION, pageUrl: '/dashboard?x=1', token: LIVE_TOKEN });
+    await post({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION, pageUrl: '/dashboard?x=1', token: LIVE_TOKEN });
     expect(pages).toEqual(['/dashboard?x=1']);
   });
 
   test('page-change messages update the parent through onPageChange', async () => {
     const pages: string[] = [];
     const { post } = await mountLiveViewer({ onPageChange: (p) => pages.push(p) });
-    await post({ type: 'plannotator-bridge-page-change', pageUrl: '/about', token: LIVE_TOKEN });
+    await post({ type: 'hypermark-bridge-page-change', pageUrl: '/about', token: LIVE_TOKEN });
     expect(pages).toEqual(['/about']);
     // Oversize pageUrl is rejected at the parse boundary.
     await post({
-      type: 'plannotator-bridge-page-change',
+      type: 'hypermark-bridge-page-change',
       pageUrl: 'x'.repeat(3000),
       token: LIVE_TOKEN,
     });
@@ -228,11 +228,11 @@ describe.if(hasDom)('live parent side (HtmlViewer with src + liveSession)', () =
       annotations: [pageAnn('on-home', '/'), pageAnn('on-about', '/about')],
       currentPageUrl: '/',
     });
-    await post({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION, pageUrl: '/', token: LIVE_TOKEN });
-    const restores = postedToIframe.filter((p) => p.data.type === 'plannotator-bridge-find-and-mark');
+    await post({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION, pageUrl: '/', token: LIVE_TOKEN });
+    const restores = postedToIframe.filter((p) => p.data.type === 'hypermark-bridge-find-and-mark');
     expect(restores.map((p) => p.data.id)).toEqual(['on-home']);
     // Numbering still ships the FULL list (global numbers across pages).
-    const syncs = postedToIframe.filter((p) => p.data.type === 'plannotator-bridge-sync-annotations');
+    const syncs = postedToIframe.filter((p) => p.data.type === 'hypermark-bridge-sync-annotations');
     expect(syncs.length).toBeGreaterThan(0);
     expect((syncs.at(-1)!.data.annotations as Array<{ id: string }>).map((a) => a.id)).toEqual([
       'on-home',
@@ -301,34 +301,34 @@ describe.if(hasDom)('live parent side (HtmlViewer with src + liveSession)', () =
         }));
       });
     };
-    await post({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION, pageUrl: '/' });
-    await post({ type: 'plannotator-bridge-unanchored', ids: ['home-1'] });
+    await post({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION, pageUrl: '/' });
+    await post({ type: 'hypermark-bridge-unanchored', ids: ['home-1'] });
     expect(received).toEqual([['home-1']]);
 
     // Navigate: the parent clears marks, re-applies, and asks for a report.
     const before = posted.length;
     await render('/about', [row('home-1', { pageUrl: '/' })]);
-    expect(posted.slice(before).map((m) => m.type)).toContain('plannotator-bridge-report-unanchored');
+    expect(posted.slice(before).map((m) => m.type)).toContain('hypermark-bridge-report-unanchored');
     // A prop-side change before the answer delivers nothing.
     await render('/about', [row('home-1', { pageUrl: '/' }), row('textless-1', { originalText: '', pageUrl: '/about' })]);
     expect(received).toEqual([['home-1']]);
     // The page's answer is delivered, completed with the textless row.
-    await post({ type: 'plannotator-bridge-unanchored', ids: [] });
+    await post({ type: 'hypermark-bridge-unanchored', ids: [] });
     expect(received).toEqual([['home-1'], ['textless-1']]);
   });
 
   test('the Interact/Annotate mode is pushed on EVERY bridge ready, so it survives page-change reloads and bridge re-injection', async () => {
     const { post, postedToIframe } = await mountLiveViewer({ annotateModeActive: false });
-    await post({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION, pageUrl: '/', token: LIVE_TOKEN });
+    await post({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION, pageUrl: '/', token: LIVE_TOKEN });
     const modePosts = () =>
-      postedToIframe.filter((p) => p.data.type === 'plannotator-bridge-set-annotate-mode');
+      postedToIframe.filter((p) => p.data.type === 'hypermark-bridge-set-annotate-mode');
     expect(modePosts().length).toBe(1);
     expect(modePosts()[0]!.data.active).toBe(false);
     // A live navigation / HMR reload re-injects the bridge and posts ready
     // again from a FRESH document: the mode must be re-established, not lost
     // to the fresh bridge's default.
     postedToIframe.length = 0;
-    await post({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION, pageUrl: '/about', token: LIVE_TOKEN });
+    await post({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION, pageUrl: '/about', token: LIVE_TOKEN });
     expect(modePosts().length).toBe(1);
     expect(modePosts()[0]!.data.active).toBe(false);
   });
@@ -341,13 +341,13 @@ describe.if(hasDom)('live parent side (HtmlViewer with src + liveSession)', () =
       onAnnotateModeExit: () => { exits += 1; },
       onAnnotateModeToggle: () => { toggles += 1; },
     });
-    await post({ type: 'plannotator-bridge-annotate-exit' });
-    await post({ type: 'plannotator-bridge-annotate-toggle', token: 'forged' });
-    await post({ type: 'plannotator-bridge-annotate-exit', token: LIVE_TOKEN }, 'http://evil.example');
+    await post({ type: 'hypermark-bridge-annotate-exit' });
+    await post({ type: 'hypermark-bridge-annotate-toggle', token: 'forged' });
+    await post({ type: 'hypermark-bridge-annotate-exit', token: LIVE_TOKEN }, 'http://evil.example');
     expect(exits).toBe(0);
     expect(toggles).toBe(0);
-    await post({ type: 'plannotator-bridge-annotate-exit', token: LIVE_TOKEN });
-    await post({ type: 'plannotator-bridge-annotate-toggle', token: LIVE_TOKEN });
+    await post({ type: 'hypermark-bridge-annotate-exit', token: LIVE_TOKEN });
+    await post({ type: 'hypermark-bridge-annotate-toggle', token: LIVE_TOKEN });
     expect(exits).toBe(1);
     expect(toggles).toBe(1);
   });
@@ -448,7 +448,7 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
   });
 
   test('the bootstrap installs the annotation CSS from the config', () => {
-    const style = bridgeDocument.querySelector('style[data-plannotator-live-css]');
+    const style = bridgeDocument.querySelector('style[data-hypermark-live-css]');
     expect(style).not.toBeNull();
     expect(style!.textContent).toContain('.pn-live-probe');
   });
@@ -458,7 +458,7 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
     // editor tab was opened on: the bridge posts to every listed origin and
     // the browser delivers only the matching one. An editor opened at
     // 127.0.0.1 must not silently miss ready.
-    const readies = parentPosts.filter((p) => p.data.type === 'plannotator-bridge-ready');
+    const readies = parentPosts.filter((p) => p.data.type === 'hypermark-bridge-ready');
     expect(readies.map((p) => p.targetOrigin)).toEqual([editorOrigin, 'http://127.0.0.1:4100']);
     for (const ready of readies) {
       expect(ready.data.token).toBe(bridgeToken);
@@ -472,7 +472,7 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
    * primary origin's copy so assertions read in logical messages. */
   function primaryPosts(type: string): ParentPost[] {
     return parentPosts.filter(
-      (p) => p.data.type === `plannotator-bridge-${type}` && p.targetOrigin === editorOrigin,
+      (p) => p.data.type === `hypermark-bridge-${type}` && p.targetOrigin === editorOrigin,
     );
   }
 
@@ -535,36 +535,36 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
   test('live sessions start ARMED: pinpoint capture and the cursor affordance are live before any parent message', () => {
     // No set-annotate-mode or set-input-method has arrived yet — the default
     // must already be pinpoint-armed on the live surface.
-    expect(bridgeDocument.body.hasAttribute('data-plannotator-pinpoint-cursor')).toBe(true);
+    expect(bridgeDocument.body.hasAttribute('data-hypermark-pinpoint-cursor')).toBe(true);
     const probe = clickProbe(probeButton());
     expect(probe.prevented).toBe(true);
     expect(probe.selections).toBe(1);
     expect(selectionPosts().at(-1)!.data.pinpoint).toBe(true);
-    postToBridge({ type: 'plannotator-bridge-cancel-selection', token: bridgeToken });
+    postToBridge({ type: 'hypermark-bridge-cancel-selection', token: bridgeToken });
   });
 
   test('forged disarm attempts (no token / wrong origin) are ignored', () => {
-    postToBridge({ type: 'plannotator-bridge-set-annotate-mode', active: false });
-    postToBridge({ type: 'plannotator-bridge-set-input-method', method: 'drag' });
+    postToBridge({ type: 'hypermark-bridge-set-annotate-mode', active: false });
+    postToBridge({ type: 'hypermark-bridge-set-input-method', method: 'drag' });
     postToBridge(
-      { type: 'plannotator-bridge-set-annotate-mode', active: false, token: bridgeToken },
+      { type: 'hypermark-bridge-set-annotate-mode', active: false, token: bridgeToken },
       'http://evil.example',
     );
-    expect(bridgeDocument.body.hasAttribute('data-plannotator-pinpoint-cursor')).toBe(true);
+    expect(bridgeDocument.body.hasAttribute('data-hypermark-pinpoint-cursor')).toBe(true);
     const probe = clickProbe(probeButton());
     expect(probe.prevented).toBe(true);
     expect(probe.selections).toBe(1);
-    postToBridge({ type: 'plannotator-bridge-cancel-selection', token: bridgeToken });
+    postToBridge({ type: 'hypermark-bridge-cancel-selection', token: bridgeToken });
   });
 
   test('an authenticated drag input-method request stays clamped to pinpoint (clicks still pin)', () => {
-    postToBridge({ type: 'plannotator-bridge-set-input-method', method: 'drag', token: bridgeToken });
-    expect(bridgeDocument.body.hasAttribute('data-plannotator-pinpoint-cursor')).toBe(true);
+    postToBridge({ type: 'hypermark-bridge-set-input-method', method: 'drag', token: bridgeToken });
+    expect(bridgeDocument.body.hasAttribute('data-hypermark-pinpoint-cursor')).toBe(true);
     const probe = clickProbe(probeButton());
     expect(probe.prevented).toBe(true);
     expect(probe.selections).toBe(1);
     expect(selectionPosts().at(-1)!.data.pinpoint).toBe(true);
-    postToBridge({ type: 'plannotator-bridge-cancel-selection', token: bridgeToken });
+    postToBridge({ type: 'hypermark-bridge-cancel-selection', token: bridgeToken });
   });
 
   test('ARMED: a real text drag posts a drag selection, and its trailing click never re-pins', async () => {
@@ -580,7 +580,7 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
     const trailing = clickProbe(p);
     expect(trailing.prevented).toBe(false);
     expect(trailing.selections).toBe(0);
-    postToBridge({ type: 'plannotator-bridge-cancel-selection', token: bridgeToken });
+    postToBridge({ type: 'hypermark-bridge-cancel-selection', token: bridgeToken });
     bridgeWindow.getSelection()!.removeAllRanges();
   });
 
@@ -614,7 +614,7 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
     } finally {
       btn.removeEventListener('click', pageListener);
     }
-    postToBridge({ type: 'plannotator-bridge-cancel-selection', token: bridgeToken });
+    postToBridge({ type: 'hypermark-bridge-cancel-selection', token: bridgeToken });
     bridgeWindow.getSelection()!.removeAllRanges();
   });
 
@@ -623,7 +623,7 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
     // pinpoint outline is showing:
     const btn = probeButton();
     btn.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true, clientX: 8, clientY: 8 }));
-    const box = bridgeDocument.querySelector<HTMLElement>('[data-plannotator-pinpoint-box]');
+    const box = bridgeDocument.querySelector<HTMLElement>('[data-hypermark-pinpoint-box]');
     if (!box) throw new Error('pinpoint hover box missing');
     expect(box.style.display).toBe('block');
     const exitsBefore = primaryPosts('annotate-exit').length;
@@ -635,7 +635,7 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
     expect(primaryPosts('annotate-exit').length).toBe(exitsBefore + 1);
     expect(primaryPosts('selection-clear').length).toBe(clearsBefore);
     // The bridge stays armed until the parent answers set-annotate-mode.
-    expect(bridgeDocument.body.hasAttribute('data-plannotator-pinpoint-cursor')).toBe(true);
+    expect(bridgeDocument.body.hasAttribute('data-hypermark-pinpoint-cursor')).toBe(true);
   });
 
   test('Esc ladder: a pending draft clears first, then Esc asks to exit Annotate; the parent flips the mode', () => {
@@ -654,10 +654,10 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
     // The bridge does NOT flip itself (the parent owns the mode): capture
     // stays armed until set-annotate-mode comes back down.
     expect(countOf('annotate-exit')).toBe(exitsBefore + 1);
-    expect(bridgeDocument.body.hasAttribute('data-plannotator-pinpoint-cursor')).toBe(true);
+    expect(bridgeDocument.body.hasAttribute('data-hypermark-pinpoint-cursor')).toBe(true);
     // The parent answers: Interact. Cursor affordance drops, clicks are native.
-    postToBridge({ type: 'plannotator-bridge-set-annotate-mode', active: false, token: bridgeToken });
-    expect(bridgeDocument.body.hasAttribute('data-plannotator-pinpoint-cursor')).toBe(false);
+    postToBridge({ type: 'hypermark-bridge-set-annotate-mode', active: false, token: bridgeToken });
+    expect(bridgeDocument.body.hasAttribute('data-hypermark-pinpoint-cursor')).toBe(false);
     const native = clickProbe(probeButton());
     expect(native.prevented).toBe(false);
     expect(native.selections).toBe(0);
@@ -665,7 +665,7 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
 
   test('INTERACT: text drag-selection commenting still works while plain clicks stay native', async () => {
     // The ladder test above left the session in Interact.
-    expect(bridgeDocument.body.hasAttribute('data-plannotator-pinpoint-cursor')).toBe(false);
+    expect(bridgeDocument.body.hasAttribute('data-hypermark-pinpoint-cursor')).toBe(false);
     const p = dragProbeParagraph();
     const before = selectionPosts().length;
     await dragSelectContents(p);
@@ -728,7 +728,7 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
     host.textContent = 'Marker host content';
     bridgeDocument.body.appendChild(host);
     postToBridge({
-      type: 'plannotator-bridge-find-and-mark',
+      type: 'hypermark-bridge-find-and-mark',
       id: 'interact-pin',
       originalText: '',
       annotationType: 'comment',
@@ -736,10 +736,10 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
       token: bridgeToken,
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
-    const overlay = bridgeDocument.querySelector('[data-plannotator-overlay-host]');
+    const overlay = bridgeDocument.querySelector('[data-hypermark-overlay-host]');
     const root = (overlay as HTMLElement | null)?.shadowRoot ?? overlay;
     const marker = root?.querySelector<HTMLElement>(
-      'button[data-plannotator-marker][data-annotation-id="interact-pin"]',
+      'button[data-hypermark-marker][data-annotation-id="interact-pin"]',
     );
     if (!marker) throw new Error('placed marker missing');
     expect(marker.style.display).not.toBe('none');
@@ -756,24 +756,24 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
 
   test('set-vim-mode is ignored in live mode', () => {
     postToBridge({
-      type: 'plannotator-bridge-set-vim-mode',
+      type: 'hypermark-bridge-set-vim-mode',
       enabled: true,
       hudEnabled: true,
       mode: 'selection',
       token: bridgeToken,
     });
-    expect(bridgeDocument.body.hasAttribute('data-plannotator-vim-focus-owner')).toBe(false);
-    // Vim-owned surfaces only: the shared [data-plannotator-vim-ui] tag also
+    expect(bridgeDocument.body.hasAttribute('data-hypermark-vim-focus-owner')).toBe(false);
+    // Vim-owned surfaces only: the shared [data-hypermark-vim-ui] tag also
     // rides the pinpoint hover box, which earlier annotate-mode tests create.
-    expect(bridgeDocument.querySelector('[data-plannotator-vim-cursor]')).toBeNull();
-    expect(bridgeDocument.querySelector('[data-plannotator-vim-badge]')).toBeNull();
-    expect(bridgeDocument.querySelector('[data-plannotator-vim-reticle]')).toBeNull();
+    expect(bridgeDocument.querySelector('[data-hypermark-vim-cursor]')).toBeNull();
+    expect(bridgeDocument.querySelector('[data-hypermark-vim-badge]')).toBeNull();
+    expect(bridgeDocument.querySelector('[data-hypermark-vim-reticle]')).toBeNull();
   });
 
   test('a pushState burst posts exactly one coalesced page-change per editor origin', async () => {
     const changesFor = (origin: string) =>
       parentPosts.filter(
-        (p) => p.data.type === 'plannotator-bridge-page-change' && p.targetOrigin === origin,
+        (p) => p.data.type === 'hypermark-bridge-page-change' && p.targetOrigin === origin,
       );
     const beforePrimary = changesFor(editorOrigin).length;
     const beforeAlternate = changesFor('http://127.0.0.1:4100').length;
@@ -800,7 +800,7 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
     // must survive so the reconcile machinery re-acquires it once the
     // element exists, instead of the pin staying invisible for the visit.
     postToBridge({
-      type: 'plannotator-bridge-find-and-mark',
+      type: 'hypermark-bridge-find-and-mark',
       id: 'late-pin',
       originalText: '',
       annotationType: 'comment',
@@ -808,7 +808,7 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
       token: bridgeToken,
     });
     const applied = parentPosts.filter(
-      (p) => p.data.type === 'plannotator-bridge-mark-applied' && p.data.id === 'late-pin',
+      (p) => p.data.type === 'hypermark-bridge-mark-applied' && p.data.id === 'late-pin',
     );
     expect(applied.length).toBeGreaterThan(0);
     expect(applied[0]!.data.success).toBe(false);
@@ -835,7 +835,7 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
       scrolled.push(this);
     };
     try {
-      postToBridge({ type: 'plannotator-bridge-scroll-to', id: 'late-pin', token: bridgeToken });
+      postToBridge({ type: 'hypermark-bridge-scroll-to', id: 'late-pin', token: bridgeToken });
     } finally {
       Element.prototype.scrollIntoView = originalScrollIntoView;
     }
@@ -853,7 +853,7 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
     // No anchor and no text: nothing can seed placeholder targets, so this
     // restore is a total failure and must surface in the unanchored set.
     postToBridge({
-      type: 'plannotator-bridge-find-and-mark',
+      type: 'hypermark-bridge-find-and-mark',
       id: 'ghost-pin',
       originalText: '',
       annotationType: 'comment',
@@ -862,7 +862,7 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
     let reports: ParentPost[] = [];
     for (let i = 0; i < 50 && reports.length === 0; i++) {
       await new Promise((resolve) => setTimeout(resolve, 10));
-      reports = parentPosts.filter((p) => p.data.type === 'plannotator-bridge-unanchored');
+      reports = parentPosts.filter((p) => p.data.type === 'hypermark-bridge-unanchored');
     }
     expect(reports.length).toBeGreaterThan(0);
     const latest = reports[reports.length - 1]!;

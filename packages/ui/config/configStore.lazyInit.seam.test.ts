@@ -8,7 +8,7 @@
  * construction resolves NOTHING — a host StorageBackend installed before the
  * first settings access receives the initial resolution reads and the
  * default-seeding writes. A configured host therefore never gets
- * plannotator-* cookies written to its origin.
+ * hypermark-* cookies written to its origin.
  */
 import { describe, test, expect, afterAll, beforeEach } from 'bun:test';
 import { setStorageBackend, resetStorageBackend, type StorageBackend } from '../utils/storage';
@@ -57,8 +57,8 @@ describe('configStore lazy resolution', () => {
     expect(reads.length).toBeGreaterThan(0);
     // Missing defaults were seeded into the host backend — including the
     // generated identity — not into document.cookie:
-    expect(writes).toContain('plannotator-identity');
-    expect(stored.has('plannotator-identity')).toBe(true);
+    expect(writes).toContain('hypermark-identity');
+    expect(stored.has('hypermark-identity')).toBe(true);
   });
 
   test('resolution runs once; later reads are served from memory', () => {

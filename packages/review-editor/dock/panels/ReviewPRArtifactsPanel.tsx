@@ -98,7 +98,7 @@ function artifactGroups(artifacts: readonly PRArtifact[]): readonly ArtifactGrou
 }
 
 function hiddenStorageKey(prUrl: string): string {
-  return `plannotator-pr-artifacts:hidden:${prUrl}`;
+  return `hypermark-pr-artifacts:hidden:${prUrl}`;
 }
 
 function readHiddenArtifacts(key: string): Set<string> {

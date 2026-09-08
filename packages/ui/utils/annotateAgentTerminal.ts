@@ -23,7 +23,7 @@ export type {
  * Both Agent TUI preferences resolve through ConfigStore (server config file >
  * cookie > default) rather than reading cookies directly. Annotate sessions run
  * on a fresh random port every time, so a cookie is scoped to a single session;
- * the server round-trip through ~/.plannotator/config.json is what makes these
+ * the server round-trip through ~/.hypermark/config.json is what makes these
  * choices durable. Same seam identity.ts uses for `displayName`.
  */
 export function getSavedAnnotateAgentId(): string | null {

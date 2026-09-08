@@ -247,7 +247,7 @@ export const SUBCOMMAND_HELP: Record<string, string> = {
     "Usage:",
     "  hypermark archive",
     "",
-    "Open a read-only browser for saved plan decisions in ~/.plannotator/plans/.",
+    "Open a read-only browser for saved plan decisions in ~/.hypermark/plans/.",
   ].join("\n"),
   "improve-context": [
     "Usage:",

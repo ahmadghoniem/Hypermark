@@ -1,6 +1,6 @@
 {
-  "name": "plannotator-call-flow-runtime",
-  "version": "0.4.1-plannotator.2",
+  "name": "hypermark-call-flow-runtime",
+  "version": "0.4.1-hypermark.2",
   "private": true,
   "description": "Managed offline runtime for Hypermark call-flow analysis",
   "dependencies": {

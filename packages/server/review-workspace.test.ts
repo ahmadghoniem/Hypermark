@@ -170,8 +170,8 @@ describe("review-workspace", () => {
     ].join("\n");
 
     it("advertises semantic diff availability and serves parsed sem output", async () => {
-      const dir = makeTempDir("plannotator-sem-server-");
-      const dataDir = makeTempDir("plannotator-sem-data-");
+      const dir = makeTempDir("hypermark-sem-server-");
+      const dataDir = makeTempDir("hypermark-sem-data-");
       const cwdLogPath = join(dir, "cwd-log");
       process.env.HYPERMARK_DATA_DIR = dataDir;
       process.env.HYPERMARK_SEM_PATH = makeMockSem(dir, { runCwdLogPath: cwdLogPath });
@@ -214,8 +214,8 @@ describe("review-workspace", () => {
     });
 
     it.skipIf(process.platform === "win32")("does not partially commit a valid switch superseded by an invalid request", async () => {
-      const repoDir = makeTempDir("plannotator-switch-atomic-");
-      const semDir = makeTempDir("plannotator-switch-atomic-sem-");
+      const repoDir = makeTempDir("hypermark-switch-atomic-");
+      const semDir = makeTempDir("hypermark-switch-atomic-sem-");
       initRepo(repoDir);
       writeFileSync(join(repoDir, "README.md"), "# Dirty\n", "utf-8");
       const gitContext = await getVcsContext(repoDir, "git");
@@ -264,8 +264,8 @@ describe("review-workspace", () => {
     }, 10_000);
 
     it("runs semantic diff from the local agent cwd when one is available", async () => {
-      const dir = makeTempDir("plannotator-sem-agent-");
-      const agentCwd = makeTempDir("plannotator-sem-agent-cwd-");
+      const dir = makeTempDir("hypermark-sem-agent-");
+      const agentCwd = makeTempDir("hypermark-sem-agent-cwd-");
       const cwdLogPath = join(dir, "cwd-log");
       process.env.HYPERMARK_SEM_PATH = makeMockSem(dir, { runCwdLogPath: cwdLogPath });
 
@@ -289,8 +289,8 @@ describe("review-workspace", () => {
     });
 
     it("runs semantic diff from the local git context cwd in local review mode", async () => {
-      const dir = makeTempDir("plannotator-sem-local-");
-      const repoDir = makeTempDir("plannotator-sem-local-repo-");
+      const dir = makeTempDir("hypermark-sem-local-");
+      const repoDir = makeTempDir("hypermark-sem-local-repo-");
       const cwdLogPath = join(dir, "cwd-log");
       initRepo(repoDir);
       const gitContext = await getVcsContext(repoDir);
@@ -317,7 +317,7 @@ describe("review-workspace", () => {
     });
 
     it("caches semantic diff availability probes for the session cwd", async () => {
-      const dir = makeTempDir("plannotator-sem-cache-");
+      const dir = makeTempDir("hypermark-sem-cache-");
       const versionCounterPath = join(dir, "version-count");
       process.env.HYPERMARK_SEM_PATH = makeMockSem(dir, { versionCounterPath });
 
@@ -338,7 +338,7 @@ describe("review-workspace", () => {
     });
 
     it("hides semantic diff from /api/diff when sem cannot be resolved", async () => {
-      const dir = makeTempDir("plannotator-sem-missing-server-");
+      const dir = makeTempDir("hypermark-sem-missing-server-");
       process.env.HYPERMARK_SEM_PATH = join(dir, "missing-sem");
 
       const server = await startReviewServer({
@@ -641,7 +641,7 @@ describe("review-workspace", () => {
       // The function is designed to discover repos WITHIN a workspace root,
       // not the root itself. This allows the workspace root to be a git repo
       // (e.g., a meta-repo) while still discovering nested repos.
-      const root = makeTempDir("plannotator-workspace-root-repo-");
+      const root = makeTempDir("hypermark-workspace-root-repo-");
       initRepo(root);
 
       const repos = discoverWorkspaceRepoPaths(root);
@@ -652,7 +652,7 @@ describe("review-workspace", () => {
     });
 
     it("discovers multiple nested VCS repos", () => {
-      const root = makeTempDir("plannotator-workspace-multi-");
+      const root = makeTempDir("hypermark-workspace-multi-");
 
       // Create nested repos
       const frontend = join(root, "frontend");
@@ -675,8 +675,8 @@ describe("review-workspace", () => {
     });
 
     it("uses a symlinked Git repo's logical workspace path end to end", async () => {
-      const root = makeTempDir("plannotator-workspace-symlink-git-");
-      const targetRoot = makeTempDir("plannotator-workspace-symlink-git-target-");
+      const root = makeTempDir("hypermark-workspace-symlink-git-");
+      const targetRoot = makeTempDir("hypermark-workspace-symlink-git-target-");
       const targetRepo = join(targetRoot, "backend-service");
       const alias = join(root, "backend");
       mkdirSync(targetRepo, { recursive: true });
@@ -692,8 +692,8 @@ describe("review-workspace", () => {
     });
 
     it("discovers a symlinked JJ repo using its logical workspace path", () => {
-      const root = makeTempDir("plannotator-workspace-symlink-jj-");
-      const targetRoot = makeTempDir("plannotator-workspace-symlink-jj-target-");
+      const root = makeTempDir("hypermark-workspace-symlink-jj-");
+      const targetRoot = makeTempDir("hypermark-workspace-symlink-jj-target-");
       const targetRepo = join(targetRoot, "jj-service");
       const alias = join(root, "frontend");
       mkdirSync(join(targetRepo, ".jj"), { recursive: true });
@@ -703,8 +703,8 @@ describe("review-workspace", () => {
     });
 
     it("discovers repos nested below a symlinked directory", () => {
-      const root = makeTempDir("plannotator-workspace-symlink-nested-");
-      const targetRoot = makeTempDir("plannotator-workspace-symlink-nested-target-");
+      const root = makeTempDir("hypermark-workspace-symlink-nested-");
+      const targetRoot = makeTempDir("hypermark-workspace-symlink-nested-target-");
       const targetRepo = join(targetRoot, "services", "api");
       const alias = join(root, "projects");
       mkdirSync(targetRepo, { recursive: true });
@@ -715,7 +715,7 @@ describe("review-workspace", () => {
     });
 
     it("does not recurse forever through a directory-link cycle", () => {
-      const root = makeTempDir("plannotator-workspace-symlink-cycle-");
+      const root = makeTempDir("hypermark-workspace-symlink-cycle-");
       const container = join(root, "packages");
       const repo = join(container, "api");
       mkdirSync(repo, { recursive: true });
@@ -726,8 +726,8 @@ describe("review-workspace", () => {
     });
 
     it("ignores broken directory links", () => {
-      const root = makeTempDir("plannotator-workspace-symlink-broken-");
-      const targetRoot = makeTempDir("plannotator-workspace-symlink-broken-target-");
+      const root = makeTempDir("hypermark-workspace-symlink-broken-");
+      const targetRoot = makeTempDir("hypermark-workspace-symlink-broken-target-");
       const brokenTarget = join(targetRoot, "removed");
       mkdirSync(brokenTarget, { recursive: true });
       linkDirectory(brokenTarget, join(root, "broken"));
@@ -737,8 +737,8 @@ describe("review-workspace", () => {
     });
 
     it.skipIf(process.platform === "win32")("ignores symlinks to files", () => {
-      const root = makeTempDir("plannotator-workspace-symlink-file-");
-      const targetRoot = makeTempDir("plannotator-workspace-symlink-file-target-");
+      const root = makeTempDir("hypermark-workspace-symlink-file-");
+      const targetRoot = makeTempDir("hypermark-workspace-symlink-file-target-");
       const targetFile = join(targetRoot, "README.md");
       writeFileSync(targetFile, "not a directory\n", "utf-8");
       symlinkSync(targetFile, join(root, "linked-file"), "file");
@@ -750,8 +750,8 @@ describe("review-workspace", () => {
       // Regression for the #1060 follow-up: a symlink inside the workspace
       // pointing at a large unrelated tree must not be enumerated unboundedly
       // before the server starts. The walk shares the file-discovery budget.
-      const root = makeTempDir("plannotator-workspace-symlink-budget-");
-      const huge = makeTempDir("plannotator-workspace-symlink-budget-target-");
+      const root = makeTempDir("hypermark-workspace-symlink-budget-");
+      const huge = makeTempDir("hypermark-workspace-symlink-budget-target-");
       // 40 directories, each with 5 subdirectories — 200+ nodes, no repos.
       for (let i = 0; i < 40; i++) {
         for (let j = 0; j < 5; j++) {
@@ -779,8 +779,8 @@ describe("review-workspace", () => {
     it("keeps discovering symlinked repos under the default budget", () => {
       // The budget must not break the feature it bounds: an external
       // symlinked repo is still found with default limits.
-      const root = makeTempDir("plannotator-workspace-symlink-budget-ok-");
-      const targetRoot = makeTempDir("plannotator-workspace-symlink-budget-ok-target-");
+      const root = makeTempDir("hypermark-workspace-symlink-budget-ok-");
+      const targetRoot = makeTempDir("hypermark-workspace-symlink-budget-ok-target-");
       const targetRepo = join(targetRoot, "service");
       mkdirSync(targetRepo, { recursive: true });
       initRepo(targetRepo);
@@ -790,8 +790,8 @@ describe("review-workspace", () => {
     });
 
     it("chooses the first logical alias deterministically for duplicate targets", () => {
-      const root = makeTempDir("plannotator-workspace-symlink-duplicates-");
-      const targetRoot = makeTempDir("plannotator-workspace-symlink-duplicates-target-");
+      const root = makeTempDir("hypermark-workspace-symlink-duplicates-");
+      const targetRoot = makeTempDir("hypermark-workspace-symlink-duplicates-target-");
       const targetRepo = join(targetRoot, "service");
       const alphaAlias = join(root, "alpha");
       mkdirSync(targetRepo, { recursive: true });
@@ -803,8 +803,8 @@ describe("review-workspace", () => {
     });
 
     it("does not follow a directory link whose logical name is skipped", () => {
-      const root = makeTempDir("plannotator-workspace-symlink-skip-");
-      const targetRoot = makeTempDir("plannotator-workspace-symlink-skip-target-");
+      const root = makeTempDir("hypermark-workspace-symlink-skip-");
+      const targetRoot = makeTempDir("hypermark-workspace-symlink-skip-target-");
       const targetRepo = join(targetRoot, "dependency-repo");
       const realRepo = join(root, "app");
       mkdirSync(targetRepo, { recursive: true });
@@ -817,7 +817,7 @@ describe("review-workspace", () => {
     });
 
     it("stops recursion at git repo boundaries (does not discover nested repos inside other repos)", () => {
-      const root = makeTempDir("plannotator-workspace-boundary-");
+      const root = makeTempDir("hypermark-workspace-boundary-");
 
       // Create a repo with a nested directory that would be a repo
       const parentRepo = join(root, "parent");
@@ -841,7 +841,7 @@ describe("review-workspace", () => {
     });
 
     it("discovers nested jj repos", () => {
-      const root = makeTempDir("plannotator-workspace-jj-");
+      const root = makeTempDir("hypermark-workspace-jj-");
       const jjRepo = join(root, "jj-app");
       mkdirSync(join(jjRepo, ".jj"), { recursive: true });
 
@@ -851,7 +851,7 @@ describe("review-workspace", () => {
     });
 
     it("skips ignored directories", () => {
-      const root = makeTempDir("plannotator-workspace-skip-");
+      const root = makeTempDir("hypermark-workspace-skip-");
 
       // Create node_modules with a fake .git (should be skipped)
       const nodeModules = join(root, "node_modules", "some-pkg");
@@ -870,7 +870,7 @@ describe("review-workspace", () => {
     });
 
     it("returns empty array when root has no git repos", () => {
-      const root = makeTempDir("plannotator-workspace-empty-");
+      const root = makeTempDir("hypermark-workspace-empty-");
 
       // Create some non-git directories
       mkdirSync(join(root, "src"), { recursive: true });
@@ -883,7 +883,7 @@ describe("review-workspace", () => {
     });
 
     it("sorts results alphabetically", () => {
-      const root = makeTempDir("plannotator-workspace-sort-");
+      const root = makeTempDir("hypermark-workspace-sort-");
 
       const zebra = join(root, "zebra");
       const alpha = join(root, "alpha");
@@ -903,7 +903,7 @@ describe("review-workspace", () => {
     });
 
     it("handles deeply nested repos", () => {
-      const root = makeTempDir("plannotator-workspace-deep-");
+      const root = makeTempDir("hypermark-workspace-deep-");
 
       const deepRepo = join(root, "a", "b", "c", "d", "repo");
       mkdirSync(deepRepo, { recursive: true });
@@ -949,7 +949,7 @@ describe("review-workspace", () => {
 
   describe("workspace review server integration", () => {
     it("short-circuits binary file expansion before provider content retrieval", async () => {
-      const root = makeTempDir("plannotator-workspace-binary-content-");
+      const root = makeTempDir("hypermark-workspace-binary-content-");
       const repo = join(root, "api");
       mkdirSync(join(repo, ".git"), { recursive: true });
       let fileContentCalls = 0;
@@ -1018,7 +1018,7 @@ describe("review-workspace", () => {
     });
 
     it("maps one workspace mode across mixed Git and JJ repos", async () => {
-      const root = makeTempDir("plannotator-workspace-mixed-vcs-");
+      const root = makeTempDir("hypermark-workspace-mixed-vcs-");
       const gitRepo = join(root, "api");
       const jjRepo = join(root, "web");
       mkdirSync(join(gitRepo, ".git"), { recursive: true });
@@ -1091,7 +1091,7 @@ describe("review-workspace", () => {
     });
 
     it("limits mixed GitButler workspaces to the safe aggregate-current mode", async () => {
-      const root = makeTempDir("plannotator-workspace-gitbutler-");
+      const root = makeTempDir("hypermark-workspace-gitbutler-");
       const gitRepo = join(root, "api");
       const gitButlerRepo = join(root, "web");
       mkdirSync(join(gitRepo, ".git"), { recursive: true });
@@ -1141,7 +1141,7 @@ describe("review-workspace", () => {
     });
 
     it("normalizes agent annotation paths to workspace-prefixed paths", async () => {
-      const root = makeTempDir("plannotator-workspace-agent-path-");
+      const root = makeTempDir("hypermark-workspace-agent-path-");
       const api = join(root, "api");
       mkdirSync(join(api, ".git"), { recursive: true });
 
@@ -1193,7 +1193,7 @@ describe("review-workspace", () => {
     });
 
     it("keeps requested Git-only workspace modes available when another child repo fails detection", async () => {
-      const root = makeTempDir("plannotator-workspace-partial-failure-");
+      const root = makeTempDir("hypermark-workspace-partial-failure-");
       const api = join(root, "api");
       const broken = join(root, "broken");
       mkdirSync(join(api, ".git"), { recursive: true });
@@ -1245,7 +1245,7 @@ describe("review-workspace", () => {
     });
 
     it("preserves a failed GitButler child's identity and never falls back to Git operations", async () => {
-      const root = makeTempDir("plannotator-workspace-failed-gitbutler-");
+      const root = makeTempDir("hypermark-workspace-failed-gitbutler-");
       const api = join(root, "api");
       const broken = join(root, "broken");
       mkdirSync(join(api, ".git"), { recursive: true });
@@ -1289,7 +1289,7 @@ describe("review-workspace", () => {
     });
 
     it("passes hide-whitespace through child repo diffs", async () => {
-      const root = makeTempDir("plannotator-workspace-whitespace-");
+      const root = makeTempDir("hypermark-workspace-whitespace-");
       const api = join(root, "api");
       mkdirSync(api, { recursive: true });
       initRepo(api);
@@ -1307,8 +1307,8 @@ describe("review-workspace", () => {
     }, 15_000);
 
     it("serves combined diffs and maps prefixed paths back to child repos", async () => {
-      const root = makeTempDir("plannotator-workspace-server-");
-      const semDir = makeTempDir("plannotator-workspace-switch-sem-");
+      const root = makeTempDir("hypermark-workspace-server-");
+      const semDir = makeTempDir("hypermark-workspace-switch-sem-");
       const cwdLogPath = join(semDir, "cwd-log");
       const inputLogPath = join(semDir, "input.patch");
       process.env.HYPERMARK_SEM_PATH = makeMockSem(semDir, { runCwdLogPath: cwdLogPath, inputLogPath });

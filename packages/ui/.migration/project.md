@@ -91,7 +91,7 @@ Strict-consumer gate note: `Viewer.tsx` (gate file) transitively pulls
   draft-restore + Send Feedback, editor frontmatter, annotate version diff.
   (05 carries the suite's pre-existing selector-heuristic asterisk.)
   NOT covered by the suite and hand-verified by a human (2026-07-07, branch
-  binary installed as `plannotator`): ✅ selection toolbar + comment popover
+  binary installed as `hypermark`): ✅ selection toolbar + comment popover
   in annotate; ✅ table popout — annotating INSIDE the popout keeps it open,
   Escape/backdrop close it; ✅ tooltips (delay, skip-window, non-sticky);
   ✅ OpenInAppButton menu in BOTH annotate (doc badges) and review (file

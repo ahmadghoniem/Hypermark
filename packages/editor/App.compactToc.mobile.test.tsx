@@ -38,8 +38,8 @@ const memoryBackend: StorageBackend = {
 };
 
 function seedAnnouncementsSeen(): void {
-  memory.set("plannotator-look-feel-announcement-seen", "2");
-  memory.set("plannotator-plan-ai-announcement-seen", "1");
+  memory.set("hypermark-look-feel-announcement-seen", "2");
+  memory.set("hypermark-plan-ai-announcement-seen", "1");
 }
 
 // SAFETY: implements the MediaQueryList surface the shell hooks consume.

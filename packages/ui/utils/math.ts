@@ -36,7 +36,7 @@ export type MathRendererLoader = () => Promise<MathRenderer>;
  * `./math-eager` is evaluated, which is what `tests/entry-assets.test.ts`
  * asserts on the built single-file HTML.
  */
-export type MathRendererSource = 'plannotator-math-eager' | 'loader' | 'host';
+export type MathRendererSource = 'hypermark-math-eager' | 'loader' | 'host';
 
 let renderer: MathRenderer | null = null;
 let rendererSource: MathRendererSource | null = null;

@@ -3,12 +3,12 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 export const NATIVE_SUBJECTS = [
-  "plannotator-darwin-arm64",
-  "plannotator-darwin-x64",
-  "plannotator-linux-x64",
-  "plannotator-linux-arm64",
-  "plannotator-win32-x64.exe",
-  "plannotator-win32-arm64.exe",
+  "hypermark-darwin-arm64",
+  "hypermark-darwin-x64",
+  "hypermark-linux-x64",
+  "hypermark-linux-arm64",
+  "hypermark-win32-x64.exe",
+  "hypermark-win32-arm64.exe",
 ];
 
 export const NPM_SUBJECTS = [];
@@ -300,25 +300,25 @@ export async function finalizeSbom(options) {
   }
 
   metadata.component = {
-    "bom-ref": `pkg:generic/plannotator-release@${options.version}`,
+    "bom-ref": `pkg:generic/hypermark-release@${options.version}`,
     type: "application",
     group: "backnotprop",
-    name: "plannotator-release",
+    name: "hypermark-release",
     version: options.version,
     externalReferences: [{ type: "vcs", url: options.repository }],
     properties: [
-      { name: "plannotator:source:commit", value: options.commit },
-      { name: "plannotator:source:repository", value: options.repository },
+      { name: "hypermark:source:commit", value: options.commit },
+      { name: "hypermark:source:repository", value: options.repository },
       {
-        name: "plannotator:sbom:scope",
+        name: "hypermark:sbom:scope",
         value: "release-wide Syft-detected monorepo locked build-input and dependency inventory",
       },
       {
-        name: "plannotator:sbom:limitations",
+        name: "hypermark:sbom:limitations",
         value:
           "Not an exact per-binary runtime inventory: Bun standalone executables hide JavaScript package metadata from Syft; host-provided peers and dependencies Syft cannot parse may be absent.",
       },
-      { name: "plannotator:sbom:subject-count", value: String(subjects.subjects?.length ?? 0) },
+      { name: "hypermark:sbom:subject-count", value: String(subjects.subjects?.length ?? 0) },
     ],
   };
 

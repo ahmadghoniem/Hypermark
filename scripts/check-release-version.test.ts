@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 function createFixture(version = "1.2.3"): string {
-  const root = mkdtempSync(join(tmpdir(), "plannotator-release-version-"));
+  const root = mkdtempSync(join(tmpdir(), "hypermark-release-version-"));
   temporaryRoots.push(root);
 
   for (const relativePath of jsonVersionPaths) {
@@ -26,7 +26,7 @@ function createFixture(version = "1.2.3"): string {
     mkdirSync(dirname(absolutePath), { recursive: true });
     writeFileSync(absolutePath, `${JSON.stringify({ version }, null, 2)}\n`);
   }
-  writeFileSync(join(root, "openpackage.yml"), `name: plannotator\nversion: ${version}\n`);
+  writeFileSync(join(root, "openpackage.yml"), `name: hypermark\nversion: ${version}\n`);
   return root;
 }
 

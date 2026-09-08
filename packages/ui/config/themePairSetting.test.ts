@@ -35,9 +35,9 @@ describe('theme pair setting', () => {
     const values = installStorage();
 
     SETTINGS.themePair.toCookie({ mode: 'system', light: 'github', dark: 'tokyo-night' });
-    expect(values.get('plannotator-theme')).toBe('system');
-    expect(values.get('plannotator-light-theme')).toBe('github');
-    expect(values.get('plannotator-dark-theme')).toBe('tokyo-night');
+    expect(values.get('hypermark-theme')).toBe('system');
+    expect(values.get('hypermark-light-theme')).toBe('github');
+    expect(values.get('hypermark-dark-theme')).toBe('tokyo-night');
 
     expect(SETTINGS.themePair.fromCookie()).toEqual({
       mode: 'system',
@@ -49,9 +49,9 @@ describe('theme pair setting', () => {
 
   test('drops a half whose palette cannot render it', () => {
     installStorage({
-      'plannotator-theme': 'system',
-      'plannotator-light-theme': 'one-dark-pro',
-      'plannotator-dark-theme': 'kanagawa-lotus',
+      'hypermark-theme': 'system',
+      'hypermark-light-theme': 'one-dark-pro',
+      'hypermark-dark-theme': 'kanagawa-lotus',
     });
 
     expect(SETTINGS.themePair.fromCookie()).toEqual({
@@ -61,7 +61,7 @@ describe('theme pair setting', () => {
     });
   });
 
-  test('round-trips through the ~/.plannotator/config.json theme key', () => {
+  test('round-trips through the ~/.hypermark/config.json theme key', () => {
     installStorage();
 
     expect(SETTINGS.themePair.toServer({ mode: 'system', light: 'github', dark: 'tokyo-night' })).toEqual({
@@ -99,7 +99,7 @@ describe('config store seeding', () => {
     await new Promise<void>(resolve => setTimeout(resolve, 350));
 
     expect(store.get('themePair')).toEqual({ mode: 'system', light: 'github', dark: 'tokyo-night' });
-    expect(values.get('plannotator-dark-theme')).toBe('tokyo-night');
+    expect(values.get('hypermark-dark-theme')).toBe('tokyo-night');
     expect(synced).toEqual([]);
   });
 

@@ -2,16 +2,16 @@
 # Manual smoke test for live local app annotation (phase 1). NOT run in CI.
 #
 # Scaffolds a Vite React app in a temp dir, starts its dev server, opens a
-# live annotate session against it through the local plannotator checkout,
+# live annotate session against it through the local hypermark checkout,
 # and prints the human checklist that constitutes the phase 1 exit bar.
 #
 # Prereqs: bun, and `bun link` run once in this checkout so the global
-# `plannotator` command uses apps/hook/server/index.ts.
+# `hypermark` command uses apps/hook/server/index.ts.
 
 set -euo pipefail
 
 VITE_PORT="${VITE_PORT:-5173}"
-WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/plannotator-live-smoke.XXXXXX")"
+WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/hypermark-live-smoke.XXXXXX")"
 
 cleanup() {
   if [[ -n "${VITE_PID:-}" ]]; then
@@ -76,7 +76,7 @@ The annotate session opens next. Work through, in order:
 CHECKLIST
 
 echo "==> Opening the live annotate session"
-plannotator annotate "http://localhost:$VITE_PORT"
+hypermark annotate "http://localhost:$VITE_PORT"
 
 cat <<'NEXTJS'
 
@@ -90,7 +90,7 @@ streaming SSR injection and the /_next/webpack-hmr socket:
   bunx create-next-app@latest next-smoke --ts --no-eslint \
     --no-tailwind --app --src-dir --import-alias "@/*"
   cd next-smoke && bun run dev --port 3005
-  plannotator annotate http://localhost:3005
+  hypermark annotate http://localhost:3005
 
 Watch specifically for: the bridge tag arriving in the
 STREAMED head (view-source shows it right after <head>),

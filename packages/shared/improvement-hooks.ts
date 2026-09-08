@@ -1,8 +1,8 @@
 /**
  * Improvement Hook Reader
  *
- * Reads improvement hook files from ~/.plannotator/hooks/.
- * Falls back to the legacy path (~/.plannotator/) when the new-path
+ * Reads improvement hook files from ~/.hypermark/hooks/.
+ * Falls back to the legacy path (~/.hypermark/) when the new-path
  * file is absent, for compatibility with files written before the
  * path migration. If the new-path file exists but is invalid (empty,
  * oversized, not a regular file), the legacy path is NOT consulted —
@@ -14,7 +14,7 @@
  * - Hardcoded base paths (no user input determines file path)
  * - KNOWN_HOOKS allowlist (only pre-registered relative paths)
  * - Size cap to prevent runaway context injection
- * - Same trust model as ~/.plannotator/config.json
+ * - Same trust model as ~/.hypermark/config.json
  */
 
 import { join } from "path";
@@ -34,8 +34,8 @@ const MAX_FILE_SIZE = 50 * 1024;
 
 /**
  * Known improvement hook file paths, keyed by hook name.
- * `path` is relative to HOOKS_BASE_DIR (~/.plannotator/hooks/).
- * `legacyPath` is relative to LEGACY_BASE_DIR (~/.plannotator/).
+ * `path` is relative to HOOKS_BASE_DIR (~/.hypermark/hooks/).
+ * `legacyPath` is relative to LEGACY_BASE_DIR (~/.hypermark/).
  */
 const KNOWN_HOOKS = {
   "enterplanmode-improve": {

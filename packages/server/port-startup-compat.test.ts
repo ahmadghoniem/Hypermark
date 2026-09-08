@@ -11,7 +11,7 @@ const envKeys = [
   "HYPERMARK_SKIP_BROWSER_OPEN",
   "__CFBundleIdentifier",
 ] as const;
-const environment = createTestEnvironment(envKeys, "plannotator-port-compat-");
+const environment = createTestEnvironment(envKeys, "hypermark-port-compat-");
 
 afterEach(() => environment.restore());
 

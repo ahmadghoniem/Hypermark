@@ -148,7 +148,7 @@ describe('ReviewSubmissionDialog submission outcomes', () => {
           }],
           reviewBodyPosted: true,
           approval: 'not-requested',
-          recoveryFile: '/tmp/plannotator/failed-comments/review.json',
+          recoveryFile: '/tmp/hypermark/failed-comments/review.json',
           retry: {
             action: 'comment',
             fileComments: [failedComment],
@@ -164,7 +164,7 @@ describe('ReviewSubmissionDialog submission outcomes', () => {
     expect(content).toContain('src/failing.ts:19');
     expect(content).toContain('Handle this failure.');
     expect(content).toContain('Retry sends only the 1 unposted inline comment');
-    expect(content).toContain('/tmp/plannotator/failed-comments/review.json');
+    expect(content).toContain('/tmp/hypermark/failed-comments/review.json');
     expect(content).toContain('General comment locked because it may already be posted');
     expect(content).toContain('refresh this tab');
     const textarea = document.querySelector('textarea');

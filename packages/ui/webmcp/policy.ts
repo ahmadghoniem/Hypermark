@@ -3,7 +3,7 @@
  * a module-level default, `set`/`reset`/`get`, wired through
  * `configureHypermarkUI({ webmcp })`. Hypermark passes nothing and gets
  * today's behavior: enabled (whenever `document.modelContext` exists) with the
- * `plannotator.` name prefix.
+ * `hypermark.` name prefix.
  */
 
 export interface WebMcpPolicy {
@@ -13,7 +13,7 @@ export interface WebMcpPolicy {
    * off in Settings.
    */
   enabled?: boolean;
-  /** Prefix applied to every bare tool name. Default `"plannotator."`; hosts namespace their own tools. */
+  /** Prefix applied to every bare tool name. Default `"hypermark."`; hosts namespace their own tools. */
   namePrefix?: string;
 }
 
@@ -22,7 +22,7 @@ export interface ResolvedWebMcpPolicy {
   namePrefix: string;
 }
 
-export const DEFAULT_WEBMCP_NAME_PREFIX = 'plannotator.';
+export const DEFAULT_WEBMCP_NAME_PREFIX = 'hypermark.';
 
 const defaultPolicy: ResolvedWebMcpPolicy = {
   enabled: true,

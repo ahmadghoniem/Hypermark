@@ -67,19 +67,19 @@ describe("stripH1", () => {
 
 describe("buildHashtags", () => {
   test("uses custom tags when provided", () => {
-    expect(buildHashtags("plan, work", ["plannotator"])).toBe("#plan #work");
+    expect(buildHashtags("plan, work", ["hypermark"])).toBe("#plan #work");
   });
 
   test("falls back to auto tags when custom is empty", () => {
-    expect(buildHashtags("", ["plannotator", "myproject"])).toBe("#plannotator #myproject");
+    expect(buildHashtags("", ["hypermark", "myproject"])).toBe("#hypermark #myproject");
   });
 
   test("falls back to auto tags when custom is undefined", () => {
-    expect(buildHashtags(undefined, ["plannotator"])).toBe("#plannotator");
+    expect(buildHashtags(undefined, ["hypermark"])).toBe("#hypermark");
   });
 
   test("filters empty tags from trailing comma", () => {
-    expect(buildHashtags("plan, work,", ["plannotator"])).toBe("#plan #work");
+    expect(buildHashtags("plan, work,", ["hypermark"])).toBe("#plan #work");
   });
 
   test("handles whitespace-only custom tags as empty", () => {
@@ -87,11 +87,11 @@ describe("buildHashtags", () => {
   });
 
   test("preserves slashes in nested Bear tags", () => {
-    expect(buildHashtags("plannotator/plans, work/code", [])).toBe("#plannotator/plans #work/code");
+    expect(buildHashtags("hypermark/plans, work/code", [])).toBe("#hypermark/plans #work/code");
   });
 
   test("preserves slashes in auto tags with nested paths", () => {
-    expect(buildHashtags(undefined, ["plannotator/plans", "work"])).toBe("#plannotator/plans #work");
+    expect(buildHashtags(undefined, ["hypermark/plans", "work"])).toBe("#hypermark/plans #work");
   });
 });
 
@@ -127,17 +127,17 @@ describe("full Bear content pipeline", () => {
 
   test("auto tags appended when no custom tags", () => {
     const body = stripH1(plan);
-    const hashtags = buildHashtags("", ["plannotator", "dev"]);
+    const hashtags = buildHashtags("", ["hypermark", "dev"]);
     const content = buildBearContent(body, hashtags, "append");
-    expect(content).toEndWith("#plannotator #dev");
+    expect(content).toEndWith("#hypermark #dev");
     expect(content).toStartWith("## Context");
   });
 });
 
 describe("extractTags", () => {
-  test("always includes plannotator tag", async () => {
+  test("always includes hypermark tag", async () => {
     const tags = await extractTags("# Simple Plan\n\nContent");
-    expect(tags).toContain("plannotator");
+    expect(tags).toContain("hypermark");
   });
 
   test("extracts words from title", async () => {
@@ -175,18 +175,18 @@ describe("extractTags", () => {
 
 describe("saveToObsidian", () => {
   test("writes plan file to temp vault", async () => {
-    const tmpDir = mkdtempSync("/tmp/plannotator-vault-");
+    const tmpDir = mkdtempSync("/tmp/hypermark-vault-");
     try {
       const result = await saveToObsidian({
         vaultPath: tmpDir,
-        folder: "plannotator",
+        folder: "hypermark",
         plan: "# Test Plan\n\nSome content",
       });
 
       expect(result.success).toBe(true);
       expect(result.path).toBeString();
       expect(result.path).toContain(tmpDir);
-      expect(result.path).toContain("plannotator");
+      expect(result.path).toContain("hypermark");
 
       const exists = Bun.file(result.path!).size > 0;
       expect(exists).toBe(true);
@@ -202,7 +202,7 @@ describe("saveToObsidian", () => {
   test("fails when vault path does not exist", async () => {
     const result = await saveToObsidian({
       vaultPath: "/nonexistent/vault",
-      folder: "plannotator",
+      folder: "hypermark",
       plan: "# Plan",
     });
     expect(result.success).toBe(false);

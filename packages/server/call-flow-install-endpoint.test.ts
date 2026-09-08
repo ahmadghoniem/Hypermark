@@ -152,7 +152,7 @@ function materializeFakeRuntime(): void {
 
 /** Put a fake `node` that reports v24.0.0 first on PATH (POSIX only). */
 function installFakeNode(): void {
-  const binDir = makeTempDir('plannotator-call-flow-fake-node-');
+  const binDir = makeTempDir('hypermark-call-flow-fake-node-');
   const nodePath = join(binDir, 'node');
   writeFileSync(nodePath, '#!/usr/bin/env bash\necho v24.0.0\n', 'utf8');
   chmodSync(nodePath, 0o755);
@@ -198,7 +198,7 @@ describe('Call flow install endpoints', () => {
     ['Bun', startBunReviewServer],
   ] as const) {
     const boot = async (options: { rawPatch?: string; coreInstalled?: boolean } = {}) => {
-      process.env.HYPERMARK_DATA_DIR = makeTempDir('plannotator-call-flow-rt-');
+      process.env.HYPERMARK_DATA_DIR = makeTempDir('hypermark-call-flow-rt-');
       if (options.coreInstalled) materializeFakeRuntime();
       return await startServer({
         rawPatch: options.rawPatch ?? '',

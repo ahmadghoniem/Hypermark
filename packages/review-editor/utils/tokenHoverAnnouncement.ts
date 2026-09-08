@@ -6,7 +6,7 @@ import { configStore } from '@hypermark/ui/config';
  * like the other announcement gates, so the dismissal survives Hypermark's
  * random localhost ports.
  */
-const STORAGE_KEY = 'plannotator-token-hover-announcement-seen';
+const STORAGE_KEY = 'hypermark-token-hover-announcement-seen';
 // Bump to re-show the announcement after a meaningful revision.
 const CURRENT_VERSION = '1';
 

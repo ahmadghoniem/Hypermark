@@ -40,8 +40,8 @@ describe('fence theme resolution', () => {
 
     // Hypermark now names Pierre's syntax themes explicitly, so it resolves
     // to the same pair by data rather than by lookup miss.
-    expect(resolveFenceTheme('plannotator', 'dark')).toBe(DEFAULT_SYNTAX_THEME.dark);
-    expect(resolveFenceTheme('plannotator', 'light')).toBe(DEFAULT_SYNTAX_THEME.light);
+    expect(resolveFenceTheme('hypermark', 'dark')).toBe(DEFAULT_SYNTAX_THEME.dark);
+    expect(resolveFenceTheme('hypermark', 'light')).toBe(DEFAULT_SYNTAX_THEME.light);
   });
 
   test('falls back per mode when a palette only defines one side', () => {

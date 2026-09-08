@@ -7,7 +7,7 @@
  * Works both inside and outside React. React components subscribe
  * via useSyncExternalStore (see useConfig.ts).
  *
- * Server-synced settings automatically write back to ~/.plannotator/config.json
+ * Server-synced settings automatically write back to ~/.hypermark/config.json
  * via a debounced POST /api/config.
  */
 
@@ -180,7 +180,7 @@ class ConfigStore {
    * Install a resolved default for a setting: memory + cookie, never the
    * server. For values a component computes at mount (e.g. ThemeProvider's
    * default theme pair) rather than values a user chose — seeding must not
-   * write to ~/.plannotator/config.json, and must never overwrite a value the
+   * write to ~/.hypermark/config.json, and must never overwrite a value the
    * server already supplied through init().
    */
   seed<K extends SettingName>(key: K, value: SettingValue<K>): void {
@@ -257,7 +257,7 @@ class ConfigStore {
     // The debounce loses writes when the page goes away within 300ms — and
     // review/plan sessions end abruptly (approve/feedback shuts the server
     // down right after a settings change). A lost write leaves the cookie and
-    // ~/.plannotator/config.json disagreeing; on the next session init() then
+    // ~/.hypermark/config.json disagreeing; on the next session init() then
     // "restores" the stale server value over the cookie. Flush on pagehide so
     // the two stores can't diverge this way.
     if (!this.pagehideFlushRegistered && typeof window !== 'undefined') {

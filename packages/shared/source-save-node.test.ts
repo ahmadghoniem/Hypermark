@@ -15,7 +15,7 @@ import {
 const tempDirs: string[] = [];
 
 function tempRoot(): string {
-	const dir = mkdtempSync(join(tmpdir(), "plannotator-source-save-"));
+	const dir = mkdtempSync(join(tmpdir(), "hypermark-source-save-"));
 	tempDirs.push(dir);
 	return dir;
 }

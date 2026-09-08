@@ -1,7 +1,7 @@
 /**
  * Plan Storage Utility
  *
- * Saves plans and annotations to ~/.plannotator/plans/
+ * Saves plans and annotations to ~/.hypermark/plans/
  * Cross-platform: works on Windows, macOS, and Linux.
  *
  * Runtime-agnostic: uses only node:fs, node:path, node:os.
@@ -191,7 +191,7 @@ export function readArchivedPlan(filename: string, customPath?: string | null): 
 
 /**
  * Get the history directory for a project/slug combination, creating it if needed.
- * History is always stored in ~/.plannotator/history/{project}/{slug}/.
+ * History is always stored in ~/.hypermark/history/{project}/{slug}/.
  * Not affected by the customPath setting (that only affects decision saves).
  */
 export function getHistoryDir(project: string, slug: string): string {

@@ -14,8 +14,8 @@ import { tmpdir } from "os";
 // a test harness that sets HOME to a temp directory.
 
 const TEST_HOME = join(tmpdir(), `improvement-hooks-test-${Date.now()}`);
-const NEW_BASE = join(TEST_HOME, ".plannotator", "hooks");
-const LEGACY_BASE = join(TEST_HOME, ".plannotator");
+const NEW_BASE = join(TEST_HOME, ".hypermark", "hooks");
+const LEGACY_BASE = join(TEST_HOME, ".hypermark");
 const HOOK_RELATIVE = "compound/enterplanmode-improve-hook.txt";
 
 function setupTestHome() {
@@ -89,7 +89,7 @@ describe("readImprovementHook", () => {
     });
     expect(result).not.toBeNull();
     expect(result!.content).toBe("Focus on error handling");
-    expect(result!.filePath).toContain(".plannotator/hooks/compound/");
+    expect(result!.filePath).toContain(".hypermark/hooks/compound/");
   });
 
   test("new path wins over legacy path", async () => {
@@ -99,7 +99,7 @@ describe("readImprovementHook", () => {
     });
     expect(result).not.toBeNull();
     expect(result!.content).toBe("New instructions");
-    expect(result!.filePath).toContain(".plannotator/hooks/compound/");
+    expect(result!.filePath).toContain(".hypermark/hooks/compound/");
   });
 
   test("falls back to legacy path when new path is absent", async () => {
@@ -108,8 +108,8 @@ describe("readImprovementHook", () => {
     });
     expect(result).not.toBeNull();
     expect(result!.content).toBe("Legacy instructions");
-    expect(result!.filePath).toContain(".plannotator/compound/");
-    expect(result!.filePath).not.toContain(".plannotator/hooks/");
+    expect(result!.filePath).toContain(".hypermark/compound/");
+    expect(result!.filePath).not.toContain(".hypermark/hooks/");
   });
 
   test("returns null when new path exists but is empty (no legacy fallback)", async () => {

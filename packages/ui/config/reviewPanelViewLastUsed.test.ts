@@ -84,6 +84,6 @@ describe('reviewPanelViewLastUsed setting', () => {
 
     expect(store.get('defaultDiffType')).toBe('local-vs-remote');
     expect(store.get('reviewPanelView')).toBe('tree');
-    expect(values.get('plannotator-default-diff-type')).toBe('local-vs-remote');
+    expect(values.get('hypermark-default-diff-type')).toBe('local-vs-remote');
   });
 });

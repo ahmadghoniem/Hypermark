@@ -73,7 +73,7 @@ describe("Claude launcher templates (apps/skills/claude)", () => {
       expect(frontmatter, skill).toContain(`name: ${skill}`);
       // Spec 06 step 2 renamed the launchers. The guard now runs the other
       // way: no launcher may keep, or reintroduce, an old `plannotator-`
-      // command name. The bare `plannotator` binary is a separate rename and
+      // command name. The bare `hypermark` binary is a separate rename and
       // is asserted by the two tests below, so match on the hyphen.
       expect(skill.startsWith("hypermark-"), skill).toBe(true);
       expect(doc, skill).not.toContain("plannotator-");

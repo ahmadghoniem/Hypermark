@@ -46,7 +46,7 @@ describe('agentTerminalSide setting', () => {
     expect(SETTINGS.agentTerminalSide.fromCookie()).toBeUndefined();
   });
 
-  test('syncs both directions with ~/.plannotator/config.json', () => {
+  test('syncs both directions with ~/.hypermark/config.json', () => {
     // The durability fix: annotate runs on a fresh random port each time, so a
     // cookie-only preference is effectively per-session. Without the server
     // leg the placement silently resets on the next annotate.
@@ -79,7 +79,7 @@ describe('agentTerminalDefaultAgent setting', () => {
     expect(SETTINGS.agentTerminalDefaultAgent.fromCookie()).toBeUndefined();
   });
 
-  test('syncs both directions with ~/.plannotator/config.json', () => {
+  test('syncs both directions with ~/.hypermark/config.json', () => {
     expect(SETTINGS.agentTerminalDefaultAgent.serverKey).toBe('agentTerminalDefaultAgent');
     expect(SETTINGS.agentTerminalDefaultAgent.toServer('codex')).toEqual({
       agentTerminalDefaultAgent: 'codex',

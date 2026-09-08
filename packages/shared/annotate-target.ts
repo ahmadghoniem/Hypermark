@@ -1,7 +1,7 @@
 /**
  * Tolerant annotate target selection (#1182).
  *
- * Slash-command hosts forward raw user arguments to `plannotator annotate`
+ * Slash-command hosts forward raw user arguments to `hypermark annotate`
  * verbatim. On Claude Code the skill runs the CLI through a bash-substitution
  * prefix that executes before the model sees anything, so trailing natural
  * language ("/hypermark-annotate the aim doc") lands in the argument slot
@@ -68,7 +68,7 @@ export interface ProbeAnnotateTokenOptions {
 }
 
 /**
- * Would `plannotator annotate <token>` reach a specific verdict on this
+ * Would `hypermark annotate <token>` reach a specific verdict on this
  * token: open it, or fail with a target-specific error ("Ambiguous
  * filename", "File type not supported", "File too large", empty folder)?
  *
@@ -210,7 +210,7 @@ export function buildAmbiguousAnnotateArgsMessage(
   return [
     `Ambiguous annotate arguments: ${candidates.length} of them each resolve to an existing target.`,
     ...candidates.map((candidate) => `  ${candidate.token} -> ${candidate.value}`),
-    `Re-run with exactly one target: plannotator annotate ${ANNOTATE_USAGE_TARGET}`,
+    `Re-run with exactly one target: hypermark annotate ${ANNOTATE_USAGE_TARGET}`,
   ].join("\n");
 }
 
@@ -232,14 +232,14 @@ export function buildUnresolvedAnnotateArgsMessage(options: {
     "",
     `  ${words.join(" ")}`,
     "",
-    `The annotate command needs a concrete target: plannotator annotate ${ANNOTATE_USAGE_TARGET}${flagSuffix}`,
+    `The annotate command needs a concrete target: hypermark annotate ${ANNOTATE_USAGE_TARGET}${flagSuffix}`,
   ];
   if (agentHandoff) {
     lines.push(
       "",
       "If you are an agent reading this: the arguments look like a natural-language description of what to annotate. Work out from the conversation which file, URL, or folder the user means, then run the command yourself with that concrete target:",
       "",
-      `  plannotator annotate <path-or-url>${flagSuffix}`,
+      `  hypermark annotate <path-or-url>${flagSuffix}`,
     );
   }
   return lines.join("\n");

@@ -7,7 +7,7 @@
 
 import { storage } from './storage';
 
-const STORAGE_KEY = 'plannotator-quick-labels';
+const STORAGE_KEY = 'hypermark-quick-labels';
 
 export interface QuickLabel {
   id: string;     // kebab-case identifier e.g. "needs-tests"
@@ -50,7 +50,7 @@ export const DEFAULT_QUICK_LABELS: QuickLabel[] = [
   { id: 'verify-this',             emoji: '🔍', text: 'Verify this',             color: 'orange', tip: 'This seems like an assumption. Verify by reading the actual code before proceeding.' },
   { id: 'give-me-an-example',      emoji: '🔬', text: 'Give me an example',      color: 'cyan', tip: 'This is too abstract. Show a before/after, a sample input/output, or a specific scenario so I can see how this actually works.' },
   { id: 'match-existing-patterns',  emoji: '🧬', text: 'Match existing patterns',  color: 'teal', tip: 'Search the codebase for existing patterns, components, or utilities that already solve this. Reuse what exists rather than introducing a new approach.' },
-  { id: 'consider-alternatives',    emoji: '🔄', text: 'Consider alternatives',    color: 'pink', tip: 'Propose 2-3 alternative approaches with trade-offs based on the actual codebase. Also check the Hypermark plans directory (HYPERMARK_DATA_DIR or ~/.plannotator/plans/) for prior plan versions that may have already explored or rejected similar approaches.' },
+  { id: 'consider-alternatives',    emoji: '🔄', text: 'Consider alternatives',    color: 'pink', tip: 'Propose 2-3 alternative approaches with trade-offs based on the actual codebase. Also check the Hypermark plans directory (HYPERMARK_DATA_DIR or ~/.hypermark/plans/) for prior plan versions that may have already explored or rejected similar approaches.' },
   { id: 'ensure-no-regression',     emoji: '📉', text: 'Ensure no regression',     color: 'amber', tip: 'Verify that this change will not break existing behavior. Identify what could regress and how to protect against it.' },
   { id: 'out-of-scope',            emoji: '🚫', text: 'Out of scope',            color: 'red', tip: 'This is not part of the current task. Remove it and stay focused on what was actually requested.' },
   { id: 'needs-tests',             emoji: '🧪', text: 'Needs tests',             color: 'blue' },

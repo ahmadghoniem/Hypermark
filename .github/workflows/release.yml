@@ -565,7 +565,7 @@ jobs:
               XDG_CACHE_HOME = (Join-Path $isolatedHome ".cache")
               CLAUDE_CONFIG_DIR = (Join-Path $isolatedHome ".claude")
               PI_CODING_AGENT_DIR = (Join-Path $isolatedHome ".pi\agent")
-              HYPERMARK_DATA_DIR = (Join-Path $isolatedHome ".plannotator")
+              HYPERMARK_DATA_DIR = (Join-Path $isolatedHome ".hypermark")
             }
             foreach ($entry in $values.GetEnumerator()) {
               [System.Environment]::SetEnvironmentVariable($entry.Key, $entry.Value, "Process")

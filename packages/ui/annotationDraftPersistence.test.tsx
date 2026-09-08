@@ -141,7 +141,7 @@ function installFetchShim() {
 
 beforeAll(() => {
   if (!hasDom) return;
-  dataDir = mkdtempSync(join(tmpdir(), 'plannotator-draft-test-'));
+  dataDir = mkdtempSync(join(tmpdir(), 'hypermark-draft-test-'));
   prevDataDirEnv = process.env.HYPERMARK_DATA_DIR;
   process.env.HYPERMARK_DATA_DIR = dataDir;
   installFetchShim();

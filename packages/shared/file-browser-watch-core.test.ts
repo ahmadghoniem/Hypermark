@@ -59,7 +59,7 @@ async function waitFor(predicate: () => boolean, timeoutMs = 3_000): Promise<voi
 }
 
 function makeTempDir(): string {
-	return mkdtempSync(join(tmpdir(), "plannotator-watch-core-"));
+	return mkdtempSync(join(tmpdir(), "hypermark-watch-core-"));
 }
 
 describe("file-browser-watch-core", () => {

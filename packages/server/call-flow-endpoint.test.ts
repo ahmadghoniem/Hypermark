@@ -25,7 +25,7 @@ const originalCallDiffPath = process.env.HYPERMARK_CALLDIFF_PATH;
 const tempDirs: string[] = [];
 
 function makeDataDir(): string {
-  const dataDir = mkdtempSync(join(tmpdir(), 'plannotator-call-flow-endpoint-'));
+  const dataDir = mkdtempSync(join(tmpdir(), 'hypermark-call-flow-endpoint-'));
   tempDirs.push(dataDir);
   return dataDir;
 }
@@ -172,7 +172,7 @@ describe('Call flow endpoint capability guards', () => {
 
     test.skipIf(process.platform === 'win32')(`${runtime} supersedes an older overlapping settings response`, async () => {
       const dataDir = makeDataDir();
-      const binDir = mkdtempSync(join(tmpdir(), 'plannotator-call-flow-node-'));
+      const binDir = mkdtempSync(join(tmpdir(), 'hypermark-call-flow-node-'));
       tempDirs.push(binDir);
       const startedPath = join(binDir, 'started');
       const releasePath = join(binDir, 'release');
@@ -220,7 +220,7 @@ describe('Call flow endpoint capability guards', () => {
 
     test.skipIf(process.platform === 'win32')(`${runtime} read-only advert refresh begun during a settings mutation yields`, async () => {
       const dataDir = makeDataDir();
-      const binDir = mkdtempSync(join(tmpdir(), 'plannotator-call-flow-read-node-'));
+      const binDir = mkdtempSync(join(tmpdir(), 'hypermark-call-flow-read-node-'));
       tempDirs.push(binDir);
       const startedPath = join(binDir, 'started');
       const releasePath = join(binDir, 'release');
@@ -273,7 +273,7 @@ describe('Call flow endpoint capability guards', () => {
       // reads became lazy this worked by accident: earlier tests' settings
       // POSTs leaked callFlow=true through the process-frozen config path.)
       writeFileSync(join(dataDir, 'config.json'), JSON.stringify({ reviewAnalysis: { callFlow: true } }), 'utf8');
-      const binDir = mkdtempSync(join(tmpdir(), 'plannotator-call-flow-stale-read-node-'));
+      const binDir = mkdtempSync(join(tmpdir(), 'hypermark-call-flow-stale-read-node-'));
       tempDirs.push(binDir);
       const startedPath = join(binDir, 'started');
       const releasePath = join(binDir, 'release');

@@ -164,7 +164,7 @@ function validateOpenVex(document, now) {
     const statusNotes = requireString(statement.status_notes, `${label} status_notes`);
     const metadata = new Map();
     for (const line of statusNotes.split("\n")) {
-      const match = line.match(/^plannotator-(owner|evidence|expires): (.+)$/);
+      const match = line.match(/^hypermark-(owner|evidence|expires): (.+)$/);
       if (!match || metadata.has(match[1])) {
         fail(`${label} status_notes must contain exactly one owner, evidence, and expires line`);
       }

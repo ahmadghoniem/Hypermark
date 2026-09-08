@@ -70,8 +70,8 @@ afterEach(() => {
 
 describe("handleDocExists", () => {
 	test("does not reveal absolute files outside the allowed root", async () => {
-		const root = makeTempDir("plannotator-doc-exists-root-");
-		const outside = makeTempDir("plannotator-doc-exists-outside-");
+		const root = makeTempDir("hypermark-doc-exists-root-");
+		const outside = makeTempDir("hypermark-doc-exists-outside-");
 		const secret = writeTempFile(outside, "secret.ts", "secret");
 
 		const data = await postDocExists({ paths: [secret] }, { rootPath: root });
@@ -80,7 +80,7 @@ describe("handleDocExists", () => {
 	});
 
 	test("allows absolute files inside the allowed root", async () => {
-		const root = makeTempDir("plannotator-doc-exists-root-");
+		const root = makeTempDir("hypermark-doc-exists-root-");
 		const file = writeTempFile(root, "src/app.ts", "app");
 
 		const data = await postDocExists({ paths: [file] }, { rootPath: root });
@@ -89,8 +89,8 @@ describe("handleDocExists", () => {
 	});
 
 	test("ignores an out-of-root base directory", async () => {
-		const root = makeTempDir("plannotator-doc-exists-root-");
-		const outside = makeTempDir("plannotator-doc-exists-outside-");
+		const root = makeTempDir("hypermark-doc-exists-root-");
+		const outside = makeTempDir("hypermark-doc-exists-outside-");
 		writeTempFile(outside, "secret.ts", "secret");
 
 		const data = await postDocExists({ base: outside, paths: ["secret.ts"] }, { rootPath: root });
@@ -99,7 +99,7 @@ describe("handleDocExists", () => {
 	});
 
 	test("resolves relative paths from an in-root base directory", async () => {
-		const root = makeTempDir("plannotator-doc-exists-root-");
+		const root = makeTempDir("hypermark-doc-exists-root-");
 		const app = writeTempFile(root, "src/app.ts", "app");
 		const base = resolve(root, "docs/nested");
 		mkdirSync(base, { recursive: true });
@@ -110,7 +110,7 @@ describe("handleDocExists", () => {
 	});
 
 	test("single-file annotate can validate repo paths outside the source file directory", async () => {
-		const root = makeTempDir("plannotator-doc-exists-root-");
+		const root = makeTempDir("hypermark-doc-exists-root-");
 		const app = writeTempFile(root, "src/app.ts", "app");
 		const sourceDir = join(root, "docs");
 		mkdirSync(sourceDir, { recursive: true });
@@ -124,8 +124,8 @@ describe("handleDocExists", () => {
 	});
 
 	test("does not read a document through an out-of-root base directory", async () => {
-		const root = makeTempDir("plannotator-doc-root-");
-		const outside = makeTempDir("plannotator-doc-outside-");
+		const root = makeTempDir("hypermark-doc-root-");
+		const outside = makeTempDir("hypermark-doc-outside-");
 		writeTempFile(outside, "secret.md", "secret");
 
 		const res = await getDoc("secret.md", { base: outside, rootPaths: [root] });
@@ -134,7 +134,7 @@ describe("handleDocExists", () => {
 	});
 
 	test("single-file source document returns current source-save metadata", async () => {
-		const root = makeTempDir("plannotator-doc-root-");
+		const root = makeTempDir("hypermark-doc-root-");
 		const source = writeTempFile(root, "docs/source.md", "source\n");
 
 		const res = await getDoc(source, {
@@ -152,7 +152,7 @@ describe("handleDocExists", () => {
 	});
 
 	test("single-file source-save metadata is not added to other linked documents", async () => {
-		const root = makeTempDir("plannotator-doc-root-");
+		const root = makeTempDir("hypermark-doc-root-");
 		const source = writeTempFile(root, "docs/source.md", "source\n");
 		const linked = writeTempFile(root, "docs/linked.md", "linked\n");
 
@@ -170,7 +170,7 @@ describe("handleDocExists", () => {
 
 describe("handleFileBrowserFiles", () => {
 	test("returns git workspace status and keeps deleted tracked files in the tree", async () => {
-		const root = makeTempDir("plannotator-files-root-");
+		const root = makeTempDir("hypermark-files-root-");
 		git(root, "init", "-b", "main");
 		git(root, "config", "user.email", "test@test");
 		git(root, "config", "user.name", "Test");
@@ -198,7 +198,7 @@ describe("handleFileBrowserFiles", () => {
 	});
 
 	test("does not reintroduce git changes from excluded folders", async () => {
-		const root = makeTempDir("plannotator-files-excluded-");
+		const root = makeTempDir("hypermark-files-excluded-");
 		git(root, "init", "-b", "main");
 		git(root, "config", "user.email", "test@test");
 		git(root, "config", "user.name", "Test");
@@ -222,7 +222,7 @@ describe("handleFileBrowserFiles", () => {
 	});
 
 	test("caps large folder walks", async () => {
-		const root = makeTempDir("plannotator-files-cap-");
+		const root = makeTempDir("hypermark-files-cap-");
 		writeTempFile(root, "docs/a.md", "a\n");
 		writeTempFile(root, "docs/b.md", "b\n");
 		writeTempFile(root, "docs/c.md", "c\n");
@@ -255,7 +255,7 @@ describe("handleFileBrowserFiles", () => {
 
 describe("annotatable plain-text files (#1029)", () => {
 	test("file browser lists config formats but not source code or .env", async () => {
-		const root = makeTempDir("plannotator-files-annotatable-");
+		const root = makeTempDir("hypermark-files-annotatable-");
 		writeTempFile(root, "docs/plan.md", "# plan\n");
 		writeTempFile(root, "config.yaml", "key: value\n");
 		writeTempFile(root, "settings.toml", "[table]\n");
@@ -280,7 +280,7 @@ describe("annotatable plain-text files (#1029)", () => {
 	});
 
 	test("doc=1 serves a .yaml file as an annotatable markdown document", async () => {
-		const root = makeTempDir("plannotator-doc-yaml-");
+		const root = makeTempDir("hypermark-doc-yaml-");
 		const file = writeTempFile(root, "config.yaml", "key: value\n");
 
 		const res = await getDoc(file, { rootPaths: [root], doc: true });
@@ -293,7 +293,7 @@ describe("annotatable plain-text files (#1029)", () => {
 	});
 
 	test("without doc=1, a .yaml path keeps the code-file popout response", async () => {
-		const root = makeTempDir("plannotator-doc-yaml-code-");
+		const root = makeTempDir("hypermark-doc-yaml-code-");
 		writeTempFile(root, "config.yaml", "key: value\n");
 
 		const res = await getDoc("config.yaml", { rootPaths: [root] });
@@ -305,7 +305,7 @@ describe("annotatable plain-text files (#1029)", () => {
 	});
 
 	test("non-code annotatable extensions serve as markdown without doc=1", async () => {
-		const root = makeTempDir("plannotator-doc-csv-");
+		const root = makeTempDir("hypermark-doc-csv-");
 		writeTempFile(root, "data.csv", "a,b\n1,2\n");
 
 		const res = await getDoc("data.csv", { rootPaths: [root] });
@@ -319,7 +319,7 @@ describe("annotatable plain-text files (#1029)", () => {
 
 describe("annotatable document size cap", () => {
 	test("doc=1 rejects an oversized file with 413", async () => {
-		const root = makeTempDir("plannotator-doc-cap-");
+		const root = makeTempDir("hypermark-doc-cap-");
 		const big = join(root, "huge.yaml");
 		writeFileSync(big, `key: ${"x".repeat(2 * 1024 * 1024 + 1)}\n`);
 
@@ -331,7 +331,7 @@ describe("annotatable document size cap", () => {
 	});
 
 	test("markdown fallback rejects an oversized .md with 413", async () => {
-		const root = makeTempDir("plannotator-md-cap-");
+		const root = makeTempDir("hypermark-md-cap-");
 		writeFileSync(join(root, "huge.md"), `# big\n${"x".repeat(2 * 1024 * 1024 + 1)}\n`);
 
 		const res = await getDoc("huge.md", { rootPaths: [root] });
@@ -342,7 +342,7 @@ describe("annotatable document size cap", () => {
 	});
 
 	test("base-relative branch rejects an oversized relative doc with 413", async () => {
-		const root = makeTempDir("plannotator-base-cap-");
+		const root = makeTempDir("hypermark-base-cap-");
 		writeFileSync(join(root, "big.txt"), "x".repeat(2 * 1024 * 1024 + 1));
 
 		const res = await getDoc("big.txt", { rootPaths: [root], base: root });

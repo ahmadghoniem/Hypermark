@@ -57,7 +57,7 @@ The rotation runs at boot.
 Ship behind a flag. The rotation runs at boot.
 `;
 
-const toolName = (bare: string) => `plannotator.${bare}`;
+const toolName = (bare: string) => `hypermark.${bare}`;
 
 interface Fake {
   adapter: DocumentToolAdapter;
@@ -136,7 +136,7 @@ describe('catalog shape', () => {
       for (const tool of set) {
         expect(tool.name).not.toMatch(/approve|deny|submit|send|close|stage|viewed|feedback|lgtm/i);
         expect(tool.name).toMatch(TOOL_NAME_PATTERN);
-        expect(`plannotator.${tool.name}`).toMatch(TOOL_NAME_PATTERN);
+        expect(`hypermark.${tool.name}`).toMatch(TOOL_NAME_PATTERN);
       }
     }
   });
@@ -236,7 +236,7 @@ describe('read_document', () => {
     expect(data.text.length).toBeLessThanOrEqual(16000);
     expect(data.text.endsWith('\n')).toBe(true);
     const nudge = res.nudges.find((n) => n.code === 'truncated');
-    expect(nudge?.action).toEqual({ tool: 'plannotator.read_document', args: { offset: data.textRange.nextOffset } });
+    expect(nudge?.action).toEqual({ tool: 'hypermark.read_document', args: { offset: data.textRange.nextOffset } });
     const next = await fx.call('read_document', { offset: data.textRange.nextOffset });
     expect(dataOf(next).text.startsWith('Paragraph')).toBe(true);
     expect(data.text + dataOf(next).text).toBe(data.text + fx.text.slice(data.textRange.nextOffset, data.textRange.nextOffset + dataOf(next).textRange.length));
@@ -256,7 +256,7 @@ describe('read_document', () => {
     fx.siblings.push({ path: '/notes/rollout.md', open: false, annotations: (fx as any).docs.get('/notes/rollout.md').annotations, composerOpen: false });
     const first = await fx.call('read_document');
     expect(dataOf(first).otherDocuments[0]).toMatchObject({ path: '/notes/rollout.md', annotations: 1, newSinceLastRead: 1 });
-    expect(first.nudges.find((n) => n.code === 'other_document_active')?.action).toEqual({ tool: 'plannotator.read_document', args: { path: '/notes/rollout.md' } });
+    expect(first.nudges.find((n) => n.code === 'other_document_active')?.action).toEqual({ tool: 'hypermark.read_document', args: { path: '/notes/rollout.md' } });
     const sibling = await fx.call('read_document', { path: '/notes/rollout.md' });
     expect(dataOf(sibling).text).toBe('# Rollout\n\nNotes.\n');
     expect(dataOf(sibling).annotations[0].isNew).toBe(true);

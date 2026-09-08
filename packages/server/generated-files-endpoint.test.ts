@@ -40,7 +40,7 @@ function git(cwd: string, args: string[]): void {
 }
 
 function initRepo(): string {
-  const repoDir = makeTempDir('plannotator-generated-endpoint-');
+  const repoDir = makeTempDir('hypermark-generated-endpoint-');
   git(repoDir, ['init', '-q']);
   git(repoDir, ['branch', '-M', 'main']);
   git(repoDir, ['config', 'user.email', 'test@example.com']);
@@ -101,7 +101,7 @@ describe('generatedFiles sidecar (#1317)', () => {
     ['Bun', startBunReviewServer],
   ] as const) {
     test(`${runtime} resolves linguist-generated via git, honoring negated rules`, async () => {
-      process.env.HYPERMARK_DATA_DIR = makeTempDir('plannotator-generated-data-');
+      process.env.HYPERMARK_DATA_DIR = makeTempDir('hypermark-generated-data-');
       const repoDir = initRepo();
       writeFileSync(
         join(repoDir, '.gitattributes'),
@@ -139,7 +139,7 @@ describe('generatedFiles sidecar (#1317)', () => {
     });
 
     test(`${runtime} without local git access emits the sidecar from name defaults alone`, async () => {
-      process.env.HYPERMARK_DATA_DIR = makeTempDir('plannotator-generated-data-');
+      process.env.HYPERMARK_DATA_DIR = makeTempDir('hypermark-generated-data-');
       const server = await startServer({
         rawPatch: [fileChunk('bun.lock'), fileChunk('src/app.ts')].join('\n'),
         gitRef: 'Piped diff',
@@ -158,7 +158,7 @@ describe('generatedFiles sidecar (#1317)', () => {
     });
 
     test(`${runtime} omits the sidecar without git when no path matches a default`, async () => {
-      process.env.HYPERMARK_DATA_DIR = makeTempDir('plannotator-generated-data-');
+      process.env.HYPERMARK_DATA_DIR = makeTempDir('hypermark-generated-data-');
       const server = await startServer({
         rawPatch: RAW_PATCH,
         gitRef: 'Piped diff',
@@ -177,7 +177,7 @@ describe('generatedFiles sidecar (#1317)', () => {
     });
 
     test(`${runtime} applies built-in defaults with no .gitattributes and honors -linguist-generated un-marks`, async () => {
-      process.env.HYPERMARK_DATA_DIR = makeTempDir('plannotator-generated-data-');
+      process.env.HYPERMARK_DATA_DIR = makeTempDir('hypermark-generated-data-');
       const repoDir = initRepo();
       // No .gitattributes: bun.lock collapses from the built-in list alone.
       // Then the second half: an explicit un-mark beats the built-in list.
@@ -220,7 +220,7 @@ describe('generatedFiles sidecar (#1317)', () => {
     });
 
     test(`${runtime} omits the sidecar when neither attributes nor defaults mark anything`, async () => {
-      process.env.HYPERMARK_DATA_DIR = makeTempDir('plannotator-generated-data-');
+      process.env.HYPERMARK_DATA_DIR = makeTempDir('hypermark-generated-data-');
       const repoDir = initRepo();
       const gitContext = await getVcsContext(repoDir, 'git');
       const server = await startServer({

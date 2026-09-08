@@ -58,7 +58,7 @@ const SOURCE = [
 ].join('\n');
 
 function initRepo(): string {
-  const repoDir = makeTempDir('plannotator-hover-endpoint-');
+  const repoDir = makeTempDir('hypermark-hover-endpoint-');
   git(repoDir, ['init', '-q']);
   git(repoDir, ['branch', '-M', 'main']);
   git(repoDir, ['config', 'user.email', 'test@example.com']);
@@ -119,7 +119,7 @@ describe('POST /api/code-nav/hover', () => {
     ['Bun', startBunReviewServer],
   ] as const) {
     test(`${runtime} answers the hover shape for a local git session`, async () => {
-      process.env.HYPERMARK_DATA_DIR = makeTempDir('plannotator-hover-data-');
+      process.env.HYPERMARK_DATA_DIR = makeTempDir('hypermark-hover-data-');
       const repoDir = initRepo();
       const gitContext = await getVcsContext(repoDir, 'git');
 
@@ -192,7 +192,7 @@ describe('POST /api/code-nav/hover', () => {
     });
 
     test(`${runtime} refuses a session with no local checkout`, async () => {
-      process.env.HYPERMARK_DATA_DIR = makeTempDir('plannotator-hover-data-');
+      process.env.HYPERMARK_DATA_DIR = makeTempDir('hypermark-hover-data-');
 
       const server = await startServer({
         rawPatch: RAW_PATCH,
@@ -214,7 +214,7 @@ describe('POST /api/code-nav/hover', () => {
     });
 
     test(`${runtime} rejects a traversing filePath`, async () => {
-      process.env.HYPERMARK_DATA_DIR = makeTempDir('plannotator-hover-data-');
+      process.env.HYPERMARK_DATA_DIR = makeTempDir('hypermark-hover-data-');
       const repoDir = initRepo();
       const gitContext = await getVcsContext(repoDir, 'git');
 

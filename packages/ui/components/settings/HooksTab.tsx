@@ -14,7 +14,7 @@ interface HooksStatus {
 }
 
 function displayPath(filePath: string): string {
-  const idx = filePath.indexOf('/.plannotator/');
+  const idx = filePath.indexOf('/.hypermark/');
   if (idx >= 0) return '~' + filePath.slice(idx);
   return filePath;
 }

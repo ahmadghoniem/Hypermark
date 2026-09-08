@@ -21,7 +21,7 @@ import { isStalePreference } from './preferenceTtl';
  * hidden chrome.
  */
 
-const STORAGE_KEY = 'plannotator-html-chrome';
+const STORAGE_KEY = 'hypermark-html-chrome';
 
 export interface HtmlChromeState {
   /** Whether the left sidebar was open when the user last left. */

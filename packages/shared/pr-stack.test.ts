@@ -20,7 +20,7 @@ const metadata: PRMetadata = {
   platform: "github",
   host: "github.com",
   owner: "backnotprop",
-  repo: "plannotator-stack-fixture",
+  repo: "hypermark-stack-fixture",
   number: 3,
   title: "Validate user id",
   author: "backnotprop",

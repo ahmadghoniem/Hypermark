@@ -13,7 +13,7 @@
  *
  * Deliberate exclusions:
  * - `.env` — commonly holds secrets, and annotate's per-file version history
- *   copies file contents into the data dir (`~/.plannotator/history/`).
+ *   copies file contents into the data dir (`~/.hypermark/history/`).
  *   `.env.example` (the secret-free template convention) is accepted.
  *   `.env` is also denylisted for the user-configurable extra extensions
  *   below, so no config value can register it.
@@ -29,7 +29,7 @@
  *
  * User-configurable extras (#1307): a user may register additional extensions
  * (for example `.livemd`, Livebook notebooks) via `markdownExtensions` in
- * `~/.plannotator/config.json`. This module stays browser-safe and zero-dep,
+ * `~/.hypermark/config.json`. This module stays browser-safe and zero-dep,
  * so it never reads that config: the server resolves it once and threads the
  * normalized list in as the optional `extra` parameter every predicate here
  * accepts (default: none, i.e. exactly the built-in behavior). Extras are

@@ -6,7 +6,7 @@
  * properties (a host `--muted` clobbering an author `--muted` visibly corrupts
  * documents), no `color-scheme`, no root classes, no styling of author
  * elements. Host tokens travel only under the viewer-owned `--pn-*` prefix
- * unless the document opts in via <meta name="plannotator-theme" content="host">.
+ * unless the document opts in via <meta name="hypermark-theme" content="host">.
  *
  * These tests are the mutation guard: reintroducing any bare-token injection
  * for non-opted-in documents must go red here.
@@ -74,13 +74,13 @@ describe("buildSrcdocInjection", () => {
   });
 
   test("diff CSS is absent on plain renders and scoped when active", () => {
-    expect(buildSrcdocInjection(base)).not.toContain("plannotator-diff");
+    expect(buildSrcdocInjection(base)).not.toContain("hypermark-diff");
     const active = buildSrcdocInjection({ ...base, diffActive: true });
     expect(active).toContain(DIFF_HIGHLIGHT_CSS);
     // Scoped to diff-generated markup only — never bare ins/del selectors that
     // would restyle author elements.
-    expect(DIFF_HIGHLIGHT_CSS).toContain("ins.plannotator-diff");
-    expect(DIFF_HIGHLIGHT_CSS).toContain("del.plannotator-diff");
+    expect(DIFF_HIGHLIGHT_CSS).toContain("ins.hypermark-diff");
+    expect(DIFF_HIGHLIGHT_CSS).toContain("del.hypermark-diff");
     expect(/(^|[}\s;])(ins|del)\s*\{/.test(DIFF_HIGHLIGHT_CSS)).toBe(false);
   });
 });
@@ -89,7 +89,7 @@ describe("viewer CSS/script namespace", () => {
   test("annotation CSS reads only --pn- variables", () => {
     expect(ANNOTATION_HIGHLIGHT_CSS).toContain("var(--pn-");
     expect(/var\(--(?!pn-)/.test(ANNOTATION_HIGHLIGHT_CSS)).toBe(false);
-    expect(ANNOTATION_HIGHLIGHT_CSS).toContain("body[data-plannotator-pinpoint-cursor]");
+    expect(ANNOTATION_HIGHLIGHT_CSS).toContain("body[data-hypermark-pinpoint-cursor]");
     expect(ANNOTATION_HIGHLIGHT_CSS).toContain("@media (prefers-reduced-motion: reduce)");
   });
 
@@ -103,12 +103,12 @@ describe("viewer CSS/script namespace", () => {
 describe("hasHostThemeOptIn", () => {
   test("detects the meta tag across attribute order and quoting", () => {
     expect(
-      hasHostThemeOptIn('<head><meta name="plannotator-theme" content="host"></head>'),
+      hasHostThemeOptIn('<head><meta name="hypermark-theme" content="host"></head>'),
     ).toBe(true);
     expect(
-      hasHostThemeOptIn("<head><meta content='host' name='plannotator-theme'/></head>"),
+      hasHostThemeOptIn("<head><meta content='host' name='hypermark-theme'/></head>"),
     ).toBe(true);
-    expect(hasHostThemeOptIn("<head><meta name=plannotator-theme content=host></head>")).toBe(
+    expect(hasHostThemeOptIn("<head><meta name=hypermark-theme content=host></head>")).toBe(
       true,
     );
   });
@@ -116,7 +116,7 @@ describe("hasHostThemeOptIn", () => {
   test("does not trigger on absent, foreign, or mismatched metas", () => {
     expect(hasHostThemeOptIn("<html><body><p>hi</p></body></html>")).toBe(false);
     expect(hasHostThemeOptIn('<meta name="viewport" content="host">')).toBe(false);
-    expect(hasHostThemeOptIn('<meta name="plannotator-theme" content="self">')).toBe(false);
+    expect(hasHostThemeOptIn('<meta name="hypermark-theme" content="self">')).toBe(false);
   });
 });
 
@@ -207,7 +207,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
   // root element; nothing annotation-related is written into the page's DOM.
 
   function overlayHost(): HTMLElement | null {
-    return document.querySelector<HTMLElement>("[data-plannotator-overlay-host]");
+    return document.querySelector<HTMLElement>("[data-hypermark-overlay-host]");
   }
 
   function overlayRoot(): ParentNode | null {
@@ -219,7 +219,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
   function allMarkers(): HTMLButtonElement[] {
     const root = overlayRoot();
     if (!root) return [];
-    return Array.from(root.querySelectorAll<HTMLButtonElement>("button[data-plannotator-marker]"));
+    return Array.from(root.querySelectorAll<HTMLButtonElement>("button[data-hypermark-marker]"));
   }
 
   function visibleMarkers(): HTMLButtonElement[] {
@@ -273,7 +273,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     const root = document.documentElement;
 
     postBridge({
-      type: "plannotator-bridge-theme",
+      type: "hypermark-bridge-theme",
       tokens: { "--pn-muted": "red", "--muted": "blue" },
       isLight: true,
       hostTheme: false,
@@ -283,7 +283,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     expect(root.classList.contains("light")).toBe(false);
 
     postBridge({
-      type: "plannotator-bridge-theme",
+      type: "hypermark-bridge-theme",
       tokens: { "--pn-muted": "red", "--muted": "blue" },
       isLight: true,
       hostTheme: true,
@@ -301,18 +301,18 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       '<div id="hero"><p class="intro">Anchor target text</p><p>Second paragraph</p></div>',
     ].join("");
     postBridge({
-      type: "plannotator-bridge-set-input-method",
+      type: "hypermark-bridge-set-input-method",
       method: "pinpoint",
     });
     // Mode affordance: crosshair cursor attribute while pinpoint is active.
-    expect(document.body.hasAttribute("data-plannotator-pinpoint-cursor")).toBe(true);
+    expect(document.body.hasAttribute("data-hypermark-pinpoint-cursor")).toBe(true);
 
     const target = document.querySelector<HTMLElement>("p.intro");
     if (!target) throw new Error("target paragraph missing");
 
     // Hover: the overlay box appears; the page element gains no class/style.
     target.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, cancelable: true }));
-    const box = document.querySelector<HTMLElement>("[data-plannotator-pinpoint-box]");
+    const box = document.querySelector<HTMLElement>("[data-hypermark-pinpoint-box]");
     if (!box) throw new Error("pinpoint hover box missing");
     expect(box.style.display).toBe("block");
     expect(target.className).toBe("intro");
@@ -324,7 +324,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     const messages: Array<Record<string, unknown>> = [];
     const collect = (event: MessageEvent) => {
       const data = bridgeMessageData(event);
-      if (data?.type === "plannotator-bridge-selection") messages.push(data);
+      if (data?.type === "hypermark-bridge-selection") messages.push(data);
     };
     window.addEventListener("message", collect);
     const click = new MouseEvent("click", { bubbles: true, cancelable: true });
@@ -346,7 +346,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     expect(matches.length).toBe(1);
     expect(matches[0]).toBe(target);
 
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
 
     // Restoration writes NOTHING into the page: every restore below must
     // leave the author DOM byte-identical.
@@ -355,7 +355,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // Anchor-first restore: the resolved element owns the placed marker and
     // the scoped text range paints the overlay highlight.
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "pin-restore",
       originalText: "Anchor target text",
       annotationType: "comment",
@@ -379,18 +379,18 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     expect(target.contains(restoredRanges[0]!.endContainer)).toBe(true);
     // Scrolling the annotation lands on the anchored element itself.
     const anchoredScroll = collectScrollTargets(() => {
-      postBridge({ type: "plannotator-bridge-scroll-to", id: "pin-restore" });
+      postBridge({ type: "hypermark-bridge-scroll-to", id: "pin-restore" });
     });
     expect(anchoredScroll[0]).toBe(target);
     expect(document.body.innerHTML).toBe(pageSnapshot);
-    postBridge({ type: "plannotator-bridge-remove-mark", id: "pin-restore" });
+    postBridge({ type: "hypermark-bridge-remove-mark", id: "pin-restore" });
     expect(markersFor("pin-restore").length).toBe(0);
 
     // Text drift under a STABLE anchor (#id): the element still identifies
     // itself, so when the text is gone everywhere it gets a placed marker
     // (still counts as restored).
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "pin-badge",
       originalText: "Text that no longer exists anywhere",
       annotationType: "comment",
@@ -408,7 +408,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // snapshot is a rejection, not an exemption): restoration falls back to
     // the document-wide text search instead of trusting the element.
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "pin-no-snapshot",
       originalText: "Second paragraph",
       annotationType: "comment",
@@ -417,17 +417,17 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     await flushOverlay();
     expect(markersFor("pin-no-snapshot").length).toBe(1);
     const fallbackScroll = collectScrollTargets(() => {
-      postBridge({ type: "plannotator-bridge-scroll-to", id: "pin-no-snapshot" });
+      postBridge({ type: "hypermark-bridge-scroll-to", id: "pin-no-snapshot" });
     });
     // The text was found in the SECOND paragraph, not the anchored element.
     expect(fallbackScroll[0]?.textContent).toBe("Second paragraph");
     expect(fallbackScroll[0]).not.toBe(target);
-    postBridge({ type: "plannotator-bridge-remove-mark", id: "pin-no-snapshot" });
+    postBridge({ type: "hypermark-bridge-remove-mark", id: "pin-no-snapshot" });
 
     // Fail-closed anchors: a weak selector whose text snapshot no longer
     // matches must not resolve (falls back to document-wide text search).
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "pin-stale",
       originalText: "Second paragraph",
       annotationType: "comment",
@@ -436,19 +436,19 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     await flushOverlay();
     expect(markersFor("pin-stale").length).toBe(1);
     const staleScroll = collectScrollTargets(() => {
-      postBridge({ type: "plannotator-bridge-scroll-to", id: "pin-stale" });
+      postBridge({ type: "hypermark-bridge-scroll-to", id: "pin-stale" });
     });
     expect(staleScroll[0]?.textContent).toBe("Second paragraph");
     expect(staleScroll[0]).not.toBe(target);
     expect(document.body.innerHTML).toBe(pageSnapshot);
 
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     expect(visibleMarkers().length).toBe(0);
     postBridge({
-      type: "plannotator-bridge-set-input-method",
+      type: "hypermark-bridge-set-input-method",
       method: "drag",
     });
-    expect(document.body.hasAttribute("data-plannotator-pinpoint-cursor")).toBe(false);
+    expect(document.body.hasAttribute("data-hypermark-pinpoint-cursor")).toBe(false);
     document.body.replaceChildren();
   });
 
@@ -470,12 +470,12 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     document.body.innerHTML = chainA + chainB;
     const target = document.querySelector<HTMLElement>("p");
     if (!target || target.textContent !== "Deeply buried text") throw new Error("deep target missing");
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "pinpoint" });
 
     const messages: Array<Record<string, unknown>> = [];
     const collect = (event: MessageEvent) => {
       const data = bridgeMessageData(event);
-      if (data?.type === "plannotator-bridge-selection") messages.push(data);
+      if (data?.type === "hypermark-bridge-selection") messages.push(data);
     };
     window.addEventListener("message", collect);
     const started = performance.now();
@@ -491,8 +491,8 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // under happy-dom's slow selector engine.
     expect(elapsed).toBeLessThan(2000);
 
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
@@ -506,7 +506,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       "<p>Save draft</p>",
     ].join("");
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "role-anchor",
       originalText: "Save draft",
       annotationType: "comment",
@@ -515,18 +515,18 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     await flushOverlay();
     expect(markersFor("role-anchor").length).toBe(1);
     const roleScroll = collectScrollTargets(() => {
-      postBridge({ type: "plannotator-bridge-scroll-to", id: "role-anchor" });
+      postBridge({ type: "hypermark-bridge-scroll-to", id: "role-anchor" });
     });
     // The annotation followed the TEXT into the paragraph — never the button.
     expect(roleScroll[0]?.tagName).toBe("P");
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
 
     // data-* attributes ARE author-controlled identity: a data-testid anchor
     // whose text drifted still resolves, and with the text gone everywhere the
     // element gets the placed marker.
     document.body.innerHTML = '<div data-testid="stats">New numbers</div>';
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "data-anchor",
       originalText: "Old numbers",
       annotationType: "comment",
@@ -535,10 +535,10 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     await flushOverlay();
     expect(markersFor("data-anchor").length).toBe(1);
     const dataScroll = collectScrollTargets(() => {
-      postBridge({ type: "plannotator-bridge-scroll-to", id: "data-anchor" });
+      postBridge({ type: "hypermark-bridge-scroll-to", id: "data-anchor" });
     });
     expect(dataScroll[0]).toBe(document.querySelector('div[data-testid="stats"]'));
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -547,7 +547,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // check even after the element's content drifted completely.
     document.body.innerHTML = '<div data-cy="metrics">Fresh content</div>';
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "cy-anchor",
       originalText: "Stale content gone from the page",
       annotationType: "comment",
@@ -556,7 +556,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     await flushOverlay();
     expect(markersFor("cy-anchor").length).toBe(1);
     expect(document.querySelector("[data-bind-id]")).toBeNull();
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -591,7 +591,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     const messages: Array<Record<string, unknown>> = [];
     const collect = (event: MessageEvent) => {
       const data = bridgeMessageData(event);
-      if (data?.type === "plannotator-bridge-selection") messages.push(data);
+      if (data?.type === "hypermark-bridge-selection") messages.push(data);
     };
     window.addEventListener("message", collect);
     const click = new MouseEvent("click", {
@@ -608,17 +608,17 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
 
   test("chips and small buttons on div/span markup are individually targetable", async () => {
     document.body.innerHTML = SIGNOFF_MARKUP;
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "pinpoint" });
 
     const chip = document.querySelector<HTMLElement>("span.rowchip");
     if (!chip) throw new Error("chip fixture missing");
 
     // Hover resolves the chip itself — not the enclosing section.
     hoverAt(chip, 100, 100);
-    const box = document.querySelector<HTMLElement>("[data-plannotator-pinpoint-box]");
+    const box = document.querySelector<HTMLElement>("[data-hypermark-pinpoint-box]");
     expect(box?.style.display).toBe("block");
     expect(
-      document.querySelector<HTMLElement>("[data-plannotator-pinpoint-label]")?.textContent,
+      document.querySelector<HTMLElement>("[data-hypermark-pinpoint-label]")?.textContent,
     ).toBe("rowchip");
     expect(chip.className).toBe("rowchip"); // page DOM untouched
 
@@ -632,32 +632,32 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     const chipMatches = document.querySelectorAll(chipAnchor.selector);
     expect(chipMatches.length).toBe(1);
     expect(chipMatches[0]).toBe(chip);
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
 
     // The R1 chip and the small button resolve the same way.
     const dnum = document.querySelector<HTMLElement>("span.dnum");
     if (!dnum) throw new Error("dnum fixture missing");
     hoverAt(dnum, 200, 100);
     expect(
-      document.querySelector<HTMLElement>("[data-plannotator-pinpoint-label]")?.textContent,
+      document.querySelector<HTMLElement>("[data-hypermark-pinpoint-label]")?.textContent,
     ).toBe("dnum");
     const dnumResult = await clickAndCollectSelection(dnum, 200, 100);
     expect(dnumResult.messages.length).toBe(1);
     expect(dnumResult.messages[0]!.text).toBe("R1");
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
 
     const btn = document.querySelector<HTMLElement>("span.btn");
     if (!btn) throw new Error("button fixture missing");
     hoverAt(btn, 300, 100);
     expect(
-      document.querySelector<HTMLElement>("[data-plannotator-pinpoint-label]")?.textContent,
+      document.querySelector<HTMLElement>("[data-hypermark-pinpoint-label]")?.textContent,
     ).toBe("btn primary");
     const btnResult = await clickAndCollectSelection(btn, 300, 100);
     expect(btnResult.messages.length).toBe(1);
     expect(btnResult.messages[0]!.text).toBe("Create");
 
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
@@ -667,21 +667,21 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // where the card itself is the deepest rendered element — selects the
     // card, no keyboard or cycling involved.
     document.body.innerHTML = SIGNOFF_MARKUP;
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "pinpoint" });
 
     const frame = document.querySelector<HTMLElement>("div.frame");
     if (!frame) throw new Error("frame fixture missing");
     hoverAt(frame, 400, 150);
     expect(
-      document.querySelector<HTMLElement>("[data-plannotator-pinpoint-label]")?.textContent,
+      document.querySelector<HTMLElement>("[data-hypermark-pinpoint-label]")?.textContent,
     ).toBe("frame");
     const { messages } = await clickAndCollectSelection(frame, 400, 150);
     expect(messages.length).toBe(1);
     expect((messages[0]!.anchor as { tagName: string }).tagName).toBe("div");
     expect(String(messages[0]!.text)).toContain("no-jargon");
 
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
@@ -702,20 +702,20 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     card.getBoundingClientRect = () => mockRect(5, 5, 200, 100);
 
     try {
-      postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
+      postBridge({ type: "hypermark-bridge-set-input-method", method: "pinpoint" });
       hoverAt(dot, 12, 12);
-      const box = document.querySelector<HTMLElement>("[data-plannotator-pinpoint-box]");
+      const box = document.querySelector<HTMLElement>("[data-hypermark-pinpoint-box]");
       // The 8x8 dot is under 16px on both axes — the hover box outlines the
       // 200x100 card instead (a floor, not a whitelist).
       expect(box?.style.display).toBe("block");
       expect(box?.style.left).toBe("5px");
       expect(box?.style.width).toBe("200px");
       expect(
-        document.querySelector<HTMLElement>("[data-plannotator-pinpoint-label]")?.textContent,
+        document.querySelector<HTMLElement>("[data-hypermark-pinpoint-label]")?.textContent,
       ).toBe("card");
     } finally {
       document.body.getBoundingClientRect = originalBodyRect;
-      postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+      postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
       document.body.replaceChildren();
     }
   });
@@ -732,10 +732,10 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       "<p id=\"l-known\">Paragraph text</p>",
       "</div>",
     ].join("");
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "pinpoint" });
 
     const label = () =>
-      document.querySelector<HTMLElement>("[data-plannotator-pinpoint-label]")?.textContent;
+      document.querySelector<HTMLElement>("[data-hypermark-pinpoint-label]")?.textContent;
     const cases: Array<[string, string]> = [
       ["#l-aria", "Close dialog"], // aria-label beats classes
       ["#l-role", "tablist"], // role beats a hash-looking class
@@ -754,7 +754,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       expect(label()).toBe(expected);
     }
 
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
@@ -769,7 +769,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       '<span class="icon-menu"></span>',
       "<p>Sibling text</p></div>",
     ].join("");
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "pinpoint" });
 
     const close = document.querySelector<HTMLElement>("span.icon-close");
     if (!close) throw new Error("icon fixture missing");
@@ -782,13 +782,13 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     const anchor = messages[0]!.anchor as { selector: string; tagName: string; text?: string };
     expect(anchor.selector).toBe('span[data-testid="close-btn"]');
     expect(anchor.text).toBe("");
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
 
     // Round trip: the stable-identity anchor resolves without a text check,
     // so the icon gets a placed marker even though text search can never
     // succeed ("[element: icon close]" appears nowhere in the page).
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "identity-pin",
       originalText: "[element: icon close]",
       annotationType: "comment",
@@ -797,7 +797,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     await flushOverlay();
     expect(markersFor("identity-pin").length).toBe(1);
     expect(document.querySelector("[data-bind-id]")).toBeNull();
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     expect(visibleMarkers().length).toBe(0);
 
     // A text-less element with only classes (weak selector) ships NO anchor:
@@ -811,8 +811,8 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     expect(menuResult.messages[0]!.text).toBe("[element: icon menu]");
     expect(menuResult.messages[0]!.anchor).toBeUndefined();
 
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
@@ -829,7 +829,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       '<span class="icon"></span>',
       "</div>",
     ].join("");
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "pinpoint" });
 
     const second = document.querySelectorAll<HTMLElement>("span.icon")[1];
     if (!second) throw new Error("sibling fixture missing");
@@ -837,7 +837,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     const { messages } = await clickAndCollectSelection(second, 120, 60);
     expect(messages.length).toBe(1);
     expect(messages[0]!.anchor).toBeUndefined();
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
 
     // The old-world failure mode, replayed: after the first icon is removed,
     // span.icon:nth-of-type(2) is gone and span.icon:nth-of-type(1) IS a
@@ -846,7 +846,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     second.parentElement!.removeChild(document.querySelectorAll("span.icon")[0]!);
     for (const selector of ["div.strip > span:nth-of-type(2)", "div.strip > span:nth-of-type(1)"]) {
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: `rebind-${selector}`,
         originalText: "[element: icon]",
         annotationType: "comment",
@@ -857,21 +857,21 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     expect(visibleMarkers().length).toBe(0);
     expect(document.querySelector("[data-bind-id]")).toBeNull();
 
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
   test("marker click ownership is identity-gated, not selector-gated (D5)", async () => {
     // A page element spoofing our marker attributes is NOT a viewer overlay:
     // it hovers and annotates like any other element.
-    document.body.innerHTML = "<div data-plannotator-marker class=\"fake-marker\">7</div><p id=\"pin-me\">Pinned text</p>";
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
+    document.body.innerHTML = "<div data-hypermark-marker class=\"fake-marker\">7</div><p id=\"pin-me\">Pinned text</p>";
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "pinpoint" });
 
     const spoof = document.querySelector<HTMLElement>("div.fake-marker");
     if (!spoof) throw new Error("spoof fixture missing");
     hoverAt(spoof, 40, 40);
     expect(
-      document.querySelector<HTMLElement>("[data-plannotator-pinpoint-box]")?.style.display,
+      document.querySelector<HTMLElement>("[data-hypermark-pinpoint-box]")?.style.display,
     ).toBe("block");
     const { click, messages } = await clickAndCollectSelection(spoof, 40, 40);
     expect(click.defaultPrevented).toBe(true);
@@ -881,7 +881,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // A REAL placed marker owns its click: it posts mark-click (which the
     // parent maps to focusing the annotation in the panel), not a selection.
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "badge-owner",
       originalText: "Text that exists nowhere on this page",
       annotationType: "comment",
@@ -894,8 +894,8 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     const collect = (event: MessageEvent) => {
       const data = bridgeMessageData(event);
       if (
-        data?.type === "plannotator-bridge-selection"
-        || data?.type === "plannotator-bridge-mark-click"
+        data?.type === "hypermark-bridge-selection"
+        || data?.type === "hypermark-bridge-mark-click"
       ) collected.push(data);
     };
     window.addEventListener("message", collect);
@@ -903,11 +903,11 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     window.removeEventListener("message", collect);
     expect(collected).toEqual([
-      { type: "plannotator-bridge-mark-click", id: "badge-owner" },
+      { type: "hypermark-bridge-mark-click", id: "badge-owner" },
     ]);
 
-    postBridge({ type: "plannotator-bridge-clear-marks" });
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
@@ -952,17 +952,17 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
   }
 
   function pinnedBoxCount(): number {
-    return document.querySelectorAll("[data-plannotator-pinpoint-box][data-pinned]").length;
+    return document.querySelectorAll("[data-hypermark-pinpoint-box][data-pinned]").length;
   }
 
   async function startMultiDraft(options?: { arm?: boolean }): Promise<{
     primaryKey: string;
     keys: Map<string, string>; // className -> target key
   }> {
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "pinpoint" });
     const alpha = document.querySelector<HTMLElement>("p.alpha")!;
     const selections = await collectMessages(
-      ["plannotator-bridge-selection"],
+      ["hypermark-bridge-selection"],
       () => clickAt(alpha, 20, 20, false),
     );
     expect(selections.length).toBe(1);
@@ -973,7 +973,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // The parent arms multi-select only when its comment composer mirrors the
     // draft — replayed here unless the test wants an UNARMED draft.
     if (options?.arm !== false) {
-      postBridge({ type: "plannotator-bridge-arm-multi-select", key: primaryKey });
+      postBridge({ type: "hypermark-bridge-arm-multi-select", key: primaryKey });
     }
     const keys = new Map<string, string>();
     keys.set("alpha", primaryKey);
@@ -989,7 +989,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // Shift-click beta: joins the draft, posts a validated target DTO, and
     // gets its own pinned outline box (primary keeps the main box).
     const added = await collectMessages(
-      ["plannotator-bridge-multi-target-added"],
+      ["hypermark-bridge-multi-target-added"],
       () => clickAt(beta, 40, 40, true),
     );
     expect(added.length).toBe(1);
@@ -1003,7 +1003,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     expect(pinnedBoxCount()).toBe(2);
 
     const addedGamma = await collectMessages(
-      ["plannotator-bridge-multi-target-added"],
+      ["hypermark-bridge-multi-target-added"],
       () => clickAt(gamma, 60, 60, true),
     );
     expect(addedGamma.length).toBe(1);
@@ -1012,17 +1012,17 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // Shift-click beta AGAIN: toggle-off by DOM identity — the removal is
     // echoed to the parent and beta's outline box disappears.
     const removed = await collectMessages(
-      ["plannotator-bridge-multi-target-added", "plannotator-bridge-multi-target-removed"],
+      ["hypermark-bridge-multi-target-added", "hypermark-bridge-multi-target-removed"],
       () => clickAt(beta, 40, 40, true),
     );
     expect(removed.length).toBe(1);
-    expect(removed[0]!.type).toBe("plannotator-bridge-multi-target-removed");
+    expect(removed[0]!.type).toBe("hypermark-bridge-multi-target-removed");
     expect(removed[0]!.key).toBe(keys.get("beta"));
     expect(pinnedBoxCount()).toBe(2);
 
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
     expect(pinnedBoxCount()).toBe(0);
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
@@ -1034,7 +1034,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     postBridge({
-      type: "plannotator-bridge-create-mark",
+      type: "hypermark-bridge-create-mark",
       id: "multi-commit",
       annotationType: "comment",
     });
@@ -1052,7 +1052,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
 
     // A SECOND annotation numbers 2 — multi-target markers consumed one slot.
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "second-ann",
       originalText: "Text that exists nowhere on this page",
       annotationType: "comment",
@@ -1064,8 +1064,8 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     expect(numbers.filter((n) => n === "1").length).toBeGreaterThanOrEqual(2);
     expect(numbers.filter((n) => n === "2").length).toBe(1);
 
-    postBridge({ type: "plannotator-bridge-clear-marks" });
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
@@ -1078,7 +1078,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
 
     // Shift-click the PRIMARY: it is removed and beta is promoted.
     const removals = await collectMessages(
-      ["plannotator-bridge-multi-target-removed"],
+      ["hypermark-bridge-multi-target-removed"],
       () => clickAt(document.querySelector("p.alpha")!, 20, 20, true),
     );
     expect(removals.length).toBe(1);
@@ -1087,37 +1087,37 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
 
     // Committing now marks the PROMOTED element (beta), not alpha.
     postBridge({
-      type: "plannotator-bridge-create-mark",
+      type: "hypermark-bridge-create-mark",
       id: "promoted-commit",
       annotationType: "comment",
     });
     const promotedMarkers = markersFor("promoted-commit");
     expect(promotedMarkers.length).toBe(1);
     const promotedScroll = collectScrollTargets(() => {
-      postBridge({ type: "plannotator-bridge-scroll-to", id: "promoted-commit" });
+      postBridge({ type: "hypermark-bridge-scroll-to", id: "promoted-commit" });
     });
     expect(promotedScroll[0]).toBe(document.querySelector("p.beta"));
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
 
     // Fresh draft with ONLY a primary: shift-clicking it cancels the draft —
     // a later create-mark must commit nothing.
     const again = await startMultiDraft();
     const cancel = await collectMessages(
-      ["plannotator-bridge-multi-target-removed"],
+      ["hypermark-bridge-multi-target-removed"],
       () => clickAt(document.querySelector("p.alpha")!, 20, 20, true),
     );
     expect(cancel.length).toBe(1);
     expect(cancel[0]!.key).toBe(again.primaryKey);
     expect(pinnedBoxCount()).toBe(0);
     postBridge({
-      type: "plannotator-bridge-create-mark",
+      type: "hypermark-bridge-create-mark",
       id: "cancelled-commit",
       annotationType: "comment",
     });
     expect(markersFor("cancelled-commit").length).toBe(0);
     expect(visibleMarkers().length).toBe(0);
 
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
@@ -1131,40 +1131,40 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     const beta = document.querySelector<HTMLElement>("p.beta")!;
 
     const messages = await collectMessages(
-      ["plannotator-bridge-multi-target-added", "plannotator-bridge-selection"],
+      ["hypermark-bridge-multi-target-added", "hypermark-bridge-selection"],
       () => clickAt(beta, 40, 40, true),
     );
     // No multi-target-added; the shift-click replaced the draft instead.
     expect(messages.length).toBe(1);
-    expect(messages[0]!.type).toBe("plannotator-bridge-selection");
+    expect(messages[0]!.type).toBe("hypermark-bridge-selection");
     expect(messages[0]!.text).toBe("Beta text");
     expect(pinnedBoxCount()).toBe(1); // only the (new) primary's main box
 
     // Committing registers nothing beyond the new primary — no orphan pins.
     postBridge({
-      type: "plannotator-bridge-create-mark",
+      type: "hypermark-bridge-create-mark",
       id: "unarmed-commit",
       annotationType: "comment",
     });
     expect(markersFor("unarmed-commit").length).toBeLessThanOrEqual(1);
 
-    postBridge({ type: "plannotator-bridge-clear-marks" });
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
   test("a stale or mismatched arm key never arms a draft", async () => {
     document.body.innerHTML = MULTI_MARKUP;
     await startMultiDraft({ arm: false });
-    postBridge({ type: "plannotator-bridge-arm-multi-select", key: "not-the-primary" });
+    postBridge({ type: "hypermark-bridge-arm-multi-select", key: "not-the-primary" });
     const messages = await collectMessages(
-      ["plannotator-bridge-multi-target-added"],
+      ["hypermark-bridge-multi-target-added"],
       () => clickAt(document.querySelector("p.beta")!, 40, 40, true),
     );
     expect(messages.length).toBe(0);
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
@@ -1176,31 +1176,31 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // bridge accumulates outlines/pins the saved annotation will not carry.
     document.body.innerHTML = MULTI_MARKUP;
     const { primaryKey } = await startMultiDraft(); // armed comment draft
-    postBridge({ type: "plannotator-bridge-arm-multi-select", key: primaryKey });
+    postBridge({ type: "hypermark-bridge-arm-multi-select", key: primaryKey });
 
     // New draft via plain click (no cancel-selection, no re-arm) — exactly
     // what a toolbar mode change followed by a pinpoint click produces.
     const beta = document.querySelector<HTMLElement>("p.beta")!;
-    await collectMessages(["plannotator-bridge-selection"], () => clickAt(beta, 40, 40, false));
+    await collectMessages(["hypermark-bridge-selection"], () => clickAt(beta, 40, 40, false));
 
     // Shift-click on the unarmed new draft must NOT add a target.
     const added = await collectMessages(
-      ["plannotator-bridge-multi-target-added"],
+      ["hypermark-bridge-multi-target-added"],
       () => clickAt(document.querySelector("p.gamma") ?? document.querySelector("p.alpha")!, 40, 40, true),
     );
     expect(added.length).toBe(0);
 
     // Committing the new draft registers at most its own primary: no orphans.
     postBridge({
-      type: "plannotator-bridge-create-mark",
+      type: "hypermark-bridge-create-mark",
       id: "stale-arm-commit",
       annotationType: "comment",
     });
     expect(markersFor("stale-arm-commit").length).toBeLessThanOrEqual(1);
 
-    postBridge({ type: "plannotator-bridge-clear-marks" });
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
@@ -1208,7 +1208,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     document.body.innerHTML = MULTI_MARKUP;
     const { primaryKey } = await startMultiDraft();
     const added = await collectMessages(
-      ["plannotator-bridge-multi-target-added"],
+      ["hypermark-bridge-multi-target-added"],
       () => clickAt(document.querySelector("p.beta")!, 40, 40, true),
     );
     const betaKey = String(added[0]!.key);
@@ -1218,22 +1218,22 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // (hostile multi-target-removed) and echoes remove-target back. The
     // bridge, which never removed it, now performs the SAME promotion —
     // both sides converge on beta as the primary.
-    postBridge({ type: "plannotator-bridge-remove-target", key: primaryKey });
+    postBridge({ type: "hypermark-bridge-remove-target", key: primaryKey });
     expect(pinnedBoxCount()).toBe(1);
 
     // Idempotency: the same removal again (double echo) is a no-op.
-    postBridge({ type: "plannotator-bridge-remove-target", key: primaryKey });
+    postBridge({ type: "hypermark-bridge-remove-target", key: primaryKey });
     expect(pinnedBoxCount()).toBe(1);
 
     // Committing pins the promoted element (beta), matching the parent model.
     postBridge({
-      type: "plannotator-bridge-create-mark",
+      type: "hypermark-bridge-create-mark",
       id: "resync-commit",
       annotationType: "comment",
     });
     expect(markersFor("resync-commit").length).toBe(1);
-    postBridge({ type: "plannotator-bridge-clear-marks" });
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     void betaKey;
     document.body.replaceChildren();
   });
@@ -1242,25 +1242,25 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     document.body.innerHTML = MULTI_MARKUP;
     await startMultiDraft();
     const added = await collectMessages(
-      ["plannotator-bridge-multi-target-added"],
+      ["hypermark-bridge-multi-target-added"],
       () => clickAt(document.querySelector("p.beta")!, 40, 40, true),
     );
     const betaKey = String(added[0]!.key);
     expect(pinnedBoxCount()).toBe(2);
 
     const echoes = await collectMessages(
-      ["plannotator-bridge-multi-target-removed"],
-      () => postBridge({ type: "plannotator-bridge-remove-target", key: betaKey }),
+      ["hypermark-bridge-multi-target-removed"],
+      () => postBridge({ type: "hypermark-bridge-remove-target", key: betaKey }),
     );
     expect(echoes.length).toBe(0); // the parent already updated its own list
     expect(pinnedBoxCount()).toBe(1);
 
     // flash-target on the survivor must not throw or change draft state.
-    postBridge({ type: "plannotator-bridge-flash-target", key: betaKey });
+    postBridge({ type: "hypermark-bridge-flash-target", key: betaKey });
     expect(pinnedBoxCount()).toBe(1);
 
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
@@ -1268,18 +1268,18 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     const paragraphs: string[] = [];
     for (let i = 0; i < 20; i++) paragraphs.push(`<p class="cap-${i}">Cap target ${i}</p>`);
     document.body.innerHTML = `<div id="cap-stage">${paragraphs.join("")}</div>`;
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "pinpoint" });
     const primarySelections = await collectMessages(
-      ["plannotator-bridge-selection"],
+      ["hypermark-bridge-selection"],
       () => clickAt(document.querySelector("p.cap-0")!, 10, 10, false), // primary
     );
     postBridge({
-      type: "plannotator-bridge-arm-multi-select",
+      type: "hypermark-bridge-arm-multi-select",
       key: String(primarySelections[0]!.targetKey),
     });
 
     const added = await collectMessages(
-      ["plannotator-bridge-multi-target-added"],
+      ["hypermark-bridge-multi-target-added"],
       () => {
         for (let i = 1; i < 20; i++) {
           clickAt(document.querySelector(`p.cap-${i}`)!, 10 + i, 10, true);
@@ -1288,8 +1288,8 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     );
     expect(added.length).toBe(16);
 
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
@@ -1301,36 +1301,36 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     const paragraphs: string[] = [];
     for (let i = 0; i < 20; i++) paragraphs.push(`<p class="hcap-${i}">Host cap target ${i}</p>`);
     document.body.innerHTML = `<div id="hcap-stage">${paragraphs.join("")}</div>`;
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "pinpoint" });
     const first = await collectMessages(
-      ["plannotator-bridge-selection"],
+      ["hypermark-bridge-selection"],
       () => clickAt(document.querySelector("p.hcap-0")!, 10, 10, false),
     );
     postBridge({
-      type: "plannotator-bridge-arm-multi-select",
+      type: "hypermark-bridge-arm-multi-select",
       key: String(first[0]!.targetKey),
       max: 2,
     });
     const capped = await collectMessages(
-      ["plannotator-bridge-multi-target-added"],
+      ["hypermark-bridge-multi-target-added"],
       () => {
         for (let i = 1; i < 10; i++) clickAt(document.querySelector(`p.hcap-${i}`)!, 10 + i, 10, true);
       },
     );
     expect(capped.length).toBe(2);
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
 
     // Next draft, armed without a max: the package cap applies again.
     const second = await collectMessages(
-      ["plannotator-bridge-selection"],
+      ["hypermark-bridge-selection"],
       () => clickAt(document.querySelector("p.hcap-0")!, 10, 10, false),
     );
     postBridge({
-      type: "plannotator-bridge-arm-multi-select",
+      type: "hypermark-bridge-arm-multi-select",
       key: String(second[0]!.targetKey),
     });
     const uncapped = await collectMessages(
-      ["plannotator-bridge-multi-target-added"],
+      ["hypermark-bridge-multi-target-added"],
       () => {
         for (let i = 1; i < 20; i++) clickAt(document.querySelector(`p.hcap-${i}`)!, 10 + i, 10, true);
       },
@@ -1338,26 +1338,26 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     expect(uncapped.length).toBe(16);
 
     // A max above the package cap, or garbage, never raises it.
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
     const third = await collectMessages(
-      ["plannotator-bridge-selection"],
+      ["hypermark-bridge-selection"],
       () => clickAt(document.querySelector("p.hcap-0")!, 10, 10, false),
     );
     postBridge({
-      type: "plannotator-bridge-arm-multi-select",
+      type: "hypermark-bridge-arm-multi-select",
       key: String(third[0]!.targetKey),
       max: 999,
     });
     const clamped = await collectMessages(
-      ["plannotator-bridge-multi-target-added"],
+      ["hypermark-bridge-multi-target-added"],
       () => {
         for (let i = 1; i < 20; i++) clickAt(document.querySelector(`p.hcap-${i}`)!, 10 + i, 10, true);
       },
     );
     expect(clamped.length).toBe(16);
 
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
@@ -1370,43 +1370,43 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     const reports: string[][] = [];
     const listener = (e: MessageEvent) => {
       const d = bridgeMessageData(e);
-      if (d && d.type === "plannotator-bridge-unanchored") reports.push(d.ids as string[]);
+      if (d && d.type === "hypermark-bridge-unanchored") reports.push(d.ids as string[]);
     };
     window.addEventListener("message", listener);
     try {
       document.body.innerHTML = "<p>Report target copy</p>";
-      postBridge({ type: "plannotator-bridge-clear-marks" });
+      postBridge({ type: "hypermark-bridge-clear-marks" });
       await flushOverlay();
       const baseline = reports.length;
       // Everything restores: change-only would emit nothing.
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "report-live",
         originalText: "Report target copy",
         annotationType: "comment",
       });
-      postBridge({ type: "plannotator-bridge-report-unanchored" });
+      postBridge({ type: "hypermark-bridge-report-unanchored" });
       await flushOverlay();
       expect(reports.length).toBe(baseline + 1);
       expect(reports.at(-1)).toEqual([]);
       // The request is consumed: an idle pass emits nothing more.
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       await flushOverlay();
       expect(reports.length).toBe(baseline + 1);
       // With a failure in the batch the forced report carries it, once.
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "report-ghost",
         originalText: "Text this page never had",
         annotationType: "comment",
       });
-      postBridge({ type: "plannotator-bridge-report-unanchored" });
+      postBridge({ type: "hypermark-bridge-report-unanchored" });
       await flushOverlay();
       expect(reports.at(-1)).toEqual(["report-ghost"]);
       expect(reports.length).toBe(baseline + 2);
     } finally {
       window.removeEventListener("message", listener);
-      postBridge({ type: "plannotator-bridge-clear-marks" });
+      postBridge({ type: "hypermark-bridge-clear-marks" });
       document.body.replaceChildren();
     }
   });
@@ -1417,7 +1417,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // smooth: hosts that never pass it see no change.
     document.body.innerHTML = "<p class=\"scroll-target\">Scroll behavior target</p>";
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "scroll-behavior",
       originalText: "Scroll behavior target",
       annotationType: "comment",
@@ -1429,22 +1429,22 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       behaviors.push(typeof arg === "object" && arg ? arg.behavior : undefined);
     };
     try {
-      postBridge({ type: "plannotator-bridge-scroll-to", id: "scroll-behavior" });
-      postBridge({ type: "plannotator-bridge-scroll-to", id: "scroll-behavior", behavior: "auto" });
-      postBridge({ type: "plannotator-bridge-scroll-to", id: "scroll-behavior", behavior: "instant" });
+      postBridge({ type: "hypermark-bridge-scroll-to", id: "scroll-behavior" });
+      postBridge({ type: "hypermark-bridge-scroll-to", id: "scroll-behavior", behavior: "auto" });
+      postBridge({ type: "hypermark-bridge-scroll-to", id: "scroll-behavior", behavior: "instant" });
     } finally {
       Element.prototype.scrollIntoView = original;
     }
     // Absent: smooth. 'auto': honored. Anything else: smooth (fail closed).
     expect(behaviors).toEqual(["smooth", "auto", "smooth"]);
-    postBridge({ type: "plannotator-bridge-remove-mark", id: "scroll-behavior" });
+    postBridge({ type: "hypermark-bridge-remove-mark", id: "scroll-behavior" });
     document.body.replaceChildren();
   });
 
   test("find-and-mark restores additional anchors as same-numbered pins, fail-closed", async () => {
     document.body.innerHTML = MULTI_MARKUP;
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "restore-multi",
       originalText: "Alpha text",
       annotationType: "comment",
@@ -1470,7 +1470,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     ).toBe(true);
     expect(document.querySelector("[data-bind-id]")).toBeNull();
 
-    postBridge({ type: "plannotator-bridge-remove-mark", id: "restore-multi" });
+    postBridge({ type: "hypermark-bridge-remove-mark", id: "restore-multi" });
     expect(markersFor("restore-multi").length).toBe(0);
     expect(
       visibleHighlights().some(
@@ -1486,7 +1486,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // path is per-event hit-testing: element identity plus closest() walks,
     // zero document-wide queries. Graph builds remain click-time only.
     document.body.innerHTML = SIGNOFF_MARKUP;
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "pinpoint" });
 
     const targets = Array.from(document.querySelectorAll<HTMLElement>("span, div, section"));
     const originalQsa = document.querySelectorAll.bind(document);
@@ -1507,7 +1507,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       expect(documentWideQueries).toBe(0);
     } finally {
       (document as { querySelectorAll: typeof document.querySelectorAll }).querySelectorAll = originalQsa;
-      postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+      postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
       document.body.replaceChildren();
     }
   });
@@ -1538,7 +1538,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     const pageSnapshot = document.body.innerHTML;
 
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "neutral-a",
       originalText: "Anchor target text",
       annotationType: "comment",
@@ -1546,19 +1546,19 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     });
     await flushOverlay();
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "neutral-b",
       originalText: "Second paragraph",
       annotationType: "deletion",
     });
     await flushOverlay();
     postBridge({
-      type: "plannotator-bridge-sync-annotations",
+      type: "hypermark-bridge-sync-annotations",
       annotations: [{ id: "neutral-a", number: 1 }, { id: "neutral-b", number: 2 }],
     });
-    postBridge({ type: "plannotator-bridge-focus-mark", id: "neutral-b" });
+    postBridge({ type: "hypermark-bridge-focus-mark", id: "neutral-b" });
     collectScrollTargets(() => {
-      postBridge({ type: "plannotator-bridge-scroll-to", id: "neutral-a" });
+      postBridge({ type: "hypermark-bridge-scroll-to", id: "neutral-a" });
     });
 
     // The author DOM is byte-identical after restore + sync + focus + scroll.
@@ -1568,7 +1568,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     if (!host) throw new Error("overlay host missing");
     expect(host.parentElement).toBe(document.documentElement);
     expect(document.body.contains(host)).toBe(false);
-    expect(document.body.querySelector("[data-plannotator-marker]")).toBeNull();
+    expect(document.body.querySelector("[data-hypermark-marker]")).toBeNull();
     expect(host.style.position).toBe("fixed");
     expect(host.style.pointerEvents).toBe("none");
     expect(host.style.zIndex).toBe("2147483647");
@@ -1576,8 +1576,8 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     expect(markersFor("neutral-a").length).toBe(1);
     expect(markersFor("neutral-b").length).toBe(1);
 
-    postBridge({ type: "plannotator-bridge-focus-mark", id: null });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-focus-mark", id: null });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -1587,7 +1587,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     await withLayout(async () => {
       geo.getBoundingClientRect = () => rectOf(100, 50, 200, 100);
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "geo-ann",
         originalText: "Text that exists nowhere on this page",
         annotationType: "comment",
@@ -1603,20 +1603,20 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       // reprojects the NORMALIZED point against the new rect — it never
       // reuses the old pixels.
       geo.getBoundingClientRect = () => rectOf(300, 50, 100, 100);
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       const moved = markersFor("geo-ann");
       expect(moved.length).toBe(1);
       expect(moved[0]!.style.left).toBe("325px");
       expect(moved[0]!.style.top).toBe("100px");
     });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
   test("pinpoint click captures the normalized selected point onto the posted anchor", async () => {
     document.body.innerHTML = '<p id="cap">Capture me</p>';
     const cap = document.querySelector<HTMLElement>("#cap")!;
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "pinpoint" });
     const originalBodyRect = document.body.getBoundingClientRect;
     document.body.getBoundingClientRect = () => rectOf(0, 0, 1024, 768);
     cap.getBoundingClientRect = () => rectOf(100, 50, 200, 100);
@@ -1628,7 +1628,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
 
       // Committing places the marker at the captured point's projection.
       postBridge({
-        type: "plannotator-bridge-create-mark",
+        type: "hypermark-bridge-create-mark",
         id: "cap-ann",
         annotationType: "comment",
       });
@@ -1639,8 +1639,8 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     } finally {
       document.body.getBoundingClientRect = originalBodyRect;
     }
-    postBridge({ type: "plannotator-bridge-clear-marks" });
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.replaceChildren();
   });
 
@@ -1657,7 +1657,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
   test("unresolved targets omit their markers instead of guessing", async () => {
     document.body.innerHTML = '<div data-testid="vanishing">Now you see me</div>';
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "vanish-ann",
       originalText: "Text that exists nowhere on this page",
       annotationType: "comment",
@@ -1670,7 +1670,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // so the marker is omitted — never left floating over unrelated content.
     document.body.innerHTML = "<p>Completely different content</p>";
     bumpDomGeneration();
-    postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+    postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
     expect(markersFor("vanish-ann").length).toBe(0);
     // The annotation record survives (it stays reachable via the panel), so
     // a page that brings the element back re-resolves and re-renders it
@@ -1678,10 +1678,10 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     document.body.innerHTML = '<div data-testid="vanishing">Back again</div>';
     advancePastDeadSearchBackoff();
     bumpDomGeneration();
-    postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+    postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
     expect(markersFor("vanish-ann").length).toBe(1);
 
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -1691,7 +1691,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     await withLayout(async () => {
       el.getBoundingClientRect = () => rectOf(100, -500, 200, 100); // above viewport
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "off-ann",
         originalText: "Text that exists nowhere on this page",
         annotationType: "comment",
@@ -1701,14 +1701,14 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       expect(markersFor("off-ann").length).toBe(0);
 
       el.getBoundingClientRect = () => rectOf(100, 2000, 200, 100); // below viewport
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       expect(markersFor("off-ann").length).toBe(0);
 
       el.getBoundingClientRect = () => rectOf(100, 300, 200, 100); // scrolled back in
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       expect(markersFor("off-ann").length).toBe(1);
     });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -1721,7 +1721,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       // associated with its (40px-wide) target.
       edge.getBoundingClientRect = () => rectOf(0, 40, 40, 40);
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "edge-ann",
         originalText: "Text that exists nowhere on this page",
         annotationType: "comment",
@@ -1741,7 +1741,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       // where fully visible edge-flush elements lost their markers.
       sliver.getBoundingClientRect = () => rectOf(0, 2, 4, 4);
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "sliver-ann",
         originalText: "Text that exists nowhere on this page either",
         annotationType: "comment",
@@ -1753,7 +1753,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       expect(sliverMarkers[0]!.style.left).toBe("29px");
       expect(sliverMarkers[0]!.style.top).toBe("29px");
     });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -1769,7 +1769,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       b.getBoundingClientRect = () => rectOf(100, 100, 50, 50);
       for (const [id, selector] of [["co-1", 'div[data-testid="co-a"]'], ["co-2", 'div[data-testid="co-b"]']] as const) {
         postBridge({
-          type: "plannotator-bridge-find-and-mark",
+          type: "hypermark-bridge-find-and-mark",
           id,
           originalText: "Text that exists nowhere on this page",
           annotationType: "comment",
@@ -1788,11 +1788,11 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       expect(one[0]!.style.top).toBe("125px");
       expect(two[0]!.style.top).toBe("125px");
       // Deterministic: a re-render yields identical placement.
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       expect(markersFor("co-1")[0]!.style.left).toBe("118.75px");
       expect(markersFor("co-2")[0]!.style.left).toBe("131.25px");
     });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -1803,7 +1803,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     ].join("");
     for (const [id, selector] of [["n-1", 'div[data-testid="n-a"]'], ["n-2", 'div[data-testid="n-b"]']] as const) {
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id,
         originalText: "Text that exists nowhere on this page",
         annotationType: "comment",
@@ -1817,7 +1817,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
 
     // The parent's ordered collection is authoritative — numbers follow it.
     postBridge({
-      type: "plannotator-bridge-sync-annotations",
+      type: "hypermark-bridge-sync-annotations",
       annotations: [{ id: "n-2", number: 1 }, { id: "n-1", number: 2 }],
     });
     expect(markerNumber(markersFor("n-2")[0]!)).toBe("1");
@@ -1825,7 +1825,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     expect(markerNumber(markersFor("n-1")[0]!)).toBe("2");
     expect(markersFor("n-1")[0]!.getAttribute("aria-label")).toBe("Comment 2");
 
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -1836,7 +1836,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     ].join("");
     for (const [id, selector] of [["m-1", 'div[data-testid="m-a"]'], ["m-2", 'div[data-testid="m-b"]']] as const) {
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id,
         originalText: "Text that exists nowhere on this page",
         annotationType: "comment",
@@ -1845,20 +1845,20 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       await flushOverlay();
     }
     postBridge({
-      type: "plannotator-bridge-sync-annotations",
+      type: "hypermark-bridge-sync-annotations",
       annotations: [{ id: "m-1", number: 5 }, { id: "m-2", number: 6 }],
     });
     expect(markerNumber(markersFor("m-1")[0]!)).toBe("5");
 
     // A completely malformed list leaves the previous numbering untouched.
-    postBridge({ type: "plannotator-bridge-sync-annotations", annotations: 42 });
-    postBridge({ type: "plannotator-bridge-sync-annotations" });
+    postBridge({ type: "hypermark-bridge-sync-annotations", annotations: 42 });
+    postBridge({ type: "hypermark-bridge-sync-annotations" });
     expect(markerNumber(markersFor("m-1")[0]!)).toBe("5");
     expect(markerNumber(markersFor("m-2")[0]!)).toBe("6");
 
     // Junk entries are skipped; only well-formed (id, integer >= 1) apply.
     postBridge({
-      type: "plannotator-bridge-sync-annotations",
+      type: "hypermark-bridge-sync-annotations",
       annotations: [
         { id: "m-1", number: 7 },
         { id: "m-2", number: 0 },
@@ -1873,7 +1873,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // m-2 fell back to registration order (2), not a hostile number.
     expect(markerNumber(markersFor("m-2")[0]!)).toBe("2");
 
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -1891,7 +1891,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     ];
     try {
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "focus-multi",
         originalText: "Alpha beta gamma delta",
         annotationType: "comment",
@@ -1903,27 +1903,27 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       );
       expect(commentRects.length).toBe(2);
 
-      postBridge({ type: "plannotator-bridge-focus-mark", id: "focus-multi" });
+      postBridge({ type: "hypermark-bridge-focus-mark", id: "focus-multi" });
       const focusRects = visibleHighlights("pn-hl-focus").filter(
         (el) => el.getAttribute("data-annotation-id") === "focus-multi",
       );
       expect(focusRects.length).toBe(2);
       expect(focusRects.map((el) => el.style.top).sort()).toEqual(["10px", "40px"]);
 
-      postBridge({ type: "plannotator-bridge-focus-mark", id: null });
+      postBridge({ type: "hypermark-bridge-focus-mark", id: null });
       expect(visibleHighlights("pn-hl-focus").length).toBe(0);
     } finally {
       (Range.prototype as { getClientRects: typeof originalGetClientRects }).getClientRects =
         originalGetClientRects;
       document.body.getBoundingClientRect = originalBodyRect;
     }
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
   test("draft selection highlight is overlay-projected and clears on cancel", async () => {
     document.body.innerHTML = "<p>Draft highlight target</p>";
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     const p = document.querySelector("p")!;
     const range = document.createRange();
     range.selectNodeContents(p);
@@ -1937,7 +1937,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // Draft state never mutates the page.
     expect(document.body.innerHTML).toBe("<p>Draft highlight target</p>");
 
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
     expect(visibleHighlights("pn-hl-draft").length).toBe(0);
     document.body.replaceChildren();
   });
@@ -1946,7 +1946,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     document.body.innerHTML = '<p id="beneath">Beneath text</p><div data-testid="hit">H</div>';
     // Materialize the overlay host + a marker.
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "hit-ann",
       originalText: "Text that exists nowhere on this page",
       annotationType: "comment",
@@ -1962,12 +1962,12 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     (document as { elementFromPoint: typeof document.elementFromPoint }).elementFromPoint = () =>
       host.hasAttribute("data-pn-hittest") ? beneath : host;
     try {
-      postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
+      postBridge({ type: "hypermark-bridge-set-input-method", method: "pinpoint" });
       hoverAt(beneath, 77, 77);
-      const label = document.querySelector<HTMLElement>("[data-plannotator-pinpoint-label]");
+      const label = document.querySelector<HTMLElement>("[data-hypermark-pinpoint-label]");
       expect(label?.style.display).toBe("block");
       expect(label?.textContent).toBe("Paragraph");
-      const box = document.querySelector<HTMLElement>("[data-plannotator-pinpoint-box]");
+      const box = document.querySelector<HTMLElement>("[data-hypermark-pinpoint-box]");
       expect(box?.style.display).toBe("block");
       // The yield is transient: hit-testing restored marker interactivity.
       expect(host.hasAttribute("data-pn-hittest")).toBe(false);
@@ -1980,10 +1980,10 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // data-pn-hittest attribute — a typo in the CSS rule would still pass
     // it. The exact rule must ship in the overlay CSS.
     expect(BRIDGE_SCRIPT).toContain(
-      ":host([data-pn-hittest]) .pn-marker, [data-plannotator-overlay-host][data-pn-hittest] .pn-marker { pointer-events: none !important; }",
+      ":host([data-pn-hittest]) .pn-marker, [data-hypermark-overlay-host][data-pn-hittest] .pn-marker { pointer-events: none !important; }",
     );
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -2007,7 +2007,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       ];
       try {
         postBridge({
-          type: "plannotator-bridge-find-and-mark",
+          type: "hypermark-bridge-find-and-mark",
           id: "clip-hl",
           originalText: "Clipped highlight text",
           annotationType: "comment",
@@ -2022,18 +2022,18 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
           { top: "90px", height: "10px" },
         ]);
         // The focus flash paints the same clip-tested rects.
-        postBridge({ type: "plannotator-bridge-focus-mark", id: "clip-hl" });
+        postBridge({ type: "hypermark-bridge-focus-mark", id: "clip-hl" });
         const focusRects = visibleHighlights("pn-hl-focus").filter(
           (el) => el.getAttribute("data-annotation-id") === "clip-hl",
         );
         expect(focusRects.length).toBe(2);
-        postBridge({ type: "plannotator-bridge-focus-mark", id: null });
+        postBridge({ type: "hypermark-bridge-focus-mark", id: null });
       } finally {
         (Range.prototype as { getClientRects: typeof originalGetClientRects }).getClientRects =
           originalGetClientRects;
       }
     });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -2043,7 +2043,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     await withLayout(async () => {
       slide.getBoundingClientRect = () => rectOf(100, 100, 200, 100);
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "vis-ann",
         originalText: "Text that exists nowhere on this page",
         annotationType: "comment",
@@ -2055,7 +2055,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       // visibility:hidden keeps a full-size rect — the marker must not
       // render over whatever visible content stacks in the same box.
       slide.style.visibility = "hidden";
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       expect(markersFor("vis-ann").length).toBe(0);
       slide.style.visibility = "";
 
@@ -2065,21 +2065,21 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       // control — and computed opacity doesn't inherit, so an opacity gate
       // wouldn't catch faded containers' descendants anyway.
       slide.style.opacity = "0";
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       expect(markersFor("vis-ann").length).toBe(1);
       slide.style.opacity = "";
 
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       expect(markersFor("vis-ann").length).toBe(1);
     });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
   test("dead-target re-search is generation-gated, never per-render (M3)", async () => {
     document.body.innerHTML = "<p>Ephemeral searchable text</p>";
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "gen-ann",
       originalText: "Ephemeral searchable text",
       annotationType: "comment",
@@ -2094,7 +2094,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // The text disappears; the next invalidation triggers ONE failed search.
     document.body.innerHTML = "<p>Different content</p>";
     bumpDomGeneration();
-    postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+    postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
 
     // Repeated renders WITHOUT a new text-capable invalidation must not
     // re-run the whole-document sweep (findTextRange = createTreeWalker).
@@ -2108,7 +2108,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     }) as typeof document.createTreeWalker;
     try {
       for (let i = 0; i < 5; i++) {
-        postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+        postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       }
       expect(sweeps).toBe(0);
 
@@ -2116,11 +2116,11 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       // unlocks exactly one more search…
       advancePastDeadSearchBackoff();
       bumpDomGeneration();
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       expect(sweeps).toBeGreaterThan(0);
       const afterUnlock = sweeps;
       // …whose failure is cached again for that generation.
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       expect(sweeps).toBe(afterUnlock);
     } finally {
       (document as { createTreeWalker: typeof document.createTreeWalker }).createTreeWalker =
@@ -2132,14 +2132,14 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     document.body.innerHTML = "<p>Ephemeral searchable text</p>";
     advancePastDeadSearchBackoff();
     bumpDomGeneration();
-    postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+    postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
     expect(
       visibleHighlights("pn-hl-comment").some(
         (el) => el.getAttribute("data-annotation-id") === "gen-ann",
       ),
     ).toBe(true);
 
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -2151,19 +2151,19 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     const reports: string[][] = [];
     const listener = (e: MessageEvent) => {
       const d = bridgeMessageData(e);
-      if (d && d.type === "plannotator-bridge-unanchored") reports.push(d.ids as string[]);
+      if (d && d.type === "hypermark-bridge-unanchored") reports.push(d.ids as string[]);
     };
     window.addEventListener("message", listener);
     try {
       document.body.innerHTML = "<p>Anchored copy</p>";
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "live-ann",
         originalText: "Anchored copy",
         annotationType: "comment",
       });
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "ghost-ann",
         originalText: "Text this page never contained",
         annotationType: "comment",
@@ -2176,7 +2176,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       // emissions deliver async like all postMessage traffic, so the flush
       // guarantees any duplicate would have arrived before the count check.)
       const countAfterRestore = reports.length;
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       await flushOverlay();
       expect(reports.length).toBe(countAfterRestore);
 
@@ -2184,7 +2184,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       document.body.innerHTML =
         "<p>Anchored copy</p><p>Text this page never contained</p>";
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "ghost-ann",
         originalText: "Text this page never contained",
         annotationType: "comment",
@@ -2197,7 +2197,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       document.body.innerHTML = "<p>Unrelated content</p>";
       advancePastDeadSearchBackoff();
       bumpDomGeneration();
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       await flushOverlay();
       expect(reports.at(-1)).toEqual(["ghost-ann", "live-ann"]);
 
@@ -2205,17 +2205,17 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       document.body.innerHTML = "<p>Anchored copy</p>";
       advancePastDeadSearchBackoff();
       bumpDomGeneration();
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       await flushOverlay();
       expect(reports.at(-1)).toEqual(["ghost-ann"]);
 
       // clear-marks empties the report along with the records.
-      postBridge({ type: "plannotator-bridge-clear-marks" });
+      postBridge({ type: "hypermark-bridge-clear-marks" });
       await flushOverlay();
       expect(reports.at(-1)).toEqual([]);
     } finally {
       window.removeEventListener("message", listener);
-      postBridge({ type: "plannotator-bridge-clear-marks" });
+      postBridge({ type: "hypermark-bridge-clear-marks" });
       document.body.replaceChildren();
     }
   });
@@ -2231,7 +2231,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       .join("");
     for (let i = 0; i < 4; i++) {
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: `boff-${i}`,
         originalText: `Backoff text ${i}`,
         annotationType: "comment",
@@ -2254,21 +2254,21 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       // Pass 1: only the per-pass budget (2) may search, even though all
       // four targets are eligible.
       bumpDomGeneration();
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       expect(sweeps).toBe(2);
       // The skipped-but-eligible targets get a scheduled follow-up pass.
       await flushOverlay();
       expect(sweeps).toBe(4);
       // No eligible targets remain: no further passes run searches.
       await flushOverlay();
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       expect(sweeps).toBe(4);
 
       // Mutation-heavy page: generation bumps every "frame". The wall-clock
       // backoff must keep every failed target locked regardless.
       for (let i = 0; i < 5; i++) {
         bumpDomGeneration();
-        postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+        postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
         await flushOverlay();
       }
       expect(sweeps).toBe(4);
@@ -2277,7 +2277,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       // resumes (still budgeted per pass).
       advancePastDeadSearchBackoff();
       bumpDomGeneration();
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       expect(sweeps).toBe(6);
       await flushOverlay();
       expect(sweeps).toBe(8);
@@ -2293,12 +2293,12 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       .join("");
     advancePastDeadSearchBackoff();
     bumpDomGeneration();
-    postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+    postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
     await flushOverlay();
     expect(committedRanges("boff-0").length).toBe(1);
     expect(committedRanges("boff-3").length).toBe(1);
 
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -2309,7 +2309,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       // Element target far below the viewport (beyond the cull margin).
       el.getBoundingClientRect = () => rectOf(100, 2000, 200, 100);
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "cull-el-ann",
         originalText: "Text that exists nowhere on this page",
         annotationType: "comment",
@@ -2329,7 +2329,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
         return realGetComputedStyle(...args);
       }) as typeof window.getComputedStyle;
       try {
-        postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+        postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
         expect(markersFor("cull-el-ann").length).toBe(0);
         expect(styleReads).toBe(0);
       } finally {
@@ -2339,9 +2339,9 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
 
       // Scrolled back into view, the marker renders again.
       el.getBoundingClientRect = () => rectOf(100, 300, 200, 100);
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       expect(markersFor("cull-el-ann").length).toBe(1);
-      postBridge({ type: "plannotator-bridge-remove-mark", id: "cull-el-ann" });
+      postBridge({ type: "hypermark-bridge-remove-mark", id: "cull-el-ann" });
 
       // Range targets cull on the range's bounding rect BEFORE collecting
       // client rects (the per-rect clip/containment work never runs).
@@ -2356,7 +2356,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       };
       try {
         postBridge({
-          type: "plannotator-bridge-find-and-mark",
+          type: "hypermark-bridge-find-and-mark",
           id: "cull-range-ann",
           originalText: "Cull range text",
           annotationType: "comment",
@@ -2375,7 +2375,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
           .getBoundingClientRect = originalRangeBounds;
       }
     });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -2394,7 +2394,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     await withLayout(async () => {
       for (let i = 0; i < 3; i++) {
         postBridge({
-          type: "plannotator-bridge-find-and-mark",
+          type: "hypermark-bridge-find-and-mark",
           id: `b3-ann-${i}`,
           originalText: "Text that exists nowhere on this page",
           annotationType: "comment",
@@ -2410,14 +2410,14 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       expect(counts).toEqual([1, 1, 1]);
       expect(visibleMarkers().length).toBe(3);
     });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
   test("page mutations schedule no reconcile when the overlay has zero work (B4)", async () => {
-    postBridge({ type: "plannotator-bridge-clear-marks" });
-    postBridge({ type: "plannotator-bridge-cancel-selection" });
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-cancel-selection" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     document.body.innerHTML = "<p>B4 idle text</p>";
     await flushOverlay(); // drain anything pending before counting
 
@@ -2439,7 +2439,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
 
       // With a committed record, the same mutation schedules the reconcile.
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "b4-ann",
         originalText: "B4 idle text",
         annotationType: "comment",
@@ -2456,7 +2456,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       (window as { requestAnimationFrame: typeof window.requestAnimationFrame })
         .requestAnimationFrame = realRaf;
     }
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -2469,9 +2469,9 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
         rectOf(100, 100, 200, 20),
       ];
       try {
-        postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+        postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
         postBridge({
-          type: "plannotator-bridge-find-and-mark",
+          type: "hypermark-bridge-find-and-mark",
           id: "hover-ann",
           originalText: "Hover affordance text",
           annotationType: "comment",
@@ -2507,7 +2507,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
           originalGetClientRects;
       }
     });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -2519,9 +2519,9 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
         rectOf(100, 100, 200, 20),
       ];
       try {
-        postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+        postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
         postBridge({
-          type: "plannotator-bridge-find-and-mark",
+          type: "hypermark-bridge-find-and-mark",
           id: "race-ann",
           originalText: "Hover race text",
           annotationType: "comment",
@@ -2540,12 +2540,12 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
           clientX: 150,
           clientY: 110,
         }));
-        postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
+        postBridge({ type: "hypermark-bridge-set-input-method", method: "pinpoint" });
         await flushOverlay();
         expect(painted[0]!.classList.contains("pn-hl-hover")).toBe(false);
         // Pinpoint-mode mousemoves skip the hover-clearing branch, so a
         // re-render is where stale state would resurface — it must not.
-        postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+        postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
         await flushOverlay();
         expect(painted[0]!.classList.contains("pn-hl-hover")).toBe(false);
       } finally {
@@ -2553,8 +2553,8 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
           originalGetClientRects;
       }
     });
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -2564,7 +2564,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       .join("");
     for (let i = 0; i < 3; i++) {
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: `print-recover-${i}`,
         originalText: `Print recover text ${i}`,
         annotationType: "comment",
@@ -2597,7 +2597,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
         // targets silently prints fewer highlights.
         window.dispatchEvent(new Event("beforeprint"));
         expect(sweeps).toBe(3);
-        const layer = document.querySelector<HTMLElement>("[data-plannotator-print-layer]");
+        const layer = document.querySelector<HTMLElement>("[data-hypermark-print-layer]");
         if (!layer) throw new Error("print layer missing");
         expect(layer.childNodes.length).toBe(3);
         window.dispatchEvent(new Event("afterprint"));
@@ -2608,7 +2608,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
           originalCreateTreeWalker;
       }
     });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -2621,7 +2621,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       ];
       try {
         postBridge({
-          type: "plannotator-bridge-find-and-mark",
+          type: "hypermark-bridge-find-and-mark",
           id: "print-ann",
           originalText: "Printable highlight text",
           annotationType: "comment",
@@ -2629,7 +2629,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
         await flushOverlay();
         window.dispatchEvent(new Event("beforeprint"));
         const layer = document.querySelector<HTMLElement>(
-          "[data-plannotator-print-layer]",
+          "[data-hypermark-print-layer]",
         );
         if (!layer) throw new Error("print layer missing");
         // On the ROOT element (not <body>): a page styling body
@@ -2648,21 +2648,21 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
         // Highlights print; markers don't (parity with pre-overlay badges).
         expect(layer.querySelector("button")).toBeNull();
         window.dispatchEvent(new Event("afterprint"));
-        expect(document.querySelector("[data-plannotator-print-layer]")).toBeNull();
+        expect(document.querySelector("[data-hypermark-print-layer]")).toBeNull();
       } finally {
         (Range.prototype as { getClientRects: typeof originalGetClientRects }).getClientRects =
           originalGetClientRects;
       }
     });
     // The injected CSS guards the layer against ever painting on screen.
-    expect(ANNOTATION_HIGHLIGHT_CSS).toContain("[data-plannotator-print-layer]");
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    expect(ANNOTATION_HIGHLIGHT_CSS).toContain("[data-hypermark-print-layer]");
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
   test("clicking a committed highlight selects its annotation (M5 click-to-select)", async () => {
     document.body.innerHTML = "<p>big highlight target</p><p>small nested note</p>";
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
     const originalGetClientRects = Range.prototype.getClientRects;
     const originalBodyRect = document.body.getBoundingClientRect;
     document.body.getBoundingClientRect = () => rectOf(0, 0, 1024, 768);
@@ -2683,14 +2683,14 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     };
     try {
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "click-big",
         originalText: "big highlight target",
         annotationType: "comment",
       });
       await flushOverlay();
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "click-small",
         originalText: "small nested note",
         annotationType: "comment",
@@ -2699,32 +2699,32 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
 
       // Inside both rects: the smallest highlight wins the overlap.
       const overlapping = await collectMessages(
-        ["plannotator-bridge-mark-click"],
+        ["hypermark-bridge-mark-click"],
         () => clickBody(50, 25),
       );
       expect(overlapping).toEqual([
-        { type: "plannotator-bridge-mark-click", id: "click-small" },
+        { type: "hypermark-bridge-mark-click", id: "click-small" },
       ]);
 
       // Inside only the big rect.
       const bigOnly = await collectMessages(
-        ["plannotator-bridge-mark-click"],
+        ["hypermark-bridge-mark-click"],
         () => clickBody(200, 90),
       );
       expect(bigOnly).toEqual([
-        { type: "plannotator-bridge-mark-click", id: "click-big" },
+        { type: "hypermark-bridge-mark-click", id: "click-big" },
       ]);
 
       // Outside every rect: page clicks pass through untouched.
       const missed = await collectMessages(
-        ["plannotator-bridge-mark-click"],
+        ["hypermark-bridge-mark-click"],
         () => clickBody(600, 600),
       );
       expect(missed.length).toBe(0);
 
       // Shift-clicks belong to multi-select, never click-to-select.
       const shifted = await collectMessages(
-        ["plannotator-bridge-mark-click"],
+        ["hypermark-bridge-mark-click"],
         () => clickBody(50, 25, true),
       );
       expect(shifted.length).toBe(0);
@@ -2733,7 +2733,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
         originalGetClientRects;
       document.body.getBoundingClientRect = originalBodyRect;
     }
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -2751,7 +2751,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       // whose containing-block chain skips the clipper.
       fixedEl.getBoundingClientRect = () => rectOf(300, 300, 200, 50);
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "fixed-ann",
         originalText: "Text that exists nowhere on this page",
         annotationType: "comment",
@@ -2763,18 +2763,18 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       // Same geometry with static positioning: the clipper applies and the
       // detached marker is omitted (clip-container omission preserved).
       fixedEl.style.position = "";
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       expect(markersFor("fixed-ann").length).toBe(0);
 
       // contain:layout makes the clipper a fixed containing block: its
       // overflow clipping then APPLIES to the fixed target again (5a).
       fixedEl.style.position = "fixed";
       wrap.style.contain = "layout";
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       expect(markersFor("fixed-ann").length).toBe(0);
       wrap.style.contain = "";
     });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -2788,7 +2788,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       clipwrap.getBoundingClientRect = () => rectOf(0, 0, 200, 100);
       clippedEl.getBoundingClientRect = () => rectOf(0, 150, 200, 50); // scrolled past the edge
       postBridge({
-        type: "plannotator-bridge-find-and-mark",
+        type: "hypermark-bridge-find-and-mark",
         id: "clip-omit",
         originalText: "Text that exists nowhere on this page",
         annotationType: "comment",
@@ -2798,10 +2798,10 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       expect(markersFor("clip-omit").length).toBe(0);
 
       clippedEl.getBoundingClientRect = () => rectOf(0, 20, 200, 50); // scrolled back in
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       expect(markersFor("clip-omit").length).toBe(1);
     });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -2819,7 +2819,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       ];
       try {
         postBridge({
-          type: "plannotator-bridge-find-and-mark",
+          type: "hypermark-bridge-find-and-mark",
           id: "redline-ann",
           originalText: "Redline paragraph text",
           annotationType: "deletion",
@@ -2835,7 +2835,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
           originalGetClientRects;
       }
     });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -2843,7 +2843,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     document.body.innerHTML =
       '<div id="m10-a">First</div><div data-testid="m10-b">Second</div>';
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "dedup-ann",
       originalText: "Text that exists nowhere on this page",
       annotationType: "comment",
@@ -2857,17 +2857,17 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     // one marker may render (coincident same-number markers would spread).
     document.body.innerHTML = '<div id="m10-a" data-testid="m10-b">Merged</div>';
     bumpDomGeneration();
-    postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+    postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
     expect(markersFor("dedup-ann").length).toBe(1);
 
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
   test("clear-marks clears synced numbering (m11)", async () => {
     document.body.innerHTML = '<div id="renum">Target</div>';
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "renum-ann",
       originalText: "Text that exists nowhere on this page",
       annotationType: "comment",
@@ -2875,16 +2875,16 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     });
     await flushOverlay();
     postBridge({
-      type: "plannotator-bridge-sync-annotations",
+      type: "hypermark-bridge-sync-annotations",
       annotations: [{ id: "renum-ann", number: 7 }],
     });
     expect(markerNumber(markersFor("renum-ann")[0]!)).toBe("7");
 
     // clear-marks then re-register the SAME id: the stale synced number must
     // not leak — fallback numbering restarts at 1.
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "renum-ann",
       originalText: "Text that exists nowhere on this page",
       annotationType: "comment",
@@ -2893,7 +2893,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     await flushOverlay();
     expect(markerNumber(markersFor("renum-ann")[0]!)).toBe("1");
 
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -2907,7 +2907,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
         rects;
       try {
         postBridge({
-          type: "plannotator-bridge-find-and-mark",
+          type: "hypermark-bridge-find-and-mark",
           id: "long-ann",
           originalText: "Long wrapped selection",
           annotationType: "comment",
@@ -2929,14 +2929,14 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
           originalGetClientRects;
       }
     });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
   test("pinpoint hover over a placed marker advertises the marker, not the element beneath (m6)", async () => {
     document.body.innerHTML = '<p id="under">Beneath paragraph</p><div id="m6-t">Marked</div>';
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "hover-ann",
       originalText: "Text that exists nowhere on this page",
       annotationType: "comment",
@@ -2944,7 +2944,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     });
     await flushOverlay();
     postBridge({
-      type: "plannotator-bridge-sync-annotations",
+      type: "hypermark-bridge-sync-annotations",
       annotations: [{ id: "hover-ann", number: 3 }],
     });
     const markerBtn = markersFor("hover-ann")[0];
@@ -2953,14 +2953,14 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     (document as { elementFromPoint: typeof document.elementFromPoint }).elementFromPoint = () =>
       markerBtn as unknown as Element;
     try {
-      postBridge({ type: "plannotator-bridge-set-input-method", method: "pinpoint" });
+      postBridge({ type: "hypermark-bridge-set-input-method", method: "pinpoint" });
       hoverAt(document.body, 60, 60);
       // Hover shows the MARKER's identity (the click selects its comment)…
-      const label = document.querySelector<HTMLElement>("[data-plannotator-pinpoint-label]");
+      const label = document.querySelector<HTMLElement>("[data-hypermark-pinpoint-label]");
       expect(label?.style.display).toBe("block");
       expect(label?.textContent).toBe("Comment 3");
       // …with no annotate affordance for the element beneath.
-      const box = document.querySelector<HTMLElement>("[data-plannotator-pinpoint-box]");
+      const box = document.querySelector<HTMLElement>("[data-hypermark-pinpoint-box]");
       expect(box?.style.display ?? "none").toBe("none");
       // m8: the label paints AFTER the overlay host (equal z-index resolves
       // by DOM order), so marker bubbles can never occlude it.
@@ -2980,8 +2980,8 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       (document as { elementFromPoint: typeof document.elementFromPoint }).elementFromPoint =
         originalElementFromPoint;
     }
-    postBridge({ type: "plannotator-bridge-set-input-method", method: "drag" });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-set-input-method", method: "drag" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -3000,7 +3000,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
         rects;
       try {
         postBridge({
-          type: "plannotator-bridge-find-and-mark",
+          type: "hypermark-bridge-find-and-mark",
           id: "huge-ann",
           originalText: "Huge wrapped selection",
           annotationType: "comment",
@@ -3022,7 +3022,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
           originalGetClientRects;
       }
     });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -3039,7 +3039,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
 
     document.body.innerHTML = "<p>Body swap text</p>";
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "swap-ann",
       originalText: "Body swap text",
       annotationType: "comment",
@@ -3060,7 +3060,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       addedNodes: [document.body] as unknown as NodeList,
       removedNodes: [] as unknown as NodeList,
     }]);
-    postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+    postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
     expect(
       visibleHighlights("pn-hl-comment").some(
         (el) => el.getAttribute("data-annotation-id") === "swap-ann",
@@ -3086,8 +3086,8 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
         addedNodes: [host] as unknown as NodeList,
         removedNodes: [] as unknown as NodeList,
       }]);
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       expect(sweeps).toBe(0);
     } finally {
       (document as { createTreeWalker: typeof document.createTreeWalker }).createTreeWalker =
@@ -3105,14 +3105,14 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       addedNodes: [document.body] as unknown as NodeList,
       removedNodes: [] as unknown as NodeList,
     }]);
-    postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+    postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
     expect(
       visibleHighlights("pn-hl-comment").some(
         (el) => el.getAttribute("data-annotation-id") === "swap-ann",
       ),
     ).toBe(true);
 
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 
@@ -3120,7 +3120,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
     document.body.innerHTML =
       '<div id="m10-a">First</div><div data-testid="m10-b">Second</div>';
     postBridge({
-      type: "plannotator-bridge-find-and-mark",
+      type: "hypermark-bridge-find-and-mark",
       id: "dedup-vis",
       originalText: "Text that exists nowhere on this page",
       annotationType: "comment",
@@ -3143,7 +3143,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       wrap.getBoundingClientRect = () => rectOf(100, 0, 100, 100);
       merged.getBoundingClientRect = () => rectOf(0, 0, 200, 50);
       bumpDomGeneration();
-      postBridge({ type: "plannotator-bridge-sync-annotations", annotations: [] });
+      postBridge({ type: "hypermark-bridge-sync-annotations", annotations: [] });
       const dedupMarkers = markersFor("dedup-vis");
       expect(dedupMarkers.length).toBe(1);
       // The SECOND target's point (x 0.75 -> 150px) survived; y 25 clamps
@@ -3151,7 +3151,7 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
       expect(dedupMarkers[0]!.style.left).toBe("150px");
       expect(dedupMarkers[0]!.style.top).toBe("29px");
     });
-    postBridge({ type: "plannotator-bridge-clear-marks" });
+    postBridge({ type: "hypermark-bridge-clear-marks" });
     document.body.replaceChildren();
   });
 });

@@ -185,7 +185,7 @@ function getLanguagePackageRoot(runtimeDir: string, language: CallFlowLanguageDe
 }
 
 function getLanguageLockMarker(runtimeDir: string, id: CallFlowLanguageId): string {
-  return join(getCallFlowGrammarCacheDir(runtimeDir), ".plannotator-locks", `${id}.json`);
+  return join(getCallFlowGrammarCacheDir(runtimeDir), ".hypermark-locks", `${id}.json`);
 }
 
 function packHasCommittedLock(runtimeDir: string, id: Exclude<CallFlowLanguageId, "javascript-typescript">): boolean {
@@ -675,7 +675,7 @@ for (const file of request.files) mod.extractFunctions(file, "");
 function ensureGrammarCacheManifest(cacheDir: string): void {
   mkdirSync(cacheDir, { recursive: true });
   writeFileSync(join(cacheDir, "package.json"), runtimeJson({
-    name: "plannotator-calldiff-grammar-cache",
+    name: "hypermark-calldiff-grammar-cache",
     private: true,
   }), "utf8");
 }
@@ -1075,7 +1075,7 @@ function grammarChecksForLanguages(runtime: CallFlowRuntime, ids: readonly CallF
 }
 
 async function createNpmBlocker(): Promise<{ path: string; cleanup: () => void }> {
-  const root = await mkdtemp(join(tmpdir(), "plannotator-call-flow-path-"));
+  const root = await mkdtemp(join(tmpdir(), "hypermark-call-flow-path-"));
   if (process.platform === "win32") {
     writeFileSync(join(root, "npm.cmd"), "@echo CallDiff package installation is disabled during analysis. 1>&2\r\n@exit /b 91\r\n", "utf8");
     writeFileSync(join(root, "npm.exe"), "", "utf8");

@@ -56,7 +56,7 @@ describe("file browser watcher responsiveness (#1313)", () => {
 	test.skipIf(process.platform === "linux")(
 		"the event loop stays responsive while a large tree's watcher warms",
 		async () => {
-			const root = mkdtempSync(join(tmpdir(), "plannotator-watch-large-"));
+			const root = mkdtempSync(join(tmpdir(), "hypermark-watch-large-"));
 			tempDirs.push(root);
 			buildLargeTree(root);
 
@@ -103,7 +103,7 @@ describe("file browser watcher responsiveness (#1313)", () => {
 			};
 		}).__fileBrowserWatchTestHooks;
 		if (!hooks) throw new Error("test hooks missing");
-		const root = mkdtempSync(join(tmpdir(), "plannotator-watch-fallback-"));
+		const root = mkdtempSync(join(tmpdir(), "hypermark-watch-fallback-"));
 		tempDirs.push(root);
 		buildLargeTree(root);
 

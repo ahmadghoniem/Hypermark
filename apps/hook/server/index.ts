@@ -20,7 +20,7 @@
  *
  * 4. Archive (`hypermark archive`):
  *    - Opens read-only browser for saved plan decisions
- *    - Lists plans from ~/.plannotator/plans/ with status badges
+ *    - Lists plans from ~/.hypermark/plans/ with status badges
  *    - Done button closes the browser
  *
  * 5. Sessions (`hypermark sessions`):
@@ -54,7 +54,7 @@
  *
  * 12. Improve Context (`hypermark improve-context`):
  *    - Spawned by PreToolUse hook on EnterPlanMode
- *    - Reads improvement hook file from ~/.plannotator/hooks/
+ *    - Reads improvement hook file from ~/.hypermark/hooks/
  *    - Returns additionalContext or silently passes through
  *
  * 13. Uninstall (`hypermark uninstall`):
@@ -70,7 +70,7 @@
  *   HYPERMARK_REMOTE - Set to "1"/"true" for remote, "0"/"false" for local
  *   HYPERMARK_PORT   - Fixed port to use (default: random locally, 19432 for remote)
  *
- * The former PLANNOTATOR_* names still work as deprecated aliases; see
+ * The former HYPERMARK_* names still work as deprecated aliases; see
  * `@hypermark/shared/env-aliases` for the precedence rule. The import below is
  * first on purpose — it must run before any module reads configuration.
  */
@@ -253,7 +253,7 @@ if (tailscaleFlag) {
   }
   if (isRemoteSession()) {
     process.stderr.write(
-      "[plannotator] --tailscale keeps the server loopback-bound behind `tailscale serve`; ignoring remote mode (HYPERMARK_REMOTE/SSH detection) for this session.\n",
+      "[hypermark] --tailscale keeps the server loopback-bound behind `tailscale serve`; ignoring remote mode (HYPERMARK_REMOTE/SSH detection) for this session.\n",
     );
   }
   process.env.HYPERMARK_REMOTE = "0";
@@ -786,7 +786,7 @@ if (args[0] === "sessions") {
         const suffix = Math.random().toString(36).slice(2, 8);
         // Resolve tmpdir to its real path — on macOS, tmpdir() returns /var/folders/...
         // but processes report /private/var/folders/... which breaks path stripping.
-        sessionDir = path.join(realpathSync(tmpdir()), `plannotator-pr-${identifier}-${suffix}`);
+        sessionDir = path.join(realpathSync(tmpdir()), `hypermark-pr-${identifier}-${suffix}`);
         const prNumber = prMetadata.platform === "github" ? prMetadata.number : prMetadata.iid;
         localPath = path.join(sessionDir, "pool", `pr-${prNumber}`);
         const fetchRefStr = prMetadata.platform === "github"

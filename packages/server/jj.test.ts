@@ -119,7 +119,7 @@ describe("jj runtime output ceiling", () => {
   });
 
   testIfJj("stops reading and flags truncation once maxOutputBytes is passed", async () => {
-    workspace = mkdtempSync(join(tmpdir(), "plannotator-jj-cap-"));
+    workspace = mkdtempSync(join(tmpdir(), "hypermark-jj-cap-"));
     const jj = (args: string[]) => {
       const result = Bun.spawnSync(["jj", ...args], { cwd: workspace, stdout: "pipe", stderr: "pipe" });
       if (result.exitCode !== 0) throw new Error(result.stderr.toString());

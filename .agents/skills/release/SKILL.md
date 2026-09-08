@@ -196,9 +196,9 @@ Verify all builds succeed before proceeding.
    ```bash
    tag=vX.Y.Z
    version="${tag#v}"
-   gh release download "$tag" --pattern 'hypermark-linux-x64*' --pattern "plannotator-${version}-release-sbom.cdx.json*" --dir /tmp/hypermark-release-verify
+   gh release download "$tag" --pattern 'hypermark-linux-x64*' --pattern "hypermark-${version}-release-sbom.cdx.json*" --dir /tmp/hypermark-release-verify
    (cd /tmp/hypermark-release-verify && sha256sum --check hypermark-linux-x64.sha256)
-   (cd /tmp/hypermark-release-verify && sha256sum --check "plannotator-${version}-release-sbom.cdx.json.sha256")
+   (cd /tmp/hypermark-release-verify && sha256sum --check "hypermark-${version}-release-sbom.cdx.json.sha256")
 
    gh attestation verify /tmp/hypermark-release-verify/hypermark-linux-x64 \
      --repo ahmadghoniem/Hypermark \

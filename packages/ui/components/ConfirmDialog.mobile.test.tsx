@@ -55,7 +55,7 @@ describe('ConfirmDialog mobile foundation', () => {
   test.skipIf(!hasDom)('uses the safe visible viewport and touch-safe actions', async () => {
     await mount(<Harness showCancel />);
 
-    const popup = document.querySelector<HTMLElement>('[data-plannotator-confirm-dialog="true"]');
+    const popup = document.querySelector<HTMLElement>('[data-hypermark-confirm-dialog="true"]');
     const overlay = document.querySelector<HTMLElement>('.pn-visible-viewport-overlay');
     const actions = Array.from(
       document.querySelectorAll<HTMLButtonElement>('[data-pn-touch-target="true"]'),
@@ -86,7 +86,7 @@ describe('ConfirmDialog mobile foundation', () => {
     });
 
     expect(onClose).toHaveBeenCalledTimes(1);
-    expect(document.querySelector('[data-plannotator-confirm-dialog]')).toBeNull();
+    expect(document.querySelector('[data-hypermark-confirm-dialog]')).toBeNull();
     expect(document.activeElement).toBe(prior);
   });
 
@@ -102,7 +102,7 @@ describe('ConfirmDialog mobile foundation', () => {
     });
 
     expect(onClose).not.toHaveBeenCalled();
-    expect(document.querySelector('[data-plannotator-confirm-dialog]')).not.toBeNull();
+    expect(document.querySelector('[data-hypermark-confirm-dialog]')).not.toBeNull();
   });
 
   test.skipIf(!hasDom)('keeps the established command-enter confirmation shortcut', async () => {

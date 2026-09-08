@@ -2,7 +2,7 @@
  * Hypermark Flavored Markdown reminder.
  *
  * Static prose injected into the EnterPlanMode PreToolUse hook when the user
- * has opted in via `pfmReminder: true` in ~/.plannotator/config.json. It tells
+ * has opted in via `pfmReminder: true` in ~/.hypermark/config.json. It tells
  * the planning agent which markdown extensions Hypermark's viewer renders so
  * plans can be enriched with code-file links, callouts, tables, diagrams, etc.
  *

@@ -181,7 +181,7 @@ describe('HtmlViewer consumer props', () => {
     window.dispatchEvent(new MessageEvent('message', {
       source: iframe.contentWindow,
       data: {
-        type: 'plannotator-bridge-selection',
+        type: 'hypermark-bridge-selection',
         text: 'raw document',
         rect: { top: 10, left: 10, width: 100, height: 20 },
         modeOverride,

@@ -8,7 +8,7 @@
 import { storage } from './storage';
 import type { EditorMode } from '../types';
 
-const STORAGE_KEY = 'plannotator-editor-mode';
+const STORAGE_KEY = 'hypermark-editor-mode';
 
 const DEFAULT_MODE: EditorMode = 'selection';
 

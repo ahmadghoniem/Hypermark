@@ -8,8 +8,8 @@ import {
   type EditModeAnnouncementGateState,
 } from './editModeAnnouncement';
 
-const SEEN_KEY = 'plannotator-edit-mode-announcement-seen';
-const SETTING_KEY = 'plannotator-experimental-edit-suggestions';
+const SEEN_KEY = 'hypermark-edit-mode-announcement-seen';
+const SETTING_KEY = 'hypermark-experimental-edit-suggestions';
 let stored: Map<string, string>;
 
 describe('Edit Mode announcement persistence', () => {

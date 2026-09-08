@@ -152,7 +152,7 @@ hypermark improve-context
 | `HYPERMARK_ORIGIN` | Override agent-origin detection (`claude-code`, `codex`, `opencode`, `pi`, `oh-my-pi`, `amp`, `droid`, `copilot-cli`, `gemini-cli`, `kiro-cli`). Set it when launching Hypermark from a wrapper the detection cannot see through. |
 | `HYPERMARK_AI=disabled` | Disable Ask AI and agent-launched review surfaces in the UI. |
 | `HYPERMARK_SHARE=disabled` | Disable URL sharing. |
-| `HYPERMARK_DATA_DIR` | Move the data directory (default `~/.plannotator`): plans, history, drafts, config. |
+| `HYPERMARK_DATA_DIR` | Move the data directory (default `~/.hypermark`): plans, history, drafts, config. |
 | `HYPERMARK_BROWSER` | Open sessions in a specific browser. |
 
 ## Posting annotations into a live session

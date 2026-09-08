@@ -196,7 +196,7 @@ export function parseDiffFilePathLines(lines: string[]): DiffPathPair {
  * extended-header lines, and @pierre/diffs parses the stub identically with or
  * without it.
  */
-export const OVERSIZED_REVIEW_STUB_MARKER = "#plannotator-oversized-file";
+export const OVERSIZED_REVIEW_STUB_MARKER = "#hypermark-oversized-file";
 
 /**
  * Human-readable form of the cap for UI copy. The authoritative byte value is

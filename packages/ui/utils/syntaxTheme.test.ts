@@ -13,9 +13,9 @@ describe('SHIKI_THEME_MAP', () => {
       'ayu-dark',
       'catppuccin',
       'github',
+      'hypermark',
       'one-dark-pro',
       'pierre',
-      'plannotator',
       'tokyo-night',
     ]);
   });
@@ -65,16 +65,16 @@ describe('resolveSyntaxTheme', () => {
     });
   });
 
-  test('names Pierre\x27s syntax themes explicitly for plannotator', () => {
+  test('names Pierre\x27s syntax themes explicitly for hypermark', () => {
     // Hypermark does render in Pierre's syntax themes, but it says so as
     // palette DATA rather than reaching them by falling out of the map: spec 03
     // requires syntax to be explicit for every supported palette and mode, and
     // a key present in the map but resolving to nothing is not a mapping.
-    expect(resolveSyntaxTheme('plannotator', 'dark')).toEqual({
+    expect(resolveSyntaxTheme('hypermark', 'dark')).toEqual({
       dark: 'pierre-dark',
       light: 'pierre-light',
     });
-    expect(resolveSyntaxTheme('plannotator', 'light')).toEqual({
+    expect(resolveSyntaxTheme('hypermark', 'light')).toEqual({
       dark: 'pierre-dark',
       light: 'pierre-light',
     });
@@ -106,9 +106,9 @@ describe('resolveFenceTheme', () => {
     expect(resolveFenceTheme('tokyo-night', 'dark')).toBe('tokyo-night');
   });
 
-  test('falls back to Pierre defaults for plannotator', () => {
-    expect(resolveFenceTheme('plannotator', 'dark')).toBe(DEFAULT_SYNTAX_THEME.dark);
-    expect(resolveFenceTheme('plannotator', 'light')).toBe(DEFAULT_SYNTAX_THEME.light);
+  test('falls back to Pierre defaults for hypermark', () => {
+    expect(resolveFenceTheme('hypermark', 'dark')).toBe(DEFAULT_SYNTAX_THEME.dark);
+    expect(resolveFenceTheme('hypermark', 'light')).toBe(DEFAULT_SYNTAX_THEME.light);
   });
 
   test('dark-only palettes in light mode fall back to Pierre Light', () => {

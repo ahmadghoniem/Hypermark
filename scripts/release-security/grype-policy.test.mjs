@@ -115,9 +115,9 @@ function vexStatement(overrides = {}) {
     impact_statement: "The vulnerable entry point is not included in the shipped bundle.",
     timestamp: "2026-08-01T00:00:00Z",
     status_notes: [
-      "plannotator-owner: security-maintainers",
-      "plannotator-evidence: https://github.com/backnotprop/plannotator/issues/1234",
-      "plannotator-expires: 2026-09-01",
+      "hypermark-owner: security-maintainers",
+      "hypermark-evidence: https://github.com/backnotprop/plannotator/issues/1234",
+      "hypermark-expires: 2026-09-01",
     ].join("\n"),
     ...overrides,
   };

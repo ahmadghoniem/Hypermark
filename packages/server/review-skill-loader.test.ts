@@ -68,7 +68,7 @@ function writeSkill(root: string, name: string, body = `# ${name}\n\ninstruction
 
 
 beforeEach(() => {
-  const base = mkdtempSync(join(tmpdir(), "plannotator-skills-"));
+  const base = mkdtempSync(join(tmpdir(), "hypermark-skills-"));
   home = join(base, "home");
   dataDir = join(base, "data");
   mkdirSync(home, { recursive: true });

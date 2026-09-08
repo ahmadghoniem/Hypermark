@@ -15,8 +15,8 @@
 
 import { storage } from './storage';
 
-const STORAGE_KEY = 'plannotator-agent-switch';
-const CUSTOM_NAME_KEY = 'plannotator-agent-custom';
+const STORAGE_KEY = 'hypermark-agent-switch';
+const CUSTOM_NAME_KEY = 'hypermark-agent-custom';
 
 // AgentSwitchOption is now a string to support dynamic agent names from OpenCode
 export type AgentSwitchOption = string;

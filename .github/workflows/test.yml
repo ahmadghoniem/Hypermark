@@ -469,7 +469,7 @@ jobs:
       - name: Config opt-in resolves HYPERMARK_DATA_DIR tilde paths
         shell: pwsh
         run: |
-          $configDir = Join-Path $env:USERPROFILE "plannotator-ci-config"
+          $configDir = Join-Path $env:USERPROFILE "hypermark-ci-config"
           New-Item -ItemType Directory -Force -Path $configDir | Out-Null
           Set-Content -Path (Join-Path $configDir "config.json") -Value '{ "verifyAttestation": true }' -NoNewline
 
@@ -480,7 +480,7 @@ jobs:
           $baselineHash = (Get-FileHash $installedBinary -Algorithm SHA256).Hash
           $baselineWriteTime = (Get-Item $installedBinary).LastWriteTime
 
-          $env:HYPERMARK_DATA_DIR = '~\plannotator-ci-config'
+          $env:HYPERMARK_DATA_DIR = '~\hypermark-ci-config'
           $stderrFile = New-TemporaryFile
           $p = Start-Process -Wait -PassThru -NoNewWindow pwsh `
             -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','.\scripts\install.ps1','v0.17.1' `
@@ -489,7 +489,7 @@ jobs:
           Remove-Item $stderrFile.FullName -ErrorAction SilentlyContinue
 
           if ($p.ExitCode -eq 0) {
-            throw "install.ps1 should have found config.json via HYPERMARK_DATA_DIR=~\plannotator-ci-config and rejected v0.17.1, but exited 0."
+            throw "install.ps1 should have found config.json via HYPERMARK_DATA_DIR=~\hypermark-ci-config and rejected v0.17.1, but exited 0."
           }
           if ($stderr -notmatch 'predates') {
             throw "install.ps1 exited $($p.ExitCode), but not via the expected attestation pre-flight. Expected 'predates' in stderr, got: $stderr"

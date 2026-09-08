@@ -260,7 +260,7 @@ describe("completeAnnotateCommand", () => {
     // Real publisher, real filesystem: a destination whose parent directory does
     // not exist is the cheap stand-in for the filesystems where publication
     // fails outright (no hard links on exFAT/FAT32/SMB, read-only mounts).
-    const directory = await mkdtemp(join(tmpdir(), "plannotator-publish-"));
+    const directory = await mkdtemp(join(tmpdir(), "hypermark-publish-"));
     const stdout: string[] = [];
     const errors: string[] = [];
     const codes: number[] = [];

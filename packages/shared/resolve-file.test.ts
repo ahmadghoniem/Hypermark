@@ -21,7 +21,7 @@ const NO_EXTRAS = { extraMarkdownExtensions: [] as const };
 let root: string;
 
 beforeAll(() => {
-	root = mkdtempSync(join(tmpdir(), "plannotator-resolve-"));
+	root = mkdtempSync(join(tmpdir(), "hypermark-resolve-"));
 	mkdirSync(join(root, "packages/editor"), { recursive: true });
 	mkdirSync(join(root, "packages/review-editor"), { recursive: true });
 	mkdirSync(join(root, "packages/ui/components"), { recursive: true });
@@ -147,7 +147,7 @@ describe("bounded file traversal", () => {
 	});
 
 	test("caps the async code-file cache warm", async () => {
-		const limitedRoot = mkdtempSync(join(tmpdir(), "plannotator-code-limit-"));
+		const limitedRoot = mkdtempSync(join(tmpdir(), "hypermark-code-limit-"));
 		const previousLimit = process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 		try {
 			for (let index = 0; index < 5; index += 1) {
@@ -169,7 +169,7 @@ describe("bounded file traversal", () => {
 	});
 
 	test("caps fallback markdown discovery", () => {
-		const limitedRoot = mkdtempSync(join(tmpdir(), "plannotator-markdown-limit-"));
+		const limitedRoot = mkdtempSync(join(tmpdir(), "hypermark-markdown-limit-"));
 		const previousLimit = process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 		try {
 			for (const directory of ["one", "two", "three"]) {
@@ -194,7 +194,7 @@ describe("bounded file traversal", () => {
 	});
 
 	test("caps folder-target discovery even when no files match", () => {
-		const limitedRoot = mkdtempSync(join(tmpdir(), "plannotator-folder-limit-"));
+		const limitedRoot = mkdtempSync(join(tmpdir(), "hypermark-folder-limit-"));
 		const previousLimit = process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 		class CountingRegExp extends RegExp {
 			calls = 0;
@@ -225,8 +225,8 @@ describe("bounded file traversal", () => {
 	});
 
 	test("keeps exact and in-budget bare markdown resolution working", () => {
-		const exactRoot = mkdtempSync(join(tmpdir(), "plannotator-markdown-exact-"));
-		const bareRoot = mkdtempSync(join(tmpdir(), "plannotator-markdown-bare-"));
+		const exactRoot = mkdtempSync(join(tmpdir(), "hypermark-markdown-exact-"));
+		const bareRoot = mkdtempSync(join(tmpdir(), "hypermark-markdown-bare-"));
 		const previousLimit = process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 		try {
 			mkdirSync(join(exactRoot, "docs"));
@@ -257,7 +257,7 @@ describe("bounded file traversal", () => {
 
 describe("explicit parent-relative markdown paths (#1085)", () => {
 	test("resolves a ../ path that escapes the project root", () => {
-		const parent = mkdtempSync(join(tmpdir(), "plannotator-md-parent-"));
+		const parent = mkdtempSync(join(tmpdir(), "hypermark-md-parent-"));
 		try {
 			mkdirSync(join(parent, "docs", "radio"), { recursive: true });
 			writeFileSync(join(parent, "docs", "radio", "plan.md"), "# Plan\n");
@@ -274,7 +274,7 @@ describe("explicit parent-relative markdown paths (#1085)", () => {
 	});
 
 	test("resolves a ./ explicit path within the root", () => {
-		const cwd = mkdtempSync(join(tmpdir(), "plannotator-md-dot-"));
+		const cwd = mkdtempSync(join(tmpdir(), "hypermark-md-dot-"));
 		try {
 			mkdirSync(join(cwd, "sub"));
 			writeFileSync(join(cwd, "sub", "notes.md"), "# Notes\n");
@@ -288,7 +288,7 @@ describe("explicit parent-relative markdown paths (#1085)", () => {
 	});
 
 	test("a bare filename does NOT escape into a parent directory", () => {
-		const parent = mkdtempSync(join(tmpdir(), "plannotator-md-bare-esc-"));
+		const parent = mkdtempSync(join(tmpdir(), "hypermark-md-bare-esc-"));
 		try {
 			writeFileSync(join(parent, "secret.md"), "# Parent\n");
 			const cwd = join(parent, "work");
@@ -303,7 +303,7 @@ describe("explicit parent-relative markdown paths (#1085)", () => {
 	});
 
 	test("a ../ path to a missing file is still not_found", () => {
-		const cwd = mkdtempSync(join(tmpdir(), "plannotator-md-missing-"));
+		const cwd = mkdtempSync(join(tmpdir(), "hypermark-md-missing-"));
 		try {
 			expect(resolveMarkdownFile("../nope/absent.md", cwd, NO_EXTRAS)).toEqual({
 				kind: "not_found",
@@ -317,7 +317,7 @@ describe("explicit parent-relative markdown paths (#1085)", () => {
 
 describe("annotatable plain-text files (#1029)", () => {
 	test("resolves an exact relative .yaml path", () => {
-		const cwd = mkdtempSync(join(tmpdir(), "plannotator-annotatable-yaml-"));
+		const cwd = mkdtempSync(join(tmpdir(), "hypermark-annotatable-yaml-"));
 		try {
 			mkdirSync(join(cwd, "config"));
 			writeFileSync(join(cwd, "config", "app.yaml"), "key: value\n");
@@ -331,7 +331,7 @@ describe("annotatable plain-text files (#1029)", () => {
 	});
 
 	test("resolves a bare filename in-root for a config format", () => {
-		const cwd = mkdtempSync(join(tmpdir(), "plannotator-annotatable-bare-"));
+		const cwd = mkdtempSync(join(tmpdir(), "hypermark-annotatable-bare-"));
 		try {
 			mkdirSync(join(cwd, "nested"));
 			writeFileSync(join(cwd, "nested", "Cargo.toml"), "[package]\n");
@@ -345,7 +345,7 @@ describe("annotatable plain-text files (#1029)", () => {
 	});
 
 	test("accepts each newly supported extension", () => {
-		const cwd = mkdtempSync(join(tmpdir(), "plannotator-annotatable-all-"));
+		const cwd = mkdtempSync(join(tmpdir(), "hypermark-annotatable-all-"));
 		try {
 			const names = [
 				"a.yaml", "b.yml", "c.json", "d.jsonc", "e.json5", "f.toml",
@@ -367,7 +367,7 @@ describe("annotatable plain-text files (#1029)", () => {
 	});
 
 	test("still rejects source-code extensions", () => {
-		const cwd = mkdtempSync(join(tmpdir(), "plannotator-annotatable-code-"));
+		const cwd = mkdtempSync(join(tmpdir(), "hypermark-annotatable-code-"));
 		try {
 			writeFileSync(join(cwd, "script.py"), "print('hi')\n");
 			expect(resolveMarkdownFile("script.py", cwd, NO_EXTRAS)).toEqual({
@@ -380,7 +380,7 @@ describe("annotatable plain-text files (#1029)", () => {
 	});
 
 	test("rejects .env but accepts .env.example", () => {
-		const cwd = mkdtempSync(join(tmpdir(), "plannotator-annotatable-env-"));
+		const cwd = mkdtempSync(join(tmpdir(), "hypermark-annotatable-env-"));
 		try {
 			writeFileSync(join(cwd, ".env"), "SECRET=1\n");
 			writeFileSync(join(cwd, ".env.example"), "SECRET=\n");
@@ -401,7 +401,7 @@ describe("annotatable plain-text files (#1029)", () => {
 	// resolvable everywhere .md is. The list is threaded in explicitly here so
 	// the test never touches the user's real config.json.
 	test("configured extra extensions resolve like markdown, and only when configured", () => {
-		const cwd = mkdtempSync(join(tmpdir(), "plannotator-livemd-"));
+		const cwd = mkdtempSync(join(tmpdir(), "hypermark-livemd-"));
 		try {
 			mkdirSync(join(cwd, "notebooks"), { recursive: true });
 			writeFileSync(join(cwd, "notebooks/tour.livemd"), "# Tour\n");

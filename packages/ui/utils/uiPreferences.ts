@@ -1,8 +1,8 @@
 import { storage } from './storage';
 
-const STORAGE_KEY_TOC = 'plannotator-toc-enabled';
-const STORAGE_KEY_STICKY_ACTIONS = 'plannotator-sticky-actions-enabled';
-const STORAGE_KEY_PLAN_WIDTH = 'plannotator-plan-width';
+const STORAGE_KEY_TOC = 'hypermark-toc-enabled';
+const STORAGE_KEY_STICKY_ACTIONS = 'hypermark-sticky-actions-enabled';
+const STORAGE_KEY_PLAN_WIDTH = 'hypermark-plan-width';
 
 export type PlanWidth = 'compact' | 'default' | 'wide';
 

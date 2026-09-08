@@ -171,8 +171,8 @@ describe("annotate server: /api/share-html symlink containment", () => {
   // outside it leaked the target's contents into the share payload. (Completes
   // the #927 symlink fix, which hardened the asset sinks but missed this one.)
   test("rejects a symlinked .html that escapes the document directory", async () => {
-    const docDir = mkdtempSync(join(tmpdir(), "plannotator-sharehtml-"));
-    const secretDir = mkdtempSync(join(tmpdir(), "plannotator-secret-"));
+    const docDir = mkdtempSync(join(tmpdir(), "hypermark-sharehtml-"));
+    const secretDir = mkdtempSync(join(tmpdir(), "hypermark-secret-"));
     const secretPath = join(secretDir, "secret.html");
     writeFileSync(secretPath, "SECRET_OUTSIDE_CONTENT", "utf-8");
     symlinkSync(secretPath, join(docDir, "evil.html"));
@@ -246,7 +246,7 @@ describe("annotate server: local rendered-HTML root freshness", () => {
   // realpath so the deleted-file fallback is reachable: containment realpaths
   // the root but keeps a missing target's lexical path, which on a symlinked
   // tmpdir (macOS) would never match.
-  const freshDocDir = (label: string) => realpathSync(mkdtempSync(join(tmpdir(), `plannotator-root-html-${label}-`)));
+  const freshDocDir = (label: string) => realpathSync(mkdtempSync(join(tmpdir(), `hypermark-root-html-${label}-`)));
 
   test("/api/share-html shares the root document's current bytes after the file changes on disk", async () => {
     const pagePath = join(freshDocDir("share"), "page.html");
@@ -484,7 +484,7 @@ describe("annotate server: source save", () => {
   });
 
   test("recreates a deleted single-file source on save", async () => {
-    const docDir = mkdtempSync(join(tmpdir(), "plannotator-source-save-"));
+    const docDir = mkdtempSync(join(tmpdir(), "hypermark-source-save-"));
     const sourcePath = join(docDir, "source.md");
     writeFileSync(sourcePath, "Before\r\n", "utf-8");
 
@@ -520,7 +520,7 @@ describe("annotate server: source save", () => {
   });
 
   test("recreates a missing single-file source when the session started for that path", async () => {
-    const docDir = mkdtempSync(join(tmpdir(), "plannotator-source-save-missing-start-"));
+    const docDir = mkdtempSync(join(tmpdir(), "hypermark-source-save-missing-start-"));
     const sourcePath = join(docDir, "source.md");
 
     const server = await startAnnotateServer({
@@ -565,8 +565,8 @@ describe("annotate server: source save", () => {
   });
 
   test("verifies a saved single-file source opened through a symlink", async () => {
-    const linkDir = mkdtempSync(join(tmpdir(), "plannotator-source-link-"));
-    const realDir = mkdtempSync(join(tmpdir(), "plannotator-source-real-"));
+    const linkDir = mkdtempSync(join(tmpdir(), "hypermark-source-link-"));
+    const realDir = mkdtempSync(join(tmpdir(), "hypermark-source-real-"));
     const realPath = join(realDir, "AGENTS.md");
     const linkPath = join(linkDir, "CLAUDE.md");
     writeFileSync(realPath, "Before\n", "utf-8");
@@ -617,7 +617,7 @@ describe("annotate server: source save", () => {
   });
 
   test("recreates a deleted folder source only after Hypermark opened it", async () => {
-    const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-source-save-"));
+    const folderPath = mkdtempSync(join(tmpdir(), "hypermark-folder-source-save-"));
     const openedPath = join(folderPath, "opened.md");
     const neverOpenedPath = join(folderPath, "never-opened.md");
     writeFileSync(openedPath, "Before\n", "utf-8");
@@ -670,7 +670,7 @@ describe("annotate server: source save", () => {
   });
 
   test("recreates a deleted folder source opened through a relative base link", async () => {
-    const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-relative-source-save-"));
+    const folderPath = mkdtempSync(join(tmpdir(), "hypermark-folder-relative-source-save-"));
     const subDir = join(folderPath, "sub");
     mkdirSync(subDir, { recursive: true });
     const linkedPath = join(folderPath, "linked.md");
@@ -714,8 +714,8 @@ describe("annotate server: source save", () => {
   });
 
   test("serves a folder source through the real root when the folder is symlinked", async () => {
-    const realFolder = mkdtempSync(join(tmpdir(), "plannotator-folder-real-"));
-    const linkParent = mkdtempSync(join(tmpdir(), "plannotator-folder-link-"));
+    const realFolder = mkdtempSync(join(tmpdir(), "hypermark-folder-real-"));
+    const linkParent = mkdtempSync(join(tmpdir(), "hypermark-folder-link-"));
     const linkFolder = join(linkParent, "docs");
     const realPath = join(realFolder, "note.md");
     writeFileSync(realPath, "Before\n", "utf-8");
@@ -742,7 +742,7 @@ describe("annotate server: source save", () => {
   });
 
   test("folder annotate doc lookup stays scoped to the selected folder", async () => {
-    const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-doc-scope-"));
+    const folderPath = mkdtempSync(join(tmpdir(), "hypermark-folder-doc-scope-"));
     const server = await startAnnotateServer({
       markdown: "",
       filePath: folderPath,
@@ -769,7 +769,7 @@ describe("annotate server: source save", () => {
   });
 
   test("does not recreate a deleted folder source from draft state alone", async () => {
-    const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-draft-source-save-"));
+    const folderPath = mkdtempSync(join(tmpdir(), "hypermark-folder-draft-source-save-"));
     const deletedPath = join(realpathSync(folderPath), "deleted.md");
     const sourceSave = {
       enabled: true,
@@ -844,7 +844,7 @@ describe("annotate server: folder annotate history", () => {
     delete process.env.HYPERMARK_PORT;
     process.env.HYPERMARK_REMOTE = "0";
     // Force the toggle on for every test but the one that explicitly flips it
-    // off — a real ~/.plannotator/config.json on the machine running these
+    // off — a real ~/.hypermark/config.json on the machine running these
     // tests must never change the outcome.
     process.env.HYPERMARK_ANNOTATE_HISTORY = "1";
   });
@@ -859,7 +859,7 @@ describe("annotate server: folder annotate history", () => {
   });
 
   // Every test uses its own project namespace (history lives in the real
-  // ~/.plannotator data dir, same as storage.test.ts) so runs never collide.
+  // ~/.hypermark data dir, same as storage.test.ts) so runs never collide.
   // Every minted name is tracked and its history directory removed in
   // afterAll below — this suite must never leave residue in the real data
   // dir (including the stray non-directory file the "unwritable data dir"
@@ -880,7 +880,7 @@ describe("annotate server: folder annotate history", () => {
   });
 
   test("first open mints one version; reopening in the same session is memoized (no re-snapshot even if the file changes on disk)", async () => {
-    const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-history-first-open-"));
+    const folderPath = mkdtempSync(join(tmpdir(), "hypermark-folder-history-first-open-"));
     const docPath = join(folderPath, "note.md");
     writeFileSync(docPath, "V1\n", "utf-8");
     const project = uniqueProject("first-open");
@@ -934,7 +934,7 @@ describe("annotate server: folder annotate history", () => {
   });
 
   test("content matching the latest stored version dedupes (mints nothing) and still serves correct previous-version fields", async () => {
-    const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-history-dedupe-"));
+    const folderPath = mkdtempSync(join(tmpdir(), "hypermark-folder-history-dedupe-"));
     const docPath = join(folderPath, "note.md");
     const project = uniqueProject("dedupe");
 
@@ -978,7 +978,7 @@ describe("annotate server: folder annotate history", () => {
   });
 
   test("cross-mode slug continuity: a version saved via single-file flow is served as the baseline when a folder session opens the same path", async () => {
-    const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-history-cross-mode-"));
+    const folderPath = mkdtempSync(join(tmpdir(), "hypermark-folder-history-cross-mode-"));
     const docPath = join(folderPath, "note.md");
     const project = uniqueProject("cross-mode");
 
@@ -1022,7 +1022,7 @@ describe("annotate server: folder annotate history", () => {
   });
 
   test("first-ever open of a never-annotated path carries no previous version but does report version 1 of 1 (parity with single-file)", async () => {
-    const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-history-never-seen-"));
+    const folderPath = mkdtempSync(join(tmpdir(), "hypermark-folder-history-never-seen-"));
     const docPath = join(folderPath, "note.md");
     writeFileSync(docPath, "Fresh\n", "utf-8");
     const project = uniqueProject("never-seen");
@@ -1053,7 +1053,7 @@ describe("annotate server: folder annotate history", () => {
 
   test("config toggle off: no snapshot, no diff fields, doc still serves", async () => {
     process.env.HYPERMARK_ANNOTATE_HISTORY = "0";
-    const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-history-toggle-off-"));
+    const folderPath = mkdtempSync(join(tmpdir(), "hypermark-folder-history-toggle-off-"));
     const docPath = join(folderPath, "note.md");
     writeFileSync(docPath, "Content\n", "utf-8");
     const project = uniqueProject("toggle-off");
@@ -1085,7 +1085,7 @@ describe("annotate server: folder annotate history", () => {
   });
 
   test("ineligible file type (HTML) serves as today with no snapshot", async () => {
-    const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-history-html-"));
+    const folderPath = mkdtempSync(join(tmpdir(), "hypermark-folder-history-html-"));
     const docPath = join(folderPath, "page.html");
     writeFileSync(docPath, "<html><body>Hi</body></html>", "utf-8");
     const project = uniqueProject("html");
@@ -1117,7 +1117,7 @@ describe("annotate server: folder annotate history", () => {
   });
 
   test("eligibility matches the single-file plain-text set: .mdx mints a snapshot on first open", async () => {
-    const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-history-mdx-"));
+    const folderPath = mkdtempSync(join(tmpdir(), "hypermark-folder-history-mdx-"));
     const docPath = join(folderPath, "note.mdx");
     writeFileSync(docPath, "MDX content\n", "utf-8");
     const project = uniqueProject("mdx");
@@ -1145,7 +1145,7 @@ describe("annotate server: folder annotate history", () => {
   });
 
   test("cross-mode continuity for config formats: a .yaml with single-file history diffs when opened via its folder", async () => {
-    const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-history-yaml-"));
+    const folderPath = mkdtempSync(join(tmpdir(), "hypermark-folder-history-yaml-"));
     const docPath = join(folderPath, "config.yaml");
     const project = uniqueProject("yaml");
 
@@ -1187,7 +1187,7 @@ describe("annotate server: folder annotate history", () => {
   });
 
   test(".env stays ineligible: no snapshot is minted even though .env.example would be", async () => {
-    const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-history-env-"));
+    const folderPath = mkdtempSync(join(tmpdir(), "hypermark-folder-history-env-"));
     const docPath = join(folderPath, ".env");
     writeFileSync(docPath, "SECRET=1\n", "utf-8");
     const project = uniqueProject("env");
@@ -1219,7 +1219,7 @@ describe("annotate server: folder annotate history", () => {
   });
 
   test("an unwritable history directory degrades to a plain render, no error propagates", async () => {
-    const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-history-unwritable-"));
+    const folderPath = mkdtempSync(join(tmpdir(), "hypermark-folder-history-unwritable-"));
     const docPath = join(folderPath, "note.md");
     writeFileSync(docPath, "Content\n", "utf-8");
     const project = uniqueProject("unwritable");
@@ -1255,7 +1255,7 @@ describe("annotate server: folder annotate history", () => {
   });
 
   test("version endpoints: path param serves that file's versions; without path, single-session binding is unchanged", async () => {
-    const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-history-endpoints-"));
+    const folderPath = mkdtempSync(join(tmpdir(), "hypermark-folder-history-endpoints-"));
     const docPath = join(folderPath, "note.md");
     writeFileSync(docPath, "V1\n", "utf-8");
     const project = uniqueProject("endpoints");
@@ -1557,7 +1557,7 @@ describe("annotate server: client lease", () => {
     // the grace would auto-dismiss a live review. The server must force the
     // capability off, exactly like a remote session.
     const savedDataDir = process.env.HYPERMARK_DATA_DIR;
-    const sandboxDataDir = mkdtempSync(join(tmpdir(), "plannotator-lease-tailnet-"));
+    const sandboxDataDir = mkdtempSync(join(tmpdir(), "hypermark-lease-tailnet-"));
     process.env.HYPERMARK_DATA_DIR = sandboxDataDir;
     const server = await startAnnotateServer({
       markdown: "# Test",
@@ -1799,7 +1799,7 @@ describe("annotate server: durable submit records (#678)", () => {
     delete process.env.HYPERMARK_PORT;
     process.env.HYPERMARK_REMOTE = "0";
     // Force the toggle on unless a test explicitly flips it off — a real
-    // ~/.plannotator/config.json must never change the outcome.
+    // ~/.hypermark/config.json must never change the outcome.
     process.env.HYPERMARK_ANNOTATE_HISTORY = "1";
   });
 
@@ -1853,7 +1853,7 @@ describe("annotate server: durable submit records (#678)", () => {
   }
 
   test("feedback submit writes a durable record and only then deletes the draft", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "plannotator-submit-durable-"));
+    const dir = mkdtempSync(join(tmpdir(), "hypermark-submit-durable-"));
     const docPath = join(dir, "doc.md");
     const project = uniqueProject("feedback");
     const server = await startServer(project, docPath);
@@ -1897,7 +1897,7 @@ describe("annotate server: durable submit records (#678)", () => {
   });
 
   test("approve with notes persists a record; a bare approve writes nothing", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "plannotator-submit-approve-"));
+    const dir = mkdtempSync(join(tmpdir(), "hypermark-submit-approve-"));
 
     // Approve-with-notes carries user content -> record.
     const notesDoc = join(dir, "notes.md");
@@ -1940,7 +1940,7 @@ describe("annotate server: durable submit records (#678)", () => {
 
   test("annotateHistory disabled: no content is written and the draft is deleted (legacy behavior)", async () => {
     process.env.HYPERMARK_ANNOTATE_HISTORY = "0";
-    const dir = mkdtempSync(join(tmpdir(), "plannotator-submit-optout-"));
+    const dir = mkdtempSync(join(tmpdir(), "hypermark-submit-optout-"));
     const docPath = join(dir, "doc.md");
     const project = uniqueProject("opt-out");
     const server = await startServer(project, docPath);
@@ -2019,7 +2019,7 @@ describe("annotate server: durable submit records (#678)", () => {
     // /api/feedback does no body type validation; pre-#678 a non-string
     // feedback flowed through settle() untouched and returned 200. The
     // durable-record guard must not turn that into a thrown 500.
-    const dir = mkdtempSync(join(tmpdir(), "plannotator-submit-malformed-"));
+    const dir = mkdtempSync(join(tmpdir(), "hypermark-submit-malformed-"));
     const docPath = join(dir, "doc.md");
     const project = uniqueProject("malformed");
     const server = await startServer(project, docPath);
@@ -2049,7 +2049,7 @@ describe("annotate server: durable submit records (#678)", () => {
   });
 
   test("a failed durable write keeps the draft as the recovery copy", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "plannotator-submit-unwritable-"));
+    const dir = mkdtempSync(join(tmpdir(), "hypermark-submit-unwritable-"));
     const docPath = join(dir, "doc.md");
     const project = uniqueProject("unwritable");
     // Plant a FILE where the project's history directory must go: every
@@ -2246,7 +2246,7 @@ describe("annotate server: live app mode (annotate-app)", () => {
     let draftDataDir: string;
 
     beforeEach(() => {
-      draftDataDir = mkdtempSync(join(tmpdir(), "plannotator-live-draft-"));
+      draftDataDir = mkdtempSync(join(tmpdir(), "hypermark-live-draft-"));
       process.env.HYPERMARK_DATA_DIR = draftDataDir;
     });
 
@@ -2332,7 +2332,7 @@ describe("annotate server: live app mode (annotate-app)", () => {
     // the hash of its markdown, exactly as before, so drafts written by an
     // earlier release are still found.
     const savedDataDir = process.env.HYPERMARK_DATA_DIR;
-    const dataDir = mkdtempSync(join(tmpdir(), "plannotator-file-draft-"));
+    const dataDir = mkdtempSync(join(tmpdir(), "hypermark-file-draft-"));
     process.env.HYPERMARK_DATA_DIR = dataDir;
     const markdown = "# Doc\n\nbody text\n";
     const server = await startAnnotateServer({

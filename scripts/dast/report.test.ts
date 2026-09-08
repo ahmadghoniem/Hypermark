@@ -13,8 +13,8 @@ const report = parseZapReport(
   JSON.stringify({
     site: [
       {
-        "@name": "http://plannotator-dast-target:19432",
-        "@host": "plannotator-dast-target",
+        "@name": "http://hypermark-dast-target:19432",
+        "@host": "hypermark-dast-target",
         alerts: [
           { pluginid: "10020", riskdesc: "Low (Medium)", instances: [{}] },
           { alertRef: "10038", riskdesc: "Medium (High)", instances: [{}] },
@@ -29,7 +29,7 @@ const report = parseZapReport(
 describe("DAST report validation", () => {
   test("validates the target host and controlled rule", () => {
     expect(() =>
-      assertExpectedHost(report, "plannotator-dast-target"),
+      assertExpectedHost(report, "hypermark-dast-target"),
     ).not.toThrow();
     expect(() => assertAlert(report, "10020")).not.toThrow();
   });
@@ -45,14 +45,14 @@ describe("DAST report validation", () => {
     const mixedHostReport = parseZapReport(
       JSON.stringify({
         site: [
-          { "@host": "plannotator-dast-target", alerts: [] },
+          { "@host": "hypermark-dast-target", alerts: [] },
           { "@host": "production.example.com", alerts: [] },
         ],
       }),
       "mixed-host fixture",
     );
     expect(() =>
-      assertExpectedHost(mixedHostReport, "plannotator-dast-target"),
+      assertExpectedHost(mixedHostReport, "hypermark-dast-target"),
     ).toThrow("outside the allowlist");
   });
 

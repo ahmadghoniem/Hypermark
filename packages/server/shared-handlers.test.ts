@@ -22,13 +22,13 @@ function saveNotesRequest(body: unknown): Request {
 
 describe("handleSaveNotes", () => {
   test("saves to an Obsidian vault and returns JSON success", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "plannotator-save-notes-"));
+    const tmpDir = mkdtempSync(join(tmpdir(), "hypermark-save-notes-"));
     try {
       const response = await handleSaveNotes(
         saveNotesRequest({
           obsidian: {
             vaultPath: tmpDir,
-            folder: "plannotator",
+            folder: "hypermark",
             plan: "# Test Plan\n\nContent here",
           },
         }),
@@ -59,7 +59,7 @@ describe("handleSaveNotes", () => {
       saveNotesRequest({
         obsidian: {
           vaultPath: "/nonexistent-vault-path",
-          folder: "plannotator",
+          folder: "hypermark",
           plan: "# Test Plan\n\nContent here",
         },
       }),
@@ -90,7 +90,7 @@ describe("handleSaveNotes", () => {
 
 describe("writeServerReadyMetadata", () => {
   test("writes host-plugin ready metadata", () => {
-    const dir = mkdtempSync(join(tmpdir(), "plannotator-ready-"));
+    const dir = mkdtempSync(join(tmpdir(), "hypermark-ready-"));
     const readyFile = join(dir, "nested", "ready.jsonl");
 
     try {
@@ -246,7 +246,7 @@ describe("handleFavicon", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "plannotator-favicon-handler-"));
+    tempDir = mkdtempSync(join(tmpdir(), "hypermark-favicon-handler-"));
     process.env.HYPERMARK_DATA_DIR = tempDir;
   });
 

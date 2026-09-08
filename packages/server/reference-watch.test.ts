@@ -117,7 +117,7 @@ afterEach(() => {
 
 describe("handleFileBrowserFilesStream", () => {
 	test("ignores nested excluded folders for watcher paths", () => {
-		const root = join(tmpdir(), "plannotator-watch-root");
+		const root = join(tmpdir(), "hypermark-watch-root");
 
 		expect(isFileBrowserWatchIgnoredPath(join(root, "packages", "app", "node_modules"), root)).toBe(true);
 		expect(isFileBrowserWatchIgnoredPath(join(root, "packages", "app", "node_modules", "pkg", "readme.md"), root)).toBe(true);
@@ -128,8 +128,8 @@ describe("handleFileBrowserFilesStream", () => {
 	});
 
 	test("opens one SSE stream for multiple roots", async () => {
-		const first = makeTempDir("plannotator-watch-a-");
-		const second = makeTempDir("plannotator-watch-b-");
+		const first = makeTempDir("hypermark-watch-a-");
+		const second = makeTempDir("hypermark-watch-b-");
 		const url = new URL("http://localhost/api/reference/files/stream");
 		url.searchParams.append("dirPath", first);
 		url.searchParams.append("dirPath", second);
@@ -146,7 +146,7 @@ describe("handleFileBrowserFilesStream", () => {
 	});
 
 	test("echoes the subscribed client path instead of the resolved watcher path", async () => {
-		const root = makeTempDir("plannotator-watch-c-");
+		const root = makeTempDir("hypermark-watch-c-");
 		const nonCanonicalRoot = join(dirname(root), "..", basename(dirname(root)), basename(root));
 		const url = new URL("http://localhost/api/reference/files/stream");
 		url.searchParams.append("dirPath", nonCanonicalRoot);
@@ -160,7 +160,7 @@ describe("handleFileBrowserFilesStream", () => {
 	});
 
 	test("requires exactly one watch parameter mode", () => {
-		const root = makeTempDir("plannotator-watch-mode-");
+		const root = makeTempDir("hypermark-watch-mode-");
 		const filePath = join(root, "plan.md");
 		writeFileSync(filePath, "initial");
 
@@ -177,7 +177,7 @@ describe("handleFileBrowserFilesStream", () => {
 	});
 
 	test("watches an exact file through writes, deletion, recreation, and rename-away", async () => {
-		const root = makeTempDir("plannotator-watch-file-");
+		const root = makeTempDir("hypermark-watch-file-");
 		const target = join(root, "plan.md");
 		const sibling = join(root, "sibling.md");
 		const nestedDir = join(root, "nested");
@@ -220,7 +220,7 @@ describe("handleFileBrowserFilesStream", () => {
 	});
 
 	test("keeps watching after atomic rename-over saves", async () => {
-		const root = makeTempDir("plannotator-watch-atomic-");
+		const root = makeTempDir("hypermark-watch-atomic-");
 		const target = join(root, "plan.md");
 		writeFileSync(target, "initial");
 		await waitForWatcher();
@@ -247,7 +247,7 @@ describe("handleFileBrowserFilesStream", () => {
 	});
 
 	test("allows a missing leaf when its parent exists and reports its creation", async () => {
-		const root = makeTempDir("plannotator-watch-missing-");
+		const root = makeTempDir("hypermark-watch-missing-");
 		const target = join(root, "future.md");
 		const url = new URL("http://localhost/api/reference/files/stream");
 		url.searchParams.append("filePath", target);
@@ -266,7 +266,7 @@ describe("handleFileBrowserFilesStream", () => {
 	});
 
 	test("rejects file targets with an invalid parent or a directory leaf", () => {
-		const root = makeTempDir("plannotator-watch-invalid-");
+		const root = makeTempDir("hypermark-watch-invalid-");
 		const emptyUrl = new URL("http://localhost/api/reference/files/stream");
 		emptyUrl.searchParams.append("filePath", "");
 		const missingParentUrl = new URL("http://localhost/api/reference/files/stream");
@@ -280,7 +280,7 @@ describe("handleFileBrowserFilesStream", () => {
 	});
 
 	test("deduplicates equivalent exact-file targets", async () => {
-		const root = makeTempDir("plannotator-watch-dedupe-");
+		const root = makeTempDir("hypermark-watch-dedupe-");
 		const target = join(root, "plan.md");
 		writeFileSync(target, "initial");
 		await waitForWatcher();
@@ -299,7 +299,7 @@ describe("handleFileBrowserFilesStream", () => {
 	});
 
 	test("keeps directory and exact-file watchers as separate cache entries", async () => {
-		const root = makeTempDir("plannotator-watch-cache-");
+		const root = makeTempDir("hypermark-watch-cache-");
 		const target = join(root, "plan.md");
 		const sibling = join(root, "sibling.md");
 		writeFileSync(target, "initial");
@@ -325,7 +325,7 @@ describe("handleFileBrowserFilesStream", () => {
 	});
 
 	test("preserves recursive directory watching", async () => {
-		const root = makeTempDir("plannotator-watch-recursive-");
+		const root = makeTempDir("hypermark-watch-recursive-");
 		const nested = join(root, "docs", "nested");
 		mkdirSync(nested, { recursive: true });
 		const url = new URL("http://localhost/api/reference/files/stream");
@@ -343,7 +343,7 @@ describe("handleFileBrowserFilesStream", () => {
 	});
 
 	test("tolerates watcher events delivered without a filename", () => {
-		const root = makeTempDir("plannotator-watch-nameless-");
+		const root = makeTempDir("hypermark-watch-nameless-");
 		const target = join(root, "plan.md");
 		writeFileSync(target, "initial");
 		let changes = 0;
@@ -364,7 +364,7 @@ describe("handleFileBrowserFilesStream", () => {
 	});
 
 	test("keeps streaming when the watched parent directory itself changes", async () => {
-		const root = makeTempDir("plannotator-watch-parent-");
+		const root = makeTempDir("hypermark-watch-parent-");
 		const target = join(root, "plan.md");
 		writeFileSync(target, "initial");
 		await waitForWatcher();
@@ -389,7 +389,7 @@ describe("handleFileBrowserFilesStream", () => {
 	});
 
 	test("does not report adjacent Git metadata changes for an exact file", async () => {
-		const root = makeTempDir("plannotator-watch-git-");
+		const root = makeTempDir("hypermark-watch-git-");
 		const target = join(root, "plan.md");
 		const gitDir = join(root, ".git");
 		mkdirSync(gitDir);

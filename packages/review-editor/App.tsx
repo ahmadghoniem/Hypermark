@@ -684,12 +684,12 @@ const ReviewAppInner: React.FC = () => {
   } | null>(null);
   const [platformRecoveryPersistsRefresh, setPlatformRecoveryPersistsRefresh] = useState(false);
   const [platformOpenPR, setPlatformOpenPR] = useState(() => {
-    const platformSetting = storage.getItem('plannotator-platform-open-pr');
+    const platformSetting = storage.getItem('hypermark-platform-open-pr');
     if (platformSetting !== null) return platformSetting !== 'false';
 
-    const legacyGitHubSetting = storage.getItem('plannotator-github-open-pr');
+    const legacyGitHubSetting = storage.getItem('hypermark-github-open-pr');
     if (legacyGitHubSetting !== null) {
-      storage.setItem('plannotator-platform-open-pr', legacyGitHubSetting);
+      storage.setItem('hypermark-platform-open-pr', legacyGitHubSetting);
       return legacyGitHubSetting !== 'false';
     }
 
@@ -1065,7 +1065,7 @@ const ReviewAppInner: React.FC = () => {
     onClick: () => reviewSidebar.close(),
   });
   const fileTreeResize = useResizablePanel({
-    storageKey: 'plannotator-filetree-width',
+    storageKey: 'hypermark-filetree-width',
     defaultWidth: 256, minWidth: 160, maxWidth: 400, side: 'left',
     onSnapClose: () => setIsFileTreeOpen(false),
     // Single click on the handle (no drag) collapses it.
@@ -3678,7 +3678,7 @@ const ReviewAppInner: React.FC = () => {
       // cannot stop same-target listeners — without this guard one keystroke
       // over the discard confirm would post TWO contradictory decisions
       // (this effect's Send Feedback plus the confirm's LGTM approve).
-      if (document.querySelector('[data-plannotator-confirm-dialog="true"]')) return;
+      if (document.querySelector('[data-hypermark-confirm-dialog="true"]')) return;
 
       // If the platform post dialog is open, Cmd+Enter submits it
       if (platformCommentDialog) {
@@ -4906,7 +4906,7 @@ const ReviewAppInner: React.FC = () => {
           platformOpenPR={platformOpenPR}
           onPlatformOpenPRChange={(checked) => {
             setPlatformOpenPR(checked);
-            storage.setItem('plannotator-platform-open-pr', String(checked));
+            storage.setItem('hypermark-platform-open-pr', String(checked));
           }}
           onConfirm={() => {
             if (!platformCommentDialog) return;

@@ -73,11 +73,11 @@ describe('DocBadges open-in placement', () => {
 
   test.skipIf(!hasDom)('places the selector after the repository and branch for a local annotate file', async () => {
     await renderBadges({
-      repoInfo: { display: 'plannotator/workspaces', branch: 'rooms/resurrect' },
+      repoInfo: { display: 'hypermark/workspaces', branch: 'rooms/resurrect' },
       openInAppPath: '/tmp/runbook.md',
     });
 
-    const repository = exactText('plannotator/workspaces');
+    const repository = exactText('hypermark/workspaces');
     const branch = exactText('rooms/resurrect');
     const button = openInButton();
     const repositoryRow = repository.parentElement;
@@ -91,17 +91,17 @@ describe('DocBadges open-in placement', () => {
 
   test.skipIf(!hasDom)('does not add a selector in plan mode', async () => {
     await renderBadges({
-      repoInfo: { display: 'plannotator/workspaces', branch: 'rooms/resurrect' },
+      repoInfo: { display: 'hypermark/workspaces', branch: 'rooms/resurrect' },
       openInAppPath: null,
     });
 
-    expect(exactText('plannotator/workspaces')).toBeInstanceOf(HTMLElement);
+    expect(exactText('hypermark/workspaces')).toBeInstanceOf(HTMLElement);
     expect(host?.querySelector('button[aria-label="Open in Finder"]')).toBeNull();
   });
 
   test.skipIf(!hasDom)('keeps the selector after an explicit source filename', async () => {
     await renderBadges({
-      repoInfo: { display: 'plannotator/workspaces', branch: 'rooms/resurrect' },
+      repoInfo: { display: 'hypermark/workspaces', branch: 'rooms/resurrect' },
       sourceInfo: 'runbook.html',
       openInAppPath: '/tmp/runbook.html',
     });

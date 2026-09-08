@@ -26,7 +26,7 @@ interface PRSelectorProps {
   disabled?: boolean;
 }
 
-const HIDE_MERGED_PR_KEY = 'plannotator-pr-list-hide-merged';
+const HIDE_MERGED_PR_KEY = 'hypermark-pr-list-hide-merged';
 
 export function PRSelector({ mrNumberLabel, prTitle, currentNumber, onSelect, disabled }: PRSelectorProps) {
   const [prs, setPrs] = useState<PRItem[]>([]);

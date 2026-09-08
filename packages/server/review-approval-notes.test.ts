@@ -59,7 +59,7 @@ function makeTempDir(prefix: string): string {
 }
 
 function useTempDataDir(): string {
-  const dir = makeTempDir("plannotator-approval-notes-");
+  const dir = makeTempDir("hypermark-approval-notes-");
   saveEnv("HYPERMARK_DATA_DIR");
   process.env.HYPERMARK_DATA_DIR = dir;
   return dir;
@@ -79,7 +79,7 @@ function git(cwd: string, args: string[]): void {
 }
 
 function initRepo(): string {
-  const repoDir = makeTempDir("plannotator-approval-repo-");
+  const repoDir = makeTempDir("hypermark-approval-repo-");
   git(repoDir, ["init", "-q"]);
   git(repoDir, ["branch", "-M", "main"]);
   git(repoDir, ["config", "user.email", "test@example.com"]);

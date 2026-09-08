@@ -89,7 +89,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         initialFocus={() => (showCancel ? cancelButtonRef.current : confirmButtonRef.current)}
         backdropClassName="bg-background/80 backdrop-blur-sm"
         className={`bg-card text-foreground rounded-xl shadow-2xl p-6 transition-none ${wide ? 'max-w-md' : 'max-w-sm'}`}
-        data-plannotator-confirm-dialog="true"
+        data-hypermark-confirm-dialog="true"
       >
         <div className="flex items-center gap-3 mb-4">
           <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${iconColors[variant]}`}>

@@ -140,7 +140,7 @@ async function mount(props: HarnessProps): Promise<FakeContext> {
 // which is the deadlock a real page never has. React commits on its own
 // scheduler here, as in the browser; the trailing act() drains what is left.
 async function call(ctx: FakeContext, name: string, input: unknown): Promise<any> {
-  const response = await ctx.tools.get(`plannotator.${name}`)!.execute(input, { signal: new AbortController().signal });
+  const response = await ctx.tools.get(`hypermark.${name}`)!.execute(input, { signal: new AbortController().signal });
   await act(async () => {});
   return response;
 }
@@ -170,8 +170,8 @@ describe.skipIf(!hasDom)('useDocumentWebMcp', () => {
   test('the opt-out unregisters and re-registers the catalog, and the default leaves no cookie', async () => {
     const ctx = await mount({});
     expect([...ctx.tools.keys()].sort()).toEqual([
-      'plannotator.add_comments', 'plannotator.nudge_user', 'plannotator.read_document',
-      'plannotator.remove_comments', 'plannotator.reveal', 'plannotator.update_comment',
+      'hypermark.add_comments', 'hypermark.nudge_user', 'hypermark.read_document',
+      'hypermark.remove_comments', 'hypermark.reveal', 'hypermark.update_comment',
     ]);
     expect(getWebMcpActivity().calls).toBe(0);
     expect(stored.has(WEBMCP_TOOLS_COOKIE)).toBe(false);

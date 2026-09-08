@@ -10,12 +10,12 @@
  * toggled, and turning the tools back on removes the cookie instead of
  * writing `true`.
  *
- * Cookie: `plannotator-webmcp-tools=false` while opted out; absent otherwise.
+ * Cookie: `hypermark-webmcp-tools=false` while opted out; absent otherwise.
  */
 import { useSyncExternalStore } from 'react';
 import { storage } from '../utils/storage';
 
-export const WEBMCP_TOOLS_COOKIE = 'plannotator-webmcp-tools';
+export const WEBMCP_TOOLS_COOKIE = 'hypermark-webmcp-tools';
 
 const listeners = new Set<() => void>();
 /** Resolved lazily on first read; write-through afterwards so the snapshot is stable for useSyncExternalStore. */

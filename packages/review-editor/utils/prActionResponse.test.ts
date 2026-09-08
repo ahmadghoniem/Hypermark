@@ -43,7 +43,7 @@ describe('parsePRActionSuccess', () => {
         ],
         reviewBodyPosted: true,
         approval: 'not-requested',
-        recoveryFile: '/tmp/plannotator/failed-comments/review.json',
+        recoveryFile: '/tmp/hypermark/failed-comments/review.json',
         retry: {
           action: 'comment',
           fileComments: [failedComment],

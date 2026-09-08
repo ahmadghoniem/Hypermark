@@ -75,7 +75,7 @@ interface AnnotateAgentTerminalPanelProps {
   onClose: () => void;
 }
 
-const DISPLAY_STORAGE_KEY = "plannotator-agent-terminal-display";
+const DISPLAY_STORAGE_KEY = "hypermark-agent-terminal-display";
 const MIN_FONT_SIZE = 10;
 const MAX_FONT_SIZE = 24;
 

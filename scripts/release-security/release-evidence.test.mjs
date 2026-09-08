@@ -10,7 +10,7 @@ function workspaceLock() {
   const workspaces = Object.fromEntries(
     RELEASE_WORKSPACES.map((workspacePath, index) => [
       workspacePath,
-      { name: index === 0 ? "plannotator" : `workspace-${index}`, dependencies: {} },
+      { name: index === 0 ? "hypermark" : `workspace-${index}`, dependencies: {} },
     ]),
   );
   workspaces[""].dependencies = { runtime: "1.0.0", "workspace-1": "workspace:*" };
@@ -40,7 +40,7 @@ test("rejects a lock missing a release workspace", () => {
 });
 
 async function sbomFixture() {
-  const directory = await mkdtemp(path.join(tmpdir(), "plannotator-sbom-test-"));
+  const directory = await mkdtemp(path.join(tmpdir(), "hypermark-sbom-test-"));
   const cyclonedxPath = path.join(directory, "release.cdx.json");
   const syftPath = path.join(directory, "release.syft.json");
   const subjectsPath = path.join(directory, "subjects.json");
@@ -66,7 +66,7 @@ async function sbomFixture() {
       version: "0.27.1",
       repository: "https://github.com/backnotprop/plannotator",
       commit: "a".repeat(40),
-      subjects: [{ path: "plannotator-linux-x64" }],
+      subjects: [{ path: "hypermark-linux-x64" }],
     }),
   );
   return { directory, cyclonedxPath, syftPath, subjectsPath };
@@ -83,9 +83,9 @@ test("finalizes required release metadata and sentinel assertions", async () => 
   });
   assert.equal(result.components, SBOM_SENTINELS.length);
   const output = JSON.parse(await readFile(fixture.cyclonedxPath, "utf8"));
-  assert.equal(output.metadata.component.name, "plannotator-release");
+  assert.equal(output.metadata.component.name, "hypermark-release");
   assert.equal(
-    output.metadata.component.properties.find((property) => property.name === "plannotator:source:commit").value,
+    output.metadata.component.properties.find((property) => property.name === "hypermark:source:commit").value,
     "a".repeat(40),
   );
 });

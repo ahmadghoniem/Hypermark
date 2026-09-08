@@ -10,9 +10,9 @@ import {
   type TokenHoverAnnouncementGateState,
 } from './tokenHoverAnnouncement';
 
-const SEEN_KEY = 'plannotator-token-hover-announcement-seen';
-const TRIGGER_KEY = 'plannotator-token-hover-trigger';
-const LEGACY_KEY = 'plannotator-token-hover-cards';
+const SEEN_KEY = 'hypermark-token-hover-announcement-seen';
+const TRIGGER_KEY = 'hypermark-token-hover-trigger';
+const LEGACY_KEY = 'hypermark-token-hover-cards';
 let stored: Map<string, string>;
 
 function installBackend(seed: Record<string, string> = {}): void {

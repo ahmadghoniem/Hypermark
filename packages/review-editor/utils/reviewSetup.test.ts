@@ -37,7 +37,7 @@ describe('initializeReviewSetup', () => {
 
   test('an unseen reviewer inherits an existing classic diff default', () => {
     installMemoryBackend({
-      'plannotator-default-diff-type': 'uncommitted',
+      'hypermark-default-diff-type': 'uncommitted',
     });
     const store = makeStore();
 
@@ -49,7 +49,7 @@ describe('initializeReviewSetup', () => {
 
   test('an unseen reviewer inherits a local-vs-remote default', () => {
     installMemoryBackend({
-      'plannotator-default-diff-type': 'local-vs-remote',
+      'hypermark-default-diff-type': 'local-vs-remote',
     });
     const store = makeStore();
 
@@ -64,7 +64,7 @@ describe('initializeReviewSetup', () => {
     // "seen" stays unset. The next plain git session must not seed over it.
     installMemoryBackend({
       'hypermark-review-panel-view': 'sections',
-      'plannotator-default-diff-type': 'since-base',
+      'hypermark-default-diff-type': 'since-base',
     });
     const store = makeStore();
 
@@ -95,7 +95,7 @@ describe('initializeReviewSetup', () => {
       'hypermark-review-setup-seen': 'true',
       'hypermark-review-panel-view': 'sections',
       'hypermark-review-panel-view-last-used': 'tree',
-      'plannotator-default-diff-type': 'since-base',
+      'hypermark-default-diff-type': 'since-base',
     });
     const store = makeStore();
 

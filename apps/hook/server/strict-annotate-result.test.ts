@@ -27,7 +27,7 @@ import {
 const temporaryDirectories: string[] = [];
 
 async function makeTemporaryDirectory(): Promise<string> {
-  const directory = await mkdtemp(join(tmpdir(), "plannotator-result-"));
+  const directory = await mkdtemp(join(tmpdir(), "hypermark-result-"));
   temporaryDirectories.push(directory);
   return directory;
 }

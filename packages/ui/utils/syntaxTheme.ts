@@ -25,7 +25,7 @@ export const SHIKI_THEME_MAP: Record<string, { dark: string | null; light: strin
   // render in Pierre's syntax themes, but spec 03 wants syntax to be palette
   // DATA for every supported palette/mode, not a value produced by a generic
   // lookup miss -- and a key mapping to nothing breaks this map's own invariant.
-  'plannotator': { dark: 'pierre-dark', light: 'pierre-light' },
+  'hypermark': { dark: 'pierre-dark', light: 'pierre-light' },
   'catppuccin': { dark: 'catppuccin-mocha', light: 'catppuccin-latte' },
   'github': { dark: 'github-dark', light: 'github-light' },
   'ayu-dark': { dark: 'ayu-dark', light: null },

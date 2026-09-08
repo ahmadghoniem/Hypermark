@@ -46,7 +46,7 @@ describe('review entry assets', () => {
     expect(editorCss).toContain('@import "@fontsource-variable/inter";');
     expect(editorCss).toContain('@import "@fontsource-variable/geist-mono";');
 
-    const theme = read('packages/ui/themes/plannotator.css');
+    const theme = read('packages/ui/themes/hypermark.css');
     expect(theme).toContain("--font-sans: 'Inter Variable'");
     expect(theme).toContain("--font-mono: 'Geist Mono Variable'");
 
@@ -139,10 +139,10 @@ describe('review entry assets', () => {
   //
   // dist/ is gitignored, so this is skipped on an unbuilt checkout; the CI job
   // that builds the bundles runs it right after.
-  const REGISTRATION_MARKERS = ['plannotator-math-eager', 'uniqueUsernameGenerator'];
+  const REGISTRATION_MARKERS = ['hypermark-math-eager', 'uniqueUsernameGenerator'];
   const markerExpectations: Array<[bundle: string, present: string[], absent: string[]]> = [
-    ['apps/hook/dist/index.html', [...REGISTRATION_MARKERS, 'plannotator-mermaid-eager', 'katex-display', 'flowchart-v2', 'viz_set_y_invert', '__hypermarkLiveConfig'], []],
-    ['apps/review/dist/index.html', [...REGISTRATION_MARKERS, 'katex-display', '__hypermarkLiveConfig'], ['plannotator-mermaid-eager', 'flowchart-v2']],
+    ['apps/hook/dist/index.html', [...REGISTRATION_MARKERS, 'hypermark-mermaid-eager', 'katex-display', 'flowchart-v2', 'viz_set_y_invert', '__hypermarkLiveConfig'], []],
+    ['apps/review/dist/index.html', [...REGISTRATION_MARKERS, 'katex-display', '__hypermarkLiveConfig'], ['hypermark-mermaid-eager', 'flowchart-v2']],
   ];
   for (const [path, present, absent] of markerExpectations) {
     test.skipIf(!existsSync(resolve(root, path)))(`${path} carries the eager registration and renderer markers`, () => {

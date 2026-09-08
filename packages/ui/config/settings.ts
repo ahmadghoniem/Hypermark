@@ -4,7 +4,7 @@
  * Each SettingDef describes:
  *   - defaultValue: fallback (can be a lazy factory for expensive defaults)
  *   - fromCookie/toCookie: serialization to/from cookie storage
- *   - serverKey + fromServer/toServer: opt-in sync to ~/.plannotator/config.json
+ *   - serverKey + fromServer/toServer: opt-in sync to ~/.hypermark/config.json
  *
  * Add new settings here. Cookie-only settings omit serverKey.
  */
@@ -30,9 +30,9 @@ import {
   type ThemePair,
 } from '../utils/themeRegistry';
 
-const MODE_COOKIE = 'plannotator-theme';
-const LIGHT_THEME_COOKIE = 'plannotator-light-theme';
-const DARK_THEME_COOKIE = 'plannotator-dark-theme';
+const MODE_COOKIE = 'hypermark-theme';
+const LIGHT_THEME_COOKIE = 'hypermark-light-theme';
+const DARK_THEME_COOKIE = 'hypermark-dark-theme';
 
 /**
  * Persist a pair to its cookies without touching the server.
@@ -74,8 +74,8 @@ export interface SettingDef<T> {
 export const SETTINGS = {
   displayName: {
     defaultValue: () => generateIdentity(),
-    fromCookie: () => storage.getItem('plannotator-identity') || undefined,
-    toCookie: (v: string) => storage.setItem('plannotator-identity', v),
+    fromCookie: () => storage.getItem('hypermark-identity') || undefined,
+    toCookie: (v: string) => storage.setItem('hypermark-identity', v),
     serverKey: 'displayName',
     fromServer: (sc: Record<string, unknown>) =>
       typeof sc.displayName === 'string' && sc.displayName ? sc.displayName : undefined,
@@ -87,10 +87,10 @@ export const SETTINGS = {
    * Stored as one value because the three fields are only meaningful together —
    * `mode: system` picks between `light` and `dark` at render time.
    *
-   * Cookies: `plannotator-theme` (mode) joined by
-   * `plannotator-light-theme` / `plannotator-dark-theme`.
+   * Cookies: `hypermark-theme` (mode) joined by
+   * `hypermark-light-theme` / `hypermark-dark-theme`.
    *
-   * Server: round-trips through `theme` in ~/.plannotator/config.json exactly
+   * Server: round-trips through `theme` in ~/.hypermark/config.json exactly
    * like `diffOptions` does, so the choice survives the random port each hook
    * invocation runs on.
    */
@@ -110,10 +110,10 @@ export const SETTINGS = {
   faviconStyle: {
     defaultValue: 'classic' as FaviconStyle,
     fromCookie: () => {
-      const v = storage.getItem('plannotator-favicon');
+      const v = storage.getItem('hypermark-favicon');
       return isFaviconStyle(v) ? v : undefined;
     },
-    toCookie: (v: FaviconStyle) => storage.setItem('plannotator-favicon', v),
+    toCookie: (v: FaviconStyle) => storage.setItem('hypermark-favicon', v),
     serverKey: 'favicon',
     fromServer: (sc: Record<string, unknown>) => {
       const v = sc.favicon;
@@ -127,10 +127,10 @@ export const SETTINGS = {
     // flat look is offered as an opt-in via the look-and-feel chooser dialog.
     defaultValue: true as boolean,
     fromCookie: () => {
-      const v = storage.getItem('plannotator-grid-enabled');
+      const v = storage.getItem('hypermark-grid-enabled');
       return v === 'true' ? true : v === 'false' ? false : undefined;
     },
-    toCookie: (v: boolean) => storage.setItem('plannotator-grid-enabled', String(v)),
+    toCookie: (v: boolean) => storage.setItem('hypermark-grid-enabled', String(v)),
     serverKey: undefined, fromServer: undefined, toServer: undefined,
   },
 
@@ -223,11 +223,11 @@ export const SETTINGS = {
   tokenHoverTrigger: {
     defaultValue: 'hover' as TokenHoverTrigger,
     fromCookie: () => resolveStoredTokenHoverTrigger(
-      storage.getItem('plannotator-token-hover-trigger'),
-      storage.getItem('plannotator-token-hover-cards'),
+      storage.getItem('hypermark-token-hover-trigger'),
+      storage.getItem('hypermark-token-hover-cards'),
     ),
     toCookie: (value: TokenHoverTrigger) =>
-      storage.setItem('plannotator-token-hover-trigger', value),
+      storage.setItem('hypermark-token-hover-trigger', value),
     serverKey: undefined, fromServer: undefined, toServer: undefined,
   },
 
@@ -237,11 +237,11 @@ export const SETTINGS = {
   tokenHoverDelay: {
     defaultValue: DEFAULT_TOKEN_HOVER_DELAY_MS as TokenHoverDelay,
     fromCookie: () => {
-      const parsed = Number(storage.getItem('plannotator-token-hover-delay'));
+      const parsed = Number(storage.getItem('hypermark-token-hover-delay'));
       return isTokenHoverDelay(parsed) ? parsed : undefined;
     },
     toCookie: (value: TokenHoverDelay) =>
-      storage.setItem('plannotator-token-hover-delay', String(value)),
+      storage.setItem('hypermark-token-hover-delay', String(value)),
     serverKey: undefined, fromServer: undefined, toServer: undefined,
   },
 
@@ -259,11 +259,11 @@ export const SETTINGS = {
   defaultDiffType: {
     defaultValue: 'since-base' as 'since-base' | 'local-vs-remote' | 'uncommitted' | 'unstaged' | 'staged' | 'merge-base' | 'all',
     fromCookie: () => {
-      const v = storage.getItem('plannotator-default-diff-type');
+      const v = storage.getItem('hypermark-default-diff-type');
       if (v === 'branch') return 'merge-base' as const;
       return v === 'since-base' || v === 'local-vs-remote' || v === 'uncommitted' || v === 'unstaged' || v === 'staged' || v === 'merge-base' || v === 'all' ? v : undefined;
     },
-    toCookie: (v: string) => storage.setItem('plannotator-default-diff-type', v),
+    toCookie: (v: string) => storage.setItem('hypermark-default-diff-type', v),
     serverKey: 'diffOptions',
     fromServer: (sc: Record<string, unknown>) => {
       const v = (sc.diffOptions as Record<string, unknown> | undefined)?.defaultDiffType;
@@ -276,10 +276,10 @@ export const SETTINGS = {
   diffStyle: {
     defaultValue: 'split' as 'split' | 'unified',
     fromCookie: () => {
-      const v = storage.getItem('plannotator-diff-style') ?? storage.getItem('review-diff-style');
+      const v = storage.getItem('hypermark-diff-style') ?? storage.getItem('review-diff-style');
       return v === 'split' || v === 'unified' ? v : undefined;
     },
-    toCookie: (v: string) => storage.setItem('plannotator-diff-style', v),
+    toCookie: (v: string) => storage.setItem('hypermark-diff-style', v),
     serverKey: 'diffOptions',
     fromServer: (sc: Record<string, unknown>) => {
       const v = (sc.diffOptions as Record<string, unknown> | undefined)?.diffStyle;
@@ -291,10 +291,10 @@ export const SETTINGS = {
   diffOverflow: {
     defaultValue: 'scroll' as 'scroll' | 'wrap',
     fromCookie: () => {
-      const v = storage.getItem('plannotator-diff-overflow');
+      const v = storage.getItem('hypermark-diff-overflow');
       return v === 'scroll' || v === 'wrap' ? v : undefined;
     },
-    toCookie: (v: string) => storage.setItem('plannotator-diff-overflow', v),
+    toCookie: (v: string) => storage.setItem('hypermark-diff-overflow', v),
     serverKey: 'diffOptions',
     fromServer: (sc: Record<string, unknown>) => {
       const v = (sc.diffOptions as Record<string, unknown> | undefined)?.overflow;
@@ -306,10 +306,10 @@ export const SETTINGS = {
   diffIndicators: {
     defaultValue: 'bars' as 'bars' | 'classic' | 'none',
     fromCookie: () => {
-      const v = storage.getItem('plannotator-diff-indicators');
+      const v = storage.getItem('hypermark-diff-indicators');
       return v === 'bars' || v === 'classic' || v === 'none' ? v : undefined;
     },
-    toCookie: (v: string) => storage.setItem('plannotator-diff-indicators', v),
+    toCookie: (v: string) => storage.setItem('hypermark-diff-indicators', v),
     serverKey: 'diffOptions',
     fromServer: (sc: Record<string, unknown>) => {
       const v = (sc.diffOptions as Record<string, unknown> | undefined)?.diffIndicators;
@@ -321,10 +321,10 @@ export const SETTINGS = {
   diffLineDiffType: {
     defaultValue: 'word-alt' as 'word-alt' | 'word' | 'char' | 'none',
     fromCookie: () => {
-      const v = storage.getItem('plannotator-diff-line-diff-type');
+      const v = storage.getItem('hypermark-diff-line-diff-type');
       return v === 'word-alt' || v === 'word' || v === 'char' || v === 'none' ? v : undefined;
     },
-    toCookie: (v: string) => storage.setItem('plannotator-diff-line-diff-type', v),
+    toCookie: (v: string) => storage.setItem('hypermark-diff-line-diff-type', v),
     serverKey: 'diffOptions',
     fromServer: (sc: Record<string, unknown>) => {
       const v = (sc.diffOptions as Record<string, unknown> | undefined)?.lineDiffType;
@@ -336,10 +336,10 @@ export const SETTINGS = {
   diffShowLineNumbers: {
     defaultValue: true as boolean,
     fromCookie: () => {
-      const v = storage.getItem('plannotator-diff-show-line-numbers');
+      const v = storage.getItem('hypermark-diff-show-line-numbers');
       return v === 'true' ? true : v === 'false' ? false : undefined;
     },
-    toCookie: (v: boolean) => storage.setItem('plannotator-diff-show-line-numbers', String(v)),
+    toCookie: (v: boolean) => storage.setItem('hypermark-diff-show-line-numbers', String(v)),
     serverKey: 'diffOptions',
     fromServer: (sc: Record<string, unknown>) => {
       const v = (sc.diffOptions as Record<string, unknown> | undefined)?.showLineNumbers;
@@ -351,10 +351,10 @@ export const SETTINGS = {
   diffShowBackground: {
     defaultValue: true as boolean,
     fromCookie: () => {
-      const v = storage.getItem('plannotator-diff-show-background');
+      const v = storage.getItem('hypermark-diff-show-background');
       return v === 'true' ? true : v === 'false' ? false : undefined;
     },
-    toCookie: (v: boolean) => storage.setItem('plannotator-diff-show-background', String(v)),
+    toCookie: (v: boolean) => storage.setItem('hypermark-diff-show-background', String(v)),
     serverKey: 'diffOptions',
     fromServer: (sc: Record<string, unknown>) => {
       const v = (sc.diffOptions as Record<string, unknown> | undefined)?.showDiffBackground;
@@ -365,8 +365,8 @@ export const SETTINGS = {
 
   diffFontFamily: {
     defaultValue: '' as string, // empty = theme default
-    fromCookie: () => storage.getItem('plannotator-diff-font-family') || undefined,
-    toCookie: (v: string) => storage.setItem('plannotator-diff-font-family', v),
+    fromCookie: () => storage.getItem('hypermark-diff-font-family') || undefined,
+    toCookie: (v: string) => storage.setItem('hypermark-diff-font-family', v),
     serverKey: 'diffOptions',
     fromServer: (sc: Record<string, unknown>) => {
       const v = (sc.diffOptions as Record<string, unknown> | undefined)?.fontFamily;
@@ -378,10 +378,10 @@ export const SETTINGS = {
   diffHideWhitespace: {
     defaultValue: false as boolean,
     fromCookie: () => {
-      const v = storage.getItem('plannotator-diff-hide-whitespace');
+      const v = storage.getItem('hypermark-diff-hide-whitespace');
       return v === 'true' ? true : v === 'false' ? false : undefined;
     },
-    toCookie: (v: boolean) => storage.setItem('plannotator-diff-hide-whitespace', String(v)),
+    toCookie: (v: boolean) => storage.setItem('hypermark-diff-hide-whitespace', String(v)),
     serverKey: 'diffOptions',
     fromServer: (sc: Record<string, unknown>) => {
       const v = (sc.diffOptions as Record<string, unknown> | undefined)?.hideWhitespace;
@@ -393,10 +393,10 @@ export const SETTINGS = {
   diffExpandUnchanged: {
     defaultValue: false as boolean,
     fromCookie: () => {
-      const v = storage.getItem('plannotator-diff-expand-unchanged');
+      const v = storage.getItem('hypermark-diff-expand-unchanged');
       return v === 'true' ? true : v === 'false' ? false : undefined;
     },
-    toCookie: (v: boolean) => storage.setItem('plannotator-diff-expand-unchanged', String(v)),
+    toCookie: (v: boolean) => storage.setItem('hypermark-diff-expand-unchanged', String(v)),
     serverKey: 'diffOptions',
     fromServer: (sc: Record<string, unknown>) => {
       const v = (sc.diffOptions as Record<string, unknown> | undefined)?.expandUnchanged;
@@ -407,8 +407,8 @@ export const SETTINGS = {
 
   diffFontSize: {
     defaultValue: '' as string, // empty = theme default
-    fromCookie: () => storage.getItem('plannotator-diff-font-size') || undefined,
-    toCookie: (v: string) => storage.setItem('plannotator-diff-font-size', v),
+    fromCookie: () => storage.getItem('hypermark-diff-font-size') || undefined,
+    toCookie: (v: string) => storage.setItem('hypermark-diff-font-size', v),
     serverKey: 'diffOptions',
     fromServer: (sc: Record<string, unknown>) => {
       const v = (sc.diffOptions as Record<string, unknown> | undefined)?.fontSize;
@@ -419,11 +419,11 @@ export const SETTINGS = {
   diffTabSize: {
     defaultValue: 2 as number,
     fromCookie: () => {
-      const v = storage.getItem('plannotator-diff-tab-size');
+      const v = storage.getItem('hypermark-diff-tab-size');
       const n = v ? parseInt(v, 10) : NaN;
       return Number.isFinite(n) && n >= 1 && n <= 8 ? n : undefined;
     },
-    toCookie: (v: number) => storage.setItem('plannotator-diff-tab-size', String(v)),
+    toCookie: (v: number) => storage.setItem('hypermark-diff-tab-size', String(v)),
     serverKey: 'diffOptions',
     fromServer: (sc: Record<string, unknown>) => {
       const v = (sc.diffOptions as Record<string, unknown> | undefined)?.tabSize;
@@ -434,11 +434,11 @@ export const SETTINGS = {
   diffLineBgIntensity: {
     defaultValue: 'subtle' as DiffLineBgIntensity,
     fromCookie: () => {
-      const v = storage.getItem('plannotator-diff-line-bg-intensity');
+      const v = storage.getItem('hypermark-diff-line-bg-intensity');
       return isDiffLineBgIntensity(v) ? v : undefined;
     },
     toCookie: (v: DiffLineBgIntensity) =>
-      storage.setItem('plannotator-diff-line-bg-intensity', v),
+      storage.setItem('hypermark-diff-line-bg-intensity', v),
     serverKey: 'diffOptions',
     fromServer: (sc: Record<string, unknown>) => {
       const v = (sc.diffOptions as Record<string, unknown> | undefined)?.lineBgIntensity;
@@ -456,11 +456,11 @@ export const SETTINGS = {
   editSuggestions: {
     defaultValue: false as boolean,
     fromCookie: () => {
-      const v = storage.getItem('plannotator-experimental-edit-suggestions');
+      const v = storage.getItem('hypermark-experimental-edit-suggestions');
       return v === 'true' ? true : v === 'false' ? false : undefined;
     },
     toCookie: (v: boolean) =>
-      storage.setItem('plannotator-experimental-edit-suggestions', String(v)),
+      storage.setItem('hypermark-experimental-edit-suggestions', String(v)),
     serverKey: undefined,
     fromServer: undefined,
     toServer: undefined,
@@ -468,11 +468,11 @@ export const SETTINGS = {
   semanticDiffEnabled: {
     defaultValue: true as boolean,
     fromCookie: () => {
-      const value = storage.getItem('plannotator-semantic-diff-enabled');
+      const value = storage.getItem('hypermark-semantic-diff-enabled');
       return value === 'true' ? true : value === 'false' ? false : undefined;
     },
     toCookie: (value: boolean) =>
-      storage.setItem('plannotator-semantic-diff-enabled', String(value)),
+      storage.setItem('hypermark-semantic-diff-enabled', String(value)),
     serverKey: 'reviewAnalysis',
     fromServer: (serverConfig: Record<string, unknown>) => {
       const value = (serverConfig.reviewAnalysis as Record<string, unknown> | undefined)?.semanticDiff;
@@ -483,11 +483,11 @@ export const SETTINGS = {
   callFlowEnabled: {
     defaultValue: false as boolean,
     fromCookie: () => {
-      const value = storage.getItem('plannotator-call-flow-enabled');
+      const value = storage.getItem('hypermark-call-flow-enabled');
       return value === 'true' ? true : value === 'false' ? false : undefined;
     },
     toCookie: (value: boolean) =>
-      storage.setItem('plannotator-call-flow-enabled', String(value)),
+      storage.setItem('hypermark-call-flow-enabled', String(value)),
     serverKey: 'reviewAnalysis',
     fromServer: (serverConfig: Record<string, unknown>) => {
       const value = (serverConfig.reviewAnalysis as Record<string, unknown> | undefined)?.callFlow;
@@ -498,10 +498,10 @@ export const SETTINGS = {
   conventionalComments: {
     defaultValue: false as boolean,
     fromCookie: () => {
-      const v = storage.getItem('plannotator-conventional-comments');
+      const v = storage.getItem('hypermark-conventional-comments');
       return v === 'true' ? true : v === 'false' ? false : undefined;
     },
-    toCookie: (v: boolean) => storage.setItem('plannotator-conventional-comments', String(v)),
+    toCookie: (v: boolean) => storage.setItem('hypermark-conventional-comments', String(v)),
     serverKey: 'conventionalComments',
     fromServer: (sc: Record<string, unknown>) => {
       const v = sc.conventionalComments;
@@ -510,13 +510,13 @@ export const SETTINGS = {
     toServer: (v: boolean) => ({ conventionalComments: v }),
   },
   /** JSON-serialized array of label configs, or null for defaults.
-   *  Synced to ~/.plannotator/config.json as a parsed array (not a string). */
+   *  Synced to ~/.hypermark/config.json as a parsed array (not a string). */
   conventionalLabels: {
     defaultValue: null as string | null,
-    fromCookie: () => storage.getItem('plannotator-cc-labels') || undefined,
+    fromCookie: () => storage.getItem('hypermark-cc-labels') || undefined,
     toCookie: (v: string | null) => {
-      if (v) storage.setItem('plannotator-cc-labels', v);
-      else storage.removeItem('plannotator-cc-labels');
+      if (v) storage.setItem('hypermark-cc-labels', v);
+      else storage.removeItem('hypermark-cc-labels');
     },
     serverKey: 'conventionalLabels',
     fromServer: (sc: Record<string, unknown>) => {

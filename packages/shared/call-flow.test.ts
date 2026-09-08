@@ -26,7 +26,7 @@ function run(args: string[]): string {
 }
 
 beforeEach(() => {
-  repo = mkdtempSync(join(tmpdir(), "plannotator-call-flow-test-"));
+  repo = mkdtempSync(join(tmpdir(), "hypermark-call-flow-test-"));
   run(["init", "-q"]);
   run(["config", "user.name", "Test"]);
   run(["config", "user.email", "test@example.com"]);

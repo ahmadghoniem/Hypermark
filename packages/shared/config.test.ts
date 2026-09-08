@@ -286,7 +286,7 @@ describe("favicon config persistence", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "plannotator-config-test-"));
+    tempDir = mkdtempSync(join(tmpdir(), "hypermark-config-test-"));
     process.env.HYPERMARK_DATA_DIR = tempDir;
   });
 
@@ -318,7 +318,7 @@ describe("saveConfig write serialization", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "plannotator-config-lock-"));
+    tempDir = mkdtempSync(join(tmpdir(), "hypermark-config-lock-"));
     process.env.HYPERMARK_DATA_DIR = tempDir;
   });
 

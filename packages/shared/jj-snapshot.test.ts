@@ -88,7 +88,7 @@ function jj(args: string[]): string {
  * with a merge in the way.
  */
 function initMergeWorkspace(): void {
-  workspace = mkdtempSync(join(tmpdir(), "plannotator-jj-snapshot-"));
+  workspace = mkdtempSync(join(tmpdir(), "hypermark-jj-snapshot-"));
   jj(["git", "init", "."]);
   jj(["config", "set", "--repo", "user.name", "Snapshot Test"]);
   jj(["config", "set", "--repo", "user.email", "snapshot-test@example.invalid"]);

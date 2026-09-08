@@ -2,8 +2,8 @@ import { storage } from './storage';
 import { isStalePreference } from './preferenceTtl';
 import type { InputMethod } from '../types';
 
-const STORAGE_KEY = 'plannotator-input-method';
-const HTML_STORAGE_KEY = 'plannotator-input-method-html';
+const STORAGE_KEY = 'hypermark-input-method';
+const HTML_STORAGE_KEY = 'hypermark-input-method-html';
 const DEFAULT_METHOD: InputMethod = 'drag';
 /**
  * Raw-HTML sessions default to Pinpoint: arbitrary pages are element-shaped,

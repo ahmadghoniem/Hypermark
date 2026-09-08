@@ -1,7 +1,7 @@
 /**
  * Integration tests for the prompt pipeline.
  *
- * Each test writes a real ~/.plannotator/config.json (in a temp HOME),
+ * Each test writes a real ~/.hypermark/config.json (in a temp HOME),
  * then calls prompt functions WITHOUT passing a config parameter —
  * forcing loadConfig() to read from disk. This proves the full path:
  *   config.json on disk → loadConfig() → getConfiguredPrompt() → output
@@ -17,7 +17,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 
 const TEST_HOME = join(tmpdir(), `prompts-integration-test-${Date.now()}`);
-const CONFIG_DIR = join(TEST_HOME, ".plannotator");
+const CONFIG_DIR = join(TEST_HOME, ".hypermark");
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 const PROJECT_ROOT = join(import.meta.dir, "../..");
 

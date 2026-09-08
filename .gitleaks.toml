@@ -5,7 +5,7 @@ useDefault = true
 
 [[allowlists]]
 # Disposition: public, non-secret RFC test vector; reviewed 2026-08-11.
-# Owner: Plannotator maintainers. Re-review by 2027-08-11 or when the fixture is removed.
+# Owner: Hypermark maintainers. Re-review by 2027-08-11 or when the fixture is removed.
 description = "RFC 6455 WebSocket handshake example"
 targetRules = ["generic-api-key"]
 regexTarget = "match"
@@ -21,7 +21,7 @@ regexes = [
 # world-readable, so their #key= fragments are not leaked secrets. The regex is
 # anchored to the guides.show share-path shape so real credentials elsewhere
 # still trip the generic rule.
-# Owner: Plannotator maintainers. Re-review by 2027-08-17 or if the share URL shape changes.
+# Owner: Hypermark maintainers. Re-review by 2027-08-17 or if the share URL shape changes.
 description = "guides.show share links (key-in-fragment by design)"
 targetRules = ["generic-api-key"]
 regexTarget = "line"

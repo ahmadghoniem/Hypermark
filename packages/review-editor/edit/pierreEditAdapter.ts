@@ -108,7 +108,7 @@ export function buildEditorMarkers(annotations: CodeAnnotation[], filePath: stri
       end: { line: Math.max(ann.lineEnd, startLine + 1), character: 0 },
       severity: ann.severity === 'important' || ann.type === 'concern' ? 'warning' : 'info',
       message,
-      source: ann.source || ann.author || 'plannotator',
+      source: ann.source || ann.author || 'hypermark',
     });
   }
   return markers;

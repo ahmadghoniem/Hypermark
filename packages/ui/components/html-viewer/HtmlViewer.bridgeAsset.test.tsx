@@ -155,7 +155,7 @@ describe.if(hasDom)('HtmlViewer bridgeScriptUrl', () => {
       bridgeScriptUrl: ASSET_URL,
       onBridgeUnavailable: (info) => unavailable.push(info),
     });
-    await postReady({ type: 'plannotator-bridge-ready' });
+    await postReady({ type: 'hypermark-bridge-ready' });
 
     expect(warnings.length).toBe(1);
     expect(warnings[0]).toContain(`expects ${BRIDGE_PROTOCOL_VERSION}`);
@@ -170,7 +170,7 @@ describe.if(hasDom)('HtmlViewer bridgeScriptUrl', () => {
       { kind: 'version-mismatch', url: ASSET_URL, expectedVersion: BRIDGE_PROTOCOL_VERSION, reportedVersion: undefined },
     ]);
     // Not a refusal: the parent still configures the older bridge.
-    expect(postedToIframe.some((m) => m.type === 'plannotator-bridge-sync-annotations')).toBe(true);
+    expect(postedToIframe.some((m) => m.type === 'hypermark-bridge-sync-annotations')).toBe(true);
   });
 
   test('a matching ready shows no banner and cancels the ready timer', async () => {
@@ -181,7 +181,7 @@ describe.if(hasDom)('HtmlViewer bridgeScriptUrl', () => {
       bridgeReadyTimeoutMs: 40,
       onBridgeUnavailable: (info) => unavailable.push(info),
     });
-    await postReady({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
+    await postReady({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
     await act(async () => { await wait(80); });
     expect(warnings).toEqual([]);
     expect(banner()).toBeNull();
@@ -203,7 +203,7 @@ describe.if(hasDom)('HtmlViewer bridgeScriptUrl', () => {
     expect(el?.textContent).toContain(ASSET_URL);
     expect(unavailable).toEqual([{ kind: 'timeout', url: ASSET_URL, timeoutMs: 30 }]);
 
-    await postReady({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
+    await postReady({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
     expect(banner()).toBeNull();
   });
 
@@ -214,7 +214,7 @@ describe.if(hasDom)('HtmlViewer bridgeScriptUrl', () => {
       bridgeReadyTimeoutMs: 5000,
       onBridgeUnavailable: (info) => unavailable.push(info),
     });
-    await postReady({ type: 'plannotator-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
+    await postReady({ type: 'hypermark-bridge-ready', protocolVersion: BRIDGE_PROTOCOL_VERSION });
     await rerender({ bridgeReadyTimeoutMs: 20 });
     await act(async () => { await wait(80); });
     expect(banner()).toBeNull();
@@ -228,7 +228,7 @@ describe.if(hasDom)('HtmlViewer bridgeScriptUrl', () => {
       bridgeScriptUrl: ASSET_URL,
       onBridgeUnavailable: (info) => unavailable.push(info),
     });
-    await postReady({ type: 'plannotator-bridge-ready' });
+    await postReady({ type: 'hypermark-bridge-ready' });
     const dismiss = host.querySelector<HTMLButtonElement>('[data-bridge-error-dismiss]');
     expect(dismiss).not.toBeNull();
     await act(async () => { dismiss!.click(); });
@@ -254,7 +254,7 @@ describe.if(hasDom)('HtmlViewer bridgeScriptUrl', () => {
       bridgeErrorDisplay: 'none',
       onBridgeUnavailable: (info) => unavailable.push(info),
     });
-    await postReady({ type: 'plannotator-bridge-ready' });
+    await postReady({ type: 'hypermark-bridge-ready' });
     expect(banner()).toBeNull();
     expect(host.querySelector('[data-bridge-error-dismiss]')).toBeNull();
     expect(warnings.length).toBe(1);
@@ -275,11 +275,11 @@ describe.if(hasDom)('HtmlViewer bridgeScriptUrl', () => {
   test("bridgeErrorDisplay='banner' is the default and renders the strip as before", async () => {
     captureWarnings();
     const explicit = await mount({ bridgeScriptUrl: ASSET_URL, bridgeErrorDisplay: 'banner' });
-    await explicit.postReady({ type: 'plannotator-bridge-ready' });
+    await explicit.postReady({ type: 'hypermark-bridge-ready' });
     expect(explicit.banner()?.getAttribute('data-bridge-error')).toBe('version-mismatch');
 
     const implicit = await mount({ bridgeScriptUrl: ASSET_URL });
-    await implicit.postReady({ type: 'plannotator-bridge-ready' });
+    await implicit.postReady({ type: 'hypermark-bridge-ready' });
     expect(implicit.banner()?.getAttribute('data-bridge-error')).toBe('version-mismatch');
   });
 
@@ -295,11 +295,11 @@ describe.if(hasDom)('HtmlViewer bridgeScriptUrl', () => {
     expect(banner()).toBeNull();
     expect(unavailable).toEqual([]);
 
-    await postReady({ type: 'plannotator-bridge-ready' });
+    await postReady({ type: 'hypermark-bridge-ready' });
     expect(warnings.length).toBe(1);
     expect(warnings[0]).not.toContain(ASSET_URL);
     expect(banner()).toBeNull();
     expect(unavailable).toEqual([]);
-    expect(postedToIframe.some((m) => m.type === 'plannotator-bridge-sync-annotations')).toBe(true);
+    expect(postedToIframe.some((m) => m.type === 'hypermark-bridge-sync-annotations')).toBe(true);
   });
 });

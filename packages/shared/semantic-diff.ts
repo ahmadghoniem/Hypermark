@@ -168,7 +168,7 @@ export function getSemanticDiffScratchCwd(dataDir = getHypermarkDataDir()): stri
     mkdirSync(primary, { recursive: true });
     return primary;
   } catch {
-    const fallback = join(tmpdir(), "plannotator-semantic-diff");
+    const fallback = join(tmpdir(), "hypermark-semantic-diff");
     try {
       mkdirSync(fallback, { recursive: true });
       return fallback;
