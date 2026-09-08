@@ -8,7 +8,7 @@
  * (a leading `!` line) runs `plannotator ...` BEFORE the model sees the
  * prompt, and `allowed-tools` keeps that run out of the permission prompt.
  * The core/ copies are prose the model follows with its own shell. Swapping
- * one for the other silently turns /plannotator-review into "the model might
+ * one for the other silently turns /hypermark-review into "the model might
  * decide to run something", which is not the same product. Nothing else in
  * the suite asserts the claude/ frontmatter: scripts/install.test.ts scans
  * only the core/ and extra/ roots.
@@ -37,13 +37,13 @@ const CORE_DIR = join(REPO_ROOT, "apps", "skills", "core");
 
 /**
  * The three executing launchers and the exact CLI invocation each one
- * injects. Names stay `plannotator-*` until spec 06 renames all three
- * together; a rename that touches only some of them fails here.
+ * injects. All three carry the `hypermark-` name as of spec 06 step 2; a
+ * rename that touches only some of them fails here.
  */
 const LAUNCHERS = [
-  { skill: "plannotator-annotate", command: "annotate" },
-  { skill: "plannotator-last", command: "annotate-last" },
-  { skill: "plannotator-review", command: "review" },
+  { skill: "hypermark-annotate", command: "annotate" },
+  { skill: "hypermark-last", command: "annotate-last" },
+  { skill: "hypermark-review", command: "review" },
 ] as const;
 
 function readSkill(root: string, skill: string): string {
@@ -71,9 +71,12 @@ describe("Claude launcher templates (apps/skills/claude)", () => {
       const frontmatter = frontmatterOf(doc);
       expect(frontmatter, skill).toContain("disable-model-invocation: true");
       expect(frontmatter, skill).toContain(`name: ${skill}`);
-      // Spec 06 owns the rename; until then the command name is the dir name.
-      expect(skill.startsWith("plannotator-"), skill).toBe(true);
-      expect(doc, skill).not.toContain("hypermark-");
+      // Spec 06 step 2 renamed the launchers. The guard now runs the other
+      // way: no launcher may keep, or reintroduce, an old `plannotator-`
+      // command name. The bare `plannotator` binary is a separate rename and
+      // is asserted by the two tests below, so match on the hyphen.
+      expect(skill.startsWith("hypermark-"), skill).toBe(true);
+      expect(doc, skill).not.toContain("plannotator-");
     }
   });
 
@@ -141,7 +144,7 @@ describe("installers source the Claude scope from apps/skills/claude", () => {
 
   test("install.ps1 copies the executing launchers, not the prose variants", () => {
     expect(ps1).toContain(
-      `foreach ($skill in @("plannotator-review", "plannotator-annotate", "plannotator-last")) {`,
+      `foreach ($skill in @("hypermark-review", "hypermark-annotate", "hypermark-last")) {`,
     );
     expect(ps1).toContain(
       'Copy-SkillIfPresent "apps\\skills\\claude\\$skill" $claudeSkillsDir',
@@ -160,7 +163,7 @@ describe("installers source the Claude scope from apps/skills/claude", () => {
 
   test("install.cmd copies the executing launchers, not the prose variants", () => {
     expect(cmd).toContain(
-      "for %%S in (plannotator-review plannotator-annotate plannotator-last) do",
+      "for %%S in (hypermark-review hypermark-annotate hypermark-last) do",
     );
     expect(cmd).toContain(
       'xcopy /s /i /y /q "apps\\skills\\claude\\%%S" "!CLAUDE_SKILLS_DIR!\\%%S\\"',
@@ -277,7 +280,7 @@ function expectInstalledLaunchers(claudeScope: string) {
   // Knowledge skill rides along from core/.
   expect(existsSync(join(claudeScope, "plannotator", "SKILL.md"))).toBe(true);
   // ... and the copy is not nested one level deeper (the re-run trap).
-  expect(existsSync(join(claudeScope, "plannotator-review", "plannotator-review"))).toBe(
+  expect(existsSync(join(claudeScope, "hypermark-review", "hypermark-review"))).toBe(
     false,
   );
 }
@@ -314,7 +317,7 @@ describe.if(isWindows)("install.ps1 copy stage on a spaced/Unicode path", () => 
           "Push-Location $Repo",
           "try {",
           "  New-Item -ItemType Directory -Force -Path $ClaudeSkillsDir | Out-Null",
-          '  foreach ($skill in @("plannotator-review", "plannotator-annotate", "plannotator-last")) {',
+          '  foreach ($skill in @("hypermark-review", "hypermark-annotate", "hypermark-last")) {',
           '    Copy-SkillIfPresent "apps\\skills\\claude\\$skill" $ClaudeSkillsDir',
           "  }",
           '  Copy-SkillIfPresent "apps\\skills\\core\\plannotator" $ClaudeSkillsDir',

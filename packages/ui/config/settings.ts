@@ -148,10 +148,10 @@ export const SETTINGS = {
   reviewPanelView: {
     defaultValue: 'sections' as 'sections' | 'tree',
     fromCookie: () => {
-      const v = storage.getItem('plannotator-review-panel-view');
+      const v = storage.getItem('hypermark-review-panel-view');
       return v === 'tree' || v === 'sections' ? v : undefined;
     },
-    toCookie: (v: string) => storage.setItem('plannotator-review-panel-view', v),
+    toCookie: (v: string) => storage.setItem('hypermark-review-panel-view', v),
     serverKey: undefined, fromServer: undefined, toServer: undefined,
   },
 
@@ -165,14 +165,14 @@ export const SETTINGS = {
   reviewPanelViewLastUsed: {
     defaultValue: null as 'sections' | 'tree' | null,
     fromCookie: () => {
-      const v = storage.getItem('plannotator-review-panel-view-last-used');
+      const v = storage.getItem('hypermark-review-panel-view-last-used');
       return v === 'tree' || v === 'sections' ? v : undefined;
     },
     toCookie: (v: 'sections' | 'tree' | null) => {
       // The null default seeds through here on first load — "unrecorded" has
       // no cookie representation, so write nothing.
       if (v === 'sections' || v === 'tree') {
-        storage.setItem('plannotator-review-panel-view-last-used', v);
+        storage.setItem('hypermark-review-panel-view-last-used', v);
       }
     },
     serverKey: undefined, fromServer: undefined, toServer: undefined,
@@ -184,11 +184,11 @@ export const SETTINGS = {
   reviewShowViewedControls: {
     defaultValue: true as boolean,
     fromCookie: () => {
-      const value = storage.getItem('plannotator-review-show-viewed-controls');
+      const value = storage.getItem('hypermark-review-show-viewed-controls');
       return value === 'true' ? true : value === 'false' ? false : undefined;
     },
     toCookie: (value: boolean) =>
-      storage.setItem('plannotator-review-show-viewed-controls', String(value)),
+      storage.setItem('hypermark-review-show-viewed-controls', String(value)),
     serverKey: undefined, fromServer: undefined, toServer: undefined,
   },
 
@@ -199,11 +199,11 @@ export const SETTINGS = {
   reviewAutoViewed: {
     defaultValue: true as boolean,
     fromCookie: () => {
-      const value = storage.getItem('plannotator-review-auto-viewed');
+      const value = storage.getItem('hypermark-review-auto-viewed');
       return value === 'true' ? true : value === 'false' ? false : undefined;
     },
     toCookie: (value: boolean) =>
-      storage.setItem('plannotator-review-auto-viewed', String(value)),
+      storage.setItem('hypermark-review-auto-viewed', String(value)),
     serverKey: undefined, fromServer: undefined, toServer: undefined,
   },
 
@@ -248,11 +248,11 @@ export const SETTINGS = {
   reviewShowStageControls: {
     defaultValue: true as boolean,
     fromCookie: () => {
-      const value = storage.getItem('plannotator-review-show-stage-controls');
+      const value = storage.getItem('hypermark-review-show-stage-controls');
       return value === 'true' ? true : value === 'false' ? false : undefined;
     },
     toCookie: (value: boolean) =>
-      storage.setItem('plannotator-review-show-stage-controls', String(value)),
+      storage.setItem('hypermark-review-show-stage-controls', String(value)),
     serverKey: undefined, fromServer: undefined, toServer: undefined,
   },
 
@@ -548,11 +548,11 @@ export const SETTINGS = {
   agentTerminalSide: {
     defaultValue: 'left' as AnnotateAgentTerminalSide,
     fromCookie: () => {
-      const v = storage.getItem('plannotator-annotate-agent-terminal-side');
+      const v = storage.getItem('hypermark-annotate-agent-terminal-side');
       return isAnnotateAgentTerminalSide(v) ? v : undefined;
     },
     toCookie: (v: AnnotateAgentTerminalSide) =>
-      storage.setItem('plannotator-annotate-agent-terminal-side', v),
+      storage.setItem('hypermark-annotate-agent-terminal-side', v),
     serverKey: 'agentTerminalSide',
     fromServer: (sc: Record<string, unknown>) =>
       isAnnotateAgentTerminalSide(sc.agentTerminalSide) ? sc.agentTerminalSide : undefined,
@@ -566,10 +566,10 @@ export const SETTINGS = {
   agentTerminalDefaultAgent: {
     defaultValue: '' as string,
     fromCookie: () =>
-      storage.getItem('plannotator-annotate-agent-terminal-default') || undefined,
+      storage.getItem('hypermark-annotate-agent-terminal-default') || undefined,
     toCookie: (v: string) => {
-      if (v) storage.setItem('plannotator-annotate-agent-terminal-default', v);
-      else storage.removeItem('plannotator-annotate-agent-terminal-default');
+      if (v) storage.setItem('hypermark-annotate-agent-terminal-default', v);
+      else storage.removeItem('hypermark-annotate-agent-terminal-default');
     },
     serverKey: 'agentTerminalDefaultAgent',
     fromServer: (sc: Record<string, unknown>) =>

@@ -30,9 +30,9 @@ function readScript(name: string): string {
 // The three always-installed core skills (apps/skills/core/*). Single list so
 // the copy assertions, sidecar checks, and frontmatter checks can't drift.
 const CORE_SKILLS = [
-  "plannotator-review",
-  "plannotator-annotate",
-  "plannotator-last",
+  "hypermark-review",
+  "hypermark-annotate",
+  "hypermark-last",
 ];
 
 describe("install.sh", () => {
@@ -104,9 +104,9 @@ describe("install.sh", () => {
     expect(script).toContain('copy_skill_if_present apps/skills/core/plannotator "$CLAUDE_SKILLS_DIR"');
     expect(script).toContain('copy_skill_if_present apps/skills/core/plannotator "$AGENTS_SKILLS_DIR"');
     // Codex no longer receives a skills install (core skills live in ~/.agents/skills).
-    expect(script).not.toContain('copy_skill_if_present apps/skills/core/plannotator-review "$CODEX_SKILLS_DIR"');
+    expect(script).not.toContain('copy_skill_if_present apps/skills/core/hypermark-review "$CODEX_SKILLS_DIR"');
     // Extras are not default-installed anywhere except Kiro.
-    expect(script).not.toContain("copy_skill_if_present apps/skills/extra/plannotator-compound");
+    expect(script).not.toContain("copy_skill_if_present apps/skills/extra/hypermark-compound");
     expect(script).not.toContain('cp -r apps/skills/* "$CLAUDE_SKILLS_DIR/"');
     // Missing git is a hard failure with an actionable message, not a silent
     // skip — the legacy commands are gone, so a no-skill install is broken.
@@ -120,7 +120,7 @@ describe("install.sh", () => {
     // fetch or an old pinned tag never deletes commands without replacement.
     expect(script).toContain('if [ -d "$CLAUDE_SKILLS_DIR/$cmd" ] && [ -f "$CLAUDE_COMMANDS_DIR/$cmd.md" ]');
     const cleanupIndex = script.indexOf('Removed legacy Claude command');
-    const installIndex = script.indexOf('copy_skill_if_present apps/skills/claude/plannotator-review');
+    const installIndex = script.indexOf('copy_skill_if_present apps/skills/claude/hypermark-review');
     expect(installIndex).toBeGreaterThan(0);
     expect(cleanupIndex).toBeGreaterThan(installIndex);
   });
@@ -186,16 +186,16 @@ describe("install.sh", () => {
     expect(script).toContain("$HOME/.kiro/skills");
     expect(script).toContain('if [ "$kiro_available" -eq 1 ]');
     // Kiro-specific skills (origin baked in) come from apps/kiro-cli/skills.
-    expect(script).toContain('copy_skill_if_present apps/kiro-cli/skills/plannotator-review "$KIRO_SKILLS_DIR"');
-    expect(script).toContain('copy_skill_if_present apps/kiro-cli/skills/plannotator-annotate "$KIRO_SKILLS_DIR"');
+    expect(script).toContain('copy_skill_if_present apps/kiro-cli/skills/hypermark-review "$KIRO_SKILLS_DIR"');
+    expect(script).toContain('copy_skill_if_present apps/kiro-cli/skills/hypermark-annotate "$KIRO_SKILLS_DIR"');
     // The knowledge skill has no Kiro-specific form either, so Kiro gets the
     // same single-sourced core copy as Claude and ~/.agents. Kiro shipping
     // only the action skills and no CLI reference was the #1377 install-reach
     // gap; assert the copy line so the scope cannot be dropped again.
     expect(script).toContain('copy_skill_if_present apps/skills/core/plannotator "$KIRO_SKILLS_DIR"');
     // The two extras Kiro keeps receiving come from apps/skills/extra.
-    expect(script).toContain('copy_skill_if_present apps/skills/extra/plannotator-setup-goal "$KIRO_SKILLS_DIR"');
-    expect(script).toContain('copy_skill_if_present apps/skills/extra/plannotator-visual-explainer "$KIRO_SKILLS_DIR"');
+    expect(script).toContain('copy_skill_if_present apps/skills/extra/hypermark-setup-goal "$KIRO_SKILLS_DIR"');
+    expect(script).toContain('copy_skill_if_present apps/skills/extra/hypermark-visual-explainer "$KIRO_SKILLS_DIR"');
     // sparse-checkout fetches apps/kiro-cli (skills + agent example).
     expect(script).toContain("git sparse-checkout set apps/skills apps/kiro-cli");
     // The installer also writes the example custom agent to ~/.kiro/agents.
@@ -209,7 +209,7 @@ describe("install.sh", () => {
     // Claude Code commands are deprecated in favor of skills — remove the files.
     expect(script).toContain("CLAUDE_COMMANDS_DIR");
     expect(script).toContain(
-      "for cmd in plannotator-review plannotator-annotate plannotator-last; do",
+      "for cmd in hypermark-review hypermark-annotate hypermark-last; do",
     );
     // The legacy ~/.agents cleanup block (review/annotate/last) is GONE —
     // core skills now intentionally live in ~/.agents/skills.
@@ -218,10 +218,10 @@ describe("install.sh", () => {
     // previously-stale compound/setup-goal.
     expect(script).toContain("STALE_CODEX_SKILLS_DIR");
     expect(script).toContain(
-      "for skill in plannotator-review plannotator-annotate plannotator-last plannotator-compound plannotator-setup-goal; do",
+      "for skill in hypermark-review hypermark-annotate hypermark-last hypermark-compound hypermark-setup-goal; do",
     );
     // Extras stop being managed in the Claude and shared-agent scopes.
-    expect(script).toContain("plannotator-compound plannotator-setup-goal plannotator-visual-explainer");
+    expect(script).toContain("hypermark-compound hypermark-setup-goal hypermark-visual-explainer");
     // plannotator-archive no longer ships as a skill — a stale installed copy
     // is removed unconditionally from every skill scope.
     expect(script).toContain(
@@ -240,7 +240,7 @@ describe("install.sh", () => {
   test("no longer installs core skills to ~/.codex/skills", () => {
     // Codex skills install removed; ~/.codex/skills only appears in cleanup.
     expect(script).not.toContain('mkdir -p "$CODEX_SKILLS_DIR"');
-    expect(script).not.toContain('copy_skill_if_present apps/skills/core/plannotator-review "$CODEX_SKILLS_DIR"');
+    expect(script).not.toContain('copy_skill_if_present apps/skills/core/hypermark-review "$CODEX_SKILLS_DIR"');
   });
 
   test("enables Codex hooks only after Stop hook setup succeeds", () => {
@@ -495,7 +495,7 @@ describe("install.sh", () => {
     // The "commands are ready" line is now the else arm of a skip check, so
     // it cannot print when nothing was installed.
     const readyIdx = script.indexOf(
-      "The /plannotator-review, /plannotator-annotate, and /plannotator-last commands are ready to use after you restart Claude Code!",
+      "The /hypermark-review, /hypermark-annotate, and /hypermark-last commands are ready to use after you restart Claude Code!",
     );
     const bannerGateIdx = script.lastIndexOf(
       'if [ "$skip_skills" -eq 1 ]; then',
@@ -606,11 +606,11 @@ describe("install.ps1", () => {
     // Knowledge skill: single-sourced from core into both scopes.
     expect(script).toContain('Copy-SkillIfPresent "apps\\skills\\core\\plannotator" $claudeSkillsDir');
     expect(script).toContain('Copy-SkillIfPresent "apps\\skills\\core\\plannotator" $agentsSkillsDir');
-    expect(script).toContain('"plannotator-review", "plannotator-annotate", "plannotator-last"');
+    expect(script).toContain('"hypermark-review", "hypermark-annotate", "hypermark-last"');
     // Copy-SkillIfPresent pre-removes the destination to avoid nesting on upgrade.
     expect(script).toContain("if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }");
     // No Codex skills install.
-    expect(script).not.toContain('Copy-SkillIfPresent "apps\\skills\\plannotator-review" $codexSkillsDir');
+    expect(script).not.toContain('Copy-SkillIfPresent "apps\\skills\\hypermark-review" $codexSkillsDir');
     // Missing git is a hard failure with an actionable message (parity with sh).
     expect(script).toContain("Error: git is required to install Plannotator's skills and slash commands.");
     expect(script).toContain("Install git, then run this installer again.");
@@ -625,7 +625,7 @@ describe("install.ps1", () => {
     // Legacy ~/.agents review/annotate/last cleanup is gone.
     expect(script).not.toContain("legacyAgentsSkillsDir");
     // Extras removed from Claude + shared-agent scopes, once, via the ledger.
-    expect(script).toContain('"plannotator-compound", "plannotator-setup-goal", "plannotator-visual-explainer"');
+    expect(script).toContain('"hypermark-compound", "hypermark-setup-goal", "hypermark-visual-explainer"');
     expect(script).toContain("2026-06-extras-default-install-removed");
     expect(script).toContain("if (-not (Test-Path $extrasMigration))");
     // plannotator-archive no longer ships as a skill — a stale installed copy
@@ -789,9 +789,9 @@ describe("install.cmd", () => {
     // agent (Codex) scope reads the prose skills (apps\skills\core).
     expect(script).toContain('xcopy /s /i /y /q "apps\\skills\\claude\\%%S" "!CLAUDE_SKILLS_DIR!\\%%S\\"');
     expect(script).toContain('xcopy /s /i /y /q "apps\\skills\\core\\%%S" "!AGENTS_SKILLS_DIR!\\%%S\\"');
-    expect(script).toContain("for %%S in (plannotator-review plannotator-annotate plannotator-last) do");
+    expect(script).toContain("for %%S in (hypermark-review hypermark-annotate hypermark-last) do");
     // Knowledge skill: single-sourced from core into both scopes.
-    expect(script).toContain("for %%S in (plannotator-review plannotator-annotate plannotator-last plannotator) do");
+    expect(script).toContain("for %%S in (hypermark-review hypermark-annotate hypermark-last plannotator) do");
     expect(script).toContain('xcopy /s /i /y /q "apps\\skills\\core\\plannotator" "!CLAUDE_SKILLS_DIR!\\plannotator\\"');
     // No Codex skills install — only the cleanup loop references CODEX skills.
     expect(script).not.toContain('xcopy /s /i /y /q "apps\\skills\\core\\%%S" "!CODEX_SKILLS_DIR!\\%%S\\"');
@@ -809,7 +809,7 @@ describe("install.cmd", () => {
     // Legacy ~/.agents review/annotate/last cleanup is gone.
     expect(script).not.toContain("LEGACY_AGENTS_SKILLS_DIR");
     // Extras removed from Claude + shared-agent scopes, once, via the ledger.
-    expect(script).toContain("for %%S in (plannotator-compound plannotator-setup-goal plannotator-visual-explainer) do");
+    expect(script).toContain("for %%S in (hypermark-compound hypermark-setup-goal hypermark-visual-explainer) do");
     expect(script).toContain("2026-06-extras-default-install-removed");
     expect(script).toContain('if not exist "!EXTRAS_MIGRATION!"');
     // plannotator-archive no longer ships as a skill — a stale installed copy
@@ -914,7 +914,7 @@ describe("install.cmd", () => {
     expect(script).toContain("echo Skills: skipped ^(!SKIP_SKILLS_SOURCE!^).");
     // The "skills are ready" line must not print when nothing was installed.
     const readyIdx = script.indexOf(
-      "echo The /plannotator-review, /plannotator-annotate, and /plannotator-last skills are ready to use!",
+      "echo The /hypermark-review, /hypermark-annotate, and /hypermark-last skills are ready to use!",
     );
     const bannerGateIdx = script.lastIndexOf('if "!SKIP_SKILLS!"=="1" (', readyIdx);
     expect(readyIdx).toBeGreaterThan(0);
@@ -1909,7 +1909,7 @@ if [ "$1" = "clone" ]; then
   for a in "$@"; do dest="$a"; done
   dest="\${dest//\\\\//}"
   mkdir -p "$dest"
-  for skill in plannotator-review plannotator-annotate plannotator-last; do
+  for skill in hypermark-review hypermark-annotate hypermark-last; do
     mkdir -p "$dest/apps/skills/claude/$skill" "$dest/apps/skills/core/$skill"
     printf 'name: %s\\n' "$skill" > "$dest/apps/skills/claude/$skill/SKILL.md"
     printf 'name: %s\\n' "$skill" > "$dest/apps/skills/core/$skill/SKILL.md"
@@ -1918,7 +1918,7 @@ if [ "$1" = "clone" ]; then
   mkdir -p "$dest/apps/skills/core/plannotator"
   printf 'name: plannotator\\n' > "$dest/apps/skills/core/plannotator/SKILL.md"
   mkdir -p "$dest/apps/opencode-plugin/commands"
-  printf 'stub\\n' > "$dest/apps/opencode-plugin/commands/plannotator-review.md"
+  printf 'stub\\n' > "$dest/apps/opencode-plugin/commands/hypermark-review.md"
   exit 0
 fi
 if [ "$1" = "sparse-checkout" ]; then
@@ -2157,7 +2157,7 @@ describe.skipIf(process.platform === "win32" || !Bun.which("node"))(
       // ...and the existing hard-fail contract for genuine errors holds.
       expect(out).toContain("network or git error");
       expect(code).toBe(1);
-      expect(existsSync(join(sandbox.home, ".claude", "skills", "plannotator-review"))).toBe(false);
+      expect(existsSync(join(sandbox.home, ".claude", "skills", "hypermark-review"))).toBe(false);
       // A network failure is not a capability miss: no fallback attempt.
       expect(out).not.toContain("falling back to a plain shallow clone");
     });
@@ -2394,7 +2394,7 @@ describe.skipIf(!pwshBin || process.platform === "win32")(
       expect(out).not.toContain("network or git error");
       expect(code).toBe(0);
       expect(
-        existsSync(join(home, ".claude", "skills", "plannotator-review", "SKILL.md")),
+        existsSync(join(home, ".claude", "skills", "hypermark-review", "SKILL.md")),
       ).toBe(true);
     }, PWSH_SCANNER_TIMEOUT_MS);
 

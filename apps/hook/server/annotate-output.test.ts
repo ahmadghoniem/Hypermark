@@ -69,7 +69,7 @@ describe("annotate stdout", () => {
  *
  * The invariant is deliberately "EVERY call site", not "the four that exist
  * today": the OpenCode bridge site shipped without the lease precisely because
- * a per-site check would have missed it, leaving `/plannotator-last --gate`
+ * a per-site check would have missed it, leaving `/hypermark-last --gate`
  * hanging on waitForDecision() forever once its tab was abandoned.
  */
 describe("annotate client-lease call sites", () => {

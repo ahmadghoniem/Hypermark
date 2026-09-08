@@ -14,7 +14,7 @@
  *    - Outputs feedback to stdout (captured by slash command)
  *
  * 3. Annotate (`plannotator annotate <file.md | file.txt>`):
- *    - Triggered by /plannotator-annotate slash command
+ *    - Triggered by /hypermark-annotate slash command
  *    - Opens any markdown file in the annotation UI
  *    - Outputs structured feedback to stdout
  *
@@ -1840,7 +1840,7 @@ if (args[0] === "sessions") {
     // emitOpenCodeAnnotateOutcome is this branch's only output path and always
     // writes a structured decision record the bridge parses back; `hook` is
     // false because no flags are parsed here and no hook decision protocol is
-    // emitted. Without this, `/plannotator-last --gate` under OpenCode hangs on
+    // emitted. Without this, `/hypermark-last --gate` under OpenCode hangs on
     // waitForDecision() forever once every review tab is abandoned — the exact
     // hang #1143 closed for the other three call sites.
     clientLeaseSupported: supportsAnnotateClientLease({

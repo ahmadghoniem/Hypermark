@@ -88,7 +88,7 @@ describe('auto-mark-viewed notice gate', () => {
     const store = makeStore();
     expect(store.get('reviewAutoViewed')).toBe(true);
     toggleAutoViewed(false, store);
-    expect(values.get('plannotator-review-auto-viewed')).toBe('false');
+    expect(values.get('hypermark-review-auto-viewed')).toBe('false');
     expect(makeStore().get('reviewAutoViewed')).toBe(false);
   });
 });

@@ -6,7 +6,7 @@ import { storage } from '@hypermark/ui/utils/storage';
  * switcher. Cookie-based, mirroring the guide-intro and review-setup gates.
  * Versioned so a meaningful revision can re-show it.
  */
-const SPOTLIGHT_SEEN_KEY = 'plannotator-review-dest-spotlight-seen';
+const SPOTLIGHT_SEEN_KEY = 'hypermark-review-dest-spotlight-seen';
 const SPOTLIGHT_VERSION = '1';
 
 export function needsDestinationSpotlight(): boolean {

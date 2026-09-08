@@ -34,7 +34,7 @@ const DISMISSED_VERSION_KEY = 'update-dismissed-version';
 const FEATURE_HIGHLIGHTS: Record<string, FeatureHighlight> = {
   '0.5.0': {
     title: 'Code Review is here!',
-    description: 'Review git diffs with inline annotations. Run /plannotator-review to try it.',
+    description: 'Review git diffs with inline annotations. Run /hypermark-review to try it.',
   },
 };
 

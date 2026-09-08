@@ -45,7 +45,7 @@ describe('fetchSkillCatalog', () => {
       Response.json({
         skills: [
           { name: 'write-better', root: 'claude', description: 'Improve prose', humanOnly: false },
-          { name: 'plannotator-review', root: 'claude', humanOnly: true },
+          { name: 'hypermark-review', root: 'claude', humanOnly: true },
           { name: '', root: 'claude', humanOnly: false }, // dropped: no name
           { name: 'weird-root', root: 'somewhere', humanOnly: false }, // root falls back
         ],
@@ -53,7 +53,7 @@ describe('fetchSkillCatalog', () => {
     );
 
     const skills = await fetchSkillCatalog();
-    expect(skills.map((s) => s.name)).toEqual(['write-better', 'plannotator-review', 'weird-root']);
+    expect(skills.map((s) => s.name)).toEqual(['write-better', 'hypermark-review', 'weird-root']);
     expect(skills[2].root).toBe('universal');
 
     // The export seam sees the same catalog.
@@ -155,10 +155,10 @@ describe('primeSkillContentsForExport', () => {
   const HUMAN_ONLY_CATALOG = [
     { name: 'write-better', root: 'claude', humanOnly: false },
     {
-      name: 'plannotator-review',
+      name: 'hypermark-review',
       root: 'claude',
       humanOnly: true,
-      dir: '/skills/plannotator-review',
+      dir: '/skills/hypermark-review',
     },
   ];
 
@@ -182,38 +182,38 @@ describe('primeSkillContentsForExport', () => {
   test('fetches only the HUMAN-ONLY skills the texts reference, and registers them for export', async () => {
     const requested = stubCatalogAndContent();
     const changed = await primeSkillContentsForExport([
-      'Use /write-better and $plannotator-review.',
+      'Use /write-better and $hypermark-review.',
       undefined,
       'plain comment',
     ]);
     expect(changed).toBe(true);
     // Lazy: the model-invocable skill is never fetched.
-    expect(requested).toEqual(['plannotator-review']);
+    expect(requested).toEqual(['hypermark-review']);
 
-    const block = skillReferenceExportBlock('Run $plannotator-review.');
-    expect(block).toContain('--- BEGIN SKILL INSTRUCTIONS: plannotator-review ---');
-    expect(block).toContain('# Instructions for plannotator-review');
+    const block = skillReferenceExportBlock('Run $hypermark-review.');
+    expect(block).toContain('--- BEGIN SKILL INSTRUCTIONS: hypermark-review ---');
+    expect(block).toContain('# Instructions for hypermark-review');
   });
 
   test('one request per skill per session, however often priming re-runs', async () => {
     const requested = stubCatalogAndContent();
-    await primeSkillContentsForExport(['$plannotator-review']);
-    await primeSkillContentsForExport(['$plannotator-review again']);
-    await primeSkillContentsForExport(['$plannotator-review and /write-better']);
-    expect(requested).toEqual(['plannotator-review']);
+    await primeSkillContentsForExport(['$hypermark-review']);
+    await primeSkillContentsForExport(['$hypermark-review again']);
+    await primeSkillContentsForExport(['$hypermark-review and /write-better']);
+    expect(requested).toEqual(['hypermark-review']);
   });
 
   test('edge-triggered: a re-prime with already-registered content resolves false', async () => {
     stubCatalogAndContent();
-    expect(await primeSkillContentsForExport(['$plannotator-review'])).toBe(true);
+    expect(await primeSkillContentsForExport(['$hypermark-review'])).toBe(true);
     // The content stays registered — but it is no longer news, so re-priming
     // must not signal "changed" again (a level-triggered true here re-render
     // looped App.tsx's generation-bump effect).
-    expect(await primeSkillContentsForExport(['$plannotator-review'])).toBe(false);
-    expect(await primeSkillContentsForExport(['$plannotator-review again'])).toBe(false);
+    expect(await primeSkillContentsForExport(['$hypermark-review'])).toBe(false);
+    expect(await primeSkillContentsForExport(['$hypermark-review again'])).toBe(false);
 
-    const block = skillReferenceExportBlock('Run $plannotator-review.');
-    expect(block).toContain('# Instructions for plannotator-review');
+    const block = skillReferenceExportBlock('Run $hypermark-review.');
+    expect(block).toContain('# Instructions for hypermark-review');
   });
 
   test('edge-triggered: a later prime that lands a NEW skill reports true exactly once', async () => {
@@ -239,10 +239,10 @@ describe('primeSkillContentsForExport', () => {
 
   test('a cache reset re-arms the changed signal for the next session', async () => {
     stubCatalogAndContent();
-    expect(await primeSkillContentsForExport(['$plannotator-review'])).toBe(true);
+    expect(await primeSkillContentsForExport(['$hypermark-review'])).toBe(true);
     resetSkillCatalogCache();
-    expect(await primeSkillContentsForExport(['$plannotator-review'])).toBe(true);
-    expect(await primeSkillContentsForExport(['$plannotator-review'])).toBe(false);
+    expect(await primeSkillContentsForExport(['$hypermark-review'])).toBe(true);
+    expect(await primeSkillContentsForExport(['$hypermark-review'])).toBe(false);
   });
 
   test('no human-only references → no requests, resolves false', async () => {
@@ -254,18 +254,18 @@ describe('primeSkillContentsForExport', () => {
   test('a failing content transport degrades to the name + directory fallback, never throws', async () => {
     setSkillCatalogTransport(async () => HUMAN_ONLY_CATALOG as SkillCatalogEntry[]);
     setSkillContentTransport(() => Promise.reject(new Error('gone')));
-    expect(await primeSkillContentsForExport(['$plannotator-review'])).toBe(false);
+    expect(await primeSkillContentsForExport(['$hypermark-review'])).toBe(false);
 
-    const block = skillReferenceExportBlock('Run $plannotator-review.');
-    expect(block).toContain('read SKILL.md in /skills/plannotator-review and follow it');
+    const block = skillReferenceExportBlock('Run $hypermark-review.');
+    expect(block).toContain('read SKILL.md in /skills/hypermark-review and follow it');
     expect(block).not.toContain('BEGIN SKILL INSTRUCTIONS');
   });
 
   test('a malformed content payload is treated as no content', async () => {
     setSkillCatalogTransport(async () => HUMAN_ONLY_CATALOG as SkillCatalogEntry[]);
     setSkillContentTransport(async () => ({ nope: true }));
-    expect(await primeSkillContentsForExport(['$plannotator-review'])).toBe(false);
-    expect(skillReferenceExportBlock('$plannotator-review')).not.toContain(
+    expect(await primeSkillContentsForExport(['$hypermark-review'])).toBe(false);
+    expect(skillReferenceExportBlock('$hypermark-review')).not.toContain(
       'BEGIN SKILL INSTRUCTIONS',
     );
   });
@@ -279,28 +279,28 @@ describe('primeSkillContentsForExport', () => {
           resolveContent = resolve;
         }),
     );
-    const pending = primeSkillContentsForExport(['$plannotator-review']);
+    const pending = primeSkillContentsForExport(['$hypermark-review']);
     // The content request starts after the (async) catalog fetch resolves.
     while (!resolveContent) await Bun.sleep(0);
 
     resetSkillCatalogCache();
     resolveContent({
-      name: 'plannotator-review',
-      dir: '/skills/plannotator-review',
-      path: '/skills/plannotator-review/SKILL.md',
+      name: 'hypermark-review',
+      dir: '/skills/hypermark-review',
+      path: '/skills/hypermark-review/SKILL.md',
       content: '# ghost',
       truncated: false,
     });
     await pending;
 
     // The reset cleared the export catalog, so the block is empty…
-    expect(skillReferenceExportBlock('$plannotator-review')).toBe('');
+    expect(skillReferenceExportBlock('$hypermark-review')).toBe('');
 
     // …and after the catalog comes back, the dead request's body must NOT
     // have been revived into the content registry.
     await fetchSkillCatalog();
-    const block = skillReferenceExportBlock('$plannotator-review');
+    const block = skillReferenceExportBlock('$hypermark-review');
     expect(block).not.toContain('# ghost');
-    expect(block).toContain('read SKILL.md in /skills/plannotator-review and follow it');
+    expect(block).toContain('read SKILL.md in /skills/hypermark-review and follow it');
   });
 });

@@ -16,8 +16,8 @@ function installBackend() {
   return values;
 }
 
-const SIDE_COOKIE = 'plannotator-annotate-agent-terminal-side';
-const AGENT_COOKIE = 'plannotator-annotate-agent-terminal-default';
+const SIDE_COOKIE = 'hypermark-annotate-agent-terminal-side';
+const AGENT_COOKIE = 'hypermark-annotate-agent-terminal-default';
 
 describe('agentTerminalSide setting', () => {
   test('keeps the pre-registry cookie key so an upgrade preserves the placement', () => {

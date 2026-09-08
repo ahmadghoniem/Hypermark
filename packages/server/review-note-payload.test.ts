@@ -62,7 +62,7 @@ function saveEnv(key: string) {
 }
 
 function useTempDataDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "plannotator-review-note-"));
+  const dir = mkdtempSync(join(tmpdir(), "hypermark-review-note-"));
   tempDirs.push(dir);
   saveEnv("PLANNOTATOR_DATA_DIR");
   process.env.PLANNOTATOR_DATA_DIR = dir;

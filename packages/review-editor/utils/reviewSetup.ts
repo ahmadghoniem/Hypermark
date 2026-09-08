@@ -6,7 +6,7 @@ import { configStore, getPersistedReviewPanelView, setReviewPanelView } from '@h
  * tree view's default diff type). Cookie-based, mirroring the plan app's
  * look-and-feel announcement gate.
  */
-const SEEN_KEY = 'plannotator-review-setup-seen';
+const SEEN_KEY = 'hypermark-review-setup-seen';
 
 export function needsReviewSetup(): boolean {
   return storage.getItem(SEEN_KEY) !== 'true';

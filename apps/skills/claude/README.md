@@ -13,13 +13,13 @@ one may be swapped for the other.
 
 ## What every launcher here must carry
 
-Each of `plannotator-annotate`, `plannotator-last`, and `plannotator-review`
+Each of `hypermark-annotate`, `hypermark-last`, and `hypermark-review`
 carries four things. Dropping any one of them changes the product:
 
 1. **`disable-model-invocation: true`** — the command is user-invoked only.
    The model never decides to open a review session on its own.
 2. **`allowed-tools: Bash(plannotator:*)`** — the injected run is pre-allowed,
-   so `/plannotator-*` does not raise a permission prompt (the behavior the
+   so `/hypermark-*` does not raise a permission prompt (the behavior the
    original slash commands had).
 3. **Argument forwarding** — `$ARGUMENTS` passes whatever the user typed after
    the command straight through to the CLI.
@@ -36,8 +36,10 @@ and non-ASCII characters. That test file sits at this directory's root rather
 than inside a skill folder, so the installers (which copy named skill
 directories) never ship it.
 
-Command names stay `/plannotator-*`. Spec 06 renames all three together to
-`/hypermark-*`; renaming them piecemeal is a bug, not a step.
+Command names are `/hypermark-*`, renamed together in spec 06 step 2;
+renaming them piecemeal is a bug, not a step. The `launcher-contract.test.ts`
+guard now runs the other way and fails if any launcher reintroduces an old
+`plannotator-` command name.
 
 ## Native `/btw` is not one of these
 

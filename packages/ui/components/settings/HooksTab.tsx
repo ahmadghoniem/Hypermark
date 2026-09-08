@@ -164,7 +164,7 @@ export const HooksTab: React.FC = () => {
                 )}
                 <p className="text-[11px] text-muted-foreground/70 mt-2 leading-relaxed">
                   Edit this file directly to customize, or
-                  run <code className="text-[10px] bg-muted px-1 py-0.5 rounded">/plannotator-compound</code> to
+                  run <code className="text-[10px] bg-muted px-1 py-0.5 rounded">/hypermark-compound</code> to
                   regenerate from recent denial history.
                 </p>
                 <button
@@ -189,7 +189,7 @@ export const HooksTab: React.FC = () => {
                   <CopyPathButton filePath={status.improvementHook.filePath} />
                 )}
                 <p className="text-[11px] text-muted-foreground/70 mt-2 leading-relaxed">
-                  Run <code className="text-[10px] bg-muted px-1 py-0.5 rounded">/plannotator-compound</code> to
+                  Run <code className="text-[10px] bg-muted px-1 py-0.5 rounded">/hypermark-compound</code> to
                   auto-generate from your denial history, or create a plain text file at the path above with
                   your own instructions.{' '}
                   <a

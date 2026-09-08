@@ -661,7 +661,7 @@ const ReviewAppInner: React.FC = () => {
     handlePRSwitch,
   } = usePRStack(prStackCallbacksRef);
   const [reviewDestination, setReviewDestination] = useState<'agent' | 'platform'>(() => {
-    const stored = storage.getItem('plannotator-review-dest');
+    const stored = storage.getItem('hypermark-review-dest');
     return stored === 'agent' ? 'agent' : 'platform'; // 'github' (legacy) → 'platform'
   });
   const [showDestinationMenu, setShowDestinationMenu] = useState(false);
@@ -1059,7 +1059,7 @@ const ReviewAppInner: React.FC = () => {
 
   // Resizable panels
   const panelResize = useResizablePanel({
-    storageKey: 'plannotator-review-panel-width',
+    storageKey: 'hypermark-review-panel-width',
     onSnapClose: () => reviewSidebar.close(),
     // Single click on the handle (no drag) collapses it.
     onClick: () => reviewSidebar.close(),
@@ -3605,7 +3605,7 @@ const ReviewAppInner: React.FC = () => {
       if (now - lastAltUp < DOUBLE_TAP_WINDOW) {
         setReviewDestination(prev => {
           const next = prev === 'platform' ? 'agent' : 'platform';
-          storage.setItem('plannotator-review-dest', next);
+          storage.setItem('hypermark-review-dest', next);
           setPlatformActionError(null);
           return next;
         });
@@ -3781,7 +3781,7 @@ const ReviewAppInner: React.FC = () => {
           onChange: (destination) => {
             if (showDestSpotlight) dismissDestSpotlight();
             setReviewDestination(destination);
-            storage.setItem('plannotator-review-dest', destination);
+            storage.setItem('hypermark-review-dest', destination);
             setPlatformActionError(null);
           },
         }
@@ -4021,7 +4021,7 @@ const ReviewAppInner: React.FC = () => {
                             data-pn-touch-target={isCompactTouchLayout || undefined}
                             onClick={() => {
                               setReviewDestination('platform');
-                              storage.setItem('plannotator-review-dest', 'platform');
+                              storage.setItem('hypermark-review-dest', 'platform');
                               setShowDestinationMenu(false);
                               setPlatformActionError(null);
                             }}
@@ -4038,7 +4038,7 @@ const ReviewAppInner: React.FC = () => {
                             data-pn-touch-target={isCompactTouchLayout || undefined}
                             onClick={() => {
                               setReviewDestination('agent');
-                              storage.setItem('plannotator-review-dest', 'agent');
+                              storage.setItem('hypermark-review-dest', 'agent');
                               setShowDestinationMenu(false);
                               setPlatformActionError(null);
                             }}

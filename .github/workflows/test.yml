@@ -392,7 +392,7 @@ jobs:
           # NEW contract: a fresh install must not create plannotator command
           # files.
           $cmdDir = "$env:USERPROFILE\.claude\commands"
-          foreach ($file in @("plannotator-review.md", "plannotator-annotate.md", "plannotator-last.md")) {
+          foreach ($file in @("hypermark-review.md", "hypermark-annotate.md", "hypermark-last.md")) {
             $path = Join-Path $cmdDir $file
             if (Test-Path $path) {
               throw "Installer wrote a deprecated Claude command file: $path. Commands were replaced by skills; the installer must not generate them."
@@ -408,7 +408,7 @@ jobs:
           # actually delivered intact files (and would catch a regression back to
           # generated content that mangles the `!`).
           $geminiDir = "$env:USERPROFILE\.gemini\commands"
-          foreach ($file in @("plannotator-review.toml", "plannotator-annotate.toml")) {
+          foreach ($file in @("hypermark-review.toml", "hypermark-annotate.toml")) {
             $path = Join-Path $geminiDir $file
             if (-not (Test-Path $path)) {
               throw "Expected Gemini command file missing: $path"

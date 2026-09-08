@@ -648,7 +648,7 @@ async function createSyntheticSnapshot(
   baseCommit: string,
   patches: readonly string[],
 ): Promise<VcsSnapshot> {
-  const tempRoot = await mkdtemp(join(tmpdir(), "plannotator-review-snapshot-"));
+  const tempRoot = await mkdtemp(join(tmpdir(), "hypermark-review-snapshot-"));
   const snapshotCwd = join(tempRoot, "repo");
   const cleanup = () => removeDirectoryBestEffort(tempRoot);
   try {
@@ -809,7 +809,7 @@ async function materializeJjSnapshot(
   // file above it and hand CallDiff a partial repository call graph.
   const filesets = options.includedExtensions.map((extension) => `root-glob-i:"**/*${extension}"`);
 
-  const tempRoot = await mkdtemp(join(tmpdir(), "plannotator-review-jj-snapshot-"));
+  const tempRoot = await mkdtemp(join(tmpdir(), "hypermark-review-jj-snapshot-"));
   const snapshotCwd = join(tempRoot, "repo");
   const cleanup = () => removeDirectoryBestEffort(tempRoot);
   try {

@@ -98,7 +98,7 @@ Options:
                          visual-explainer) via `npx skills add` without asking.
   --no-extras            Skip the extras without asking.
   --model-invocable <l>  Comma-separated skill names to make model-invocable
-                         (e.g. plannotator-review,plannotator-compound), or
+                         (e.g. hypermark-review,hypermark-compound), or
                          "none". Skills are user-invoked-only by default.
   --minimal              Install only the plannotator binary (aliased
                          --binary-only). Skips the sem semantic-diff sidecar,
@@ -1359,7 +1359,7 @@ MIGRATIONS_DIR="$_config_dir/migrations"
 EXTRAS_MIGRATION="$MIGRATIONS_DIR/2026-06-extras-default-install-removed"
 if [ ! -f "$EXTRAS_MIGRATION" ]; then
     for scope in "$CLAUDE_SKILLS_DIR" "$AGENTS_SKILLS_DIR"; do
-        for skill in plannotator-compound plannotator-setup-goal plannotator-visual-explainer; do
+        for skill in hypermark-compound hypermark-setup-goal hypermark-visual-explainer; do
             if [ -d "$scope/$skill" ]; then
                 rm -rf "$scope/$skill"
                 echo "Removed extra Plannotator skill from ${scope}/$skill (reinstall via npx skills add)"
@@ -1376,8 +1376,8 @@ fi
 # --reconfigure re-opens the wizard; --non-interactive forces silence; piped
 # CI runs without a terminal never prompt. CLI flags win over everything.
 PREFS_FILE="$_config_dir/install-prefs"
-CORE_SKILL_NAMES="plannotator-review plannotator-annotate plannotator-last"
-EXTRA_SKILL_NAMES="plannotator-compound plannotator-setup-goal plannotator-visual-explainer"
+CORE_SKILL_NAMES="hypermark-review hypermark-annotate hypermark-last"
+EXTRA_SKILL_NAMES="hypermark-compound hypermark-setup-goal hypermark-visual-explainer"
 
 saved_extras=""
 saved_invocable=""
@@ -1738,9 +1738,9 @@ checkout_failed=0
     # separately rather than sharing one body.
     if [ -d "apps/skills/claude" ] && [ -n "$(ls -A apps/skills/claude 2>/dev/null)" ]; then
         mkdir -p "$CLAUDE_SKILLS_DIR"
-        copy_skill_if_present apps/skills/claude/plannotator-review "$CLAUDE_SKILLS_DIR"
-        copy_skill_if_present apps/skills/claude/plannotator-annotate "$CLAUDE_SKILLS_DIR"
-        copy_skill_if_present apps/skills/claude/plannotator-last "$CLAUDE_SKILLS_DIR"
+        copy_skill_if_present apps/skills/claude/hypermark-review "$CLAUDE_SKILLS_DIR"
+        copy_skill_if_present apps/skills/claude/hypermark-annotate "$CLAUDE_SKILLS_DIR"
+        copy_skill_if_present apps/skills/claude/hypermark-last "$CLAUDE_SKILLS_DIR"
         # The plannotator knowledge skill (CLI reference) has no Claude-only
         # injection form — its body is pure prose — so Claude installs the
         # same single-sourced copy Codex gets from apps/skills/core.
@@ -1751,9 +1751,9 @@ checkout_failed=0
     fi
     if [ -d "apps/skills/core" ] && [ -n "$(ls -A apps/skills/core 2>/dev/null)" ]; then
         mkdir -p "$AGENTS_SKILLS_DIR"
-        copy_skill_if_present apps/skills/core/plannotator-review "$AGENTS_SKILLS_DIR"
-        copy_skill_if_present apps/skills/core/plannotator-annotate "$AGENTS_SKILLS_DIR"
-        copy_skill_if_present apps/skills/core/plannotator-last "$AGENTS_SKILLS_DIR"
+        copy_skill_if_present apps/skills/core/hypermark-review "$AGENTS_SKILLS_DIR"
+        copy_skill_if_present apps/skills/core/hypermark-annotate "$AGENTS_SKILLS_DIR"
+        copy_skill_if_present apps/skills/core/hypermark-last "$AGENTS_SKILLS_DIR"
         copy_skill_if_present apps/skills/core/plannotator "$AGENTS_SKILLS_DIR"
         echo "Installed shared agent skills to ${AGENTS_SKILLS_DIR}/"
     else
@@ -1779,15 +1779,15 @@ checkout_failed=0
     if [ "$kiro_available" -eq 1 ] && [ "$skip_kiro" -eq 0 ] && [ -d "apps/kiro-cli/skills" ] && [ -n "$(ls -A apps/kiro-cli/skills 2>/dev/null)" ]; then
         mkdir -p "$KIRO_SKILLS_DIR"
         # Kiro-specific skills (origin baked in) come from apps/kiro-cli/skills.
-        copy_skill_if_present apps/kiro-cli/skills/plannotator-review "$KIRO_SKILLS_DIR"
-        copy_skill_if_present apps/kiro-cli/skills/plannotator-annotate "$KIRO_SKILLS_DIR"
+        copy_skill_if_present apps/kiro-cli/skills/hypermark-review "$KIRO_SKILLS_DIR"
+        copy_skill_if_present apps/kiro-cli/skills/hypermark-annotate "$KIRO_SKILLS_DIR"
         # The plannotator knowledge skill (CLI reference) has no Kiro-specific
         # form, so Kiro receives the single-sourced core copy like every other
         # scope. Without it, Kiro users get the action skills but no reference.
         copy_skill_if_present apps/skills/core/plannotator "$KIRO_SKILLS_DIR"
         # Extras come from apps/skills/extra (not duplicated into apps/kiro-cli/skills).
-        copy_skill_if_present apps/skills/extra/plannotator-setup-goal "$KIRO_SKILLS_DIR"
-        copy_skill_if_present apps/skills/extra/plannotator-visual-explainer "$KIRO_SKILLS_DIR"
+        copy_skill_if_present apps/skills/extra/hypermark-setup-goal "$KIRO_SKILLS_DIR"
+        copy_skill_if_present apps/skills/extra/hypermark-visual-explainer "$KIRO_SKILLS_DIR"
         # Plannotator custom agent — don't clobber a user's existing one.
         if [ ! -f "$HOME/.kiro/agents/plannotator.json" ] && [ -f "apps/kiro-cli/agents/plannotator.json" ]; then
             mkdir -p "$HOME/.kiro/agents"
@@ -1810,7 +1810,7 @@ fi
 # AFTER the install above guarantees a failed or skipped skill install never
 # leaves users with neither the command nor the skill.
 CLAUDE_COMMANDS_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/commands"
-for cmd in plannotator-review plannotator-annotate plannotator-last; do
+for cmd in hypermark-review hypermark-annotate hypermark-last; do
     # A skills opt-out installed no replacement this run, so it removes
     # nothing either — skip means do-not-write, never remove.
     if [ "$skip_skills" -eq 1 ]; then
@@ -1850,7 +1850,7 @@ fi
 # Codex no longer hosts core skills (they now live in ~/.agents/skills).
 # Core skills are removed only once their replacement exists; the stale
 # shared-agent extras were never Codex's and are removed unconditionally.
-for skill in plannotator-review plannotator-annotate plannotator-last plannotator-compound plannotator-setup-goal; do
+for skill in hypermark-review hypermark-annotate hypermark-last hypermark-compound hypermark-setup-goal; do
     # A Codex opt-out leaves $CODEX_DIR entirely untouched — including this
     # stale-skill cleanup. Skip means do-not-write, never remove. A skills
     # opt-out installed no replacement, so it suspends the sweep as well.
@@ -1859,7 +1859,7 @@ for skill in plannotator-review plannotator-annotate plannotator-last plannotato
     fi
     if [ -d "$STALE_CODEX_SKILLS_DIR/$skill" ]; then
         case "$skill" in
-            plannotator-review|plannotator-annotate|plannotator-last)
+            hypermark-review|hypermark-annotate|hypermark-last)
                 [ -d "$AGENTS_SKILLS_DIR/$skill" ] || continue
                 ;;
         esac
@@ -2000,7 +2000,7 @@ else
     echo ""
     echo '  "plugin": ["@plannotator/opencode@latest"]'
     echo ""
-    echo "Then restart OpenCode. The /plannotator-review, /plannotator-annotate, and /plannotator-last commands are ready!"
+    echo "Then restart OpenCode. The /hypermark-review, /hypermark-annotate, and /hypermark-last commands are ready!"
 fi
 echo ""
 echo "=========================================="
@@ -2049,12 +2049,12 @@ elif [ "$codex_available" -eq 1 ]; then
     if [ "$skip_skills" -eq 1 ]; then
         echo "Skills were skipped (${skip_skills_source}), so no core skills were"
         echo "installed to ~/.agents/skills/. The Stop hook works without them;"
-        echo "re-run without the opt-out to add \$plannotator-review and friends."
+        echo "re-run without the opt-out to add \$hypermark-review and friends."
     else
         echo "Core skills are installed to ~/.agents/skills/:"
-        echo "  \$plannotator-review"
-        echo "  \$plannotator-annotate <file|url|folder>"
-        echo "  \$plannotator-last"
+        echo "  \$hypermark-review"
+        echo "  \$hypermark-annotate <file|url|folder>"
+        echo "  \$hypermark-last"
     fi
 else
     echo "Codex was not detected. After installing Codex, rerun this installer to add"
@@ -2099,11 +2099,11 @@ echo "Upgrading from an older version? Also run /plugin marketplace update"
 echo "so the plugin drops its old plannotator:* command entries."
 echo ""
 if [ "$skip_skills" -eq 1 ]; then
-    echo "Skills were skipped (${skip_skills_source}), so the /plannotator-review,"
-    echo "/plannotator-annotate, and /plannotator-last commands are NOT installed."
+    echo "Skills were skipped (${skip_skills_source}), so the /hypermark-review,"
+    echo "/hypermark-annotate, and /hypermark-last commands are NOT installed."
     echo "Re-run the installer without the opt-out to add them."
 else
-    echo "The /plannotator-review, /plannotator-annotate, and /plannotator-last commands are ready to use after you restart Claude Code!"
+    echo "The /hypermark-review, /hypermark-annotate, and /hypermark-last commands are ready to use after you restart Claude Code!"
 fi
 
 if [ "$skip_skills" -eq 0 ] && [ "$extras_choice" != "yes" ]; then

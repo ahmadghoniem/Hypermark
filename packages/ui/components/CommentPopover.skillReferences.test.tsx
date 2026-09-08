@@ -42,7 +42,7 @@ const catalog: SkillCatalogEntry[] = [
   { name: 'animate', root: 'claude', description: 'Motion design', humanOnly: false },
   { name: 'annotate-helper', root: 'codex', humanOnly: false },
   { name: 'humanizer', root: 'universal', humanOnly: false },
-  { name: 'plannotator-review', root: 'claude', humanOnly: true },
+  { name: 'hypermark-review', root: 'claude', humanOnly: true },
 ];
 
 let root: Root | null = null;
@@ -247,10 +247,10 @@ describe('CommentPopover skill references — no-preselection keyboard state mac
     async () => {
       await mountPopover();
       const el = textarea();
-      // prefix: animate, annotate-helper; substring: humanizer, plannotator-review
+      // prefix: animate, annotate-helper; substring: humanizer, hypermark-review
       await type(el, '$a');
       await press(el, 'ArrowUp');
-      expect(activeRow()?.getAttribute('data-skill-item')).toBe('plannotator-review');
+      expect(activeRow()?.getAttribute('data-skill-item')).toBe('hypermark-review');
     },
   );
 
@@ -431,10 +431,10 @@ describe('CommentPopover skill references — no-preselection keyboard state mac
       // the pointer and oscillated the hovered row every frame.
       await mountPopover();
       const el = textarea();
-      await type(el, '$a'); // animate, annotate-helper, humanizer, plannotator-review
+      await type(el, '$a'); // animate, annotate-helper, humanizer, hypermark-review
       expect(menu()).not.toBeNull();
       expect(document.querySelector('[data-skill-menu-disclosure]')).toBeNull();
-      const humanOnlyRow = document.querySelector('[data-skill-item="plannotator-review"]')!;
+      const humanOnlyRow = document.querySelector('[data-skill-item="hypermark-review"]')!;
       const plainRow = document.querySelector('[data-skill-item="animate"]')!;
       expect(humanOnlyRow.hasAttribute('data-skill-item-human-only')).toBe(false);
       expect(humanOnlyRow.hasAttribute('aria-describedby')).toBe(false);
@@ -452,7 +452,7 @@ describe('CommentPopover skill references — no-preselection keyboard state mac
       await type(el, 'This costs $');
       const menuEl = menu() as HTMLElement;
       const before = menuEl.outerHTML;
-      for (const name of ['plannotator-review', 'animate']) {
+      for (const name of ['hypermark-review', 'animate']) {
         const row = document.querySelector(`[data-skill-item="${name}"]`)!;
         await act(async () => {
           row.dispatchEvent(new Event('pointermove', { bubbles: true }));
@@ -501,7 +501,7 @@ describe('CommentPopover skill references — no-preselection keyboard state mac
       await fetchSkillCatalog(); // warm the shared memory cache
       await mountPopover({
         skillReferences: false,
-        initialText: 'use $plannotator-review please',
+        initialText: 'use $hypermark-review please',
       });
       const el = textarea();
       expect(document.querySelector('[data-skill-human-only-notice]')).toBeNull();
@@ -519,7 +519,7 @@ describe('CommentPopover skill references — no-preselection keyboard state mac
   test.skipIf(!hasDom)(
     'the human-only notice renders as a quiet native disclosure with the full explanation inside',
     async () => {
-      await mountPopover({ initialText: 'use $plannotator-review please' });
+      await mountPopover({ initialText: 'use $hypermark-review please' });
       const notice = document.querySelector('[data-skill-human-only-notice]');
       expect(notice).not.toBeNull();
       // A native <details> disclosure: reachable by pointer, keyboard, and AT
@@ -529,11 +529,11 @@ describe('CommentPopover skill references — no-preselection keyboard state mac
       expect(summary).not.toBeNull();
       expect(summary!.textContent).toContain('Includes skill instructions');
       // The accurate full sentence is the disclosed content.
-      expect(notice!.textContent).toContain('plannotator-review');
+      expect(notice!.textContent).toContain('hypermark-review');
       expect(notice!.textContent).toContain('cannot be invoked by a model');
       expect(notice!.textContent).toContain('included with your feedback');
       // The token itself carries the quiet inline marker.
-      const token = document.querySelector('[data-skill-ref-token="plannotator-review"]');
+      const token = document.querySelector('[data-skill-ref-token="hypermark-review"]');
       expect(token).not.toBeNull();
       expect(token!.getAttribute('data-skill-ref-human-only')).toBe('true');
     },

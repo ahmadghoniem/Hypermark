@@ -30,10 +30,10 @@ describe('reviewPanelViewLastUsed setting', () => {
   test('never persists commits: a commits (or junk) cookie reads as unset', () => {
     const values = installMemoryBackend();
 
-    values.set('plannotator-review-panel-view-last-used', 'commits');
+    values.set('hypermark-review-panel-view-last-used', 'commits');
     expect(SETTINGS.reviewPanelViewLastUsed.fromCookie()).toBeUndefined();
 
-    values.set('plannotator-review-panel-view-last-used', 'unexpected');
+    values.set('hypermark-review-panel-view-last-used', 'unexpected');
     expect(SETTINGS.reviewPanelViewLastUsed.fromCookie()).toBeUndefined();
   });
 
@@ -43,7 +43,7 @@ describe('reviewPanelViewLastUsed setting', () => {
     // ensureLoaded seeds unrecorded defaults through toCookie — null must
     // not materialize a cookie that a later fromCookie would misread.
     SETTINGS.reviewPanelViewLastUsed.toCookie(null);
-    expect(values.has('plannotator-review-panel-view-last-used')).toBe(false);
+    expect(values.has('hypermark-review-panel-view-last-used')).toBe(false);
     expect(SETTINGS.reviewPanelViewLastUsed.fromCookie()).toBeUndefined();
 
     SETTINGS.reviewPanelViewLastUsed.toCookie('tree');
@@ -58,7 +58,7 @@ describe('reviewPanelViewLastUsed setting', () => {
 
     setReviewPanelView('tree', undefined, store);
     expect(store.get('reviewPanelViewLastUsed')).toBe('tree');
-    expect(values.get('plannotator-review-panel-view-last-used')).toBe('tree');
+    expect(values.get('hypermark-review-panel-view-last-used')).toBe('tree');
   });
 
   test('recordLastUsed: false (the self-heal) repairs the pair without stomping the memo', () => {

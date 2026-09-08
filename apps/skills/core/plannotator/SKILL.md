@@ -7,7 +7,7 @@ description: "Reference for using the Plannotator CLI: plan review, code review,
 
 Plannotator is a local, browser-based review layer for agent workflows: it opens plans, diffs, and documents in an annotation UI, the human marks them up, and the structured feedback comes back to you on stdout. It installs as a single `plannotator` binary plus per-host hooks, so plan review fires automatically when you exit plan mode; every other surface is launched explicitly from the CLI. A session runs on a random localhost port (fixed port 19432 in remote mode) and blocks until the reviewer submits feedback, approves, or closes the tab.
 
-This skill is the knowledge layer. The `plannotator-review`, `plannotator-annotate`, and `plannotator-last` skills are thin launchers for the three most common actions; use this reference when you need to pick the right command or flags yourself.
+This skill is the knowledge layer. The `hypermark-review`, `hypermark-annotate`, and `hypermark-last` skills are thin launchers for the three most common actions; use this reference when you need to pick the right command or flags yourself.
 
 ## Choose the command
 
@@ -112,7 +112,7 @@ Do not print a commentary or status message immediately before running it: the c
 plannotator copilot-last [--gate] [--json] [--hook]
 ```
 
-The annotate-last variant for live GitHub Copilot CLI sessions (reads Copilot's session-state events). Normally invoked by the Copilot plugin's /plannotator-last command; use it only inside a Copilot CLI session.
+The annotate-last variant for live GitHub Copilot CLI sessions (reads Copilot's session-state events). Normally invoked by the Copilot plugin's /hypermark-last command; use it only inside a Copilot CLI session.
 
 ## plannotator archive
 
@@ -138,7 +138,7 @@ plannotator uninstall [--purge] [--yes] [--dry-run]
 plannotator improve-context
 ```
 
-- `setup-goal` opens the interview or facts-acceptance UI for /goal workflows; it is driven by the `plannotator-setup-goal` skill and takes a bundle JSON (`-` reads stdin). Do not hand-build bundles.
+- `setup-goal` opens the interview or facts-acceptance UI for /goal workflows; it is driven by the `hypermark-setup-goal` skill and takes a bundle JSON (`-` reads stdin). Do not hand-build bundles.
 - `uninstall` removes Plannotator-installed components (`--purge` also deletes local data; `--yes` is required without a TTY; `--dry-run` previews).
 - `improve-context` and `install-runtime` are internal integration commands (hook plumbing and managed runtime install). Never run `improve-context` directly; `plannotator install-runtime agent-terminal` exists for reinstalling the optional annotate-terminal runtime and is normally run by the installer.
 - Additional host-internal subcommands (the `opencode-*` and `copilot-plan` family) are invoked by their plugins, not by you.

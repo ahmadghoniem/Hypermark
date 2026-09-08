@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 const skill = readFileSync(join(import.meta.dir, "SKILL.md"), "utf-8");
 
-describe("plannotator-setup-goal skill", () => {
+describe("hypermark-setup-goal skill", () => {
   test("uses bundled goal setup UI as the default interview path", () => {
     expect(skill).toContain("Build a compact bundle of questions");
     expect(skill).toContain("plannotator setup-goal interview");

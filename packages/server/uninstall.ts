@@ -38,9 +38,9 @@ import {
 } from "jsonc-parser";
 
 const CORE_SKILLS = [
-  "plannotator-review",
-  "plannotator-annotate",
-  "plannotator-last",
+  "hypermark-review",
+  "hypermark-annotate",
+  "hypermark-last",
 ] as const;
 
 // The knowledge-layer CLI reference skill (apps/skills/core/plannotator).
@@ -53,9 +53,9 @@ const KNOWLEDGE_SKILLS = [
 ] as const;
 
 const EXTRA_SKILLS = [
-  "plannotator-compound",
-  "plannotator-setup-goal",
-  "plannotator-visual-explainer",
+  "hypermark-compound",
+  "hypermark-setup-goal",
+  "hypermark-visual-explainer",
 ] as const;
 
 const LEGACY_COMMAND_NAMES = [
@@ -64,21 +64,21 @@ const LEGACY_COMMAND_NAMES = [
 ] as const;
 
 const KIRO_SKILLS = [
-  "plannotator-review",
-  "plannotator-annotate",
+  "hypermark-review",
+  "hypermark-annotate",
   // The knowledge skill installs into ~/.kiro/skills like the action skills.
   // Safe to name here: this list only ever removes ~/.kiro/skills/<name>
   // directories, never a command file a user may own.
   "plannotator",
-  "plannotator-setup-goal",
-  "plannotator-visual-explainer",
+  "hypermark-setup-goal",
+  "hypermark-visual-explainer",
   "plannotator-archive",
 ] as const;
 
 const STALE_CODEX_SKILLS = [
   ...CORE_SKILLS,
-  "plannotator-compound",
-  "plannotator-setup-goal",
+  "hypermark-compound",
+  "hypermark-setup-goal",
   "plannotator-archive",
 ] as const;
 
@@ -755,9 +755,9 @@ function removeInstalledFiles(
   }
 
   for (const command of [
-    "plannotator-review",
-    "plannotator-annotate",
-    "plannotator-last",
+    "hypermark-review",
+    "hypermark-annotate",
+    "hypermark-last",
   ]) {
     removePath(
       join(environment.homeDir, ".gemini", "commands", `${command}.toml`),

@@ -71,7 +71,7 @@ beforeAll(() => {
     }
   }
 
-  fixtureDir = mkdtempSync(join(tmpdir(), "plannotator-annotate-cli-"));
+  fixtureDir = mkdtempSync(join(tmpdir(), "hypermark-annotate-cli-"));
   dataDir = join(fixtureDir, ".plannotator-data");
   mkdirSync(dataDir, { recursive: true });
   mkdirSync(join(fixtureDir, "out"));

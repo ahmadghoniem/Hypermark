@@ -13,7 +13,7 @@ import {
 let root: string;
 
 beforeAll(() => {
-  root = mkdtempSync(join(tmpdir(), "plannotator-annotate-target-"));
+  root = mkdtempSync(join(tmpdir(), "hypermark-annotate-target-"));
   mkdirSync(join(root, "docs"), { recursive: true });
   mkdirSync(join(root, "notes/deep"), { recursive: true });
   writeFileSync(join(root, "plan.md"), "# Plan");

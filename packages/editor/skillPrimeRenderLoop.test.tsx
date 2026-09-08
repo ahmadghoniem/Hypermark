@@ -33,10 +33,10 @@ beforeEach(() => {
   resetSkillCatalogCache();
   setSkillCatalogTransport(async () => [
     {
-      name: 'plannotator-review',
+      name: 'hypermark-review',
       root: 'claude',
       humanOnly: true,
-      dir: '/skills/plannotator-review',
+      dir: '/skills/hypermark-review',
     },
   ] as SkillCatalogEntry[]);
   setSkillContentTransport(async (name) => ({
@@ -86,7 +86,7 @@ describe('skill-content priming effect', () => {
         if (renderCount.current > RENDER_CAP) return;
         let cancelled = false;
         void getDocAnnotations();
-        primeSkillContentsForExport(['See $plannotator-review']).then((changed) => {
+        primeSkillContentsForExport(['See $hypermark-review']).then((changed) => {
           if (changed && !cancelled) setSkillContentGeneration((g) => g + 1);
         });
         return () => {

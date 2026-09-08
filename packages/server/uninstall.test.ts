@@ -275,9 +275,9 @@ describe("default uninstall", () => {
     writeText(join(dataDir, "migrations", "legacy"));
 
     for (const skill of [
-      "plannotator-review",
-      "plannotator-annotate",
-      "plannotator-last",
+      "hypermark-review",
+      "hypermark-annotate",
+      "hypermark-last",
       // The knowledge-layer CLI reference skill, installed to the same scopes.
       "plannotator",
     ]) {
@@ -285,14 +285,14 @@ describe("default uninstall", () => {
       writeText(join(homeDir, ".agents", "skills", skill, "SKILL.md"));
     }
     writeText(
-      join(homeDir, ".agents", "skills", "plannotator-compound", "SKILL.md"),
+      join(homeDir, ".agents", "skills", "hypermark-compound", "SKILL.md"),
       "user-managed extra skill",
     );
     writeText(
       join(homeDir, ".agents", "skills", "plannotator-archive", "SKILL.md"),
     );
     writeText(
-      join(homeDir, ".claude", "skills", "core", "plannotator-review", "SKILL.md"),
+      join(homeDir, ".claude", "skills", "core", "hypermark-review", "SKILL.md"),
     );
     const customStaleLayoutEntry = join(
       homeDir,
@@ -307,7 +307,7 @@ describe("default uninstall", () => {
       join(homeDir, ".codex", "skills", "plannotator-archive", "SKILL.md"),
     );
     writeText(
-      join(homeDir, ".kiro", "skills", "plannotator-setup-goal", "SKILL.md"),
+      join(homeDir, ".kiro", "skills", "hypermark-setup-goal", "SKILL.md"),
     );
     const openCodePackageCache = join(
       homeDir,
@@ -421,7 +421,7 @@ describe("default uninstall", () => {
     });
     writeText(join(homeDir, ".gemini", "policies", "plannotator.toml"));
     writeText(
-      join(homeDir, ".gemini", "commands", "plannotator-review.toml"),
+      join(homeDir, ".gemini", "commands", "hypermark-review.toml"),
     );
 
     const conventionalOpenCode = join(
@@ -439,7 +439,7 @@ describe("default uninstall", () => {
         alternateConfig,
         "opencode",
         "commands",
-        "plannotator-annotate.md",
+        "hypermark-annotate.md",
       ),
     );
 
@@ -471,12 +471,12 @@ describe("default uninstall", () => {
 
     expect(result.ok).toBe(true);
     expect(existsSync(binary)).toBe(false);
-    expect(existsSync(join(homeDir, ".claude", "skills", "plannotator-review"))).toBe(false);
+    expect(existsSync(join(homeDir, ".claude", "skills", "hypermark-review"))).toBe(false);
     expect(existsSync(join(homeDir, ".claude", "skills", "plannotator"))).toBe(false);
     expect(existsSync(join(homeDir, ".agents", "skills", "plannotator"))).toBe(false);
-    expect(existsSync(join(homeDir, ".agents", "skills", "plannotator-compound"))).toBe(true);
+    expect(existsSync(join(homeDir, ".agents", "skills", "hypermark-compound"))).toBe(true);
     expect(existsSync(join(homeDir, ".agents", "skills", "plannotator-archive"))).toBe(false);
-    expect(existsSync(join(homeDir, ".kiro", "skills", "plannotator-setup-goal"))).toBe(false);
+    expect(existsSync(join(homeDir, ".kiro", "skills", "hypermark-setup-goal"))).toBe(false);
     expect(existsSync(customStaleLayoutEntry)).toBe(true);
     expect(existsSync(openCodePackageCache)).toBe(false);
     expect(existsSync(unrelatedScopedCache)).toBe(true);
@@ -539,7 +539,7 @@ describe("default uninstall", () => {
           alternateConfig,
           "opencode",
           "commands",
-          "plannotator-annotate.md",
+          "hypermark-annotate.md",
         ),
       ),
     ).toBe(false);

@@ -1,5 +1,5 @@
 ---
-name: plannotator-compound
+name: hypermark-compound
 disable-model-invocation: true
 description: >
   Analyze a user's Plannotator plan archive to extract denial patterns, feedback

@@ -7,7 +7,7 @@ import { resolveAnnotateTarget } from "./annotate-resolution";
 let root: string;
 
 beforeAll(() => {
-  root = mkdtempSync(join(tmpdir(), "plannotator-annotate-resolution-"));
+  root = mkdtempSync(join(tmpdir(), "hypermark-annotate-resolution-"));
   mkdirSync(join(root, "docs"), { recursive: true });
   mkdirSync(join(root, "notes"), { recursive: true });
   mkdirSync(join(root, "empty"), { recursive: true });

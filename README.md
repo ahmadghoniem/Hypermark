@@ -111,11 +111,11 @@ Prefer it standalone? [Plannotator TUI](https://github.com/plannotator/plannotat
 ### Annotate
 
 ```
-/plannotator-annotate README.md                  # Local markdown file
-/plannotator-annotate src/                       # Browse and annotate files in a folder
-/plannotator-annotate https://docs.rs/…          # Fetch and annotate any URL
-/plannotator-annotate report.html --render-html  # Render HTML as-is instead of converting
-/plannotator-last                                # Annotate the agent's last message
+/hypermark-annotate README.md                  # Local markdown file
+/hypermark-annotate src/                       # Browse and annotate files in a folder
+/hypermark-annotate https://docs.rs/…          # Fetch and annotate any URL
+/hypermark-annotate report.html --render-html  # Render HTML as-is instead of converting
+/hypermark-last                                # Annotate the agent's last message
 ```
 
 Need a realistic document to try? Copy the [product requirements document template and filled example](https://docs.plannotator.ai/templates/product-requirements-document) as Markdown.
@@ -123,9 +123,9 @@ Need a realistic document to try? Copy the [product requirements document templa
 ### Code review
 
 ```
-/plannotator-review                    # Review uncommitted changes
-/plannotator-review <github-pr-url>    # Review a GitHub pull request
-/plannotator-review <gitlab-mr-url>    # Review a GitLab merge request
+/hypermark-review                    # Review uncommitted changes
+/hypermark-review <github-pr-url>    # Review a GitHub pull request
+/hypermark-review <gitlab-mr-url>    # Review a GitLab merge request
 plannotator review --gitbutler         # Review an active GitButler workspace
 ```
 
@@ -225,7 +225,7 @@ Then finish the step for your agent:
 |---|---|---|
 | **Amp** | Copy [`plannotator.ts`](apps/amp-plugin/plannotator.ts) into `~/.config/amp/plugins/`, then `plugins: reload`. Workflows live in the command palette. | [README](apps/amp-plugin/README.md) |
 | **Claude Code** | `/plugin marketplace add backnotprop/plannotator`, then `/plugin install plannotator@plannotator`. Restart Claude Code. | [README](apps/hook/README.md) |
-| **Codex** | Nothing. Plan review is enabled automatically via Codex's experimental `Stop` hook (macOS/Linux/WSL; on native Windows, Codex hooks are experimental and the installer prints manual setup steps). `$plannotator-review`, `$plannotator-annotate`, and `$plannotator-last` skills included. | [README](apps/codex/README.md) |
+| **Codex** | Nothing. Plan review is enabled automatically via Codex's experimental `Stop` hook (macOS/Linux/WSL; on native Windows, Codex hooks are experimental and the installer prints manual setup steps). `$hypermark-review`, `$hypermark-annotate`, and `$hypermark-last` skills included. | [README](apps/codex/README.md) |
 | **Copilot CLI** | `/plugin marketplace add backnotprop/plannotator`, then `/plugin install plannotator-copilot@plannotator`. Restart. Plan review activates in plan mode (`Shift+Tab`). | [README](apps/copilot/README.md) |
 | **Droid** | `droid plugin marketplace add https://github.com/backnotprop/plannotator`, then `droid plugin install plannotator@plannotator`. Commands only, no plan interception yet. | [README](apps/droid-plugin/README.md) |
 | **Gemini CLI** | Nothing. The hook, policy, and slash commands are configured automatically. Requires Gemini CLI 0.36.0+. | [README](apps/gemini/README.md) |
@@ -332,9 +332,9 @@ curl -fsSL https://plannotator.ai/install.sh | bash -s -- --version vX.Y.Z
 The fastest way to see what Plannotator does is to invoke it yourself, right now, from your agent:
 
 ```
-/plannotator-last                   # annotate the agent's last reply
-/plannotator-review                 # review your current diff, PR-style
-/plannotator-annotate report.html   # annotate any file, folder, or URL
+/hypermark-last                   # annotate the agent's last reply
+/hypermark-review                 # review your current diff, PR-style
+/hypermark-annotate report.html   # annotate any file, folder, or URL
 ```
 
 (Slash commands in most agents; `$plannotator-*` skills in Codex, command palette in Amp.)
@@ -361,7 +361,7 @@ Agent calls ExitPlanMode
 ### Code review
 
 ```
-You run /plannotator-review
+You run /hypermark-review
   -> git diff captures changes (or PR fetched by URL)
   -> Browser opens with diff viewer
   -> Annotate lines, stage/unstage files
@@ -379,7 +379,7 @@ You run /plannotator-review
 
 **Bear**: Save plans as Bear notes with nested tags and project metadata.
 
-**GitHub / GitLab**: Pass any PR or MR URL to `/plannotator-review` and review it with the full diff viewer, annotations, and file tree.
+**GitHub / GitLab**: Pass any PR or MR URL to `/hypermark-review` and review it with the full diff viewer, annotations, and file tree.
 
 ---
 

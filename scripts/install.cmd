@@ -790,7 +790,7 @@ REM Skills + command stubs install (requires git)
 REM
 REM Claude Code commands are deprecated in favor of skills. Core skills
 REM installed to %%USERPROFILE%%\.claude\skills are user-invocable by directory
-REM name (/plannotator-review etc.), so no command files are written anymore.
+REM name (/hypermark-review etc.), so no command files are written anymore.
 REM
 REM Install matrix (all copies verbatim, copy-if-present so older-tag pinned
 REM installs never fail when a source dir is absent):
@@ -837,7 +837,7 @@ set "AGENTS_SKILLS_DIR=%USERPROFILE%\.agents\skills"
 set "MIGRATIONS_DIR=!_CONFIG_DIR!\migrations"
 set "EXTRAS_MIGRATION=!MIGRATIONS_DIR!\2026-06-extras-default-install-removed"
 if not exist "!EXTRAS_MIGRATION!" (
-    for %%S in (plannotator-compound plannotator-setup-goal plannotator-visual-explainer) do (
+    for %%S in (hypermark-compound hypermark-setup-goal hypermark-visual-explainer) do (
         if exist "!CLAUDE_SKILLS_DIR!\%%S" (
             rmdir /s /q "!CLAUDE_SKILLS_DIR!\%%S" >nul 2>&1
             echo Removed extra Plannotator skill from !CLAUDE_SKILLS_DIR!\%%S ^(reinstall via npx skills add^)
@@ -871,7 +871,7 @@ if exist "!PREFS_FILE!" (
 REM Extras already on disk? Then the extras question is moot - they still
 REM count toward the picker list, and we never launch the npx flow over them.
 set "EXTRAS_PRESENT=0"
-for %%S in (plannotator-compound plannotator-setup-goal plannotator-visual-explainer) do (
+for %%S in (hypermark-compound hypermark-setup-goal hypermark-visual-explainer) do (
     if exist "!CLAUDE_SKILLS_DIR!\%%S" set "EXTRAS_PRESENT=1"
     if exist "!AGENTS_SKILLS_DIR!\%%S" set "EXTRAS_PRESENT=1"
 )
@@ -1018,7 +1018,7 @@ if "!CLONE_OK!"=="1" (
     REM interchangeable. Replace on each run.
     if exist "apps\skills\claude" (
         if not exist "!CLAUDE_SKILLS_DIR!" mkdir "!CLAUDE_SKILLS_DIR!"
-        for %%S in (plannotator-review plannotator-annotate plannotator-last) do (
+        for %%S in (hypermark-review hypermark-annotate hypermark-last) do (
             if exist "apps\skills\claude\%%S" (
                 if exist "!CLAUDE_SKILLS_DIR!\%%S" rmdir /s /q "!CLAUDE_SKILLS_DIR!\%%S" >nul 2>&1
                 xcopy /s /i /y /q "apps\skills\claude\%%S" "!CLAUDE_SKILLS_DIR!\%%S\" >nul 2>&1
@@ -1034,7 +1034,7 @@ if "!CLONE_OK!"=="1" (
     )
     if exist "apps\skills\core" (
         if not exist "!AGENTS_SKILLS_DIR!" mkdir "!AGENTS_SKILLS_DIR!"
-        for %%S in (plannotator-review plannotator-annotate plannotator-last plannotator) do (
+        for %%S in (hypermark-review hypermark-annotate hypermark-last plannotator) do (
             if exist "apps\skills\core\%%S" (
                 REM Replace rather than merge so files removed upstream don't linger.
                 if exist "!AGENTS_SKILLS_DIR!\%%S" rmdir /s /q "!AGENTS_SKILLS_DIR!\%%S" >nul 2>&1
@@ -1072,7 +1072,7 @@ REM AFTER the install above guarantees a failed or skipped skill install never
 REM leaves users with neither the command nor the skill.
 REM A skills opt-out installed no replacement this run, so it removes nothing
 REM either - skip means do-not-write, never remove.
-for %%C in (plannotator-review plannotator-annotate plannotator-last) do (
+for %%C in (hypermark-review hypermark-annotate hypermark-last) do (
     if "!SKIP_SKILLS!"=="0" if exist "!CLAUDE_SKILLS_DIR!\%%C" if exist "!CLAUDE_COMMANDS_DIR!\%%C.md" (
         del /q "!CLAUDE_COMMANDS_DIR!\%%C.md" >nul 2>&1
         echo Removed deprecated Claude command !CLAUDE_COMMANDS_DIR!\%%C.md ^(replaced by the %%C skill^)
@@ -1134,11 +1134,11 @@ echo.
 REM Never claim the /plannotator-* skills are ready when nothing was installed -
 REM that false banner is exactly what the skills-checkout guard exists to prevent.
 if "!SKIP_SKILLS!"=="1" (
-    echo Skills were skipped ^(!SKIP_SKILLS_SOURCE!^), so the /plannotator-review,
-    echo /plannotator-annotate, and /plannotator-last skills are NOT installed.
+    echo Skills were skipped ^(!SKIP_SKILLS_SOURCE!^), so the /hypermark-review,
+    echo /hypermark-annotate, and /hypermark-last skills are NOT installed.
     echo Re-run the installer without the opt-out to add them.
 ) else (
-    echo The /plannotator-review, /plannotator-annotate, and /plannotator-last skills are ready to use!
+    echo The /hypermark-review, /hypermark-annotate, and /hypermark-last skills are ready to use!
 )
 if "!SKIP_SKILLS!"=="0" if not "!EXTRAS_CHOICE!"=="yes" (
     echo.
@@ -1381,14 +1381,14 @@ if "!WANT_INVOCABLE!"=="no" (
     goto :eof
 )
 set "SKILL_COUNT=3"
-set "SKILL_1=plannotator-review"
-set "SKILL_2=plannotator-annotate"
-set "SKILL_3=plannotator-last"
+set "SKILL_1=hypermark-review"
+set "SKILL_2=hypermark-annotate"
+set "SKILL_3=hypermark-last"
 if "!EXTRAS_CHOICE!"=="yes" (
     set "SKILL_COUNT=6"
-    set "SKILL_4=plannotator-compound"
-    set "SKILL_5=plannotator-setup-goal"
-    set "SKILL_6=plannotator-visual-explainer"
+    set "SKILL_4=hypermark-compound"
+    set "SKILL_5=hypermark-setup-goal"
+    set "SKILL_6=hypermark-visual-explainer"
 )
 REM Preselect previously chosen skills. NOTE: no pipes here - each side of a
 REM cmd pipe runs in a child without delayed expansion, so !vars! would pass

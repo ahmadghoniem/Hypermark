@@ -706,7 +706,7 @@ $agentsSkillsDir = "$env:USERPROFILE\.agents\skills"
 $migrationsDir = Join-Path $configDir "migrations"
 $extrasMigration = Join-Path $migrationsDir "2026-06-extras-default-install-removed"
 if (-not (Test-Path $extrasMigration)) {
-    foreach ($skill in @("plannotator-compound", "plannotator-setup-goal", "plannotator-visual-explainer")) {
+    foreach ($skill in @("hypermark-compound", "hypermark-setup-goal", "hypermark-visual-explainer")) {
         foreach ($scopeDir in @($claudeSkillsDir, $agentsSkillsDir)) {
             $extraSkillPath = Join-Path $scopeDir $skill
             if (Test-Path $extraSkillPath) {
@@ -725,8 +725,8 @@ if (-not (Test-Path $extrasMigration)) {
 # re-runs. -Reconfigure re-opens the wizard; -NonInteractive forces silence;
 # redirected/CI runs never prompt. Flags win over everything.
 $prefsFile = Join-Path $configDir "install-prefs"
-$coreSkillNames = @("plannotator-review", "plannotator-annotate", "plannotator-last")
-$extraSkillNames = @("plannotator-compound", "plannotator-setup-goal", "plannotator-visual-explainer")
+$coreSkillNames = @("hypermark-review", "hypermark-annotate", "hypermark-last")
+$extraSkillNames = @("hypermark-compound", "hypermark-setup-goal", "hypermark-visual-explainer")
 
 $savedExtras = ""
 $savedInvocable = ""
@@ -1040,7 +1040,7 @@ try {
             # existing target dir) so re-runs replace rather than nest.
             if ((Test-Path "apps\skills\claude") -and (Get-ChildItem "apps\skills\claude" -ErrorAction SilentlyContinue)) {
                 New-Item -ItemType Directory -Force -Path $claudeSkillsDir | Out-Null
-                foreach ($skill in @("plannotator-review", "plannotator-annotate", "plannotator-last")) {
+                foreach ($skill in @("hypermark-review", "hypermark-annotate", "hypermark-last")) {
                     Copy-SkillIfPresent "apps\skills\claude\$skill" $claudeSkillsDir
                 }
                 # The plannotator knowledge skill (CLI reference) has no
@@ -1053,7 +1053,7 @@ try {
             }
             if ((Test-Path "apps\skills\core") -and (Get-ChildItem "apps\skills\core" -ErrorAction SilentlyContinue)) {
                 New-Item -ItemType Directory -Force -Path $agentsSkillsDir | Out-Null
-                foreach ($skill in @("plannotator-review", "plannotator-annotate", "plannotator-last")) {
+                foreach ($skill in @("hypermark-review", "hypermark-annotate", "hypermark-last")) {
                     Copy-SkillIfPresent "apps\skills\core\$skill" $agentsSkillsDir
                 }
                 Copy-SkillIfPresent "apps\skills\core\plannotator" $agentsSkillsDir
@@ -1088,7 +1088,7 @@ if ($checkoutFailed) {
 # command file only once its replacement skill is actually on disk - running
 # AFTER the install above guarantees a failed or skipped skill install never
 # leaves users with neither the command nor the skill.
-foreach ($cmd in @("plannotator-review", "plannotator-annotate", "plannotator-last")) {
+foreach ($cmd in @("hypermark-review", "hypermark-annotate", "hypermark-last")) {
     # A skills opt-out installed no replacement this run, so it removes
     # nothing either - skip means do-not-write, never remove.
     if ($skipSkillsResolved) { continue }
@@ -1162,11 +1162,11 @@ Write-Host "Upgrading from an older version? Also run /plugin marketplace update
 Write-Host "so the plugin drops its old plannotator:* command entries."
 Write-Host ""
 if ($skipSkillsResolved) {
-    Write-Host "Skills were skipped ($skipSkillsSource), so the /plannotator-review,"
-    Write-Host "/plannotator-annotate, and /plannotator-last commands are NOT installed."
+    Write-Host "Skills were skipped ($skipSkillsSource), so the /hypermark-review,"
+    Write-Host "/hypermark-annotate, and /hypermark-last commands are NOT installed."
     Write-Host "Re-run the installer without the opt-out to add them."
 } else {
-    Write-Host "The /plannotator-review, /plannotator-annotate, and /plannotator-last commands are ready to use after you restart Claude Code!"
+    Write-Host "The /hypermark-review, /hypermark-annotate, and /hypermark-last commands are ready to use after you restart Claude Code!"
 }
 
 if ((-not $skipSkillsResolved) -and ($extrasChoice -ne "yes")) {

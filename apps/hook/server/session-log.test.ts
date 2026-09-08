@@ -664,7 +664,7 @@ describe("extractLastRenderedMessage", () => {
       droidMessage("ctx", "user", "<system-reminder>\ncontext", { visibility: "llm_only" }),
       droidMessage("u1", "user", "Tell me a story."),
       droidMessage("a1", "assistant", "Once upon a time."),
-      droidMessage("cmd", "user", "<system-notification>\nCommand file: /tmp/plannotator-last.js"),
+      droidMessage("cmd", "user", "<system-notification>\nCommand file: /tmp/hypermark-last.js"),
       droidMessage("u2", "user", "ANCHOR")
     );
     const entries = parseSessionLog(log);
@@ -874,7 +874,7 @@ describe("extractRecentRenderedMessages — after a rewind", () => {
         userPrompt("nah, use the standard convention"),
         assistantText("msg_orphan", "Pushed. All three are on 68c1291c."),
       ],
-      resumed: [userPrompt("/plannotator-last")],
+      resumed: [userPrompt("/hypermark-last")],
     });
 
   test("the default pick is the live message, not the orphan", () => {
@@ -938,7 +938,7 @@ describe("getRecentRenderedMessages — after a /compact", () => {
     });
     const postPrompt = JSON.stringify({
       type: "user",
-      message: { role: "user", content: "/plannotator-last" },
+      message: { role: "user", content: "/hypermark-last" },
       uuid: "u-after",
       parentUuid: "u-compact",
     });

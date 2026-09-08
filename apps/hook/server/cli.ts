@@ -226,7 +226,7 @@ export const SUBCOMMAND_HELP: Record<string, string> = {
     "",
     "Annotate the last assistant message from the live GitHub Copilot CLI session,",
     "read from its session-state events.jsonl. Normally invoked by the Copilot",
-    "plugin's /plannotator-last command.",
+    "plugin's /hypermark-last command.",
     "",
     "Options:",
     "  --gate        Add an Approve button (review-gate UX)",

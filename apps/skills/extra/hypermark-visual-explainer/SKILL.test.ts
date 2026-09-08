@@ -53,7 +53,7 @@ function captureMermaidConfig(colorScheme: "light" | "dark") {
   return { name: colorScheme, config: captured };
 }
 
-describe("plannotator-visual-explainer Mermaid theming", () => {
+describe("hypermark-visual-explainer Mermaid theming", () => {
   test("keeps the Mermaid theming section", () => {
     expect(mermaidStart).toBeGreaterThan(-1);
     expect(mermaidEnd).toBeGreaterThan(mermaidStart);

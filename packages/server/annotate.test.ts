@@ -102,7 +102,7 @@ describe("annotate server: /api/config favicon persistence", () => {
     savedDataDir = process.env.PLANNOTATOR_DATA_DIR;
     delete process.env.PLANNOTATOR_PORT;
     delete process.env.PLANNOTATOR_REMOTE;
-    tempDir = mkdtempSync(join(tmpdir(), "plannotator-annotate-config-test-"));
+    tempDir = mkdtempSync(join(tmpdir(), "hypermark-annotate-config-test-"));
     process.env.PLANNOTATOR_DATA_DIR = tempDir;
   });
 

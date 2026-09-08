@@ -49,7 +49,7 @@ const ANNOTATE_SKILL_MD_PATH = join(
   "..",
   "skills",
   "core",
-  "plannotator-annotate",
+  "hypermark-annotate",
   "SKILL.md",
 );
 

@@ -68,9 +68,9 @@ function seedFirstRunSeen(): void {
   memory.set("plannotator-plan-look-choice-resolved", "true");
   memory.set("plannotator-guide-intro-seen", "2");
   memory.set("plannotator-guide-hint-acked", "true");
-  memory.set("plannotator-review-setup-seen", "true");
+  memory.set("hypermark-review-setup-seen", "true");
   memory.set("plannotator-edit-mode-announcement-seen", "3");
-  memory.set("plannotator-review-dest-spotlight-seen", "1");
+  memory.set("hypermark-review-dest-spotlight-seen", "1");
 }
 
 /** External annotations delivered as the stream's opening snapshot, so a test

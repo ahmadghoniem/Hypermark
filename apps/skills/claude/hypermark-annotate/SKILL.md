@@ -1,5 +1,5 @@
 ---
-name: plannotator-annotate
+name: hypermark-annotate
 description: Open Plannotator's annotation UI for a markdown file, HTML file, URL, or folder and then respond to the returned annotations.
 allowed-tools: Bash(plannotator:*)
 disable-model-invocation: true

@@ -1,5 +1,5 @@
 ---
-name: plannotator-visual-explainer
+name: hypermark-visual-explainer
 disable-model-invocation: true
 description: >
   Generate self-contained HTML visualizations with Plannotator theming. Use for implementation

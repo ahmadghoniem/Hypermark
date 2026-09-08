@@ -208,7 +208,7 @@ describe("listCommitHistory", () => {
   });
 
   test("a repo with no commits yet yields an empty page, not an error", async () => {
-    const repoDir = makeTempDir("plannotator-review-core-empty-");
+    const repoDir = makeTempDir("hypermark-review-core-empty-");
     git(repoDir, ["init"]);
     const runtime = makeRuntime(repoDir);
 

@@ -173,7 +173,7 @@ function makeConfigForwardingRuntime(
 }
 
 function initRepo(initialBranch = "main"): string {
-  const repoDir = makeTempDir("plannotator-review-core-");
+  const repoDir = makeTempDir("hypermark-review-core-");
   git(repoDir, ["init"]);
   git(repoDir, ["branch", "-M", initialBranch]);
   git(repoDir, ["config", "user.email", "review-core@example.com"]);
@@ -347,7 +347,7 @@ describe("review-core", () => {
 
   test("remote-default discovery still resolves an accessible ordinary remote", async () => {
     const repoDir = initRepo();
-    const remoteDir = makeTempDir("plannotator-review-core-remote-");
+    const remoteDir = makeTempDir("hypermark-review-core-remote-");
     git(remoteDir, ["init", "--bare", "--initial-branch=main"]);
     git(repoDir, ["remote", "add", "origin", remoteDir]);
     git(repoDir, ["push", "--set-upstream", "origin", "main"]);
@@ -590,7 +590,7 @@ describe("review-core", () => {
 
   test("keeps gitlink pointers as normal subproject diffs and fingerprints them", async () => {
     const superproject = initRepo();
-    const submoduleSource = makeTempDir("plannotator-review-core-submodule-");
+    const submoduleSource = makeTempDir("hypermark-review-core-submodule-");
     git(submoduleSource, ["init"]);
     git(submoduleSource, ["config", "user.email", "submodule@example.com"]);
     git(submoduleSource, ["config", "user.name", "Submodule"]);
@@ -1282,7 +1282,7 @@ describe("review-core", () => {
 
   test("local-vs-remote includes committed, dirty, and untracked changes since the tracked branch", async () => {
     const repoDir = initRepo();
-    const remoteDir = makeTempDir("plannotator-review-core-upstream-");
+    const remoteDir = makeTempDir("hypermark-review-core-upstream-");
     git(remoteDir, ["init", "--bare", "--initial-branch=main"]);
     git(repoDir, ["remote", "add", "origin", remoteDir]);
     git(repoDir, ["push", "--set-upstream", "origin", "main"]);
@@ -1330,7 +1330,7 @@ describe("review-core", () => {
   });
 
   test("since-base handles an unborn HEAD without invoking merge-base", async () => {
-    const repoDir = makeTempDir("plannotator-review-core-unborn-");
+    const repoDir = makeTempDir("hypermark-review-core-unborn-");
     git(repoDir, ["init"]);
     git(repoDir, ["branch", "-M", "main"]);
     const runtime = makeRuntime(repoDir);
@@ -1469,7 +1469,7 @@ describe("review-core", () => {
     const repoDir = initRepo();
     const runtime = makeRuntime(repoDir);
 
-    const worktreeParent = makeTempDir("plannotator-review-core-worktree-");
+    const worktreeParent = makeTempDir("hypermark-review-core-worktree-");
     const worktreeDir = join(worktreeParent, "feature-worktree");
     git(repoDir, ["worktree", "add", "-b", "feature/review-core", worktreeDir]);
 

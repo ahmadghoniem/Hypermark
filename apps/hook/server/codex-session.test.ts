@@ -344,7 +344,7 @@ describe("getLastCodexMessage", () => {
         assistantMessage("Substantive final answer"),
         turnCompleted(previousTurnId),
         turnStarted(activeTurnId),
-        userMessage("[$plannotator-last]"),
+        userMessage("[$hypermark-last]"),
         assistantMessage("I’ll open Plannotator on my last response.")
       )
     );

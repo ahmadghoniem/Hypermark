@@ -4,7 +4,7 @@
  * Slash-command hosts forward raw user arguments to `plannotator annotate`
  * verbatim. On Claude Code the skill runs the CLI through a bash-substitution
  * prefix that executes before the model sees anything, so trailing natural
- * language ("/plannotator-annotate the aim doc") lands in the argument slot
+ * language ("/hypermark-annotate the aim doc") lands in the argument slot
  * and used to die with `File not found: the`.
  *
  * This module implements the shared three-tier fallback that every host hooks

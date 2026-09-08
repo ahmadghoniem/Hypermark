@@ -63,7 +63,7 @@ describe('initializeReviewSetup', () => {
     // initializer, so a reviewer can persist a view from Settings while
     // "seen" stays unset. The next plain git session must not seed over it.
     installMemoryBackend({
-      'plannotator-review-panel-view': 'sections',
+      'hypermark-review-panel-view': 'sections',
       'plannotator-default-diff-type': 'since-base',
     });
     const store = makeStore();
@@ -77,8 +77,8 @@ describe('initializeReviewSetup', () => {
 
   test('a persisted Tree view is left alone rather than re-written', () => {
     installMemoryBackend({
-      'plannotator-review-panel-view': 'tree',
-      'plannotator-review-panel-view-last-used': 'sections',
+      'hypermark-review-panel-view': 'tree',
+      'hypermark-review-panel-view-last-used': 'sections',
     });
     const store = makeStore();
 
@@ -92,9 +92,9 @@ describe('initializeReviewSetup', () => {
 
   test('a returning reviewer keeps both the persisted view and last-used memo', () => {
     installMemoryBackend({
-      'plannotator-review-setup-seen': 'true',
-      'plannotator-review-panel-view': 'sections',
-      'plannotator-review-panel-view-last-used': 'tree',
+      'hypermark-review-setup-seen': 'true',
+      'hypermark-review-panel-view': 'sections',
+      'hypermark-review-panel-view-last-used': 'tree',
       'plannotator-default-diff-type': 'since-base',
     });
     const store = makeStore();
