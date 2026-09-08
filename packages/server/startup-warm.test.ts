@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { warmFileListCache } from "@hypermark/shared/resolve-file";
 import { startAnnotateServer } from "./annotate";
-import { startPlannotatorServer } from "./index";
+import { startHypermarkServer } from "./index";
 
 const MINIMAL_HTML = "<html><body>Plannotator</body></html>";
 
@@ -83,7 +83,7 @@ async function expectReadyBeforeWarm(
 describe("startup file-cache warm", () => {
 	test("Bun plan server binds before its cache warm can settle", async () => {
 		await expectReadyBeforeWarm((onReady) =>
-			startPlannotatorServer({
+			startHypermarkServer({
 				plan: "# Test plan",
 				origin: "codex",
 				htmlContent: MINIMAL_HTML,

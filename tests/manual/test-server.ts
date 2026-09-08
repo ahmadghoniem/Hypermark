@@ -11,7 +11,7 @@
  * Reads plan from stdin if provided, otherwise uses a sample plan.
  */
 
-import { startPlannotatorServer, handleServerReady } from "@hypermark/server";
+import { startHypermarkServer, handleServerReady } from "@hypermark/server";
 
 // @ts-ignore - Bun import attribute for text
 import html from "../../apps/hook/dist/index.html" with { type: "text" };
@@ -40,7 +40,7 @@ function hello() {
 
 console.error(`Starting Plannotator server with origin: ${origin}`);
 
-const server = await startPlannotatorServer({
+const server = await startHypermarkServer({
   plan,
   origin,
   htmlContent: html as unknown as string,

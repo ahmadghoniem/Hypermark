@@ -26,13 +26,13 @@ import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:tes
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { startPlannotatorServer } from "./index";
+import { startHypermarkServer } from "./index";
 import { startReviewServer } from "./review";
 import { startAnnotateServer } from "./annotate";
 import { getPlanVersionPath } from "./storage";
 import { detectProjectName } from "./project";
 import { parseFeedbackIndex, type FeedbackRecord } from "@hypermark/shared/feedback-archive";
-import { getPlannotatorDataDir } from "@hypermark/shared/data-dir";
+import { getHypermarkDataDir } from "@hypermark/shared/data-dir";
 
 const MINIMAL_HTML = "<html><body>Plannotator</body></html>";
 
@@ -122,7 +122,7 @@ afterAll(() => {
   // Remove the annotate history these tests deposited in the real data dir.
   // Runs with the env already restored, so this resolves the same directory
   // storage.ts wrote to.
-  const historyDir = join(getPlannotatorDataDir(), "history");
+  const historyDir = join(getHypermarkDataDir(), "history");
   for (const project of [FILE_ANNOTATE_PROJECT, STATELESS_ANNOTATE_PROJECT, URL_ANNOTATE_PROJECT]) {
     rmSync(join(historyDir, project), { recursive: true, force: true });
   }
@@ -458,7 +458,7 @@ describe("plan decisions are archived", () => {
     const dataDir = useTempDataDir();
     const heading = `Feedback archive plan ${Math.random().toString(36).slice(2, 10)}`;
     const plan = `# ${heading}\n\nStep one.\n`;
-    const server = await startPlannotatorServer({
+    const server = await startHypermarkServer({
       plan,
       htmlContent: MINIMAL_HTML,
       origin: "claude-code",
@@ -498,7 +498,7 @@ describe("plan decisions are archived", () => {
     const dataDir = useTempDataDir();
     const heading = `Feedback archive repeat ${Math.random().toString(36).slice(2, 10)}`;
     const plan = `# ${heading}\n\nStep one.\n`;
-    const first = await startPlannotatorServer({ plan, htmlContent: MINIMAL_HTML });
+    const first = await startHypermarkServer({ plan, htmlContent: MINIMAL_HTML });
     try {
       await fetch(`${first.url}/api/deny`, {
         method: "POST",
@@ -508,7 +508,7 @@ describe("plan decisions are archived", () => {
     } finally {
       await first.stop();
     }
-    const second = await startPlannotatorServer({ plan, htmlContent: MINIMAL_HTML });
+    const second = await startHypermarkServer({ plan, htmlContent: MINIMAL_HTML });
     try {
       await fetch(`${second.url}/api/approve`, {
         method: "POST",

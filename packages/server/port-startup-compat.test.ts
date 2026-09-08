@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { createTestEnvironment } from "../../tests/helpers/environment";
 import { closeServer, occupyConsecutivePorts } from "../../tests/helpers/ports";
-import { startPlannotatorServer } from "./index";
+import { startHypermarkServer } from "./index";
 import { handleServerReady } from "./shared-handlers";
 
 const envKeys = [
@@ -23,7 +23,7 @@ describe("Bun startup port compatibility", () => {
     process.env.__CFBundleIdentifier = "com.apple.Terminal";
     let ready: { url: string; isRemote: boolean; port: number } | undefined;
 
-    const server = await startPlannotatorServer({
+    const server = await startHypermarkServer({
       plan: "# Port compatibility",
       origin: "codex",
       htmlContent: "<!doctype html><html><body>plan</body></html>",
@@ -63,7 +63,7 @@ describe("Bun startup port compatibility", () => {
     process.env.PLANNOTATOR_DATA_DIR = environment.makeTempDir();
     let ready: { url: string; isRemote: boolean; port: number } | undefined;
 
-    const server = await startPlannotatorServer({
+    const server = await startHypermarkServer({
       plan: "# Fixed port compatibility",
       origin: "codex",
       htmlContent: "<!doctype html><html><body>plan</body></html>",
@@ -90,7 +90,7 @@ describe("Bun startup port compatibility", () => {
     process.env.PLANNOTATOR_DATA_DIR = environment.makeTempDir();
     const readyError = new Error("ready handoff failed");
 
-    await expect(startPlannotatorServer({
+    await expect(startHypermarkServer({
       plan: "# Ready failure cleanup",
       origin: "codex",
       htmlContent: "<!doctype html><html><body>plan</body></html>",

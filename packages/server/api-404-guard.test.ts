@@ -8,7 +8,7 @@ import { saveConfig } from "./config";
 // Use a distinct module key so unrelated mock.module() tests cannot replace
 // the real server.
 import { startAnnotateServer as startBunAnnotateServer } from "./annotate.ts?api-404-guard";
-import { startPlannotatorServer as startBunPlanServer } from "./index";
+import { startHypermarkServer as startBunPlanServer } from "./index";
 import { startReviewServer as startBunReviewServer } from "./review";
 
 const SPA_HTML = "<!doctype html><html><body>SPA fallback</body></html>";

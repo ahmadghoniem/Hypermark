@@ -14,7 +14,7 @@ import {
   unlinkSync,
   existsSync,
 } from "fs";
-import { getPlannotatorDataDir } from "@hypermark/shared/data-dir";
+import { getHypermarkDataDir } from "@hypermark/shared/data-dir";
 
 export interface SessionInfo {
   pid: number;
@@ -27,7 +27,7 @@ export interface SessionInfo {
 }
 
 function getSessionsDir(): string {
-  const dir = join(getPlannotatorDataDir(), "sessions");
+  const dir = join(getHypermarkDataDir(), "sessions");
   mkdirSync(dir, { recursive: true });
   return dir;
 }

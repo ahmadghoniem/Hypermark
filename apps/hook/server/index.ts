@@ -72,7 +72,7 @@
  */
 
 import {
-  startPlannotatorServer,
+  startHypermarkServer,
   handleServerReady,
 } from "@hypermark/server";
 import {
@@ -133,7 +133,7 @@ import {
   createDefaultUninstallEnvironment,
   formatPurgeWarning,
   formatUninstallResult,
-  runPlannotatorUninstall,
+  runHypermarkUninstall,
 } from "@hypermark/server/uninstall";
 import { detectProjectName } from "@hypermark/server/project";
 import { hostnameOrFallback } from "@hypermark/shared/project";
@@ -430,7 +430,7 @@ if (args[0] === "uninstall") {
     console.error(formatPurgeWarning(environment.dataDir));
   }
 
-  const result = await runPlannotatorUninstall(
+  const result = await runHypermarkUninstall(
     {
       purge: options.purge,
       dryRun: options.dryRun,
@@ -1538,7 +1538,7 @@ if (args[0] === "sessions") {
 
   const archiveProject = (await detectProjectName()) ?? "_unknown";
 
-  const server = await startPlannotatorServer({
+  const server = await startHypermarkServer({
     plan: "",
     origin: detectedOrigin,
     mode: "archive",
@@ -1591,7 +1591,7 @@ if (args[0] === "sessions") {
       : null;
 
   const planProject = (await detectProjectName()) ?? "_unknown";
-  const server = await startPlannotatorServer({
+  const server = await startHypermarkServer({
     plan: planContent,
     origin: "opencode",
     htmlContent: planHtmlContent,
@@ -1906,7 +1906,7 @@ if (args[0] === "sessions") {
 
   const planProject = (await detectProjectName()) ?? "_unknown";
 
-  const server = await startPlannotatorServer({
+  const server = await startHypermarkServer({
     plan: planContent,
     origin: "copilot-cli",
     htmlContent: planHtmlContent,
@@ -2103,7 +2103,7 @@ if (args[0] === "sessions") {
     }
 
     const planProject = (await detectProjectName()) ?? "_unknown";
-    const server = await startPlannotatorServer({
+    const server = await startHypermarkServer({
       plan: latestPlan.text,
       origin: "codex",
       htmlContent: planHtmlContent,
@@ -2174,7 +2174,7 @@ if (args[0] === "sessions") {
   const planProject = (await detectProjectName()) ?? "_unknown";
 
   // Start the plan review server
-  const server = await startPlannotatorServer({
+  const server = await startHypermarkServer({
     plan: planContent,
     origin: isGemini ? "gemini-cli" : detectedOrigin,
     permissionMode,

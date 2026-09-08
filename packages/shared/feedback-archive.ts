@@ -47,7 +47,7 @@
 
 import { appendFileSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
-import { getPlannotatorDataDir } from "./data-dir";
+import { getHypermarkDataDir } from "./data-dir";
 import { extractDirName, extractRepoName, sanitizeTag } from "./project";
 
 /** Schema version carried on every line. Bump only on a breaking shape change. */
@@ -240,7 +240,7 @@ export function deriveFeedbackProject(cwd: string | undefined): string {
 }
 
 function feedbackProjectDir(project: string): string {
-  return join(getPlannotatorDataDir(), "feedback", normalizeFeedbackProject(project));
+  return join(getHypermarkDataDir(), "feedback", normalizeFeedbackProject(project));
 }
 
 /** Filesystem-safe ISO stamp, same convention as `saveAnnotateSubmission`. */

@@ -16,7 +16,7 @@ import { join } from "node:path";
 // Distinct module key so unrelated mock.module() tests cannot replace the
 // real server (same pattern as api-404-guard.test.ts).
 import { startAnnotateServer as startBunAnnotateServer } from "./annotate.ts?skills-endpoint";
-import { startPlannotatorServer as startBunPlanServer } from "./index";
+import { startHypermarkServer as startBunPlanServer } from "./index";
 
 const SPA_HTML = "<!doctype html><html><body>SPA fallback</body></html>";
 

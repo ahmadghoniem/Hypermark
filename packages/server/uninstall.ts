@@ -27,7 +27,7 @@ import {
   relative,
   resolve,
 } from "node:path";
-import { getPlannotatorDataDir } from "@hypermark/shared/data-dir";
+import { getHypermarkDataDir } from "@hypermark/shared/data-dir";
 import {
   applyEdits,
   createScanner,
@@ -297,7 +297,7 @@ type PathRelation = "same" | "different" | "unknown";
 /**
  * Build the real process boundary used by `plannotator uninstall`.
  *
- * No filesystem mutation occurs until `runPlannotatorUninstall` is called.
+ * No filesystem mutation occurs until `runHypermarkUninstall` is called.
  */
 export function createDefaultUninstallEnvironment(): UninstallEnvironment {
   const homeDir = homedir();
@@ -307,7 +307,7 @@ export function createDefaultUninstallEnvironment(): UninstallEnvironment {
     platform: process.platform,
     homeDir,
     tempDir: tmpdir(),
-    dataDir: getPlannotatorDataDir(),
+    dataDir: getHypermarkDataDir(),
     execPath: process.execPath,
     env,
     which: (command) => Bun.which(command),
@@ -331,7 +331,7 @@ export function formatPurgeWarning(dataDir: string): string {
  * integrations. Expected filesystem and host-CLI failures are collected in
  * the returned value so one stale integration cannot prevent other cleanup.
  */
-export async function runPlannotatorUninstall(
+export async function runHypermarkUninstall(
   request: UninstallRequest,
   environment = createDefaultUninstallEnvironment(),
 ): Promise<UninstallResult> {
@@ -1357,7 +1357,7 @@ function cleanupOpenCodeConfig(
 
   const matchingIndexes = parsed.plugin
     .map((entry, index) =>
-      isPlannotatorOpenCodePlugin(entry) ? index : -1,
+      isHypermarkOpenCodePlugin(entry) ? index : -1,
     )
     .filter((index) => index >= 0)
     .reverse();
@@ -1816,10 +1816,10 @@ function isManagedHook(
       return true;
     }
   }
-  return allowRelocatedBinary && isRelocatedPlannotatorCommand(command, suffix);
+  return allowRelocatedBinary && isRelocatedHypermarkCommand(command, suffix);
 }
 
-function isRelocatedPlannotatorCommand(
+function isRelocatedHypermarkCommand(
   command: string,
   suffix: "" | "improve-context",
 ): boolean {
@@ -1880,7 +1880,7 @@ function isGeminiInstallerTemplate(
   );
 }
 
-function isPlannotatorOpenCodePlugin(value: unknown): boolean {
+function isHypermarkOpenCodePlugin(value: unknown): boolean {
   const spec =
     typeof value === "string"
       ? value

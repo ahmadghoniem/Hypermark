@@ -266,8 +266,8 @@ describe("install.sh", () => {
   });
 
   test("preserves custom Codex Plannotator hook wrappers", () => {
-    expect(script).toContain("isManagedPlannotatorCommand");
-    expect(script).toContain("foundCustomPlannotatorHook");
+    expect(script).toContain("isManagedHypermarkCommand");
+    expect(script).toContain("foundCustomHypermarkHook");
     expect(script).toContain("Existing custom Codex Plannotator hook found");
     expect(script).not.toContain('hook.command.includes("plannotator")) {\n      hook.command = command;');
   });
@@ -1841,16 +1841,16 @@ describe("install shared behavior", () => {
   });
 });
 
-describe("PlannotatorConfig schema", () => {
+describe("HypermarkConfig schema", () => {
   test("exports verifyAttestation field", () => {
     const configTs = readFileSync(
       join(scriptsDir, "..", "packages", "shared", "config.ts"),
       "utf-8",
     );
     expect(configTs).toContain("verifyAttestation?: boolean");
-    // Confirm it's part of the PlannotatorConfig interface, not unrelated code.
+    // Confirm it's part of the HypermarkConfig interface, not unrelated code.
     const match = configTs.match(
-      /export interface PlannotatorConfig \{([\s\S]*?)\n\}/
+      /export interface HypermarkConfig \{([\s\S]*?)\n\}/
     );
     expect(match).toBeTruthy();
     expect(match![1]).toContain("verifyAttestation?: boolean");
@@ -1862,7 +1862,7 @@ describe("PlannotatorConfig schema", () => {
       "utf-8",
     );
     const match = configTs.match(
-      /export interface PlannotatorConfig \{([\s\S]*?)\n\}/
+      /export interface HypermarkConfig \{([\s\S]*?)\n\}/
     );
     expect(match).toBeTruthy();
     expect(match![1]).toContain("skipInstall?: {");

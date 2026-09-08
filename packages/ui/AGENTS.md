@@ -1,6 +1,6 @@
 # Working on `@hypermark/ui`
 
-This is the **published, reusable document UI** (`@hypermark/ui` + `@hypermark/core`). The commercial Workspaces app installs it and plugs in its own backend; Plannotator uses the defaults. See **`README.md`** in this directory for the architecture (packages, seams, `configurePlannotatorUI`, publishing).
+This is the **published, reusable document UI** (`@hypermark/ui` + `@hypermark/core`). The commercial Workspaces app installs it and plugs in its own backend; Plannotator uses the defaults. See **`README.md`** in this directory for the architecture (packages, seams, `configureHypermarkUI`, publishing).
 
 **The rules when editing here:**
 

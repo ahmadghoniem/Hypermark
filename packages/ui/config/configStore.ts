@@ -87,7 +87,7 @@ class ConfigStore {
   /**
    * Resolve all settings from the LIVE storage backend (cookie > default) on
    * first use — deliberately not in the constructor. The singleton is created
-   * at module import, which for a host app is before configurePlannotatorUI()
+   * at module import, which for a host app is before configureHypermarkUI()
    * can install its StorageBackend; resolving eagerly there would write every
    * missing default (including a generated identity) as cookies onto the host's
    * origin. Deferring to first use means a host that configures at startup gets

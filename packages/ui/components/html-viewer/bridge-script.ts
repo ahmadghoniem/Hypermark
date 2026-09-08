@@ -109,7 +109,7 @@ export const BRIDGE_SCRIPT = `(function() {
   // bridge when the proxied page is opened directly (not framed) and inside
   // nested same-origin subframes: only the frame whose parent IS the editor
   // may run.
-  var LIVE = window.__plannotatorLiveConfig || null;
+  var LIVE = window.__hypermarkLiveConfig || null;
   if (LIVE && (window === window.parent || window.parent !== window.top)) return;
   // The server cannot know which origin form (localhost or 127.0.0.1) the
   // editor tab was opened on, so live outbound messages are posted once per
@@ -3304,7 +3304,7 @@ export const BRIDGE_SCRIPT = `(function() {
   // other observable in the overlay model. Exposes nothing the same-realm
   // page could not already derive — the overlay root is open, highlight
   // geometry mirrors the ranges, and the text is the page's own content.
-  window.__plannotatorBridgeInternals = {
+  window.__hypermarkBridgeInternals = {
     committedRanges: function(id) {
       var record = findAnnRecord(id);
       if (!record) return [];
@@ -3323,13 +3323,13 @@ export const BRIDGE_SCRIPT = `(function() {
 /**
  * Live-mode bootstrap, prepended to BRIDGE_SCRIPT by the annotate server when
  * composing the proxy-served bridge body. Reads the JSON config prelude
- * (window.__plannotatorLiveConfig) and installs the annotation CSS that srcdoc
+ * (window.__hypermarkLiveConfig) and installs the annotation CSS that srcdoc
  * mode splices as a <style> tag. Runs before the bridge IIFE and before its
  * MutationObserver exists, so this write never feeds the reconcile loop.
  * Same escaping rules as BRIDGE_SCRIPT: a dependency-free string constant.
  */
 export const LIVE_BRIDGE_BOOTSTRAP = `(function() {
-  var config = window.__plannotatorLiveConfig;
+  var config = window.__hypermarkLiveConfig;
   if (!config || typeof config.css !== 'string') return;
   try {
     var style = document.createElement('style');

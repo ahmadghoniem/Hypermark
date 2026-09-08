@@ -32,8 +32,8 @@
 export const LIVE_PROXY_LOOPBACK_HOST = "127.0.0.1";
 
 /** Reserved path namespace never forwarded upstream. */
-export const LIVE_PROXY_RESERVED_PREFIX = "/__plannotator__/";
-export const LIVE_PROXY_BRIDGE_PATH = "/__plannotator__/bridge.js";
+export const LIVE_PROXY_RESERVED_PREFIX = "/__hypermark__/";
+export const LIVE_PROXY_BRIDGE_PATH = "/__hypermark__/bridge.js";
 
 /** The exact tag the injector plants into proxied HTML documents. */
 export const LIVE_PROXY_BRIDGE_TAG = `<script src="${LIVE_PROXY_BRIDGE_PATH}"></script>`;
@@ -487,7 +487,7 @@ export interface LiveBridgeSources {
  */
 export function composeLiveBridgeJs(sources: LiveBridgeSources): string {
   return (
-    "window.__plannotatorLiveConfig = "
+    "window.__hypermarkLiveConfig = "
     + JSON.stringify({
       live: true,
       token: sources.token,

@@ -35,7 +35,7 @@ describe("live proxy bridge delivery", () => {
     expect(body).toContain(LIVE_BRIDGE_BOOTSTRAP);
     // The injected tag names the proxy's own route, never a host asset.
     expect(LIVE_PROXY_BRIDGE_TAG).toBe(`<script src="${LIVE_PROXY_BRIDGE_PATH}"></script>`);
-    expect(LIVE_PROXY_BRIDGE_PATH).toBe("/__plannotator__/bridge.js");
+    expect(LIVE_PROXY_BRIDGE_PATH).toBe("/__hypermark__/bridge.js");
   });
 
   test.each([

@@ -53,7 +53,7 @@ let generator: IdentityGenerator = fallbackIdentityGenerator;
 /**
  * Register the generator `generateIdentity()` delegates to. Must return a
  * string synchronously. `./identity-tater` registers the full dictionary;
- * a host may register its own via `configurePlannotatorUI({ identityGenerator })`.
+ * a host may register its own via `configureHypermarkUI({ identityGenerator })`.
  */
 export function setIdentityGenerator(next: IdentityGenerator): void {
   generator = next;

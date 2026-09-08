@@ -22,7 +22,7 @@ import {
   getCallFlowPatchLanguageUsage,
 } from "./call-flow-languages";
 import type { CallFlowLanguageDefinition, CallFlowLanguageId } from "./call-flow-languages";
-import { getPlannotatorDataDir } from "./data-dir";
+import { getHypermarkDataDir } from "./data-dir";
 import { indexCallFlowImpacts, parseCallDiffWorkerResult } from "./call-flow-types";
 import type {
   CallFlowAdvert,
@@ -171,7 +171,7 @@ try {
 }
 `;
 
-export function getCallFlowManagedRuntimeDir(dataDir = getPlannotatorDataDir()): string {
+export function getCallFlowManagedRuntimeDir(dataDir = getHypermarkDataDir()): string {
   return join(dataDir, "vendor", "call-flow", `calldiff-${CALLDIFF_VERSION}`);
 }
 

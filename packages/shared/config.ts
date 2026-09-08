@@ -6,7 +6,7 @@
  */
 
 import { join } from "path";
-import { getPlannotatorDataDir } from "./data-dir";
+import { getHypermarkDataDir } from "./data-dir";
 import {
   readFileSync,
   writeFileSync,
@@ -100,7 +100,7 @@ export function mergePromptConfig(
   return result as PromptConfig;
 }
 
-export interface PlannotatorConfig {
+export interface HypermarkConfig {
   displayName?: string;
   diffOptions?: DiffOptions;
   /** Optional analysis layers used by code review. */
@@ -247,10 +247,10 @@ export interface PlannotatorConfig {
 }
 
 /** Parse the only server-writable call-review analysis flags. */
-export function parseReviewAnalysisConfig(value: unknown): PlannotatorConfig["reviewAnalysis"] | undefined {
+export function parseReviewAnalysisConfig(value: unknown): HypermarkConfig["reviewAnalysis"] | undefined {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
   const input = value as Record<string, unknown>;
-  const result: NonNullable<PlannotatorConfig["reviewAnalysis"]> = {};
+  const result: NonNullable<HypermarkConfig["reviewAnalysis"]> = {};
   if (input.semanticDiff !== undefined) {
     if (typeof input.semanticDiff !== "boolean") return undefined;
     result.semanticDiff = input.semanticDiff;
@@ -267,7 +267,7 @@ export function parseReviewAnalysisConfig(value: unknown): PlannotatorConfig["re
 // freeze whatever the env held at first import (bun runs every test file in
 // one process).
 function getConfigDir(): string {
-  return getPlannotatorDataDir();
+  return getHypermarkDataDir();
 }
 function getConfigPath(): string {
   return join(getConfigDir(), "config.json");
@@ -277,7 +277,7 @@ function getConfigPath(): string {
  * Load config from ~/.plannotator/config.json.
  * Returns {} on missing file or malformed JSON.
  */
-export function loadConfig(): PlannotatorConfig {
+export function loadConfig(): HypermarkConfig {
   try {
     const configPath = getConfigPath();
     if (!existsSync(configPath)) return {};
@@ -450,7 +450,7 @@ function writeConfigAtomic(configPath: string, contents: string): void {
  * other's keys. See the lock notes above for the failure mode: it degrades to
  * the old unlocked behavior with a warning, never to a hang.
  */
-export function saveConfig(partial: Partial<PlannotatorConfig>): void {
+export function saveConfig(partial: Partial<HypermarkConfig>): void {
   let lockPath: string | null = null;
   let locked = false;
   try {
@@ -514,11 +514,11 @@ export function getServerConfig(gitUser: string | null): {
   diffOptions?: DiffOptions;
   theme?: ThemeConfig;
   favicon?: FaviconStyle;
-  reviewAnalysis: NonNullable<PlannotatorConfig["reviewAnalysis"]>;
+  reviewAnalysis: NonNullable<HypermarkConfig["reviewAnalysis"]>;
   gitUser?: string;
   conventionalComments?: boolean;
   conventionalLabels?: CCLabelConfig[] | null;
-  agentTerminalSide?: PlannotatorConfig["agentTerminalSide"];
+  agentTerminalSide?: HypermarkConfig["agentTerminalSide"];
   agentTerminalDefaultAgent?: string;
 } {
   const cfg = loadConfig();
@@ -551,7 +551,7 @@ export function getServerConfig(gitUser: string | null): {
  * resolved default instead of adopting a side that does not exist.
  *
  * The set of sides has exactly one definition, `AnnotateAgentTerminalSide` in
- * @hypermark/core: `PlannotatorConfig.agentTerminalSide` IS that type and
+ * @hypermark/core: `HypermarkConfig.agentTerminalSide` IS that type and
  * this predicate delegates to that module's guard, so neither the union nor
  * its membership test can drift on one side of the boundary. Direct import
  * rather than a duplicated literal check: the Pi vendor step rewrites the
@@ -560,7 +560,7 @@ export function getServerConfig(gitUser: string | null): {
  */
 export function isAgentTerminalSide(
   value: unknown,
-): value is NonNullable<PlannotatorConfig["agentTerminalSide"]> {
+): value is NonNullable<HypermarkConfig["agentTerminalSide"]> {
   return isAnnotateAgentTerminalSide(value);
 }
 
@@ -569,7 +569,7 @@ export function isAgentTerminalSide(
  * 'since-base' (the composite "what would GitHub show" view). Users with an
  * explicit defaultDiffType keep their choice.
  */
-export function resolveDefaultDiffType(cfg?: PlannotatorConfig): DefaultDiffType {
+export function resolveDefaultDiffType(cfg?: HypermarkConfig): DefaultDiffType {
   const v = cfg?.diffOptions?.defaultDiffType as string | undefined;
   if (v === 'branch') return 'merge-base';
   return v === 'since-base' || v === 'local-vs-remote' || v === 'uncommitted' || v === 'unstaged' || v === 'staged' || v === 'merge-base' || v === 'all' ? v : 'since-base';
@@ -597,7 +597,7 @@ function coerceConfigBoolean(value: unknown, fallback: boolean): boolean {
  * Priority (highest wins):
  *   PLANNOTATOR_GLIMPSE env var  →  config.glimpse  →  default true
  */
-export function resolveUseGlimpse(config: PlannotatorConfig): boolean {
+export function resolveUseGlimpse(config: HypermarkConfig): boolean {
   const envVal = process.env.PLANNOTATOR_GLIMPSE;
   if (envVal !== undefined) {
     return envVal === "1" || envVal.toLowerCase() === "true";
@@ -617,7 +617,7 @@ export function resolveUseGlimpse(config: PlannotatorConfig): boolean {
  * Priority (highest wins):
  *   PLANNOTATOR_ANNOTATE_HISTORY env var  →  config.annotateHistory  →  default true
  */
-export function resolveAnnotateHistory(config: PlannotatorConfig): boolean {
+export function resolveAnnotateHistory(config: HypermarkConfig): boolean {
   const envVal = process.env.PLANNOTATOR_ANNOTATE_HISTORY;
   if (envVal !== undefined) {
     return envVal === "1" || envVal.toLowerCase() === "true";
@@ -636,7 +636,7 @@ export function resolveAnnotateHistory(config: PlannotatorConfig): boolean {
  * SUBMISSIONS, and a code-review user must be able to control the second
  * without touching the first. Annotate surfaces honor both.
  */
-export function resolveFeedbackHistory(config: PlannotatorConfig): boolean {
+export function resolveFeedbackHistory(config: HypermarkConfig): boolean {
   const envVal = process.env.PLANNOTATOR_FEEDBACK_HISTORY;
   if (envVal !== undefined) {
     return envVal === "1" || envVal.toLowerCase() === "true";
@@ -644,7 +644,7 @@ export function resolveFeedbackHistory(config: PlannotatorConfig): boolean {
   return coerceConfigBoolean(config.feedbackHistory, true);
 }
 
-export function resolveUseJina(cliNoJina: boolean, config: PlannotatorConfig): boolean {
+export function resolveUseJina(cliNoJina: boolean, config: HypermarkConfig): boolean {
   // CLI flag has highest priority
   if (cliNoJina) return false;
 
@@ -693,7 +693,7 @@ const warnedInvalidUrlHosts = new Set<string>();
  * the advertised-URL layer resolves it via Tailscale detection
  * (packages/server/remote.ts and the Pi network.ts mirror).
  */
-export function resolveUrlHost(config: PlannotatorConfig): string | undefined {
+export function resolveUrlHost(config: HypermarkConfig): string | undefined {
   const envVal = process.env.PLANNOTATOR_URL_HOST;
   const raw = envVal !== undefined ? envVal : config.urlHost;
   if (typeof raw !== "string") return undefined;
@@ -721,7 +721,7 @@ export function resolveUrlHost(config: PlannotatorConfig): string | undefined {
  * keeps it on. Enabled only means "sync when a provider is detected": with no
  * provider present, the progress widget is the whole experience either way.
  */
-export function resolveTodoProviderEnabled(config: PlannotatorConfig): boolean {
+export function resolveTodoProviderEnabled(config: HypermarkConfig): boolean {
   const envVal = process.env.PLANNOTATOR_TODO_PROVIDER;
   if (envVal !== undefined) {
     const v = envVal.toLowerCase();

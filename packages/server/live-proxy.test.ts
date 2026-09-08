@@ -26,7 +26,7 @@ import {
 } from "./live-proxy";
 
 const INJECT_TAG = `<script src="${LIVE_PROXY_BRIDGE_PATH}"></script>`;
-const BRIDGE_BODY = "window.__plannotatorLiveConfig = {\"token\":\"tok-abc123\",\"editorOrigins\":[\"http://localhost:4100\",\"http://127.0.0.1:4100\"]}; /* bridge */";
+const BRIDGE_BODY = "window.__hypermarkLiveConfig = {\"token\":\"tok-abc123\",\"editorOrigins\":[\"http://localhost:4100\",\"http://127.0.0.1:4100\"]}; /* bridge */";
 const EDITOR_ORIGINS = ["http://localhost:4100", "http://127.0.0.1:4100"];
 
 const HTML_PAGE = "<!doctype html><html><head><title>Fake App</title><link rel=\"stylesheet\" href=\"/style.css\"></head><body><div id=\"root\">hi</div><script src=\"/asset.js\"></script></body></html>";
@@ -539,7 +539,7 @@ describe("live proxy: security posture", () => {
 
   test("other reserved paths are 404 and never forwarded upstream", async () => {
     upstreamHits = [];
-    const res = await fetch(proxyUrl("/__plannotator__/other"));
+    const res = await fetch(proxyUrl("/__hypermark__/other"));
     expect(res.status).toBe(404);
     expect(upstreamHits).toEqual([]);
   });

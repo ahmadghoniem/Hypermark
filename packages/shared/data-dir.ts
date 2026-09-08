@@ -39,7 +39,7 @@ import { isAbsolute, join, resolve } from "path";
  * $XDG_DATA_HOME/plannotator when XDG_DATA_HOME holds an absolute
  * path; failing that, ~/.plannotator.
  */
-export function getPlannotatorDataDir(): string {
+export function getHypermarkDataDir(): string {
   const home = homedir();
 
   const envDir = process.env.PLANNOTATOR_DATA_DIR?.trim();

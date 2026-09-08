@@ -1,7 +1,7 @@
 /**
  * Host seam for the WebMCP provider, following the `utils/upload.ts` shape:
  * a module-level default, `set`/`reset`/`get`, wired through
- * `configurePlannotatorUI({ webmcp })`. Plannotator passes nothing and gets
+ * `configureHypermarkUI({ webmcp })`. Plannotator passes nothing and gets
  * today's behavior: enabled (whenever `document.modelContext` exists) with the
  * `plannotator.` name prefix.
  */

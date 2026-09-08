@@ -441,7 +441,7 @@ echo "Installing plannotator ${latest_tag}..."
 verify_attestation=0
 
 # Layer 3: config file (lowest precedence of the opt-in sources).
-# Crude grep against a flat boolean — PlannotatorConfig has no nested
+# Crude grep against a flat boolean — HypermarkConfig has no nested
 # verifyAttestation, so false positives are not a concern.
 # Resolve the data directory, expanding ~ the same way the runtime does.
 # Unset: an existing ~/.plannotator (legacy default) always wins; otherwise
@@ -1190,9 +1190,9 @@ const config = JSON.parse(fs.readFileSync(hooksPath, "utf8"));
 config.hooks ||= {};
 const stopHooks = Array.isArray(config.hooks.Stop) ? config.hooks.Stop : [];
 let updated = false;
-let foundCustomPlannotatorHook = false;
+let foundCustomHypermarkHook = false;
 
-function isManagedPlannotatorCommand(value) {
+function isManagedHypermarkCommand(value) {
   const current = value.trim();
   if (current === "plannotator" || current === command) return true;
   return current.startsWith("/") && path.posix.basename(current) === "plannotator";
@@ -1203,16 +1203,16 @@ for (const entry of stopHooks) {
   for (const hook of hooks) {
     if (hook?.type !== "command" || typeof hook.command !== "string") continue;
 
-    if (isManagedPlannotatorCommand(hook.command)) {
+    if (isManagedHypermarkCommand(hook.command)) {
       hook.command = command;
       hook.timeout = 345600;
       updated = true;
     } else if (hook.command.includes("plannotator")) {
-      foundCustomPlannotatorHook = true;
+      foundCustomHypermarkHook = true;
     }
   }
 }
-if (!updated && !foundCustomPlannotatorHook) {
+if (!updated && !foundCustomHypermarkHook) {
   stopHooks.push({
     hooks: [
       {
@@ -1224,10 +1224,10 @@ if (!updated && !foundCustomPlannotatorHook) {
   });
 }
 config.hooks.Stop = stopHooks;
-if (updated || !foundCustomPlannotatorHook) {
+if (updated || !foundCustomHypermarkHook) {
   fs.writeFileSync(hooksPath, JSON.stringify(config, null, 2) + "\n");
 }
-process.stdout.write(updated ? "updated" : foundCustomPlannotatorHook ? "custom" : "added");
+process.stdout.write(updated ? "updated" : foundCustomHypermarkHook ? "custom" : "added");
 NODE
         ); then
             case "$codex_merge_result" in

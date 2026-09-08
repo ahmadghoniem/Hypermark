@@ -4,7 +4,7 @@
  * This module is the ONLY place in `@hypermark/ui` that names `katex` at
  * runtime (`./math-eager` names it too, but a host chooses to import that).
  * `./math` calls `loadDefaultMathRenderer` only when no host loader is
- * registered (`setMathRendererLoader` / `configurePlannotatorUI({
+ * registered (`setMathRendererLoader` / `configureHypermarkUI({
  * mathRendererLoader })`), so a host that registers one never runs the
  * `import('katex')` below and never requests the chunk it produces.
  *

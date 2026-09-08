@@ -1,4 +1,4 @@
-import { loadConfig, type PlannotatorConfig, type PromptRuntime } from "./config";
+import { loadConfig, type HypermarkConfig, type PromptRuntime } from "./config";
 
 // ─── Template engine ─────────────────────────────────────────────────────────
 
@@ -78,7 +78,7 @@ interface PromptLookupOptions {
   section: PromptSection;
   key: PromptKey;
   runtime?: PromptRuntime | null;
-  config?: PlannotatorConfig;
+  config?: HypermarkConfig;
   fallback: string;
   runtimeFallbacks?: Partial<Record<PromptRuntime, string>>;
 }
@@ -108,7 +108,7 @@ type FeedbackVars = Record<string, string | undefined>;
 
 export function getReviewApprovedPrompt(
   runtime?: PromptRuntime | null,
-  config?: PlannotatorConfig,
+  config?: HypermarkConfig,
 ): string {
   return getConfiguredPrompt({
     section: "review",
@@ -131,7 +131,7 @@ export const LEGACY_REVIEW_APPROVAL_PLACEHOLDER = "LGTM - no changes requested."
 
 export function getReviewApprovedWithNotesPrompt(
   runtime?: PromptRuntime | null,
-  config?: PlannotatorConfig,
+  config?: HypermarkConfig,
   vars?: FeedbackVars,
 ): string {
   const template = getConfiguredPrompt({
@@ -160,7 +160,7 @@ export function getReviewApprovedWithNotesPrompt(
 export function composeReviewApprovedMessage(
   runtime?: PromptRuntime | null,
   feedback?: string | null,
-  config?: PlannotatorConfig,
+  config?: HypermarkConfig,
 ): string {
   const note = typeof feedback === "string" ? feedback.trim() : "";
   if (!note || note === LEGACY_REVIEW_APPROVAL_PLACEHOLDER) {
@@ -171,7 +171,7 @@ export function composeReviewApprovedMessage(
 
 export function getReviewDeniedSuffix(
   runtime?: PromptRuntime | null,
-  config?: PlannotatorConfig,
+  config?: HypermarkConfig,
 ): string {
   // Intentionally no per-runtime defaults: every agent gets the same
   // verification-only instruction so none of them start coding off raw review
@@ -190,7 +190,7 @@ export function getReviewDeniedSuffix(
 
 export function getPlanDeniedPrompt(
   runtime?: PromptRuntime | null,
-  config?: PlannotatorConfig,
+  config?: HypermarkConfig,
   vars?: FeedbackVars,
 ): string {
   const template = getConfiguredPrompt({
@@ -209,7 +209,7 @@ const PLAN_APPROVED_RUNTIME_DEFAULTS: Partial<Record<PromptRuntime, string>> = {
 
 export function getPlanApprovedPrompt(
   runtime?: PromptRuntime | null,
-  config?: PlannotatorConfig,
+  config?: HypermarkConfig,
   vars?: FeedbackVars,
 ): string {
   const template = getConfiguredPrompt({
@@ -229,7 +229,7 @@ const PLAN_APPROVED_WITH_NOTES_RUNTIME_DEFAULTS: Partial<Record<PromptRuntime, s
 
 export function getPlanApprovedWithNotesPrompt(
   runtime?: PromptRuntime | null,
-  config?: PlannotatorConfig,
+  config?: HypermarkConfig,
   vars?: FeedbackVars,
 ): string {
   const template = getConfiguredPrompt({
@@ -245,7 +245,7 @@ export function getPlanApprovedWithNotesPrompt(
 
 export function getPlanAutoApprovedPrompt(
   runtime?: PromptRuntime | null,
-  config?: PlannotatorConfig,
+  config?: HypermarkConfig,
 ): string {
   return getConfiguredPrompt({
     section: "plan",
@@ -266,7 +266,7 @@ export function getPlanAutoApprovedPrompt(
  */
 export function getAnnotateFileFeedbackTemplate(
   runtime?: PromptRuntime | null,
-  config?: PlannotatorConfig,
+  config?: HypermarkConfig,
 ): string {
   return getConfiguredPrompt({
     section: "annotate",
@@ -280,7 +280,7 @@ export function getAnnotateFileFeedbackTemplate(
 /** Message-annotate counterpart of getAnnotateFileFeedbackTemplate(). */
 export function getAnnotateMessageFeedbackTemplate(
   runtime?: PromptRuntime | null,
-  config?: PlannotatorConfig,
+  config?: HypermarkConfig,
 ): string {
   return getConfiguredPrompt({
     section: "annotate",
@@ -293,7 +293,7 @@ export function getAnnotateMessageFeedbackTemplate(
 
 export function getAnnotateFileFeedbackPrompt(
   runtime?: PromptRuntime | null,
-  config?: PlannotatorConfig,
+  config?: HypermarkConfig,
   vars?: FeedbackVars,
 ): string {
   return resolveTemplate(getAnnotateFileFeedbackTemplate(runtime, config), vars ?? {});
@@ -301,7 +301,7 @@ export function getAnnotateFileFeedbackPrompt(
 
 export function getAnnotateMessageFeedbackPrompt(
   runtime?: PromptRuntime | null,
-  config?: PlannotatorConfig,
+  config?: HypermarkConfig,
   vars?: FeedbackVars,
 ): string {
   return resolveTemplate(getAnnotateMessageFeedbackTemplate(runtime, config), vars ?? {});
@@ -309,7 +309,7 @@ export function getAnnotateMessageFeedbackPrompt(
 
 export function getAnnotateApprovedPrompt(
   runtime?: PromptRuntime | null,
-  config?: PlannotatorConfig,
+  config?: HypermarkConfig,
 ): string {
   return getConfiguredPrompt({
     section: "annotate",
@@ -322,7 +322,7 @@ export function getAnnotateApprovedPrompt(
 
 export function getAnnotateApprovedWithNotesPrompt(
   runtime?: PromptRuntime | null,
-  config?: PlannotatorConfig,
+  config?: HypermarkConfig,
   vars?: FeedbackVars,
 ): string {
   const template = getConfiguredPrompt({

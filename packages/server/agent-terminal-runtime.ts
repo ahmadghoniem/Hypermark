@@ -19,7 +19,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { getPlannotatorDataDir } from "@hypermark/shared/data-dir";
+import { getHypermarkDataDir } from "@hypermark/shared/data-dir";
 import type { AgentTerminalDisabledReason } from "@hypermark/shared/agent-terminal";
 
 // @ts-ignore - Bun import attribute for text
@@ -76,7 +76,7 @@ type CommandResult = {
 };
 
 export function getAgentTerminalManagedRuntimeDir(
-  dataDir = getPlannotatorDataDir(),
+  dataDir = getHypermarkDataDir(),
 ): string {
   return join(dataDir, "vendor", "agent-terminal", `webtui-${AGENT_TERMINAL_WEBTUI_VERSION}`);
 }

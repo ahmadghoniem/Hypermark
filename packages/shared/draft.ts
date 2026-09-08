@@ -11,13 +11,13 @@
 import { join } from "path";
 import { mkdirSync, writeFileSync, readFileSync, renameSync, unlinkSync, existsSync } from "fs";
 import { createHash } from "crypto";
-import { getPlannotatorDataDir } from "./data-dir";
+import { getHypermarkDataDir } from "./data-dir";
 
 /**
  * Get the drafts directory, creating it if needed.
  */
 export function getDraftDir(): string {
-  const dir = join(getPlannotatorDataDir(), "drafts");
+  const dir = join(getHypermarkDataDir(), "drafts");
   mkdirSync(dir, { recursive: true });
   return dir;
 }

@@ -249,8 +249,8 @@ describe.if(hasDom)("bridge theme handler (DOM)", () => {
    * model (happy-dom lays nothing out, so highlight geometry is all 0x0). */
   function committedRanges(id: string): Range[] {
     const internals = (window as unknown as {
-      __plannotatorBridgeInternals?: { committedRanges: (annId: string) => Range[] };
-    }).__plannotatorBridgeInternals;
+      __hypermarkBridgeInternals?: { committedRanges: (annId: string) => Range[] };
+    }).__hypermarkBridgeInternals;
     return internals ? internals.committedRanges(id) : [];
   }
 

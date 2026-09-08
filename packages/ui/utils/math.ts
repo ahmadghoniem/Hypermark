@@ -88,7 +88,7 @@ export function subscribeMathRenderer(listener: () => void): () => void {
 
 /**
  * Swap the loader `loadMathRenderer()` uses. Host seam
- * (`configurePlannotatorUI({ mathRendererLoader })`): a host may return a
+ * (`configureHypermarkUI({ mathRendererLoader })`): a host may return a
  * module that imports katex AND its stylesheet in one chunk. A load already in
  * flight keeps going and still fills the slot when it lands (the component
  * that started it is waiting on that result and would otherwise never
@@ -137,7 +137,7 @@ export function loadMathRenderer(): Promise<MathRenderer> {
  * flight, so the next `loadMathRenderer()` invokes the loader afresh and a
  * stale in-flight result cannot fill the slot after the reset. The registered
  * loader is KEPT: resetting the renderer is not unregistering the host seam
- * (a host's `configurePlannotatorUI` runs once, before any reset a test issues
+ * (a host's `configureHypermarkUI` runs once, before any reset a test issues
  * later). To drop the loader too, call `setMathRendererLoader(null)`.
  */
 export function resetMathRenderer(): void {

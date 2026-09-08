@@ -17,7 +17,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
-import { getPlannotatorDataDir } from "./data-dir";
+import { getHypermarkDataDir } from "./data-dir";
 
 const DEFAULT_STALE_AFTER_MS = 30 * 60 * 1_000;
 const DEFAULT_WAIT_TIMEOUT_MS = 30 * 60 * 1_000;
@@ -54,7 +54,7 @@ export async function withCallFlowInstallLock<T>(
   options: CallFlowInstallLockOptions = {},
 ): Promise<T> {
   const lockPath = options.lockPath
-    ?? join(getPlannotatorDataDir(), "vendor", "call-flow", ".install.lock");
+    ?? join(getHypermarkDataDir(), "vendor", "call-flow", ".install.lock");
   const staleAfterMs = options.staleAfterMs ?? DEFAULT_STALE_AFTER_MS;
   const waitTimeoutMs = options.waitTimeoutMs ?? DEFAULT_WAIT_TIMEOUT_MS;
   const pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;

@@ -141,8 +141,8 @@ describe('review entry assets', () => {
   // that builds the bundles runs it right after.
   const REGISTRATION_MARKERS = ['plannotator-math-eager', 'uniqueUsernameGenerator'];
   const markerExpectations: Array<[bundle: string, present: string[], absent: string[]]> = [
-    ['apps/hook/dist/index.html', [...REGISTRATION_MARKERS, 'plannotator-mermaid-eager', 'katex-display', 'flowchart-v2', 'viz_set_y_invert', '__plannotatorLiveConfig'], []],
-    ['apps/review/dist/index.html', [...REGISTRATION_MARKERS, 'katex-display', '__plannotatorLiveConfig'], ['plannotator-mermaid-eager', 'flowchart-v2']],
+    ['apps/hook/dist/index.html', [...REGISTRATION_MARKERS, 'plannotator-mermaid-eager', 'katex-display', 'flowchart-v2', 'viz_set_y_invert', '__hypermarkLiveConfig'], []],
+    ['apps/review/dist/index.html', [...REGISTRATION_MARKERS, 'katex-display', '__hypermarkLiveConfig'], ['plannotator-mermaid-eager', 'flowchart-v2']],
   ];
   for (const [path, present, absent] of markerExpectations) {
     test.skipIf(!existsSync(resolve(root, path)))(`${path} carries the eager registration and renderer markers`, () => {
@@ -164,7 +164,7 @@ describe('review entry assets', () => {
   for (const path of ['apps/hook/dist/index.html', 'apps/review/dist/index.html']) {
     test.skipIf(!existsSync(resolve(root, path)))(`${path} inlines the HTML viewer bridge exactly once`, () => {
       const html = readFileSync(resolve(root, path), 'utf8');
-      const literalCount = html.split('__plannotatorBridgeInternals').length - 1;
+      const literalCount = html.split('__hypermarkBridgeInternals').length - 1;
       expect({ path, literalCount }).toEqual({ path, literalCount: 1 });
     });
   }

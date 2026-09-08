@@ -15,7 +15,7 @@ import type { ServerSyncFn } from './config/configStore';
 import type { ExternalAnnotationEvent, VaultNode } from './types';
 
 // One-stop type barrel: every seam contract a host implements is importable
-// from this module, next to configurePlannotatorUI itself.
+// from this module, next to configureHypermarkUI itself.
 export type {
   ImageSrcResolver,
   DocPreviewFetcher,
@@ -86,7 +86,7 @@ export interface PlannotatorUIConfig {
   loadSettingsFromBackend?: boolean;
 }
 
-export function configurePlannotatorUI(config: PlannotatorUIConfig): void {
+export function configureHypermarkUI(config: PlannotatorUIConfig): void {
   if (config.imageSrcResolver) setImageSrcResolver(config.imageSrcResolver);
   if (config.storageBackend) setStorageBackend(config.storageBackend);
   if (config.uploadTransport) setUploadTransport(config.uploadTransport);

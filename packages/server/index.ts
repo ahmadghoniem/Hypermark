@@ -117,7 +117,7 @@ export interface ServerResult {
  * - Obsidian/Bear integrations
  * - Port conflict retries
  */
-export async function startPlannotatorServer(
+export async function startHypermarkServer(
   options: ServerOptions
 ): Promise<ServerResult> {
   const { plan, origin, htmlContent, permissionMode, onReady, mode, customPlanPath } = options;

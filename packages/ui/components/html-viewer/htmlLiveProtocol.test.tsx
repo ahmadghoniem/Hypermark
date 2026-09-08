@@ -374,7 +374,7 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
   // globals the bridge touches, including the parent/top pair the frame gate
   // reads.
   let bridgeFrame: HTMLIFrameElement;
-  let bridgeWindow: Window & { __plannotatorLiveConfig?: unknown };
+  let bridgeWindow: Window & { __hypermarkLiveConfig?: unknown };
   let bridgeDocument: Document;
 
   // Failed dead-target searches carry a wall-clock backoff (300ms doubling
@@ -415,7 +415,7 @@ describe.if(hasDom)('live bridge gate (composed body in the eval harness)', () =
       editorOrigins: [editorOrigin, 'http://127.0.0.1:4100'],
       css: '.pn-live-probe { color: red; }',
     };
-    bridgeWindow.__plannotatorLiveConfig = config;
+    bridgeWindow.__hypermarkLiveConfig = config;
     const body = bridgeModule!.LIVE_BRIDGE_BOOTSTRAP + '\n' + bridgeModule!.BRIDGE_SCRIPT;
     // Rebind the globals the bridge reads: its window/document/location/
     // history are the iframe's, and parent/top are the fake editor pair so

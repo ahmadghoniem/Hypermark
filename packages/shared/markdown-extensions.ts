@@ -30,7 +30,7 @@ import {
 	normalizeMarkdownExtensions,
 	shouldStripFrontmatter as shouldStripFrontmatterWith,
 } from "./annotatable";
-import { loadConfig, type PlannotatorConfig } from "./config";
+import { loadConfig, type HypermarkConfig } from "./config";
 
 export { normalizeMarkdownExtensions };
 
@@ -39,7 +39,7 @@ export { normalizeMarkdownExtensions };
  * object. Pure: invalid entries are dropped, `.env` is denylisted, and
  * built-in extensions are deduplicated (see `normalizeMarkdownExtensions`).
  */
-export function resolveMarkdownExtensions(config: PlannotatorConfig): string[] {
+export function resolveMarkdownExtensions(config: HypermarkConfig): string[] {
 	return normalizeMarkdownExtensions(config.markdownExtensions);
 }
 
@@ -50,7 +50,7 @@ let cached: string[] | null = null;
  * and memoized: a session's accepted set must not change halfway through a
  * directory walk. Pass an explicit config to bypass the memo entirely.
  */
-export function getExtraMarkdownExtensions(config?: PlannotatorConfig): string[] {
+export function getExtraMarkdownExtensions(config?: HypermarkConfig): string[] {
 	if (config) return resolveMarkdownExtensions(config);
 	if (cached === null) cached = resolveMarkdownExtensions(loadConfig());
 	return cached;

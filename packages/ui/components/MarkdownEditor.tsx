@@ -35,7 +35,7 @@ export { selectionToolbar } from '@plannotator/atomic-editor';
 export type { SelectionToolbarConfig, InlineFormat } from '@plannotator/atomic-editor';
 
 /* Host-configured embed media authoring. The picker is per editor mount so its
-   callbacks can close over live route state; nothing enters configurePlannotatorUI.
+   callbacks can close over live route state; nothing enters configureHypermarkUI.
    The package owns paragraph-safe splicing while the host owns embed grammar. */
 export { embedPicker, embedSlashItem } from './MarkdownEditor/embedPicker';
 export type {

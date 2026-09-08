@@ -25,7 +25,7 @@ import {
   __setConfigLockTimingsForTest,
   __setConfigSaveMergeWindowHookForTest,
 } from "./config";
-import type { PlannotatorConfig } from "./config";
+import type { HypermarkConfig } from "./config";
 
 describe("resolveDefaultDiffType", () => {
   test("accepts local-vs-remote as a persisted review default", () => {
@@ -206,8 +206,8 @@ describe("config.json boolean coercion", () => {
   const cases: Array<{
     name: string;
     envVar: string;
-    key: keyof PlannotatorConfig;
-    resolve: (config: PlannotatorConfig) => boolean;
+    key: keyof HypermarkConfig;
+    resolve: (config: HypermarkConfig) => boolean;
   }> = [
     {
       name: "resolveUseGlimpse",
@@ -241,8 +241,8 @@ describe("config.json boolean coercion", () => {
     }
   });
 
-  const withKey = (c: (typeof cases)[number], value: unknown): PlannotatorConfig =>
-    ({ [c.key]: value }) as PlannotatorConfig;
+  const withKey = (c: (typeof cases)[number], value: unknown): HypermarkConfig =>
+    ({ [c.key]: value }) as HypermarkConfig;
 
   for (const c of cases) {
     describe(c.name, () => {
@@ -306,7 +306,7 @@ describe("favicon config persistence", () => {
   });
 
   test("omits unknown favicon styles from getServerConfig", () => {
-    const unknownFavicon = "unknown" as unknown as PlannotatorConfig["favicon"];
+    const unknownFavicon = "unknown" as unknown as HypermarkConfig["favicon"];
     saveConfig({ favicon: unknownFavicon });
     expect(loadConfig().favicon).toBe(unknownFavicon);
     expect(getServerConfig(null).favicon).toBeUndefined();

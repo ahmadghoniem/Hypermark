@@ -10,7 +10,7 @@ import type { CallFlowInstallStage, CallFlowNodePreflight, CallFlowRuntimeInstal
 // at module-eval time: bun evaluates every test file's module before running
 // tests in one shared process, and Pi's generated/storage.ts caches its data
 // dir at import time. A module-eval override here makes storage's cached dir
-// and later files' live getPlannotatorDataDir() calls disagree, which is
+// and later files' live getHypermarkDataDir() calls disagree, which is
 // exactly the Pi annotate-history / durable-submit CI failure this comment
 // guards against. Config writes made by these tests target whatever dir the
 // process's config module froze at first import; the snapshot/restore in
@@ -65,8 +65,8 @@ const { startReviewServer: startBunReviewServer } = await import('./review');
 // it now (env is untouched at this point, so this is the same dir the config
 // module freezes to in an isolated run) and restore it after the suite so a
 // test run never flips a real setting.
-const { getPlannotatorDataDir } = await import('@hypermark/shared/data-dir');
-const realConfigPath = join(getPlannotatorDataDir(), 'config.json');
+const { getHypermarkDataDir } = await import('@hypermark/shared/data-dir');
+const realConfigPath = join(getHypermarkDataDir(), 'config.json');
 let realConfigSnapshot: Buffer | null = null;
 try {
   realConfigSnapshot = readFileSync(realConfigPath);

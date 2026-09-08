@@ -7,10 +7,10 @@ import { spawn } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
-import { getPlannotatorDataDir } from "@hypermark/shared/data-dir";
+import { getHypermarkDataDir } from "@hypermark/shared/data-dir";
 import { loadConfig, resolveUseGlimpse } from "@hypermark/shared/config";
 
-const IPC_REGISTRY = path.join(getPlannotatorDataDir(), "vscode-ipc.json");
+const IPC_REGISTRY = path.join(getHypermarkDataDir(), "vscode-ipc.json");
 
 /**
  * Common "no-op" values for $BROWSER used by headless/background environments
@@ -190,11 +190,11 @@ export async function openBrowser(
   options?: { isRemote?: boolean; useGlimpse?: boolean }
 ): Promise<boolean> {
   try {
-    const rawPlannotatorBrowser = process.env.PLANNOTATOR_BROWSER;
+    const rawHypermarkBrowser = process.env.PLANNOTATOR_BROWSER;
     const rawBrowser = process.env.BROWSER;
-    const plannotatorBrowser = isNoOpBrowserSentinel(rawPlannotatorBrowser)
+    const plannotatorBrowser = isNoOpBrowserSentinel(rawHypermarkBrowser)
       ? undefined
-      : rawPlannotatorBrowser;
+      : rawHypermarkBrowser;
     const envBrowser = isNoOpBrowserSentinel(rawBrowser) ? undefined : rawBrowser;
     const browser = plannotatorBrowser || envBrowser;
     const isRemote = options?.isRemote ?? false;

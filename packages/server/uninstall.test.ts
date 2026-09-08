@@ -19,7 +19,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, parse } from "node:path";
 import {
   formatPurgeWarning,
-  runPlannotatorUninstall,
+  runHypermarkUninstall,
   type UninstallEnvironment,
   WINDOWS_PATH_RESTORE_SCRIPT,
   WINDOWS_PATH_SCRIPT,
@@ -464,7 +464,7 @@ describe("default uninstall", () => {
       prompt: "custom",
     });
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       fixture.environment,
     );
@@ -594,7 +594,7 @@ describe("default uninstall", () => {
       writeText(path, "the user's own file");
     }
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       fixture.environment,
     );
@@ -623,7 +623,7 @@ describe("default uninstall", () => {
     });
     const before = snapshotTree(fixture.root);
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: true },
       {
         ...fixture.environment,
@@ -664,7 +664,7 @@ describe("default uninstall", () => {
     ].join("\n");
     writeText(configPath, contents);
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       fixture.environment,
     );
@@ -698,7 +698,7 @@ describe("default uninstall", () => {
     const contents = '{ "plugin": ["@plannotator/opencode", } broken';
     writeText(configPath, contents);
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       fixture.environment,
     );
@@ -717,7 +717,7 @@ describe("default uninstall", () => {
     );
 
     writeJson(configPath, { plugin: ["keep-plugin"] });
-    const retry = await runPlannotatorUninstall(
+    const retry = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       fixture.environment,
     );
@@ -748,7 +748,7 @@ describe("default uninstall", () => {
       experimental: { plan: true },
     });
 
-    await runPlannotatorUninstall(
+    await runHypermarkUninstall(
       { purge: false, dryRun: false },
       fixture.environment,
     );
@@ -791,7 +791,7 @@ describe("default uninstall", () => {
     ].join("\r\n");
     writeText(settingsPath, contents);
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       fixture.environment,
     );
@@ -826,7 +826,7 @@ describe("default uninstall", () => {
       });
       chmodSync(settingsPath, 0o400);
 
-      const blocked = await runPlannotatorUninstall(
+      const blocked = await runHypermarkUninstall(
         { purge: false, dryRun: false },
         fixture.environment,
       );
@@ -846,7 +846,7 @@ describe("default uninstall", () => {
 
       chmodSync(settingsPath, 0o600);
       writeJson(settingsPath, { theme: "custom" });
-      const retry = await runPlannotatorUninstall(
+      const retry = await runHypermarkUninstall(
         { purge: false, dryRun: false },
         fixture.environment,
       );
@@ -878,7 +878,7 @@ describe("default uninstall", () => {
       },
     });
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       fixture.environment,
     );
@@ -912,7 +912,7 @@ describe("default uninstall", () => {
     writeText(binary);
     writeText(settingsPath, contents);
 
-    const blocked = await runPlannotatorUninstall(
+    const blocked = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       fixture.environment,
     );
@@ -931,7 +931,7 @@ describe("default uninstall", () => {
     );
 
     writeJson(settingsPath, { theme: "custom" });
-    const retry = await runPlannotatorUninstall(
+    const retry = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       fixture.environment,
     );
@@ -960,7 +960,7 @@ describe("default uninstall", () => {
     writeText(settingsPath, contents);
     writeText(kiroAgentPath, kiroContents);
 
-    const blocked = await runPlannotatorUninstall(
+    const blocked = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       fixture.environment,
     );
@@ -1001,7 +1001,7 @@ describe("default uninstall", () => {
     writeText(binary);
     writeText(unrelatedVendorFile, "unrelated");
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       {
         ...fixture.environment,
@@ -1023,7 +1023,7 @@ describe("purge uninstall", () => {
     const fixture = createFixture();
     writeText(join(fixture.dataDir, "vendor", "sem", "v0.8.0", "sem"));
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: true, dryRun: true },
       fixture.environment,
     );
@@ -1039,7 +1039,7 @@ describe("purge uninstall", () => {
     const vendorDirectory = join(fixture.dataDir, "vendor");
     mkdirSync(vendorDirectory, { recursive: true });
 
-    const preview = await runPlannotatorUninstall(
+    const preview = await runHypermarkUninstall(
       { purge: true, dryRun: true },
       fixture.environment,
     );
@@ -1047,7 +1047,7 @@ describe("purge uninstall", () => {
       `${vendorDirectory} (unrecognized custom entry)`,
     );
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       fixture.environment,
     );
@@ -1075,7 +1075,7 @@ describe("purge uninstall", () => {
     const customPath = join(fixture.dataDir, "my-notes", "keep.md");
     writeText(customPath, "not installer-owned");
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: true, dryRun: false },
       fixture.environment,
     );
@@ -1102,7 +1102,7 @@ describe("purge uninstall", () => {
     writeText(join(fixture.dataDir, "active", "session", "plan.md"));
     writeText(join(fixture.dataDir, "vendor", "sem", "v0.8.0", "sem"));
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: true, dryRun: false },
       fixture.environment,
     );
@@ -1129,7 +1129,7 @@ describe("purge uninstall", () => {
     );
     writeText(binary);
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: true, dryRun: false },
       {
         ...fixture.environment,
@@ -1162,7 +1162,7 @@ describe("purge uninstall", () => {
       enabledPlugins: { "plannotator@plannotator": true },
     });
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: true, dryRun: false },
       {
         ...fixture.environment,
@@ -1203,7 +1203,7 @@ describe("purge uninstall", () => {
       writeText(plan, "local-only data");
       writeText(binary);
 
-      const result = await runPlannotatorUninstall(
+      const result = await runHypermarkUninstall(
         { purge: true, dryRun: false },
         {
           ...fixture.environment,
@@ -1253,7 +1253,7 @@ describe("purge uninstall", () => {
       );
       writeText(binary);
 
-      const result = await runPlannotatorUninstall(
+      const result = await runHypermarkUninstall(
         { purge: true, dryRun: false },
         {
           ...fixture.environment,
@@ -1277,7 +1277,7 @@ describe("purge uninstall", () => {
     symlinkSync(externalDirectory, join(fixture.dataDir, "plans"), "dir");
     linkSync(externalFile, join(fixture.dataDir, "config.json"));
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: true, dryRun: false },
       fixture.environment,
     );
@@ -1303,7 +1303,7 @@ describe("purge uninstall", () => {
     );
     writeText(binary);
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: true, dryRun: false },
       {
         ...fixture.environment,
@@ -1329,7 +1329,7 @@ describe("purge uninstall", () => {
     );
     writeText(binary);
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: true, dryRun: false },
       {
         ...fixture.environment,
@@ -1357,7 +1357,7 @@ describe("host and platform integrations", () => {
       enabledPlugins: { "plannotator@plannotator": true },
     });
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       fixture.environment,
     );
@@ -1381,7 +1381,7 @@ describe("host and platform integrations", () => {
     writeJson(join(fixture.homeDir, ".factory", "settings.json"), {
       enabledPlugins: {},
     });
-    const retry = await runPlannotatorUninstall(
+    const retry = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       fixture.environment,
     );
@@ -1397,7 +1397,7 @@ describe("host and platform integrations", () => {
       packages: [{ source: "npm:@plannotator/pi-extension@0.25.1" }],
     });
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: true, dryRun: false },
       {
         ...fixture.environment,
@@ -1445,7 +1445,7 @@ describe("host and platform integrations", () => {
       },
     );
 
-    await runPlannotatorUninstall(
+    await runHypermarkUninstall(
       { purge: false, dryRun: false },
       {
         ...fixture.environment,
@@ -1497,7 +1497,7 @@ describe("host and platform integrations", () => {
       ),
     );
 
-    await runPlannotatorUninstall(
+    await runHypermarkUninstall(
       { purge: false, dryRun: false },
       {
         ...fixture.environment,
@@ -1539,7 +1539,7 @@ describe("host and platform integrations", () => {
       enabledPlugins: { "plannotator@plannotator": true },
     });
 
-    await runPlannotatorUninstall(
+    await runHypermarkUninstall(
       { purge: true, dryRun: false },
       {
         ...fixture.environment,
@@ -1564,7 +1564,7 @@ describe("host and platform integrations", () => {
     writeText(currentExe);
     writeText(legacyExe);
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       {
         ...fixture.environment,
@@ -1600,7 +1600,7 @@ describe("host and platform integrations", () => {
     writeText(currentExe);
     writeText(unrelatedFile);
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       {
         ...fixture.environment,
@@ -1625,7 +1625,7 @@ describe("host and platform integrations", () => {
     const currentExe = join(localAppData, "plannotator", "plannotator.exe");
     writeText(currentExe);
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       {
         ...fixture.environment,
@@ -1651,7 +1651,7 @@ describe("host and platform integrations", () => {
     const currentExe = join(localAppData, "plannotator", "plannotator.exe");
     writeText(currentExe);
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       {
         ...fixture.environment,
@@ -1679,7 +1679,7 @@ describe("host and platform integrations", () => {
     const currentExe = join(localAppData, "plannotator", "plannotator.exe");
     writeText(currentExe);
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       {
         ...fixture.environment,
@@ -1707,7 +1707,7 @@ describe("host and platform integrations", () => {
     writeText(currentExe);
     const originalPath = `C:\\Before;${dirname(currentExe)};C:\\After;;`;
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       {
         ...fixture.environment,
@@ -1741,7 +1741,7 @@ describe("host and platform integrations", () => {
     writeText(currentExe);
     const originalPath = `C:\\Before;${dirname(currentExe)};C:\\After;;`;
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       {
         ...fixture.environment,
@@ -1781,7 +1781,7 @@ describe("host and platform integrations", () => {
       writeText(currentExe);
       let commandCount = 0;
 
-      const result = await runPlannotatorUninstall(
+      const result = await runHypermarkUninstall(
         { purge: false, dryRun: false },
         {
           ...fixture.environment,
@@ -1831,7 +1831,7 @@ describe("host and platform integrations", () => {
     writeText(currentExe);
     let commandCount = 0;
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       {
         ...fixture.environment,
@@ -1870,7 +1870,7 @@ describe("host and platform integrations", () => {
     const currentExe = join(localAppData, "plannotator", "plannotator.exe");
     writeText(currentExe);
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       {
         ...fixture.environment,
@@ -1901,7 +1901,7 @@ describe("host and platform integrations", () => {
     writeText(currentExe);
     let commandCount = 0;
 
-    const result = await runPlannotatorUninstall(
+    const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       {
         ...fixture.environment,

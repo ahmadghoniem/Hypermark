@@ -7,6 +7,6 @@ export {
   resolveFeedbackHistory,
   parseReviewAnalysisConfig,
   isAgentTerminalSide,
-  type PlannotatorConfig,
+  type HypermarkConfig,
   type DiffOptions,
 } from "@hypermark/shared/config";

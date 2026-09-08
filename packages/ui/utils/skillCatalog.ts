@@ -7,7 +7,7 @@
  *
  * The transport is a host seam (see packages/ui/CLAUDE.md): hosts embedding
  * `@hypermark/ui` with their own backend install a replacement via
- * `setSkillCatalogTransport` / `configurePlannotatorUI({ skillCatalogTransport })`.
+ * `setSkillCatalogTransport` / `configureHypermarkUI({ skillCatalogTransport })`.
  * The default reproduces today's behavior byte-for-byte.
  *
  * Never throws and never rejects: any failure (endpoint missing on a host,

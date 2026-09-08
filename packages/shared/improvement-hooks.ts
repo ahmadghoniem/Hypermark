@@ -19,9 +19,9 @@
 
 import { join } from "path";
 import { readFileSync, statSync } from "fs";
-import { getPlannotatorDataDir } from "./data-dir";
+import { getHypermarkDataDir } from "./data-dir";
 
-const DATA_DIR = getPlannotatorDataDir();
+const DATA_DIR = getHypermarkDataDir();
 
 /** Hooks subdirectory (preferred location) */
 const HOOKS_BASE_DIR = join(DATA_DIR, "hooks");

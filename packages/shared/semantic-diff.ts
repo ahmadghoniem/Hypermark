@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
-import { getPlannotatorDataDir } from "./data-dir";
+import { getHypermarkDataDir } from "./data-dir";
 import type {
   SemanticDiffAvailability,
   SemanticDiffBinaryChange,
@@ -145,7 +145,7 @@ export function createDefaultSemanticDiffRuntime(): SemanticDiffRuntime {
     fileExists: existsSync,
     env: process.env,
     cwd: process.cwd(),
-    dataDir: getPlannotatorDataDir(),
+    dataDir: getHypermarkDataDir(),
     pathDelimiter: delimiter,
     platform: process.platform,
   };
@@ -156,13 +156,13 @@ function semBinaryName(platform: NodeJS.Platform): string {
 }
 
 export function getManagedSemBinaryPath(
-  dataDir = getPlannotatorDataDir(),
+  dataDir = getHypermarkDataDir(),
   platform: NodeJS.Platform = process.platform,
 ): string {
   return join(dataDir, "vendor", "sem", PLANNOTATOR_SEM_VERSION, semBinaryName(platform));
 }
 
-export function getSemanticDiffScratchCwd(dataDir = getPlannotatorDataDir()): string {
+export function getSemanticDiffScratchCwd(dataDir = getHypermarkDataDir()): string {
   const primary = join(dataDir, "semantic-diff", "patch-only");
   try {
     mkdirSync(primary, { recursive: true });

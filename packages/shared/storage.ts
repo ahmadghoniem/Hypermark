@@ -11,9 +11,9 @@ import { join, resolve, sep } from "path";
 import { mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { sanitizeTag } from "./project";
 import { resolveUserPath } from "./resolve-file";
-import { getPlannotatorDataDir } from "./data-dir";
+import { getHypermarkDataDir } from "./data-dir";
 
-const DATA_DIR = getPlannotatorDataDir();
+const DATA_DIR = getHypermarkDataDir();
 
 /**
  * Get the plan storage directory, creating it if needed.

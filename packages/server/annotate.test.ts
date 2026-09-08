@@ -22,7 +22,7 @@ import { dirname, join, resolve } from "path";
 import { liveAppDraftIdentity, runGuardedShutdown, startAnnotateServer } from "./annotate";
 import { getServerConfig, loadConfig } from "./config";
 import { deriveAnnotateHistorySlug } from "@hypermark/shared/annotate-history";
-import { getPlannotatorDataDir } from "@hypermark/shared/data-dir";
+import { getHypermarkDataDir } from "@hypermark/shared/data-dir";
 
 const MINIMAL_HTML = "<html><body>Plannotator</body></html>";
 
@@ -236,7 +236,7 @@ describe("annotate server: local rendered-HTML root freshness", () => {
   }
 
   afterAll(() => {
-    const historyDir = join(getPlannotatorDataDir(), "history");
+    const historyDir = join(getHypermarkDataDir(), "history");
     for (const project of mintedProjects) {
       rmSync(join(historyDir, project), { recursive: true, force: true });
     }
@@ -873,7 +873,7 @@ describe("annotate server: folder annotate history", () => {
   }
 
   afterAll(() => {
-    const historyDir = join(getPlannotatorDataDir(), "history");
+    const historyDir = join(getHypermarkDataDir(), "history");
     for (const project of mintedProjects) {
       rmSync(join(historyDir, project), { recursive: true, force: true });
     }
@@ -1228,7 +1228,7 @@ describe("annotate server: folder annotate history", () => {
     // pre-creating a plain FILE at that path — mkdirSync(recursive) throws
     // when a target segment exists and is not a directory, on every platform.
     const slug = deriveAnnotateHistorySlug(docPath);
-    const historyProjectDir = join(getPlannotatorDataDir(), "history", project);
+    const historyProjectDir = join(getHypermarkDataDir(), "history", project);
     mkdirSync(historyProjectDir, { recursive: true });
     writeFileSync(join(historyProjectDir, slug), "not a directory", "utf-8");
 
@@ -1822,7 +1822,7 @@ describe("annotate server: durable submit records (#678)", () => {
   }
 
   afterAll(() => {
-    const historyDir = join(getPlannotatorDataDir(), "history");
+    const historyDir = join(getHypermarkDataDir(), "history");
     for (const project of mintedProjects) {
       rmSync(join(historyDir, project), { recursive: true, force: true });
     }
@@ -1830,7 +1830,7 @@ describe("annotate server: durable submit records (#678)", () => {
 
   function submissionsDir(project: string, docPath: string): string {
     return join(
-      getPlannotatorDataDir(),
+      getHypermarkDataDir(),
       "history",
       project,
       deriveAnnotateHistorySlug(resolve(docPath)),
@@ -1961,7 +1961,7 @@ describe("annotate server: durable submit records (#678)", () => {
 
       // The opt-out means "no annotate content in the data dir": no version
       // snapshot AND no submission record — the project dir never appears.
-      expect(existsSync(join(getPlannotatorDataDir(), "history", project))).toBe(false);
+      expect(existsSync(join(getHypermarkDataDir(), "history", project))).toBe(false);
       // Legacy behavior preserved: the draft is still deleted on submit.
       const draft = await fetch(`${server.url}/api/draft`);
       expect(draft.status).toBe(404);
@@ -1990,7 +1990,7 @@ describe("annotate server: durable submit records (#678)", () => {
         body: JSON.stringify({ feedback: "Quoting the agent: do Y instead.", annotations: [] }),
       });
       expect(response.status).toBe(200);
-      expect(existsSync(join(getPlannotatorDataDir(), "history", lastProject))).toBe(false);
+      expect(existsSync(join(getHypermarkDataDir(), "history", lastProject))).toBe(false);
     } finally {
       lastServer.stop();
     }
@@ -2009,7 +2009,7 @@ describe("annotate server: durable submit records (#678)", () => {
         body: JSON.stringify({ feedback: "The fetched page says Z.", annotations: [] }),
       });
       expect(response.status).toBe(200);
-      expect(existsSync(join(getPlannotatorDataDir(), "history", urlProject))).toBe(false);
+      expect(existsSync(join(getHypermarkDataDir(), "history", urlProject))).toBe(false);
     } finally {
       urlServer.stop();
     }
@@ -2055,7 +2055,7 @@ describe("annotate server: durable submit records (#678)", () => {
     // Plant a FILE where the project's history directory must go: every
     // mkdir under it fails, so both the startup snapshot and the submission
     // write degrade. (afterAll's recursive+force rm removes the file too.)
-    const historyRoot = join(getPlannotatorDataDir(), "history");
+    const historyRoot = join(getHypermarkDataDir(), "history");
     mkdirSync(historyRoot, { recursive: true });
     writeFileSync(join(historyRoot, project), "not a directory", "utf-8");
     const server = await startServer(project, docPath);
@@ -2164,7 +2164,7 @@ describe("annotate server: live app mode (annotate-app)", () => {
       // session token and both editor origin forms (localhost first), then
       // bootstrap, then bridge.
       const appUrl = plan.appUrl as string;
-      const bridge = await (await fetch(`${appUrl}__plannotator__/bridge.js`)).text();
+      const bridge = await (await fetch(`${appUrl}__hypermark__/bridge.js`)).text();
       expect(bridge).toContain(String(plan.liveToken));
       const localhostAt = bridge.indexOf(`http://localhost:${server.port}`);
       const loopbackAt = bridge.indexOf(`http://127.0.0.1:${server.port}`);
@@ -2175,7 +2175,7 @@ describe("annotate server: live app mode (annotate-app)", () => {
 
       // The proxied page carries the injected bridge script tag.
       const page = await (await fetch(appUrl)).text();
-      expect(page).toContain('<script src="/__plannotator__/bridge.js"></script>');
+      expect(page).toContain('<script src="/__hypermark__/bridge.js"></script>');
     } finally {
       server.stop();
       app.stop(true);

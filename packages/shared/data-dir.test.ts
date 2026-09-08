@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 function resolveDataDir(env: Record<string, string>): string {
-  const script = `console.log(require(${JSON.stringify(MODULE_PATH)}).getPlannotatorDataDir());`;
+  const script = `console.log(require(${JSON.stringify(MODULE_PATH)}).getHypermarkDataDir());`;
   const result = Bun.spawnSync({
     cmd: [process.execPath, "-e", script],
     env: { PATH: process.env.PATH ?? "", HOME: fakeHome, ...env },
@@ -31,7 +31,7 @@ function resolveDataDir(env: Record<string, string>): string {
   return result.stdout.toString().trim();
 }
 
-describe("getPlannotatorDataDir", () => {
+describe("getHypermarkDataDir", () => {
   test("PLANNOTATOR_DATA_DIR wins over the legacy directory and XDG_DATA_HOME", () => {
     mkdirSync(join(fakeHome, ".plannotator"));
 
