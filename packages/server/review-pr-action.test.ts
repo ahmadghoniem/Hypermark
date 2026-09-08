@@ -9,8 +9,8 @@ import type {
 } from '@hypermark/shared/pr-types';
 import { startReviewServer } from './review';
 
-const originalAI = process.env.PLANNOTATOR_AI;
-const originalDataDir = process.env.PLANNOTATOR_DATA_DIR;
+const originalAI = process.env.HYPERMARK_AI;
+const originalDataDir = process.env.HYPERMARK_DATA_DIR;
 const originalPath = process.env.PATH;
 const tempDirs: string[] = [];
 
@@ -45,8 +45,8 @@ async function withReviewServer(
   submit: () => Promise<PRReviewSubmissionResult>,
   run: (url: string) => Promise<void>,
 ): Promise<void> {
-  process.env.PLANNOTATOR_AI = 'disabled';
-  process.env.PLANNOTATOR_DATA_DIR = makeTempDir('plannotator-pr-action-data-');
+  process.env.HYPERMARK_AI = 'disabled';
+  process.env.HYPERMARK_DATA_DIR = makeTempDir('plannotator-pr-action-data-');
   process.env.PATH = makeTempDir('plannotator-pr-action-path-');
   const server = await startReviewServer({
     rawPatch: 'diff --git a/src/failing.ts b/src/failing.ts\n',
@@ -75,10 +75,10 @@ async function postReview(url: string): Promise<Response> {
 }
 
 afterEach(() => {
-  if (originalAI === undefined) delete process.env.PLANNOTATOR_AI;
-  else process.env.PLANNOTATOR_AI = originalAI;
-  if (originalDataDir === undefined) delete process.env.PLANNOTATOR_DATA_DIR;
-  else process.env.PLANNOTATOR_DATA_DIR = originalDataDir;
+  if (originalAI === undefined) delete process.env.HYPERMARK_AI;
+  else process.env.HYPERMARK_AI = originalAI;
+  if (originalDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
+  else process.env.HYPERMARK_DATA_DIR = originalDataDir;
   if (originalPath === undefined) delete process.env.PATH;
   else process.env.PATH = originalPath;
   for (const dir of tempDirs.splice(0)) {

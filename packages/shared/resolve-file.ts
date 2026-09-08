@@ -71,7 +71,7 @@ const DEFAULT_FILE_BROWSER_MAX_FILES = 5_000;
  */
 export function getFileBrowserMaxFiles(): number {
 	const value = Number.parseInt(
-		process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES ?? "",
+		process.env.HYPERMARK_FILE_BROWSER_MAX_FILES ?? "",
 		10,
 	);
 	return Number.isFinite(value) && value > 0

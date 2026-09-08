@@ -38,7 +38,7 @@
  *  - Callers append BEFORE deleting the reviewer's draft: a failed archive
  *    write leaves the draft behind as the recovery copy.
  *  - The data directory is resolved PER CALL (not captured at module load
- *    like storage.ts does), so a test can redirect PLANNOTATOR_DATA_DIR
+ *    like storage.ts does), so a test can redirect HYPERMARK_DATA_DIR
  *    inside the test body — Bun runs every test file in one process, and a
  *    module-load capture cannot be redirected without import-order games.
  *

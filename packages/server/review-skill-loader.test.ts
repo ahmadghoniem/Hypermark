@@ -74,7 +74,7 @@ beforeEach(() => {
   mkdirSync(home, { recursive: true });
   mkdirSync(dataDir, { recursive: true });
 
-  setEnv("PLANNOTATOR_DATA_DIR", dataDir);
+  setEnv("HYPERMARK_DATA_DIR", dataDir);
   // Point every root at isolated dirs under the fake home so the host's real
   // ~/.claude etc. are never scanned. HOME isolates ~/.agents/skills, which has
   // no env override (Bun's homedir() honors HOME).

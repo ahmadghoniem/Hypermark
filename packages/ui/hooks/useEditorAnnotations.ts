@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { EditorAnnotation } from '../types';
 
 const POLL_INTERVAL = 500;
-const IS_VSCODE = typeof window !== 'undefined' && (window as any).__PLANNOTATOR_VSCODE === true;
+const IS_VSCODE = typeof window !== 'undefined' && (window as any).__HYPERMARK_VSCODE === true;
 
 interface UseEditorAnnotationsReturn {
   editorAnnotations: EditorAnnotation[];
@@ -13,7 +13,7 @@ interface UseEditorAnnotationsReturn {
  * Polls the server for editor annotations created by the VS Code extension.
  *
  * Only activates when running inside a VS Code webview (detected via
- * window.__PLANNOTATOR_VSCODE set by the theme bridge). In browser/shared URL
+ * window.__HYPERMARK_VSCODE set by the theme bridge). In browser/shared URL
  * contexts, returns an empty array with zero network cost.
  */
 export function useEditorAnnotations(): UseEditorAnnotationsReturn {

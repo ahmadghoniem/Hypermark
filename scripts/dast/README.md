@@ -45,6 +45,6 @@ read-only. The validator fails closed if ZAP reports cache exhaustion, disk
 exhaustion, or a response-size truncation.
 
 The target entry point refuses to start unless
-`PLANNOTATOR_DAST_ISOLATED=1`. Do not set that acknowledgement outside an
+`HYPERMARK_DAST_ISOLATED=1`. Do not set that acknowledgement outside an
 isolated disposable environment. The workflow is the supported execution
 path; the target is not a production server.

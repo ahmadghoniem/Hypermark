@@ -29,10 +29,10 @@ async function expectReadyBeforeWarm(
 	const projectRoot = mkdtempSync(join(tmpdir(), "plannotator-startup-warm-"));
 	const dataRoot = mkdtempSync(join(tmpdir(), "plannotator-startup-data-"));
 	const previousCwd = process.cwd();
-	const previousPort = process.env.PLANNOTATOR_PORT;
-	const previousRemote = process.env.PLANNOTATOR_REMOTE;
-	const previousDataDir = process.env.PLANNOTATOR_DATA_DIR;
-	const previousLimit = process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES;
+	const previousPort = process.env.HYPERMARK_PORT;
+	const previousRemote = process.env.HYPERMARK_REMOTE;
+	const previousDataDir = process.env.HYPERMARK_DATA_DIR;
+	const previousLimit = process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 	let server: StartedServer | null = null;
 	let ordering: Promise<"ready" | "warm"> | null = null;
 
@@ -40,10 +40,10 @@ async function expectReadyBeforeWarm(
 		writeFileSync(join(projectRoot, "document.md"), "# Test\n");
 		writeFileSync(join(projectRoot, "source.ts"), "export {};\n");
 		process.chdir(projectRoot);
-		delete process.env.PLANNOTATOR_PORT;
-		process.env.PLANNOTATOR_REMOTE = "0";
-		process.env.PLANNOTATOR_DATA_DIR = dataRoot;
-		process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = "1";
+		delete process.env.HYPERMARK_PORT;
+		process.env.HYPERMARK_REMOTE = "0";
+		process.env.HYPERMARK_DATA_DIR = dataRoot;
+		process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = "1";
 
 		server = await start(() => {
 			// Observe with the server's OWN cache key: process.cwd() inside onReady
@@ -64,16 +64,16 @@ async function expectReadyBeforeWarm(
 	} finally {
 		server?.stop();
 		process.chdir(previousCwd);
-		if (previousPort === undefined) delete process.env.PLANNOTATOR_PORT;
-		else process.env.PLANNOTATOR_PORT = previousPort;
-		if (previousRemote === undefined) delete process.env.PLANNOTATOR_REMOTE;
-		else process.env.PLANNOTATOR_REMOTE = previousRemote;
-		if (previousDataDir === undefined) delete process.env.PLANNOTATOR_DATA_DIR;
-		else process.env.PLANNOTATOR_DATA_DIR = previousDataDir;
+		if (previousPort === undefined) delete process.env.HYPERMARK_PORT;
+		else process.env.HYPERMARK_PORT = previousPort;
+		if (previousRemote === undefined) delete process.env.HYPERMARK_REMOTE;
+		else process.env.HYPERMARK_REMOTE = previousRemote;
+		if (previousDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
+		else process.env.HYPERMARK_DATA_DIR = previousDataDir;
 		if (previousLimit === undefined) {
-			delete process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES;
+			delete process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 		} else {
-			process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = previousLimit;
+			process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = previousLimit;
 		}
 		rmSync(projectRoot, { recursive: true, force: true });
 		rmSync(dataRoot, { recursive: true, force: true });

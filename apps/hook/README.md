@@ -77,18 +77,18 @@ When Claude Code calls `ExitPlanMode`, this hook intercepts and:
 
 | Variable | Description |
 |----------|-------------|
-| `PLANNOTATOR_REMOTE` | Set to `1` / `true` for remote mode, `0` / `false` for local mode, or leave unset for SSH auto-detection. Uses a fixed port in remote mode; browser-opening behavior depends on the environment. |
-| `PLANNOTATOR_PORT` | Fixed port to use. Default: random locally, `19432` for remote sessions. |
-| `PLANNOTATOR_BROWSER` | Custom browser to open plans in. macOS: app name or path. Linux/Windows: executable path. |
-| `PLANNOTATOR_SHARE_URL` | Custom share portal URL for self-hosting. Default: `https://share.plannotator.ai`. |
+| `HYPERMARK_REMOTE` | Set to `1` / `true` for remote mode, `0` / `false` for local mode, or leave unset for SSH auto-detection. Uses a fixed port in remote mode; browser-opening behavior depends on the environment. |
+| `HYPERMARK_PORT` | Fixed port to use. Default: random locally, `19432` for remote sessions. |
+| `HYPERMARK_BROWSER` | Custom browser to open plans in. macOS: app name or path. Linux/Windows: executable path. |
+| `HYPERMARK_SHARE_URL` | Custom share portal URL for self-hosting. Default: `https://share.plannotator.ai`. |
 
 ## Remote / Devcontainer Usage
 
-When running Claude Code in a remote environment (SSH, devcontainer, WSL), set `PLANNOTATOR_REMOTE=1` (or `true`) and these environment variables:
+When running Claude Code in a remote environment (SSH, devcontainer, WSL), set `HYPERMARK_REMOTE=1` (or `true`) and these environment variables:
 
 ```bash
-export PLANNOTATOR_REMOTE=1
-export PLANNOTATOR_PORT=9999  # Choose a port you'll forward
+export HYPERMARK_REMOTE=1
+export HYPERMARK_PORT=9999  # Choose a port you'll forward
 ```
 
 This tells Hypermark to:

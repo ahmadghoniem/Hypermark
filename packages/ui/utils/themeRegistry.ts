@@ -567,7 +567,7 @@ export const PIERRE_PALETTE_DESCRIPTOR: PaletteDescriptor = {
   },
 };
 
-export const PLANNOTATOR_PALETTE_DESCRIPTOR: PaletteDescriptor = {
+export const HYPERMARK_PALETTE_DESCRIPTOR: PaletteDescriptor = {
   id: 'plannotator',
   name: 'Hypermark',
   builtIn: true,
@@ -1293,7 +1293,7 @@ export const TOKYO_NIGHT_PALETTE_DESCRIPTOR: PaletteDescriptor = {
 
 export const PALETTE_DESCRIPTORS: Record<PaletteId, PaletteDescriptor> = {
   'pierre': PIERRE_PALETTE_DESCRIPTOR,
-  'plannotator': PLANNOTATOR_PALETTE_DESCRIPTOR,
+  'plannotator': HYPERMARK_PALETTE_DESCRIPTOR,
   'catppuccin': CATPPUCCIN_PALETTE_DESCRIPTOR,
   'github': GITHUB_PALETTE_DESCRIPTOR,
   'ayu-dark': AYU_DARK_PALETTE_DESCRIPTOR,

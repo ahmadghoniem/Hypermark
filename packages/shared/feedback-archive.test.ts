@@ -7,7 +7,7 @@
  * the diff it describes, a sidecar that overwrites an earlier one, and a
  * storage failure that escapes into a request handler.
  *
- * All writes are sandboxed under a temp PLANNOTATOR_DATA_DIR set INSIDE the
+ * All writes are sandboxed under a temp HYPERMARK_DATA_DIR set INSIDE the
  * tests (the module resolves the data dir per call precisely so this works
  * under Bun's one-process rule), and the env var is restored in afterEach.
  */
@@ -33,7 +33,7 @@ const tempDirs: string[] = [];
 function useTempDataDir(): string {
   const dir = mkdtempSync(join(tmpdir(), "plannotator-feedback-archive-"));
   tempDirs.push(dir);
-  process.env.PLANNOTATOR_DATA_DIR = dir;
+  process.env.HYPERMARK_DATA_DIR = dir;
   return dir;
 }
 
@@ -46,12 +46,12 @@ function readIndex(dataDir: string, project = PROJECT): FeedbackRecord[] {
 }
 
 beforeEach(() => {
-  savedDataDir = process.env.PLANNOTATOR_DATA_DIR;
+  savedDataDir = process.env.HYPERMARK_DATA_DIR;
 });
 
 afterEach(() => {
-  if (savedDataDir === undefined) delete process.env.PLANNOTATOR_DATA_DIR;
-  else process.env.PLANNOTATOR_DATA_DIR = savedDataDir;
+  if (savedDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
+  else process.env.HYPERMARK_DATA_DIR = savedDataDir;
   for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
@@ -240,7 +240,7 @@ describe("feedback archive: append durability", () => {
     tempDirs.push(dir);
     const blocker = join(dir, "blocker");
     writeFileSync(blocker, "not a directory", "utf-8");
-    process.env.PLANNOTATOR_DATA_DIR = join(blocker, "nested");
+    process.env.HYPERMARK_DATA_DIR = join(blocker, "nested");
     expect(() =>
       expect(appendFeedbackRecord({ project: PROJECT, surface: "review", decision: "feedback", feedback: "x" })).toBeNull(),
     ).not.toThrow();

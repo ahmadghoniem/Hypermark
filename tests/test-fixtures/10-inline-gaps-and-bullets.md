@@ -171,8 +171,8 @@ Also a [bare reference][docs] used twice.
   - Run `bun install` in the monorepo root to pull all workspace dependencies in a single pass; this may take a minute on a cold cache but subsequent runs will be fast
   - Verify with `bun --version` that the installed version is correct and matches CI; mismatches here have historically caused subtle build failures that are hard to diagnose
 - **Phase 2:** Configuration — set all required environment variables and confirm that the local server starts cleanly before attempting any integration or end-to-end tests
-  - Set `PLANNOTATOR_PORT=19432` to match the port expected by the VS Code extension and the remote tunnel configuration used in devcontainer environments
-  - Export `PLANNOTATOR_REMOTE=1` when running inside a devcontainer or over SSH; without this flag the server will attempt to open a browser on the remote host which will silently fail
+  - Set `HYPERMARK_PORT=19432` to match the port expected by the VS Code extension and the remote tunnel configuration used in devcontainer environments
+  - Export `HYPERMARK_REMOTE=1` when running inside a devcontainer or over SSH; without this flag the server will attempt to open a browser on the remote host which will silently fail
   - Confirm the SSH tunnel is *active* and forwarding the correct port before running any test that depends on the browser opening automatically on the local machine
 - **Phase 3:** Deployment — build all targets in the correct order, verify the output, and notify the team before tagging the release so there is time to catch any last-minute issues
   - Run `bun run build` from the monorepo root, which executes the review build first and then the hook build in the correct sequence to avoid stale HTML being copied into the dist folder

@@ -4,9 +4,9 @@
  * Provides a consistent server implementation for both Claude Code and OpenCode plugins.
  *
  * Environment variables:
- *   PLANNOTATOR_REMOTE - Set to "1"/"true" for remote, "0"/"false" for local
- *   PLANNOTATOR_PORT   - Fixed port or inclusive range (default: random locally, 19432 for remote)
- *   PLANNOTATOR_ORIGIN - Explicit origin override; validated against AGENT_CONFIG
+ *   HYPERMARK_REMOTE - Set to "1"/"true" for remote, "0"/"false" for local
+ *   HYPERMARK_PORT   - Fixed port or inclusive range (default: random locally, 19432 for remote)
+ *   HYPERMARK_ORIGIN - Explicit origin override; validated against AGENT_CONFIG
  *                        in packages/shared/agents.ts. Supported values:
  *                        "claude-code", "amp", "droid", "kiro-cli", "opencode",
  *                        "codex", "copilot-cli", "gemini-cli", "pi", "oh-my-pi".
@@ -214,7 +214,7 @@ export async function startHypermarkServer(
   // Data-dir asymmetry worth knowing: getPlanVersionPath resolves against the
   // data directory storage.ts captured at import time, while the archive
   // resolves it per call. They agree in every real run (the env var is fixed
-  // before the process starts); they can disagree only if PLANNOTATOR_DATA_DIR
+  // before the process starts); they can disagree only if HYPERMARK_DATA_DIR
   // is changed mid-process, in which case planVersionFile names the original
   // location. That is the honest answer anyway — it is where the version file
   // actually was written — so this is documented rather than "fixed".

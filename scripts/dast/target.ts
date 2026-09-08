@@ -6,9 +6,9 @@ const SCAN_PORT = 19432;
 const SENTINEL_PORT = 19433;
 const APP_PORT = 19434;
 
-if (process.env.PLANNOTATOR_DAST_ISOLATED !== "1") {
+if (process.env.HYPERMARK_DAST_ISOLATED !== "1") {
   throw new Error(
-    "Refusing to start the DAST target without PLANNOTATOR_DAST_ISOLATED=1. " +
+    "Refusing to start the DAST target without HYPERMARK_DAST_ISOLATED=1. " +
       "Run it only inside the workflow's internal Docker network.",
   );
 }
@@ -18,18 +18,18 @@ if (process.env.PLANNOTATOR_DAST_ISOLATED !== "1") {
 // accidentally reached feature cannot invoke agents, persist review data,
 // open a browser, or install optional runtimes.
 Object.assign(process.env, {
-  PLANNOTATOR_REMOTE: "0",
-  PLANNOTATOR_PORT: String(APP_PORT),
-  PLANNOTATOR_AI: "disabled",
-  PLANNOTATOR_JINA: "0",
-  PLANNOTATOR_ANNOTATE_HISTORY: "0",
-  PLANNOTATOR_GUIDE_HISTORY: "0",
-  PLANNOTATOR_TODO_PROVIDER: "off",
-  PLANNOTATOR_GLIMPSE: "0",
-  PLANNOTATOR_SKIP_BROWSER_OPEN: "1",
-  PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL: "1",
-  PLANNOTATOR_SKIP_SEM_INSTALL: "1",
-  PLANNOTATOR_FILE_BROWSER_MAX_FILES: "64",
+  HYPERMARK_REMOTE: "0",
+  HYPERMARK_PORT: String(APP_PORT),
+  HYPERMARK_AI: "disabled",
+  HYPERMARK_JINA: "0",
+  HYPERMARK_ANNOTATE_HISTORY: "0",
+  HYPERMARK_GUIDE_HISTORY: "0",
+  HYPERMARK_TODO_PROVIDER: "off",
+  HYPERMARK_GLIMPSE: "0",
+  HYPERMARK_SKIP_BROWSER_OPEN: "1",
+  HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL: "1",
+  HYPERMARK_SKIP_SEM_INSTALL: "1",
+  HYPERMARK_FILE_BROWSER_MAX_FILES: "64",
   BROWSER: "true",
 });
 

@@ -106,23 +106,23 @@ async function expectJsonNotFound(
 async function startOnRandomLocalPort(
   start: () => Promise<RunningServer>,
 ): Promise<RunningServer> {
-  const previousPort = process.env.PLANNOTATOR_PORT;
-  const previousRemote = process.env.PLANNOTATOR_REMOTE;
-  delete process.env.PLANNOTATOR_PORT;
-  process.env.PLANNOTATOR_REMOTE = "0";
+  const previousPort = process.env.HYPERMARK_PORT;
+  const previousRemote = process.env.HYPERMARK_REMOTE;
+  delete process.env.HYPERMARK_PORT;
+  process.env.HYPERMARK_REMOTE = "0";
 
   try {
     return await start();
   } finally {
     if (previousPort === undefined) {
-      delete process.env.PLANNOTATOR_PORT;
+      delete process.env.HYPERMARK_PORT;
     } else {
-      process.env.PLANNOTATOR_PORT = previousPort;
+      process.env.HYPERMARK_PORT = previousPort;
     }
     if (previousRemote === undefined) {
-      delete process.env.PLANNOTATOR_REMOTE;
+      delete process.env.HYPERMARK_REMOTE;
     } else {
-      process.env.PLANNOTATOR_REMOTE = previousRemote;
+      process.env.HYPERMARK_REMOTE = previousRemote;
     }
   }
 }
@@ -134,14 +134,14 @@ describe("API route 404 guards", () => {
     // reads config.json. Point it at a temp dir: it must never depend on (or
     // touch) the real ~/.plannotator of whoever runs the tests.
     dataDirPath = mkdtempSync(join(tmpdir(), "plannotator-api-404-data-"));
-    savedDataDir = process.env.PLANNOTATOR_DATA_DIR;
-    process.env.PLANNOTATOR_DATA_DIR = dataDirPath;
+    savedDataDir = process.env.HYPERMARK_DATA_DIR;
+    process.env.HYPERMARK_DATA_DIR = dataDirPath;
   });
 
   afterAll(() => {
     rmSync(archivePath, { recursive: true, force: true });
-    if (savedDataDir === undefined) delete process.env.PLANNOTATOR_DATA_DIR;
-    else process.env.PLANNOTATOR_DATA_DIR = savedDataDir;
+    if (savedDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
+    else process.env.HYPERMARK_DATA_DIR = savedDataDir;
     rmSync(dataDirPath, { recursive: true, force: true });
   });
 

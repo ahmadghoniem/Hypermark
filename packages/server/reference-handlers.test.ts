@@ -226,8 +226,8 @@ describe("handleFileBrowserFiles", () => {
 		writeTempFile(root, "docs/a.md", "a\n");
 		writeTempFile(root, "docs/b.md", "b\n");
 		writeTempFile(root, "docs/c.md", "c\n");
-		const previousLimit = process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES;
-		process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = "2";
+		const previousLimit = process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
+		process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = "2";
 
 		try {
 			const url = new URL("http://localhost/api/reference/files");
@@ -245,9 +245,9 @@ describe("handleFileBrowserFiles", () => {
 			expect(data.fileLimit).toBe(2);
 		} finally {
 			if (previousLimit === undefined) {
-				delete process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES;
+				delete process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 			} else {
-				process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = previousLimit;
+				process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = previousLimit;
 			}
 		}
 	});

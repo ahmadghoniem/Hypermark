@@ -22,7 +22,7 @@ Research integrity is paramount — every file must be read, no skipping.
 Before starting the analysis, determine which data source is available.
 
 1. **Hypermark mode (first-class)** — Determine the Hypermark data directory:
-   use `$PLANNOTATOR_DATA_DIR` if set, otherwise `~/.plannotator`. Check the
+   use `$HYPERMARK_DATA_DIR` if set, otherwise `~/.plannotator`. Check the
    `plans/` subdirectory there. If it exists and contains `*-denied.md` files,
    use this mode. The entire workflow below is written for Hypermark data.
 
@@ -55,7 +55,7 @@ In either mode, proceed to Previous Report Detection below.
 After locating the plans directory, check for existing reports:
 
 ```
-ls ${PLANNOTATOR_DATA_DIR:-~/.plannotator}/plans/compound-planning-report*.html
+ls ${HYPERMARK_DATA_DIR:-~/.plannotator}/plans/compound-planning-report*.html
 ```
 
 Reports follow a versioned naming scheme:
@@ -519,7 +519,7 @@ every future planning session automatically.
 The hook file lives at:
 
 ```
-${PLANNOTATOR_DATA_DIR:-~/.plannotator}/hooks/compound/enterplanmode-improve-hook.txt
+${HYPERMARK_DATA_DIR:-~/.plannotator}/hooks/compound/enterplanmode-improve-hook.txt
 ```
 
 Create the `hooks/compound/` directory inside the data directory if it doesn't exist.

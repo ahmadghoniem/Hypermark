@@ -12,7 +12,7 @@ import type {
   SemanticDiffSummary,
 } from "./semantic-diff-types";
 
-export const PLANNOTATOR_SEM_VERSION = "v0.8.0";
+export const HYPERMARK_SEM_VERSION = "v0.8.0";
 
 const SEM_TIMEOUT_MS = 20_000;
 const SEM_VERSION_TIMEOUT_MS = 3_000;
@@ -159,7 +159,7 @@ export function getManagedSemBinaryPath(
   dataDir = getHypermarkDataDir(),
   platform: NodeJS.Platform = process.platform,
 ): string {
-  return join(dataDir, "vendor", "sem", PLANNOTATOR_SEM_VERSION, semBinaryName(platform));
+  return join(dataDir, "vendor", "sem", HYPERMARK_SEM_VERSION, semBinaryName(platform));
 }
 
 export function getSemanticDiffScratchCwd(dataDir = getHypermarkDataDir()): string {
@@ -204,7 +204,7 @@ function pathCandidates(runtime: SemanticDiffRuntime): SemCandidate[] {
 
 function semCandidates(runtime: SemanticDiffRuntime): SemCandidate[] {
   const candidates: SemCandidate[] = [];
-  const explicit = runtime.env.PLANNOTATOR_SEM_PATH?.trim();
+  const explicit = runtime.env.HYPERMARK_SEM_PATH?.trim();
 
   if (explicit) {
     candidates.push({ command: explicit, source: "env", explicit: true });
@@ -231,7 +231,7 @@ async function resolveSem(runtime: SemanticDiffRuntime): Promise<ResolvedSem | S
       return {
         status: "unavailable",
         reason: "sem-path-missing",
-        message: `PLANNOTATOR_SEM_PATH points to a missing file: ${candidate.command}`,
+        message: `HYPERMARK_SEM_PATH points to a missing file: ${candidate.command}`,
       };
     }
 
@@ -247,7 +247,7 @@ async function resolveSem(runtime: SemanticDiffRuntime): Promise<ResolvedSem | S
       return {
         status: "unavailable",
         reason: "invalid-sem-binary",
-        message: `PLANNOTATOR_SEM_PATH did not resolve to the Ataraxy sem CLI.`,
+        message: `HYPERMARK_SEM_PATH did not resolve to the Ataraxy sem CLI.`,
       };
     }
   }

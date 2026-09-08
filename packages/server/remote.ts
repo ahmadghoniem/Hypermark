@@ -2,8 +2,8 @@
  * Remote session detection and port configuration
  *
  * Environment variables:
- *   PLANNOTATOR_REMOTE - Set to "1"/"true" to force remote, "0"/"false" to force local
- *   PLANNOTATOR_PORT   - Fixed port or inclusive range (default: random locally, 19432 for remote)
+ *   HYPERMARK_REMOTE - Set to "1"/"true" to force remote, "0"/"false" to force local
+ *   HYPERMARK_PORT   - Fixed port or inclusive range (default: random locally, 19432 for remote)
  *
  * Legacy (still supported): SSH_TTY, SSH_CONNECTION
  */
@@ -26,7 +26,7 @@ export function isAddressInUseError(err: unknown): boolean {
 }
 
 function getRemoteOverride(): boolean | null {
-  const remote = process.env.PLANNOTATOR_REMOTE;
+  const remote = process.env.HYPERMARK_REMOTE;
   if (remote === undefined) {
     return null;
   }
@@ -70,14 +70,14 @@ function getServerPortConfiguration(): {
   ports: number[];
   isRange: boolean;
 } {
-  const envPort = process.env.PLANNOTATOR_PORT;
+  const envPort = process.env.HYPERMARK_PORT;
   if (envPort) {
     const parsed = parsePortSelection(envPort);
     if (parsed) {
       return { ports: parsed.ports, isRange: parsed.kind === "range" };
     }
     console.error(
-      `[Hypermark] Warning: Invalid PLANNOTATOR_PORT "${envPort}", using default`
+      `[Hypermark] Warning: Invalid HYPERMARK_PORT "${envPort}", using default`
     );
   }
 
@@ -126,7 +126,7 @@ export async function startBunServerOnAvailablePort<TServer>(
 
       if (!isRange) {
         const hint = isRemoteSession()
-          ? " (set PLANNOTATOR_PORT to use different port)"
+          ? " (set HYPERMARK_PORT to use different port)"
           : "";
         throw new Error(
           `Port ${port} in use after ${MAX_FIXED_PORT_RETRIES} retries${hint}`,
@@ -135,7 +135,7 @@ export async function startBunServerOnAvailablePort<TServer>(
 
       const configured = `${configuredPorts[0]}-${configuredPorts.at(-1)}`;
       const hint = isRemoteSession()
-        ? " (set PLANNOTATOR_PORT to use a different port or range)"
+        ? " (set HYPERMARK_PORT to use a different port or range)"
         : "";
       throw new Error(`Port selection ${configured} exhausted${hint}`);
     }
@@ -164,7 +164,7 @@ let warnedLocalUrlHost = false;
 
 /**
  * Compose the URL advertised to the user for a bound port (issue #657).
- * Display-only: the PLANNOTATOR_URL_HOST / urlHost override changes what is
+ * Display-only: the HYPERMARK_URL_HOST / urlHost override changes what is
  * printed and opened, never which interface the server listens on
  * (getServerHostname). Remote sessions only: a local session binds loopback,
  * so honoring the override would advertise (and auto-open) a URL nothing is
@@ -180,7 +180,7 @@ export function buildAdvertisedUrl(port: number): string {
     if (!warnedLocalUrlHost) {
       warnedLocalUrlHost = true;
       process.stderr.write(
-        `[plannotator] Warning: advertised URL host ${JSON.stringify(host)} ignored — this is a local session, so the server binds loopback and only localhost is reachable. Set PLANNOTATOR_REMOTE=1 to use the override.\n`,
+        `[plannotator] Warning: advertised URL host ${JSON.stringify(host)} ignored — this is a local session, so the server binds loopback and only localhost is reachable. Set HYPERMARK_REMOTE=1 to use the override.\n`,
       );
     }
     return `http://localhost:${port}`;

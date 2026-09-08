@@ -458,8 +458,8 @@ describe("CallFlowService", () => {
   });
 
   test("does not advertise automatic consent work for an override while disabled", async () => {
-    const previousOverride = process.env.PLANNOTATOR_CALLDIFF_PATH;
-    process.env.PLANNOTATOR_CALLDIFF_PATH = "/tmp/external-calldiff";
+    const previousOverride = process.env.HYPERMARK_CALLDIFF_PATH;
+    process.env.HYPERMARK_CALLDIFF_PATH = "/tmp/external-calldiff";
     let probes = 0;
     const service = new CallFlowService({
       resolveRuntime: async () => {
@@ -476,8 +476,8 @@ describe("CallFlowService", () => {
       expect(advert.consentPlan).toBeUndefined();
       expect(probes).toBe(0);
     } finally {
-      if (previousOverride === undefined) delete process.env.PLANNOTATOR_CALLDIFF_PATH;
-      else process.env.PLANNOTATOR_CALLDIFF_PATH = previousOverride;
+      if (previousOverride === undefined) delete process.env.HYPERMARK_CALLDIFF_PATH;
+      else process.env.HYPERMARK_CALLDIFF_PATH = previousOverride;
     }
   });
 
@@ -691,22 +691,22 @@ describe("managed CallDiff runtime", () => {
     expect(existsSync(join(packageRoot, "build", "Makefile"))).toBe(false);
   });
 
-  test("rejects a relative PLANNOTATOR_CALLDIFF_PATH before inspecting the review cwd", async () => {
-    const previous = process.env.PLANNOTATOR_CALLDIFF_PATH;
-    process.env.PLANNOTATOR_CALLDIFF_PATH = "relative/runtime";
+  test("rejects a relative HYPERMARK_CALLDIFF_PATH before inspecting the review cwd", async () => {
+    const previous = process.env.HYPERMARK_CALLDIFF_PATH;
+    process.env.HYPERMARK_CALLDIFF_PATH = "relative/runtime";
     try {
       const result = await resolveCallFlowRuntime();
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.reason).toBe("override-relative");
     } finally {
-      if (previous === undefined) delete process.env.PLANNOTATOR_CALLDIFF_PATH;
-      else process.env.PLANNOTATOR_CALLDIFF_PATH = previous;
+      if (previous === undefined) delete process.env.HYPERMARK_CALLDIFF_PATH;
+      else process.env.HYPERMARK_CALLDIFF_PATH = previous;
     }
   });
 
   test("rejects a managed core whose pinned Tree-sitter parser is missing", async () => {
-    const previousDataDir = process.env.PLANNOTATOR_DATA_DIR;
-    process.env.PLANNOTATOR_DATA_DIR = repo;
+    const previousDataDir = process.env.HYPERMARK_DATA_DIR;
+    process.env.HYPERMARK_DATA_DIR = repo;
     try {
       const runtimeDir = getCallFlowManagedRuntimeDir();
       const callDiffRoot = join(runtimeDir, "node_modules", "calldiff");
@@ -728,8 +728,8 @@ describe("managed CallDiff runtime", () => {
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.reason).toBe("core-incomplete");
     } finally {
-      if (previousDataDir === undefined) delete process.env.PLANNOTATOR_DATA_DIR;
-      else process.env.PLANNOTATOR_DATA_DIR = previousDataDir;
+      if (previousDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
+      else process.env.HYPERMARK_DATA_DIR = previousDataDir;
     }
   });
 });

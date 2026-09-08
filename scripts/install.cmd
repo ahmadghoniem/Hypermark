@@ -14,7 +14,7 @@ REM -1 = flag not set (fall through); 0 = disable; 1 = enable.
 set "VERIFY_ATTESTATION_FLAG=-1"
 REM Opt-in install of the pruned CallDiff call-flow core (default off; the
 REM review UI offers a one-click install). Precedence: --with-call-flow >
-REM PLANNOTATOR_INSTALL_CALLDIFF > config installCallFlow > default (off).
+REM HYPERMARK_INSTALL_CALLDIFF > config installCallFlow > default (off).
 REM -1 = flag not set (fall through); 1 = enable.
 set "WITH_CALL_FLOW_FLAG=-1"
 REM Guided-install answers. Precedence: CLI flags > wizard (interactive, first
@@ -25,7 +25,7 @@ set "NON_INTERACTIVE=0"
 set "RECONFIGURE=0"
 REM Binary-only mode. Installs just hypermark.exe and no persistent state
 REM elsewhere. Set by --minimal (1) / --no-minimal (0); -1 = neither flag given
-REM (fall through to the PLANNOTATOR_MINIMAL env var, resolved after :args_done).
+REM (fall through to the HYPERMARK_MINIMAL env var, resolved after :args_done).
 set "MINIMAL_FLAG=-1"
 REM Same shape, but scoped to the skills/slash-command sparse checkout rather
 REM than one agent's home: --skip-skills turns the whole fetch into a no-op for
@@ -174,11 +174,11 @@ goto parse_args
 :args_done
 
 REM Resolve binary-only mode. Precedence: --minimal / --no-minimal flag >
-REM PLANNOTATOR_MINIMAL env var > default (off). Mirrors install.sh / install.ps1.
+REM HYPERMARK_MINIMAL env var > default (off). Mirrors install.sh / install.ps1.
 set "MINIMAL=0"
-if /i "!PLANNOTATOR_MINIMAL!"=="1"    set "MINIMAL=1"
-if /i "!PLANNOTATOR_MINIMAL!"=="true" set "MINIMAL=1"
-if /i "!PLANNOTATOR_MINIMAL!"=="yes"  set "MINIMAL=1"
+if /i "!HYPERMARK_MINIMAL!"=="1"    set "MINIMAL=1"
+if /i "!HYPERMARK_MINIMAL!"=="true" set "MINIMAL=1"
+if /i "!HYPERMARK_MINIMAL!"=="yes"  set "MINIMAL=1"
 if "!MINIMAL_FLAG!"=="1" set "MINIMAL=1"
 if "!MINIMAL_FLAG!"=="0" set "MINIMAL=0"
 
@@ -392,13 +392,13 @@ REM provenance support. Precedence: CLI flag > env var > config.json > default.
 set "VERIFY_ATTESTATION=0"
 
 REM Layer 3: config file (lowest precedence of the opt-in sources).
-REM Unset PLANNOTATOR_DATA_DIR: an existing %USERPROFILE%\.plannotator
+REM Unset HYPERMARK_DATA_DIR: an existing %USERPROFILE%\.plannotator
 REM (legacy default) always wins; otherwise an explicitly-set absolute
 REM XDG_DATA_HOME (rare on Windows but honored the same way as the runtime;
 REM drive-rooted or UNC) places the directory at XDG_DATA_HOME\hypermark;
 REM otherwise %USERPROFILE%\.plannotator.
-if defined PLANNOTATOR_DATA_DIR (
-    set "_CONFIG_DIR=!PLANNOTATOR_DATA_DIR!"
+if defined HYPERMARK_DATA_DIR (
+    set "_CONFIG_DIR=!HYPERMARK_DATA_DIR!"
 ) else (
     set "_CONFIG_DIR=%USERPROFILE%\.plannotator"
     if not exist "%USERPROFILE%\.plannotator\" if defined XDG_DATA_HOME (
@@ -418,12 +418,12 @@ if exist "!_CONFIG_DIR!\config.json" (
 )
 
 REM Layer 2: env var (overrides config file).
-if /i "!PLANNOTATOR_VERIFY_ATTESTATION!"=="1"    set "VERIFY_ATTESTATION=1"
-if /i "!PLANNOTATOR_VERIFY_ATTESTATION!"=="true" set "VERIFY_ATTESTATION=1"
-if /i "!PLANNOTATOR_VERIFY_ATTESTATION!"=="yes"  set "VERIFY_ATTESTATION=1"
-if /i "!PLANNOTATOR_VERIFY_ATTESTATION!"=="0"    set "VERIFY_ATTESTATION=0"
-if /i "!PLANNOTATOR_VERIFY_ATTESTATION!"=="false" set "VERIFY_ATTESTATION=0"
-if /i "!PLANNOTATOR_VERIFY_ATTESTATION!"=="no"   set "VERIFY_ATTESTATION=0"
+if /i "!HYPERMARK_VERIFY_ATTESTATION!"=="1"    set "VERIFY_ATTESTATION=1"
+if /i "!HYPERMARK_VERIFY_ATTESTATION!"=="true" set "VERIFY_ATTESTATION=1"
+if /i "!HYPERMARK_VERIFY_ATTESTATION!"=="yes"  set "VERIFY_ATTESTATION=1"
+if /i "!HYPERMARK_VERIFY_ATTESTATION!"=="0"    set "VERIFY_ATTESTATION=0"
+if /i "!HYPERMARK_VERIFY_ATTESTATION!"=="false" set "VERIFY_ATTESTATION=0"
+if /i "!HYPERMARK_VERIFY_ATTESTATION!"=="no"   set "VERIFY_ATTESTATION=0"
 
 REM Layer 1: CLI flag (overrides everything).
 if "!VERIFY_ATTESTATION_FLAG!"=="1" set "VERIFY_ATTESTATION=1"
@@ -436,12 +436,12 @@ if exist "!_CONFIG_DIR!\config.json" (
     findstr /r /c:"\"installCallFlow\"[ 	]*:[ 	]*true" "!_CONFIG_DIR!\config.json" >nul 2>&1
     if !ERRORLEVEL! equ 0 set "INSTALL_CALL_FLOW=1"
 )
-if /i "!PLANNOTATOR_INSTALL_CALLDIFF!"=="1"     set "INSTALL_CALL_FLOW=1"
-if /i "!PLANNOTATOR_INSTALL_CALLDIFF!"=="true"  set "INSTALL_CALL_FLOW=1"
-if /i "!PLANNOTATOR_INSTALL_CALLDIFF!"=="yes"   set "INSTALL_CALL_FLOW=1"
-if /i "!PLANNOTATOR_INSTALL_CALLDIFF!"=="0"     set "INSTALL_CALL_FLOW=0"
-if /i "!PLANNOTATOR_INSTALL_CALLDIFF!"=="false" set "INSTALL_CALL_FLOW=0"
-if /i "!PLANNOTATOR_INSTALL_CALLDIFF!"=="no"    set "INSTALL_CALL_FLOW=0"
+if /i "!HYPERMARK_INSTALL_CALLDIFF!"=="1"     set "INSTALL_CALL_FLOW=1"
+if /i "!HYPERMARK_INSTALL_CALLDIFF!"=="true"  set "INSTALL_CALL_FLOW=1"
+if /i "!HYPERMARK_INSTALL_CALLDIFF!"=="yes"   set "INSTALL_CALL_FLOW=1"
+if /i "!HYPERMARK_INSTALL_CALLDIFF!"=="0"     set "INSTALL_CALL_FLOW=0"
+if /i "!HYPERMARK_INSTALL_CALLDIFF!"=="false" set "INSTALL_CALL_FLOW=0"
+if /i "!HYPERMARK_INSTALL_CALLDIFF!"=="no"    set "INSTALL_CALL_FLOW=0"
 if "!WITH_CALL_FLOW_FLAG!"=="1" set "INSTALL_CALL_FLOW=1"
 
 REM skipInstall.skills is not an agent - it opts out of the skills/slash-command
@@ -458,11 +458,11 @@ if exist "!_CONFIG_DIR!\config.json" (
     )
     set "PLN_CONFIG_JSON="
 )
-for %%V in (1 true yes) do if /i "!PLANNOTATOR_SKIP_SKILLS_INSTALL!"=="%%V" (
+for %%V in (1 true yes) do if /i "!HYPERMARK_SKIP_SKILLS_INSTALL!"=="%%V" (
     set "SKIP_SKILLS=1"
-    set "SKIP_SKILLS_SOURCE=PLANNOTATOR_SKIP_SKILLS_INSTALL"
+    set "SKIP_SKILLS_SOURCE=HYPERMARK_SKIP_SKILLS_INSTALL"
 )
-for %%V in (0 false no) do if /i "!PLANNOTATOR_SKIP_SKILLS_INSTALL!"=="%%V" (
+for %%V in (0 false no) do if /i "!HYPERMARK_SKIP_SKILLS_INSTALL!"=="%%V" (
     set "SKIP_SKILLS=0"
     set "SKIP_SKILLS_SOURCE="
 )
@@ -520,7 +520,7 @@ if "!VERIFY_ATTESTATION!"=="1" (
         echo signed build provenance is !MIN_ATTESTED_VERSION!. Options: >&2
         echo   - Pin to !MIN_ATTESTED_VERSION! or later: --version !MIN_ATTESTED_VERSION! >&2
         echo   - Install without provenance verification: --skip-attestation >&2
-        echo   - Or unset PLANNOTATOR_VERIFY_ATTESTATION / remove verifyAttestation >&2
+        echo   - Or unset HYPERMARK_VERIFY_ATTESTATION / remove verifyAttestation >&2
         echo     from %USERPROFILE%\.plannotator\config.json >&2
         exit /b 1
     )
@@ -706,7 +706,7 @@ if "!VERIFY_ATTESTATION!"=="1" (
         echo verifyAttestation is enabled but gh CLI was not found. >&2
         echo Install https://cli.github.com ^(no login is needed when the public >&2
         echo attestation bundle fetch succeeds^), or unset >&2
-        echo PLANNOTATOR_VERIFY_ATTESTATION / remove verifyAttestation >&2
+        echo HYPERMARK_VERIFY_ATTESTATION / remove verifyAttestation >&2
         echo from %USERPROFILE%\.plannotator\config.json / pass --skip-attestation. >&2
         del "!TEMP_FILE!"
         exit /b 1
@@ -941,7 +941,7 @@ REM File-copy installs require git (sparse checkout). Hard requirement: without
 REM git we cannot install the /hypermark-* skills, so fail loudly instead of
 REM leaving a partial install. Hook/config writing above has already run.
 REM
-REM Skills/commands opt-out (--skip-skills / PLANNOTATOR_SKIP_SKILLS_INSTALL /
+REM Skills/commands opt-out (--skip-skills / HYPERMARK_SKIP_SKILLS_INSTALL /
 REM skipInstall.skills). HONEST reporting like the per-agent family: the skipped
 REM state is announced, and skip means do-not-write - nothing already on disk in
 REM any skill or command scope is fetched, replaced, or removed on this run.
@@ -980,12 +980,12 @@ REM LC_ALL=C pins git's error strings to English for the capability probe
 REM below: a localized git would emit a translated "unknown option" message
 REM the findstr match misses, sending old-git non-English users to a hard
 REM failure instead of the fallback. Saved and restored around the probe.
-set "PLANNOTATOR_SAVED_LC_ALL=!LC_ALL!"
+set "HYPERMARK_SAVED_LC_ALL=!LC_ALL!"
 set "LC_ALL=C"
 git clone --depth 1 --filter=blob:none --sparse "https://github.com/!REPO!.git" --branch "!TAG!" "!SKILLS_TMP!\repo" >nul 2>"!GIT_ERR_FILE!"
 if !ERRORLEVEL! equ 0 set "CLONE_OK=1"
-set "LC_ALL=!PLANNOTATOR_SAVED_LC_ALL!"
-set "PLANNOTATOR_SAVED_LC_ALL="
+set "LC_ALL=!HYPERMARK_SAVED_LC_ALL!"
+set "HYPERMARK_SAVED_LC_ALL="
 
 REM Capability probe, not a version parse (same philosophy as the GitButler
 REM flag probing in packages/shared/gitbutler-core.ts): `git clone --sparse`
@@ -1200,16 +1200,16 @@ REM Optional annotate agent terminal runtime install. Non-fatal: Hypermark
 REM remains installed if Node/npm or npm install is unavailable.
 REM ======================================================================
 :InstallAgentTerminalRuntime
-if /i "!PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL!"=="1" (
-    echo Skipping agent terminal runtime install ^(PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL is set^)
+if /i "!HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL!"=="1" (
+    echo Skipping agent terminal runtime install ^(HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL is set^)
     goto :eof
 )
-if /i "!PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL!"=="true" (
-    echo Skipping agent terminal runtime install ^(PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL is set^)
+if /i "!HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL!"=="true" (
+    echo Skipping agent terminal runtime install ^(HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL is set^)
     goto :eof
 )
-if /i "!PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL!"=="yes" (
-    echo Skipping agent terminal runtime install ^(PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL is set^)
+if /i "!HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL!"=="yes" (
+    echo Skipping agent terminal runtime install ^(HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL is set^)
     goto :eof
 )
 
@@ -1241,16 +1241,16 @@ REM Optional semantic diff sidecar install. Non-fatal: Hypermark remains
 REM installed if sem download, checksum, or extraction fails.
 REM ======================================================================
 :InstallSemSidecar
-if /i "!PLANNOTATOR_SKIP_SEM_INSTALL!"=="1" (
-    echo Skipping semantic diff sidecar install ^(PLANNOTATOR_SKIP_SEM_INSTALL is set^)
+if /i "!HYPERMARK_SKIP_SEM_INSTALL!"=="1" (
+    echo Skipping semantic diff sidecar install ^(HYPERMARK_SKIP_SEM_INSTALL is set^)
     goto :eof
 )
-if /i "!PLANNOTATOR_SKIP_SEM_INSTALL!"=="true" (
-    echo Skipping semantic diff sidecar install ^(PLANNOTATOR_SKIP_SEM_INSTALL is set^)
+if /i "!HYPERMARK_SKIP_SEM_INSTALL!"=="true" (
+    echo Skipping semantic diff sidecar install ^(HYPERMARK_SKIP_SEM_INSTALL is set^)
     goto :eof
 )
-if /i "!PLANNOTATOR_SKIP_SEM_INSTALL!"=="yes" (
-    echo Skipping semantic diff sidecar install ^(PLANNOTATOR_SKIP_SEM_INSTALL is set^)
+if /i "!HYPERMARK_SKIP_SEM_INSTALL!"=="yes" (
+    echo Skipping semantic diff sidecar install ^(HYPERMARK_SKIP_SEM_INSTALL is set^)
     goto :eof
 )
 
@@ -1278,7 +1278,7 @@ set "SEM_EXTRACT=%TEMP%\hypermark-sem-%RANDOM%"
 mkdir "!SEM_EXTRACT!" >nul 2>&1
 
 REM Bounded so a slow/hung download of this optional sidecar can't wedge an
-REM install where hypermark already landed. Opt out with PLANNOTATOR_SKIP_SEM_INSTALL=1.
+REM install where hypermark already landed. Opt out with HYPERMARK_SKIP_SEM_INSTALL=1.
 curl -fsSL --connect-timeout 10 --max-time 120 "!SEM_BASE_URL!/!SEM_ASSET!" -o "!SEM_ARCHIVE!"
 if !ERRORLEVEL! neq 0 (
     echo Skipping semantic diff sidecar install ^(download failed^)

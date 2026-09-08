@@ -68,10 +68,10 @@ export function createNodePtyWebSocketServer(options) {
       cwd: tmp,
       env: {
         ...process.env,
-        PLANNOTATOR_AGENT_CWD: "/server/cwd",
-        PLANNOTATOR_AGENT_WS_PATH: "/api/agent-terminal/pty/test",
-        PLANNOTATOR_AGENT_WEBTUI_CORE_URL: pathToFileURL(corePath).href,
-        PLANNOTATOR_AGENT_WEBTUI_SERVER_URL: pathToFileURL(serverPath).href,
+        HYPERMARK_AGENT_CWD: "/server/cwd",
+        HYPERMARK_AGENT_WS_PATH: "/api/agent-terminal/pty/test",
+        HYPERMARK_AGENT_WEBTUI_CORE_URL: pathToFileURL(corePath).href,
+        HYPERMARK_AGENT_WEBTUI_SERVER_URL: pathToFileURL(serverPath).href,
         TEST_NORMALIZED_FILE: normalizedPath,
         TEST_SPAWN_OPTIONS: JSON.stringify({
           agent: "claude",
@@ -152,10 +152,10 @@ export function createNodePtyWebSocketServer(options) {
   });
 
   test("reports disabled capability in remote mode without terminal opt-in", async () => {
-    const previousRemote = process.env.PLANNOTATOR_REMOTE;
-    const previousAgentRemote = process.env.PLANNOTATOR_AGENT_TERMINAL_REMOTE;
-    process.env.PLANNOTATOR_REMOTE = "1";
-    delete process.env.PLANNOTATOR_AGENT_TERMINAL_REMOTE;
+    const previousRemote = process.env.HYPERMARK_REMOTE;
+    const previousAgentRemote = process.env.HYPERMARK_AGENT_TERMINAL_REMOTE;
+    process.env.HYPERMARK_REMOTE = "1";
+    delete process.env.HYPERMARK_AGENT_TERMINAL_REMOTE;
     try {
       const bridge = await createBunAgentTerminalBridge({
         enabled: true,
@@ -169,18 +169,18 @@ export function createNodePtyWebSocketServer(options) {
       expect(bridge.matches(`${AGENT_TERMINAL_WS_BASE_PATH}/anything`)).toBe(false);
       bridge.dispose();
     } finally {
-      if (previousRemote === undefined) delete process.env.PLANNOTATOR_REMOTE;
-      else process.env.PLANNOTATOR_REMOTE = previousRemote;
-      if (previousAgentRemote === undefined) delete process.env.PLANNOTATOR_AGENT_TERMINAL_REMOTE;
-      else process.env.PLANNOTATOR_AGENT_TERMINAL_REMOTE = previousAgentRemote;
+      if (previousRemote === undefined) delete process.env.HYPERMARK_REMOTE;
+      else process.env.HYPERMARK_REMOTE = previousRemote;
+      if (previousAgentRemote === undefined) delete process.env.HYPERMARK_AGENT_TERMINAL_REMOTE;
+      else process.env.HYPERMARK_AGENT_TERMINAL_REMOTE = previousAgentRemote;
     }
   });
 
   test("allows terminal capability in remote mode with explicit opt-in", async () => {
-    const previousRemote = process.env.PLANNOTATOR_REMOTE;
-    const previousAgentRemote = process.env.PLANNOTATOR_AGENT_TERMINAL_REMOTE;
-    process.env.PLANNOTATOR_REMOTE = "1";
-    process.env.PLANNOTATOR_AGENT_TERMINAL_REMOTE = "1";
+    const previousRemote = process.env.HYPERMARK_REMOTE;
+    const previousAgentRemote = process.env.HYPERMARK_AGENT_TERMINAL_REMOTE;
+    process.env.HYPERMARK_REMOTE = "1";
+    process.env.HYPERMARK_AGENT_TERMINAL_REMOTE = "1";
     try {
       const bridge = await createBunAgentTerminalBridge({
         enabled: true,
@@ -198,10 +198,10 @@ export function createNodePtyWebSocketServer(options) {
         bridge.dispose();
       }
     } finally {
-      if (previousRemote === undefined) delete process.env.PLANNOTATOR_REMOTE;
-      else process.env.PLANNOTATOR_REMOTE = previousRemote;
-      if (previousAgentRemote === undefined) delete process.env.PLANNOTATOR_AGENT_TERMINAL_REMOTE;
-      else process.env.PLANNOTATOR_AGENT_TERMINAL_REMOTE = previousAgentRemote;
+      if (previousRemote === undefined) delete process.env.HYPERMARK_REMOTE;
+      else process.env.HYPERMARK_REMOTE = previousRemote;
+      if (previousAgentRemote === undefined) delete process.env.HYPERMARK_AGENT_TERMINAL_REMOTE;
+      else process.env.HYPERMARK_AGENT_TERMINAL_REMOTE = previousAgentRemote;
     }
   });
 });

@@ -82,11 +82,11 @@ export function getAgentTerminalManagedRuntimeDir(
 }
 
 export function isAgentTerminalRemoteEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return isTruthy(env.PLANNOTATOR_AGENT_TERMINAL_REMOTE);
+  return isTruthy(env.HYPERMARK_AGENT_TERMINAL_REMOTE);
 }
 
 export function shouldSkipAgentTerminalRuntimeInstall(env: NodeJS.ProcessEnv = process.env): boolean {
-  return isTruthy(env.PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL);
+  return isTruthy(env.HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL);
 }
 
 export async function resolveAgentTerminalRuntime(): Promise<ResolvedAgentTerminalRuntime | UnresolvedAgentTerminalRuntime> {
@@ -187,7 +187,7 @@ export async function installAgentTerminalRuntime(): Promise<AgentTerminalRuntim
       ok: true,
       status: "skipped",
       runtimeDir,
-      message: "Skipping agent terminal runtime install (PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL is set).",
+      message: "Skipping agent terminal runtime install (HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL is set).",
     };
   }
 

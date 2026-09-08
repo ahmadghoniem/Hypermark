@@ -101,7 +101,7 @@ export const LIVE_APP_REQUIRES_HTTP_MESSAGE =
 
 /** Live sessions are hard-off in remote mode; no override env var exists. */
 export const LIVE_APP_REMOTE_MESSAGE =
-  "Live app annotation is unavailable in remote mode (PLANNOTATOR_REMOTE). Run locally, or use --static to annotate a converted snapshot of the page.";
+  "Live app annotation is unavailable in remote mode (HYPERMARK_REMOTE). Run locally, or use --static to annotate a converted snapshot of the page.";
 
 /** The --app forced-live failure, keyed on what the probe found. */
 export function buildForceAppFailureMessage(

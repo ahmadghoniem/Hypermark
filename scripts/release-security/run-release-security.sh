@@ -2,8 +2,8 @@
 set -euo pipefail
 
 workspace="${GITHUB_WORKSPACE:-$(pwd)}"
-subjects_dir="${PLANNOTATOR_RELEASE_SUBJECTS_DIR:?Set PLANNOTATOR_RELEASE_SUBJECTS_DIR to the downloaded release subjects}"
-output_dir="${PLANNOTATOR_RELEASE_SECURITY_DIR:?Set PLANNOTATOR_RELEASE_SECURITY_DIR to an empty output directory}"
+subjects_dir="${HYPERMARK_RELEASE_SUBJECTS_DIR:?Set HYPERMARK_RELEASE_SUBJECTS_DIR to the downloaded release subjects}"
+output_dir="${HYPERMARK_RELEASE_SECURITY_DIR:?Set HYPERMARK_RELEASE_SECURITY_DIR to an empty output directory}"
 repository="https://github.com/${GITHUB_REPOSITORY:-backnotprop/plannotator}"
 commit="${GITHUB_SHA:-$(git -C "$workspace" rev-parse HEAD)}"
 version="$(jq -r .version "$workspace/package.json")"
@@ -176,8 +176,8 @@ policy_arguments=(
   --output "$evidence_dir/grype-policy-result.json"
   --summary "$evidence_dir/grype-policy-summary.md"
 )
-if [[ -n "${PLANNOTATOR_RELEASE_VEX:-}" ]]; then
-  policy_arguments+=(--vex "$PLANNOTATOR_RELEASE_VEX")
+if [[ -n "${HYPERMARK_RELEASE_VEX:-}" ]]; then
+  policy_arguments+=(--vex "$HYPERMARK_RELEASE_VEX")
 fi
 policy_status=0
 bun "$workspace/scripts/release-security/grype-policy.mjs" "${policy_arguments[@]}" || policy_status=$?

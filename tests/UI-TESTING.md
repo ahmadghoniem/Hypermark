@@ -200,7 +200,7 @@ UI test scripts simulate plugin behavior locally:
 6. Leaves behind rollout logs, Hypermark history, plan files, and session URLs in an artifact directory
 
 This is the best harness when you want to verify the full Codex deny/revise/approve loop instead of simulating hook
-payloads. For browser automation, set `PLANNOTATOR_BROWSER=/usr/bin/true`, keep the script running in one terminal,
+payloads. For browser automation, set `HYPERMARK_BROWSER=/usr/bin/true`, keep the script running in one terminal,
 and drive the printed session URL with Playwright from another terminal.
 
 See [tests/README.md](../tests/README.md) for additional integration and utility test scripts.

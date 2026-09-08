@@ -60,14 +60,14 @@ function makeTempDir(prefix: string): string {
 
 function useTempDataDir(): string {
   const dir = makeTempDir("plannotator-approval-notes-");
-  saveEnv("PLANNOTATOR_DATA_DIR");
-  process.env.PLANNOTATOR_DATA_DIR = dir;
+  saveEnv("HYPERMARK_DATA_DIR");
+  process.env.HYPERMARK_DATA_DIR = dir;
   return dir;
 }
 
 function enableArchive() {
-  saveEnv("PLANNOTATOR_FEEDBACK_HISTORY");
-  process.env.PLANNOTATOR_FEEDBACK_HISTORY = "1";
+  saveEnv("HYPERMARK_FEEDBACK_HISTORY");
+  process.env.HYPERMARK_FEEDBACK_HISTORY = "1";
 }
 
 

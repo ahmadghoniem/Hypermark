@@ -31,7 +31,7 @@ Options:
   --help              Show this help
 
 Environment:
-  PLANNOTATOR_BROWSER  Passed through to the disposable Codex run. Set to
+  HYPERMARK_BROWSER  Passed through to the disposable Codex run. Set to
                        /usr/bin/true when you want to drive the review with
                        Playwright from another terminal instead of an auto-opened browser.
   CODEX_AUTH_JSON      Override the auth.json copied into the disposable HOME.
@@ -65,8 +65,8 @@ DETACH=false
 SETUP_ONLY=false
 SKIP_BUILD=false
 ROOT_DIR=""
-MODEL="${PLANNOTATOR_CODEX_MODEL:-gpt-5.4-mini}"
-SANDBOX_MODE="${PLANNOTATOR_CODEX_SANDBOX:-read-only}"
+MODEL="${HYPERMARK_CODEX_MODEL:-gpt-5.4-mini}"
+SANDBOX_MODE="${HYPERMARK_CODEX_SANDBOX:-read-only}"
 CODEX_BIN="${CODEX_BIN:-}"
 PROMPT_FILE=""
 ORIGINAL_HOME="$HOME"
@@ -238,7 +238,7 @@ cat > "\$payload_file"
   cat "\$payload_file"
   printf '\\n'
 } >> "$ARTIFACTS_DIR/plannotator-hook-events.log"
-PLANNOTATOR_DEBUG=1 exec "$BUN_BIN" run "$PROJECT_ROOT/apps/hook/server/index.ts" "\$@" < "\$payload_file" 2>> "$ARTIFACTS_DIR/plannotator-hook.stderr.log"
+HYPERMARK_DEBUG=1 exec "$BUN_BIN" run "$PROJECT_ROOT/apps/hook/server/index.ts" "\$@" < "\$payload_file" 2>> "$ARTIFACTS_DIR/plannotator-hook.stderr.log"
 EOF
 chmod +x "$BIN_DIR/hypermark"
 
@@ -312,9 +312,9 @@ BIN_DIR=$BIN_DIR
 ARTIFACTS_DIR=$ARTIFACTS_DIR
 CODEX_LOG=$CODEX_LOG
 PROMPT_FILE=$PROMPT_PATH
-PLANNOTATOR_SESSIONS_DIR=$TEMP_HOME/.plannotator/sessions
-PLANNOTATOR_HISTORY_DIR=$TEMP_HOME/.plannotator/history
-PLANNOTATOR_PLANS_DIR=$TEMP_HOME/.plannotator/plans
+HYPERMARK_SESSIONS_DIR=$TEMP_HOME/.plannotator/sessions
+HYPERMARK_HISTORY_DIR=$TEMP_HOME/.plannotator/history
+HYPERMARK_PLANS_DIR=$TEMP_HOME/.plannotator/plans
 CODEX_ROLLOUTS_DIR=$TEMP_HOME/.codex/sessions
 CODEX_BIN=$CODEX_BIN
 MODEL=$MODEL

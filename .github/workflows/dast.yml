@@ -148,8 +148,8 @@ jobs:
             --cpus 2 \
             --tmpfs /tmp:rw,nosuid,nodev,size=128m \
             --env HOME=/tmp/home \
-            --env PLANNOTATOR_DATA_DIR=/tmp/plannotator \
-            --env PLANNOTATOR_DAST_ISOLATED=1 \
+            --env HYPERMARK_DATA_DIR=/tmp/plannotator \
+            --env HYPERMARK_DAST_ISOLATED=1 \
             --volume "$GITHUB_WORKSPACE:/workspace:ro" \
             --workdir /workspace \
             "$TARGET_IMAGE" \

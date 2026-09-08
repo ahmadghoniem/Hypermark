@@ -32,17 +32,17 @@ describe("annotate server: /api/save-notes wiring", () => {
   let savedRemote: string | undefined;
 
   beforeEach(() => {
-    savedPort = process.env.PLANNOTATOR_PORT;
-    savedRemote = process.env.PLANNOTATOR_REMOTE;
-    delete process.env.PLANNOTATOR_PORT;
-    process.env.PLANNOTATOR_REMOTE = "0";
+    savedPort = process.env.HYPERMARK_PORT;
+    savedRemote = process.env.HYPERMARK_REMOTE;
+    delete process.env.HYPERMARK_PORT;
+    process.env.HYPERMARK_REMOTE = "0";
   });
 
   afterEach(() => {
-    if (savedPort === undefined) delete process.env.PLANNOTATOR_PORT;
-    else process.env.PLANNOTATOR_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.PLANNOTATOR_REMOTE;
-    else process.env.PLANNOTATOR_REMOTE = savedRemote;
+    if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
+    else process.env.HYPERMARK_PORT = savedPort;
+    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
+    else process.env.HYPERMARK_REMOTE = savedRemote;
   });
 
   test("POST is served as JSON by the route, not the SPA HTML catch-all", async () => {
@@ -97,22 +97,22 @@ describe("annotate server: /api/config favicon persistence", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    savedPort = process.env.PLANNOTATOR_PORT;
-    savedRemote = process.env.PLANNOTATOR_REMOTE;
-    savedDataDir = process.env.PLANNOTATOR_DATA_DIR;
-    delete process.env.PLANNOTATOR_PORT;
-    delete process.env.PLANNOTATOR_REMOTE;
+    savedPort = process.env.HYPERMARK_PORT;
+    savedRemote = process.env.HYPERMARK_REMOTE;
+    savedDataDir = process.env.HYPERMARK_DATA_DIR;
+    delete process.env.HYPERMARK_PORT;
+    delete process.env.HYPERMARK_REMOTE;
     tempDir = mkdtempSync(join(tmpdir(), "hypermark-annotate-config-test-"));
-    process.env.PLANNOTATOR_DATA_DIR = tempDir;
+    process.env.HYPERMARK_DATA_DIR = tempDir;
   });
 
   afterEach(() => {
-    if (savedPort === undefined) delete process.env.PLANNOTATOR_PORT;
-    else process.env.PLANNOTATOR_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.PLANNOTATOR_REMOTE;
-    else process.env.PLANNOTATOR_REMOTE = savedRemote;
-    if (savedDataDir === undefined) delete process.env.PLANNOTATOR_DATA_DIR;
-    else process.env.PLANNOTATOR_DATA_DIR = savedDataDir;
+    if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
+    else process.env.HYPERMARK_PORT = savedPort;
+    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
+    else process.env.HYPERMARK_REMOTE = savedRemote;
+    if (savedDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
+    else process.env.HYPERMARK_DATA_DIR = savedDataDir;
     rmSync(tempDir, { recursive: true, force: true });
   });
 
@@ -153,17 +153,17 @@ describe("annotate server: /api/share-html symlink containment", () => {
   let savedRemote: string | undefined;
 
   beforeEach(() => {
-    savedPort = process.env.PLANNOTATOR_PORT;
-    savedRemote = process.env.PLANNOTATOR_REMOTE;
-    delete process.env.PLANNOTATOR_PORT;
-    process.env.PLANNOTATOR_REMOTE = "0";
+    savedPort = process.env.HYPERMARK_PORT;
+    savedRemote = process.env.HYPERMARK_REMOTE;
+    delete process.env.HYPERMARK_PORT;
+    process.env.HYPERMARK_REMOTE = "0";
   });
 
   afterEach(() => {
-    if (savedPort === undefined) delete process.env.PLANNOTATOR_PORT;
-    else process.env.PLANNOTATOR_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.PLANNOTATOR_REMOTE;
-    else process.env.PLANNOTATOR_REMOTE = savedRemote;
+    if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
+    else process.env.HYPERMARK_PORT = savedPort;
+    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
+    else process.env.HYPERMARK_REMOTE = savedRemote;
   });
 
   // Regression: /api/share-html read the requested file through a lexical-only
@@ -211,21 +211,21 @@ describe("annotate server: local rendered-HTML root freshness", () => {
   let savedHistoryFlag: string | undefined;
 
   beforeEach(() => {
-    savedPort = process.env.PLANNOTATOR_PORT;
-    savedRemote = process.env.PLANNOTATOR_REMOTE;
-    savedHistoryFlag = process.env.PLANNOTATOR_ANNOTATE_HISTORY;
-    delete process.env.PLANNOTATOR_PORT;
-    process.env.PLANNOTATOR_REMOTE = "0";
-    process.env.PLANNOTATOR_ANNOTATE_HISTORY = "1";
+    savedPort = process.env.HYPERMARK_PORT;
+    savedRemote = process.env.HYPERMARK_REMOTE;
+    savedHistoryFlag = process.env.HYPERMARK_ANNOTATE_HISTORY;
+    delete process.env.HYPERMARK_PORT;
+    process.env.HYPERMARK_REMOTE = "0";
+    process.env.HYPERMARK_ANNOTATE_HISTORY = "1";
   });
 
   afterEach(() => {
-    if (savedPort === undefined) delete process.env.PLANNOTATOR_PORT;
-    else process.env.PLANNOTATOR_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.PLANNOTATOR_REMOTE;
-    else process.env.PLANNOTATOR_REMOTE = savedRemote;
-    if (savedHistoryFlag === undefined) delete process.env.PLANNOTATOR_ANNOTATE_HISTORY;
-    else process.env.PLANNOTATOR_ANNOTATE_HISTORY = savedHistoryFlag;
+    if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
+    else process.env.HYPERMARK_PORT = savedPort;
+    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
+    else process.env.HYPERMARK_REMOTE = savedRemote;
+    if (savedHistoryFlag === undefined) delete process.env.HYPERMARK_ANNOTATE_HISTORY;
+    else process.env.HYPERMARK_ANNOTATE_HISTORY = savedHistoryFlag;
   });
 
   const mintedProjects: string[] = [];
@@ -470,17 +470,17 @@ describe("annotate server: source save", () => {
   let savedRemote: string | undefined;
 
   beforeEach(() => {
-    savedPort = process.env.PLANNOTATOR_PORT;
-    savedRemote = process.env.PLANNOTATOR_REMOTE;
-    delete process.env.PLANNOTATOR_PORT;
-    process.env.PLANNOTATOR_REMOTE = "0";
+    savedPort = process.env.HYPERMARK_PORT;
+    savedRemote = process.env.HYPERMARK_REMOTE;
+    delete process.env.HYPERMARK_PORT;
+    process.env.HYPERMARK_REMOTE = "0";
   });
 
   afterEach(() => {
-    if (savedPort === undefined) delete process.env.PLANNOTATOR_PORT;
-    else process.env.PLANNOTATOR_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.PLANNOTATOR_REMOTE;
-    else process.env.PLANNOTATOR_REMOTE = savedRemote;
+    if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
+    else process.env.HYPERMARK_PORT = savedPort;
+    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
+    else process.env.HYPERMARK_REMOTE = savedRemote;
   });
 
   test("recreates a deleted single-file source on save", async () => {
@@ -838,24 +838,24 @@ describe("annotate server: folder annotate history", () => {
   let savedHistoryFlag: string | undefined;
 
   beforeEach(() => {
-    savedPort = process.env.PLANNOTATOR_PORT;
-    savedRemote = process.env.PLANNOTATOR_REMOTE;
-    savedHistoryFlag = process.env.PLANNOTATOR_ANNOTATE_HISTORY;
-    delete process.env.PLANNOTATOR_PORT;
-    process.env.PLANNOTATOR_REMOTE = "0";
+    savedPort = process.env.HYPERMARK_PORT;
+    savedRemote = process.env.HYPERMARK_REMOTE;
+    savedHistoryFlag = process.env.HYPERMARK_ANNOTATE_HISTORY;
+    delete process.env.HYPERMARK_PORT;
+    process.env.HYPERMARK_REMOTE = "0";
     // Force the toggle on for every test but the one that explicitly flips it
     // off — a real ~/.plannotator/config.json on the machine running these
     // tests must never change the outcome.
-    process.env.PLANNOTATOR_ANNOTATE_HISTORY = "1";
+    process.env.HYPERMARK_ANNOTATE_HISTORY = "1";
   });
 
   afterEach(() => {
-    if (savedPort === undefined) delete process.env.PLANNOTATOR_PORT;
-    else process.env.PLANNOTATOR_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.PLANNOTATOR_REMOTE;
-    else process.env.PLANNOTATOR_REMOTE = savedRemote;
-    if (savedHistoryFlag === undefined) delete process.env.PLANNOTATOR_ANNOTATE_HISTORY;
-    else process.env.PLANNOTATOR_ANNOTATE_HISTORY = savedHistoryFlag;
+    if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
+    else process.env.HYPERMARK_PORT = savedPort;
+    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
+    else process.env.HYPERMARK_REMOTE = savedRemote;
+    if (savedHistoryFlag === undefined) delete process.env.HYPERMARK_ANNOTATE_HISTORY;
+    else process.env.HYPERMARK_ANNOTATE_HISTORY = savedHistoryFlag;
   });
 
   // Every test uses its own project namespace (history lives in the real
@@ -1052,7 +1052,7 @@ describe("annotate server: folder annotate history", () => {
   });
 
   test("config toggle off: no snapshot, no diff fields, doc still serves", async () => {
-    process.env.PLANNOTATOR_ANNOTATE_HISTORY = "0";
+    process.env.HYPERMARK_ANNOTATE_HISTORY = "0";
     const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-history-toggle-off-"));
     const docPath = join(folderPath, "note.md");
     writeFileSync(docPath, "Content\n", "utf-8");
@@ -1314,17 +1314,17 @@ describe("annotate server: approval notes", () => {
   let savedRemote: string | undefined;
 
   beforeEach(() => {
-    savedPort = process.env.PLANNOTATOR_PORT;
-    savedRemote = process.env.PLANNOTATOR_REMOTE;
-    delete process.env.PLANNOTATOR_PORT;
-    process.env.PLANNOTATOR_REMOTE = "0";
+    savedPort = process.env.HYPERMARK_PORT;
+    savedRemote = process.env.HYPERMARK_REMOTE;
+    delete process.env.HYPERMARK_PORT;
+    process.env.HYPERMARK_REMOTE = "0";
   });
 
   afterEach(() => {
-    if (savedPort === undefined) delete process.env.PLANNOTATOR_PORT;
-    else process.env.PLANNOTATOR_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.PLANNOTATOR_REMOTE;
-    else process.env.PLANNOTATOR_REMOTE = savedRemote;
+    if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
+    else process.env.HYPERMARK_PORT = savedPort;
+    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
+    else process.env.HYPERMARK_REMOTE = savedRemote;
   });
 
   test("returns the explicit approval-notes capability", async () => {
@@ -1470,17 +1470,17 @@ describe("annotate server: client lease", () => {
   let savedRemote: string | undefined;
 
   beforeEach(() => {
-    savedPort = process.env.PLANNOTATOR_PORT;
-    savedRemote = process.env.PLANNOTATOR_REMOTE;
-    delete process.env.PLANNOTATOR_PORT;
-    process.env.PLANNOTATOR_REMOTE = "0";
+    savedPort = process.env.HYPERMARK_PORT;
+    savedRemote = process.env.HYPERMARK_REMOTE;
+    delete process.env.HYPERMARK_PORT;
+    process.env.HYPERMARK_REMOTE = "0";
   });
 
   afterEach(() => {
-    if (savedPort === undefined) delete process.env.PLANNOTATOR_PORT;
-    else process.env.PLANNOTATOR_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.PLANNOTATOR_REMOTE;
-    else process.env.PLANNOTATOR_REMOTE = savedRemote;
+    if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
+    else process.env.HYPERMARK_PORT = savedPort;
+    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
+    else process.env.HYPERMARK_REMOTE = savedRemote;
   });
 
   /**
@@ -1556,9 +1556,9 @@ describe("annotate server: client lease", () => {
     // reach it through the serve proxy, and a proxy disconnect longer than
     // the grace would auto-dismiss a live review. The server must force the
     // capability off, exactly like a remote session.
-    const savedDataDir = process.env.PLANNOTATOR_DATA_DIR;
+    const savedDataDir = process.env.HYPERMARK_DATA_DIR;
     const sandboxDataDir = mkdtempSync(join(tmpdir(), "plannotator-lease-tailnet-"));
-    process.env.PLANNOTATOR_DATA_DIR = sandboxDataDir;
+    process.env.HYPERMARK_DATA_DIR = sandboxDataDir;
     const server = await startAnnotateServer({
       markdown: "# Test",
       filePath: join(tmpdir(), "client-lease-tailnet.md"),
@@ -1577,8 +1577,8 @@ describe("annotate server: client lease", () => {
       expect(stream.status).toBe(404);
     } finally {
       server.stop();
-      if (savedDataDir === undefined) delete process.env.PLANNOTATOR_DATA_DIR;
-      else process.env.PLANNOTATOR_DATA_DIR = savedDataDir;
+      if (savedDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
+      else process.env.HYPERMARK_DATA_DIR = savedDataDir;
       rmSync(sandboxDataDir, { recursive: true, force: true });
     }
   });
@@ -1793,23 +1793,23 @@ describe("annotate server: durable submit records (#678)", () => {
   let savedHistoryFlag: string | undefined;
 
   beforeEach(() => {
-    savedPort = process.env.PLANNOTATOR_PORT;
-    savedRemote = process.env.PLANNOTATOR_REMOTE;
-    savedHistoryFlag = process.env.PLANNOTATOR_ANNOTATE_HISTORY;
-    delete process.env.PLANNOTATOR_PORT;
-    process.env.PLANNOTATOR_REMOTE = "0";
+    savedPort = process.env.HYPERMARK_PORT;
+    savedRemote = process.env.HYPERMARK_REMOTE;
+    savedHistoryFlag = process.env.HYPERMARK_ANNOTATE_HISTORY;
+    delete process.env.HYPERMARK_PORT;
+    process.env.HYPERMARK_REMOTE = "0";
     // Force the toggle on unless a test explicitly flips it off — a real
     // ~/.plannotator/config.json must never change the outcome.
-    process.env.PLANNOTATOR_ANNOTATE_HISTORY = "1";
+    process.env.HYPERMARK_ANNOTATE_HISTORY = "1";
   });
 
   afterEach(() => {
-    if (savedPort === undefined) delete process.env.PLANNOTATOR_PORT;
-    else process.env.PLANNOTATOR_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.PLANNOTATOR_REMOTE;
-    else process.env.PLANNOTATOR_REMOTE = savedRemote;
-    if (savedHistoryFlag === undefined) delete process.env.PLANNOTATOR_ANNOTATE_HISTORY;
-    else process.env.PLANNOTATOR_ANNOTATE_HISTORY = savedHistoryFlag;
+    if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
+    else process.env.HYPERMARK_PORT = savedPort;
+    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
+    else process.env.HYPERMARK_REMOTE = savedRemote;
+    if (savedHistoryFlag === undefined) delete process.env.HYPERMARK_ANNOTATE_HISTORY;
+    else process.env.HYPERMARK_ANNOTATE_HISTORY = savedHistoryFlag;
   });
 
   // History lives in the real data dir (DATA_DIR is cached at module import),
@@ -1939,7 +1939,7 @@ describe("annotate server: durable submit records (#678)", () => {
   });
 
   test("annotateHistory disabled: no content is written and the draft is deleted (legacy behavior)", async () => {
-    process.env.PLANNOTATOR_ANNOTATE_HISTORY = "0";
+    process.env.HYPERMARK_ANNOTATE_HISTORY = "0";
     const dir = mkdtempSync(join(tmpdir(), "plannotator-submit-optout-"));
     const docPath = join(dir, "doc.md");
     const project = uniqueProject("opt-out");
@@ -2094,17 +2094,17 @@ describe("annotate server: live app mode (annotate-app)", () => {
   let savedRemote: string | undefined;
 
   beforeEach(() => {
-    savedPort = process.env.PLANNOTATOR_PORT;
-    savedRemote = process.env.PLANNOTATOR_REMOTE;
-    delete process.env.PLANNOTATOR_PORT;
-    process.env.PLANNOTATOR_REMOTE = "0";
+    savedPort = process.env.HYPERMARK_PORT;
+    savedRemote = process.env.HYPERMARK_REMOTE;
+    delete process.env.HYPERMARK_PORT;
+    process.env.HYPERMARK_REMOTE = "0";
   });
 
   afterEach(() => {
-    if (savedPort === undefined) delete process.env.PLANNOTATOR_PORT;
-    else process.env.PLANNOTATOR_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.PLANNOTATOR_REMOTE;
-    else process.env.PLANNOTATOR_REMOTE = savedRemote;
+    if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
+    else process.env.HYPERMARK_PORT = savedPort;
+    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
+    else process.env.HYPERMARK_REMOTE = savedRemote;
   });
 
   function startFakeApp() {
@@ -2242,17 +2242,17 @@ describe("annotate server: live app mode (annotate-app)", () => {
     // so keying its draft by content gave every live session on the machine
     // the one hash of the empty string: two sessions against different dev
     // servers shared a single draft slot and overwrote each other.
-    const savedDataDir = process.env.PLANNOTATOR_DATA_DIR;
+    const savedDataDir = process.env.HYPERMARK_DATA_DIR;
     let draftDataDir: string;
 
     beforeEach(() => {
       draftDataDir = mkdtempSync(join(tmpdir(), "plannotator-live-draft-"));
-      process.env.PLANNOTATOR_DATA_DIR = draftDataDir;
+      process.env.HYPERMARK_DATA_DIR = draftDataDir;
     });
 
     afterEach(() => {
-      if (savedDataDir === undefined) delete process.env.PLANNOTATOR_DATA_DIR;
-      else process.env.PLANNOTATOR_DATA_DIR = savedDataDir;
+      if (savedDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
+      else process.env.HYPERMARK_DATA_DIR = savedDataDir;
       rmSync(draftDataDir, { recursive: true, force: true });
     });
 
@@ -2331,9 +2331,9 @@ describe("annotate server: live app mode (annotate-app)", () => {
     // The live fix must not move any existing draft: a file session's key is
     // the hash of its markdown, exactly as before, so drafts written by an
     // earlier release are still found.
-    const savedDataDir = process.env.PLANNOTATOR_DATA_DIR;
+    const savedDataDir = process.env.HYPERMARK_DATA_DIR;
     const dataDir = mkdtempSync(join(tmpdir(), "plannotator-file-draft-"));
-    process.env.PLANNOTATOR_DATA_DIR = dataDir;
+    process.env.HYPERMARK_DATA_DIR = dataDir;
     const markdown = "# Doc\n\nbody text\n";
     const server = await startAnnotateServer({
       markdown,
@@ -2352,14 +2352,14 @@ describe("annotate server: live app mode (annotate-app)", () => {
       expect(existsSync(join(dataDir, "drafts", `${expectedKey}.json`))).toBe(true);
     } finally {
       server.stop();
-      if (savedDataDir === undefined) delete process.env.PLANNOTATOR_DATA_DIR;
-      else process.env.PLANNOTATOR_DATA_DIR = savedDataDir;
+      if (savedDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
+      else process.env.HYPERMARK_DATA_DIR = savedDataDir;
       rmSync(dataDir, { recursive: true, force: true });
     }
   });
 
   test("remote mode rejects live app sessions outright", async () => {
-    process.env.PLANNOTATOR_REMOTE = "1";
+    process.env.HYPERMARK_REMOTE = "1";
     await expect(startLiveServer("http://127.0.0.1:65500")).rejects.toThrow(
       "Live app annotation is unavailable in remote mode",
     );

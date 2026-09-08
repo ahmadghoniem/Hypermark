@@ -128,41 +128,41 @@ describe("resolveCodeFile", () => {
 
 describe("bounded file traversal", () => {
 	test("parses the shared file limit with the established fallback semantics", () => {
-		const previousLimit = process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES;
+		const previousLimit = process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 		try {
 			for (const invalid of ["", "0", "-1", "not-a-number"]) {
-				process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = invalid;
+				process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = invalid;
 				expect(getFileBrowserMaxFiles()).toBe(5_000);
 			}
 
-			process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = "12files";
+			process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = "12files";
 			expect(getFileBrowserMaxFiles()).toBe(12);
 		} finally {
 			if (previousLimit === undefined) {
-				delete process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES;
+				delete process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 			} else {
-				process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = previousLimit;
+				process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = previousLimit;
 			}
 		}
 	});
 
 	test("caps the async code-file cache warm", async () => {
 		const limitedRoot = mkdtempSync(join(tmpdir(), "plannotator-code-limit-"));
-		const previousLimit = process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES;
+		const previousLimit = process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 		try {
 			for (let index = 0; index < 5; index += 1) {
 				writeFileSync(join(limitedRoot, `file-${index}.ts`), "export {};\n");
 			}
-			process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = "2";
+			process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = "2";
 
 			const files = await warmFileListCache(limitedRoot, "code");
 			expect(files).not.toBeNull();
 			expect(files).toHaveLength(2);
 		} finally {
 			if (previousLimit === undefined) {
-				delete process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES;
+				delete process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 			} else {
-				process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = previousLimit;
+				process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = previousLimit;
 			}
 			rmSync(limitedRoot, { recursive: true, force: true });
 		}
@@ -170,13 +170,13 @@ describe("bounded file traversal", () => {
 
 	test("caps fallback markdown discovery", () => {
 		const limitedRoot = mkdtempSync(join(tmpdir(), "plannotator-markdown-limit-"));
-		const previousLimit = process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES;
+		const previousLimit = process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 		try {
 			for (const directory of ["one", "two", "three"]) {
 				mkdirSync(join(limitedRoot, directory));
 				writeFileSync(join(limitedRoot, directory, "plan.md"), `# ${directory}\n`);
 			}
-			process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = "2";
+			process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = "2";
 
 			const result = resolveMarkdownFile("plan.md", limitedRoot, NO_EXTRAS);
 			expect(result.kind).toBe("ambiguous");
@@ -185,9 +185,9 @@ describe("bounded file traversal", () => {
 			}
 		} finally {
 			if (previousLimit === undefined) {
-				delete process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES;
+				delete process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 			} else {
-				process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = previousLimit;
+				process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = previousLimit;
 			}
 			rmSync(limitedRoot, { recursive: true, force: true });
 		}
@@ -195,7 +195,7 @@ describe("bounded file traversal", () => {
 
 	test("caps folder-target discovery even when no files match", () => {
 		const limitedRoot = mkdtempSync(join(tmpdir(), "plannotator-folder-limit-"));
-		const previousLimit = process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES;
+		const previousLimit = process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 		class CountingRegExp extends RegExp {
 			calls = 0;
 
@@ -209,16 +209,16 @@ describe("bounded file traversal", () => {
 			for (let index = 0; index < 5; index += 1) {
 				writeFileSync(join(limitedRoot, `file-${index}.txt`), "not markdown\n");
 			}
-			process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = "2";
+			process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = "2";
 			const extensions = new CountingRegExp("^never-match$");
 
 			expect(hasMarkdownFiles(limitedRoot, [], extensions)).toBe(false);
 			expect(extensions.calls).toBe(2);
 		} finally {
 			if (previousLimit === undefined) {
-				delete process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES;
+				delete process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 			} else {
-				process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = previousLimit;
+				process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = previousLimit;
 			}
 			rmSync(limitedRoot, { recursive: true, force: true });
 		}
@@ -227,13 +227,13 @@ describe("bounded file traversal", () => {
 	test("keeps exact and in-budget bare markdown resolution working", () => {
 		const exactRoot = mkdtempSync(join(tmpdir(), "plannotator-markdown-exact-"));
 		const bareRoot = mkdtempSync(join(tmpdir(), "plannotator-markdown-bare-"));
-		const previousLimit = process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES;
+		const previousLimit = process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 		try {
 			mkdirSync(join(exactRoot, "docs"));
 			writeFileSync(join(exactRoot, "docs", "plan.md"), "# Exact\n");
 			mkdirSync(join(bareRoot, "notes"));
 			writeFileSync(join(bareRoot, "notes", "Architecture.MD"), "# Bare\n");
-			process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = "1";
+			process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = "1";
 
 			expect(resolveMarkdownFile("docs/plan.md", exactRoot, NO_EXTRAS)).toEqual({
 				kind: "found",
@@ -245,9 +245,9 @@ describe("bounded file traversal", () => {
 			});
 		} finally {
 			if (previousLimit === undefined) {
-				delete process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES;
+				delete process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 			} else {
-				process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = previousLimit;
+				process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = previousLimit;
 			}
 			rmSync(exactRoot, { recursive: true, force: true });
 			rmSync(bareRoot, { recursive: true, force: true });

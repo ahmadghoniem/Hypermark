@@ -106,7 +106,7 @@ export function enableTailscaleServe(
     throw new Error(
       `--tailscale: tailscale serve already routes port ${port} (background or foreground session). ` +
         `Clear it with \`tailscale serve --https=${port} off\` if it is stale, ` +
-        `or set PLANNOTATOR_PORT to a free port.`,
+        `or set HYPERMARK_PORT to a free port.`,
     );
   }
   const serve = run(buildServeArgs(port), TAILSCALE_SERVE_TIMEOUT_MS);

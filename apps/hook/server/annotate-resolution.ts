@@ -103,7 +103,7 @@ export async function resolveAnnotateTarget(options: {
   // (scoped-package-style names).
   const filePath = stripAtPrefix(rawFilePath);
 
-  if (process.env.PLANNOTATOR_DEBUG) {
+  if (process.env.HYPERMARK_DEBUG) {
     log(`[DEBUG] Project root: ${projectRoot}`);
     log(`[DEBUG] File path arg: ${filePath}`);
   }
@@ -187,7 +187,7 @@ export async function resolveAnnotateTarget(options: {
       const result = await urlToMarkdown(filePath, { useJina });
       markdown = result.markdown;
       sourceConverted = isConvertedSource(result.source);
-      if (process.env.PLANNOTATOR_DEBUG) {
+      if (process.env.HYPERMARK_DEBUG) {
         log(`[DEBUG] Fetched via ${result.source} (${markdown.length} chars)`);
       }
     } catch (err) {

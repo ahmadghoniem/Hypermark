@@ -237,7 +237,7 @@ export async function handleServerReady(
   port: number,
   options: ServerReadyOptions = {},
 ): Promise<void> {
-  const readyFile = options.readyFile ?? process.env.PLANNOTATOR_READY_FILE;
+  const readyFile = options.readyFile ?? process.env.HYPERMARK_READY_FILE;
   if (readyFile) {
     try {
       writeServerReadyMetadata(readyFile, { url, isRemote, port });
@@ -269,7 +269,7 @@ export async function handleServerReady(
     process.stderr.write(`\n  Hypermark session ready:\n  ${url}\n\n`);
   }
 
-  const skipBrowserOpen = options.skipBrowserOpen ?? process.env.PLANNOTATOR_SKIP_BROWSER_OPEN === "1";
+  const skipBrowserOpen = options.skipBrowserOpen ?? process.env.HYPERMARK_SKIP_BROWSER_OPEN === "1";
   if (skipBrowserOpen) return;
 
   const opened = await (options.openBrowser ?? openBrowserImpl)(url, { isRemote, useGlimpse: true });

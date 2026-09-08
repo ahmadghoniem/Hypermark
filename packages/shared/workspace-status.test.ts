@@ -7,7 +7,7 @@ import { getGitMetadataWatchPaths, getWorkspaceStatusForDirectory, getWorkspaceS
 
 const tempDirs: string[] = [];
 const originalPath = process.env.PATH;
-const originalGitTimeout = process.env.PLANNOTATOR_GIT_TIMEOUT_MS;
+const originalGitTimeout = process.env.HYPERMARK_GIT_TIMEOUT_MS;
 
 function makeTempDir(prefix: string): string {
 	const dir = mkdtempSync(join(tmpdir(), prefix));
@@ -125,9 +125,9 @@ afterEach(() => {
 		process.env.PATH = originalPath;
 	}
 	if (originalGitTimeout === undefined) {
-		delete process.env.PLANNOTATOR_GIT_TIMEOUT_MS;
+		delete process.env.HYPERMARK_GIT_TIMEOUT_MS;
 	} else {
-		process.env.PLANNOTATOR_GIT_TIMEOUT_MS = originalGitTimeout;
+		process.env.HYPERMARK_GIT_TIMEOUT_MS = originalGitTimeout;
 	}
 	for (const dir of tempDirs.splice(0)) {
 		rmSync(dir, { recursive: true, force: true });
@@ -307,7 +307,7 @@ describe("workspace status", () => {
 		const wrapperDir = makeTempDir("plannotator-git-timeout-");
 		const markerPath = join(wrapperDir, "status-hung");
 		installHangingOnceStatusGitWrapper(wrapperDir, markerPath);
-		process.env.PLANNOTATOR_GIT_TIMEOUT_MS = "1000";
+		process.env.HYPERMARK_GIT_TIMEOUT_MS = "1000";
 
 		const timedOut = await getWorkspaceStatusForDirectory(docs);
 		expect(timedOut.available).toBe(false);

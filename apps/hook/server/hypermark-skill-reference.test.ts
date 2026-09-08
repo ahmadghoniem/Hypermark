@@ -15,7 +15,7 @@
  *     Making that bidirectional needs per-subcommand flag scoping (a global
  *     "every flag must be documented" set would demand the skill list every
  *     flag of every subcommand) and is deliberately left as follow-up.
- *   - Origins: BIDIRECTIONAL on values. The PLANNOTATOR_ORIGIN row must name
+ *   - Origins: BIDIRECTIONAL on values. The HYPERMARK_ORIGIN row must name
  *     every AGENT_CONFIG key and no key the config does not have, so adding
  *     an origin (like oh-my-pi, #1373) cannot silently leave the row stale.
  *
@@ -176,16 +176,16 @@ describe("hypermark knowledge skill freshness", () => {
     }
   });
 
-  test("the PLANNOTATOR_ORIGIN row names exactly the origins AGENT_CONFIG defines", () => {
+  test("the HYPERMARK_ORIGIN row names exactly the origins AGENT_CONFIG defines", () => {
     // #1373 added oh-my-pi and left this row stale. AGENT_CONFIG is the one
     // list of valid origins, so bind the row to it in both directions: a new
     // origin must be added here, and the row may not invent one.
     const row = skillDoc
       .split("\n")
-      .find((line) => line.includes("`PLANNOTATOR_ORIGIN`"));
+      .find((line) => line.includes("`HYPERMARK_ORIGIN`"));
     expect(
       row,
-      "SKILL.md no longer has a `PLANNOTATOR_ORIGIN` row — this guard cannot pass vacuously",
+      "SKILL.md no longer has a `HYPERMARK_ORIGIN` row — this guard cannot pass vacuously",
     ).toBeDefined();
 
     const documentedOrigins = new Set(
@@ -194,13 +194,13 @@ describe("hypermark knowledge skill freshness", () => {
     for (const origin of Object.keys(AGENT_CONFIG)) {
       expect(
         documentedOrigins.has(origin),
-        `AGENT_CONFIG defines the origin \`${origin}\` but the PLANNOTATOR_ORIGIN row in apps/skills/core/hypermark/SKILL.md does not list it`,
+        `AGENT_CONFIG defines the origin \`${origin}\` but the HYPERMARK_ORIGIN row in apps/skills/core/hypermark/SKILL.md does not list it`,
       ).toBe(true);
     }
     for (const origin of documentedOrigins) {
       expect(
         origin in AGENT_CONFIG,
-        `The PLANNOTATOR_ORIGIN row in apps/skills/core/hypermark/SKILL.md lists \`${origin}\`, which is not an AGENT_CONFIG origin`,
+        `The HYPERMARK_ORIGIN row in apps/skills/core/hypermark/SKILL.md lists \`${origin}\`, which is not an AGENT_CONFIG origin`,
       ).toBe(true);
     }
   });

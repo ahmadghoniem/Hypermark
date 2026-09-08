@@ -154,8 +154,8 @@ export interface HypermarkConfig {
    * integration even when the agent is detected, reports the detected state
    * honestly ("detected, skipped"), and never removes an integration a
    * previous install already wired. Overridden by the
-   * PLANNOTATOR_SKIP_CODEX_INSTALL / PLANNOTATOR_SKIP_GEMINI_INSTALL /
-   * PLANNOTATOR_SKIP_KIRO_INSTALL / PLANNOTATOR_SKIP_OPENCODE_INSTALL env
+   * HYPERMARK_SKIP_CODEX_INSTALL / HYPERMARK_SKIP_GEMINI_INSTALL /
+   * HYPERMARK_SKIP_KIRO_INSTALL / HYPERMARK_SKIP_OPENCODE_INSTALL env
    * vars, which are in turn overridden by the --skip-codex / --skip-gemini /
    * --skip-kiro / --skip-opencode flags. OpenCode has no detection leg, so
    * its entry is a plain do-not-write switch. Default: all off.
@@ -177,13 +177,13 @@ export interface HypermarkConfig {
    * Save per-file version history when annotating local files. Powers the
    * annotate version diff ("what changed since I last looked"). NOTE: this
    * writes a copy of each annotated file's content under
-   * ~/.plannotator/history/ (or PLANNOTATOR_DATA_DIR). Set to false to keep
+   * ~/.plannotator/history/ (or HYPERMARK_DATA_DIR). Set to false to keep
    * annotate sessions fully stateless. Default: true.
    */
   annotateHistory?: boolean;
   /**
    * Durably archive every submitted review under ~/.plannotator/feedback/
-   * (or PLANNOTATOR_DATA_DIR): one append-only JSONL record per submission
+   * (or HYPERMARK_DATA_DIR): one append-only JSONL record per submission
    * plus a markdown sidecar for the ones that carry content. NOTE: this
    * writes the user's own feedback text and the document/code excerpts it
    * quotes to disk, and nothing prunes the directory. Set to false to never
@@ -220,10 +220,10 @@ export interface HypermarkConfig {
    * remote-mode user hand out a reachable link (e.g. a Tailscale MagicDNS
    * name or tailnet IP) instead of localhost. Host only — the port is chosen
    * at runtime and always appended. Never affects which interface the server
-   * binds; that stays governed by PLANNOTATOR_REMOTE. Applied only in remote
+   * binds; that stays governed by HYPERMARK_REMOTE. Applied only in remote
    * sessions: a local session binds loopback, so the override is ignored
    * (localhost is advertised) with a once-per-process stderr warning.
-   * Mirrors the PLANNOTATOR_URL_HOST env var, which takes precedence.
+   * Mirrors the HYPERMARK_URL_HOST env var, which takes precedence.
    */
   urlHost?: string;
   /**
@@ -263,7 +263,7 @@ export function parseReviewAnalysisConfig(value: unknown): HypermarkConfig["revi
 }
 
 // Resolved per call, not at module scope: tests sandbox the data dir by
-// setting PLANNOTATOR_DATA_DIR at runtime, and a module-scope constant would
+// setting HYPERMARK_DATA_DIR at runtime, and a module-scope constant would
 // freeze whatever the env held at first import (bun runs every test file in
 // one process).
 function getConfigDir(): string {
@@ -595,10 +595,10 @@ function coerceConfigBoolean(value: unknown, fallback: boolean): boolean {
  * Resolve whether to use Glimpse native window.
  *
  * Priority (highest wins):
- *   PLANNOTATOR_GLIMPSE env var  →  config.glimpse  →  default true
+ *   HYPERMARK_GLIMPSE env var  →  config.glimpse  →  default true
  */
 export function resolveUseGlimpse(config: HypermarkConfig): boolean {
-  const envVal = process.env.PLANNOTATOR_GLIMPSE;
+  const envVal = process.env.HYPERMARK_GLIMPSE;
   if (envVal !== undefined) {
     return envVal === "1" || envVal.toLowerCase() === "true";
   }
@@ -609,16 +609,16 @@ export function resolveUseGlimpse(config: HypermarkConfig): boolean {
  * Resolve whether to use Jina Reader for URL annotation.
  *
  * Priority (highest wins):
- *   --no-jina CLI flag  →  PLANNOTATOR_JINA env var  →  config.jina  →  default true
+ *   --no-jina CLI flag  →  HYPERMARK_JINA env var  →  config.jina  →  default true
  */
 /**
  * Resolve whether annotate mode saves per-file version history.
  *
  * Priority (highest wins):
- *   PLANNOTATOR_ANNOTATE_HISTORY env var  →  config.annotateHistory  →  default true
+ *   HYPERMARK_ANNOTATE_HISTORY env var  →  config.annotateHistory  →  default true
  */
 export function resolveAnnotateHistory(config: HypermarkConfig): boolean {
-  const envVal = process.env.PLANNOTATOR_ANNOTATE_HISTORY;
+  const envVal = process.env.HYPERMARK_ANNOTATE_HISTORY;
   if (envVal !== undefined) {
     return envVal === "1" || envVal.toLowerCase() === "true";
   }
@@ -629,7 +629,7 @@ export function resolveAnnotateHistory(config: HypermarkConfig): boolean {
  * Resolve whether submitted feedback is archived under feedback/.
  *
  * Priority (highest wins):
- *   PLANNOTATOR_FEEDBACK_HISTORY env var  →  config.feedbackHistory  →  default true
+ *   HYPERMARK_FEEDBACK_HISTORY env var  →  config.feedbackHistory  →  default true
  *
  * Deliberately a separate knob from annotateHistory: that one governs copying
  * ANNOTATED CONTENT into the data dir, this one governs keeping the user's own
@@ -637,7 +637,7 @@ export function resolveAnnotateHistory(config: HypermarkConfig): boolean {
  * without touching the first. Annotate surfaces honor both.
  */
 export function resolveFeedbackHistory(config: HypermarkConfig): boolean {
-  const envVal = process.env.PLANNOTATOR_FEEDBACK_HISTORY;
+  const envVal = process.env.HYPERMARK_FEEDBACK_HISTORY;
   if (envVal !== undefined) {
     return envVal === "1" || envVal.toLowerCase() === "true";
   }
@@ -649,7 +649,7 @@ export function resolveUseJina(cliNoJina: boolean, config: HypermarkConfig): boo
   if (cliNoJina) return false;
 
   // Environment variable
-  const envVal = process.env.PLANNOTATOR_JINA;
+  const envVal = process.env.HYPERMARK_JINA;
   if (envVal !== undefined) {
     return envVal === "1" || envVal.toLowerCase() === "true";
   }
@@ -682,7 +682,7 @@ const warnedInvalidUrlHosts = new Set<string>();
  * sessions; local sessions ignore it (see buildAdvertisedUrl).
  *
  * Priority (highest wins):
- *   PLANNOTATOR_URL_HOST env var  →  config.urlHost  →  undefined
+ *   HYPERMARK_URL_HOST env var  →  config.urlHost  →  undefined
  *
  * An invalid value warns once per value on stderr and falls back to
  * localhost — a display setting must never crash a server launch. The echoed
@@ -694,7 +694,7 @@ const warnedInvalidUrlHosts = new Set<string>();
  * (packages/server/remote.ts and the Pi network.ts mirror).
  */
 export function resolveUrlHost(config: HypermarkConfig): string | undefined {
-  const envVal = process.env.PLANNOTATOR_URL_HOST;
+  const envVal = process.env.HYPERMARK_URL_HOST;
   const raw = envVal !== undefined ? envVal : config.urlHost;
   if (typeof raw !== "string") return undefined;
   const host = raw.trim();
@@ -714,7 +714,7 @@ export function resolveUrlHost(config: HypermarkConfig): string | undefined {
  * provider during execution.
  *
  * Priority (highest wins):
- *   PLANNOTATOR_TODO_PROVIDER env var  →  config.todoProvider  →  default auto
+ *   HYPERMARK_TODO_PROVIDER env var  →  config.todoProvider  →  default auto
  *
  * Env values `off` / `0` / `false` / `disabled` turn the mirror off, matching
  * the vocabulary the other flags accept; anything else — including `auto` —
@@ -722,7 +722,7 @@ export function resolveUrlHost(config: HypermarkConfig): string | undefined {
  * provider present, the progress widget is the whole experience either way.
  */
 export function resolveTodoProviderEnabled(config: HypermarkConfig): boolean {
-  const envVal = process.env.PLANNOTATOR_TODO_PROVIDER;
+  const envVal = process.env.HYPERMARK_TODO_PROVIDER;
   if (envVal !== undefined) {
     const v = envVal.toLowerCase();
     return v !== "off" && v !== "0" && v !== "false" && v !== "disabled";

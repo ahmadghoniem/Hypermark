@@ -44,7 +44,7 @@ type ResolvedTerminalPaletteColorKey = Exclude<keyof ResolvedTerminalPalette, "t
 const FALLBACK_MONO_FONT =
   '"SF Mono", "Menlo", "Monaco", "Cascadia Mono", "Consolas", ui-monospace, monospace';
 
-const PLANNOTATOR_DARK_TERMINAL_THEME: AnnotateAgentTerminalTheme = {
+const HYPERMARK_DARK_TERMINAL_THEME: AnnotateAgentTerminalTheme = {
   background: "#11131d",
   foreground: "#e8e6f0",
   cursor: "#c084fc",
@@ -70,7 +70,7 @@ const PLANNOTATOR_DARK_TERMINAL_THEME: AnnotateAgentTerminalTheme = {
   brightWhite: "#fbf7ff",
 };
 
-const PLANNOTATOR_LIGHT_TERMINAL_THEME: AnnotateAgentTerminalTheme = {
+const HYPERMARK_LIGHT_TERMINAL_THEME: AnnotateAgentTerminalTheme = {
   background: "#f6f5fb",
   foreground: "#29263a",
   cursor: "#7c3aed",
@@ -179,8 +179,8 @@ const TERMINAL_THEME_PRESETS: Record<string, Partial<Record<TerminalThemeMode, A
     },
   },
   plannotator: {
-    dark: PLANNOTATOR_DARK_TERMINAL_THEME,
-    light: PLANNOTATOR_LIGHT_TERMINAL_THEME,
+    dark: HYPERMARK_DARK_TERMINAL_THEME,
+    light: HYPERMARK_LIGHT_TERMINAL_THEME,
   },
   catppuccin: {
     dark: {
@@ -369,10 +369,10 @@ export function useAnnotateAgentTerminalTheme(): AnnotateAgentTerminalThemeState
       },
       colorScheme: terminalMode,
       shellStyle: {
-        "--webtui-background": theme.background ?? PLANNOTATOR_DARK_TERMINAL_THEME.background!,
-        "--webtui-foreground": theme.foreground ?? PLANNOTATOR_DARK_TERMINAL_THEME.foreground!,
+        "--webtui-background": theme.background ?? HYPERMARK_DARK_TERMINAL_THEME.background!,
+        "--webtui-foreground": theme.foreground ?? HYPERMARK_DARK_TERMINAL_THEME.foreground!,
         "--webtui-border": palette.border,
-        backgroundColor: theme.background ?? PLANNOTATOR_DARK_TERMINAL_THEME.background,
+        backgroundColor: theme.background ?? HYPERMARK_DARK_TERMINAL_THEME.background,
       },
     };
   }, [colorTheme, palette, terminalMode]);
@@ -556,8 +556,8 @@ function createFallbackTerminalPalette(
     ?? BUILT_IN_THEMES.find((theme) => theme.id === "plannotator");
   const colors = themeInfo?.colors[mode] ?? themeInfo?.colors.dark;
   const defaultTheme = mode === "light"
-    ? PLANNOTATOR_LIGHT_TERMINAL_THEME
-    : PLANNOTATOR_DARK_TERMINAL_THEME;
+    ? HYPERMARK_LIGHT_TERMINAL_THEME
+    : HYPERMARK_DARK_TERMINAL_THEME;
   const background = normalizeStaticColor(colors?.background, defaultTheme.background!);
   const foreground = normalizeStaticColor(colors?.foreground, defaultTheme.foreground!);
   const primary = normalizeStaticColor(colors?.primary, defaultTheme.blue!);

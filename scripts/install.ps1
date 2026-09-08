@@ -43,10 +43,10 @@ if ($Minimal -and $NoMinimal) {
 
 # Binary-only mode. Installs just the hypermark binary and no persistent state
 # elsewhere - no sem sidecar, CallDiff or agent-terminal runtime, skills, hooks, or per-agent
-# config. Precedence: -Minimal / -NoMinimal switch > PLANNOTATOR_MINIMAL env var
+# config. Precedence: -Minimal / -NoMinimal switch > HYPERMARK_MINIMAL env var
 # > default (off). Mirrors install.sh's --minimal / --no-minimal.
 $minimal = $false
-if ($env:PLANNOTATOR_MINIMAL -match '^(1|true|yes)$') {
+if ($env:HYPERMARK_MINIMAL -match '^(1|true|yes)$') {
     $minimal = $true
 }
 if ($Minimal) { $minimal = $true }
@@ -177,16 +177,16 @@ Write-Host "Installing hypermark $latestTag..."
 # provenance support. Precedence: CLI flag > env var > config file > default.
 $verifyAttestationResolved = $false
 # CallDiff call-flow runtime opt-in. Same three-layer shape:
-# -WithCallFlow > PLANNOTATOR_INSTALL_CALLDIFF > config installCallFlow >
+# -WithCallFlow > HYPERMARK_INSTALL_CALLDIFF > config installCallFlow >
 # default (off).
 $installCallFlowResolved = $false
 
 # Layer 3: config file (lowest precedence of the opt-in sources).
-# Unset PLANNOTATOR_DATA_DIR: an existing ~/.plannotator (legacy default)
+# Unset HYPERMARK_DATA_DIR: an existing ~/.plannotator (legacy default)
 # always wins; otherwise an explicitly-set absolute XDG_DATA_HOME (rare on
 # Windows but honored the same way as the runtime) places the directory at
 # $XDG_DATA_HOME\hypermark; otherwise ~/.plannotator.
-$configDir = if ($env:PLANNOTATOR_DATA_DIR) { $env:PLANNOTATOR_DATA_DIR.Trim() } else {
+$configDir = if ($env:HYPERMARK_DATA_DIR) { $env:HYPERMARK_DATA_DIR.Trim() } else {
     $legacyDir = Join-Path $env:USERPROFILE ".plannotator"
     $xdgDataHome = if ($env:XDG_DATA_HOME) { $env:XDG_DATA_HOME.Trim() } else { "" }
     if (Test-Path $legacyDir) {
@@ -204,8 +204,8 @@ if ($configDir -eq "~") {
 }
 
 function Install-SemSidecar {
-    if ($env:PLANNOTATOR_SKIP_SEM_INSTALL -match '^(1|true|yes)$') {
-        Write-Host "Skipping semantic diff sidecar install (PLANNOTATOR_SKIP_SEM_INSTALL is set)"
+    if ($env:HYPERMARK_SKIP_SEM_INSTALL -match '^(1|true|yes)$') {
+        Write-Host "Skipping semantic diff sidecar install (HYPERMARK_SKIP_SEM_INSTALL is set)"
         return
     }
 
@@ -271,8 +271,8 @@ function Install-SemSidecar {
 }
 
 function Install-AgentTerminalRuntime {
-    if ($env:PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL -match '^(1|true|yes)$') {
-        Write-Host "Skipping agent terminal runtime install (PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL is set)"
+    if ($env:HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL -match '^(1|true|yes)$') {
+        Write-Host "Skipping agent terminal runtime install (HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL is set)"
         return
     }
 
@@ -326,7 +326,7 @@ if (Test-Path $configPath) {
 }
 
 # Layer 2: env var (overrides config file).
-$envVerify = $env:PLANNOTATOR_VERIFY_ATTESTATION
+$envVerify = $env:HYPERMARK_VERIFY_ATTESTATION
 if ($envVerify) {
     if ($envVerify -match '^(1|true|yes)$') {
         $verifyAttestationResolved = $true
@@ -342,7 +342,7 @@ if ($VerifyAttestation) { $verifyAttestationResolved = $true }
 if ($SkipAttestation)   { $verifyAttestationResolved = $false }
 
 # CallDiff runtime opt-in, layers 2 and 1 (config was read above).
-$envInstallCallFlow = $env:PLANNOTATOR_INSTALL_CALLDIFF
+$envInstallCallFlow = $env:HYPERMARK_INSTALL_CALLDIFF
 if ($envInstallCallFlow) {
     if ($envInstallCallFlow -match '^(1|true|yes)$') {
         $installCallFlowResolved = $true
@@ -366,9 +366,9 @@ if ($cfg -and $cfg.skipInstall) {
         $skipSkillsResolved = $true; $skipSkillsSource = "config skipInstall.skills"
     }
 }
-if ($env:PLANNOTATOR_SKIP_SKILLS_INSTALL -match '^(1|true|yes)$') {
-    $skipSkillsResolved = $true; $skipSkillsSource = "PLANNOTATOR_SKIP_SKILLS_INSTALL"
-} elseif ($env:PLANNOTATOR_SKIP_SKILLS_INSTALL -match '^(0|false|no)$') {
+if ($env:HYPERMARK_SKIP_SKILLS_INSTALL -match '^(1|true|yes)$') {
+    $skipSkillsResolved = $true; $skipSkillsSource = "HYPERMARK_SKIP_SKILLS_INSTALL"
+} elseif ($env:HYPERMARK_SKIP_SKILLS_INSTALL -match '^(0|false|no)$') {
     $skipSkillsResolved = $false; $skipSkillsSource = ""
 }
 if ($SkipSkills) { $skipSkillsResolved = $true; $skipSkillsSource = "-SkipSkills" }
@@ -403,7 +403,7 @@ if ($verifyAttestationResolved) {
         [Console]::Error.WriteLine("The first release carrying signed build provenance is $minAttestedVersion. Options:")
         [Console]::Error.WriteLine("  - Pin to $minAttestedVersion or later: -Version $minAttestedVersion")
         [Console]::Error.WriteLine("  - Install without provenance verification: -SkipAttestation")
-        [Console]::Error.WriteLine("  - Or unset PLANNOTATOR_VERIFY_ATTESTATION / remove verifyAttestation from $configPath")
+        [Console]::Error.WriteLine("  - Or unset HYPERMARK_VERIFY_ATTESTATION / remove verifyAttestation from $configPath")
         exit 1
     }
 }
@@ -587,7 +587,7 @@ if ($verifyAttestationResolved) {
         }
     } else {
         Remove-Item $tmpFile -Force
-        Write-Error "verifyAttestation is enabled but gh CLI was not found. Install https://cli.github.com (no login is needed when the public attestation bundle fetch succeeds), or unset PLANNOTATOR_VERIFY_ATTESTATION / remove verifyAttestation from $configPath / pass -SkipAttestation."
+        Write-Error "verifyAttestation is enabled but gh CLI was not found. Install https://cli.github.com (no login is needed when the public attestation bundle fetch succeeds), or unset HYPERMARK_VERIFY_ATTESTATION / remove verifyAttestation from $configPath / pass -SkipAttestation."
     }
 } else {
     Write-Host "SHA256 verified. For build provenance verification, see"
@@ -763,11 +763,11 @@ $runWizard = $canPrompt -and ($Reconfigure -or -not (Test-Path $prefsFile))
 
 # Bound interactive prompts so an unattended-but-attached console (e.g. a
 # PsExec / provisioner first-run) can't hang the install. Override with
-# PLANNOTATOR_PROMPT_TIMEOUT (0 = wait forever); non-numeric/negative -> 30.
+# HYPERMARK_PROMPT_TIMEOUT (0 = wait forever); non-numeric/negative -> 30.
 $script:promptTimeout = 30
-if ($env:PLANNOTATOR_PROMPT_TIMEOUT) {
+if ($env:HYPERMARK_PROMPT_TIMEOUT) {
     $parsed = 0
-    if ([int]::TryParse($env:PLANNOTATOR_PROMPT_TIMEOUT, [ref]$parsed) -and $parsed -ge 0) {
+    if ([int]::TryParse($env:HYPERMARK_PROMPT_TIMEOUT, [ref]$parsed) -and $parsed -ge 0) {
         $script:promptTimeout = $parsed
     }
 }
@@ -919,7 +919,7 @@ if ((-not $skipSkillsResolved) -and ($extrasChoice -eq "yes") -and (-not $extras
 # rather than failing. Hard requirement: without git we cannot install the
 # /hypermark-* skills, so fail loudly instead of leaving a partial install.
 #
-# Skills/commands opt-out (-SkipSkills / PLANNOTATOR_SKIP_SKILLS_INSTALL /
+# Skills/commands opt-out (-SkipSkills / HYPERMARK_SKIP_SKILLS_INSTALL /
 # skipInstall.skills). HONEST reporting like the per-agent family: the skipped
 # state is announced, and skip means do-not-write - nothing already on disk in
 # any skill or command scope is fetched, replaced, or removed on this run.

@@ -9,7 +9,7 @@
   },
   "forwardPorts": [4096, 9999],
   "containerEnv": {
-    "PLANNOTATOR_PORT": "9999"
+    "HYPERMARK_PORT": "9999"
   },
   "mounts": [
     {
@@ -18,7 +18,7 @@
       "type": "bind"
     }
   ],
-  "postCreateCommand": "echo 'Port-only test. PLANNOTATOR_REMOTE is NOT set - expect failures.'",
+  "postCreateCommand": "echo 'Port-only test. HYPERMARK_REMOTE is NOT set - expect failures.'",
   "customizations": {
     "vscode": {
       "settings": {

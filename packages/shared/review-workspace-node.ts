@@ -219,7 +219,7 @@ function collectWorkspaceRepos(
  * at most once, so cycles and duplicate aliases cannot duplicate repositories.
  * Unreadable, broken, and non-directory entries are ignored.
  *
- * The walk visits at most `PLANNOTATOR_FILE_BROWSER_MAX_FILES` directories.
+ * The walk visits at most `HYPERMARK_FILE_BROWSER_MAX_FILES` directories.
  * Symlinks may legitimately lead outside the workspace root (that is how
  * symlinked repos are discovered), so a link into a huge unrelated tree cannot
  * be fenced by path — the visit budget is what keeps discovery from scanning

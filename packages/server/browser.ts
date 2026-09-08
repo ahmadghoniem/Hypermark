@@ -28,7 +28,7 @@ export function isNoOpBrowserSentinel(value: string | undefined): boolean {
 
 /**
  * Try opening URL via VS Code extension IPC registry.
- * Falls back when env vars (PLANNOTATOR_BROWSER) aren't available to the process.
+ * Falls back when env vars (HYPERMARK_BROWSER) aren't available to the process.
  */
 async function tryVscodeIpc(url: string): Promise<boolean> {
   try {
@@ -86,7 +86,7 @@ export async function isWSL(): Promise<boolean> {
 /**
  * Open a URL in the browser
  *
- * Uses PLANNOTATOR_BROWSER env var if set, otherwise uses system default.
+ * Uses HYPERMARK_BROWSER env var if set, otherwise uses system default.
  * - macOS: Set to app name ("Google Chrome") or path ("/Applications/Firefox.app")
  * - Linux/Windows/WSL: Set to executable path ("/usr/bin/firefox")
  *
@@ -94,7 +94,7 @@ export async function isWSL(): Promise<boolean> {
  */
 export function shouldTryRemoteBrowserFallback(isRemote: boolean): boolean {
   if (!isRemote) return false;
-  const hypermarkBrowser = process.env.PLANNOTATOR_BROWSER;
+  const hypermarkBrowser = process.env.HYPERMARK_BROWSER;
   const browser = process.env.BROWSER;
   // Treat headless sentinels (e.g. BROWSER=true from Claude Code's agent view)
   // as if no real browser handler were configured, so the IPC fallback still runs.
@@ -130,9 +130,9 @@ async function openGlimpse(url: string): Promise<boolean> {
 
   const args = [
     "--width",
-    String(Number(process.env.PLANNOTATOR_GLIMPSE_WIDTH || 1280)),
+    String(Number(process.env.HYPERMARK_GLIMPSE_WIDTH || 1280)),
     "--height",
-    String(Number(process.env.PLANNOTATOR_GLIMPSE_HEIGHT || 900)),
+    String(Number(process.env.HYPERMARK_GLIMPSE_HEIGHT || 900)),
     "--title",
     "Hypermark",
     "--open-links",
@@ -190,7 +190,7 @@ export async function openBrowser(
   options?: { isRemote?: boolean; useGlimpse?: boolean }
 ): Promise<boolean> {
   try {
-    const rawHypermarkBrowser = process.env.PLANNOTATOR_BROWSER;
+    const rawHypermarkBrowser = process.env.HYPERMARK_BROWSER;
     const rawBrowser = process.env.BROWSER;
     const hypermarkBrowser = isNoOpBrowserSentinel(rawHypermarkBrowser)
       ? undefined

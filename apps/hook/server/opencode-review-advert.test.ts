@@ -87,10 +87,10 @@ async function runBridgeReview(stdinJson: object): Promise<{
   const port = await reservePort();
   const env = {
     ...process.env,
-    PLANNOTATOR_DATA_DIR: dataDir,
-    PLANNOTATOR_PORT: String(port),
-    PLANNOTATOR_REMOTE: "0",
-    PLANNOTATOR_SKIP_BROWSER_OPEN: "1",
+    HYPERMARK_DATA_DIR: dataDir,
+    HYPERMARK_PORT: String(port),
+    HYPERMARK_REMOTE: "0",
+    HYPERMARK_SKIP_BROWSER_OPEN: "1",
   };
   const proc = Bun.spawn(["bun", "run", entry, "opencode-review"], {
     cwd: repoDir,

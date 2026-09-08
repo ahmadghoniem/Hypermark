@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startReviewServer as startBunReviewServer } from './review';
 
-// Config reads resolve the data dir lazily, so per-test PLANNOTATOR_DATA_DIR
+// Config reads resolve the data dir lazily, so per-test HYPERMARK_DATA_DIR
 // sandboxes genuinely isolate settings POSTs. Snapshot the real config anyway
 // as a safety net: a regression back to a process-frozen config path must not
 // corrupt the developer's real configuration.
@@ -18,10 +18,10 @@ try {
   realConfigSnapshot = null;
 }
 
-const originalDataDir = process.env.PLANNOTATOR_DATA_DIR;
-const originalPort = process.env.PLANNOTATOR_PORT;
+const originalDataDir = process.env.HYPERMARK_DATA_DIR;
+const originalPort = process.env.HYPERMARK_PORT;
 const originalPath = process.env.PATH;
-const originalCallDiffPath = process.env.PLANNOTATOR_CALLDIFF_PATH;
+const originalCallDiffPath = process.env.HYPERMARK_CALLDIFF_PATH;
 const tempDirs: string[] = [];
 
 function makeDataDir(): string {
@@ -51,14 +51,14 @@ async function waitForFile(path: string): Promise<void> {
 }
 
 afterEach(() => {
-  if (originalDataDir === undefined) delete process.env.PLANNOTATOR_DATA_DIR;
-  else process.env.PLANNOTATOR_DATA_DIR = originalDataDir;
-  if (originalPort === undefined) delete process.env.PLANNOTATOR_PORT;
-  else process.env.PLANNOTATOR_PORT = originalPort;
+  if (originalDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
+  else process.env.HYPERMARK_DATA_DIR = originalDataDir;
+  if (originalPort === undefined) delete process.env.HYPERMARK_PORT;
+  else process.env.HYPERMARK_PORT = originalPort;
   if (originalPath === undefined) delete process.env.PATH;
   else process.env.PATH = originalPath;
-  if (originalCallDiffPath === undefined) delete process.env.PLANNOTATOR_CALLDIFF_PATH;
-  else process.env.PLANNOTATOR_CALLDIFF_PATH = originalCallDiffPath;
+  if (originalCallDiffPath === undefined) delete process.env.HYPERMARK_CALLDIFF_PATH;
+  else process.env.HYPERMARK_CALLDIFF_PATH = originalCallDiffPath;
   for (const dir of tempDirs.splice(0)) {
     try {
       rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
@@ -85,8 +85,8 @@ describe('Call flow endpoint capability guards', () => {
     ['Bun', startBunReviewServer],
   ] as const) {
     test(`${runtime} returns the server-authored install disclosure while Call flow is disabled`, async () => {
-      process.env.PLANNOTATOR_DATA_DIR = makeDataDir();
-      delete process.env.PLANNOTATOR_CALLDIFF_PATH;
+      process.env.HYPERMARK_DATA_DIR = makeDataDir();
+      delete process.env.HYPERMARK_CALLDIFF_PATH;
       const server = await startServer({
         rawPatch: [
           'diff --git a/tool.py b/tool.py',
@@ -131,7 +131,7 @@ describe('Call flow endpoint capability guards', () => {
     });
 
     test(`${runtime} returns unsupported for All Files before runtime execution`, async () => {
-      process.env.PLANNOTATOR_DATA_DIR = makeDataDir();
+      process.env.HYPERMARK_DATA_DIR = makeDataDir();
       const server = await startServer({
         rawPatch: '',
         gitRef: 'All files',
@@ -186,7 +186,7 @@ describe('Call flow endpoint capability guards', () => {
         '',
       ].join('\n'), 'utf8');
       chmodSync(nodePath, 0o755);
-      process.env.PLANNOTATOR_DATA_DIR = dataDir;
+      process.env.HYPERMARK_DATA_DIR = dataDir;
       process.env.PATH = `${binDir}:${originalPath ?? ''}`;
       const server = await startServer({
         rawPatch: '',
@@ -234,7 +234,7 @@ describe('Call flow endpoint capability guards', () => {
         '',
       ].join('\n'), 'utf8');
       chmodSync(nodePath, 0o755);
-      process.env.PLANNOTATOR_DATA_DIR = dataDir;
+      process.env.HYPERMARK_DATA_DIR = dataDir;
       process.env.PATH = `${binDir}:${originalPath ?? ''}`;
       const server = await startServer({
         rawPatch: '',
@@ -287,7 +287,7 @@ describe('Call flow endpoint capability guards', () => {
         '',
       ].join('\n'), 'utf8');
       chmodSync(nodePath, 0o755);
-      process.env.PLANNOTATOR_DATA_DIR = dataDir;
+      process.env.HYPERMARK_DATA_DIR = dataDir;
       process.env.PATH = `${binDir}:${originalPath ?? ''}`;
       const server = await startServer({
         rawPatch: '',

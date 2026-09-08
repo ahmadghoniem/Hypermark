@@ -289,12 +289,12 @@ export async function resolveCallFlowRuntime(): Promise<CallFlowRuntimeResolutio
   const nodeCheck = await checkNode22(nodePath);
   if (!nodeCheck.ok) return { ok: false, reason: "node-version", message: nodeCheck.message };
 
-  const override = process.env.PLANNOTATOR_CALLDIFF_PATH?.trim();
+  const override = process.env.HYPERMARK_CALLDIFF_PATH?.trim();
   if (override && !isAbsolute(override)) {
     return {
       ok: false,
       reason: "override-relative",
-      message: "PLANNOTATOR_CALLDIFF_PATH must be an absolute path.",
+      message: "HYPERMARK_CALLDIFF_PATH must be an absolute path.",
     };
   }
   const runtimeDir = override ?? getCallFlowManagedRuntimeDir();
@@ -307,7 +307,7 @@ export async function resolveCallFlowRuntime(): Promise<CallFlowRuntimeResolutio
       ok: false,
       reason: "runtime-unavailable",
       message: override
-        ? `PLANNOTATOR_CALLDIFF_PATH does not contain a built CallDiff package: ${runtimeDir}`
+        ? `HYPERMARK_CALLDIFF_PATH does not contain a built CallDiff package: ${runtimeDir}`
         : "The Call flow core is not installed.",
     };
   }
@@ -860,7 +860,7 @@ async function installCallFlowLanguagePackUnlocked(
   const runtime = await resolveCallFlowRuntime();
   if (!runtime.ok || !runtime.runtime.managed || runtime.runtime.runtimeDir !== runtimeDir) {
     return { ok: false, status: "failed", runtimeDir, message: runtime.ok
-      ? "Language packs cannot be installed into PLANNOTATOR_CALLDIFF_PATH."
+      ? "Language packs cannot be installed into HYPERMARK_CALLDIFF_PATH."
       : runtime.message };
   }
   if (runtime.runtime.installedLanguageIds.includes(id)) {
@@ -1268,7 +1268,7 @@ export class CallFlowService {
     const usage = getCallFlowPatchLanguageUsage(input?.rawPatch ?? "");
     const required = new Map(usage.map(({ language, files }) => [language.id, files.length]));
     if (!enabled) {
-      const managed = !process.env.PLANNOTATOR_CALLDIFF_PATH;
+      const managed = !process.env.HYPERMARK_CALLDIFF_PATH;
       const consentIds = [
         CALL_FLOW_CORE_LANGUAGE_ID,
         ...usage.filter(({ language }) => language.kind === "pack").map(({ language }) => language.id),
@@ -1291,7 +1291,7 @@ export class CallFlowService {
       };
     }
     const resolved = await this.resolveRuntimeCached();
-    const managedInstallState = !process.env.PLANNOTATOR_CALLDIFF_PATH && [
+    const managedInstallState = !process.env.HYPERMARK_CALLDIFF_PATH && [
       "node-unavailable",
       "node-version",
       "runtime-unavailable",

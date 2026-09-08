@@ -36,7 +36,7 @@ VERIFY_ATTESTATION_FLAG=-1
 # Three-layer opt-in for the CallDiff call-flow runtime (large on-disk
 # footprint, default off). The normal path installs it in-app from the review
 # UI; this flag exists for scripted installs.
-# Precedence: --with-call-flow > PLANNOTATOR_INSTALL_CALLDIFF > config.json
+# Precedence: --with-call-flow > HYPERMARK_INSTALL_CALLDIFF > config.json
 # installCallFlow > default (off).
 WITH_CALL_FLOW_FLAG=-1
 # Guided-install answers. Precedence: CLI flags > wizard (terminal, first run
@@ -50,7 +50,7 @@ RECONFIGURE=0
 # no persistent state elsewhere — no sem sidecar, no CallDiff or agent-terminal runtime, no
 # skills, hooks, slash commands, or per-agent config (Claude, Codex, OpenCode,
 # Gemini, Kiro). Set by --minimal (1) / --no-minimal (0); -1 = neither flag
-# given (fall through to the PLANNOTATOR_MINIMAL env var). Resolved after arg
+# given (fall through to the HYPERMARK_MINIMAL env var). Resolved after arg
 # parsing so a flag overrides the env var in either direction.
 MINIMAL_FLAG=-1
 # Per-agent integration opt-outs (#1178). Skip means do-not-write: when a
@@ -92,7 +92,7 @@ Options:
                          (about 5 MB on macOS arm64, needs Node.js 22+).
                          By default it is NOT installed; the review UI offers
                          a one-click install when Call flow is enabled. Also
-                         enabled by PLANNOTATOR_INSTALL_CALLDIFF=1 or
+                         enabled by HYPERMARK_INSTALL_CALLDIFF=1 or
                          { "installCallFlow": true } in config.json.
   --extras               Install the extra skills (compound, setup-goal,
                          visual-explainer) via `npx skills add` without asking.
@@ -107,28 +107,28 @@ Options:
                          for Claude, Codex, OpenCode, Gemini, and Kiro). No
                          persistent state is written outside $HOME/.local/bin
                          (a temp download file is still used and removed). Also
-                         enabled by exporting PLANNOTATOR_MINIMAL=1.
-  --no-minimal           Force a full install even when PLANNOTATOR_MINIMAL is
+                         enabled by exporting HYPERMARK_MINIMAL=1.
+  --no-minimal           Force a full install even when HYPERMARK_MINIMAL is
                          set in the environment.
   --skip-codex           Do not write the Codex integration (hooks.json /
                          config.toml under CODEX_HOME) even when Codex is
                          detected. Never removes an existing integration.
-                         Also enabled by PLANNOTATOR_SKIP_CODEX_INSTALL=1 or
+                         Also enabled by HYPERMARK_SKIP_CODEX_INSTALL=1 or
                          { "skipInstall": { "codex": true } } in
                          ~/.plannotator/config.json (flag > env var > config).
   --skip-gemini          Same opt-out for the Gemini CLI integration
                          (~/.gemini policy, settings hook, commands). Env var:
-                         PLANNOTATOR_SKIP_GEMINI_INSTALL; config key:
+                         HYPERMARK_SKIP_GEMINI_INSTALL; config key:
                          skipInstall.gemini.
   --skip-kiro            Same opt-out for the Kiro CLI integration
                          (~/.kiro skills and agent). Env var:
-                         PLANNOTATOR_SKIP_KIRO_INSTALL; config key:
+                         HYPERMARK_SKIP_KIRO_INSTALL; config key:
                          skipInstall.kiro.
   --skip-opencode        Do not write the OpenCode integration (command stubs
                          under ~/.config/opencode/commands and the OpenCode
                          plugin cache clear). OpenCode has no detection leg,
                          so this is a plain do-not-write switch. Env var:
-                         PLANNOTATOR_SKIP_OPENCODE_INSTALL; config key:
+                         HYPERMARK_SKIP_OPENCODE_INSTALL; config key:
                          skipInstall.opencode.
   --skip-skills          Do not fetch or write the /hypermark-* skills and
                          slash commands (the sparse checkout that feeds Claude
@@ -137,7 +137,7 @@ Options:
                          already installed is removed. The binary, hooks, and
                          per-agent config still install. Use it where
                          github.com cannot serve the tag being installed. Env
-                         var: PLANNOTATOR_SKIP_SKILLS_INSTALL; config key:
+                         var: HYPERMARK_SKIP_SKILLS_INSTALL; config key:
                          skipInstall.skills.
   --non-interactive      Never prompt, even in a terminal. Uses flags, then
                          saved answers from a previous run, then the defaults
@@ -155,7 +155,7 @@ keep the defaults.
 
 Provenance verification is off by default. Enable it by any of:
   - passing --verify-attestation
-  - exporting PLANNOTATOR_VERIFY_ATTESTATION=1
+  - exporting HYPERMARK_VERIFY_ATTESTATION=1
   - setting { "verifyAttestation": true } in ~/.plannotator/config.json
 When enabled, the attestation bundle is fetched from GitHub's public
 attestations API and verified with `gh attestation verify --bundle`, so no
@@ -166,11 +166,11 @@ authenticated fetch runs as the fallback.
 
 The optional semantic-diff sidecar (the 'sem' binary, used by code review) is
 installed after Hypermark itself. Skip it by exporting
-PLANNOTATOR_SKIP_SEM_INSTALL=1. Its download is time-bounded, so a slow network
+HYPERMARK_SKIP_SEM_INSTALL=1. Its download is time-bounded, so a slow network
 never blocks an otherwise-complete install.
 
 The optional annotate agent terminal runtime is installed after Hypermark
-itself. Skip it by exporting PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL=1. If
+itself. Skip it by exporting HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL=1. If
 Node/npm is unavailable, Hypermark still installs and annotate mode works
 without the integrated terminal.
 
@@ -339,11 +339,11 @@ while [ $# -gt 0 ]; do
 done
 
 # Resolve binary-only mode. Precedence: --minimal / --no-minimal flag >
-# PLANNOTATOR_MINIMAL env var > default (off). The env var lets `curl ... | bash`
-# runs opt in without a flag, matching how PLANNOTATOR_SKIP_SEM_INSTALL et al.
+# HYPERMARK_MINIMAL env var > default (off). The env var lets `curl ... | bash`
+# runs opt in without a flag, matching how HYPERMARK_SKIP_SEM_INSTALL et al.
 # work; --no-minimal lets a flag override an env var that enables it.
 minimal=0
-case "${PLANNOTATOR_MINIMAL:-}" in
+case "${HYPERMARK_MINIMAL:-}" in
     1|true|yes|TRUE|YES|True|Yes) minimal=1 ;;
 esac
 if [ "$MINIMAL_FLAG" -ne -1 ]; then
@@ -447,7 +447,7 @@ verify_attestation=0
 # Unset: an existing ~/.plannotator (legacy default) always wins; otherwise
 # an explicitly-set absolute XDG_DATA_HOME places it at
 # $XDG_DATA_HOME/hypermark; otherwise ~/.plannotator.
-_raw_dir="${PLANNOTATOR_DATA_DIR:-}"
+_raw_dir="${HYPERMARK_DATA_DIR:-}"
 case "$_raw_dir" in
     "")
         _config_dir="$HOME/.plannotator"
@@ -468,7 +468,7 @@ if [ -f "$_config_dir/config.json" ]; then
 fi
 
 # Layer 2: env var (overrides config file).
-case "${PLANNOTATOR_VERIFY_ATTESTATION:-}" in
+case "${HYPERMARK_VERIFY_ATTESTATION:-}" in
     1|true|yes|TRUE|YES|True|Yes) verify_attestation=1 ;;
     0|false|no|FALSE|NO|False|No) verify_attestation=0 ;;
 esac
@@ -487,7 +487,7 @@ if [ -f "$_config_dir/config.json" ]; then
         install_call_flow=1
     fi
 fi
-case "${PLANNOTATOR_INSTALL_CALLDIFF:-}" in
+case "${HYPERMARK_INSTALL_CALLDIFF:-}" in
     1|true|yes|TRUE|YES|True|Yes) install_call_flow=1 ;;
     0|false|no|FALSE|NO|False|No) install_call_flow=0 ;;
 esac
@@ -578,50 +578,50 @@ if [ -n "$_skip_install_block" ]; then
     unset _agent
 fi
 unset _skip_install_block
-case "${PLANNOTATOR_SKIP_CODEX_INSTALL:-}" in
+case "${HYPERMARK_SKIP_CODEX_INSTALL:-}" in
     1|true|yes|TRUE|YES|True|Yes)
         skip_codex=1
-        skip_codex_source="PLANNOTATOR_SKIP_CODEX_INSTALL"
+        skip_codex_source="HYPERMARK_SKIP_CODEX_INSTALL"
         ;;
     0|false|no|FALSE|NO|False|No)
         skip_codex=0
         skip_codex_source=""
         ;;
 esac
-case "${PLANNOTATOR_SKIP_GEMINI_INSTALL:-}" in
+case "${HYPERMARK_SKIP_GEMINI_INSTALL:-}" in
     1|true|yes|TRUE|YES|True|Yes)
         skip_gemini=1
-        skip_gemini_source="PLANNOTATOR_SKIP_GEMINI_INSTALL"
+        skip_gemini_source="HYPERMARK_SKIP_GEMINI_INSTALL"
         ;;
     0|false|no|FALSE|NO|False|No)
         skip_gemini=0
         skip_gemini_source=""
         ;;
 esac
-case "${PLANNOTATOR_SKIP_KIRO_INSTALL:-}" in
+case "${HYPERMARK_SKIP_KIRO_INSTALL:-}" in
     1|true|yes|TRUE|YES|True|Yes)
         skip_kiro=1
-        skip_kiro_source="PLANNOTATOR_SKIP_KIRO_INSTALL"
+        skip_kiro_source="HYPERMARK_SKIP_KIRO_INSTALL"
         ;;
     0|false|no|FALSE|NO|False|No)
         skip_kiro=0
         skip_kiro_source=""
         ;;
 esac
-case "${PLANNOTATOR_SKIP_OPENCODE_INSTALL:-}" in
+case "${HYPERMARK_SKIP_OPENCODE_INSTALL:-}" in
     1|true|yes|TRUE|YES|True|Yes)
         skip_opencode=1
-        skip_opencode_source="PLANNOTATOR_SKIP_OPENCODE_INSTALL"
+        skip_opencode_source="HYPERMARK_SKIP_OPENCODE_INSTALL"
         ;;
     0|false|no|FALSE|NO|False|No)
         skip_opencode=0
         skip_opencode_source=""
         ;;
 esac
-case "${PLANNOTATOR_SKIP_SKILLS_INSTALL:-}" in
+case "${HYPERMARK_SKIP_SKILLS_INSTALL:-}" in
     1|true|yes|TRUE|YES|True|Yes)
         skip_skills=1
-        skip_skills_source="PLANNOTATOR_SKIP_SKILLS_INSTALL"
+        skip_skills_source="HYPERMARK_SKIP_SKILLS_INSTALL"
         ;;
     0|false|no|FALSE|NO|False|No)
         skip_skills=0
@@ -661,7 +661,7 @@ if [ "$verify_attestation" -eq 1 ]; then
         echo "build provenance is ${MIN_ATTESTED_VERSION}. Options:" >&2
         echo "  - Pin to ${MIN_ATTESTED_VERSION} or later: --version ${MIN_ATTESTED_VERSION}" >&2
         echo "  - Install without provenance verification: --skip-attestation" >&2
-        echo "  - Or unset PLANNOTATOR_VERIFY_ATTESTATION / remove verifyAttestation" >&2
+        echo "  - Or unset HYPERMARK_VERIFY_ATTESTATION / remove verifyAttestation" >&2
         echo "    from ~/.plannotator/config.json" >&2
         exit 1
     fi
@@ -867,7 +867,7 @@ sys.stdout.write("\n".join(lines) + "\n")
         echo "verifyAttestation is enabled but gh CLI was not found." >&2
         echo "Install https://cli.github.com (no login is needed when the public" >&2
         echo "attestation bundle fetch succeeds), or unset" >&2
-        echo "PLANNOTATOR_VERIFY_ATTESTATION / remove verifyAttestation from" >&2
+        echo "HYPERMARK_VERIFY_ATTESTATION / remove verifyAttestation from" >&2
         echo "~/.plannotator/config.json / pass --skip-attestation." >&2
         rm -f "$tmp_file"
         exit 1
@@ -912,7 +912,7 @@ print_path_advice() {
 # write, cache clear, or cleanup migration runs. No persistent state is written
 # outside $INSTALL_DIR (the temp download file was already cleaned up above; the
 # config dir may have been read, never written). See the MINIMAL_FLAG /
-# PLANNOTATOR_MINIMAL resolution near the top.
+# HYPERMARK_MINIMAL resolution near the top.
 if [ "$minimal" -eq 1 ]; then
     print_path_advice
     echo ""
@@ -931,9 +931,9 @@ sem_asset_for_platform() {
 }
 
 install_sem_sidecar() {
-    case "${PLANNOTATOR_SKIP_SEM_INSTALL:-}" in
+    case "${HYPERMARK_SKIP_SEM_INSTALL:-}" in
         1|true|yes|TRUE|YES|True|Yes)
-            echo "Skipping semantic diff sidecar install (PLANNOTATOR_SKIP_SEM_INSTALL is set)"
+            echo "Skipping semantic diff sidecar install (HYPERMARK_SKIP_SEM_INSTALL is set)"
             return 0
             ;;
     esac
@@ -958,7 +958,7 @@ install_sem_sidecar() {
 
     # Bounded so a slow/hung download of this optional sidecar can't wedge an
     # install where hypermark itself already landed. On timeout curl fails and
-    # we skip gracefully. Opt out entirely with PLANNOTATOR_SKIP_SEM_INSTALL=1.
+    # we skip gracefully. Opt out entirely with HYPERMARK_SKIP_SEM_INSTALL=1.
     if ! curl -fsSL --connect-timeout 10 --max-time 120 -o "$sem_archive" "${sem_base_url}/${sem_asset}"; then
         echo "Skipping semantic diff sidecar install (download failed)"
         rm -rf "$tmp_sem_dir"
@@ -1023,9 +1023,9 @@ install_sem_sidecar() {
 }
 
 install_agent_terminal_runtime() {
-    case "${PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL:-}" in
+    case "${HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL:-}" in
         1|true|yes|TRUE|YES|True|Yes)
-            echo "Skipping agent terminal runtime install (PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL is set)"
+            echo "Skipping agent terminal runtime install (HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL is set)"
             return 0
             ;;
     esac
@@ -1088,7 +1088,7 @@ if [ "$codex_available" -eq 1 ] && [ "$skip_codex" -eq 1 ]; then
 elif [ "$codex_available" -eq 1 ]; then
     CODEX_CONFIG="$CODEX_DIR/config.toml"
     CODEX_HOOKS="$CODEX_DIR/hooks.json"
-    PLANNOTATOR_BIN="${INSTALL_DIR}/hypermark"
+    HYPERMARK_BIN="${INSTALL_DIR}/hypermark"
     codex_hook_configured=0
 
     mkdir -p "$CODEX_DIR"
@@ -1170,7 +1170,7 @@ CODEX_CONFIG_EOF
         "hooks": [
           {
             "type": "command",
-            "command": "${PLANNOTATOR_BIN}",
+            "command": "${HYPERMARK_BIN}",
             "timeout": 345600
           }
         ]
@@ -1182,7 +1182,7 @@ CODEX_HOOKS_EOF
         echo "Created Codex hooks at ${CODEX_HOOKS}"
         codex_hook_configured=1
     elif command -v node >/dev/null 2>&1; then
-        if codex_merge_result=$(node - "$CODEX_HOOKS" "$PLANNOTATOR_BIN" <<'NODE'
+        if codex_merge_result=$(node - "$CODEX_HOOKS" "$HYPERMARK_BIN" <<'NODE'
 const fs = require("fs");
 const path = require("path");
 const [hooksPath, command] = process.argv.slice(2);
@@ -1247,7 +1247,7 @@ NODE
             echo "Codex hooks file already exists at ${CODEX_HOOKS}, but it could not be merged automatically."
             echo "Leaving Codex hook support unchanged. Add or update this Stop hook manually:"
             echo ""
-            echo "  command: ${PLANNOTATOR_BIN}"
+            echo "  command: ${HYPERMARK_BIN}"
             echo "  timeout: 345600"
         fi
     else
@@ -1255,7 +1255,7 @@ NODE
         echo "Codex hooks file already exists at ${CODEX_HOOKS}, but node was not found to merge it safely."
         echo "Leaving Codex hook support unchanged. Add or update this Stop hook manually:"
         echo ""
-        echo "  command: ${PLANNOTATOR_BIN}"
+        echo "  command: ${HYPERMARK_BIN}"
         echo "  timeout: 345600"
     fi
 
@@ -1413,9 +1413,9 @@ if [ "$NON_INTERACTIVE" -eq 0 ] && { : < /dev/tty; } 2>/dev/null; then
 fi
 
 # Bound every interactive read so an unattended-but-open /dev/tty auto-takes
-# the default rather than hanging. Set PLANNOTATOR_PROMPT_TIMEOUT=0 to wait
+# the default rather than hanging. Set HYPERMARK_PROMPT_TIMEOUT=0 to wait
 # indefinitely (restores the old unbounded behavior); non-numeric falls to 30.
-PROMPT_TIMEOUT="${PLANNOTATOR_PROMPT_TIMEOUT:-30}"
+PROMPT_TIMEOUT="${HYPERMARK_PROMPT_TIMEOUT:-30}"
 case "$PROMPT_TIMEOUT" in
     ''|*[!0-9]*) PROMPT_TIMEOUT=30 ;;
 esac
@@ -1667,7 +1667,7 @@ copy_commands_if_present() {
 # "network or git error" message below.
 checkout_failed=0
 (
-    # --skip-skills / PLANNOTATOR_SKIP_SKILLS_INSTALL / skipInstall.skills.
+    # --skip-skills / HYPERMARK_SKIP_SKILLS_INSTALL / skipInstall.skills.
     # Exit 0 BEFORE the clone so no network call is made and checkout_failed
     # stays 0 — an opt-out is not a fetch failure and must not trip the guard
     # below. The report was already printed above the git check.
@@ -1922,7 +1922,7 @@ GEMINI_POLICY_EOF
 
     # Configure hook in settings.json
     GEMINI_SETTINGS="$HOME/.gemini/settings.json"
-    PLANNOTATOR_HOOK='{"matcher":"exit_plan_mode","hooks":[{"type":"command","command":"hypermark","timeout":345600}]}'
+    HYPERMARK_HOOK='{"matcher":"exit_plan_mode","hooks":[{"type":"command","command":"hypermark","timeout":345600}]}'
 
     if [ -f "$GEMINI_SETTINGS" ]; then
         if ! grep -q '"hypermark"' "$GEMINI_SETTINGS" 2>/dev/null; then
@@ -1933,7 +1933,7 @@ GEMINI_POLICY_EOF
                   const settings = JSON.parse(fs.readFileSync('$GEMINI_SETTINGS', 'utf8'));
                   if (!settings.hooks) settings.hooks = {};
                   if (!settings.hooks.BeforeTool) settings.hooks.BeforeTool = [];
-                  settings.hooks.BeforeTool.push($PLANNOTATOR_HOOK);
+                  settings.hooks.BeforeTool.push($HYPERMARK_HOOK);
                   fs.writeFileSync('$GEMINI_SETTINGS', JSON.stringify(settings, null, 2) + '\n');
                 "
                 echo "Added hypermark hook to ${GEMINI_SETTINGS}"

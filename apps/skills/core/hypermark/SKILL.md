@@ -147,13 +147,13 @@ hypermark improve-context
 
 | Variable | Use |
 | --- | --- |
-| `PLANNOTATOR_REMOTE=1` | Force remote mode (fixed port 19432, wide bind) for SSH/devcontainer sessions; `0` forces local. Unset means SSH auto-detection. |
-| `PLANNOTATOR_PORT` | Fix the port instead of a random one. |
-| `PLANNOTATOR_ORIGIN` | Override agent-origin detection (`claude-code`, `codex`, `opencode`, `pi`, `oh-my-pi`, `amp`, `droid`, `copilot-cli`, `gemini-cli`, `kiro-cli`). Set it when launching Hypermark from a wrapper the detection cannot see through. |
-| `PLANNOTATOR_AI=disabled` | Disable Ask AI and agent-launched review surfaces in the UI. |
-| `PLANNOTATOR_SHARE=disabled` | Disable URL sharing. |
-| `PLANNOTATOR_DATA_DIR` | Move the data directory (default `~/.plannotator`): plans, history, drafts, config. |
-| `PLANNOTATOR_BROWSER` | Open sessions in a specific browser. |
+| `HYPERMARK_REMOTE=1` | Force remote mode (fixed port 19432, wide bind) for SSH/devcontainer sessions; `0` forces local. Unset means SSH auto-detection. |
+| `HYPERMARK_PORT` | Fix the port instead of a random one. |
+| `HYPERMARK_ORIGIN` | Override agent-origin detection (`claude-code`, `codex`, `opencode`, `pi`, `oh-my-pi`, `amp`, `droid`, `copilot-cli`, `gemini-cli`, `kiro-cli`). Set it when launching Hypermark from a wrapper the detection cannot see through. |
+| `HYPERMARK_AI=disabled` | Disable Ask AI and agent-launched review surfaces in the UI. |
+| `HYPERMARK_SHARE=disabled` | Disable URL sharing. |
+| `HYPERMARK_DATA_DIR` | Move the data directory (default `~/.plannotator`): plans, history, drafts, config. |
+| `HYPERMARK_BROWSER` | Open sessions in a specific browser. |
 
 ## Posting annotations into a live session
 

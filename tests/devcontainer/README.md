@@ -26,8 +26,8 @@ This directory contains a devcontainer setup for testing Hypermark with OpenCode
 ## Testing Hypermark
 
 The devcontainer is pre-configured with:
-- `PLANNOTATOR_REMOTE=1` - enables remote mode
-- `PLANNOTATOR_PORT=9999` - fixed port for the UI
+- `HYPERMARK_REMOTE=1` - enables remote mode
+- `HYPERMARK_PORT=9999` - fixed port for the UI
 - Port 9999 forwarded to host
 
 ### Test Steps

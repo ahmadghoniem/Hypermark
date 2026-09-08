@@ -194,7 +194,7 @@ jobs:
             local label="$1" port="$2" endpoint="$3"
             shift 3
 
-            PLANNOTATOR_PORT="$port" "$@" &
+            HYPERMARK_PORT="$port" "$@" &
             local pid=$!
             local ok=0
 
@@ -222,9 +222,9 @@ jobs:
             local data_dir
             data_dir="$(mktemp -d)"
 
-            PLANNOTATOR_DATA_DIR="$data_dir" "$BINARY" install-runtime agent-terminal
+            HYPERMARK_DATA_DIR="$data_dir" "$BINARY" install-runtime agent-terminal
 
-            PLANNOTATOR_DATA_DIR="$data_dir" PLANNOTATOR_PORT="$port" "$BINARY" annotate README.md &
+            HYPERMARK_DATA_DIR="$data_dir" HYPERMARK_PORT="$port" "$BINARY" annotate README.md &
             local pid=$!
             local ok=0
 
@@ -248,7 +248,7 @@ jobs:
             cat > "$smoke_script" <<'NODE'
           import WebSocket from "ws";
 
-          const base = process.env.PLANNOTATOR_SMOKE_URL;
+          const base = process.env.HYPERMARK_SMOKE_URL;
           const plan = await fetch(`${base}/api/plan`).then((res) => res.json());
           const terminal = plan.agentTerminal;
           if (!terminal?.enabled) {
@@ -286,7 +286,7 @@ jobs:
           NODE
 
             local result=0
-            (cd "$runtime_dir" && PLANNOTATOR_SMOKE_URL="http://127.0.0.1:${port}" node "$smoke_script") || result=$?
+            (cd "$runtime_dir" && HYPERMARK_SMOKE_URL="http://127.0.0.1:${port}" node "$smoke_script") || result=$?
             kill "$pid" 2>/dev/null || true
             wait "$pid" 2>/dev/null || true
             if [ "$result" != "0" ]; then
@@ -310,8 +310,8 @@ jobs:
           # 5. #1249 regression: env vars must load even when a cwd ancestor
           # is unreadable (the OS-sandbox case: the project dir is granted but
           # an ancestor is not). Bun <= 1.3.11 loaded an EMPTY process.env
-          # there, silently ignoring every PLANNOTATOR_* variable. The server
-          # responding on the fixed PLANNOTATOR_PORT proves the variable was
+          # there, silently ignoring every HYPERMARK_* variable. The server
+          # responding on the fixed HYPERMARK_PORT proves the variable was
           # actually read from inside the guarded cwd.
           guard_root="$(mktemp -d)"
           mkdir -p "$guard_root/parent/child"
@@ -353,7 +353,7 @@ jobs:
               [string[]] $Arguments
             )
 
-            $env:PLANNOTATOR_PORT = $Port
+            $env:HYPERMARK_PORT = $Port
             $stdout = New-TemporaryFile
             $stderr = New-TemporaryFile
             $process = Start-Process `
@@ -383,7 +383,7 @@ jobs:
                 Stop-Process -Id $process.Id -Force
                 Wait-Process -Id $process.Id -ErrorAction SilentlyContinue
               }
-              Remove-Item Env:\PLANNOTATOR_PORT -ErrorAction SilentlyContinue
+              Remove-Item Env:\HYPERMARK_PORT -ErrorAction SilentlyContinue
             }
 
             if (-not $ok) {
@@ -402,13 +402,13 @@ jobs:
             $dataDir = Join-Path ([System.IO.Path]::GetTempPath()) "hypermark-terminal-$([System.Guid]::NewGuid().ToString('N'))"
             New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
 
-            $env:PLANNOTATOR_DATA_DIR = $dataDir
+            $env:HYPERMARK_DATA_DIR = $dataDir
             & $binary install-runtime agent-terminal
             if ($LASTEXITCODE -ne 0) {
               throw "FAIL: install-runtime agent-terminal failed"
             }
 
-            $env:PLANNOTATOR_PORT = $port
+            $env:HYPERMARK_PORT = $port
             $stdout = New-TemporaryFile
             $stderr = New-TemporaryFile
             $process = Start-Process `
@@ -443,7 +443,7 @@ jobs:
               Set-Content -Path $smokeScript -Encoding UTF8 -Value @'
           import WebSocket from "ws";
 
-          const base = process.env.PLANNOTATOR_SMOKE_URL;
+          const base = process.env.HYPERMARK_SMOKE_URL;
           const plan = await fetch(`${base}/api/plan`).then((res) => res.json());
           const terminal = plan.agentTerminal;
           if (!terminal?.enabled) {
@@ -481,11 +481,11 @@ jobs:
           '@
               Push-Location $runtimeDir
               try {
-                $env:PLANNOTATOR_SMOKE_URL = "http://127.0.0.1:$Port"
+                $env:HYPERMARK_SMOKE_URL = "http://127.0.0.1:$Port"
                 node $smokeScript
               } finally {
                 Pop-Location
-                Remove-Item Env:\PLANNOTATOR_SMOKE_URL -ErrorAction SilentlyContinue
+                Remove-Item Env:\HYPERMARK_SMOKE_URL -ErrorAction SilentlyContinue
               }
               Write-Host "OK: hypermark annotate terminal WebSocket reached sidecar"
             } finally {
@@ -493,8 +493,8 @@ jobs:
                 Stop-Process -Id $process.Id -Force
                 Wait-Process -Id $process.Id -ErrorAction SilentlyContinue
               }
-              Remove-Item Env:\PLANNOTATOR_PORT -ErrorAction SilentlyContinue
-              Remove-Item Env:\PLANNOTATOR_DATA_DIR -ErrorAction SilentlyContinue
+              Remove-Item Env:\HYPERMARK_PORT -ErrorAction SilentlyContinue
+              Remove-Item Env:\HYPERMARK_DATA_DIR -ErrorAction SilentlyContinue
             }
           }
 
@@ -536,7 +536,7 @@ jobs:
             "FACTORY_CONFIG_DIR",
             "COPILOT_HOME",
             "PI_CODING_AGENT_DIR",
-            "PLANNOTATOR_DATA_DIR"
+            "HYPERMARK_DATA_DIR"
           )
           $savedEnvironment = @{}
           foreach ($name in $environmentNames) {
@@ -565,7 +565,7 @@ jobs:
               XDG_CACHE_HOME = (Join-Path $isolatedHome ".cache")
               CLAUDE_CONFIG_DIR = (Join-Path $isolatedHome ".claude")
               PI_CODING_AGENT_DIR = (Join-Path $isolatedHome ".pi\agent")
-              PLANNOTATOR_DATA_DIR = (Join-Path $isolatedHome ".plannotator")
+              HYPERMARK_DATA_DIR = (Join-Path $isolatedHome ".plannotator")
             }
             foreach ($entry in $values.GetEnumerator()) {
               [System.Environment]::SetEnvironmentVariable($entry.Key, $entry.Value, "Process")
@@ -613,7 +613,7 @@ jobs:
             $values = Set-IsolatedUninstallEnvironment $caseRoot
             $installDirectory = Join-Path $values.LOCALAPPDATA "hypermark"
             $testBinary = Join-Path $installDirectory "hypermark.exe"
-            $dataDirectory = $values.PLANNOTATOR_DATA_DIR
+            $dataDirectory = $values.HYPERMARK_DATA_DIR
 
             New-Item -ItemType Directory -Force -Path $installDirectory | Out-Null
             Copy-Item -LiteralPath $sourceBinary -Destination $testBinary
@@ -799,7 +799,7 @@ jobs:
                   "hooks": [
                     {
                       "type": "command",
-                      "command": "PLANNOTATOR_BROWSER=/usr/bin/true hypermark",
+                      "command": "HYPERMARK_BROWSER=/usr/bin/true hypermark",
                       "timeout": 123
                     }
                   ]
@@ -821,7 +821,7 @@ jobs:
           if (hooks.length !== 1) {
             throw new Error(`Expected one preserved custom Stop hook, got ${hooks.length}`);
           }
-          if (hooks[0].command !== "PLANNOTATOR_BROWSER=/usr/bin/true hypermark") {
+          if (hooks[0].command !== "HYPERMARK_BROWSER=/usr/bin/true hypermark") {
             throw new Error(`Custom Stop hook command was changed to ${hooks[0].command}`);
           }
           NODE
@@ -1053,8 +1053,8 @@ jobs:
 
       - name: Generate SBOM and enforce Grype policy
         env:
-          PLANNOTATOR_RELEASE_SUBJECTS_DIR: ${{ github.workspace }}/release-subjects
-          PLANNOTATOR_RELEASE_SECURITY_DIR: ${{ runner.temp }}/hypermark-release-security
+          HYPERMARK_RELEASE_SUBJECTS_DIR: ${{ github.workspace }}/release-subjects
+          HYPERMARK_RELEASE_SECURITY_DIR: ${{ runner.temp }}/hypermark-release-security
         run: scripts/release-security/run-release-security.sh
 
       - name: Upload public release SBOM

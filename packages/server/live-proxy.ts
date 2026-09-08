@@ -21,7 +21,7 @@
  * - Strips app CSP on HTML and replaces it with a frame-ancestors policy
  *   listing exactly the editor origins, which simultaneously defeats app
  *   anti-framing headers and prevents hostile sites from framing the proxy.
- * - PLANNOTATOR_URL_HOST / buildAdvertisedUrl are never applied to the proxy
+ * - HYPERMARK_URL_HOST / buildAdvertisedUrl are never applied to the proxy
  *   origin.
  */
 
@@ -349,7 +349,7 @@ export function startLiveAppProxy(opts: LiveAppProxyOptions): LiveAppProxy {
   const port = server.port!;
   return {
     port,
-    // Always the literal loopback origin: PLANNOTATOR_URL_HOST and
+    // Always the literal loopback origin: HYPERMARK_URL_HOST and
     // buildAdvertisedUrl are never applied here.
     origin: `http://${LOOPBACK_HOST}:${port}`,
     stop() {

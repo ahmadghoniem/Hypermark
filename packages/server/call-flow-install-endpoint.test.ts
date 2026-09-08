@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { CallFlowInstallStage, CallFlowNodePreflight, CallFlowRuntimeInstallResult } from '@hypermark/shared/call-flow';
 
-// PLANNOTATOR_DATA_DIR is only ever changed INSIDE tests (boot() below) and
+// HYPERMARK_DATA_DIR is only ever changed INSIDE tests (boot() below) and
 // restored to its original value after each one. It must never be overridden
 // at module-eval time: bun evaluates every test file's module before running
 // tests in one shared process, and Pi's generated/storage.ts caches its data
@@ -15,8 +15,8 @@ import type { CallFlowInstallStage, CallFlowNodePreflight, CallFlowRuntimeInstal
 // guards against. Config writes made by these tests target whatever dir the
 // process's config module froze at first import; the snapshot/restore in
 // afterAll below keeps those writes from leaking into a real config.json.
-const originalDataDir = process.env.PLANNOTATOR_DATA_DIR;
-const originalPort = process.env.PLANNOTATOR_PORT;
+const originalDataDir = process.env.HYPERMARK_DATA_DIR;
+const originalPort = process.env.HYPERMARK_PORT;
 const originalPath = process.env.PATH;
 const tempDirs: string[] = [];
 
@@ -163,10 +163,10 @@ afterEach(() => {
   // Restore every process-global this file's tests touched (delete when a
   // variable was originally unset). Later test files in the same process
   // must observe exactly the environment they would see standalone.
-  if (originalDataDir === undefined) delete process.env.PLANNOTATOR_DATA_DIR;
-  else process.env.PLANNOTATOR_DATA_DIR = originalDataDir;
-  if (originalPort === undefined) delete process.env.PLANNOTATOR_PORT;
-  else process.env.PLANNOTATOR_PORT = originalPort;
+  if (originalDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
+  else process.env.HYPERMARK_DATA_DIR = originalDataDir;
+  if (originalPort === undefined) delete process.env.HYPERMARK_PORT;
+  else process.env.HYPERMARK_PORT = originalPort;
   if (originalPath === undefined) delete process.env.PATH;
   else process.env.PATH = originalPath;
   installCalls = 0;
@@ -198,7 +198,7 @@ describe('Call flow install endpoints', () => {
     ['Bun', startBunReviewServer],
   ] as const) {
     const boot = async (options: { rawPatch?: string; coreInstalled?: boolean } = {}) => {
-      process.env.PLANNOTATOR_DATA_DIR = makeTempDir('plannotator-call-flow-rt-');
+      process.env.HYPERMARK_DATA_DIR = makeTempDir('plannotator-call-flow-rt-');
       if (options.coreInstalled) materializeFakeRuntime();
       return await startServer({
         rawPatch: options.rawPatch ?? '',

@@ -86,7 +86,7 @@ To test custom port:
 ```bash
 ssh -p 2222 root@localhost
 cd /app
-PLANNOTATOR_PORT=9999 ./test-ssh.sh
+HYPERMARK_PORT=9999 ./test-ssh.sh
 ```
 
 Server should use port 9999 instead of 19432.

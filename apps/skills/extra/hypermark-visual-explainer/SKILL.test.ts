@@ -96,7 +96,7 @@ describe("hypermark-visual-explainer Mermaid theming", () => {
         throw new Error("Expected Mermaid 11, received " + mermaidPackage.version);
       }
 
-      const palettes = JSON.parse(process.env.PLANNOTATOR_MERMAID_PALETTES ?? "[]");
+      const palettes = JSON.parse(process.env.HYPERMARK_MERMAID_PALETTES ?? "[]");
       const diagrams = [
         {
           name: "architecture",
@@ -168,7 +168,7 @@ describe("hypermark-visual-explainer Mermaid theming", () => {
       {
         env: {
           ...process.env,
-          PLANNOTATOR_MERMAID_PALETTES: JSON.stringify(palettes),
+          HYPERMARK_MERMAID_PALETTES: JSON.stringify(palettes),
         },
         stdout: "pipe",
         stderr: "pipe",

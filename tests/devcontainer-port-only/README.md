@@ -1,6 +1,6 @@
 # Hypermark Test - Port Only (Expected to Fail)
 
-This test simulates the common misconfiguration reported by users running `opencode web` in Docker: setting only `PLANNOTATOR_PORT` without `PLANNOTATOR_REMOTE`.
+This test simulates the common misconfiguration reported by users running `opencode web` in Docker: setting only `HYPERMARK_PORT` without `HYPERMARK_REMOTE`.
 
 ## Setup
 
@@ -15,15 +15,15 @@ ln ~/.local/share/opencode/auth.json .opencode/auth.json
 
 Users in Docker/devcontainer environments often set:
 ```bash
-PLANNOTATOR_PORT=9999
+HYPERMARK_PORT=9999
 ```
 
 But forget to set:
 ```bash
-PLANNOTATOR_REMOTE=1
+HYPERMARK_REMOTE=1
 ```
 
-Without `PLANNOTATOR_REMOTE=1` (and no `SSH_TTY`/`SSH_CONNECTION` in the environment), the plugin will:
+Without `HYPERMARK_REMOTE=1` (and no `SSH_TTY`/`SSH_CONNECTION` in the environment), the plugin will:
 1. ✅ Use port 9999
 2. ❌ Still try to open a browser (fails silently or hangs)
 
@@ -39,8 +39,8 @@ When you trigger a plan in this devcontainer:
 
 Users need BOTH environment variables:
 ```bash
-PLANNOTATOR_REMOTE=1
-PLANNOTATOR_PORT=9999
+HYPERMARK_REMOTE=1
+HYPERMARK_PORT=9999
 ```
 
 See `tests/devcontainer/` for the correct configuration.

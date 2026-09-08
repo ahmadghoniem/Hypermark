@@ -191,7 +191,7 @@ Share a plan with a teammate and they can annotate it themselves. Import their f
 
 Same model as [PrivateBin](https://privatebin.info/). The paste service is [self-hostable](https://docs.plannotator.ai/open-source/workflows/sharing).
 
-Sharing can be disabled entirely with `PLANNOTATOR_SHARE=disabled`.
+Sharing can be disabled entirely with `HYPERMARK_SHARE=disabled`.
 
 [Workspaces](https://plannotator.ai/workspaces) is the primary path for hosted team collaboration.
 
@@ -213,7 +213,7 @@ irm https://plannotator.ai/install.ps1 | iex
 
 The installer downloads the binary from GitHub Releases. A full install can also contact GitHub for release resolution and agent files, Ataraxy-Labs/sem for the optional `sem` sidecar, and npm for Pi, selected extra skills, or the managed agent-terminal runtime. Pinning `--version` skips only GitHub API release resolution, not the release download. See the [privacy policy](https://plannotator.ai/privacy) for the complete network boundaries.
 
-Want just the binary and nothing else? Pass `--minimal` (or export `PLANNOTATOR_MINIMAL=1`) to install only the `hypermark` binary to `~/.local/bin`, skipping every skill, hook, slash command, and per-agent config:
+Want just the binary and nothing else? Pass `--minimal` (or export `HYPERMARK_MINIMAL=1`) to install only the `hypermark` binary to `~/.local/bin`, skipping every skill, hook, slash command, and per-agent config:
 
 ```bash
 curl -fsSL https://plannotator.ai/install.sh | bash -s -- --minimal
@@ -282,7 +282,7 @@ hardlinks, and bind mounts cannot bypass the root/home/ancestor checks.
 That identity and every containment guard are revalidated after awaited host
 commands, immediately before the synchronous data-removal block; a replaced
 data directory is refused without touching either the old or replacement data.
-If your dedicated data directory is symlinked, point `PLANNOTATOR_DATA_DIR` at
+If your dedicated data directory is symlinked, point `HYPERMARK_DATA_DIR` at
 its resolved target and retry.
 
 If you installed only the standalone Pi extension and do not have the
@@ -388,8 +388,8 @@ You run /hypermark-review
 Hypermark auto-detects SSH sessions and switches to a fixed port. For explicit control:
 
 ```bash
-export PLANNOTATOR_REMOTE=1
-export PLANNOTATOR_PORT=9999  # forward this port
+export HYPERMARK_REMOTE=1
+export HYPERMARK_PORT=9999  # forward this port
 ```
 
 VS Code devcontainers forward the port automatically (check the Ports tab). For raw SSH, add to `~/.ssh/config`:
@@ -483,22 +483,22 @@ implementation architecture.
 
 | Variable | Description |
 |---|---|
-| `PLANNOTATOR_REMOTE` | `1`/`true` for remote mode, `0`/`false` for local, unset for SSH auto-detection |
-| `PLANNOTATOR_PORT` | Fixed port (default: random locally, `19432` remote) |
-| `PLANNOTATOR_BROWSER` | Custom browser to open plans in |
-| `PLANNOTATOR_AI` | `disabled` to disable Ask AI, Review Agents, and Guided Review; the annotate agent terminal is separate |
-| `PLANNOTATOR_SHARE` | `disabled` to turn off URL sharing |
-| `PLANNOTATOR_SHARE_URL` | Custom base URL for share links (self-hosted portal) |
-| `PLANNOTATOR_PASTE_URL` | Base URL of the paste service API |
-| `PLANNOTATOR_ORIGIN` | Override agent detection: `claude-code`, `amp`, `droid`, `opencode`, `codex`, `copilot-cli`, `gemini-cli`, `kiro-cli`, `pi` |
-| `PLANNOTATOR_JINA` | `0`/`false` to disable Jina Reader for URL annotation |
+| `HYPERMARK_REMOTE` | `1`/`true` for remote mode, `0`/`false` for local, unset for SSH auto-detection |
+| `HYPERMARK_PORT` | Fixed port (default: random locally, `19432` remote) |
+| `HYPERMARK_BROWSER` | Custom browser to open plans in |
+| `HYPERMARK_AI` | `disabled` to disable Ask AI, Review Agents, and Guided Review; the annotate agent terminal is separate |
+| `HYPERMARK_SHARE` | `disabled` to turn off URL sharing |
+| `HYPERMARK_SHARE_URL` | Custom base URL for share links (self-hosted portal) |
+| `HYPERMARK_PASTE_URL` | Base URL of the paste service API |
+| `HYPERMARK_ORIGIN` | Override agent detection: `claude-code`, `amp`, `droid`, `opencode`, `codex`, `copilot-cli`, `gemini-cli`, `kiro-cli`, `pi` |
+| `HYPERMARK_JINA` | `0`/`false` to disable Jina Reader for URL annotation |
 | `JINA_API_KEY` | Jina Reader API key for higher rate limits |
-| `PLANNOTATOR_DATA_DIR` | Base directory for Hypermark-managed files (plans, history, drafts, `config.json`). Default: `~/.plannotator`; if that directory doesn't exist and `$XDG_DATA_HOME` is set to an absolute path, `$XDG_DATA_HOME/plannotator` is used instead |
+| `HYPERMARK_DATA_DIR` | Base directory for Hypermark-managed files (plans, history, drafts, `config.json`). Default: `~/.plannotator`; if that directory doesn't exist and `$XDG_DATA_HOME` is set to an absolute path, `$XDG_DATA_HOME/plannotator` is used instead |
 
 Hypermark-managed files live under `~/.plannotator` by default. Some UI preferences are stored in functional browser cookies. To relocate the files (for example, for an XDG-clean home):
 
 ```bash
-export PLANNOTATOR_DATA_DIR=~/.local/share/plannotator
+export HYPERMARK_DATA_DIR=~/.local/share/plannotator
 ```
 
 ---

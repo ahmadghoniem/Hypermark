@@ -7,8 +7,8 @@
  * render it without separate app bundles.
  *
  * Environment variables:
- *   PLANNOTATOR_REMOTE - Set to "1"/"true" for remote, "0"/"false" for local
- *   PLANNOTATOR_PORT   - Fixed port or inclusive range (default: random locally, 19432 for remote)
+ *   HYPERMARK_REMOTE - Set to "1"/"true" for remote, "0"/"false" for local
+ *   HYPERMARK_PORT   - Fixed port or inclusive range (default: random locally, 19432 for remote)
  */
 
 import { isRemoteSession, getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
@@ -141,7 +141,7 @@ export interface AnnotateServerOptions {
   /**
    * The session is loopback-bound but published across the user's tailnet
    * (--tailscale). Gates the agent terminal behind the same
-   * PLANNOTATOR_AGENT_TERMINAL_REMOTE opt-in remote mode uses: the PTY token
+   * HYPERMARK_AGENT_TERMINAL_REMOTE opt-in remote mode uses: the PTY token
    * is not an auth boundary against network peers (wsPath ships in the
    * /api/plan capability payload), so tailnet reachability implies terminal
    * reachability.
@@ -345,7 +345,7 @@ export async function startAnnotateServer(
   // {DATA_DIR}/history/{project}/{slug}/submissions/{timestamp}.md (next to
   // the file's annotate version history) BEFORE the draft delete.
   //
-  // annotateHistory opt-out policy: PLANNOTATOR_ANNOTATE_HISTORY=0 means "do
+  // annotateHistory opt-out policy: HYPERMARK_ANNOTATE_HISTORY=0 means "do
   // not write annotated content to the data dir", and submitted feedback
   // quotes that content, so the record is skipped and the legacy submit
   // behavior (draft deleted) is preserved unchanged. A missing/timed-out
@@ -372,7 +372,7 @@ export async function startAnnotateServer(
   // annotate-last / live-app / folder submissions now leave a durable record
   // for the first time.
   //
-  // Both gates apply. PLANNOTATOR_ANNOTATE_HISTORY=0 still means "no annotate
+  // Both gates apply. HYPERMARK_ANNOTATE_HISTORY=0 still means "no annotate
   // content in the data dir at all", and submitted feedback quotes that
   // content, so it suppresses archive records for every annotate surface and
   // the documented fully-stateless annotate session stays verbatim true.
@@ -1264,7 +1264,7 @@ export async function startAnnotateServer(
     });
     // Advertise the proxy under the LOCALHOST spelling, carrying the target
     // URL's own path and query (see buildLiveAppUrl in live-proxy-core for
-    // the same-site/cookie rationale). PLANNOTATOR_URL_HOST is still never
+    // the same-site/cookie rationale). HYPERMARK_URL_HOST is still never
     // applied here.
     liveAppUrl = buildLiveAppUrl(liveProxy.port, liveApp.targetUrl);
   }

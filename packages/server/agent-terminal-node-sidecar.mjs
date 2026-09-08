@@ -2,13 +2,13 @@
 // load. The parent Bun server spawns this sidecar (see agent-terminal-runtime.ts).
 import { createServer } from "node:http";
 
-const webtuiCoreUrl = process.env.PLANNOTATOR_AGENT_WEBTUI_CORE_URL || "@plannotator/webtui/core";
-const webtuiServerUrl = process.env.PLANNOTATOR_AGENT_WEBTUI_SERVER_URL || "@plannotator/webtui/server";
+const webtuiCoreUrl = process.env.HYPERMARK_AGENT_WEBTUI_CORE_URL || "@plannotator/webtui/core";
+const webtuiServerUrl = process.env.HYPERMARK_AGENT_WEBTUI_SERVER_URL || "@plannotator/webtui/server";
 const { buildAgentLaunchPlan, listBuiltInAgents } = await import(webtuiCoreUrl);
 const { createNodePtyWebSocketServer, NodePtyBackend } = await import(webtuiServerUrl);
 
-const cwd = process.env.PLANNOTATOR_AGENT_CWD || process.cwd();
-const wsPath = process.env.PLANNOTATOR_AGENT_WS_PATH || "/api/agent-terminal/pty";
+const cwd = process.env.HYPERMARK_AGENT_CWD || process.cwd();
+const wsPath = process.env.HYPERMARK_AGENT_WS_PATH || "/api/agent-terminal/pty";
 // Claude only — the same restriction the capability payload applies, enforced
 // again here because the spawn request arrives from the client. Mirrors
 // RETAINED_AGENT_TERMINAL_AGENTS in packages/core/agent-terminal.ts, repeated

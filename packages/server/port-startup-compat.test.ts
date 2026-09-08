@@ -5,10 +5,10 @@ import { startHypermarkServer } from "./index";
 import { handleServerReady } from "./shared-handlers";
 
 const envKeys = [
-  "PLANNOTATOR_PORT",
-  "PLANNOTATOR_REMOTE",
-  "PLANNOTATOR_DATA_DIR",
-  "PLANNOTATOR_SKIP_BROWSER_OPEN",
+  "HYPERMARK_PORT",
+  "HYPERMARK_REMOTE",
+  "HYPERMARK_DATA_DIR",
+  "HYPERMARK_SKIP_BROWSER_OPEN",
   "__CFBundleIdentifier",
 ] as const;
 const environment = createTestEnvironment(envKeys, "plannotator-port-compat-");
@@ -18,8 +18,8 @@ afterEach(() => environment.restore());
 describe("Bun startup port compatibility", () => {
   test("unset local startup keeps its random URL and browser-ready handoff", async () => {
     environment.reset();
-    process.env.PLANNOTATOR_REMOTE = "0";
-    process.env.PLANNOTATOR_DATA_DIR = environment.makeTempDir();
+    process.env.HYPERMARK_REMOTE = "0";
+    process.env.HYPERMARK_DATA_DIR = environment.makeTempDir();
     process.env.__CFBundleIdentifier = "com.apple.Terminal";
     let ready: { url: string; isRemote: boolean; port: number } | undefined;
 
@@ -58,9 +58,9 @@ describe("Bun startup port compatibility", () => {
     environment.reset();
     const { start, servers } = await occupyConsecutivePorts(1);
     await closeServer(servers[0]);
-    process.env.PLANNOTATOR_REMOTE = "0";
-    process.env.PLANNOTATOR_PORT = String(start);
-    process.env.PLANNOTATOR_DATA_DIR = environment.makeTempDir();
+    process.env.HYPERMARK_REMOTE = "0";
+    process.env.HYPERMARK_PORT = String(start);
+    process.env.HYPERMARK_DATA_DIR = environment.makeTempDir();
     let ready: { url: string; isRemote: boolean; port: number } | undefined;
 
     const server = await startHypermarkServer({
@@ -85,9 +85,9 @@ describe("Bun startup port compatibility", () => {
     environment.reset();
     const { start, servers } = await occupyConsecutivePorts(1);
     await closeServer(servers[0]);
-    process.env.PLANNOTATOR_REMOTE = "0";
-    process.env.PLANNOTATOR_PORT = String(start);
-    process.env.PLANNOTATOR_DATA_DIR = environment.makeTempDir();
+    process.env.HYPERMARK_REMOTE = "0";
+    process.env.HYPERMARK_PORT = String(start);
+    process.env.HYPERMARK_DATA_DIR = environment.makeTempDir();
     const readyError = new Error("ready handoff failed");
 
     await expect(startHypermarkServer({

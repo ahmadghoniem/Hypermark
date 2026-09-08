@@ -42,8 +42,8 @@ function runAnnotate(args: string[], envOverrides: Record<string, string> = {}):
       cwd: fixtureDir,
       env: {
         ...process.env,
-        PLANNOTATOR_CWD: fixtureDir,
-        PLANNOTATOR_DATA_DIR: dataDir,
+        HYPERMARK_CWD: fixtureDir,
+        HYPERMARK_DATA_DIR: dataDir,
         ...envOverrides,
       },
       stdout: "pipe",
@@ -153,7 +153,7 @@ describe("annotate CLI --tailscale publish failure exit codes", () => {
   const testUnix = test.skipIf(process.platform === "win32");
   const tailscaleEnv = () => ({
     PATH: `${join(fixtureDir, "bin")}:${process.env.PATH ?? ""}`,
-    PLANNOTATOR_AI: "disabled",
+    HYPERMARK_AI: "disabled",
   });
 
   testUnix("strict gate: exits 2 with no result file", () => {
@@ -214,7 +214,7 @@ describe("annotate CLI tolerant tiers", () => {
 });
 
 describe("hypermark annotate: live app remote hard-off (CLI layer)", () => {
-  test("a live-resolving loopback URL under PLANNOTATOR_REMOTE exits as a startup failure", async () => {
+  test("a live-resolving loopback URL under HYPERMARK_REMOTE exits as a startup failure", async () => {
     // The fake app lives in THIS process, so the CLI must be spawned
     // asynchronously (a sync spawn would block the event loop and deadlock
     // the probe request against our own server).
@@ -233,9 +233,9 @@ describe("hypermark annotate: live app remote hard-off (CLI layer)", () => {
           cwd: fixtureDir,
           env: {
             ...process.env,
-            PLANNOTATOR_CWD: fixtureDir,
-            PLANNOTATOR_DATA_DIR: dataDir,
-            PLANNOTATOR_REMOTE: "1",
+            HYPERMARK_CWD: fixtureDir,
+            HYPERMARK_DATA_DIR: dataDir,
+            HYPERMARK_REMOTE: "1",
           },
           stdout: "pipe",
           stderr: "pipe",

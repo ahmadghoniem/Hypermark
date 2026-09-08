@@ -133,10 +133,10 @@ describe("configured extensions in the annotatable predicates", () => {
 // silently ignored at runtime.
 describe("config-file integration (sandboxed data dir)", () => {
 	test("memoized config read feeds the predicates, once per process", () => {
-		const prevDataDir = process.env.PLANNOTATOR_DATA_DIR;
+		const prevDataDir = process.env.HYPERMARK_DATA_DIR;
 		const dataDir = mkdtempSync(join(tmpdir(), "plannotator-mdext-"));
 		try {
-			process.env.PLANNOTATOR_DATA_DIR = dataDir;
+			process.env.HYPERMARK_DATA_DIR = dataDir;
 			writeFileSync(
 				join(dataDir, "config.json"),
 				JSON.stringify({ markdownExtensions: [".livemd"] }),
@@ -155,8 +155,8 @@ describe("config-file integration (sandboxed data dir)", () => {
 			resetMarkdownExtensionsCache();
 			expect(getExtraMarkdownExtensions()).toEqual([".qmd"]);
 		} finally {
-			if (prevDataDir === undefined) delete process.env.PLANNOTATOR_DATA_DIR;
-			else process.env.PLANNOTATOR_DATA_DIR = prevDataDir;
+			if (prevDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
+			else process.env.HYPERMARK_DATA_DIR = prevDataDir;
 			resetMarkdownExtensionsCache();
 			rmSync(dataDir, { recursive: true, force: true });
 		}

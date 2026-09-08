@@ -73,7 +73,7 @@ afterEach(() => {
 describe("Windows self-delete worker", () => {
   test("keeps PowerShell statements on separate lines", () => {
     expect(WINDOWS_SELF_DELETE_SCRIPT).toContain(
-      "$target=$env:PLANNOTATOR_UNINSTALL_TARGET\nfor",
+      "$target=$env:HYPERMARK_UNINSTALL_TARGET\nfor",
     );
     expect(WINDOWS_SELF_DELETE_SCRIPT).toContain("}\n$parent=");
     expect(WINDOWS_SELF_DELETE_SCRIPT).toContain("if($parent){Remove-Item");
@@ -107,7 +107,7 @@ describe("Windows PATH scripts", () => {
     // whose process was killed or faulted while broadcasting.
     const echoes = {
       remove: "Write-Output (ConvertTo-Json",
-      restore: "Write-Output 'PLANNOTATOR_PATH_RESTORED'",
+      restore: "Write-Output 'HYPERMARK_PATH_RESTORED'",
     } as const;
     for (const [name, script] of Object.entries(scripts) as Array<
       [keyof typeof scripts, string]
@@ -133,7 +133,7 @@ describe("Windows PATH scripts", () => {
     Bun.which("pwsh") ||
     Bun.which("pwsh.exe") ||
     Bun.which("powershell.exe") ||
-    process.env.PLANNOTATOR_TEST_POWERSHELL ||
+    process.env.HYPERMARK_TEST_POWERSHELL ||
     null;
 
   test.skipIf(!powershell)(
@@ -149,13 +149,13 @@ describe("Windows PATH scripts", () => {
             "-NoProfile",
             "-NonInteractive",
             "-Command",
-            "$errors=$null; [void][System.Management.Automation.Language.Parser]::ParseInput($env:PLANNOTATOR_TEST_SCRIPT,[ref]$null,[ref]$errors); if($errors.Count -gt 0){$errors | ForEach-Object { Write-Output $_.Message }; exit 1}; exit 0",
+            "$errors=$null; [void][System.Management.Automation.Language.Parser]::ParseInput($env:HYPERMARK_TEST_SCRIPT,[ref]$null,[ref]$errors); if($errors.Count -gt 0){$errors | ForEach-Object { Write-Output $_.Message }; exit 1}; exit 0",
           ],
           {
             stdin: "ignore",
             stdout: "pipe",
             stderr: "pipe",
-            env: { ...process.env, PLANNOTATOR_TEST_SCRIPT: script },
+            env: { ...process.env, HYPERMARK_TEST_SCRIPT: script },
           },
         );
         const [stdout, exitCode] = await Promise.all([
@@ -446,7 +446,7 @@ describe("default uninstall", () => {
     const recognizableAmp = [
       'const CATEGORY = "Hypermark";',
       "export default function plannotatorAmpPlugin() {}",
-      'const origin = "PLANNOTATOR_ORIGIN";',
+      'const origin = "HYPERMARK_ORIGIN";',
     ].join("\n");
     writeText(
       join(homeDir, ".config", "amp", "plugins", "plannotator.ts"),
@@ -1177,7 +1177,7 @@ describe("purge uninstall", () => {
 
     expect(result.ok).toBe(false);
     expect(result.errors).toContain(
-      `Refusing to remove managed paths under ${fixture.dataDir}: the data directory changed after initial validation (the data directory is a symlink; set PLANNOTATOR_DATA_DIR to its resolved target and retry).`,
+      `Refusing to remove managed paths under ${fixture.dataDir}: the data directory changed after initial validation (the data directory is a symlink; set HYPERMARK_DATA_DIR to its resolved target and retry).`,
     );
     expect(readFileSync(join(validatedDirectory, "plans", "original.md"), "utf8"))
       .toBe("original data");
@@ -1587,7 +1587,7 @@ describe("host and platform integrations", () => {
     ]);
     expect(fixture.commandCalls).toHaveLength(1);
     expect(fixture.commandCalls[0]?.env).toEqual({
-      PLANNOTATOR_UNINSTALL_PATH: dirname(currentExe),
+      HYPERMARK_UNINSTALL_PATH: dirname(currentExe),
     });
   });
 
@@ -1803,7 +1803,7 @@ describe("host and platform integrations", () => {
             return {
               exitCode: ending.exitCode,
               timedOut: ending.timedOut,
-              stdout: "PLANNOTATOR_PATH_RESTORED\r\n",
+              stdout: "HYPERMARK_PATH_RESTORED\r\n",
             };
           },
           scheduleWindowsSelfDelete: async () => false,
@@ -1889,7 +1889,7 @@ describe("host and platform integrations", () => {
     expect(result.preserved).toContain(`${pathLabel} (restored for retry)`);
     expect(fixture.commandCalls).toHaveLength(2);
     expect(fixture.commandCalls[1]?.env).toEqual({
-      PLANNOTATOR_UNINSTALL_ORIGINAL_PATH:
+      HYPERMARK_UNINSTALL_ORIGINAL_PATH:
         "C:\\Tools;C:\\Users\\fixture\\AppData\\Local\\plannotator;C:\\Windows;;",
     });
   });
@@ -1941,7 +1941,7 @@ describe("host and platform integrations", () => {
       "Preserved the Hypermark CLI and its Windows PATH entry so you can resolve the errors and retry uninstall.",
     );
     expect(fixture.commandCalls[1]?.env).toEqual({
-      PLANNOTATOR_UNINSTALL_ORIGINAL_PATH:
+      HYPERMARK_UNINSTALL_ORIGINAL_PATH:
         `C:\\Before;${dirname(currentExe)};C:\\After;;`,
     });
   });

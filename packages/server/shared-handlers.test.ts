@@ -242,17 +242,17 @@ describe("handleServerReady", () => {
  * break the moment someone added one (happy-dom replaces global fetch).
  */
 describe("handleFavicon", () => {
-  const savedDataDir = process.env.PLANNOTATOR_DATA_DIR;
+  const savedDataDir = process.env.HYPERMARK_DATA_DIR;
   let tempDir: string;
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "plannotator-favicon-handler-"));
-    process.env.PLANNOTATOR_DATA_DIR = tempDir;
+    process.env.HYPERMARK_DATA_DIR = tempDir;
   });
 
   afterEach(() => {
-    if (savedDataDir === undefined) delete process.env.PLANNOTATOR_DATA_DIR;
-    else process.env.PLANNOTATOR_DATA_DIR = savedDataDir;
+    if (savedDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
+    else process.env.HYPERMARK_DATA_DIR = savedDataDir;
     rmSync(tempDir, { recursive: true, force: true });
   });
 

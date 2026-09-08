@@ -220,7 +220,7 @@ export function stripFrontmatter(raw: string): string {
 
 /**
  * Discovery bound for the reference catalog, mirroring the bounded-discovery
- * precedent of PLANNOTATOR_FILE_BROWSER_MAX_FILES: the picker never grows
+ * precedent of HYPERMARK_FILE_BROWSER_MAX_FILES: the picker never grows
  * past this many skills, however large the roots are.
  */
 export const MAX_REFERENCE_SKILLS = 500;

@@ -12,7 +12,7 @@
  * submission to a decision-only line.
  *
  * Both runtimes are exercised in one file (precedent: api-404-guard.test.ts).
- * Every server here runs under a temp PLANNOTATOR_DATA_DIR set inside the test
+ * Every server here runs under a temp HYPERMARK_DATA_DIR set inside the test
  * body; the archive is opted back in per test and restored afterwards.
  */
 
@@ -64,14 +64,14 @@ function saveEnv(key: string) {
 function useTempDataDir(): string {
   const dir = mkdtempSync(join(tmpdir(), "hypermark-review-note-"));
   tempDirs.push(dir);
-  saveEnv("PLANNOTATOR_DATA_DIR");
-  process.env.PLANNOTATOR_DATA_DIR = dir;
+  saveEnv("HYPERMARK_DATA_DIR");
+  process.env.HYPERMARK_DATA_DIR = dir;
   return dir;
 }
 
 function enableArchive() {
-  saveEnv("PLANNOTATOR_FEEDBACK_HISTORY");
-  process.env.PLANNOTATOR_FEEDBACK_HISTORY = "1";
+  saveEnv("HYPERMARK_FEEDBACK_HISTORY");
+  process.env.HYPERMARK_FEEDBACK_HISTORY = "1";
 }
 
 afterEach(() => {

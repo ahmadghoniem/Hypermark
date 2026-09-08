@@ -14,7 +14,7 @@ import { HtmlSurfaceControls } from '@hypermark/ui/components/HtmlSurfaceControl
 
 /** Hypermark's refresh strings for the published control: the document
  * is a file on disk, so the refresh says so. */
-export const PLANNOTATOR_HTML_REFRESH_LABELS = {
+export const HYPERMARK_HTML_REFRESH_LABELS = {
   refreshTitle: 'Refresh HTML from disk',
   refreshingTitle: 'Refreshing HTML from disk',
 } as const;
@@ -322,7 +322,7 @@ export const AppHeader = React.memo<AppHeaderProps>(({
             canRefresh={!!canRefreshHtml && !!onRefreshHtml}
             onRefresh={() => onRefreshHtml?.()}
             isRefreshing={!!isRefreshingHtml}
-            labels={PLANNOTATOR_HTML_REFRESH_LABELS}
+            labels={HYPERMARK_HTML_REFRESH_LABELS}
           />
         )}
 

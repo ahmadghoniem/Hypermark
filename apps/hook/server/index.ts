@@ -67,9 +67,15 @@
  *   --browser <name>   - Override which browser to open (e.g. "Google Chrome")
  *
  * Environment variables:
- *   PLANNOTATOR_REMOTE - Set to "1"/"true" for remote, "0"/"false" for local
- *   PLANNOTATOR_PORT   - Fixed port to use (default: random locally, 19432 for remote)
+ *   HYPERMARK_REMOTE - Set to "1"/"true" for remote, "0"/"false" for local
+ *   HYPERMARK_PORT   - Fixed port to use (default: random locally, 19432 for remote)
+ *
+ * The former PLANNOTATOR_* names still work as deprecated aliases; see
+ * `@hypermark/shared/env-aliases` for the precedence rule. The import below is
+ * first on purpose — it must run before any module reads configuration.
  */
+
+import "@hypermark/shared/env-aliases-apply";
 
 import {
   startHypermarkServer,
@@ -216,14 +222,14 @@ const requireApprovalFlag =
 const resultFile = parsedStrictAnnotateOptions.resultFile
   ? resolveResultFilePath(
       parsedStrictAnnotateOptions.resultFile,
-      process.env.PLANNOTATOR_CWD || process.cwd(),
+      process.env.HYPERMARK_CWD || process.cwd(),
     )
   : undefined;
 
 // Global flag: --browser <name>
 const browserIdx = args.indexOf("--browser");
 if (browserIdx !== -1 && args[browserIdx + 1]) {
-  process.env.PLANNOTATOR_BROWSER = args[browserIdx + 1];
+  process.env.HYPERMARK_BROWSER = args[browserIdx + 1];
   args.splice(browserIdx, 2);
 }
 
@@ -232,7 +238,7 @@ if (browserIdx !== -1 && args[browserIdx + 1]) {
 // LOOPBACK-bound: serve provides reachability plus TLS, so remote mode's wide
 // bind is redundant and would only broaden exposure. Forcing local mode here
 // (before any port/bind decision) is the safer resolution of the
-// --tailscale + PLANNOTATOR_REMOTE combination; it also restores the random
+// --tailscale + HYPERMARK_REMOTE combination; it also restores the random
 // local port, so simultaneous sessions get distinct serve mappings.
 const TAILSCALE_COMMANDS = new Set(["review", "annotate", "annotate-last", "last"]);
 const tailscaleIdx = args.indexOf("--tailscale");
@@ -247,15 +253,15 @@ if (tailscaleFlag) {
   }
   if (isRemoteSession()) {
     process.stderr.write(
-      "[plannotator] --tailscale keeps the server loopback-bound behind `tailscale serve`; ignoring remote mode (PLANNOTATOR_REMOTE/SSH detection) for this session.\n",
+      "[plannotator] --tailscale keeps the server loopback-bound behind `tailscale serve`; ignoring remote mode (HYPERMARK_REMOTE/SSH detection) for this session.\n",
     );
   }
-  process.env.PLANNOTATOR_REMOTE = "0";
+  process.env.HYPERMARK_REMOTE = "0";
   // urlHost is irrelevant here — the advertised URL comes from tailscale
   // serve, and the session is local-bound. An empty-but-set env var also
   // suppresses a config-file urlHost, avoiding the misleading
-  // "set PLANNOTATOR_REMOTE=1" local-session warning mid --tailscale run.
-  process.env.PLANNOTATOR_URL_HOST = "";
+  // "set HYPERMARK_REMOTE=1" local-session warning mid --tailscale run.
+  process.env.HYPERMARK_URL_HOST = "";
 }
 
 /**
@@ -489,9 +495,9 @@ process.once("SIGTERM", () => process.exit(143));
 
 // Detect calling agent from environment variables set by agent runtimes.
 // Priority:
-//   PLANNOTATOR_ORIGIN (explicit override, validated against AGENT_CONFIG)
-//   > Amp plugin wrappers (PLANNOTATOR_ORIGIN=amp)
-//   > Droid command wrappers (PLANNOTATOR_ORIGIN=droid)
+//   HYPERMARK_ORIGIN (explicit override, validated against AGENT_CONFIG)
+//   > Amp plugin wrappers (HYPERMARK_ORIGIN=amp)
+//   > Droid command wrappers (HYPERMARK_ORIGIN=droid)
 //   > Codex (CODEX_THREAD_ID)
 //   > Copilot CLI (COPILOT_CLI)
 //   > OpenCode (OPENCODE)
@@ -503,7 +509,7 @@ process.once("SIGTERM", () => process.exit(143));
 //
 // To add a new agent, also add an entry to AGENT_CONFIG in
 // packages/shared/agents.ts (see header comment there).
-const originOverride = process.env.PLANNOTATOR_ORIGIN as Origin | undefined;
+const originOverride = process.env.HYPERMARK_ORIGIN as Origin | undefined;
 const detectedOrigin: Origin =
   (originOverride && originOverride in AGENT_CONFIG) ? originOverride :
   process.env.CODEX_THREAD_ID ? "codex" :
@@ -1096,8 +1102,8 @@ if (args[0] === "sessions") {
     exitAnnotateStartupFailure("Usage: hypermark annotate <file.md | file.txt | file.html | https://... | folder/>  [--markdown] [--no-jina] [--app] [--static] [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]");
   }
 
-  // Use PLANNOTATOR_CWD if set (original working directory before script cd'd)
-  const projectRoot = process.env.PLANNOTATOR_CWD || process.cwd();
+  // Use HYPERMARK_CWD if set (original working directory before script cd'd)
+  const projectRoot = process.env.HYPERMARK_CWD || process.cwd();
 
   if (resultFile) {
     try {
@@ -1309,7 +1315,7 @@ if (args[0] === "sessions") {
   // ANNOTATE LAST MESSAGE MODE
   // ============================================
 
-  const projectRoot = process.env.PLANNOTATOR_CWD || process.cwd();
+  const projectRoot = process.env.HYPERMARK_CWD || process.cwd();
   const stdinIdx = args.indexOf("--stdin");
   const stdinFlag = stdinIdx !== -1;
   if (stdinFlag) args.splice(stdinIdx, 1);
@@ -1347,12 +1353,12 @@ if (args[0] === "sessions") {
     }
   } else if (codexThreadId) {
     // Codex path: find rollout by thread ID
-    if (process.env.PLANNOTATOR_DEBUG) {
+    if (process.env.HYPERMARK_DEBUG) {
       console.error(`[DEBUG] Codex detected, thread ID: ${codexThreadId}`);
     }
     const rolloutPath = findCodexRolloutByThreadId(codexThreadId);
     if (rolloutPath) {
-      if (process.env.PLANNOTATOR_DEBUG) {
+      if (process.env.HYPERMARK_DEBUG) {
         console.error(`[DEBUG] Rollout: ${rolloutPath}`);
       }
       recentMessages = getRecentCodexMessages(rolloutPath, RECENT_MESSAGES_LIMIT, { beforeActiveTurn: true })
@@ -1366,7 +1372,7 @@ if (args[0] === "sessions") {
     // selector is "newest current-session candidate for this cwd", with an
     // ancestor walk fallback for users who `cd` into a subdirectory after
     // session start.
-    if (process.env.PLANNOTATOR_DEBUG) {
+    if (process.env.HYPERMARK_DEBUG) {
       console.error(`[DEBUG] Droid detected, project root: ${projectRoot}`);
     }
 
@@ -1375,7 +1381,7 @@ if (args[0] === "sessions") {
       ? findDroidSessionLogsByAncestorWalk(projectRoot)
       : [];
 
-    if (process.env.PLANNOTATOR_DEBUG) {
+    if (process.env.HYPERMARK_DEBUG) {
       console.error(`[DEBUG] Droid CWD session logs (mtime): ${cwdLogs.length ? cwdLogs.join(", ") : "(none)"}`);
       if (cwdLogs.length === 0) {
         console.error(`[DEBUG] Droid ancestor walk: ${ancestorLogs.length ? ancestorLogs.join(", ") : "(none)"}`);
@@ -1383,7 +1389,7 @@ if (args[0] === "sessions") {
     }
 
     const droidLog = resolveDroidSessionLogForCwd(projectRoot);
-    if (process.env.PLANNOTATOR_DEBUG) {
+    if (process.env.HYPERMARK_DEBUG) {
       console.error(`[DEBUG] Droid selected log: ${droidLog ?? "(none)"}`);
     }
     if (droidLog) {
@@ -1394,7 +1400,7 @@ if (args[0] === "sessions") {
     // Copilot path: prefer the session whose inuse lock an ancestor copilot
     // process holds; with the origin override and no lock match, fall back
     // to the cwd heuristic.
-    if (process.env.PLANNOTATOR_DEBUG) {
+    if (process.env.HYPERMARK_DEBUG) {
       console.error(`[DEBUG] Copilot detected, project root: ${projectRoot}`);
       console.error(`[DEBUG] Copilot ancestor lock session: ${copilotLockSessionDir ?? "(none)"}`);
       console.error(`[DEBUG] Copilot selected session: ${copilotSessionDir ?? "(none)"}`);
@@ -1421,7 +1427,7 @@ if (args[0] === "sessions") {
     // 4. Ancestor directory walk: handles the case where the user `cd`'d
     //    deeper into a subdirectory after session start.
 
-    if (process.env.PLANNOTATOR_DEBUG) {
+    if (process.env.HYPERMARK_DEBUG) {
       console.error(`[DEBUG] Project root: ${projectRoot}`);
       console.error(`[DEBUG] PPID: ${process.ppid}`);
     }
@@ -1430,7 +1436,7 @@ if (args[0] === "sessions") {
     function tryLogCandidates(label: string, getPaths: () => string[]): void {
       if (lastMessage) return;
       const paths = getPaths();
-      if (process.env.PLANNOTATOR_DEBUG) {
+      if (process.env.HYPERMARK_DEBUG) {
         console.error(`[DEBUG] ${label}: ${paths.length ? paths.join(", ") : "(none)"}`);
       }
       for (const logPath of paths) {
@@ -1470,7 +1476,7 @@ if (args[0] === "sessions") {
     process.exit(1);
   }
 
-  if (process.env.PLANNOTATOR_DEBUG) {
+  if (process.env.HYPERMARK_DEBUG) {
     console.error(`[DEBUG] Found message ${lastMessage.messageId} (${lastMessage.text.length} chars)`);
   }
 
@@ -1693,7 +1699,7 @@ if (args[0] === "sessions") {
     console.error("Opening code review UI...");
 
     const config = loadConfig();
-    const cwd = process.env.PLANNOTATOR_CWD || process.cwd();
+    const cwd = process.env.HYPERMARK_CWD || process.cwd();
     const managedVcs = await detectManagedVcs(cwd, reviewArgs.vcsType);
     const forcedVcs = !!reviewArgs.vcsType && reviewArgs.vcsType !== "auto";
 
@@ -1953,16 +1959,16 @@ if (args[0] === "sessions") {
   // COPILOT CLI ANNOTATE LAST MESSAGE MODE
   // ============================================
 
-  const projectRoot = process.env.PLANNOTATOR_CWD || process.cwd();
+  const projectRoot = process.env.HYPERMARK_CWD || process.cwd();
 
-  if (process.env.PLANNOTATOR_DEBUG) {
+  if (process.env.HYPERMARK_DEBUG) {
     console.error(`[DEBUG] Copilot CLI detected, project root: ${projectRoot}`);
   }
 
   // Prefer the session locked by an ancestor copilot process; the cwd
   // heuristic can pick a stale session when several exist for one repo.
   const lockSessionDir = findCopilotSessionByAncestorPids();
-  if (process.env.PLANNOTATOR_DEBUG) {
+  if (process.env.HYPERMARK_DEBUG) {
     console.error(`[DEBUG] Ancestor lock session: ${lockSessionDir ?? "(none)"}`);
   }
 
@@ -1973,7 +1979,7 @@ if (args[0] === "sessions") {
     process.exit(1);
   }
 
-  if (process.env.PLANNOTATOR_DEBUG) {
+  if (process.env.HYPERMARK_DEBUG) {
     console.error(`[DEBUG] Session dir: ${sessionDir}`);
   }
 
@@ -1984,7 +1990,7 @@ if (args[0] === "sessions") {
     process.exit(1);
   }
 
-  if (process.env.PLANNOTATOR_DEBUG) {
+  if (process.env.HYPERMARK_DEBUG) {
     console.error(`[DEBUG] Found message (${msg.text.length} chars)`);
   }
 

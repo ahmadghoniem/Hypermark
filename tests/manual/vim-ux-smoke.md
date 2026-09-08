@@ -25,10 +25,10 @@ bun run dev:hook -- --host 127.0.0.1
 Run the raw-HTML fixture through the real annotate server:
 
 ```bash
-PLANNOTATOR_REMOTE=1 \
-PLANNOTATOR_PORT=3019 \
-PLANNOTATOR_AI=disabled \
-PLANNOTATOR_SHARE=disabled \
+HYPERMARK_REMOTE=1 \
+HYPERMARK_PORT=3019 \
+HYPERMARK_AI=disabled \
+HYPERMARK_SHARE=disabled \
 bun apps/hook/server/index.ts annotate tests/test-fixtures/vim-ux-smoke.html
 ```
 

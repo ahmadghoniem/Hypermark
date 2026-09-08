@@ -43,6 +43,8 @@
     "./agent-terminal": "./agent-terminal.ts",
     "./config": "./config.ts",
     "./data-dir": "./data-dir.ts",
+    "./env-aliases": "./env-aliases.ts",
+    "./env-aliases-apply": "./env-aliases-apply.ts",
     "./prompts": "./prompts.ts",
     "./improvement-hooks": "./improvement-hooks.ts",
     "./pfm-reminder": "./pfm-reminder.ts",

@@ -5,8 +5,8 @@
  * Follows the same patterns as the plan server.
  *
  * Environment variables:
- *   PLANNOTATOR_REMOTE - Set to "1"/"true" for remote, "0"/"false" for local
- *   PLANNOTATOR_PORT   - Fixed port or inclusive range (default: random locally, 19432 for remote)
+ *   HYPERMARK_REMOTE - Set to "1"/"true" for remote, "0"/"false" for local
+ *   HYPERMARK_PORT   - Fixed port or inclusive range (default: random locally, 19432 for remote)
  */
 
 import { isRemoteSession, getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";

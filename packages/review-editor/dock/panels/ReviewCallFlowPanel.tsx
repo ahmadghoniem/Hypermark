@@ -363,7 +363,7 @@ export function ReviewCallFlowPanel() {
               )}
               {!state.callFlowAdvert.installable && (
                 <small className="call-flow-language-progress">
-                  Add this language grammar to PLANNOTATOR_CALLDIFF_PATH to include these files.
+                  Add this language grammar to HYPERMARK_CALLDIFF_PATH to include these files.
                 </small>
               )}
             </span>

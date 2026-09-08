@@ -2,10 +2,10 @@
  * Tailscale helpers for remote-friendly sessions.
  *
  * Two consumers:
- *   - urlHost "auto" (PLANNOTATOR_URL_HOST=auto): detect this machine's
+ *   - urlHost "auto" (HYPERMARK_URL_HOST=auto): detect this machine's
  *     tailnet host so remote sessions advertise a reachable URL without the
  *     user hand-copying their MagicDNS name into config. Display-only, like
- *     every urlHost value — binding stays governed by PLANNOTATOR_REMOTE.
+ *     every urlHost value — binding stays governed by HYPERMARK_REMOTE.
  *   - `--tailscale` (Bun CLI): parse/compose the `tailscale serve` commands
  *     that publish a loopback-bound session over the tailnet with HTTPS.
  *

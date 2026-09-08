@@ -554,14 +554,14 @@ describe("submitGlMRReview", () => {
   }
 
   async function withFailedCommentDataDir<T>(run: (dir: string) => Promise<T>): Promise<T> {
-    const original = process.env.PLANNOTATOR_DATA_DIR;
+    const original = process.env.HYPERMARK_DATA_DIR;
     const dir = mkdtempSync(join(tmpdir(), "plannotator-gitlab-submit-"));
-    process.env.PLANNOTATOR_DATA_DIR = dir;
+    process.env.HYPERMARK_DATA_DIR = dir;
     try {
       return await run(dir);
     } finally {
-      if (original === undefined) delete process.env.PLANNOTATOR_DATA_DIR;
-      else process.env.PLANNOTATOR_DATA_DIR = original;
+      if (original === undefined) delete process.env.HYPERMARK_DATA_DIR;
+      else process.env.HYPERMARK_DATA_DIR = original;
       rmSync(dir, { recursive: true, force: true });
     }
   }

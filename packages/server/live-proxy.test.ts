@@ -508,7 +508,7 @@ describe("live proxy: security posture", () => {
     expect(upstreamHits).toEqual([]);
   });
 
-  test("the proxy origin and bind are loopback, independent of PLANNOTATOR_REMOTE", () => {
+  test("the proxy origin and bind are loopback, independent of HYPERMARK_REMOTE", () => {
     expect(proxy.origin).toBe(`http://127.0.0.1:${proxy.port}`);
     // The bind is a source-level contract: the literal loopback constant,
     // never getServerHostname() or any env-dependent interface.

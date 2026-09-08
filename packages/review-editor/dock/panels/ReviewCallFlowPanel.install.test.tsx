@@ -129,14 +129,14 @@ describe('ReviewCallFlowPanel install funnel', () => {
       advert({
         state: 'unavailable',
         reason: 'override-relative',
-        message: 'PLANNOTATOR_CALLDIFF_PATH must be absolute.',
+        message: 'HYPERMARK_CALLDIFF_PATH must be absolute.',
         installable: false,
         installPlan: undefined,
       }),
       { state: 'idle' },
     ));
     expect(installButton()).toBeNull();
-    expect(host?.textContent).toContain('PLANNOTATOR_CALLDIFF_PATH must be absolute.');
+    expect(host?.textContent).toContain('HYPERMARK_CALLDIFF_PATH must be absolute.');
   });
 
   test.skipIf(!hasDom)('running renders staged progress without another install control', async () => {
@@ -239,7 +239,7 @@ describe('ReviewCallFlowPanel install funnel', () => {
       callFlowInstall: { status: { state: 'idle' }, start: () => starts++ },
     });
     expect(host?.textContent).toContain('1 file skipped: Python support not installed');
-    expect(host?.textContent).toContain('Add this language grammar to PLANNOTATOR_CALLDIFF_PATH');
+    expect(host?.textContent).toContain('Add this language grammar to HYPERMARK_CALLDIFF_PATH');
     const unavailableInstall = [...(host?.querySelectorAll('button') ?? [])]
       .find((button) => button.textContent?.trim() === 'Install');
     expect(unavailableInstall).toBeUndefined();

@@ -152,7 +152,7 @@ export const WINDOWS_PATH_SCRIPT = [
   "if($null -eq $p){exit 3}",
   "$p=[string]$p",
   "$kind=$k.GetValueKind('Path')",
-  "$t=$env:PLANNOTATOR_UNINSTALL_PATH.Trim().TrimEnd('\\')",
+  "$t=$env:HYPERMARK_UNINSTALL_PATH.Trim().TrimEnd('\\')",
   "$kept=@($p -split ';' | Where-Object { $_.Trim().TrimEnd('\\') -ine $t })",
   "$n=$kept -join ';'",
   "if($n -eq $p){exit 3}",
@@ -167,7 +167,7 @@ export const WINDOWS_PATH_SCRIPT = [
  * broadcast, so the caller can tell a completed restore from one that never
  * reached the write even when the process was killed or died afterwards.
  */
-const WINDOWS_PATH_RESTORED_SENTINEL = "PLANNOTATOR_PATH_RESTORED";
+const WINDOWS_PATH_RESTORED_SENTINEL = "HYPERMARK_PATH_RESTORED";
 
 /**
  * Writes the echoed original PATH back with the kind the value currently has
@@ -178,7 +178,7 @@ const WINDOWS_PATH_RESTORED_SENTINEL = "PLANNOTATOR_PATH_RESTORED";
  */
 export const WINDOWS_PATH_RESTORE_SCRIPT = [
   "$ErrorActionPreference='Stop'",
-  "$original=$env:PLANNOTATOR_UNINSTALL_ORIGINAL_PATH",
+  "$original=$env:HYPERMARK_UNINSTALL_ORIGINAL_PATH",
   "$k=[Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment',$true)",
   "if($null -eq $k){$k=[Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment')}",
   "$kind=[Microsoft.Win32.RegistryValueKind]::ExpandString",
@@ -191,20 +191,20 @@ export const WINDOWS_PATH_RESTORE_SCRIPT = [
 
 /** @internal Exported only so the Windows worker syntax can be regression-tested. */
 export const WINDOWS_SELF_DELETE_SCRIPT = [
-  "$target=$env:PLANNOTATOR_UNINSTALL_TARGET",
+  "$target=$env:HYPERMARK_UNINSTALL_TARGET",
   "for($i=0;$i -lt 40;$i++){",
   "  Start-Sleep -Milliseconds 250",
   "  Remove-Item -LiteralPath $target -Force -ErrorAction SilentlyContinue",
   "  if(-not (Test-Path -LiteralPath $target)){break}",
   "}",
-  "$parent=$env:PLANNOTATOR_UNINSTALL_PARENT",
+  "$parent=$env:HYPERMARK_UNINSTALL_PARENT",
   "if($parent){Remove-Item -LiteralPath $parent -Force -ErrorAction SilentlyContinue}",
 ].join("\n");
 
 const WINDOWS_SELF_DELETE_BOOTSTRAP_SCRIPT = [
   "$ErrorActionPreference='Stop'",
   "$self=(Get-Process -Id $PID).Path",
-  "Start-Process -FilePath $self -ArgumentList @('-NoProfile','-NonInteractive','-EncodedCommand',$env:PLANNOTATOR_UNINSTALL_DELETE_SCRIPT) -WindowStyle Hidden",
+  "Start-Process -FilePath $self -ArgumentList @('-NoProfile','-NonInteractive','-EncodedCommand',$env:HYPERMARK_UNINSTALL_DELETE_SCRIPT) -WindowStyle Hidden",
 ].join("; ");
 
 type JsonRecord = Record<string, unknown>;
@@ -949,7 +949,7 @@ async function removeWindowsPathEntry(
   const result = await environment.runCommand(
     powershell,
     ["-NoProfile", "-NonInteractive", "-Command", WINDOWS_PATH_SCRIPT],
-    { PLANNOTATOR_UNINSTALL_PATH: paths.windowsInstallDir },
+    { HYPERMARK_UNINSTALL_PATH: paths.windowsInstallDir },
   );
   // The script echoes the original PATH only after the registry write
   // succeeded, so a parseable echo proves the edit happened however the
@@ -1074,7 +1074,7 @@ async function restoreWindowsPathEntry(
   const result = await environment.runCommand(
     powershell,
     ["-NoProfile", "-NonInteractive", "-Command", WINDOWS_PATH_RESTORE_SCRIPT],
-    { PLANNOTATOR_UNINSTALL_ORIGINAL_PATH: originalPath },
+    { HYPERMARK_UNINSTALL_ORIGINAL_PATH: originalPath },
   );
   // Same proof as the removal: the sentinel is printed only after the
   // registry write, so its presence means the restore completed even if the
@@ -1500,7 +1500,7 @@ function cleanupRecognizableAmpPlugin(
   const recognizable =
     content.includes('const CATEGORY = "Hypermark"') &&
     content.includes("export default function plannotatorAmpPlugin") &&
-    content.includes("PLANNOTATOR_ORIGIN");
+    content.includes("HYPERMARK_ORIGIN");
 
   if (recognizable) {
     removePath(filePath, request, state, recovery);
@@ -2052,7 +2052,7 @@ function getDataDirSafetyIssue(
 
   const homeRelation = comparePathEntries(dataDir, homeDir, platform);
   if (homeRelation === "same") {
-    return "the data directory is the home directory; choose a dedicated PLANNOTATOR_DATA_DIR";
+    return "the data directory is the home directory; choose a dedicated HYPERMARK_DATA_DIR";
   }
   if (homeRelation === "unknown") {
     return "the data directory identity relative to the home directory could not be verified";
@@ -2118,7 +2118,7 @@ function inspectDataDir(dataDir: string): string | null {
   try {
     const stat = lstatSync(dataDir);
     if (stat.isSymbolicLink()) {
-      return "the data directory is a symlink; set PLANNOTATOR_DATA_DIR to its resolved target and retry";
+      return "the data directory is a symlink; set HYPERMARK_DATA_DIR to its resolved target and retry";
     }
     if (!stat.isDirectory()) {
       return "the data path is not a directory";
@@ -2223,9 +2223,9 @@ async function defaultScheduleWindowsSelfDelete(
         stderr: "ignore",
         env: {
           ...process.env,
-          PLANNOTATOR_UNINSTALL_TARGET: target,
-          PLANNOTATOR_UNINSTALL_PARENT: parent ?? "",
-          PLANNOTATOR_UNINSTALL_DELETE_SCRIPT: Buffer.from(
+          HYPERMARK_UNINSTALL_TARGET: target,
+          HYPERMARK_UNINSTALL_PARENT: parent ?? "",
+          HYPERMARK_UNINSTALL_DELETE_SCRIPT: Buffer.from(
             WINDOWS_SELF_DELETE_SCRIPT,
             "utf16le",
           ).toString("base64"),

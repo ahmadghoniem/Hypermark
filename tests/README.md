@@ -76,7 +76,7 @@ history indices, and session URLs into an artifact directory under the temp root
 
 Tips:
 
-- Set `PLANNOTATOR_BROWSER=/usr/bin/true` when you want to drive the opened plan-review session with Playwright
+- Set `HYPERMARK_BROWSER=/usr/bin/true` when you want to drive the opened plan-review session with Playwright
   instead of auto-opening a browser.
 - The validated workflow is: run the script in one terminal, then point Playwright at the printed session URL from a
   second terminal.

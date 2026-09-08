@@ -24,7 +24,7 @@
  * - App CSP is stripped on HTML and replaced with a frame-ancestors policy
  *   listing exactly the editor origins, which simultaneously defeats app
  *   anti-framing headers and prevents hostile sites from framing the proxy.
- * - PLANNOTATOR_URL_HOST / buildAdvertisedUrl are never applied to the proxy
+ * - HYPERMARK_URL_HOST / buildAdvertisedUrl are never applied to the proxy
  *   origin.
  */
 
@@ -519,7 +519,7 @@ export function buildLiveEditorOrigins(port: number): string[] {
  * that resolve localhost to ::1 first fall back to IPv4 on the refused
  * loopback connect. The path matters too: annotating
  * http://localhost:5173/admin must open /admin, not the app root.
- * PLANNOTATOR_URL_HOST is still never applied here.
+ * HYPERMARK_URL_HOST is still never applied here.
  */
 export function buildLiveAppUrl(proxyPort: number, targetUrl: string): string {
   let targetPath = "/";

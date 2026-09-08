@@ -35,8 +35,8 @@ import { startReviewServer } from "./review";
 import { getVcsContext, type DiffType, type GitContext } from "./vcs";
 
 const tempDirs: string[] = [];
-const originalSemPath = process.env.PLANNOTATOR_SEM_PATH;
-const originalDataDir = process.env.PLANNOTATOR_DATA_DIR;
+const originalSemPath = process.env.HYPERMARK_SEM_PATH;
+const originalDataDir = process.env.HYPERMARK_DATA_DIR;
 
 function makeTempDir(prefix: string): string {
   const dir = mkdtempSync(join(tmpdir(), prefix));
@@ -140,14 +140,14 @@ async function waitForFile(path: string): Promise<void> {
 
 afterEach(() => {
   if (originalSemPath === undefined) {
-    delete process.env.PLANNOTATOR_SEM_PATH;
+    delete process.env.HYPERMARK_SEM_PATH;
   } else {
-    process.env.PLANNOTATOR_SEM_PATH = originalSemPath;
+    process.env.HYPERMARK_SEM_PATH = originalSemPath;
   }
   if (originalDataDir === undefined) {
-    delete process.env.PLANNOTATOR_DATA_DIR;
+    delete process.env.HYPERMARK_DATA_DIR;
   } else {
-    process.env.PLANNOTATOR_DATA_DIR = originalDataDir;
+    process.env.HYPERMARK_DATA_DIR = originalDataDir;
   }
   for (const dir of tempDirs.splice(0)) {
     rmSync(dir, { recursive: true, force: true });
@@ -173,8 +173,8 @@ describe("review-workspace", () => {
       const dir = makeTempDir("plannotator-sem-server-");
       const dataDir = makeTempDir("plannotator-sem-data-");
       const cwdLogPath = join(dir, "cwd-log");
-      process.env.PLANNOTATOR_DATA_DIR = dataDir;
-      process.env.PLANNOTATOR_SEM_PATH = makeMockSem(dir, { runCwdLogPath: cwdLogPath });
+      process.env.HYPERMARK_DATA_DIR = dataDir;
+      process.env.HYPERMARK_SEM_PATH = makeMockSem(dir, { runCwdLogPath: cwdLogPath });
 
       const server = await startReviewServer({
         rawPatch,
@@ -220,7 +220,7 @@ describe("review-workspace", () => {
       writeFileSync(join(repoDir, "README.md"), "# Dirty\n", "utf-8");
       const gitContext = await getVcsContext(repoDir, "git");
       const blocker = makeBlockingSem(semDir);
-      process.env.PLANNOTATOR_SEM_PATH = blocker.semPath;
+      process.env.HYPERMARK_SEM_PATH = blocker.semPath;
       const initialPatch = "diff --git a/initial.txt b/initial.txt\n";
       const server = await startReviewServer({
         rawPatch: initialPatch,
@@ -267,7 +267,7 @@ describe("review-workspace", () => {
       const dir = makeTempDir("plannotator-sem-agent-");
       const agentCwd = makeTempDir("plannotator-sem-agent-cwd-");
       const cwdLogPath = join(dir, "cwd-log");
-      process.env.PLANNOTATOR_SEM_PATH = makeMockSem(dir, { runCwdLogPath: cwdLogPath });
+      process.env.HYPERMARK_SEM_PATH = makeMockSem(dir, { runCwdLogPath: cwdLogPath });
 
       const server = await startReviewServer({
         rawPatch,
@@ -294,7 +294,7 @@ describe("review-workspace", () => {
       const cwdLogPath = join(dir, "cwd-log");
       initRepo(repoDir);
       const gitContext = await getVcsContext(repoDir);
-      process.env.PLANNOTATOR_SEM_PATH = makeMockSem(dir, { runCwdLogPath: cwdLogPath });
+      process.env.HYPERMARK_SEM_PATH = makeMockSem(dir, { runCwdLogPath: cwdLogPath });
 
       const server = await startReviewServer({
         rawPatch,
@@ -319,7 +319,7 @@ describe("review-workspace", () => {
     it("caches semantic diff availability probes for the session cwd", async () => {
       const dir = makeTempDir("plannotator-sem-cache-");
       const versionCounterPath = join(dir, "version-count");
-      process.env.PLANNOTATOR_SEM_PATH = makeMockSem(dir, { versionCounterPath });
+      process.env.HYPERMARK_SEM_PATH = makeMockSem(dir, { versionCounterPath });
 
       const server = await startReviewServer({
         rawPatch,
@@ -339,7 +339,7 @@ describe("review-workspace", () => {
 
     it("hides semantic diff from /api/diff when sem cannot be resolved", async () => {
       const dir = makeTempDir("plannotator-sem-missing-server-");
-      process.env.PLANNOTATOR_SEM_PATH = join(dir, "missing-sem");
+      process.env.HYPERMARK_SEM_PATH = join(dir, "missing-sem");
 
       const server = await startReviewServer({
         rawPatch,
@@ -765,14 +765,14 @@ describe("review-workspace", () => {
       mkdirSync(repo, { recursive: true });
       initRepo(repo);
 
-      const prior = process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES;
-      process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = "25";
+      const prior = process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
+      process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = "25";
       try {
         const repos = discoverWorkspaceRepoPaths(root);
         expect(repos).toEqual([repo]);
       } finally {
-        if (prior === undefined) delete process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES;
-        else process.env.PLANNOTATOR_FILE_BROWSER_MAX_FILES = prior;
+        if (prior === undefined) delete process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
+        else process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = prior;
       }
     });
 
@@ -1311,7 +1311,7 @@ describe("review-workspace", () => {
       const semDir = makeTempDir("plannotator-workspace-switch-sem-");
       const cwdLogPath = join(semDir, "cwd-log");
       const inputLogPath = join(semDir, "input.patch");
-      process.env.PLANNOTATOR_SEM_PATH = makeMockSem(semDir, { runCwdLogPath: cwdLogPath, inputLogPath });
+      process.env.HYPERMARK_SEM_PATH = makeMockSem(semDir, { runCwdLogPath: cwdLogPath, inputLogPath });
       const api = join(root, "api");
       const web = join(root, "web");
       mkdirSync(api, { recursive: true });

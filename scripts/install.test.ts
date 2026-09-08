@@ -128,7 +128,7 @@ describe("install.sh", () => {
   test("extras cleanup runs once via the migrations ledger", () => {
     // The npx-installed extras are byte-identical to our old default installs;
     // only the ledger can tell them apart. The cleanup must be gated on the
-    // migration marker and honor PLANNOTATOR_DATA_DIR (via _config_dir).
+    // migration marker and honor HYPERMARK_DATA_DIR (via _config_dir).
     expect(script).toContain('MIGRATIONS_DIR="$_config_dir/migrations"');
     expect(script).toContain("2026-06-extras-default-install-removed");
     expect(script).toContain('if [ ! -f "$EXTRAS_MIGRATION" ]');
@@ -313,10 +313,10 @@ describe("install.sh", () => {
     expect(script).toContain('GEMINI_SETTINGS_EOF');
   });
 
-  test("--minimal flag and PLANNOTATOR_MINIMAL env var are documented", () => {
+  test("--minimal flag and HYPERMARK_MINIMAL env var are documented", () => {
     // Usage text advertises the flag and the env-var opt-in for curl | bash.
     expect(script).toContain("--minimal");
-    expect(script).toContain("PLANNOTATOR_MINIMAL");
+    expect(script).toContain("HYPERMARK_MINIMAL");
     // Accepts both --minimal and the --binary-only alias, plus the opt-out.
     expect(script).toContain("--minimal|--binary-only)");
     expect(script).toContain("--no-minimal)");
@@ -326,7 +326,7 @@ describe("install.sh", () => {
     // A flag (--minimal or --no-minimal) wins over the env var, which wins over
     // the default (off). MINIMAL_FLAG stays -1 until a flag sets 0 or 1.
     expect(script).toContain("MINIMAL_FLAG=-1");
-    expect(script).toContain('case "${PLANNOTATOR_MINIMAL:-}" in');
+    expect(script).toContain('case "${HYPERMARK_MINIMAL:-}" in');
     expect(script).toContain('if [ "$MINIMAL_FLAG" -ne -1 ]; then');
     // --minimal and --no-minimal are mutually exclusive.
     expect(script).toContain("--minimal and --no-minimal are mutually exclusive");
@@ -378,11 +378,11 @@ describe("install.sh", () => {
     for (const flag of ["--skip-codex)", "--skip-gemini)", "--skip-kiro)", "--skip-opencode)"]) {
       expect(script).toContain(flag);
     }
-    // Env vars follow the existing PLANNOTATOR_SKIP_*_INSTALL naming.
-    expect(script).toContain("PLANNOTATOR_SKIP_CODEX_INSTALL");
-    expect(script).toContain("PLANNOTATOR_SKIP_GEMINI_INSTALL");
-    expect(script).toContain("PLANNOTATOR_SKIP_KIRO_INSTALL");
-    expect(script).toContain("PLANNOTATOR_SKIP_OPENCODE_INSTALL");
+    // Env vars follow the existing HYPERMARK_SKIP_*_INSTALL naming.
+    expect(script).toContain("HYPERMARK_SKIP_CODEX_INSTALL");
+    expect(script).toContain("HYPERMARK_SKIP_GEMINI_INSTALL");
+    expect(script).toContain("HYPERMARK_SKIP_KIRO_INSTALL");
+    expect(script).toContain("HYPERMARK_SKIP_OPENCODE_INSTALL");
     // Config layer (M2): the skipInstall OBJECT is extracted first (awk,
     // character-indexed so single-line JSON works too) and per-agent keys
     // are matched only inside it - a "codex": true under some OTHER key can
@@ -405,13 +405,13 @@ describe("install.sh", () => {
     // Precedence by textual layering (later assignment wins): config grep,
     // then env-var case, then flag check — mirroring verifyAttestation.
     const configIdx = script.indexOf('skip_codex_source="config skipInstall.codex"');
-    const envIdx = script.indexOf('skip_codex_source="PLANNOTATOR_SKIP_CODEX_INSTALL"');
+    const envIdx = script.indexOf('skip_codex_source="HYPERMARK_SKIP_CODEX_INSTALL"');
     const flagIdx = script.indexOf('skip_codex_source="--skip-codex"');
     expect(configIdx).toBeGreaterThan(0);
     expect(envIdx).toBeGreaterThan(configIdx);
     expect(flagIdx).toBeGreaterThan(envIdx);
     // The env var can also force-disable a config-enabled skip (env > config).
-    expect(script).toContain('case "${PLANNOTATOR_SKIP_CODEX_INSTALL:-}" in');
+    expect(script).toContain('case "${HYPERMARK_SKIP_CODEX_INSTALL:-}" in');
   });
 
   test("skip states are reported honestly and never remove existing integrations (#1178)", () => {
@@ -449,22 +449,22 @@ describe("install.sh", () => {
     // skills/slash-command checkout rather than one agent's home.
     expect(script).toContain("--skip-skills)");
     expect(script).toContain("SKIP_SKILLS_FLAG=0");
-    // Env var follows the existing PLANNOTATOR_SKIP_*_INSTALL naming.
-    expect(script).toContain('case "${PLANNOTATOR_SKIP_SKILLS_INSTALL:-}" in');
+    // Env var follows the existing HYPERMARK_SKIP_*_INSTALL naming.
+    expect(script).toContain('case "${HYPERMARK_SKIP_SKILLS_INSTALL:-}" in');
     // Config layer rides the shared skipInstall object walk, so the same
     // token check and explicit-false veto apply to skipInstall.skills.
     expect(script).toContain('skip_skills_source="config skipInstall.skills"');
     // Precedence by textual layering (later assignment wins): config, then
     // env var, then flag - matching skip_codex.
     const configIdx = script.indexOf('skip_skills_source="config skipInstall.skills"');
-    const envIdx = script.indexOf('skip_skills_source="PLANNOTATOR_SKIP_SKILLS_INSTALL"');
+    const envIdx = script.indexOf('skip_skills_source="HYPERMARK_SKIP_SKILLS_INSTALL"');
     const flagIdx = script.indexOf('skip_skills_source="--skip-skills"');
     expect(configIdx).toBeGreaterThan(0);
     expect(envIdx).toBeGreaterThan(configIdx);
     expect(flagIdx).toBeGreaterThan(envIdx);
     // Advertised in the usage text alongside the per-agent opt-outs.
     expect(script).toContain("[--skip-kiro] [--skip-opencode] [--skip-skills]");
-    expect(script).toContain("PLANNOTATOR_SKIP_SKILLS_INSTALL; config key:");
+    expect(script).toContain("HYPERMARK_SKIP_SKILLS_INSTALL; config key:");
   });
 
   test("--skip-skills bails before the clone without tripping the guard (#1201)", () => {
@@ -642,11 +642,11 @@ describe("install.ps1", () => {
   });
 
   test("supports -Minimal / -BinaryOnly binary-only mode with env-var fallback", () => {
-    // Switch + alias in the param block, plus the PLANNOTATOR_MINIMAL env fallback.
+    // Switch + alias in the param block, plus the HYPERMARK_MINIMAL env fallback.
     expect(script).toContain('[Alias("BinaryOnly")]');
     expect(script).toContain("[switch]$Minimal");
     expect(script).toContain("[switch]$NoMinimal");
-    expect(script).toContain("$env:PLANNOTATOR_MINIMAL");
+    expect(script).toContain("$env:HYPERMARK_MINIMAL");
     // -Minimal / -NoMinimal are mutually exclusive (parity with sh/cmd).
     expect(script).toContain("-Minimal and -NoMinimal are mutually exclusive");
   });
@@ -674,12 +674,12 @@ describe("install.ps1", () => {
 
   test("-SkipSkills: switch, env var, config key, precedence (#1201)", () => {
     expect(script).toContain("[switch]$SkipSkills");
-    expect(script).toContain("PLANNOTATOR_SKIP_SKILLS_INSTALL");
+    expect(script).toContain("HYPERMARK_SKIP_SKILLS_INSTALL");
     expect(script).toContain("$cfg.skipInstall.skills -is [bool]");
     // Precedence by textual layering (later assignment wins): config, then
     // env var, then switch - matching skipCodex.
     const configIdx = script.indexOf('$skipSkillsSource = "config skipInstall.skills"');
-    const envIdx = script.indexOf('$skipSkillsSource = "PLANNOTATOR_SKIP_SKILLS_INSTALL"');
+    const envIdx = script.indexOf('$skipSkillsSource = "HYPERMARK_SKIP_SKILLS_INSTALL"');
     const flagIdx = script.indexOf('$skipSkillsSource = "-SkipSkills"');
     expect(configIdx).toBeGreaterThan(0);
     expect(envIdx).toBeGreaterThan(configIdx);
@@ -829,14 +829,14 @@ describe("install.cmd", () => {
     // Layer 3: config file read (verifyAttestation appears inside a
     // findstr pattern with escaped quotes; assert the key + findstr
     // separately rather than the quoted form)
-    expect(script).toContain("PLANNOTATOR_DATA_DIR");
+    expect(script).toContain("HYPERMARK_DATA_DIR");
     expect(script).toContain('if /i "!_CONFIG_DIR!"=="~" set "_CONFIG_DIR=%USERPROFILE%"');
     expect(script).toContain('if "!_CONFIG_DIR:~0,2!"=="~\\" set "_CONFIG_DIR=%USERPROFILE%\\!_CONFIG_DIR:~2!"');
     expect(script).toContain('if "!_CONFIG_DIR:~0,2!"=="~/" set "_CONFIG_DIR=%USERPROFILE%\\!_CONFIG_DIR:~2!"');
     expect(script).toContain("verifyAttestation");
     expect(script).toContain("findstr");
     // Layer 2: env var
-    expect(script).toContain("PLANNOTATOR_VERIFY_ATTESTATION");
+    expect(script).toContain("HYPERMARK_VERIFY_ATTESTATION");
     // Layer 1: CLI flags
     expect(script).toContain("--verify-attestation");
     expect(script).toContain("--skip-attestation");
@@ -848,7 +848,7 @@ describe("install.cmd", () => {
     expect(script).toContain('if /i "%~1"=="--minimal"');
     expect(script).toContain('if /i "%~1"=="--binary-only"');
     expect(script).toContain('if /i "%~1"=="--no-minimal"');
-    expect(script).toContain("PLANNOTATOR_MINIMAL");
+    expect(script).toContain("HYPERMARK_MINIMAL");
     // Usage string advertises the flag.
     expect(script).toContain("[--minimal ^| --no-minimal]");
     // --minimal / --no-minimal are mutually exclusive (parity with sh/ps1).
@@ -879,12 +879,12 @@ describe("install.cmd", () => {
   test("--skip-skills: flag, env var, config key, precedence (#1201)", () => {
     expect(script).toContain('if /i "%~1"=="--skip-skills"');
     expect(script).toContain('set "SKIP_SKILLS_FLAG=0"');
-    expect(script).toContain("PLANNOTATOR_SKIP_SKILLS_INSTALL");
+    expect(script).toContain("HYPERMARK_SKIP_SKILLS_INSTALL");
     expect(script).toContain("skipInstall.skills");
     // Precedence by textual layering (later assignment wins): config, then
     // env var, then flag - matching SKIP_CODEX.
     const configIdx = script.indexOf('set "SKIP_SKILLS_SOURCE=config skipInstall.skills"');
-    const envIdx = script.indexOf('set "SKIP_SKILLS_SOURCE=PLANNOTATOR_SKIP_SKILLS_INSTALL"');
+    const envIdx = script.indexOf('set "SKIP_SKILLS_SOURCE=HYPERMARK_SKIP_SKILLS_INSTALL"');
     const flagIdx = script.indexOf('set "SKIP_SKILLS_SOURCE=--skip-skills"');
     expect(configIdx).toBeGreaterThan(0);
     expect(envIdx).toBeGreaterThan(configIdx);
@@ -1045,21 +1045,21 @@ describe("install shared behavior", () => {
   test("binary-only (minimal) mode exists in all three installers", () => {
     const cmdScript = readScript("install.cmd");
     // Every installer exposes the flag, its --binary-only / -BinaryOnly alias,
-    // the explicit opt-out, and the PLANNOTATOR_MINIMAL env-var fallback — so a
+    // the explicit opt-out, and the HYPERMARK_MINIMAL env-var fallback — so a
     // user gets the same binary-only path whatever host they install from.
     expect(sh).toContain("--minimal|--binary-only)");
     expect(sh).toContain("--no-minimal)");
-    expect(sh).toContain("PLANNOTATOR_MINIMAL");
+    expect(sh).toContain("HYPERMARK_MINIMAL");
 
     expect(ps).toContain('[Alias("BinaryOnly")]');
     expect(ps).toContain("[switch]$Minimal");
     expect(ps).toContain("[switch]$NoMinimal");
-    expect(ps).toContain("$env:PLANNOTATOR_MINIMAL");
+    expect(ps).toContain("$env:HYPERMARK_MINIMAL");
 
     expect(cmdScript).toContain('if /i "%~1"=="--minimal"');
     expect(cmdScript).toContain('if /i "%~1"=="--binary-only"');
     expect(cmdScript).toContain('if /i "%~1"=="--no-minimal"');
-    expect(cmdScript).toContain("PLANNOTATOR_MINIMAL");
+    expect(cmdScript).toContain("HYPERMARK_MINIMAL");
   });
 
   test("guided install exists in all three installers with safe automation behavior", () => {
@@ -1074,10 +1074,10 @@ describe("install shared behavior", () => {
     expect(cmdScript).toContain('"%~1"=="--non-interactive"');
     // Prompts are bounded so an attached-but-unattended console can't hang:
     // sh via read -t / PROMPT_TIMEOUT, ps1 via a timed Read-LineWithTimeout,
-    // both overridable with PLANNOTATOR_PROMPT_TIMEOUT.
-    expect(sh).toContain("PLANNOTATOR_PROMPT_TIMEOUT");
+    // both overridable with HYPERMARK_PROMPT_TIMEOUT.
+    expect(sh).toContain("HYPERMARK_PROMPT_TIMEOUT");
     expect(ps).toContain("Read-LineWithTimeout");
-    expect(ps).toContain("PLANNOTATOR_PROMPT_TIMEOUT");
+    expect(ps).toContain("HYPERMARK_PROMPT_TIMEOUT");
     // The wizard only runs with a real terminal/console attached.
     expect(sh).toContain("{ : < /dev/tty; } 2>/dev/null");
     expect(ps).toContain("[Console]::IsInputRedirected");
@@ -1128,12 +1128,12 @@ describe("install shared behavior", () => {
   });
 
   test("install.sh has three-layer opt-in resolution", () => {
-    // Layer 3: config file via grep, respecting PLANNOTATOR_DATA_DIR
-    expect(sh).toContain("PLANNOTATOR_DATA_DIR");
+    // Layer 3: config file via grep, respecting HYPERMARK_DATA_DIR
+    expect(sh).toContain("HYPERMARK_DATA_DIR");
     expect(sh).toContain("_config_dir");
     expect(sh).toContain('"verifyAttestation"');
     // Layer 2: env var parsing
-    expect(sh).toContain("PLANNOTATOR_VERIFY_ATTESTATION");
+    expect(sh).toContain("HYPERMARK_VERIFY_ATTESTATION");
     // Layer 1: CLI flags with sentinel
     expect(sh).toContain("--verify-attestation");
     expect(sh).toContain("--skip-attestation");
@@ -1143,8 +1143,8 @@ describe("install shared behavior", () => {
   });
 
   test("install.ps1 has three-layer opt-in resolution", () => {
-    // Layer 3: config file via ConvertFrom-Json, respecting PLANNOTATOR_DATA_DIR
-    expect(ps).toContain("PLANNOTATOR_DATA_DIR");
+    // Layer 3: config file via ConvertFrom-Json, respecting HYPERMARK_DATA_DIR
+    expect(ps).toContain("HYPERMARK_DATA_DIR");
     expect(ps).toContain('$configDir -eq "~"');
     expect(ps).toContain('$configDir.StartsWith("~/")');
     expect(ps).toContain("$configDir.StartsWith('~\\')");
@@ -1153,7 +1153,7 @@ describe("install shared behavior", () => {
     expect(ps).toContain("ConvertFrom-Json");
     expect(ps).toContain("$cfg.verifyAttestation");
     // Layer 2: env var
-    expect(ps).toContain("PLANNOTATOR_VERIFY_ATTESTATION");
+    expect(ps).toContain("HYPERMARK_VERIFY_ATTESTATION");
     // Layer 1: CLI flags
     expect(ps).toContain("[switch]$VerifyAttestation");
     expect(ps).toContain("[switch]$SkipAttestation");
@@ -1414,7 +1414,7 @@ describe("install shared behavior", () => {
     expect(ps).toContain("-TimeoutSec 120");
     expect(cmdScript).toContain("--connect-timeout 10 --max-time 120");
     // And the opt-out is documented in the help text.
-    expect(sh).toContain("PLANNOTATOR_SKIP_SEM_INSTALL=1");
+    expect(sh).toContain("HYPERMARK_SKIP_SEM_INSTALL=1");
   });
 
   test("all installers install agent terminal runtime as a non-fatal optional dependency", () => {
@@ -1423,17 +1423,17 @@ describe("install shared behavior", () => {
     expect(sh).toContain("install_agent_terminal_runtime");
     expect(sh).toContain('"$INSTALL_DIR/hypermark" install-runtime agent-terminal');
     expect(sh).toContain("Skipping agent terminal runtime install");
-    expect(sh).toContain("PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL=1");
+    expect(sh).toContain("HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL=1");
 
     expect(ps).toContain("function Install-AgentTerminalRuntime");
     expect(ps).toContain("& $hypermarkPath install-runtime agent-terminal");
     expect(ps).toContain("Skipping agent terminal runtime install");
-    expect(ps).toContain("PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL");
+    expect(ps).toContain("HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL");
 
     expect(cmdScript).toContain("call :InstallAgentTerminalRuntime");
     expect(cmdScript).toContain('"!INSTALL_PATH!" install-runtime agent-terminal');
     expect(cmdScript).toContain("Skipping agent terminal runtime install");
-    expect(cmdScript).toContain("PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL");
+    expect(cmdScript).toContain("HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL");
   });
 
   test("the CallDiff runtime is strictly opt-in: default sequence never installs it", () => {
@@ -1468,9 +1468,9 @@ describe("install shared behavior", () => {
     expect(cmdScript).toContain('if /i "%~1"=="--with-call-flow" (');
 
     // Env layer.
-    expect(sh).toContain("PLANNOTATOR_INSTALL_CALLDIFF");
-    expect(ps).toContain("PLANNOTATOR_INSTALL_CALLDIFF");
-    expect(cmdScript).toContain("PLANNOTATOR_INSTALL_CALLDIFF");
+    expect(sh).toContain("HYPERMARK_INSTALL_CALLDIFF");
+    expect(ps).toContain("HYPERMARK_INSTALL_CALLDIFF");
+    expect(cmdScript).toContain("HYPERMARK_INSTALL_CALLDIFF");
 
     // Config layer (flat top-level boolean, matching verifyAttestation).
     expect(sh).toContain('"installCallFlow"');
@@ -1479,15 +1479,15 @@ describe("install shared behavior", () => {
 
     // In each script the flag assignment comes after the env resolution so
     // the flag wins, mirroring the verifyAttestation layering.
-    const shEnv = sh.indexOf('PLANNOTATOR_INSTALL_CALLDIFF:-');
+    const shEnv = sh.indexOf('HYPERMARK_INSTALL_CALLDIFF:-');
     const shFlag = sh.indexOf('install_call_flow="$WITH_CALL_FLOW_FLAG"');
     expect(shEnv).toBeGreaterThan(0);
     expect(shFlag).toBeGreaterThan(shEnv);
-    const psEnv = ps.indexOf("$env:PLANNOTATOR_INSTALL_CALLDIFF");
+    const psEnv = ps.indexOf("$env:HYPERMARK_INSTALL_CALLDIFF");
     const psFlag = ps.indexOf("if ($WithCallFlow) { $installCallFlowResolved = $true }");
     expect(psEnv).toBeGreaterThan(0);
     expect(psFlag).toBeGreaterThan(psEnv);
-    const cmdEnv = cmdScript.indexOf('if /i "!PLANNOTATOR_INSTALL_CALLDIFF!"=="1"');
+    const cmdEnv = cmdScript.indexOf('if /i "!HYPERMARK_INSTALL_CALLDIFF!"=="1"');
     const cmdFlag = cmdScript.indexOf('if "!WITH_CALL_FLOW_FLAG!"=="1" set "INSTALL_CALL_FLOW=1"');
     expect(cmdEnv).toBeGreaterThan(0);
     expect(cmdFlag).toBeGreaterThan(cmdEnv);
@@ -1497,9 +1497,9 @@ describe("install shared behavior", () => {
     const cmdScript = readScript("install.cmd");
     // Opting out of a default-off install is meaningless; the env var was
     // deleted rather than kept for back-compat.
-    expect(sh).not.toContain("PLANNOTATOR_SKIP_CALLDIFF_INSTALL");
-    expect(ps).not.toContain("PLANNOTATOR_SKIP_CALLDIFF_INSTALL");
-    expect(cmdScript).not.toContain("PLANNOTATOR_SKIP_CALLDIFF_INSTALL");
+    expect(sh).not.toContain("HYPERMARK_SKIP_CALLDIFF_INSTALL");
+    expect(ps).not.toContain("HYPERMARK_SKIP_CALLDIFF_INSTALL");
+    expect(cmdScript).not.toContain("HYPERMARK_SKIP_CALLDIFF_INSTALL");
   });
 
   test("install.sh and help text use vX.Y.Z placeholder not v0.17.1", () => {
@@ -2034,8 +2034,8 @@ function runInstallSh(sandbox: { home: string; stub: string }, args: string[]) {
         PATH: `${sandbox.stub}:/usr/bin:/bin`,
         STUB_CHECKSUM: FAKE_BINARY_SHA256,
         STUB_ATT_JSON: ATTESTATION_FIXTURE,
-        PLANNOTATOR_SKIP_SEM_INSTALL: "1",
-        PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL: "1",
+        HYPERMARK_SKIP_SEM_INSTALL: "1",
+        HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL: "1",
       },
       stdout: "pipe",
       stderr: "pipe",

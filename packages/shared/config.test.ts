@@ -57,7 +57,7 @@ describe("parseReviewAnalysisConfig", () => {
   });
 });
 
-const TODO_ENV = "PLANNOTATOR_TODO_PROVIDER";
+const TODO_ENV = "HYPERMARK_TODO_PROVIDER";
 const originalTodoEnv = process.env[TODO_ENV];
 
 describe("resolveTodoProviderEnabled", () => {
@@ -93,7 +93,7 @@ describe("resolveTodoProviderEnabled", () => {
   });
 });
 
-const URL_HOST_ENV = "PLANNOTATOR_URL_HOST";
+const URL_HOST_ENV = "HYPERMARK_URL_HOST";
 const originalUrlHostEnv = process.env[URL_HOST_ENV];
 
 describe("isValidUrlHost", () => {
@@ -211,19 +211,19 @@ describe("config.json boolean coercion", () => {
   }> = [
     {
       name: "resolveUseGlimpse",
-      envVar: "PLANNOTATOR_GLIMPSE",
+      envVar: "HYPERMARK_GLIMPSE",
       key: "glimpse",
       resolve: resolveUseGlimpse,
     },
     {
       name: "resolveAnnotateHistory",
-      envVar: "PLANNOTATOR_ANNOTATE_HISTORY",
+      envVar: "HYPERMARK_ANNOTATE_HISTORY",
       key: "annotateHistory",
       resolve: resolveAnnotateHistory,
     },
     {
       name: "resolveUseJina",
-      envVar: "PLANNOTATOR_JINA",
+      envVar: "HYPERMARK_JINA",
       key: "jina",
       resolve: (config) => resolveUseJina(false, config),
     },
@@ -282,19 +282,19 @@ describe("config.json boolean coercion", () => {
 });
 
 describe("favicon config persistence", () => {
-  const originalDataDir = process.env.PLANNOTATOR_DATA_DIR;
+  const originalDataDir = process.env.HYPERMARK_DATA_DIR;
   let tempDir: string;
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "plannotator-config-test-"));
-    process.env.PLANNOTATOR_DATA_DIR = tempDir;
+    process.env.HYPERMARK_DATA_DIR = tempDir;
   });
 
   afterEach(() => {
     if (originalDataDir !== undefined) {
-      process.env.PLANNOTATOR_DATA_DIR = originalDataDir;
+      process.env.HYPERMARK_DATA_DIR = originalDataDir;
     } else {
-      delete process.env.PLANNOTATOR_DATA_DIR;
+      delete process.env.HYPERMARK_DATA_DIR;
     }
     rmSync(tempDir, { recursive: true, force: true });
   });
@@ -314,21 +314,21 @@ describe("favicon config persistence", () => {
 });
 
 describe("saveConfig write serialization", () => {
-  const originalDataDir = process.env.PLANNOTATOR_DATA_DIR;
+  const originalDataDir = process.env.HYPERMARK_DATA_DIR;
   let tempDir: string;
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "plannotator-config-lock-"));
-    process.env.PLANNOTATOR_DATA_DIR = tempDir;
+    process.env.HYPERMARK_DATA_DIR = tempDir;
   });
 
   afterEach(() => {
     __setConfigSaveMergeWindowHookForTest(null);
     __setConfigLockTimingsForTest(null);
     if (originalDataDir !== undefined) {
-      process.env.PLANNOTATOR_DATA_DIR = originalDataDir;
+      process.env.HYPERMARK_DATA_DIR = originalDataDir;
     } else {
-      delete process.env.PLANNOTATOR_DATA_DIR;
+      delete process.env.HYPERMARK_DATA_DIR;
     }
     rmSync(tempDir, { recursive: true, force: true });
   });
@@ -434,7 +434,7 @@ saveConfig({ prompts: { [key]: "v" } } as never);
     const holdingFlag = join(tempDir, "holding");
     const releaseFlag = join(tempDir, "release");
     const contenderStarted = join(tempDir, "contender-started");
-    const env = { ...process.env, PLANNOTATOR_DATA_DIR: tempDir };
+    const env = { ...process.env, HYPERMARK_DATA_DIR: tempDir };
 
     const holder = Bun.spawn(["bun", "run", scriptPath], {
       env: { ...env, TEST_KEY: "holder", TEST_HOLD_UNTIL: releaseFlag, TEST_HOLDING_FLAG: holdingFlag },

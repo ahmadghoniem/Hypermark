@@ -8,15 +8,15 @@
  *    recurring on code review).
  *  - "archive failure loses the review": a failed archive write must keep the
  *    draft as the recovery copy and must never fail the reviewer's submit.
- *  - "opt-out ignored": PLANNOTATOR_FEEDBACK_HISTORY / feedbackHistory must
+ *  - "opt-out ignored": HYPERMARK_FEEDBACK_HISTORY / feedbackHistory must
  *    stop every write.
- *  - "stateless annotate broken": PLANNOTATOR_ANNOTATE_HISTORY=0 must still
+ *  - "stateless annotate broken": HYPERMARK_ANNOTATE_HISTORY=0 must still
  *    mean "annotate sessions write nothing to the data dir".
  *  - "plan record cannot be joined to its plan": the record names a history
  *    version file instead of copying the plan text, so that path must resolve.
  *  - dismissals are recorded as decision-only lines.
  *
- * Every test sandboxes the archive under a temp PLANNOTATOR_DATA_DIR set
+ * Every test sandboxes the archive under a temp HYPERMARK_DATA_DIR set
  * inside the test body. Plan version history is written by storage.ts, which
  * captures its data dir at import time, so the one plan test uses a unique
  * heading (unique slug) and removes only that slug directory afterwards.
@@ -38,7 +38,7 @@ const MINIMAL_HTML = "<html><body>Hypermark</body></html>";
 
 // Annotate version history goes through storage.ts, whose data dir is fixed at
 // import time, so these sessions snapshot into the REAL data dir no matter what
-// PLANNOTATOR_DATA_DIR says here. Distinctive, test-owned project names keep
+// HYPERMARK_DATA_DIR says here. Distinctive, test-owned project names keep
 // that out of any real project's bucket and let afterAll remove it whole.
 const FILE_ANNOTATE_PROJECT = "_feedback_archive_test_file";
 const STATELESS_ANNOTATE_PROJECT = "_feedback_archive_test_stateless";
@@ -46,12 +46,12 @@ const URL_ANNOTATE_PROJECT = "_feedback_archive_test_url";
 
 const saved: Record<string, string | undefined> = {};
 const ENV_KEYS = [
-  "PLANNOTATOR_DATA_DIR",
-  "PLANNOTATOR_FEEDBACK_HISTORY",
-  "PLANNOTATOR_ANNOTATE_HISTORY",
-  "PLANNOTATOR_AI",
-  "PLANNOTATOR_PORT",
-  "PLANNOTATOR_REMOTE",
+  "HYPERMARK_DATA_DIR",
+  "HYPERMARK_FEEDBACK_HISTORY",
+  "HYPERMARK_ANNOTATE_HISTORY",
+  "HYPERMARK_AI",
+  "HYPERMARK_PORT",
+  "HYPERMARK_REMOTE",
 ] as const;
 
 const tempDirs: string[] = [];
@@ -65,7 +65,7 @@ function makeTempDir(prefix: string): string {
 /** Point the archive (and drafts) at a fresh temp data dir for this test. */
 function useTempDataDir(): string {
   const dir = makeTempDir("plannotator-feedback-wiring-");
-  process.env.PLANNOTATOR_DATA_DIR = dir;
+  process.env.HYPERMARK_DATA_DIR = dir;
   return dir;
 }
 
@@ -95,12 +95,12 @@ function sidecarBody(dataDir: string, record: FeedbackRecord): string {
 
 beforeEach(() => {
   for (const key of ENV_KEYS) saved[key] = process.env[key];
-  delete process.env.PLANNOTATOR_PORT;
-  process.env.PLANNOTATOR_REMOTE = "0";
-  process.env.PLANNOTATOR_AI = "disabled";
+  delete process.env.HYPERMARK_PORT;
+  process.env.HYPERMARK_REMOTE = "0";
+  process.env.HYPERMARK_AI = "disabled";
   // A real ~/.plannotator/config.json must never decide these tests.
-  process.env.PLANNOTATOR_FEEDBACK_HISTORY = "1";
-  process.env.PLANNOTATOR_ANNOTATE_HISTORY = "1";
+  process.env.HYPERMARK_FEEDBACK_HISTORY = "1";
+  process.env.HYPERMARK_ANNOTATE_HISTORY = "1";
 });
 
 afterEach(() => {
@@ -314,9 +314,9 @@ describe("code review submissions are archived", () => {
     }
   });
 
-  test("PLANNOTATOR_FEEDBACK_HISTORY=0 writes nothing and keeps the legacy draft behavior", async () => {
+  test("HYPERMARK_FEEDBACK_HISTORY=0 writes nothing and keeps the legacy draft behavior", async () => {
     const dataDir = useTempDataDir();
-    process.env.PLANNOTATOR_FEEDBACK_HISTORY = "0";
+    process.env.HYPERMARK_FEEDBACK_HISTORY = "0";
     const server = await startReview();
     try {
       await fetch(`${server.url}/api/draft`, {
@@ -339,7 +339,7 @@ describe("code review submissions are archived", () => {
 
   test("{ feedbackHistory: false } in config.json writes nothing", async () => {
     const dataDir = useTempDataDir();
-    delete process.env.PLANNOTATOR_FEEDBACK_HISTORY; // config must decide
+    delete process.env.HYPERMARK_FEEDBACK_HISTORY; // config must decide
     writeFileSync(join(dataDir, "config.json"), JSON.stringify({ feedbackHistory: false }), "utf-8");
     const server = await startReview();
     try {
@@ -384,12 +384,12 @@ describe("annotate submissions are archived", () => {
     }
   });
 
-  test("PLANNOTATOR_ANNOTATE_HISTORY=0 keeps annotate sessions fully stateless", async () => {
+  test("HYPERMARK_ANNOTATE_HISTORY=0 keeps annotate sessions fully stateless", async () => {
     // The documented stateless-annotate promise: the opt-out means "no
     // annotate writes to the data dir", and submitted feedback quotes the
     // annotated content, so the archive must honor it too.
     const dataDir = useTempDataDir();
-    process.env.PLANNOTATOR_ANNOTATE_HISTORY = "0";
+    process.env.HYPERMARK_ANNOTATE_HISTORY = "0";
     const dir = makeTempDir("plannotator-feedback-annotate-");
     const docPath = join(dir, "doc.md");
     writeFileSync(docPath, "# Doc\n\nBody\n", "utf-8");

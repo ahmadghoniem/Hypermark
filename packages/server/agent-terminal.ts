@@ -56,14 +56,14 @@ export async function createBunAgentTerminalBridge(args: {
     return createDisabledBridge({
       enabled: false,
       reason: "remote-disabled",
-      message: "Agent terminal is disabled in remote mode. Set PLANNOTATOR_AGENT_TERMINAL_REMOTE=1 to enable it.",
+      message: "Agent terminal is disabled in remote mode. Set HYPERMARK_AGENT_TERMINAL_REMOTE=1 to enable it.",
     });
   }
   if (args.tailnetPublished && !isAgentTerminalRemoteEnabled()) {
     return createDisabledBridge({
       enabled: false,
       reason: "remote-disabled",
-      message: "Agent terminal is disabled for --tailscale sessions because the session is reachable across your tailnet. Set PLANNOTATOR_AGENT_TERMINAL_REMOTE=1 to enable it.",
+      message: "Agent terminal is disabled for --tailscale sessions because the session is reachable across your tailnet. Set HYPERMARK_AGENT_TERMINAL_REMOTE=1 to enable it.",
     });
   }
 
@@ -261,10 +261,10 @@ async function startNodeAgentTerminalSidecar(
     cwd: runtime.sidecarCwd,
     env: {
       ...process.env,
-      PLANNOTATOR_AGENT_CWD: cwd,
-      PLANNOTATOR_AGENT_WS_PATH: wsPath,
-      PLANNOTATOR_AGENT_WEBTUI_CORE_URL: runtime.webtuiCoreUrl,
-      PLANNOTATOR_AGENT_WEBTUI_SERVER_URL: runtime.webtuiServerUrl,
+      HYPERMARK_AGENT_CWD: cwd,
+      HYPERMARK_AGENT_WS_PATH: wsPath,
+      HYPERMARK_AGENT_WEBTUI_CORE_URL: runtime.webtuiCoreUrl,
+      HYPERMARK_AGENT_WEBTUI_SERVER_URL: runtime.webtuiServerUrl,
     },
     stdin: "pipe",
     stdout: "pipe",

@@ -131,7 +131,7 @@ echo "--- Step 2: Launch plan server + validate session content ---"
 
 PLAN_JSON='{"tool_input":{"plan":"# Test Plan\n\nThis is a test."}}'
 
-echo "$PLAN_JSON" | PLANNOTATOR_BROWSER="/usr/bin/true" \
+echo "$PLAN_JSON" | HYPERMARK_BROWSER="/usr/bin/true" \
   run_cli > /dev/null &
 PLAN_BG_PID=$!
 BG_PIDS="$BG_PIDS $PLAN_BG_PID"
@@ -170,7 +170,7 @@ echo ""
 # -------------------------------------------------------
 echo "--- Step 3: Launch review server + validate session content ---"
 
-PLANNOTATOR_BROWSER="/usr/bin/true" \
+HYPERMARK_BROWSER="/usr/bin/true" \
   run_cli review > /dev/null &
 REVIEW_BG_PID=$!
 BG_PIDS="$BG_PIDS $REVIEW_BG_PID"
@@ -228,9 +228,9 @@ echo ""
 # -------------------------------------------------------
 echo "--- Step 5: Test sessions --open ---"
 
-# Use PLANNOTATOR_BROWSER=/usr/bin/true so --open doesn't actually open a browser.
+# Use HYPERMARK_BROWSER=/usr/bin/true so --open doesn't actually open a browser.
 # We just need it to not error out.
-OPEN_OUTPUT=$(PLANNOTATOR_BROWSER="/usr/bin/true" run_cli sessions --open 2>&1 || true)
+OPEN_OUTPUT=$(HYPERMARK_BROWSER="/usr/bin/true" run_cli sessions --open 2>&1 || true)
 
 if echo "$OPEN_OUTPUT" | grep -q "Opened.*session in browser"; then
   pass "sessions --open reports success"
@@ -239,7 +239,7 @@ else
 fi
 
 # Test --open with explicit index
-OPEN_2_OUTPUT=$(PLANNOTATOR_BROWSER="/usr/bin/true" run_cli sessions --open 2 2>&1 || true)
+OPEN_2_OUTPUT=$(HYPERMARK_BROWSER="/usr/bin/true" run_cli sessions --open 2 2>&1 || true)
 
 if echo "$OPEN_2_OUTPUT" | grep -q "Opened.*session in browser"; then
   pass "sessions --open 2 reports success"
@@ -248,7 +248,7 @@ else
 fi
 
 # Test --open with out-of-range index
-OPEN_BAD_OUTPUT=$(PLANNOTATOR_BROWSER="/usr/bin/true" run_cli sessions --open 99 2>&1 || true)
+OPEN_BAD_OUTPUT=$(HYPERMARK_BROWSER="/usr/bin/true" run_cli sessions --open 99 2>&1 || true)
 
 if echo "$OPEN_BAD_OUTPUT" | grep -q "not found"; then
   pass "sessions --open 99 reports not found"

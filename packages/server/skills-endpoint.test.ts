@@ -33,9 +33,9 @@ const ENV_KEYS = [
   "CLAUDE_CONFIG_DIR",
   "CODEX_HOME",
   "XDG_CONFIG_HOME",
-  "PLANNOTATOR_DATA_DIR",
-  "PLANNOTATOR_PORT",
-  "PLANNOTATOR_REMOTE",
+  "HYPERMARK_DATA_DIR",
+  "HYPERMARK_PORT",
+  "HYPERMARK_REMOTE",
 ] as const;
 const savedEnv: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>> = {};
 
@@ -70,9 +70,9 @@ beforeEach(() => {
   process.env.CLAUDE_CONFIG_DIR = join(home, ".claude");
   process.env.CODEX_HOME = join(home, ".codex");
   process.env.XDG_CONFIG_HOME = join(home, ".config");
-  process.env.PLANNOTATOR_DATA_DIR = join(base, "data");
-  delete process.env.PLANNOTATOR_PORT;
-  process.env.PLANNOTATOR_REMOTE = "0";
+  process.env.HYPERMARK_DATA_DIR = join(base, "data");
+  delete process.env.HYPERMARK_PORT;
+  process.env.HYPERMARK_REMOTE = "0";
 });
 
 afterEach(() => {

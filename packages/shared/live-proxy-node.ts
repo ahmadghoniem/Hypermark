@@ -29,7 +29,7 @@
  * contract): binds 127.0.0.1 UNCONDITIONALLY — never the shared
  * env-dependent hostname helper — validates Host before any URL parsing or
  * upstream contact (a Host-less HTTP/1.0 request answers the plain 403,
- * never a runtime error), and PLANNOTATOR_URL_HOST is never applied to the
+ * never a runtime error), and HYPERMARK_URL_HOST is never applied to the
  * proxy origin.
  */
 
@@ -399,7 +399,7 @@ export function startLiveAppProxyNode(opts: LiveAppProxyOptions): Promise<LiveAp
       port = address.port;
       resolve({
         port,
-        // Always the literal loopback origin: PLANNOTATOR_URL_HOST and
+        // Always the literal loopback origin: HYPERMARK_URL_HOST and
         // buildAdvertisedUrl are never applied here.
         origin: `http://${LOOPBACK_HOST}:${port}`,
         stop() {

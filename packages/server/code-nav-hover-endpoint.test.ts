@@ -19,8 +19,8 @@ import { join } from 'node:path';
 import { startReviewServer as startBunReviewServer } from './review';
 import { getVcsContext } from './vcs';
 
-const originalDataDir = process.env.PLANNOTATOR_DATA_DIR;
-const originalPort = process.env.PLANNOTATOR_PORT;
+const originalDataDir = process.env.HYPERMARK_DATA_DIR;
+const originalPort = process.env.HYPERMARK_PORT;
 const tempDirs: string[] = [];
 
 // rg is the whole backend. Where it is missing the endpoint still answers 200
@@ -100,10 +100,10 @@ const HOVER_REQUEST = {
 };
 
 afterEach(() => {
-  if (originalDataDir === undefined) delete process.env.PLANNOTATOR_DATA_DIR;
-  else process.env.PLANNOTATOR_DATA_DIR = originalDataDir;
-  if (originalPort === undefined) delete process.env.PLANNOTATOR_PORT;
-  else process.env.PLANNOTATOR_PORT = originalPort;
+  if (originalDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
+  else process.env.HYPERMARK_DATA_DIR = originalDataDir;
+  if (originalPort === undefined) delete process.env.HYPERMARK_PORT;
+  else process.env.HYPERMARK_PORT = originalPort;
   for (const dir of tempDirs.splice(0)) {
     try {
       rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
@@ -119,7 +119,7 @@ describe('POST /api/code-nav/hover', () => {
     ['Bun', startBunReviewServer],
   ] as const) {
     test(`${runtime} answers the hover shape for a local git session`, async () => {
-      process.env.PLANNOTATOR_DATA_DIR = makeTempDir('plannotator-hover-data-');
+      process.env.HYPERMARK_DATA_DIR = makeTempDir('plannotator-hover-data-');
       const repoDir = initRepo();
       const gitContext = await getVcsContext(repoDir, 'git');
 
@@ -192,7 +192,7 @@ describe('POST /api/code-nav/hover', () => {
     });
 
     test(`${runtime} refuses a session with no local checkout`, async () => {
-      process.env.PLANNOTATOR_DATA_DIR = makeTempDir('plannotator-hover-data-');
+      process.env.HYPERMARK_DATA_DIR = makeTempDir('plannotator-hover-data-');
 
       const server = await startServer({
         rawPatch: RAW_PATCH,
@@ -214,7 +214,7 @@ describe('POST /api/code-nav/hover', () => {
     });
 
     test(`${runtime} rejects a traversing filePath`, async () => {
-      process.env.PLANNOTATOR_DATA_DIR = makeTempDir('plannotator-hover-data-');
+      process.env.HYPERMARK_DATA_DIR = makeTempDir('plannotator-hover-data-');
       const repoDir = initRepo();
       const gitContext = await getVcsContext(repoDir, 'git');
 

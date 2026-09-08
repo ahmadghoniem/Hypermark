@@ -17,7 +17,7 @@ interface WorkspaceStatusFlight {
 const workspaceStatusFlights = new Map<string, WorkspaceStatusFlight>();
 
 function getGitTimeoutMs(): number {
-	const timeout = Number.parseInt(process.env.PLANNOTATOR_GIT_TIMEOUT_MS ?? "", 10);
+	const timeout = Number.parseInt(process.env.HYPERMARK_GIT_TIMEOUT_MS ?? "", 10);
 	return Number.isFinite(timeout) && timeout > 0 ? timeout : DEFAULT_GIT_TIMEOUT_MS;
 }
 
