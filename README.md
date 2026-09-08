@@ -11,35 +11,22 @@
 </p>
 
 <p align="center">
-  <img src=".github/assets/icons/amp.svg" alt="Amp" title="Amp" height="28" />&nbsp;&nbsp;
-  <img src=".github/assets/icons/claude.svg" alt="Claude Code" title="Claude Code" height="28" />&nbsp;&nbsp;
-  <img src=".github/assets/icons/codex.png" alt="Codex" title="Codex" height="28" />&nbsp;&nbsp;
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/icons/copilot-dark.svg" />
-    <img src=".github/assets/icons/copilot-light.svg" alt="Copilot CLI" title="Copilot CLI" height="28" />
-  </picture>&nbsp;&nbsp;
-  <img src=".github/assets/icons/droid.png" alt="Droid" title="Droid" height="28" />&nbsp;&nbsp;
-  <img src=".github/assets/icons/gemini.png" alt="Gemini CLI" title="Gemini CLI" height="28" />&nbsp;&nbsp;
-  <img src=".github/assets/icons/kiro.svg" alt="Kiro" title="Kiro" height="28" />&nbsp;&nbsp;
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/icons/opencode-dark.svg" />
-    <img src=".github/assets/icons/opencode-light.svg" alt="OpenCode" title="OpenCode" height="28" />
-  </picture>&nbsp;&nbsp;
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/icons/pi-dark.svg" />
-    <img src=".github/assets/icons/pi-light.svg" alt="Pi" title="Pi" height="28" />
-  </picture>
+  <img src=".github/assets/icons/claude.svg" alt="Claude Code" title="Claude Code" height="28" />
 </p>
 
 <p align="center">
-  <a href="https://www.youtube.com/watch?v=a_AT7cEN_9I">Watch the og demo</a> · <a href="https://docs.plannotator.ai/open-source/start/installation">Installation guide</a> · <a href="https://plannotator.ai/">Official site</a> · <a href="https://github.com/plannotator/effective-html">Visual HTML Skills</a> · <a href="#herdr-annotate-hypermark-in-the-terminal">Herdr Annotate</a>
+  <a href="#install">Install</a> · <a href="#commands">Commands</a> · <a href="#how-it-works">How it works</a> · <a href="#herdr-annotate-hypermark-in-the-terminal">Herdr Annotate</a>
+</p>
+
+<p align="center">
+  <sub>A fork of <a href="https://github.com/backnotprop/plannotator">backnotprop/plannotator</a>, narrowed to Claude Code.</sub>
 </p>
 
 # Hypermark
 
-Hypermark is a local, browser-based review surface for AI coding agents: Claude Code, Codex, Copilot CLI, Gemini CLI, OpenCode, Kiro, Droid, Amp, and Pi. 
+Hypermark is a local, browser-based review surface for Claude Code.
 
-**It plugs directly into your agent** through its hooks and commands. When the agent proposes a plan, html, or finishes writing code, the work opens in your browser and you mark it up, comment, and send feedback directly to the agent for it to act on it.
+**It plugs directly into Claude Code** through its hooks and skills. When the agent proposes a plan, html, or finishes writing code, the work opens in your browser and you mark it up, comment, and send feedback directly to the agent for it to act on it.
 
 <table>
 <tr>
@@ -106,7 +93,6 @@ Prefer it standalone? [Plannotator TUI](https://github.com/plannotator/plannotat
 
 ## Commands
 
-<sub>On Codex, swap the slash commands for `!hypermark …` (e.g. `!hypermark review`) or the `$hypermark-*` skills.</sub>
 
 ### Annotate
 
@@ -118,7 +104,7 @@ Prefer it standalone? [Plannotator TUI](https://github.com/plannotator/plannotat
 /hypermark-last                                # Annotate the agent's last message
 ```
 
-Need a realistic document to try? Copy the [product requirements document template and filled example](https://docs.plannotator.ai/templates/product-requirements-document) as Markdown.
+Need a realistic document to try? Any markdown file works — try one of your own specs.
 
 ### Code review
 
@@ -129,7 +115,7 @@ Need a realistic document to try? Copy the [product requirements document templa
 hypermark review --gitbutler         # Review an active GitButler workspace
 ```
 
-GitButler users can review the whole workspace, one stack, or one branch layer. See the [GitButler workflow guide](https://docs.plannotator.ai/open-source/workflows/gitbutler).
+GitButler users can review the whole workspace, one stack, or one branch layer.
 
 ### Plan mode
 
@@ -149,91 +135,49 @@ hypermark archive                    # Browse saved plan decisions read-only
 
 Hypermark does not collect usage telemetry or analytics. Plans, diffs, annotations, drafts, history, and configuration stay local by default.
 
-Each plan review, annotate, archive, share-portal, and code-review app surface checks GitHub for the latest Hypermark release when it loads. This sends no plan or review content and gives the Hypermark project owner no usage analytics, although GitHub receives an ordinary request. There is currently no opt-out setting. Local Git code review can also query the configured `origin` with `git ls-remote` to detect the default branch and a stale baseline; it does not send the local diff.
+Each plan review, annotate, archive, and code-review app surface checks GitHub for the latest Hypermark release when it loads. This sends no plan or review content and gives the Hypermark project owner no usage analytics, although GitHub receives an ordinary request. There is currently no opt-out setting. Local Git code review can also query the configured `origin` with `git ls-remote` to detect the default branch and a stale baseline; it does not send the local diff.
 
 Content leaves the local workflow only when a network feature needs it:
 
 - URL annotation fetches the requested site, through Jina Reader by default for public pages or directly when Jina is disabled or unavailable.
 - GitHub and GitLab review uses your authenticated CLI and Git remote to retrieve PR or MR data.
-- Ask AI and review agents send the selected question and relevant plan, document, repository, or diff context to your configured provider.
-- Sharing sends the complete link to whoever or whatever service you use to deliver it. Encrypted short links upload ciphertext to the paste service.
-- Workspaces is a separate hosted product, so the open source app's local-storage model does not apply to content placed there.
 
-The [privacy policy](https://plannotator.ai/privacy) documents these boundaries and the hosted website and waitlist data.
-
----
-
-## Link sharing
-
-Open source asynchronous link sharing remains available for compatibility but is moving to deprecated support. Workspaces is the primary direction for team sharing. No removal date has been announced.
-
-<p align="center">
-  <a href="https://room.plannotator.ai/">
-    <img src=".github/assets/sharing.png" alt="Sharing portal with upload options" width="720" />
-  </a>
-</p>
-
-<p align="center">
-  <sub>Legacy link-sharing demo: <a href="https://room.plannotator.ai/">room.plannotator.ai</a></sub>
-</p>
-
-<p align="center">
-  <a href="https://plannotator.ai/workspaces">
-    <img src=".github/assets/workspaces-cta.svg" alt="Workspaces is the team-sharing direction. Join the waitlist." height="44" />
-  </a>
-</p>
-
-Share a plan with a teammate and they can annotate it themselves. Import their feedback and send it straight back to your agent.
-
-**Small markdown shares** are compressed into the URL fragment. The fragment is not included in the browser's request to the share portal, but it is not encrypted. Anyone or any messaging service with the complete link can read the shared content. The portal host still receives ordinary request metadata.
-
-**Large markdown and raw HTML shares** use a short-link service. The share payload is encrypted with AES-256-GCM before upload, the server stores only ciphertext, and the key is kept in the URL fragment rather than sent in the paste request. Anyone with the complete link can decrypt it. Hosted pastes expire after 7 days.
-
-Same model as [PrivateBin](https://privatebin.info/). The paste service is [self-hostable](https://docs.plannotator.ai/open-source/workflows/sharing).
-
-Sharing can be disabled entirely with `HYPERMARK_SHARE=disabled`.
-
-[Workspaces](https://plannotator.ai/workspaces) is the primary path for hosted team collaboration.
+There is no link sharing, no paste service and no hosted counterpart: this fork
+removed all three, so nothing is uploaded anywhere.
 
 ---
 
 ## Install
 
-One installer covers almost every agent. It installs the `hypermark` binary, auto-detects your installed agents, and configures hooks, skills, and slash commands for each:
+The installer puts the `hypermark` binary on your PATH and configures Claude Code's hooks, skills and slash commands:
 
 ```bash
 # macOS / Linux / WSL
-curl -fsSL https://plannotator.ai/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash
 ```
 
 ```powershell
 # Windows PowerShell
-irm https://plannotator.ai/install.ps1 | iex
+irm https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.ps1 | iex
 ```
 
-The installer downloads the binary from GitHub Releases. A full install can also contact GitHub for release resolution and agent files, Ataraxy-Labs/sem for the optional `sem` sidecar, and npm for Pi, selected extra skills, or the managed agent-terminal runtime. Pinning `--version` skips only GitHub API release resolution, not the release download. See the [privacy policy](https://plannotator.ai/privacy) for the complete network boundaries.
+The installer downloads the binary from GitHub Releases. A full install also contacts GitHub for release resolution and the skills checkout, Ataraxy-Labs/sem for the optional `sem` sidecar, and npm for the extra skills or the managed agent-terminal runtime. Pinning `--version` skips only GitHub API release resolution, not the release download.
 
-Want just the binary and nothing else? Pass `--minimal` (or export `HYPERMARK_MINIMAL=1`) to install only the `hypermark` binary to `~/.local/bin`, skipping every skill, hook, slash command, and per-agent config:
+Want just the binary and nothing else? Pass `--minimal` (or export `HYPERMARK_MINIMAL=1`) to install only the `hypermark` binary to `~/.local/bin`, skipping every skill, hook, slash command and hook config:
 
 ```bash
-curl -fsSL https://plannotator.ai/install.sh | bash -s -- --minimal
+curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash -s -- --minimal
 ```
 
-Then finish the step for your agent:
+Then finish the Claude Code step:
 
-| Agent | After the installer | Details |
-|---|---|---|
-| **Amp** | Copy [`plannotator.ts`](apps/amp-plugin/plannotator.ts) into `~/.config/amp/plugins/`, then `plugins: reload`. Workflows live in the command palette. | [README](apps/amp-plugin/README.md) |
-| **Claude Code** | `/plugin marketplace add ahmadghoniem/hypermark`, then `/plugin install hypermark@hypermark`. Restart Claude Code. | [README](apps/hook/README.md) |
-| **Codex** | Nothing. Plan review is enabled automatically via Codex's experimental `Stop` hook (macOS/Linux/WSL; on native Windows, Codex hooks are experimental and the installer prints manual setup steps). `$hypermark-review`, `$hypermark-annotate`, and `$hypermark-last` skills included. | [README](apps/codex/README.md) |
-| **Copilot CLI** | `/plugin marketplace add ahmadghoniem/hypermark`, then `/plugin install hypermark-copilot@hypermark`. Restart. Plan review activates in plan mode (`Shift+Tab`). | [README](apps/copilot/README.md) |
-| **Droid** | `droid plugin marketplace add https://github.com/ahmadghoniem/Hypermark`, then `droid plugin install hypermark@hypermark`. Commands only, no plan interception yet. | [README](apps/droid-plugin/README.md) |
-| **Gemini CLI** | Nothing. The hook, policy, and slash commands are configured automatically. Requires Gemini CLI 0.36.0+. | [README](apps/gemini/README.md) |
-| **Kiro CLI** | Nothing. Skills and an example agent are installed automatically. Try `kiro-cli chat --agent hypermark`. | [README](apps/kiro-cli/README.md) |
-| **OpenCode** | Add `"plugin": ["@plannotator/opencode@latest"]` to `opencode.json`. Restart OpenCode. | [README](apps/opencode-plugin/README.md) |
-| **Pi** | Skip the installer. Just `pi install npm:@plannotator/pi-extension`. Start Pi with `--plan`, or toggle with `/plannotator-plan-mode`. | [README](apps/pi-extension/README.md) |
+```
+/plugin marketplace add ahmadghoniem/Hypermark
+/plugin install hypermark@hypermark
+```
 
-Full walkthroughs live in the [installation docs](https://docs.plannotator.ai/open-source/start/installation).
+Restart Claude Code. See [`apps/hook/README.md`](apps/hook/README.md) for
+details, and `scripts/install.sh --help` for every installer flag.
 
 ### Uninstall
 
@@ -254,21 +198,22 @@ Purge requires typing `purge` at the prompt and explains that the data is
 local-only: it is not stored on a Hypermark server and cannot be recovered.
 For automation, pass `--yes` (or `-y`); non-interactive removal refuses to run
 without it. Use `--dry-run` to preview recognized work without making changes.
-Host integrations are always part of uninstall. If a broken or unavailable
-host prevents safe cleanup, the command names the blocking plugin manager or
-configuration, gives exact manual cleanup instructions, and stops before
-deleting the binary. Complete that cleanup and rerun uninstall.
+If a broken or unavailable host prevents safe cleanup, the command names the
+blocking plugin manager or configuration, gives exact manual cleanup
+instructions, and stops before deleting the binary. Complete that cleanup and rerun uninstall.
 These mechanics keep the ordinary confirmation default-negative, make the
 irreversible outcome require a stronger explicit word, and still give package
 managers and scripts a conventional non-interactive flag.
 
 The command covers the conventional macOS, Linux, WSL, and Windows binary
-locations; the managed `sem` sidecar and agent-terminal runtime; installer
-skills, commands, hooks, policies, caches, and recognizable Amp/Kiro files; and
-detected Claude Code, Copilot CLI, Droid, Pi, and VS Code installations through
-their host CLIs. Shared JSONC settings are edited surgically, while strict JSON
-updates preserve the file's indentation, line endings, and trailing-newline
-style. Custom
+locations; the managed `sem` sidecar, agent-terminal and call-flow runtimes;
+the skills it installed under `~/.claude/skills` and `~/.agents/skills`; the
+Claude Code commands it replaced with skills; its managed hooks in Claude's
+`settings.json`; and the Claude Code plugin through the `claude` CLI. It
+removes nothing else — an existing Plannotator installation's data, skills,
+commands and agent homes are another product's files and are left untouched.
+Strict JSON updates preserve the file's indentation, line endings, and
+trailing-newline style. Custom
 or unrecognized files, separately installed optional skills, project-local
 integrations, external plan-save locations, and invalid configs are preserved
 (malformed host config is a fail-safe error). If cleanup reports an error,
@@ -284,9 +229,6 @@ commands, immediately before the synchronous data-removal block; a replaced
 data directory is refused without touching either the old or replacement data.
 If your dedicated data directory is symlinked, point `HYPERMARK_DATA_DIR` at
 its resolved target and retry.
-
-If you installed only the standalone Pi extension and do not have the
-`hypermark` CLI, use `pi remove npm:@plannotator/pi-extension`.
 
 <details>
 <summary>Claude Code: manual hook setup (without the plugin system)</summary>
@@ -318,11 +260,11 @@ Add to `~/.claude/settings.json`:
 <summary>Pin a specific version</summary>
 
 ```bash
-curl -fsSL https://plannotator.ai/install.sh | bash -s -- --version vX.Y.Z
+curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash -s -- --version vX.Y.Z
 ```
 
 ```powershell
-& ([scriptblock]::Create((irm https://plannotator.ai/install.ps1))) -Version vX.Y.Z
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.ps1))) -Version vX.Y.Z
 ```
 
 </details>
@@ -337,7 +279,6 @@ The fastest way to see what Hypermark does is to invoke it yourself, right now, 
 /hypermark-annotate report.html   # annotate any file, folder, or URL
 ```
 
-(Slash commands in most agents; `$hypermark-* skills in Codex, command palette in Amp.)
 
 Plan review needs no command at all. The next time your agent proposes a plan, it opens in your browser automatically.
 
@@ -372,8 +313,6 @@ You run /hypermark-review
 ---
 
 ## Integrations
-
-**VS Code**: Open plans in editor tabs, view diffs inline, add annotations from the editor gutter. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=backnotprop.plannotator-webview).
 
 **Obsidian**: Auto-save approved plans to a vault with YAML frontmatter, tags from the plan title, and backlinks for graph connectivity. Configure in Hypermark's Settings panel.
 
@@ -439,7 +378,7 @@ These are separate claims over the same artifact digest: provenance identifies i
 To verify on install:
 
 ```bash
-curl -fsSL https://plannotator.ai/install.sh | bash -s -- --verify-attestation
+curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash -s -- --verify-attestation
 ```
 
 Requires the `gh` CLI, but no login: the installer fetches the attestation bundle from GitHub's public attestations API and verifies it with `gh attestation verify --bundle` (the extraction needs node, python3, or jq on PATH; gh's authenticated fetch is the fallback). Can also be set persistently in `~/.plannotator/config.json`:
@@ -448,7 +387,7 @@ Requires the `gh` CLI, but no login: the installer fetches the attestation bundl
 { "verifyAttestation": true }
 ```
 
-Installer verification remains opt-in and verifies SLSA build provenance; normal installation does not require `gh`. See the [canonical installation docs](https://docs.plannotator.ai/open-source/start/installation#pin-or-verify-a-release) for details.
+Installer verification remains opt-in and verifies SLSA build provenance; normal installation does not require `gh`.
 
 ---
 
@@ -486,19 +425,19 @@ implementation architecture.
 | `HYPERMARK_REMOTE` | `1`/`true` for remote mode, `0`/`false` for local, unset for SSH auto-detection |
 | `HYPERMARK_PORT` | Fixed port (default: random locally, `19432` remote) |
 | `HYPERMARK_BROWSER` | Custom browser to open plans in |
-| `HYPERMARK_AI` | `disabled` to disable Ask AI, Review Agents, and Guided Review; the annotate agent terminal is separate |
-| `HYPERMARK_SHARE` | `disabled` to turn off URL sharing |
-| `HYPERMARK_SHARE_URL` | Custom base URL for share links (self-hosted portal) |
-| `HYPERMARK_PASTE_URL` | Base URL of the paste service API |
-| `HYPERMARK_ORIGIN` | Override agent detection: `claude-code`, `amp`, `droid`, `opencode`, `codex`, `copilot-cli`, `gemini-cli`, `kiro-cli`, `pi` |
+| `HYPERMARK_ORIGIN` | Override agent detection. Only `claude-code` is installed by this fork |
 | `HYPERMARK_JINA` | `0`/`false` to disable Jina Reader for URL annotation |
 | `JINA_API_KEY` | Jina Reader API key for higher rate limits |
-| `HYPERMARK_DATA_DIR` | Base directory for Hypermark-managed files (plans, history, drafts, `config.json`). Default: `~/.plannotator`; if that directory doesn't exist and `$XDG_DATA_HOME` is set to an absolute path, `$XDG_DATA_HOME/plannotator` is used instead |
+| `HYPERMARK_DATA_DIR` | Base directory for Hypermark-managed files (plans, history, drafts, `config.json`). Default: `~/.hypermark`; if that directory doesn't exist and `$XDG_DATA_HOME` is set to an absolute path, `$XDG_DATA_HOME/hypermark` is used instead. Every `PLANNOTATOR_*` variable still works as a deprecated alias; the `HYPERMARK_*` name wins whenever it is set, empty included |
 
-Hypermark-managed files live under `~/.plannotator` by default. Some UI preferences are stored in functional browser cookies. To relocate the files (for example, for an XDG-clean home):
+Hypermark-managed files live under `~/.hypermark` by default. It is a fresh
+root: an existing `~/.plannotator` is never read, copied, moved or deleted, so
+running both tools leaves each one's data where it is. Some UI preferences are
+stored in functional browser cookies. To relocate the files (for example, for
+an XDG-clean home):
 
 ```bash
-export HYPERMARK_DATA_DIR=~/.local/share/plannotator
+export HYPERMARK_DATA_DIR=~/.local/share/hypermark
 ```
 
 ---
@@ -510,18 +449,14 @@ bun install
 
 bun run dev:hook       # Plan review server
 bun run dev:review     # Code review editor
-bun run dev:marketing  # Marketing site (plannotator.ai)
-bun run dev:vscode     # VS Code extension (watch mode)
 ```
 
 ### Build
 
 ```bash
-bun run build          # Main targets (hook + opencode)
-bun run build:hook     # Single-file HTML for the hook server
+bun run build          # build:review then build:hook, in that order
 bun run build:review   # Code review editor
-bun run build:opencode # OpenCode plugin
-bun run build:vscode   # VS Code extension
+bun run build:hook     # Single-file HTML for the hook server
 ```
 
 Build order matters. The hook build copies pre-built HTML from `apps/review/dist/`. If you change UI code in `packages/ui/`, `packages/editor/`, or `packages/review-editor/`, rebuild the review app first:
@@ -549,6 +484,9 @@ bun run --cwd apps/review build && bun run build:hook && \
 ## License
 
 Copyright 2025-2026 backnotprop
+
+Hypermark is a fork of [backnotprop/plannotator](https://github.com/backnotprop/plannotator);
+the upstream copyright above stands and both license files are unchanged.
 
 Dual-licensed under [Apache 2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT) at your option.
 

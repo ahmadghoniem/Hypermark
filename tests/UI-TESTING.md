@@ -42,10 +42,8 @@ The project uses a monorepo structure:
 
 - **`apps/`** - Deployable applications
   - `hook/` - Claude Code plugin (plan review)
-  - `opencode-plugin/` - OpenCode plugin
   - `review/` - Standalone review app
-  - `portal/` - Share portal (share.plannotator.ai)
-  - `marketing/` - Marketing site (plannotator.ai)
+  - `skills/` - Agent skills (Claude launchers, core, extra)
 
 ### First Build Test
 
@@ -95,12 +93,6 @@ bun run dev:hook
 # Code review UI
 bun run dev:review
 # Opens http://localhost:5174
-
-# Portal (share.plannotator.ai)
-bun run dev:portal
-
-# Marketing site (plannotator.ai)
-bun run dev:marketing
 ```
 
 **Note:** Development servers run standalone without plugin integration. Changes appear instantly without rebuild.
@@ -118,34 +110,30 @@ bun run build:hook
 bun run build:review
 # Output: apps/review/dist/index.html
 
-# Build OpenCode plugin
-bun run build:opencode
-# Copies HTML from hook/review dist folders
-
-# Build everything
+# Build everything, in order
 bun run build
-# Runs build:hook && build:opencode
+# Runs build:review && build:hook
 ```
 
 ### Important Build Note
 
-**The OpenCode plugin copies pre-built HTML files from hook and review dist folders.**
+**The hook build copies the pre-built `apps/review/dist/index.html`.**
 
 When making UI changes:
 
 ✅ **Correct:**
 
 ```bash
-bun run build:hook && bun run build:opencode
+bun run --cwd apps/review build && bun run build:hook
 ```
 
 ❌ **Incorrect:**
 
 ```bash
-bun run build:opencode  # Uses stale HTML from previous build!
+bun run build:hook  # Uses stale review HTML from the previous build!
 ```
 
-Always rebuild hook/review apps BEFORE building OpenCode if you changed UI code.
+Always rebuild the review app BEFORE the hook if you changed review UI code.
 
 ---
 
@@ -158,11 +146,9 @@ UI test scripts simulate plugin behavior locally:
 ```bash
 # Plan review UI tests
 ./tests/manual/local/test-hook.sh          # Claude Code simulation
-./tests/manual/local/test-hook-2.sh        # OpenCode origin badge test
-./tests/manual/local/test-codex-plan-review-e2e.sh  # Real Codex Stop-hook E2E
 
 # Code review UI test
-./tests/manual/local/test-opencode-review.sh  # Code review UI test
+./tests/manual/local/test-worktree-review.sh  # Worktree support test
 ```
 
 ### What Each Script Does
@@ -174,34 +160,6 @@ UI test scripts simulate plugin behavior locally:
 3. Starts local server
 4. Opens browser with plan review UI
 5. Prints approve/deny decision to terminal
-
-**`test-hook-2.sh`**
-
-1. Builds the hook plugin
-2. Starts server with `opencode` origin flag
-3. Verifies blue "OpenCode" badge appears in UI
-4. Tests origin detection logic
-
-**`test-opencode-review.sh`**
-
-1. Builds review app (`bun run build:review`)
-2. Starts review server with sample git diff
-3. Opens browser with code review UI
-4. Verifies "OpenCode" badge + the header decision control (`Approve` at zero annotations, `Send Feedback · n` once you annotate — not "Copy Feedback")
-5. Tests feedback submission flow
-
-**`test-codex-plan-review-e2e.sh`**
-
-1. Builds the hook + review apps (unless `--skip-build`)
-2. Creates a disposable `HOME` and sample git repo
-3. Copies your Codex auth into the disposable config
-4. Enables `hooks` and registers a `Stop` hook pointing at the local Hypermark entrypoint
-5. Runs a real `codex exec` prompt that returns only a `<proposed_plan>` block
-6. Leaves behind rollout logs, Hypermark history, plan files, and session URLs in an artifact directory
-
-This is the best harness when you want to verify the full Codex deny/revise/approve loop instead of simulating hook
-payloads. For browser automation, set `HYPERMARK_BROWSER=/usr/bin/true`, keep the script running in one terminal,
-and drive the printed session URL with Playwright from another terminal.
 
 See [tests/README.md](../tests/README.md) for additional integration and utility test scripts.
 

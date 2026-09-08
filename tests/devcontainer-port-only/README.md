@@ -1,15 +1,7 @@
 # Hypermark Test - Port Only (Expected to Fail)
 
-This test simulates the common misconfiguration reported by users running `opencode web` in Docker: setting only `HYPERMARK_PORT` without `HYPERMARK_REMOTE`.
-
-## Setup
-
-Before opening in a devcontainer, create the auth symlink from your host machine:
-
-```bash
-mkdir -p .opencode
-ln ~/.local/share/opencode/auth.json .opencode/auth.json
-```
+This fixture reproduces a common misconfiguration in Docker/devcontainer
+environments: setting only `HYPERMARK_PORT` without `HYPERMARK_REMOTE`.
 
 ## The Problem
 
@@ -23,7 +15,8 @@ But forget to set:
 HYPERMARK_REMOTE=1
 ```
 
-Without `HYPERMARK_REMOTE=1` (and no `SSH_TTY`/`SSH_CONNECTION` in the environment), the plugin will:
+Without `HYPERMARK_REMOTE=1` (and no `SSH_TTY`/`SSH_CONNECTION` in the
+environment), Hypermark will:
 1. ✅ Use port 9999
 2. ❌ Still try to open a browser (fails silently or hangs)
 
@@ -31,26 +24,25 @@ Without `HYPERMARK_REMOTE=1` (and no `SSH_TTY`/`SSH_CONNECTION` in the environme
 
 When you trigger a plan in this devcontainer:
 - Server starts on port 9999
-- Plugin attempts to open browser (fails)
+- It attempts to open a browser (fails)
 - No feedback to user
 - Appears to hang
 
 ## The Fix
 
-Users need BOTH environment variables:
+Both environment variables are needed:
 ```bash
 HYPERMARK_REMOTE=1
 HYPERMARK_PORT=9999
 ```
 
-See `tests/devcontainer/` for the correct configuration.
-
 ## Testing
 
 1. Open this folder in VS Code
 2. Reopen in Container
-3. Run `opencode web` to start the web interface
-4. Access OpenCode via the forwarded port (usually 4096)
-5. Ask for a plan
-6. Observe the hang/failure - nothing on port 9999
-7. Compare with `tests/devcontainer/` which works correctly
+3. Install the Claude Code plugin (`/plugin marketplace add ahmadghoniem/Hypermark`,
+   then `/plugin install hypermark@hypermark`)
+4. Ask Claude Code for a plan and let it reach `ExitPlanMode`
+5. Observe the hang/failure — nothing on port 9999
+6. Add `HYPERMARK_REMOTE=1` and repeat: the session is reachable on the
+   forwarded port instead

@@ -10,14 +10,11 @@ These are local-only scripts for launching Hypermark UI flows with fixture data 
 
 ```bash
 ./tests/manual/local/test-hook.sh          # Claude Code simulation
-./tests/manual/local/test-hook-2.sh        # OpenCode origin badge test
-./tests/manual/local/test-codex-plan-review-e2e.sh  # Real Codex Stop-hook flow in disposable HOME
 ```
 
 **Code review UI:**
 
 ```bash
-./tests/manual/local/test-opencode-review.sh  # Code review UI test
 ./tests/manual/local/test-worktree-review.sh  # Worktree support test (creates sandbox with 4 worktrees)
 ```
 
@@ -48,31 +45,6 @@ Tests the installed `hypermark` binary to verify releases work correctly.
 
 Opens each `.md` file from `~/.claude/plans/` in Hypermark. Great for testing Obsidian integration with multiple
 plans.
-
-**OpenCode integration sandbox:**
-
-```bash
-./tests/manual/local/sandbox-opencode.sh [--disable-sharing] [--keep] [--no-git]
-```
-
-Creates a temporary sandbox with a sample React/TypeScript project, initializes git with uncommitted changes, sets up
-the local OpenCode plugin, and launches OpenCode for full integration testing.
-
-Options:
-
-- `--disable-sharing`: Creates `opencode.json` with sharing disabled
-- `--keep`: Don't clean up sandbox on exit
-- `--no-git`: Skip git initialization (tests non-git fallback)
-
-**Codex Stop-hook end-to-end harness:**
-
-```bash
-./tests/manual/local/test-codex-plan-review-e2e.sh [--keep] [--skip-build]
-```
-
-Builds the hook and review apps, creates a disposable `HOME` plus sample git repo, copies your Codex `auth.json`,
-enables `hooks`, and runs a real `codex exec` against the sample project. The script writes logs, rollout paths,
-history indices, and session URLs into an artifact directory under the temp root.
 
 Tips:
 
