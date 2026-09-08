@@ -956,7 +956,7 @@ describe("Core Hypermark skills", () => {
     // SKILL.md dynamically so newly added skills are covered automatically.
     //
     // ONE deliberate exception: apps/skills/core/hypermark, the knowledge
-    // layer. Its whole purpose is that an agent asked to "use Plannotator"
+    // layer. Its whole purpose is that an agent asked to "use Hypermark"
     // can pull in the CLI reference itself, so it ships model-invocable; it
     // only loads reference text and runs nothing. Asserted both ways below
     // so neither an accidental lock of the knowledge skill nor an accidental

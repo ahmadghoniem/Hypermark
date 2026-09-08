@@ -1,9 +1,9 @@
 /**
- * Plannotator Flavored Markdown reminder.
+ * Hypermark Flavored Markdown reminder.
  *
  * Static prose injected into the EnterPlanMode PreToolUse hook when the user
  * has opted in via `pfmReminder: true` in ~/.plannotator/config.json. It tells
- * the planning agent which markdown extensions Plannotator's viewer renders so
+ * the planning agent which markdown extensions Hypermark's viewer renders so
  * plans can be enriched with code-file links, callouts, tables, diagrams, etc.
  *
  * Keep this short. The agent reads it on every EnterPlanMode call.
@@ -28,7 +28,7 @@ export function composeImproveContext(input: {
 
   if (input.improvementHookContent) {
     sections.push([
-      "[Plannotator Improvement Hook]",
+      "[Hypermark Improvement Hook]",
       "The following corrective instructions were generated from analysis of previous plan denial patterns.",
       "Apply these guidelines when writing your plan:\n",
       input.improvementHookContent,
@@ -39,11 +39,11 @@ export function composeImproveContext(input: {
   return sections.join("\n\n---\n\n");
 }
 
-export const PFM_REMINDER = `[Plannotator Flavored Markdown]
-This plan will be reviewed in Plannotator, which renders GitHub Flavored Markdown plus the extensions below. Use these features when they make the plan clearer for the reviewer — don't force them in for their own sake.
+export const PFM_REMINDER = `[Hypermark Flavored Markdown]
+This plan will be reviewed in Hypermark, which renders GitHub Flavored Markdown plus the extensions below. Use these features when they make the plan clearer for the reviewer — don't force them in for their own sake.
 
 Code-file links (highest leverage)
-Reference real source files inline. Plannotator validates the path and renders a clickable badge that opens the file in the reviewer's editor — prefer this over pasting code when you just need to point at something.
+Reference real source files inline. Hypermark validates the path and renders a clickable badge that opens the file in the reviewer's editor — prefer this over pasting code when you just need to point at something.
   \`packages/server/index.ts\`            backticked path
   \`packages/server/index.ts:42\`         path with line number
   \`packages/server/index.ts:10-20\`      line range — hover shows a code snippet preview

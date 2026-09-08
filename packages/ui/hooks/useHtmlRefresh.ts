@@ -2,7 +2,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 
 /**
  * A successful snapshot. `Extra` lets a host carry document metadata read
- * alongside the bytes (Plannotator: the root document's version diff) through
+ * alongside the bytes (Hypermark: the root document's version diff) through
  * to `onSnapshot`; the hook never reads anything but `rawHtml`.
  */
 export type HtmlRefreshOkSnapshot<Extra extends object = object> = { status: 'ok'; rawHtml: string } & Extra;
@@ -59,7 +59,7 @@ export interface UseHtmlRefreshReturn {
  * Re-fetch a rendered HTML document from the host's source and remount the
  * viewer on it, keeping the annotations the viewer can still anchor.
  *
- * Backend-agnostic: the host supplies `fetchSnapshot` (Plannotator wraps its
+ * Backend-agnostic: the host supplies `fetchSnapshot` (Hypermark wraps its
  * `/api/doc` read; a host with a document store passes its own read). The
  * hook owns the guards: an in-flight fetch that is superseded by a newer
  * refresh, or by a document change, is dropped before `onSnapshot`; the

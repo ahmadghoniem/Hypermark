@@ -450,7 +450,7 @@ export const SETTINGS = {
    *  all-files view. Cookie-only (no server sync) while the feature is
    *  experimental — default OFF, and when off no edit UI renders and no
    *  editor is ever constructed. (In code-split hosts the editor chunk is
-   *  never fetched; Plannotator's single-file production build inlines all
+   *  never fetched; Hypermark's single-file production build inlines all
    *  dynamic imports, so there the module namespace exists at page load —
    *  audited free of top-level side effects — but stays inert.) */
   editSuggestions: {

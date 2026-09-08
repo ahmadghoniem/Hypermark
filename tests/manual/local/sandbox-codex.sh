@@ -42,7 +42,7 @@ for arg in "$@"; do
   esac
 done
 
-echo "=== Plannotator Codex Sandbox ==="
+echo "=== Hypermark Codex Sandbox ==="
 echo ""
 
 # Build the hypermark binary

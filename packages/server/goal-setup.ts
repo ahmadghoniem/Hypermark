@@ -1,7 +1,7 @@
 /**
  * Goal Setup Server
  *
- * Serves the Plannotator shell in a goal-setup mode for the setup-goal skill.
+ * Serves the Hypermark shell in a goal-setup mode for the setup-goal skill.
  * The interview and facts phases use the same endpoint surface so agents can
  * launch a browser session, wait, and receive a structured JSON result.
  */

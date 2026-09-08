@@ -1,4 +1,4 @@
-title = "Plannotator Gitleaks configuration"
+title = "Hypermark Gitleaks configuration"
 
 [extend]
 useDefault = true

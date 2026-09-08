@@ -2,7 +2,7 @@
  * Unit tests for copyTextToClipboard (issue #1173).
  *
  * navigator.clipboard only exists in secure browser contexts. Remote-mode
- * Plannotator serves plain HTTP on a non-localhost host, so every bare
+ * Hypermark serves plain HTTP on a non-localhost host, so every bare
  * `navigator.clipboard.writeText(...)` call used to throw. These tests pin
  * the helper's contract: try the async Clipboard API, fall back to the
  * legacy copy-event / execCommand path, report success as a boolean, and

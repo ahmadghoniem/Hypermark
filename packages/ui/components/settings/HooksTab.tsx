@@ -95,7 +95,7 @@ export const HooksTab: React.FC = () => {
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold text-foreground">Plannotator Flavored Markdown</h3>
+              <h3 className="text-sm font-semibold text-foreground">Hypermark Flavored Markdown</h3>
               <button
                 onClick={togglePfm}
                 className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
@@ -114,7 +114,7 @@ export const HooksTab: React.FC = () => {
               (custom, Mermaid &amp; Graphviz), code-file links that open in your editor, callouts, task lists, and more.
               This reminder tells the planning agent what the renderer supports so it can use these features
               naturally. <strong>No extra tokens</strong> — the agent still writes markdown as it normally would,
-              just with enhanced syntax that Plannotator renders richer.
+              just with enhanced syntax that Hypermark renders richer.
             </p>
             <div className="mt-2">
               <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${

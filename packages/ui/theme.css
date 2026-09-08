@@ -1,4 +1,4 @@
-/* Plannotator Theme System — imports all themes, provides Tailwind bridge + base styles */
+/* Hypermark Theme System — imports all themes, provides Tailwind bridge + base styles */
 
 @import "katex/dist/katex.min.css";
 
@@ -95,8 +95,8 @@
 
 /* Base styles — apply regardless of theme */
 @layer base {
-  /* Extended tokens — derived from Plannotator's theme vars so they adapt to
-   * all themes. These cover gaps between Plannotator's base token set and what
+  /* Extended tokens — derived from Hypermark's theme vars so they adapt to
+   * all themes. These cover gaps between Hypermark's base token set and what
    * the surface/sidebar-aware components expect. Themes that pin explicit
    * values (e.g. "simple") override these. */
   :root {

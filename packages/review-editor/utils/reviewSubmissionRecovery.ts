@@ -137,7 +137,7 @@ function blockedCorruptRecovery(rootPrUrl: string): ReviewSubmissionRecovery {
       fileCount: 0,
       annotationCount: 0,
       status: 'blocked',
-      error: 'Plannotator found saved review progress but could not read its retry contract. Automatic replay is blocked to avoid duplicate comments; inspect the platform review before starting again.',
+      error: 'Hypermark found saved review progress but could not read its retry contract. Automatic replay is blocked to avoid duplicate comments; inspect the platform review before starting again.',
     }],
   };
 }

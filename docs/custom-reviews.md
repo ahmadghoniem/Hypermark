@@ -1,6 +1,6 @@
 # Custom Reviews
 
-A custom review is an Agent Skill. Point Plannotator at a skill and it runs the
+A custom review is an Agent Skill. Point Hypermark at a skill and it runs the
 review using that skill's instructions. The skill becomes the review. The
 default review instructions are not added, and findings come back the same way.
 
@@ -21,20 +21,20 @@ No `review-skills.json`? You get the default review, unchanged.
 
 ## How it works
 
-Plannotator reads the skill's `SKILL.md` body at launch and uses it as the
+Hypermark reads the skill's `SKILL.md` body at launch and uses it as the
 review prompt. The skill defines the review; the default review prompt is
 dropped, and the user message is trimmed to the git or PR context the agent
 needs to find the changes. The read is live. Edit the skill the normal way and
 the next review picks it up. Nothing is copied.
 
-Some skills carry `references/`, `scripts/`, or `assets/`. For those, Plannotator
+Some skills carry `references/`, `scripts/`, or `assets/`. For those, Hypermark
 tells the agent where the skill folder is, and the agent opens those files on
 demand from where they already live.
 
 ## What counts as a skill
 
 The name is the folder name. The instructions are the `SKILL.md` body with the
-leading frontmatter block stripped off. Plannotator does not read the
+leading frontmatter block stripped off. Hypermark does not read the
 frontmatter: no `name`, no `description`, no YAML.
 
 Global skills only. A skill checked into a repo is ignored. (A pull request from

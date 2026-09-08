@@ -24,7 +24,7 @@ import type {
  * `DecisionSpec` (see `utils/decisionSpec.ts`); the host owns the handlers.
  *
  * NOT host-supported surface (like ActionMenu/ConfirmDialog): session/transport
- * chrome for Plannotator's own decision endpoints, deliberately absent from
+ * chrome for Hypermark's own decision endpoints, deliberately absent from
  * the README supported-import list.
  *
  * Interaction contract (the load-bearing rules):

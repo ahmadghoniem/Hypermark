@@ -3165,7 +3165,7 @@ describe("injectIntoHead", () => {
   });
 
   test("removes document-authored CSP meta tags so the bridge can execute", () => {
-    // The exact tag Plannotator's own portable guided-review exports embed;
+    // The exact tag Hypermark's own portable guided-review exports embed;
     // with it present the inline bridge script is blocked and annotation dies.
     const csp =
       '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:; font-src \'none\'; connect-src \'none\'; media-src \'none\'; object-src \'none\'; base-uri \'none\'; form-action \'none\'; frame-src \'none\'">';

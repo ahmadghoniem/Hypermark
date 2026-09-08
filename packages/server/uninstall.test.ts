@@ -444,7 +444,7 @@ describe("default uninstall", () => {
     );
 
     const recognizableAmp = [
-      'const CATEGORY = "Plannotator";',
+      'const CATEGORY = "Hypermark";',
       "export default function plannotatorAmpPlugin() {}",
       'const origin = "PLANNOTATOR_ORIGIN";',
     ].join("\n");
@@ -581,7 +581,7 @@ describe("default uninstall", () => {
       join(homeDir, ".claude", "skills", "core", "plannotator"),
     ];
     for (const scope of installedScopes) {
-      writeText(join(scope, "SKILL.md"), "# Plannotator CLI Reference");
+      writeText(join(scope, "SKILL.md"), "# Hypermark CLI Reference");
     }
 
     // Paths that merely share the name and are NOT ours to delete.
@@ -838,7 +838,7 @@ describe("default uninstall", () => {
         `Could not update ${settingsPath}`,
       );
       expect(blocked.errors[0]).toContain(
-        'Remove only Plannotator command hooks from hooks.BeforeTool entries whose matcher is "exit_plan_mode"',
+        'Remove only Hypermark command hooks from hooks.BeforeTool entries whose matcher is "exit_plan_mode"',
       );
       expect(blocked.errors[0]).toContain(
         "Then rerun `plannotator uninstall`.",
@@ -924,7 +924,7 @@ describe("default uninstall", () => {
       `Preserved ${settingsPath}: it is not strict JSON, so managed Gemini hooks cannot be classified safely.`,
     );
     expect(blocked.errors[0]).toContain(
-      'Remove only Plannotator command hooks from hooks.BeforeTool entries whose matcher is "exit_plan_mode"',
+      'Remove only Hypermark command hooks from hooks.BeforeTool entries whose matcher is "exit_plan_mode"',
     );
     expect(blocked.errors[0]).toContain(
       "Then rerun `plannotator uninstall`.",
@@ -973,7 +973,7 @@ describe("default uninstall", () => {
       "managed Gemini hooks cannot be classified safely",
     );
     expect(blocked.errors[1]).toContain(
-      "the Plannotator Kiro agent cannot be classified safely",
+      "the Hypermark Kiro agent cannot be classified safely",
     );
     expect(
       blocked.errors.every((error) =>
@@ -1060,7 +1060,7 @@ describe("purge uninstall", () => {
     const fixture = createFixture();
     writeText(join(fixture.dataDir, "plans", "approved.md"));
     writeText(join(fixture.dataDir, "history", "repo", "001.md"));
-    // The feedback archive is Plannotator-authored data: purge must remove it,
+    // The feedback archive is Hypermark-authored data: purge must remove it,
     // and it must not be reported as an unrecognized custom entry.
     writeText(join(fixture.dataDir, "feedback", "repo", "index.jsonl"));
     writeJson(join(fixture.dataDir, "config.json"), { theme: "dark" });
@@ -1115,7 +1115,7 @@ describe("purge uninstall", () => {
     const warning = formatPurgeWarning("/tmp/example-data");
     expect(warning).toContain("permanently delete");
     expect(warning).toContain("local-only");
-    expect(warning).toContain("not stored on a Plannotator server");
+    expect(warning).toContain("not stored on a Hypermark server");
     expect(warning).toContain("cannot be recovered");
   });
 
@@ -1375,7 +1375,7 @@ describe("host and platform integrations", () => {
     );
     expect(existsSync(binary)).toBe(true);
     expect(result.warnings).toContain(
-      "Preserved the Plannotator CLI and its Windows PATH entry so you can resolve the errors and retry uninstall.",
+      "Preserved the Hypermark CLI and its Windows PATH entry so you can resolve the errors and retry uninstall.",
     );
 
     writeJson(join(fixture.homeDir, ".factory", "settings.json"), {
@@ -1935,10 +1935,10 @@ describe("host and platform integrations", () => {
       `Could not restore ${dirname(currentExe)} to the Windows user PATH after self-delete scheduling failed (exit 1).`,
     );
     expect(result.warnings).toContain(
-      `The Plannotator CLI remains at ${currentExe}, but its Windows PATH entry could not be restored. Run that full path to retry, then restore PATH manually if needed.`,
+      `The Hypermark CLI remains at ${currentExe}, but its Windows PATH entry could not be restored. Run that full path to retry, then restore PATH manually if needed.`,
     );
     expect(result.warnings).not.toContain(
-      "Preserved the Plannotator CLI and its Windows PATH entry so you can resolve the errors and retry uninstall.",
+      "Preserved the Hypermark CLI and its Windows PATH entry so you can resolve the errors and retry uninstall.",
     );
     expect(fixture.commandCalls[1]?.env).toEqual({
       PLANNOTATOR_UNINSTALL_ORIGINAL_PATH:

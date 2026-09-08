@@ -1,4 +1,4 @@
-/** Browser-safe contracts for Plannotator's optional CallDiff integration. */
+/** Browser-safe contracts for Hypermark's optional CallDiff integration. */
 
 import type { CallFlowLanguageId } from "./call-flow-languages";
 
@@ -183,7 +183,7 @@ function boundedRaw(value: unknown): string {
     throw new Error("CallDiff worker response is missing its raw diff.");
   }
   if (value.length > MAX_RAW_LENGTH) {
-    throw new Error("CallDiff raw diff exceeded Plannotator's 1 MB limit.");
+    throw new Error("CallDiff raw diff exceeded Hypermark's 1 MB limit.");
   }
   return value;
 }
@@ -231,7 +231,7 @@ export function parseCallDiffWorkerResult(value: unknown): ParsedCallDiffWorkerR
   let nodeCount = 0;
   const parseNode = (candidate: unknown, depth: number): CallFlowNode => {
     if (!isRecord(candidate) || depth > MAX_TREE_DEPTH || ++nodeCount > MAX_NODES) {
-      throw new Error("CallDiff result exceeded Plannotator's tree limits.");
+      throw new Error("CallDiff result exceeded Hypermark's tree limits.");
     }
     const status = candidate.status;
     if (status !== "same" && status !== "added" && status !== "removed") {

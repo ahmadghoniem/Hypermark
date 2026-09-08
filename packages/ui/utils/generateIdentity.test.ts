@@ -7,7 +7,7 @@
  *   the first render-time settings read, so an async or malformed name would
  *   be a visible identity change);
  * - importing `identity-tater` no longer registers the full dictionary, which
- *   would silently move Plannotator's names onto the 16 x 16 pool;
+ *   would silently move Hypermark's names onto the 16 x 16 pool;
  * - `configureHypermarkUI({ identityGenerator })` is ignored.
  *
  * Bun shares one process across files: the generator is restored after each

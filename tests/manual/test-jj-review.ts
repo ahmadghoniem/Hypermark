@@ -315,7 +315,7 @@ async function createSeedGitRemote(): Promise<void> {
 
 async function createJjWorkspace(): Promise<void> {
   await $`jj git clone --colocate ${originRepo} ${jjRepo}`.quiet();
-  await $`jj config set --repo user.name ${JSON.stringify("Plannotator Test User")}`.cwd(jjRepo).quiet();
+  await $`jj config set --repo user.name ${JSON.stringify("Hypermark Test User")}`.cwd(jjRepo).quiet();
   await $`jj config set --repo user.email ${JSON.stringify("plannotator@example.com")}`.cwd(jjRepo).quiet();
 
   // Change 1: committed JJ change after trunk(). This is what jj-last should show.
@@ -690,7 +690,7 @@ async function createJjWorkspace(): Promise<void> {
     "3. Validate links in the serialized payload.",
   ]));
 
-  // Force JJ to snapshot the current working-copy change before Plannotator reads it.
+  // Force JJ to snapshot the current working-copy change before Hypermark reads it.
   await $`jj status`.cwd(jjRepo).quiet();
 }
 
@@ -902,7 +902,7 @@ set -euo pipefail
 
 # Creates evolution history for the current JJ change (@) by amending it
 # four times, simulating a realistic iteration cycle. After running this,
-# refresh the Plannotator review UI — the "Evolution diff" mode will
+# refresh the Hypermark review UI — the "Evolution diff" mode will
 # appear in the diff type picker with 5 entries to compare between.
 
 cd "${jjRepo}"
@@ -1093,7 +1093,7 @@ echo ""
 echo "Done! Evolution log now has 5 entries:"
 jj evolog --no-graph -r @ -T 'commit.commit_id().short(8) ++ "  " ++ commit.description().first_line() ++ "  (" ++ commit.author().timestamp().ago() ++ ")\\n"'
 echo ""
-echo "Refresh the Plannotator review UI to see the Evolution diff mode."
+echo "Refresh the Hypermark review UI to see the Evolution diff mode."
 `;
   const scriptPath = path.join(sandbox, "create-evolog.sh");
   await Bun.write(scriptPath, script);

@@ -303,7 +303,7 @@ describe("GitButler status JSON flag fallback", () => {
     await expect(pending).rejects.toThrow(GitButlerContractError);
     await expect(pending).rejects.toThrow(
       "GitButler rejected both `but --format json status` and `but --json status`; " +
-      "Plannotator requires GitButler 0.21.0 or newer.",
+      "Hypermark requires GitButler 0.21.0 or newer.",
     );
     expect(fixture.butCalls.filter((args) => args.includes("status"))).toEqual([
       ["--format", "json", "status"],

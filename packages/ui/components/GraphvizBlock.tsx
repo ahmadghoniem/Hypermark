@@ -19,7 +19,7 @@ const MAX_ZOOM = 8;
  * The Graphviz engine (about 1.2 MB of Emscripten JS) is imported inside the
  * render effect, not statically, so a host that bundles by route only fetches
  * it when a dot fence is on the page. WASM instantiation was already deferred
- * to first render; in Plannotator's single-file builds the import is inlined
+ * to first render; in Hypermark's single-file builds the import is inlined
  * and resolves in a microtask ahead of a render that was already asynchronous.
  */
 const loadVizInstance = (): Promise<Viz> => import('@viz-js/viz').then((m) => m.instance());

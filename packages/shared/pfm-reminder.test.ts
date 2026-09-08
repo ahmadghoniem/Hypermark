@@ -9,7 +9,7 @@ import { PFM_REMINDER, composeImproveContext } from "./pfm-reminder";
 
 describe("PFM_REMINDER", () => {
   test("identifies itself with a recognizable header", () => {
-    expect(PFM_REMINDER).toContain("[Plannotator Flavored Markdown]");
+    expect(PFM_REMINDER).toContain("[Hypermark Flavored Markdown]");
   });
 
   test("covers the headline PFM features the renderer actually supports", () => {
@@ -53,8 +53,8 @@ describe("composeImproveContext", () => {
       improvementHookContent: null,
     });
     expect(ctx).not.toBeNull();
-    expect(ctx).toContain("[Plannotator Flavored Markdown]");
-    expect(ctx).not.toContain("[Plannotator Improvement Hook]");
+    expect(ctx).toContain("[Hypermark Flavored Markdown]");
+    expect(ctx).not.toContain("[Hypermark Improvement Hook]");
   });
 
   test("returns just the improvement-hook block when only it is set (legacy behavior)", () => {
@@ -63,10 +63,10 @@ describe("composeImproveContext", () => {
       improvementHookContent: "1. Always include a test plan section.",
     });
     expect(ctx).not.toBeNull();
-    expect(ctx).toContain("[Plannotator Improvement Hook]");
+    expect(ctx).toContain("[Hypermark Improvement Hook]");
     expect(ctx).toContain("The following corrective instructions were generated");
     expect(ctx).toContain("1. Always include a test plan section.");
-    expect(ctx).not.toContain("[Plannotator Flavored Markdown]");
+    expect(ctx).not.toContain("[Hypermark Flavored Markdown]");
   });
 
   test("composes both with PFM reminder first, separated by a divider", () => {
@@ -75,8 +75,8 @@ describe("composeImproveContext", () => {
       improvementHookContent: "1. Always include a test plan section.",
     })!;
 
-    const pfmIdx = ctx.indexOf("[Plannotator Flavored Markdown]");
-    const improveIdx = ctx.indexOf("[Plannotator Improvement Hook]");
+    const pfmIdx = ctx.indexOf("[Hypermark Flavored Markdown]");
+    const improveIdx = ctx.indexOf("[Hypermark Improvement Hook]");
     expect(pfmIdx).toBeGreaterThanOrEqual(0);
     expect(improveIdx).toBeGreaterThan(pfmIdx);
 

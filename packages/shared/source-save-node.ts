@@ -167,7 +167,7 @@ export function createSourceSaveCapabilityFromSnapshot(
 	return enabledSourceSave(scope, resolved, snapshot);
 }
 
-// Used when Plannotator already read the source text, but the file vanished
+// Used when Hypermark already read the source text, but the file vanished
 // before the browser asked for /api/plan. Disk reads should use
 // createSourceSaveCapability/createSourceSaveCapabilityFromSnapshot instead.
 export function createSourceSaveCapabilityFromText(
@@ -247,7 +247,7 @@ export function saveSourceFileAtomic(
 		return {
 			ok: false,
 			code: "not-writable",
-			message: "This file type cannot be saved from Plannotator.",
+			message: "This file type cannot be saved from Hypermark.",
 		};
 	}
 
@@ -336,7 +336,7 @@ export function saveSourceFileAtomic(
 		return {
 			ok: false,
 			code: "conflict",
-			message: "The file changed on disk since Plannotator opened it.",
+			message: "The file changed on disk since Hypermark opened it.",
 			currentText: before.text,
 			currentHash: before.hash,
 			currentMtimeMs: before.mtimeMs,
@@ -369,7 +369,7 @@ export function saveSourceFileAtomic(
 					return {
 						ok: false,
 						code: "conflict",
-						message: "The file changed on disk since Plannotator opened it.",
+						message: "The file changed on disk since Hypermark opened it.",
 						currentText: current.text,
 						currentHash: current.hash,
 						currentMtimeMs: current.mtimeMs,

@@ -62,7 +62,7 @@ export function shouldSendAgentTerminalFeedback(
 export function buildTerminalAskPrompt(params: TerminalAskPromptParams): string {
   const hasReadableFile = !!params.readableFilePath;
   const parts = [
-    "# Plannotator Ask",
+    "# Hypermark Ask",
     hasReadableFile
       ? `Before answering, read this file from the current workspace: ${params.readableFilePath}. Use the selected/context text below to understand what the user is asking about.`
       : "No reliable workspace file is available for this question. Use the inline document/context below.",

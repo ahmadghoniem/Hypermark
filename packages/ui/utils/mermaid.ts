@@ -2,7 +2,7 @@
  * Mermaid runtime slot.
  *
  * ONE code path feeds `MermaidBlock`: `loadMermaidRuntime()`. It resolves at
- * once from a filled slot and otherwise imports the runtime lazily. Plannotator
+ * once from a filled slot and otherwise imports the runtime lazily. Hypermark
  * fills the slot at module evaluation through `./mermaid-eager` (imported by
  * `packages/editor/App.tsx`), which keeps the runtime in its entry chunk on the
  * share portal exactly as it was with the static import, so it cannot fail

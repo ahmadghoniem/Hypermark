@@ -24,7 +24,7 @@ const DEFAULT_WAIT_TIMEOUT_MS = 30 * 60 * 1_000;
 const DEFAULT_POLL_INTERVAL_MS = 250;
 
 export interface CallFlowInstallLockOptions {
-  /** Test seam; production always uses the shared Plannotator data dir. */
+  /** Test seam; production always uses the shared Hypermark data dir. */
   readonly lockPath?: string;
   readonly staleAfterMs?: number;
   readonly waitTimeoutMs?: number;

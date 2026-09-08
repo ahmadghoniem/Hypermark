@@ -1,7 +1,7 @@
 /**
  * Isolated CallDiff execution over immutable review snapshots.
  *
- * CallDiff is a Node-native, synchronous Tree-sitter library. Plannotator runs
+ * CallDiff is a Node-native, synchronous Tree-sitter library. Hypermark runs
  * it in a short-lived Node 22 worker and never imports it into Bun or Pi.
  */
 import { createHash } from "node:crypto";
@@ -312,7 +312,7 @@ export async function resolveCallFlowRuntime(): Promise<CallFlowRuntimeResolutio
     };
   }
   if (version !== CALLDIFF_VERSION) {
-    return { ok: false, reason: "version-mismatch", message: `CallDiff ${version} is installed; Plannotator requires ${CALLDIFF_VERSION}.` };
+    return { ok: false, reason: "version-mismatch", message: `CallDiff ${version} is installed; Hypermark requires ${CALLDIFF_VERSION}.` };
   }
   if (!override) {
     const revisionPath = join(runtimeDir, ".calldiff-revision");
@@ -1132,7 +1132,7 @@ async function executeWorker(
   }
   if (result.aborted) throw new Error("Call-flow analysis was superseded by a newer review snapshot.");
   if (result.timedOut) throw new Error("CallDiff exceeded the 45 second analysis limit.");
-  if (result.outputLimitExceeded) throw new Error("CallDiff result exceeded Plannotator's 12 MB output limit.");
+  if (result.outputLimitExceeded) throw new Error("CallDiff result exceeded Hypermark's 12 MB output limit.");
   let parsed: unknown;
   try {
     parsed = JSON.parse(result.stdout);

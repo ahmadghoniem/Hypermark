@@ -18,7 +18,7 @@ export type { MarkdownDiffHandle };
 
 /* Grid-mode card utilities mirror components/MarkdownEditor.tsx exactly, so a
    host toggling editor <-> diff keeps identical card chrome. They stay here
-   (not in the package) because they're Plannotator design-system Tailwind
+   (not in the package) because they're Hypermark design-system Tailwind
    classes and this file is @source-scanned. */
 const GRID_CARD_CLASSES = 'px-5 md:px-8 lg:px-10 xl:px-12 shadow-xl border border-border/50';
 
@@ -26,7 +26,7 @@ export interface MarkdownDiffProps
   extends Omit<PackagedMarkdownDiffProps, 'mode' | 'cardClassName'> {
   /** Mirrors MarkdownEditor's grid card chrome so editor <-> diff doesn't jump. */
   gridEnabled?: boolean;
-  /** Theme color mode. Defaults to the ThemeProvider's resolved mode (Plannotator
+  /** Theme color mode. Defaults to the ThemeProvider's resolved mode (Hypermark
       passes nothing); a host without ThemeProvider can supply it directly. */
   mode?: PackagedMarkdownDiffProps['mode'];
 }

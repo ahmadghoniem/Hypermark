@@ -1,6 +1,6 @@
 /**
  * Published HtmlSurfaceControls (DOM-gated): the pen/eye/refresh markup
- * hosts share with Plannotator's header.
+ * hosts share with Hypermark's header.
  *
  * Failures to catch: a control rendering without its handler (a read-only
  * document must show no pen), the pen losing its pressed state or its
@@ -128,9 +128,9 @@ describe.if(hasDom)('HtmlSurfaceControls', () => {
     expect(eye(el)!.getAttribute('aria-pressed')).toBe('true');
   });
 
-  test('default strings are Plannotator\'s (deliberate pin) and no pen aria-label is emitted', () => {
+  test('default strings are Hypermark\'s (deliberate pin) and no pen aria-label is emitted', () => {
     // DELIBERATE PIN: these strings are the package defaults every host
-    // inherits, and Plannotator's own header renders them verbatim. A drift
+    // inherits, and Hypermark's own header renders them verbatim. A drift
     // here changes shipped UI in two products; change it on purpose, with
     // the maintainer, and update this test in the same commit.
     const armed = render({ armed: true, toolsHidden: false, isRefreshing: false });

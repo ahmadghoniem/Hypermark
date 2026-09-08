@@ -25,7 +25,7 @@
  * failed, and the error below surfaces in the block's error panel with the
  * source, instead of a silently unlabeled node.
  *
- * Nothing imports this module by default: Plannotator never aliases, so its
+ * Nothing imports this module by default: Hypermark never aliases, so its
  * Mermaid keeps its direct KaTeX (inlined by the single-file builds), and
  * this file must never import `katex` itself, or the redirect would re-create
  * the chunk it exists to remove (`tests/entry-assets.test.ts` pins that).

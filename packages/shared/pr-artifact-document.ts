@@ -486,7 +486,7 @@ async function fetchArtifactContent(
         signal: controller.signal,
         headers: {
           Accept: '*/*',
-          'User-Agent': 'Plannotator artifact review',
+          'User-Agent': 'Hypermark artifact review',
           ...(isValidRangeHeader(options.range) ? { Range: options.range } : {}),
           ...(shouldSendProviderAuth(currentUrl, metadata) ? providerHeaders : {}),
         },

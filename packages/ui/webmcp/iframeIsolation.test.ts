@@ -1,6 +1,6 @@
 /**
  * Security invariants pinned at source level (the `live-proxy` suites'
- * precedent): Plannotator's provider never runs inside a frame it does not
+ * precedent): Hypermark's provider never runs inside a frame it does not
  * own, and neither annotate iframe ever delegates the `tools` permission.
  *
  *  - The srcdoc viewer keeps `sandbox="allow-scripts"` and no `allow`

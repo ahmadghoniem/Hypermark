@@ -87,7 +87,7 @@ interface ThemeProviderProps {
    *
    * OFF by default, and deliberately so: `@hypermark/ui` is installed into
    * host applications with their own branding, and a mounted provider must not
-   * silently replace a host page's favicon with Plannotator's. Plannotator's own
+   * silently replace a host page's favicon with Hypermark's. Hypermark's own
    * apps pass `manageFavicon`; hosts opt in only if they want the same feature.
    *
    * The value also gates the Settings favicon control (see ThemeTab), so a host

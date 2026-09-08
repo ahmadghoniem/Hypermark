@@ -314,7 +314,7 @@ export function TokenHoverAnnouncementDialog({
             id="token-hover-announcement-description"
             className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted-foreground"
           >
-            Rest the pointer on a symbol in a diff and Plannotator shows you where it is
+            Rest the pointer on a symbol in a diff and Hypermark shows you where it is
             defined, an approximate signature, its doc comment, and a sample of its
             references. Every location on the card opens in the References panel.
           </p>

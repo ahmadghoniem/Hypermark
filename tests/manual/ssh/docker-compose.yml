@@ -7,6 +7,6 @@ services:
       dockerfile: tests/manual/ssh/Dockerfile
     ports:
       - "2222:22"      # SSH
-      - "19432:19432"  # Plannotator default SSH port
+      - "19432:19432"  # Hypermark default SSH port
     stdin_open: true
     tty: true

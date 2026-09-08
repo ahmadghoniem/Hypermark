@@ -99,7 +99,7 @@ export interface GitButlerStatus {
   stacks: GitButlerStack[];
 }
 
-/** A parsed Plannotator GitButler diff id. */
+/** A parsed Hypermark GitButler diff id. */
 export type ParsedGitButlerDiffType =
   | { kind: "workspace" }
   | { kind: "stack"; branchName: string }
@@ -178,7 +178,7 @@ function parseStack(value: unknown, path: string): GitButlerStack {
   return { branches };
 }
 
-/** Parse and validate the status fields Plannotator relies on. Unknown fields are allowed. */
+/** Parse and validate the status fields Hypermark relies on. Unknown fields are allowed. */
 export function parseGitButlerStatus(
   output: string,
   commandLabel = GITBUTLER_STATUS_SYNTAXES[0].label,
@@ -260,7 +260,7 @@ async function verifyGitButlerVersion(runtime: ReviewGitButlerRuntime, cwd: stri
     }
     if (!versionAtLeast(actual, minimum)) {
       throw new GitButlerContractError(
-        `GitButler ${actual.display} is unsupported; Plannotator requires ${GITBUTLER_MIN_VERSION} or newer.`,
+        `GitButler ${actual.display} is unsupported; Hypermark requires ${GITBUTLER_MIN_VERSION} or newer.`,
       );
     }
   })();
@@ -307,7 +307,7 @@ async function loadStatus(runtime: ReviewGitButlerRuntime, cwd: string): Promise
       if (isUnexpectedArgumentRejection(retried, fallback.flag)) {
         throw new GitButlerContractError(
           `GitButler rejected both \`${syntax.label}\` and \`${fallback.label}\`; ` +
-          `Plannotator requires GitButler ${GITBUTLER_MIN_VERSION} or newer.`,
+          `Hypermark requires GitButler ${GITBUTLER_MIN_VERSION} or newer.`,
         );
       }
       syntax = fallback;

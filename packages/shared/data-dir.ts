@@ -1,7 +1,7 @@
 /**
- * Plannotator Data Directory
+ * Hypermark Data Directory
  *
- * Returns the base directory for all Plannotator data files.
+ * Returns the base directory for all Hypermark data files.
  *
  * Priority:
  *   1.  PLANNOTATOR_DATA_DIR environment variable (with ~ expansion)
@@ -20,7 +20,7 @@
  * the legacy directory is absent AND XDG_DATA_HOME is explicitly set does
  * the XDG location apply. Deliberately NOT implemented: the spec's
  * implicit ~/.local/share default (defaults stay unchanged when
- * XDG_DATA_HOME is unset) and any config/data/cache split — Plannotator
+ * XDG_DATA_HOME is unset) and any config/data/cache split — Hypermark
  * uses one monolithic directory.
  */
 
@@ -29,7 +29,7 @@ import { homedir } from "os";
 import { isAbsolute, join, resolve } from "path";
 
 /**
- * Resolve the Plannotator data directory.
+ * Resolve the Hypermark data directory.
  *
  * If PLANNOTATOR_DATA_DIR is set and non-empty, the value is used
  * as the base directory. Leading ~ is expanded to the user's home

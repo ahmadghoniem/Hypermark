@@ -7,7 +7,7 @@
  * versions plus the surface's error banner and host callback; a missing
  * ready within `bridgeReadyTimeoutMs` produces the timeout banner and a
  * late ready clears it; and the inline path runs no timer and shows no
- * banner, so Plannotator's surface is unchanged.
+ * banner, so Hypermark's surface is unchanged.
  */
 import { afterEach, describe, expect, test } from 'bun:test';
 import React from 'react';

@@ -1,5 +1,5 @@
 /**
- * Maps a Plannotator / Hypermark colour theme onto the Shiki theme that renders code in it.
+ * Maps a Hypermark / Hypermark colour theme onto the Shiki theme that renders code in it.
  *
  * This used to live in `packages/review-editor/hooks/usePierreTheme.ts` and only
  * served the diff pane. It moved here so the plan/annotate editor's markdown
@@ -35,7 +35,7 @@ export const SHIKI_THEME_MAP: Record<string, { dark: string | null; light: strin
 
 /**
  * `@pierre/diffs`' own `DEFAULT_THEMES`. Anything the map does not cover (the
- * Plannotator default palette, plus every palette with no counterpart in the
+ * Hypermark default palette, plus every palette with no counterpart in the
  * active mode) renders in these, which is exactly what the diff pane does when
  * `resolveSyntaxTheme` returns `undefined`.
  */

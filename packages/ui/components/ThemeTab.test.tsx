@@ -78,7 +78,7 @@ describe.if(hasDom)('ThemeTab', () => {
 
     const renderedText = host!.textContent || '';
     expect(renderedText).toContain('Pierre');
-    expect(renderedText).toContain('Plannotator');
+    expect(renderedText).toContain('Hypermark');
     expect(renderedText).toContain('Catppuccin');
     expect(renderedText).toContain('GitHub');
 
@@ -106,7 +106,7 @@ describe.if(hasDom)('ThemeTab', () => {
 
     const renderedText = host!.textContent || '';
     expect(renderedText).toContain('Pierre');
-    expect(renderedText).toContain('Plannotator');
+    expect(renderedText).toContain('Hypermark');
     expect(renderedText).toContain('Catppuccin');
     expect(renderedText).toContain('GitHub');
     expect(renderedText).toContain('Ayu Dark');

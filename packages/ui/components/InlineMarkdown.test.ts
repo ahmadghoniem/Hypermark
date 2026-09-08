@@ -104,7 +104,7 @@ describe('InlineMarkdown angle autolinks', () => {
 
 describe('InlineMarkdown math', () => {
   // KaTeX reaches InlineMath through the renderer slot now (utils/math.ts);
-  // Plannotator's apps fill it by importing utils/math-eager. Register it
+  // Hypermark's apps fill it by importing utils/math-eager. Register it
   // here explicitly so these assertions do not depend on which test file ran
   // first in bun's shared process, and restore whatever was there after.
   const saved = getMathRenderer();

@@ -4,7 +4,7 @@
  * `mermaid.initialize` ran) and fills the slot in `./mermaid`.
  *
  * `packages/editor/App.tsx` imports this module for its side effect, by
- * policy: Plannotator's own surfaces keep Mermaid in their entry chunk so it
+ * policy: Hypermark's own surfaces keep Mermaid in their entry chunk so it
  * can never fail separately from the app (on the share portal this is what
  * keeps `mermaid.core` out of a lazy chunk). The review editor does not import
  * it because it never renders a Mermaid block; adding the runtime there would

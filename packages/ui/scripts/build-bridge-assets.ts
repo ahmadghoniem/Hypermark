@@ -2,7 +2,7 @@
  * Generate the HTML viewer bridge assets that ship in the npm package.
  *
  * `components/html-viewer/bridge-script.ts` stays the source of truth: the
- * Plannotator CLI and the Pi extension import its string exports under Bun,
+ * Hypermark CLI and the Pi extension import its string exports under Bun,
  * and the srcdoc path inlines `BRIDGE_SCRIPT` by default. This script derives
  * two files from it at `prepack` (both gitignored, both deterministic):
  *

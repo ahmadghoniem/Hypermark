@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-/** Maximum CSS viewport width that can enter Plannotator's compact touch shell. */
+/** Maximum CSS viewport width that can enter Hypermark's compact touch shell. */
 export const COMPACT_TOUCH_LAYOUT_MAX_WIDTH = 1024;
 
 /**
@@ -29,7 +29,7 @@ export function useIsMobile(breakpoint = 768): boolean {
 }
 
 /**
- * Reports whether the current viewport needs Plannotator's compact touch shell.
+ * Reports whether the current viewport needs Hypermark's compact touch shell.
  * Plan and Code Review must share this decision so responsive chrome and scroll
  * ownership cannot diverge on hybrid devices.
  */

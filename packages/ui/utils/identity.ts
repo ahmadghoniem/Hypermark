@@ -28,7 +28,7 @@ export interface IdentityProvider {
   isCurrentUser(author: string | undefined): boolean;
   /**
    * Whether the user may change their own display name from the Settings UI.
-   * Default (Plannotator's cookie identity) is editable. A host whose identity
+   * Default (Hypermark's cookie identity) is editable. A host whose identity
    * is owned by its auth system (e.g. a logged-in Workspaces user, whose author
    * is the server-stamped account id) returns `false` so the rename/regenerate
    * controls are hidden — preventing a locally-chosen name from diverging from
@@ -38,7 +38,7 @@ export interface IdentityProvider {
 }
 
 /**
- * Default provider: today's literal Plannotator behavior.
+ * Default provider: today's literal Hypermark behavior.
  * `displayName` resolution stays in ConfigStore (server config > cookie > tater).
  */
 const defaultIdentityProvider: IdentityProvider = {
@@ -54,7 +54,7 @@ const defaultIdentityProvider: IdentityProvider = {
   },
 };
 
-// Active provider. Defaults to the tater identity so Plannotator is unchanged.
+// Active provider. Defaults to the tater identity so Hypermark is unchanged.
 let identityProvider: IdentityProvider = defaultIdentityProvider;
 
 /** Override the identity provider. Call once at app startup. */

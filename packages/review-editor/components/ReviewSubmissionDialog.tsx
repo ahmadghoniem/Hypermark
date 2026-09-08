@@ -469,7 +469,7 @@ export function ReviewSubmissionDialog({
                         </div>
                         <div className="mt-1 text-muted-foreground">
                           {recoveryPersistsRefresh
-                            ? 'You can close and reopen this dialog or refresh this tab; Plannotator keeps this narrowed retry in tab-scoped recovery storage.'
+                            ? 'You can close and reopen this dialog or refresh this tab; Hypermark keeps this narrowed retry in tab-scoped recovery storage.'
                             : 'You can close and reopen this dialog on this page. Keep the page open because tab-scoped refresh recovery is unavailable.'}
                         </div>
                         {target.partial.recoveryFile && (

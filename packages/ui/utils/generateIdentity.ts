@@ -7,7 +7,7 @@
  *
  * The full `unique-username-generator` dictionary is NOT imported here. It is
  * registered into the slot below by `./identity-tater`, which every
- * Plannotator entry imports eagerly, so Plannotator mints names from the
+ * Hypermark entry imports eagerly, so Hypermark mints names from the
  * full dictionary exactly as before. A host that provides its own
  * `identityProvider` never calls the generator and, with the static import
  * gone, no longer ships the word lists.

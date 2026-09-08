@@ -1,4 +1,4 @@
-"""Deterministic hooks for Plannotator's packaged ZAP baseline scan."""
+"""Deterministic hooks for Hypermark's packaged ZAP baseline scan."""
 
 
 def zap_access_target(zap, target):
@@ -30,7 +30,7 @@ def zap_tuned(zap):
 
 
 def zap_spider(zap, target):
-    # The traditional spider treats strings inside Plannotator's 20+ MiB
+    # The traditional spider treats strings inside Hypermark's 20+ MiB
     # single-file JavaScript bundle as links. Send that spider to a small,
     # read-only API 404 instead. (The favicon path is handled by the SPA
     # fallback and therefore returns the full bundle.) zap_access_target above

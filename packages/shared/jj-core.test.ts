@@ -176,7 +176,7 @@ describe("jj compare targets", () => {
     const configPath = join(root, "jj-config.toml");
     writeFileSync(
       configPath,
-      '[user]\nname = "Plannotator Test"\nemail = "test@plannotator.invalid"\n',
+      '[user]\nname = "Hypermark Test"\nemail = "test@plannotator.invalid"\n',
     );
     const env = { ...process.env, JJ_CONFIG: configPath };
 

@@ -46,7 +46,7 @@ const cookieBackend: StorageBackend = {
   },
 };
 
-// Active backend. Defaults to cookies so Plannotator is unchanged. A host
+// Active backend. Defaults to cookies so Hypermark is unchanged. A host
 // (e.g. Workspaces) calls setStorageBackend once at startup to persist settings
 // through its own storage instead.
 let backend: StorageBackend = cookieBackend;

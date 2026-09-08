@@ -615,7 +615,7 @@ describe("parseMarkdownToBlocks — tables", () => {
   });
 
   test("real-world plan: prose with union types is not a table", () => {
-    const md = "`@pierre/diffs` supports `overflow: 'scroll' | 'wrap'` plus options, but Plannotator doesn't expose any of them.";
+    const md = "`@pierre/diffs` supports `overflow: 'scroll' | 'wrap'` plus options, but Hypermark doesn't expose any of them.";
     const blocks = parseMarkdownToBlocks(md);
     expect(blocks).toHaveLength(1);
     expect(blocks[0].type).toBe("paragraph");

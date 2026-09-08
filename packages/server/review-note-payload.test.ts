@@ -23,7 +23,7 @@ import { join } from "node:path";
 import { startReviewServer as startBunReviewServer } from "./review";
 import { parseFeedbackIndex } from "@hypermark/shared/feedback-archive";
 
-const MINIMAL_HTML = "<html><body>Plannotator</body></html>";
+const MINIMAL_HTML = "<html><body>Hypermark</body></html>";
 const PATCH = "diff --git a/src/parse.ts b/src/parse.ts\n@@ -1 +1 @@\n-a\n+b\n";
 
 const NOTE_TEXT = "Rebase on main before merging; the migration should be its own PR.";

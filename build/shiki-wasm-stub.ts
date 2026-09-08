@@ -8,7 +8,7 @@
  *       : createJavaScriptRegexEngine()
  *
  * (`dist/highlighter/shared_highlighter.js` on the main thread and
- * `dist/worker/worker.js` inside the inlined worker). Plannotator pins
+ * `dist/worker/worker.js` inside the inlined worker). Hypermark pins
  * `preferredHighlighter: 'shiki-js'` everywhere — see
  * `packages/review-editor/workerPool.tsx` — and Pierre's own default is
  * `'shiki-js'`, so the Oniguruma branch never executes. But because the choice
@@ -29,7 +29,7 @@
 
 function unavailable(): never {
   throw new Error(
-    "shiki/wasm is not bundled by Plannotator: the Oniguruma engine is stubbed out " +
+    "shiki/wasm is not bundled by Hypermark: the Oniguruma engine is stubbed out " +
       "in favour of Shiki's JavaScript regex engine (preferredHighlighter: 'shiki-js'). " +
       'Remove the `shiki/wasm` alias in the app vite config to re-enable it.',
   );

@@ -24,7 +24,7 @@ const SNAPSHOT_URL = '/api/external-annotations';
  * (reducer, fallback-once SSE→polling, version-scoping, optimistic mutation,
  * enabled gate); the transport owns ONLY the network/event wire.
  *
- * Default = Plannotator's SSE→polling behavior, verbatim. A host (Workspaces)
+ * Default = Hypermark's SSE→polling behavior, verbatim. A host (Workspaces)
  * can implement the same contract over its own backend (e.g. Durable Objects).
  */
 export interface ExternalAnnotationTransport<T extends { id: string; source?: string }> {
@@ -42,7 +42,7 @@ export interface ExternalAnnotationTransport<T extends { id: string; source?: st
 }
 
 /**
- * Default transport — Plannotator's verbatim SSE→polling wire.
+ * Default transport — Hypermark's verbatim SSE→polling wire.
  * EventSource on /api/external-annotations/stream; GET snapshot honoring 304→null;
  * CRUD via DELETE/PATCH fetches (optimistic local mutation stays in the hook).
  */
@@ -108,7 +108,7 @@ export function setExternalAnnotationTransport<T extends { id: string; source?: 
   externalAnnotationTransport = transport;
 }
 
-/** Reset to the default (Plannotator SSE→polling) transport. Mainly for tests. */
+/** Reset to the default (Hypermark SSE→polling) transport. Mainly for tests. */
 export function resetExternalAnnotationTransport(): void {
   externalAnnotationTransport = createDefaultTransport();
 }

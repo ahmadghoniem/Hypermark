@@ -141,7 +141,7 @@ export async function saveToObsidian(
 		// Generate content with frontmatter and backlink
 		const tags = await extractTags(plan);
 		const frontmatter = generateFrontmatter(tags);
-		const content = `${frontmatter}\n\n[[Plannotator Plans]]\n\n${plan}`;
+		const content = `${frontmatter}\n\n[[Hypermark Plans]]\n\n${plan}`;
 
 		// Write file
 		await Bun.write(filePath, content);

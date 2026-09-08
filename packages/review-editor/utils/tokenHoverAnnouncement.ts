@@ -3,7 +3,7 @@ import { configStore } from '@hypermark/ui/config';
 
 /**
  * One-time gate for the token hover card announcement dialog. Cookie-backed
- * like the other announcement gates, so the dismissal survives Plannotator's
+ * like the other announcement gates, so the dismissal survives Hypermark's
  * random localhost ports.
  */
 const STORAGE_KEY = 'plannotator-token-hover-announcement-seen';

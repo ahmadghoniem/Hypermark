@@ -127,7 +127,7 @@ function vex(statements = [vexStatement()]) {
   return {
     "@context": OPENVEX_CONTEXT,
     "@id": "https://github.com/backnotprop/plannotator/security/vex/test",
-    author: "Plannotator maintainers",
+    author: "Hypermark maintainers",
     timestamp: "2026-08-01T00:00:00Z",
     version: 1,
     statements,

@@ -104,7 +104,7 @@ describe('compact Plan navigator trigger', () => {
     expect(host.querySelector('button[aria-label="Options"]')).not.toBeNull();
     expect(host.textContent).not.toContain('Send Feedback');
     expect(host.textContent).not.toContain('Approve');
-    expect(host.textContent).not.toContain('Plannotator');
+    expect(host.textContent).not.toContain('Hypermark');
     await act!(async () => root.unmount());
     host.remove();
   });

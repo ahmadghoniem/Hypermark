@@ -39,7 +39,7 @@ export const BUILT_IN_THEMES: ThemeInfo[] = [
   },
   {
     id: 'plannotator',
-    name: 'Plannotator',
+    name: 'Hypermark',
     builtIn: true,
     modeSupport: 'both',
     syntaxHighlighting: false,
@@ -569,7 +569,7 @@ export const PIERRE_PALETTE_DESCRIPTOR: PaletteDescriptor = {
 
 export const PLANNOTATOR_PALETTE_DESCRIPTOR: PaletteDescriptor = {
   id: 'plannotator',
-  name: 'Plannotator',
+  name: 'Hypermark',
   builtIn: true,
   modeSupport: 'both',
   syntaxHighlighting: false,

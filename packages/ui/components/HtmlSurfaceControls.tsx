@@ -7,11 +7,11 @@
  *
  * The markup, data attributes (`data-html-tools-toggle`, `data-html-refresh`,
  * `data-html-annotate-toggle`), aria state and the pixel-stable pen border
- * are the exact ones Plannotator's header shipped with; hosts get the same
+ * are the exact ones Hypermark's header shipped with; hosts get the same
  * control, and `labels` overrides the strings without touching the DOM.
  */
 
-/** String overrides. Every key optional; defaults are Plannotator's strings. */
+/** String overrides. Every key optional; defaults are Hypermark's strings. */
 export interface HtmlSurfaceControlLabels {
   /** Pen title while Annotate is armed. */
   annotateTitle?: string;

@@ -285,7 +285,7 @@ export interface ProjectHostThreadsOptions {
   openOnly?: boolean;
   /**
    * How a row with nothing restorable (no quoted text, no element anchor)
-   * projects. `'global'` (default, Plannotator's model): a document-level
+   * projects. `'global'` (default, Hypermark's model): a document-level
    * `GLOBAL_COMMENT`, rendered by the panel's global card grammar and never
    * reported as unanchored. `'unanchored'`: a page `COMMENT` with an empty
    * quote and no anchor, which the viewer's unanchored report then names

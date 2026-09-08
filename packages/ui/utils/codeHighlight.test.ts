@@ -38,7 +38,7 @@ describe('fence theme resolution', () => {
     expect(resolveFenceTheme('kanagawa-wave', 'dark')).toBe(DEFAULT_SYNTAX_THEME.dark);
     expect(resolveFenceTheme('kanagawa-wave', 'light')).toBe(DEFAULT_SYNTAX_THEME.light);
 
-    // Plannotator now names Pierre's syntax themes explicitly, so it resolves
+    // Hypermark now names Pierre's syntax themes explicitly, so it resolves
     // to the same pair by data rather than by lookup miss.
     expect(resolveFenceTheme('plannotator', 'dark')).toBe(DEFAULT_SYNTAX_THEME.dark);
     expect(resolveFenceTheme('plannotator', 'light')).toBe(DEFAULT_SYNTAX_THEME.light);

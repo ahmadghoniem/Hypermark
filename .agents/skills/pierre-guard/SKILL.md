@@ -1,11 +1,11 @@
 ---
 name: pierre-guard
-description: Guard against breaking the @pierre/diffs integration in Plannotator's code review UI. Use this skill whenever modifying DiffViewer.tsx, upgrading the @pierre/diffs package, changing unsafeCSS injection, adding new props to FileDiff, or touching shadow DOM selectors or CSS variables that cross into Pierre's shadow boundary. Also trigger when someone asks "will this break the diff viewer", "is this safe to change", or when reviewing PRs that touch the review-editor package.
+description: Guard against breaking the @pierre/diffs integration in Hypermark's code review UI. Use this skill whenever modifying DiffViewer.tsx, upgrading the @pierre/diffs package, changing unsafeCSS injection, adding new props to FileDiff, or touching shadow DOM selectors or CSS variables that cross into Pierre's shadow boundary. Also trigger when someone asks "will this break the diff viewer", "is this safe to change", or when reviewing PRs that touch the review-editor package.
 ---
 
 # Pierre Integration Guard
 
-Plannotator's code review UI wraps `@pierre/diffs` — an open-source diff renderer that uses Shadow DOM. The integration is concentrated in a single file but relies on undocumented internals (shadow DOM selectors, CSS variable names, grid layout assumptions). This skill helps verify changes don't break that contract.
+Hypermark's code review UI wraps `@pierre/diffs` — an open-source diff renderer that uses Shadow DOM. The integration is concentrated in a single file but relies on undocumented internals (shadow DOM selectors, CSS variable names, grid layout assumptions). This skill helps verify changes don't break that contract.
 
 ## Source of Truth
 

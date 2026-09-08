@@ -21,7 +21,7 @@ export { MERMAID_CONFIG, __setMermaidRuntimeLoaderForTests };
 
 /**
  * The runtime comes from the slot in utils/mermaid: filled eagerly by
- * Plannotator (utils/mermaid-eager, imported by the editor App), loaded
+ * Hypermark (utils/mermaid-eager, imported by the editor App), loaded
  * lazily otherwise. See that module for the retry contract.
  */
 const getMermaid = loadMermaidRuntime;
@@ -227,7 +227,7 @@ const MermaidBlockImpl: React.FC<{ block: Block }> = ({ block }) => {
         // A `$$` label makes Mermaid render KaTeX. On a host that redirects
         // Mermaid's `katex` import to `utils/mermaid-math-slot` the label is
         // typeset through the math slot, which must be filled by then: warm
-        // it with the registered loader first. A filled slot (Plannotator's
+        // it with the registered loader first. A filled slot (Hypermark's
         // eager entry) resolves at once; a load failure is left to the
         // render, whose error panel names it with the source.
         if (hasMermaidMath(block.content)) {

@@ -178,7 +178,7 @@ describe("resolveUrlHost", () => {
   });
 
   test("the invalid-host warning stays a single line for newline-embedded values", () => {
-    // Hosts surface stderr lines like "Plannotator session ready" as clickable
+    // Hosts surface stderr lines like "Hypermark session ready" as clickable
     // links, so an echoed value must not be able to forge extra lines.
     const writes: string[] = [];
     const spy = spyOn(process.stderr, "write").mockImplementation(((chunk: unknown) => {
@@ -186,7 +186,7 @@ describe("resolveUrlHost", () => {
       return true;
     }) as typeof process.stderr.write);
     try {
-      process.env[URL_HOST_ENV] = "bad\nPlannotator session ready:\n  http://evil.example";
+      process.env[URL_HOST_ENV] = "bad\nHypermark session ready:\n  http://evil.example";
       expect(resolveUrlHost({})).toBeUndefined();
     } finally {
       spy.mockRestore();

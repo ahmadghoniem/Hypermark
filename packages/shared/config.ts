@@ -1,5 +1,5 @@
 /**
- * Plannotator Config
+ * Hypermark Config
  *
  * Reads/writes ~/.plannotator/config.json for persistent user settings.
  * Runtime-agnostic: uses only node:fs, node:os, node:child_process.
@@ -202,14 +202,14 @@ export interface HypermarkConfig {
    */
   markdownExtensions?: string[];
   /**
-   * Inject a Plannotator Flavored Markdown reminder into every EnterPlanMode
+   * Inject a Hypermark Flavored Markdown reminder into every EnterPlanMode
    * call so the agent is aware it can enrich plans with code-file links,
    * callouts, tables, diagrams, task lists, and the other PFM extensions.
    * Read by the `improve-context` PreToolUse handler. Default: false.
    */
   pfmReminder?: boolean;
   /**
-   * Open Plannotator in a Glimpse native window when available.
+   * Open Hypermark in a Glimpse native window when available.
    * When true (default), the server spawns `glimpseui` if it is on PATH,
    * no explicit browser is configured, and the session is local.
    * Set to false to always use the system browser even when Glimpse is installed.
@@ -240,7 +240,7 @@ export interface HypermarkConfig {
    */
   todoProvider?: "auto" | "off";
   /**
-   * Selected favicon style for Plannotator application surfaces:
+   * Selected favicon style for Hypermark application surfaces:
    * 'classic' (historical dark-navy P tile).
    */
   favicon?: FaviconStyle;
@@ -293,7 +293,7 @@ export function loadConfig(): HypermarkConfig {
 // --- config.json write serialization ----------------------------------------
 //
 // saveConfig is a read-merge-write, and one data dir is routinely shared by
-// several Plannotator processes (an annotate session and a review session at
+// several Hypermark processes (an annotate session and a review session at
 // once is ordinary). Two of them settling a POST /api/config in the same
 // window both read the pre-change file, both merge onto it, and the second
 // write silently drops the first writer's key while both callers are told the
@@ -687,7 +687,7 @@ const warnedInvalidUrlHosts = new Set<string>();
  * An invalid value warns once per value on stderr and falls back to
  * localhost — a display setting must never crash a server launch. The echoed
  * value is JSON-encoded so an embedded newline cannot forge extra stderr
- * lines (hosts surface "Plannotator session ready" lines as clickable links).
+ * lines (hosts surface "Hypermark session ready" lines as clickable links).
  *
  * The sentinel "auto" is returned verbatim (it matches the hostname shape);
  * the advertised-URL layer resolves it via Tailscale detection

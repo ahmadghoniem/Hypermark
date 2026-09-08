@@ -46,7 +46,7 @@ export type {
 export { planEmbedInsert } from '@hypermark/core/embed-insert';
 export type { EmbedInsertPlan } from '@hypermark/core/embed-insert';
 
-/* Grid-mode card utilities stay here (not in the package): they're Plannotator
+/* Grid-mode card utilities stay here (not in the package): they're Hypermark
    design-system Tailwind classes, and this file is @source-scanned. */
 const GRID_CARD_CLASSES = 'px-5 md:px-8 lg:px-10 xl:px-12 shadow-xl border border-border/50';
 
@@ -62,7 +62,7 @@ interface MarkdownEditorProps {
   /** Mirrors the Viewer card's outer maxWidth so toggling view<->edit doesn't jump. */
   maxWidth?: number | null;
   gridEnabled?: boolean;
-  /** Theme color mode. Defaults to the ThemeProvider's resolved mode (Plannotator
+  /** Theme color mode. Defaults to the ThemeProvider's resolved mode (Hypermark
       passes nothing); a host without ThemeProvider can supply it directly. */
   mode?: React.ComponentProps<typeof PackagedMarkdownEditor>['mode'];
   /**

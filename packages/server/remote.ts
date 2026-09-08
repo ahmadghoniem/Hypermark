@@ -77,7 +77,7 @@ function getServerPortConfiguration(): {
       return { ports: parsed.ports, isRange: parsed.kind === "range" };
     }
     console.error(
-      `[Plannotator] Warning: Invalid PLANNOTATOR_PORT "${envPort}", using default`
+      `[Hypermark] Warning: Invalid PLANNOTATOR_PORT "${envPort}", using default`
     );
   }
 

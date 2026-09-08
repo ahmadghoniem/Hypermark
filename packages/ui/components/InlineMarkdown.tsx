@@ -19,7 +19,7 @@ export interface DocPreviewResult {
 export type DocPreviewFetcher = (path: string, base?: string) => Promise<DocPreviewResult | null>;
 
 /**
- * Default code-file hover-preview fetcher — Plannotator's `/api/doc` behavior, verbatim.
+ * Default code-file hover-preview fetcher — Hypermark's `/api/doc` behavior, verbatim.
  */
 const defaultDocPreviewFetcher: DocPreviewFetcher = async (path, base) => {
   const params = new URLSearchParams({ path });
@@ -28,7 +28,7 @@ const defaultDocPreviewFetcher: DocPreviewFetcher = async (path, base) => {
   return await res.json();
 };
 
-// Module-level fetcher, stable identity. Defaults to Plannotator's `/api/doc`.
+// Module-level fetcher, stable identity. Defaults to Hypermark's `/api/doc`.
 // A host (e.g. Workspaces) calls setDocPreviewFetcher once at startup to load
 // hover previews from its own backend.
 let docPreviewFetcher: DocPreviewFetcher = defaultDocPreviewFetcher;
@@ -38,7 +38,7 @@ export const setDocPreviewFetcher = (fetcher: DocPreviewFetcher): void => {
   docPreviewFetcher = fetcher;
 };
 
-/** Reset to the default (Plannotator `/api/doc`) fetcher. Mainly for tests. */
+/** Reset to the default (Hypermark `/api/doc`) fetcher. Mainly for tests. */
 export const resetDocPreviewFetcher = (): void => {
   docPreviewFetcher = defaultDocPreviewFetcher;
 };

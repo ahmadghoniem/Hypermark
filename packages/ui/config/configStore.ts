@@ -1,5 +1,5 @@
 /**
- * ConfigStore — Unified config resolver for Plannotator
+ * ConfigStore — Unified config resolver for Hypermark
  *
  * Singleton that resolves settings with precedence:
  *   server config file > cookie > default
@@ -92,7 +92,7 @@ class ConfigStore {
    * missing default (including a generated identity) as cookies onto the host's
    * origin. Deferring to first use means a host that configures at startup gets
    * its own backend for the initial resolution too — no cookies are ever
-   * written on a configured host. Plannotator is unchanged: same resolution,
+   * written on a configured host. Hypermark is unchanged: same resolution,
    * same default-seeding writes, on first settings access instead of at import.
    */
   private ensureLoaded(): void {
@@ -114,7 +114,7 @@ class ConfigStore {
 
   /**
    * Re-hydrate all settings from the currently installed StorageBackend.
-   * ADDITIVE host hook — Plannotator never calls this (eager cookie default unchanged).
+   * ADDITIVE host hook — Hypermark never calls this (eager cookie default unchanged).
    * Host installs a SYNCHRONOUS StorageBackend serving prefetched settings, then calls
    * this to route the initial load through that backend. Precedence after a host call:
    * server (init) > host backend (loadFromBackend) > cookie/default (constructor).

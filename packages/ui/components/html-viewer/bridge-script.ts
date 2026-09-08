@@ -2962,7 +2962,7 @@ export const BRIDGE_SCRIPT = `(function() {
 
   // Author opt-in: a plain click on any element tagged [data-annotate] pops the
   // toolbar — no pinpoint mode. Lets an HTML doc (e.g. a flow graph) wire its own
-  // nodes to Plannotator's toolbar. Bubble phase so the page's own click handlers
+  // nodes to Hypermark's toolbar. Bubble phase so the page's own click handlers
   // run first; an active text selection is respected, not clobbered. A click on
   // a committed highlight selects the annotation instead (the pre-overlay
   // handler deferred to '.annotation-highlight' the same way).

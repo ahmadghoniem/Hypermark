@@ -193,7 +193,7 @@ describe("saveToObsidian", () => {
 
       const content = await Bun.file(result.path!).text();
       expect(content).toContain("# Test Plan");
-      expect(content).toContain("[[Plannotator Plans]]");
+      expect(content).toContain("[[Hypermark Plans]]");
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }

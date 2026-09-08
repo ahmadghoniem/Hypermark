@@ -55,7 +55,7 @@ export function buildSelectionActionElement(
   button.type = 'button';
   button.style.cssText = BUTTON_STYLE;
   button.innerHTML = `${ICON_COMMENT_SVG}<span>Make annotation</span>`;
-  button.title = 'Create a Plannotator comment on the selected lines';
+  button.title = 'Create a Hypermark comment on the selected lines';
   button.dataset.testid = 'edit-selection-make-annotation';
 
   button.addEventListener('mouseenter', () => {

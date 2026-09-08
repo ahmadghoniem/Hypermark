@@ -1,9 +1,9 @@
 /**
- * Plannotator uninstall lifecycle.
+ * Hypermark uninstall lifecycle.
  *
  * The uninstaller removes only product-owned paths and recognizable managed
  * entries from shared host configuration. The default mode keeps local review
- * data. Purge removes the known Plannotator data inventory while preserving
+ * data. Purge removes the known Hypermark data inventory while preserving
  * unknown top-level entries rather than guessing that custom files are ours.
  */
 import {
@@ -128,7 +128,7 @@ const PURGE_OWNED_TOP_LEVEL = [
 const WINDOWS_PATH_BROADCAST_STATEMENTS = [
   "$q=[char]34",
   "$sig='[DllImport('+$q+'user32.dll'+$q+',CharSet=CharSet.Unicode)] public static extern IntPtr SendMessageTimeout(IntPtr hWnd,uint msg,UIntPtr wParam,string lParam,uint flags,uint timeout,out UIntPtr result);'",
-  "try{Add-Type -Namespace Plannotator -Name PathBroadcast -MemberDefinition $sig; $r=[UIntPtr]::Zero; [void][Plannotator.PathBroadcast]::SendMessageTimeout([IntPtr]0xffff,0x1A,[UIntPtr]::Zero,'Environment',0x2,1000,[ref]$r)}catch{}",
+  "try{Add-Type -Namespace Hypermark -Name PathBroadcast -MemberDefinition $sig; $r=[UIntPtr]::Zero; [void][Hypermark.PathBroadcast]::SendMessageTimeout([IntPtr]0xffff,0x1A,[UIntPtr]::Zero,'Environment',0x2,1000,[ref]$r)}catch{}",
   "exit 0",
 ] as const;
 
@@ -321,13 +321,13 @@ export function createDefaultUninstallEnvironment(): UninstallEnvironment {
  */
 export function formatPurgeWarning(dataDir: string): string {
   return [
-    `Purge will permanently delete Plannotator data in ${dataDir}.`,
-    "This data is local-only. It is not stored on a Plannotator server and cannot be recovered after purge.",
+    `Purge will permanently delete Hypermark data in ${dataDir}.`,
+    "This data is local-only. It is not stored on a Hypermark server and cannot be recovered after purge.",
   ].join("\n");
 }
 
 /**
- * Remove Plannotator's conventional installation and recognizable host
+ * Remove Hypermark's conventional installation and recognizable host
  * integrations. Expected filesystem and host-CLI failures are collected in
  * the returned value so one stale integration cannot prevent other cleanup.
  */
@@ -397,11 +397,11 @@ export async function runHypermarkUninstall(
   }
   if (state.errors.length > 0) {
     const hasSpecificRetryWarning = state.warnings.some((warning) =>
-      warning.startsWith("The Plannotator CLI remains at "),
+      warning.startsWith("The Hypermark CLI remains at "),
     );
     if (!hasSpecificRetryWarning) {
       state.warnings.push(
-        "Preserved the Plannotator CLI and its Windows PATH entry so you can resolve the errors and retry uninstall.",
+        "Preserved the Hypermark CLI and its Windows PATH entry so you can resolve the errors and retry uninstall.",
       );
     }
   }
@@ -627,7 +627,7 @@ function removeHostConfigEntries(
       removeFileWhenEmpty: false,
     },
     "managed Claude Code hooks",
-    `Make ${join(paths.claudeDir, "settings.json")} a readable, writable strict JSON object. Remove only Plannotator command hooks from hooks.PermissionRequest entries whose matcher is "ExitPlanMode" and hooks.PreToolUse entries whose matcher is "EnterPlanMode", then save the file.`,
+    `Make ${join(paths.claudeDir, "settings.json")} a readable, writable strict JSON object. Remove only Hypermark command hooks from hooks.PermissionRequest entries whose matcher is "ExitPlanMode" and hooks.PreToolUse entries whose matcher is "EnterPlanMode", then save the file.`,
     request,
     state,
   );
@@ -642,7 +642,7 @@ function removeHostConfigEntries(
       removeFileWhenEmpty: true,
     },
     "managed Codex Stop hook",
-    `Make ${join(paths.codexDir, "hooks.json")} a readable, writable strict JSON object. Remove only Plannotator command hooks from hooks.Stop entries, then save the file; delete it only if no other settings remain.`,
+    `Make ${join(paths.codexDir, "hooks.json")} a readable, writable strict JSON object. Remove only Hypermark command hooks from hooks.Stop entries, then save the file; delete it only if no other settings remain.`,
     request,
     state,
   );
@@ -912,7 +912,7 @@ function purgeLocalData(
     const remainingPath = join(state.dataDir, name);
     if (recognized.has(name)) {
       state.errors.push(
-        `Known Plannotator data entry remains after purge: ${remainingPath}.`,
+        `Known Hypermark data entry remains after purge: ${remainingPath}.`,
       );
     } else {
       state.preserved.push(
@@ -969,7 +969,7 @@ async function removeWindowsPathEntry(
       `Removed ${paths.windowsInstallDir} from the Windows user PATH but could not capture the original PATH for safe rollback.`,
     );
     state.warnings.push(
-      `The Plannotator CLI remains at ${environment.execPath}, but its Windows PATH entry was removed without a usable backup. Run that full path to retry, then restore PATH manually if needed.`,
+      `The Hypermark CLI remains at ${environment.execPath}, but its Windows PATH entry was removed without a usable backup. Run that full path to retry, then restore PATH manually if needed.`,
     );
   } else if (result.exitCode !== 3) {
     state.errors.push(
@@ -1087,7 +1087,7 @@ async function restoreWindowsPathEntry(
       `Could not restore ${paths.windowsInstallDir} to the Windows user PATH after self-delete scheduling failed (${result.timedOut ? "command timed out" : `exit ${result.exitCode}`}).`,
     );
     state.warnings.push(
-      `The Plannotator CLI remains at ${environment.execPath}, but its Windows PATH entry could not be restored. Run that full path to retry, then restore PATH manually if needed.`,
+      `The Hypermark CLI remains at ${environment.execPath}, but its Windows PATH entry could not be restored. Run that full path to retry, then restore PATH manually if needed.`,
     );
     return;
   }
@@ -1239,7 +1239,7 @@ function cleanupGeminiSettings(
   state: MutableUninstallResult,
 ): void {
   const recovery = {
-    manualCleanup: `Make ${filePath} a readable, writable strict JSON object. Remove only Plannotator command hooks from hooks.BeforeTool entries whose matcher is "exit_plan_mode", then save the file.`,
+    manualCleanup: `Make ${filePath} a readable, writable strict JSON object. Remove only Hypermark command hooks from hooks.BeforeTool entries whose matcher is "exit_plan_mode", then save the file.`,
   };
   const parsed = readJsonRecord(
     filePath,
@@ -1448,11 +1448,11 @@ function cleanupRecognizableKiroAgent(
   state: MutableUninstallResult,
 ): void {
   const recovery = {
-    manualCleanup: `Make ${filePath} a readable, writable strict JSON object without changing its intent. If it is the installer-provided Plannotator Kiro agent, delete it; otherwise keep the repaired custom agent at that path.`,
+    manualCleanup: `Make ${filePath} a readable, writable strict JSON object without changing its intent. If it is the installer-provided Hypermark Kiro agent, delete it; otherwise keep the repaired custom agent at that path.`,
   };
   const parsed = readJsonRecord(
     filePath,
-    "the Plannotator Kiro agent",
+    "the Hypermark Kiro agent",
     recovery,
     request,
     state,
@@ -1464,7 +1464,7 @@ function cleanupRecognizableKiroAgent(
     typeof parsed.description === "string" ? parsed.description : "";
   const recognizable =
     parsed.name === "plannotator" &&
-    description.includes("Kiro custom agent wiring for Plannotator") &&
+    description.includes("Kiro custom agent wiring for Hypermark") &&
     prompt.includes("Each skill runs a `plannotator` shell command");
 
   if (recognizable) {
@@ -1481,7 +1481,7 @@ function cleanupRecognizableAmpPlugin(
 ): void {
   if (!existsSync(filePath)) return;
   const recovery = {
-    manualCleanup: `Make ${filePath} readable and writable. If it contains the installer-provided Plannotator Amp plugin, delete it; otherwise keep the custom plugin at that path.`,
+    manualCleanup: `Make ${filePath} readable and writable. If it contains the installer-provided Hypermark Amp plugin, delete it; otherwise keep the custom plugin at that path.`,
   };
   let content: string;
   try {
@@ -1498,7 +1498,7 @@ function cleanupRecognizableAmpPlugin(
   }
 
   const recognizable =
-    content.includes('const CATEGORY = "Plannotator"') &&
+    content.includes('const CATEGORY = "Hypermark"') &&
     content.includes("export default function plannotatorAmpPlugin") &&
     content.includes("PLANNOTATOR_ORIGIN");
 

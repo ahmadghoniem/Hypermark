@@ -104,7 +104,7 @@ export interface ViewerProps {
    *  resolve against the doc's own directory rather than only cwd. */
   codePathBaseDir?: string;
   /** Opt out of `/api/doc/exists` code-path validation (host without that
-   *  endpoint). Default undefined for Plannotator => validation stays on. */
+   *  endpoint). Default undefined for Hypermark => validation stays on. */
   disableCodePathValidation?: boolean;
   linkedDocInfo?: LinkedDocBadgeInfo | null;
   // Plan diff props

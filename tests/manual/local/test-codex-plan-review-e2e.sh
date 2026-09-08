@@ -256,7 +256,7 @@ EOF
 cat > "$WORKSPACE_DIR/README.md" <<'EOF'
 # Sample App
 
-Tiny TypeScript app for exercising Codex plan review through Plannotator.
+Tiny TypeScript app for exercising Codex plan review through Hypermark.
 EOF
 
 cat > "$WORKSPACE_DIR/src/index.ts" <<'EOF'
@@ -337,7 +337,7 @@ PROMPT_CONTENT="$(cat "$PROMPT_PATH")"
 } > "$RUNNER_SCRIPT"
 chmod +x "$RUNNER_SCRIPT"
 
-echo "=== Plannotator Codex Stop-hook E2E ==="
+echo "=== Hypermark Codex Stop-hook E2E ==="
 echo "Sandbox root: $ROOT_DIR"
 echo "Workspace:    $WORKSPACE_DIR"
 echo "Artifacts:    $ARTIFACTS_DIR"
@@ -382,7 +382,7 @@ while (( SECONDS < deadline )); do
     FIRST_SESSION_URL="$(read_json_field "$FIRST_SESSION_FILE" url)"
     echo "$FIRST_SESSION_FILE" > "$ARTIFACTS_DIR/first-session-file.txt"
     printf '%s\n' "$FIRST_SESSION_URL" > "$ARTIFACTS_DIR/first-session-url.txt"
-    echo "First Plannotator session: $FIRST_SESSION_URL"
+    echo "First Hypermark session: $FIRST_SESSION_URL"
     break
   fi
   if ! kill -0 "$CODEX_PID" 2>/dev/null; then
@@ -398,7 +398,7 @@ if [[ "$DETACH" == "true" ]]; then
   echo "Codex log:    $CODEX_LOG"
   echo "Metadata:     $METADATA_FILE"
   echo
-  echo "To inspect active Plannotator sessions inside the sandbox:"
+  echo "To inspect active Hypermark sessions inside the sandbox:"
   echo "  HOME=\"$TEMP_HOME\" PATH=\"$BIN_DIR:\$PATH\" hypermark sessions"
   exit 0
 fi

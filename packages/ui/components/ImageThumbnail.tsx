@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 export type ImageSrcResolver = (path: string, base?: string) => string;
 
 /**
- * Default image URL resolver — Plannotator's local server behavior, verbatim.
+ * Default image URL resolver — Hypermark's local server behavior, verbatim.
  * Remote URLs pass through; local paths resolve through `/api/image`.
  */
 const defaultImageSrcResolver: ImageSrcResolver = (path, base) => {
@@ -17,7 +17,7 @@ const defaultImageSrcResolver: ImageSrcResolver = (path, base) => {
   return url;
 };
 
-// Module-level resolver, stable identity. Defaults to Plannotator's behavior so
+// Module-level resolver, stable identity. Defaults to Hypermark's behavior so
 // callers and consumers are unchanged. A host (e.g. Workspaces) calls
 // `setImageSrcResolver` once at startup to resolve images via its own backend.
 let imageSrcResolver: ImageSrcResolver = defaultImageSrcResolver;
@@ -27,14 +27,14 @@ export const setImageSrcResolver = (resolver: ImageSrcResolver): void => {
   imageSrcResolver = resolver;
 };
 
-/** Reset to the default (Plannotator local) resolver. Mainly for tests. */
+/** Reset to the default (Hypermark local) resolver. Mainly for tests. */
 export const resetImageSrcResolver = (): void => {
   imageSrcResolver = defaultImageSrcResolver;
 };
 
 /**
  * Get the display URL for an image path or URL.
- * Delegates to the active resolver (default = Plannotator `/api/image`).
+ * Delegates to the active resolver (default = Hypermark `/api/image`).
  */
 export const getImageSrc = (path: string, base?: string): string =>
   imageSrcResolver(path, base);

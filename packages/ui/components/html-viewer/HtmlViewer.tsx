@@ -174,7 +174,7 @@ export interface HtmlViewerProps {
    * classic `<script src>` from this URL (the package's generated
    * `components/html-viewer/bridge-script.asset.js`, served by the host)
    * instead of inlining the 185 KB script into every document. Absent (the
-   * default, and Plannotator's only path): inline, unchanged. The tag lands
+   * default, and Hypermark's only path): inline, unchanged. The tag lands
    * where the inline script does, at the end of `<head>`, before the body.
    * The URL is resolved against THIS document's base (`document.baseURI`)
    * before it is written, never against the framed page, so a page's own
@@ -291,7 +291,7 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       }
     }, []);
 
-    // Host theming is opt-in per document (Plannotator-generated artifacts tag
+    // Host theming is opt-in per document (Hypermark-generated artifacts tag
     // themselves); arbitrary HTML renders untouched, like a standalone tab.
     const hostTheme = useMemo(() => !liveMode && hasHostThemeOptIn(rawHtml), [liveMode, rawHtml]);
 

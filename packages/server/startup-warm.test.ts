@@ -6,7 +6,7 @@ import { warmFileListCache } from "@hypermark/shared/resolve-file";
 import { startAnnotateServer } from "./annotate";
 import { startHypermarkServer } from "./index";
 
-const MINIMAL_HTML = "<html><body>Plannotator</body></html>";
+const MINIMAL_HTML = "<html><body>Hypermark</body></html>";
 
 type StartedServer = {
 	readonly url: string;

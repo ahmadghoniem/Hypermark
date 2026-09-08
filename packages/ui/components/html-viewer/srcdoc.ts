@@ -7,7 +7,7 @@
  * no styling of author elements. Host theme tokens are pushed under the
  * viewer-owned `--pn-*` prefix, which the annotation CSS reads.
  *
- * Documents that WANT to follow the host theme (e.g. Plannotator-generated
+ * Documents that WANT to follow the host theme (e.g. Hypermark-generated
  * artifacts) opt in with `<meta name="plannotator-theme" content="host">`,
  * which re-enables the bare-token push, the `light` class on their root, and
  * `color-scheme` sync — for that document only.
@@ -140,7 +140,7 @@ function escapeAttribute(value: string): string {
 
 /**
  * The bridge `<script>` element, the ONE injection point for both delivery
- * paths. Inline is the default and Plannotator's only path; the URL form is
+ * paths. Inline is the default and Hypermark's only path; the URL form is
  * the opt-in for hosts that serve the generated `bridge-script.asset.js`.
  */
 export function buildBridgeScriptTag(bridgeScriptUrl?: string): string {
@@ -185,7 +185,7 @@ export function buildSrcdocInjection({
 
 /**
  * A document-authored CSP `<meta>` tag (e.g. `default-src 'none'` in
- * Plannotator's own portable guided-review exports) blocks the inline bridge
+ * Hypermark's own portable guided-review exports) blocks the inline bridge
  * script and disables annotation entirely. The iframe `sandbox` attribute is
  * the security boundary for the annotate surface; the page's CSP was written
  * for its standalone context, so it is removed before injection.

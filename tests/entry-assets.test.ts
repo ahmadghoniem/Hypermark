@@ -64,7 +64,7 @@ describe('review entry assets', () => {
 
   // @hypermark/ui loads KaTeX and the username dictionary through slots
   // (utils/math.ts, utils/generateIdentity.ts) so hosts that bundle by route
-  // can leave them out of a document read. Plannotator's parity rests on two
+  // can leave them out of a document read. Hypermark's parity rests on two
   // side-effect imports per app entry: without them, plans with math would
   // paint TeX for a frame in every runtime and identities would come from the
   // 16-word fallback pool, with no error anywhere. Both apps must carry both.
@@ -154,7 +154,7 @@ describe('review entry assets', () => {
     });
   }
 
-  // The HTML viewer bridge stays INLINE in Plannotator's bundles: the
+  // The HTML viewer bridge stays INLINE in Hypermark's bundles: the
   // `bridgeScriptUrl` seam is host-only, so the built HTML must carry the
   // bridge literal exactly once (the srcdoc injection's string constant),
   // never zero (a `bridge-script.lite` alias leaking into an app build) and

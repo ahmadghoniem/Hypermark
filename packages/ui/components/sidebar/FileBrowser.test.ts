@@ -165,7 +165,7 @@ describe("FileBrowser workspace status lookup", () => {
     });
   });
 
-  test("allows selecting a deleted file when Plannotator still has a missing-file buffer", () => {
+  test("allows selecting a deleted file when Hypermark still has a missing-file buffer", () => {
     const deleted: WorkspaceFileChange = {
       path: "/repo/docs/plan.md",
       repoRelativePath: "docs/plan.md",

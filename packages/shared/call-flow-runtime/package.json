@@ -2,7 +2,7 @@
   "name": "plannotator-call-flow-runtime",
   "version": "0.4.1-plannotator.2",
   "private": true,
-  "description": "Managed offline runtime for Plannotator call-flow analysis",
+  "description": "Managed offline runtime for Hypermark call-flow analysis",
   "dependencies": {
     "@types/node": "24.2.0",
     "calldiff": "file:calldiff-a3194d20ca91ef6a314273d634e9b9c0db1c2707.tar.gz",

@@ -81,7 +81,7 @@ const scanTarget = Bun.serve({
           request.method === "GET" || request.method === "HEAD" ? 404 : 405,
         headers: {
           "Content-Type": "text/plain; charset=utf-8",
-          "X-Plannotator-DAST-Guard": "blocked",
+          "X-Hypermark-DAST-Guard": "blocked",
         },
       });
     }
@@ -95,7 +95,7 @@ const scanTarget = Bun.serve({
       redirect: "manual",
     });
     const headers = new Headers(response.headers);
-    headers.set("X-Plannotator-DAST-Guard", "forwarded");
+    headers.set("X-Hypermark-DAST-Guard", "forwarded");
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,

@@ -4,7 +4,7 @@ import { configStore } from '@hypermark/ui/config';
 /**
  * One-time gate for the Edit Mode (edit-to-suggest) announcement dialog.
  * Cookie-backed like the other announcement gates, so the dismissal survives
- * Plannotator's random localhost ports.
+ * Hypermark's random localhost ports.
  */
 const STORAGE_KEY = 'plannotator-edit-mode-announcement-seen';
 // Bump to re-show the announcement after a meaningful revision.

@@ -18,7 +18,7 @@ echo "Fixing files in: $FOLDER"
 COUNT=0
 for FILE in "$FOLDER"/*.md; do
     # Skip if already has the link
-    if grep -q '\[\[Plannotator Plans\]\]' "$FILE" 2>/dev/null; then
+    if grep -q '\[\[Hypermark Plans\]\]' "$FILE" 2>/dev/null; then
         continue
     fi
 

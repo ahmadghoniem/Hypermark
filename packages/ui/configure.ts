@@ -40,7 +40,7 @@ export type {
 
 type ExternalAnnotationBase = { id: string; source?: string };
 
-export interface PlannotatorUIConfig {
+export interface HypermarkUIConfig {
   imageSrcResolver?: ImageSrcResolver;
   storageBackend?: StorageBackend;
   uploadTransport?: UploadTransport;
@@ -78,7 +78,7 @@ export interface PlannotatorUIConfig {
   /**
    * Synchronous generator for the default "tater" display name, used only when
    * no `identityProvider` is installed. Default: a small built-in pool of the
-   * same `adjective-noun-tater` shape. Plannotator registers the full
+   * same `adjective-noun-tater` shape. Hypermark registers the full
    * dictionary by importing `@hypermark/ui/utils/identity-tater`.
    */
   identityGenerator?: IdentityGenerator;
@@ -86,7 +86,7 @@ export interface PlannotatorUIConfig {
   loadSettingsFromBackend?: boolean;
 }
 
-export function configureHypermarkUI(config: PlannotatorUIConfig): void {
+export function configureHypermarkUI(config: HypermarkUIConfig): void {
   if (config.imageSrcResolver) setImageSrcResolver(config.imageSrcResolver);
   if (config.storageBackend) setStorageBackend(config.storageBackend);
   if (config.uploadTransport) setUploadTransport(config.uploadTransport);

@@ -1,4 +1,4 @@
-# Contributing to Plannotator
+# Contributing to Hypermark
 
 We welcome contributions!
 

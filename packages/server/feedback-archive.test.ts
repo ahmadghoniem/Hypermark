@@ -34,7 +34,7 @@ import { detectProjectName } from "./project";
 import { parseFeedbackIndex, type FeedbackRecord } from "@hypermark/shared/feedback-archive";
 import { getHypermarkDataDir } from "@hypermark/shared/data-dir";
 
-const MINIMAL_HTML = "<html><body>Plannotator</body></html>";
+const MINIMAL_HTML = "<html><body>Hypermark</body></html>";
 
 // Annotate version history goes through storage.ts, whose data dir is fixed at
 // import time, so these sessions snapshot into the REAL data dir no matter what

@@ -77,8 +77,8 @@ function remapWorkspaceStatusForDir(
 }
 
 /**
- * File-tree backend. Defaults to Plannotator's HTTP endpoints (generic files
- * and the SSE live-watch stream) so Plannotator is unchanged. A host calls
+ * File-tree backend. Defaults to Hypermark's HTTP endpoints (generic files
+ * and the SSE live-watch stream) so Hypermark is unchanged. A host calls
  * setFileTreeBackend once at startup to source the tree from its own transport
  * instead.
  */
@@ -152,7 +152,7 @@ const defaultFileTreeBackend: FileTreeBackend = {
   },
 };
 
-// Active backend. Defaults to Plannotator's HTTP endpoints so Plannotator is
+// Active backend. Defaults to Hypermark's HTTP endpoints so Hypermark is
 // unchanged. A host calls setFileTreeBackend once at startup to override.
 let fileTreeBackend: FileTreeBackend = defaultFileTreeBackend;
 

@@ -8,7 +8,7 @@ import { resolveFenceTheme } from '../utils/syntaxTheme';
  * suggestion cards and diff hunks all agree. Re-renders on palette or mode
  * change, which is what drives the re-highlight in the components below.
  *
- * `ThemeProvider`'s default context supplies the Plannotator palette in dark
+ * `ThemeProvider`'s default context supplies the Hypermark palette in dark
  * mode, so this is safe to call outside a provider.
  */
 export function useFenceTheme(): string {

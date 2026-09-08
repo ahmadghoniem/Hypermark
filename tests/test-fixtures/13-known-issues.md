@@ -46,7 +46,7 @@ For a team running Hypermark inside a GitLab repo, every reference like @bob, @c
 
 ## 4. External links inside raw HTML hijack the review tab
 
-Markdown links open in a new tab automatically. Links inside a raw HTML block don't — clicking them replaces the Plannotator tab with the target page, losing any in-progress annotations.
+Markdown links open in a new tab automatically. Links inside a raw HTML block don't — clicking them replaces the Hypermark tab with the target page, losing any in-progress annotations.
 
 Example:
 
@@ -59,7 +59,7 @@ See the <a href="https://tanstack.com/table/v8/docs">TanStack docs</a> for sort/
 
 Click any link above to reproduce — the whole Hypermark session disappears, the back button restores it but any unsaved state is lost.
 
-**Security-adjacent note:** this also opens a tab-nabbing vector if the pasted HTML ever comes from an untrusted source. The opened page gets a live reference back to the Plannotator tab and can redirect it. Scheduled for fix alongside this.
+**Security-adjacent note:** this also opens a tab-nabbing vector if the pasted HTML ever comes from an untrusted source. The opened page gets a live reference back to the Hypermark tab and can redirect it. Scheduled for fix alongside this.
 
 ## 5. Headings with identical text share the same anchor id
 
@@ -108,7 +108,7 @@ Download the spec as <a href="./docs/spec.pdf">PDF</a>, or grab the raw data as 
 
 </details>
 
-Both of those resolve against the Plannotator server origin instead of the source file's directory, so they return 404 even when the files exist next to the plan.
+Both of those resolve against the Hypermark server origin instead of the source file's directory, so they return 404 even when the files exist next to the plan.
 
 **Impact:** unusual — users paste README sections with PDF / data / image links that aren't `.md` or `.html`. Low volume but confusing when it hits.
 

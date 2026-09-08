@@ -48,7 +48,7 @@ export const MenuVersionSection: React.FC<MenuVersionSectionProps> = ({
           onClick={closeMenu}
           className="text-[10px] font-semibold tracking-wide text-muted-foreground hover:text-foreground transition-colors"
         >
-          Plannotator
+          Hypermark
         </a>
         <span className="text-[10px] font-mono text-muted-foreground/70">
           v{appVersion}

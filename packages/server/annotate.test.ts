@@ -24,7 +24,7 @@ import { getServerConfig, loadConfig } from "./config";
 import { deriveAnnotateHistorySlug } from "@hypermark/shared/annotate-history";
 import { getHypermarkDataDir } from "@hypermark/shared/data-dir";
 
-const MINIMAL_HTML = "<html><body>Plannotator</body></html>";
+const MINIMAL_HTML = "<html><body>Hypermark</body></html>";
 
 describe("annotate server: /api/save-notes wiring", () => {
   // Bind a random local port regardless of env left behind by sibling suites.
@@ -83,7 +83,7 @@ describe("annotate server: /api/save-notes wiring", () => {
     try {
       const response = await fetch(`${server.url}/not-a-real-route`);
       expect(response.headers.get("content-type")).toContain("text/html");
-      expect(await response.text()).toContain("Plannotator");
+      expect(await response.text()).toContain("Hypermark");
     } finally {
       server.stop();
     }
@@ -616,7 +616,7 @@ describe("annotate server: source save", () => {
     }
   });
 
-  test("recreates a deleted folder source only after Plannotator opened it", async () => {
+  test("recreates a deleted folder source only after Hypermark opened it", async () => {
     const folderPath = mkdtempSync(join(tmpdir(), "plannotator-folder-source-save-"));
     const openedPath = join(folderPath, "opened.md");
     const neverOpenedPath = join(folderPath, "never-opened.md");

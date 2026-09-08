@@ -5,14 +5,14 @@
  * importing `katex` statically, so a host that bundles by route does not carry
  * KaTeX in every document read. The slot is SYNCHRONOUS: when it is filled
  * before the first render (which is what `./math-eager` does, and what every
- * Plannotator entry imports) the typeset HTML is in the DOM on the first
+ * Hypermark entry imports) the typeset HTML is in the DOM on the first
  * commit, exactly as it was when the import was static. When it is empty the
  * components render the same wrapper element with the TeX source as text,
  * call `loadMathRenderer()`, and re-render typeset once it resolves.
  *
  * This module deliberately has NO runtime import of `katex`: the only place
  * the dependency is named is `./math-default-loader`'s `import('katex')`,
- * which a chunking bundler turns into a lazy chunk and Plannotator's
+ * which a chunking bundler turns into a lazy chunk and Hypermark's
  * single-file builds inline (the eager entry keeps it in the entry either
  * way). That default is called only while no host loader is registered, and
  * it lives in its own module so a host that registers a loader can alias it

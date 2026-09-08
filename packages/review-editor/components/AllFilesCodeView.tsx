@@ -72,7 +72,7 @@ import {
  *
  * P1 established the static, uncontrolled `initialItems` skeleton. P2 locked
  * down item identity and routed navigation + line selection through CodeView's
- * own APIs. P3 moved collapse + the full Plannotator FileHeader INTO CodeView
+ * own APIs. P3 moved collapse + the full Hypermark FileHeader INTO CodeView
  * via the `renderCustomHeader` render slot.
  *
  * P4 (this phase) routes annotations through CodeView item state:
@@ -325,7 +325,7 @@ export interface AllFilesCodeViewProps {
   onAddEditorCommentForFile?: (filePath: string, comment: EditSelectionComment) => void;
 }
 
-// Diffshub-style stable path-based id allocation. Plannotator's file list is
+// Diffshub-style stable path-based id allocation. Hypermark's file list is
 // normally one entry per (new) path, so ids are identity (id === path) in the
 // common case. Pathological patches (e.g. a delete + re-add of the same path,
 // or repeated paths) would otherwise collapse two files onto one CodeView item,
@@ -2188,7 +2188,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     handleToggleViewedAndCollapse,
   ]);
 
-  // --- Custom header render slot (the full Plannotator FileHeader) -----------
+  // --- Custom header render slot (the full Hypermark FileHeader) -----------
 
   const renderCustomHeader = useStableCallback((item: CodeViewItem<DiffAnnotationMetadata>) => {
     if (item.type !== 'diff') return null;

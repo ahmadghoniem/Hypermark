@@ -2,7 +2,7 @@
  * Eager math registration: fills the renderer slot in `./math` with KaTeX at
  * module evaluation, before any component renders.
  *
- * Every Plannotator entry (`packages/editor/App.tsx`, `packages/review-editor/App.tsx`;
+ * Every Hypermark entry (`packages/editor/App.tsx`, `packages/review-editor/App.tsx`;
  * the hook, review, portal, OpenCode and Pi builds all flow from those two)
  * imports this module for its side effect, which is what keeps math typeset
  * on the first commit exactly as it was with a static `katex` import. A host

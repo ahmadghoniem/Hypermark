@@ -29,7 +29,7 @@ interface UseHtmlRefreshResult {
 }
 
 /**
- * Plannotator's binding of the published `useHtmlRefresh`: the snapshot
+ * Hypermark's binding of the published `useHtmlRefresh`: the snapshot
  * comes from `/api/doc` through `fetchHtmlDocumentSnapshot` (which, for the
  * session's root document, also carries the recomputed version diff), URL
  * sessions (http(s) paths) cannot refresh, and every outcome toasts.

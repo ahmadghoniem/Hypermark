@@ -9,7 +9,7 @@ import { CLASSIC_FAVICON_SVG, FAVICON_PNG_BYTES } from "../packages/core/favicon
 // response Content-Type is the only truthful declaration. A re-added
 // type="image/png" would be a lie about what the route returns.
 const SERVED_FAVICON_LINK = '<link rel="icon" href="/favicon.png">';
-// The portal is a static site with no Plannotator server, so its favicon really
+// The portal is a static site with no Hypermark server, so its favicon really
 // is always the 64px PNG the vite plugin emits and it keeps the typed hints.
 const STATIC_FAVICON_LINK =
   '<link rel="icon" type="image/png" sizes="64x64" href="/favicon.png">';

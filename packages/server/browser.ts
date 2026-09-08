@@ -17,7 +17,7 @@ const IPC_REGISTRY = path.join(getHypermarkDataDir(), "vscode-ipc.json");
  * (e.g. Claude Code's agent view sets BROWSER=true) to signal "do not actually
  * launch a browser". Treating these as if the variable were unset prevents
  * silently shelling out to e.g. `true <url>`, which exits 0 without opening
- * anything and leaves the Plannotator server hanging on waitForDecision().
+ * anything and leaves the Hypermark server hanging on waitForDecision().
  */
 const NOOP_BROWSER_VALUES = new Set(["true", "false", "none", ":", "0", "1"]);
 
@@ -110,7 +110,7 @@ function buildGlimpseHtml(url: string): string {
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Plannotator</title>
+    <title>Hypermark</title>
     <style>
       html, body { width: 100%; height: 100%; margin: 0; }
       body { overflow: hidden; background: #0f1115; }
@@ -134,7 +134,7 @@ async function openGlimpse(url: string): Promise<boolean> {
     "--height",
     String(Number(process.env.PLANNOTATOR_GLIMPSE_HEIGHT || 900)),
     "--title",
-    "Plannotator",
+    "Hypermark",
     "--open-links",
   ];
   const html = buildGlimpseHtml(url);

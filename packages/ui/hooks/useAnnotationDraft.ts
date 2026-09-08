@@ -26,7 +26,7 @@ const DEBOUNCE_MS = 500;
 
 /**
  * Transport for persisting annotation/edit drafts. The default reproduces
- * Plannotator's `/api/draft` server protocol verbatim. A host (e.g. Workspaces)
+ * Hypermark's `/api/draft` server protocol verbatim. A host (e.g. Workspaces)
  * may override it to persist drafts through its own backend.
  *
  * CONTRACT — a host overriding this MUST preserve the 3-party generation
@@ -55,7 +55,7 @@ export interface DraftTransport {
 }
 
 /**
- * Default transport — Plannotator's `/api/draft` fetches, moved verbatim.
+ * Default transport — Hypermark's `/api/draft` fetches, moved verbatim.
  * `save` rejects on failure (the keepalive retry stays in the hook so its
  * generation-match gate is preserved); `remove` always resolves.
  */

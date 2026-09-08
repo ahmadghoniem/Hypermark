@@ -1,6 +1,6 @@
 /**
  * Builds the clipboard payload that teaches an external agent (Claude Code,
- * Codex, custom scripts, etc.) how to post annotations into a live Plannotator
+ * Codex, custom scripts, etc.) how to post annotations into a live Hypermark
  * **plan-review** session via the /api/external-annotations HTTP API.
  *
  * The body is intentionally short (~110 lines of markdown) so an agent can read
@@ -12,7 +12,7 @@
  * server is running on a random local port or the fixed remote port (19432).
  */
 export function buildPlanAgentInstructions(origin: string): string {
-  return `# Plannotator — External Annotations
+  return `# Hypermark — External Annotations
 
 You can submit review feedback on the user's current plan-review session by POSTing annotations to a small HTTP API. The user will see them immediately — inline highlights on the plan and entries in a sidebar — and can accept, edit, or delete them.
 

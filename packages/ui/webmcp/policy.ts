@@ -1,7 +1,7 @@
 /**
  * Host seam for the WebMCP provider, following the `utils/upload.ts` shape:
  * a module-level default, `set`/`reset`/`get`, wired through
- * `configureHypermarkUI({ webmcp })`. Plannotator passes nothing and gets
+ * `configureHypermarkUI({ webmcp })`. Hypermark passes nothing and gets
  * today's behavior: enabled (whenever `document.modelContext` exists) with the
  * `plannotator.` name prefix.
  */
@@ -39,7 +39,7 @@ export function setWebMcpPolicy(next: WebMcpPolicy): void {
   };
 }
 
-/** Reset to Plannotator's default policy. Mainly for tests. */
+/** Reset to Hypermark's default policy. Mainly for tests. */
 export function resetWebMcpPolicy(): void {
   policy = defaultPolicy;
 }

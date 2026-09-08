@@ -338,7 +338,7 @@ describe.skipIf(process.platform === "win32")("background remote discovery", () 
         fetch() {
           return new Response("Authentication required", {
             status: 401,
-            headers: { "WWW-Authenticate": 'Basic realm="Plannotator test"' },
+            headers: { "WWW-Authenticate": 'Basic realm="Hypermark test"' },
           });
         },
       });

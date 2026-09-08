@@ -1,7 +1,7 @@
 # Isolated OWASP ZAP DAST
 
 The `ZAP DAST` workflow runs a passive baseline scan against a disposable
-Plannotator annotate session. Both the application and ZAP run on a Docker
+Hypermark annotate session. Both the application and ZAP run on a Docker
 network created with `--internal`, so neither can reach production or any
 external service. No repository, cloud, npm, model-provider, or user
 credentials are passed to either container.
@@ -27,11 +27,11 @@ metadata or any other path. It also rejects every state-changing HTTP method.
 Browser/AJAX crawling was evaluated and deferred: ZAP's pinned image does not
 carry a WebDriver and an internal network correctly prevents downloading one
 at runtime. This keeps the scan deterministic and offline while still
-passively inspecting real Plannotator UI and API responses.
+passively inspecting real Hypermark UI and API responses.
 
 ZAP passive rule `10003` (Vulnerable JS Library) is disabled deliberately.
 Trivy owns repository dependency detection and Grype owns release dependency
-decisions. On Plannotator's 20+ MiB single-file bundle, rule `10003` also tries
+decisions. On Hypermark's 20+ MiB single-file bundle, rule `10003` also tries
 to store the complete bundle as alert evidence and exceeds ZAP's alert-column
 limit. Informational rule `10109` (Modern App Detection) is disabled for the
 same evidence-size reason; it is not a vulnerability decision. All other

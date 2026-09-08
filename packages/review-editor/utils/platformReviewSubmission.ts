@@ -7,7 +7,7 @@ import {
 } from './reviewSubmissionRecovery';
 
 const UNKNOWN_RESULT_ERROR =
-  'The platform may have accepted part of this review, but Plannotator could not confirm the result. Automatic retry is blocked to avoid duplicate comments. Inspect the pull request or merge request before starting another review.';
+  'The platform may have accepted part of this review, but Hypermark could not confirm the result. Automatic retry is blocked to avoid duplicate comments. Inspect the pull request or merge request before starting another review.';
 
 /** Fetch-compatible capability used to submit one platform review target. */
 export type PlatformReviewFetch = (

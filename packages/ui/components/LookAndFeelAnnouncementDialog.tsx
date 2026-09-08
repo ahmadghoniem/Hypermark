@@ -41,7 +41,7 @@ const LOOK_OPTIONS: {
 /**
  * First-use plan appearance choice. The version announcement that previously
  * wrapped this decision is intentionally gone: startup asks only for the
- * preference Plannotator cannot infer, and Settings remains the long-term home.
+ * preference Hypermark cannot infer, and Settings remains the long-term home.
  */
 export const LookAndFeelAnnouncementDialog: React.FC<LookAndFeelAnnouncementDialogProps> = ({
   isOpen,

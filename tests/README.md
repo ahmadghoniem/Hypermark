@@ -1,10 +1,10 @@
 # Tests
 
-This directory contains manual testing scripts for Plannotator.
+This directory contains manual testing scripts for Hypermark.
 
 ## Manual Browser UI Smokes (`tests/manual/local/`)
 
-These are local-only scripts for launching Plannotator UI flows with fixture data so you can manually verify them in a browser. They are not automated CI tests.
+These are local-only scripts for launching Hypermark UI flows with fixture data so you can manually verify them in a browser. They are not automated CI tests.
 
 **Plan review UI smoke tests:**
 
@@ -46,7 +46,7 @@ Tests the installed `hypermark` binary to verify releases work correctly.
 ./tests/manual/local/test-bulk-plans.sh    # Iterate through ~/.claude/plans/
 ```
 
-Opens each `.md` file from `~/.claude/plans/` in Plannotator. Great for testing Obsidian integration with multiple
+Opens each `.md` file from `~/.claude/plans/` in Hypermark. Great for testing Obsidian integration with multiple
 plans.
 
 **OpenCode integration sandbox:**
@@ -87,7 +87,7 @@ Tips:
 ./tests/manual/local/fix-vault-links.sh /path/to/vault/hypermark
 ```
 
-Adds Obsidian backlinks (`[[Plannotator Plans]]`) to existing plan files in your vault.
+Adds Obsidian backlinks (`[[Hypermark Plans]]`) to existing plan files in your vault.
 
 ## SSH Remote Testing (`manual/ssh/`)
 

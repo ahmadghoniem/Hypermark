@@ -620,7 +620,7 @@ async function commitIndex(
 ): Promise<string> {
   const tree = await git(runtime, cwd, ["write-tree"]);
   return git(runtime, cwd, [
-    "-c", "user.name=Plannotator",
+    "-c", "user.name=Hypermark",
     "-c", "user.email=snapshot@hypermark.invalid",
     "commit-tree", tree,
     ...(parent ? ["-p", parent] : []),
@@ -658,7 +658,7 @@ async function createSyntheticSnapshot(
     const commits: string[] = [];
     for (let index = 0; index < patches.length; index += 1) {
       await applyPatchToIndex(runtime, snapshotCwd, patches[index]);
-      parent = await commitIndex(runtime, snapshotCwd, parent, `Plannotator review snapshot ${index + 1}`);
+      parent = await commitIndex(runtime, snapshotCwd, parent, `Hypermark review snapshot ${index + 1}`);
       commits.push(parent);
     }
     return {
@@ -814,13 +814,13 @@ async function materializeJjSnapshot(
   const cleanup = () => removeDirectoryBestEffort(tempRoot);
   try {
     await git(gitRuntime, tempRoot, ["init", "--quiet", "--", snapshotCwd]);
-    const emptyCommit = await commitIndex(gitRuntime, snapshotCwd, undefined, "Plannotator review empty snapshot");
+    const emptyCommit = await commitIndex(gitRuntime, snapshotCwd, undefined, "Hypermark review empty snapshot");
 
     // Only the base side materializes the whole parseable tree.
     const basePatch = await jjSnapshotPatch(jjRuntime, options, "root()", fromRevision, filesets);
     await git(gitRuntime, snapshotCwd, ["read-tree", "--empty"]);
     await applyPatchToIndex(gitRuntime, snapshotCwd, basePatch);
-    const fromCommit = await commitIndex(gitRuntime, snapshotCwd, emptyCommit, "Plannotator review Jujutsu snapshot");
+    const fromCommit = await commitIndex(gitRuntime, snapshotCwd, emptyCommit, "Hypermark review Jujutsu snapshot");
 
     // The second side is the base tree plus the CHANGED files, so materialization
     // cost scales with the review instead of with the repository. Falling back to
@@ -831,13 +831,13 @@ async function materializeJjSnapshot(
       const deltaPatch = await jjSnapshotPatch(jjRuntime, options, fromRevision, toRevision, filesets);
       await git(gitRuntime, snapshotCwd, ["read-tree", fromCommit]);
       await applyPatchToIndex(gitRuntime, snapshotCwd, deltaPatch);
-      toCommit = await commitIndex(gitRuntime, snapshotCwd, fromCommit, "Plannotator review Jujutsu snapshot");
+      toCommit = await commitIndex(gitRuntime, snapshotCwd, fromCommit, "Hypermark review Jujutsu snapshot");
     } catch (error) {
       if (options.signal?.aborted) throw error;
       const wholePatch = await jjSnapshotPatch(jjRuntime, options, "root()", toRevision, filesets);
       await git(gitRuntime, snapshotCwd, ["read-tree", "--empty"]);
       await applyPatchToIndex(gitRuntime, snapshotCwd, wholePatch);
-      toCommit = await commitIndex(gitRuntime, snapshotCwd, emptyCommit, "Plannotator review Jujutsu snapshot");
+      toCommit = await commitIndex(gitRuntime, snapshotCwd, emptyCommit, "Hypermark review Jujutsu snapshot");
     }
 
     return { cwd: snapshotCwd, from: fromCommit, to: toCommit, cleanup };

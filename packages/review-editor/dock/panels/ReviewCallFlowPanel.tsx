@@ -212,7 +212,7 @@ export function CallFlowInstallFunnel({
         <span className="call-flow-empty-kicker">Preparing analysis</span>
         <strong>Call flow is setting up in the background.</strong>
         <p>
-          You can keep reviewing while Plannotator prepares the local runtime and the
+          You can keep reviewing while Hypermark prepares the local runtime and the
           language support this review needs.
         </p>
         {advert.message && advert.reason !== 'runtime-unavailable' && (
@@ -249,7 +249,7 @@ export function ReviewCallFlowPanel() {
     }
     const recovery = state.callFlowAdvert.state === 'unsupported'
       ? state.callFlowAdvert.reason === 'demo-mode'
-        ? 'Launch a review through Plannotator to analyze its Git snapshots.'
+        ? 'Launch a review through Hypermark to analyze its Git snapshots.'
         : 'Choose a supported local Git review view to run this analysis.'
       : 'The ordinary code diff remains available.';
     return (

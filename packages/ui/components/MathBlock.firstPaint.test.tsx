@@ -1,7 +1,7 @@
 /**
  * Math must be typeset on the FIRST commit when the eager entry is imported.
  *
- * This is the DOM-level proof behind the byte-identical guarantee: Plannotator's
+ * This is the DOM-level proof behind the byte-identical guarantee: Hypermark's
  * apps import `utils/math-eager`, so KaTeX is in the slot before any render,
  * and a `MathBlock` commits its typeset markup at mount, with no later swap.
  * If the slot were read asynchronously (a bare `import('katex')` in the

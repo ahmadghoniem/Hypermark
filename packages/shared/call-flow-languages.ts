@@ -42,7 +42,7 @@ const MB = 1024 * 1024;
 /**
  * CallDiff 0.4.1's supported extensions and pinned grammar packages.
  *
- * Size estimates describe Plannotator's pruned managed artifacts, not the
+ * Size estimates describe Hypermark's pruned managed artifacts, not the
  * much larger npm tarball expansion. They are deliberately rounded up and
  * are re-measured whenever a grammar pin or pruning rule changes.
  */

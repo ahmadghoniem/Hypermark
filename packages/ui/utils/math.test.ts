@@ -6,7 +6,7 @@
  *   restore and block targeting key on the wrapper attributes), or leaks the
  *   TeX as markup instead of text;
  * - a filled slot no longer renders KaTeX SYNCHRONOUSLY in the same render
- *   (this is the whole basis of Plannotator's byte-identical first paint);
+ *   (this is the whole basis of Hypermark's byte-identical first paint);
  * - the loader stops being idempotent or stops retrying after a rejection;
  * - the host loader seam is ignored;
  * - the security pin (`trust: false`, `throwOnError: false`) stops being applied
