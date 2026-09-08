@@ -1,1 +1,1 @@
-export { formatRelativeTime } from '@plannotator/ui/utils/aiChatFormat';
+export { formatRelativeTime } from '@hypermark/ui/utils/aiChatFormat';

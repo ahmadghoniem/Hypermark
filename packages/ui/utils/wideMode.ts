@@ -1,6 +1,6 @@
-import type { SidebarTab } from '@plannotator/ui/hooks/useSidebar';
-import type { WideModeType } from '@plannotator/ui/types';
-export type { WideModeType } from '@plannotator/ui/types';
+import type { SidebarTab } from '@hypermark/ui/hooks/useSidebar';
+import type { WideModeType } from '@hypermark/ui/types';
+export type { WideModeType } from '@hypermark/ui/types';
 
 export type WideModeLayoutSnapshot = {
   sidebarIsOpen: boolean;

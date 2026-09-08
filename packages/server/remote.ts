@@ -8,9 +8,9 @@
  * Legacy (still supported): SSH_TTY, SSH_CONNECTION
  */
 
-import { parsePortSelection } from "@plannotator/shared/port-range";
-import { loadConfig, resolveUrlHost } from "@plannotator/shared/config";
-import { isAutoUrlHost, resolveAutoHostCached } from "@plannotator/shared/tailscale";
+import { parsePortSelection } from "@hypermark/shared/port-range";
+import { loadConfig, resolveUrlHost } from "@hypermark/shared/config";
+import { isAutoUrlHost, resolveAutoHostCached } from "@hypermark/shared/tailscale";
 
 const DEFAULT_REMOTE_PORT = 19432;
 const LOOPBACK_HOST = "127.0.0.1";

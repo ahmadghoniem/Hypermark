@@ -1,4 +1,4 @@
-import type { PRReviewSubmissionPartial } from '@plannotator/shared/pr-types';
+import type { PRReviewSubmissionPartial } from '@hypermark/shared/pr-types';
 import type {
   ReviewSubmission,
   SubmissionTarget,

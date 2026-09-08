@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
-import type { CallFlowAdvert } from '@plannotator/shared/call-flow-types';
+import type { CallFlowAdvert } from '@hypermark/shared/call-flow-types';
 import {
   CALL_FLOW_CORE_LANGUAGE_ID,
   type CallFlowLanguageId,
-} from '@plannotator/shared/call-flow-languages';
+} from '@hypermark/shared/call-flow-languages';
 import type { CallFlowInstallController } from './useCallFlowInstall';
 
 /**

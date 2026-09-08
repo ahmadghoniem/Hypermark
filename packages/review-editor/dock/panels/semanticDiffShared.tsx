@@ -1,9 +1,9 @@
 import React from 'react';
-import type { SelectedLineRange } from '@plannotator/ui/types';
+import type { SelectedLineRange } from '@hypermark/ui/types';
 import type {
   SemanticDiffBinaryChange,
   SemanticDiffChange,
-} from '@plannotator/shared/semantic-diff-types';
+} from '@hypermark/shared/semantic-diff-types';
 
 // `renamed`/`moved` are handled by the early return in getChangeSymbol, so they
 // intentionally have no entry here.

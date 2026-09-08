@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { DraftEditedDocument } from '@plannotator/ui/hooks/useAnnotationDraft';
+import type { DraftEditedDocument } from '@hypermark/ui/hooks/useAnnotationDraft';
 import { pickRestoredSingleFileDraftToDisplay } from './draftRestoreSelection';
 
 function draft(key: string, scope: 'single-file' | 'folder-file' = 'single-file'): DraftEditedDocument {

@@ -1,1 +1,1 @@
-export * from "@plannotator/core/diff-paths";
+export * from "@hypermark/core/diff-paths";

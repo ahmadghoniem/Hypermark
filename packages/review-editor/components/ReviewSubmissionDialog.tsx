@@ -1,19 +1,19 @@
 import React, { useRef } from 'react';
-import type { CodeAnnotation } from '@plannotator/ui/types';
-import type { PRReviewSubmissionPartial } from '@plannotator/shared/pr-types';
+import type { CodeAnnotation } from '@hypermark/ui/types';
+import type { PRReviewSubmissionPartial } from '@hypermark/shared/pr-types';
 import { CopyButton } from './CopyButton';
 import {
   exportReviewFeedback,
   formatCallFlowAnnotationTargets,
   formatConventionalPrefix,
 } from '../utils/exportFeedback';
-import { useCompactTouchLayout } from '@plannotator/ui/hooks/useIsMobile';
+import { useCompactTouchLayout } from '@hypermark/ui/hooks/useIsMobile';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
-} from '@plannotator/ui/components/ui/dialog';
+} from '@hypermark/ui/components/ui/dialog';
 
 // ---------------------------------------------------------------------------
 // Types

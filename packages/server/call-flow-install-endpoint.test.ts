@@ -3,7 +3,7 @@ import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync 
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { CallFlowInstallStage, CallFlowNodePreflight, CallFlowRuntimeInstallResult } from '@plannotator/shared/call-flow';
+import type { CallFlowInstallStage, CallFlowNodePreflight, CallFlowRuntimeInstallResult } from '@hypermark/shared/call-flow';
 
 // PLANNOTATOR_DATA_DIR is only ever changed INSIDE tests (boot() below) and
 // restored to its original value after each one. It must never be overridden
@@ -47,14 +47,14 @@ const recordedInstall = (target: string, onStage: (stage: CallFlowInstallStage) 
   return installImpl(onStage);
 };
 
-const actualShared = { ...(await import('@plannotator/shared/call-flow')) };
+const actualShared = { ...(await import('@hypermark/shared/call-flow')) };
 const sharedMock = () => ({
   ...actualShared,
   installCallFlowRuntime: (onStage: (stage: CallFlowInstallStage) => void) => recordedInstall('javascript-typescript', onStage),
   installCallFlowLanguagePack: (id: string, onStage: (stage: CallFlowInstallStage) => void) => recordedInstall(id, onStage),
   preflightCallFlowNode: () => preflightImpl(),
 });
-mock.module('@plannotator/shared/call-flow', sharedMock);
+mock.module('@hypermark/shared/call-flow', sharedMock);
 mock.module('../shared/call-flow.ts', sharedMock);
 
 const { startReviewServer: startBunReviewServer } = await import('./review');
@@ -65,7 +65,7 @@ const { startReviewServer: startBunReviewServer } = await import('./review');
 // it now (env is untouched at this point, so this is the same dir the config
 // module freezes to in an isolated run) and restore it after the suite so a
 // test run never flips a real setting.
-const { getPlannotatorDataDir } = await import('@plannotator/shared/data-dir');
+const { getPlannotatorDataDir } = await import('@hypermark/shared/data-dir');
 const realConfigPath = join(getPlannotatorDataDir(), 'config.json');
 let realConfigSnapshot: Buffer | null = null;
 try {

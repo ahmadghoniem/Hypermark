@@ -3,7 +3,7 @@ import type {
   SemanticDiffBinaryChange,
   SemanticDiffChange,
   SemanticDiffResponse,
-} from '@plannotator/shared/semantic-diff-types';
+} from '@hypermark/shared/semantic-diff-types';
 import { useReviewState } from '../ReviewStateContext';
 import {
   SemanticDiffRows,

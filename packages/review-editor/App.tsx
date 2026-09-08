@@ -1,20 +1,20 @@
 // Eager renderer registration (side-effect imports, evaluated before every
 // other module below). These keep Plannotator's first paint and identity
-// minting byte-identical now that @plannotator/ui loads KaTeX and the username
+// minting byte-identical now that @hypermark/ui loads KaTeX and the username
 // dictionary lazily for hosts: math is typeset on the first commit and names
 // come from the full dictionary. Guarded by tests/entry-assets.test.ts; do not
 // drop or reorder either line.
-import '@plannotator/ui/utils/math-eager';
-import '@plannotator/ui/utils/identity-tater';
+import '@hypermark/ui/utils/math-eager';
+import '@hypermark/ui/utils/identity-tater';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { type Origin, getAgentName } from '@plannotator/shared/agents';
-import { ThemeProvider, useTheme } from '@plannotator/ui/components/ThemeProvider';
-import { TooltipProvider } from '@plannotator/ui/components/Tooltip';
-import { ConfirmDialog } from '@plannotator/ui/components/ConfirmDialog';
-import { Settings } from '@plannotator/ui/components/Settings';
-import { ExitButton } from '@plannotator/ui/components/ToolbarButtons';
-import { buildDecisionSpec, type DecisionActionId, type DecisionMenuItem } from '@plannotator/ui/utils/decisionSpec';
-import { DecisionControl, DecisionNoteDialog, type DecisionHandler } from '@plannotator/ui/components/DecisionControl';
+import { type Origin, getAgentName } from '@hypermark/shared/agents';
+import { ThemeProvider, useTheme } from '@hypermark/ui/components/ThemeProvider';
+import { TooltipProvider } from '@hypermark/ui/components/Tooltip';
+import { ConfirmDialog } from '@hypermark/ui/components/ConfirmDialog';
+import { Settings } from '@hypermark/ui/components/Settings';
+import { ExitButton } from '@hypermark/ui/components/ToolbarButtons';
+import { buildDecisionSpec, type DecisionActionId, type DecisionMenuItem } from '@hypermark/ui/utils/decisionSpec';
+import { DecisionControl, DecisionNoteDialog, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import {
   buildReviewApprovalBody,
   compactPrimaryIdForReviewDecision,
@@ -24,23 +24,23 @@ import {
   resolvePlatformDecisionAction,
   resolveReviewDecisionAction,
 } from './reviewDecision';
-import { useUpdateCheck } from '@plannotator/ui/hooks/useUpdateCheck';
-import { storage } from '@plannotator/ui/utils/storage';
-import { CompletionOverlay } from '@plannotator/ui/components/CompletionOverlay';
-import { GitHubIcon } from '@plannotator/ui/components/GitHubIcon';
-import { GitLabIcon } from '@plannotator/ui/components/GitLabIcon';
-import { RepoIcon } from '@plannotator/ui/components/RepoIcon';
-import { PullRequestIcon } from '@plannotator/ui/components/PullRequestIcon';
-import { getPlatformLabel, getMRLabel, getMRNumberLabel, getDisplayRepo } from '@plannotator/shared/pr-types';
-import type { SemanticDiffAdvert } from '@plannotator/shared/semantic-diff-types';
-import type { CallFlowAdvert, CallFlowNode } from '@plannotator/shared/call-flow-types';
-import { configStore, useConfigValue, setReviewPanelView } from '@plannotator/ui/config';
-import { getAgentSwitchSettings, getEffectiveAgentName } from '@plannotator/ui/utils/agentSwitch';
-import { LookAndFeelAnnouncementDialog } from '@plannotator/ui/components/LookAndFeelAnnouncementDialog';
-import { markLookAndFeelChoiceResolved, needsLookAndFeelAnnouncement } from '@plannotator/ui/utils/lookAndFeelAnnouncement';
-import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, Annotation, CommentAnnotation, type ArtifactAnnotationMeta, type CallFlowAnnotationTarget, type ImageAttachment } from '@plannotator/ui/types';
-import { useResizablePanel } from '@plannotator/ui/hooks/useResizablePanel';
-import { useCodeAnnotationDraft } from '@plannotator/ui/hooks/useCodeAnnotationDraft';
+import { useUpdateCheck } from '@hypermark/ui/hooks/useUpdateCheck';
+import { storage } from '@hypermark/ui/utils/storage';
+import { CompletionOverlay } from '@hypermark/ui/components/CompletionOverlay';
+import { GitHubIcon } from '@hypermark/ui/components/GitHubIcon';
+import { GitLabIcon } from '@hypermark/ui/components/GitLabIcon';
+import { RepoIcon } from '@hypermark/ui/components/RepoIcon';
+import { PullRequestIcon } from '@hypermark/ui/components/PullRequestIcon';
+import { getPlatformLabel, getMRLabel, getMRNumberLabel, getDisplayRepo } from '@hypermark/shared/pr-types';
+import type { SemanticDiffAdvert } from '@hypermark/shared/semantic-diff-types';
+import type { CallFlowAdvert, CallFlowNode } from '@hypermark/shared/call-flow-types';
+import { configStore, useConfigValue, setReviewPanelView } from '@hypermark/ui/config';
+import { getAgentSwitchSettings, getEffectiveAgentName } from '@hypermark/ui/utils/agentSwitch';
+import { LookAndFeelAnnouncementDialog } from '@hypermark/ui/components/LookAndFeelAnnouncementDialog';
+import { markLookAndFeelChoiceResolved, needsLookAndFeelAnnouncement } from '@hypermark/ui/utils/lookAndFeelAnnouncement';
+import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, Annotation, CommentAnnotation, type ArtifactAnnotationMeta, type CallFlowAnnotationTarget, type ImageAttachment } from '@hypermark/ui/types';
+import { useResizablePanel } from '@hypermark/ui/hooks/useResizablePanel';
+import { useCodeAnnotationDraft } from '@hypermark/ui/hooks/useCodeAnnotationDraft';
 import { generateId } from './utils/generateId';
 import type { SuggestionHunk } from './edit/deriveSuggestions';
 import type { EditSelectionComment } from './edit/useEditSession';
@@ -62,10 +62,10 @@ import {
   useReviewSearch,
   type ReviewSearchMatch,
 } from './hooks/useReviewSearch';
-import { useEditorAnnotations } from '@plannotator/ui/hooks/useEditorAnnotations';
-import { useExternalAnnotations } from '@plannotator/ui/hooks/useExternalAnnotations';
-import { useUndoHistory } from '@plannotator/ui/hooks/useUndoHistory';
-import { useHistoryShortcuts } from '@plannotator/ui/shortcuts';
+import { useEditorAnnotations } from '@hypermark/ui/hooks/useEditorAnnotations';
+import { useExternalAnnotations } from '@hypermark/ui/hooks/useExternalAnnotations';
+import { useUndoHistory } from '@hypermark/ui/hooks/useUndoHistory';
+import { useHistoryShortcuts } from '@hypermark/ui/shortcuts';
 import {
   applyCollectionMutations,
   hasActiveHistoryOverlay,
@@ -73,10 +73,10 @@ import {
   isNativeHistoryOwner,
   type CollectionMutation,
   type HistoryDirection,
-} from '@plannotator/ui/utils/undoHistory';
-import { exportEditorAnnotations } from '@plannotator/ui/utils/parser';
-import { buildReviewAgentInstructions } from '@plannotator/ui/utils/reviewAgentInstructions';
-import { ResizeHandle } from '@plannotator/ui/components/ResizeHandle';
+} from '@hypermark/ui/utils/undoHistory';
+import { exportEditorAnnotations } from '@hypermark/ui/utils/parser';
+import { buildReviewAgentInstructions } from '@hypermark/ui/utils/reviewAgentInstructions';
+import { ResizeHandle } from '@hypermark/ui/components/ResizeHandle';
 import { IconContext, Tree } from '@phosphor-icons/react';
 import { DockviewReact, type DockviewReadyEvent, type DockviewApi } from 'dockview-react';
 import {
@@ -86,9 +86,9 @@ import {
 } from './components/ReviewHeaderMenu';
 import { ReviewSidebar } from './components/ReviewSidebar';
 import type { ReviewSidebarTab } from './components/ReviewSidebar';
-import { useSidebar } from '@plannotator/ui/hooks/useSidebar';
-import { useViewportEnvironment } from '@plannotator/ui/hooks/useViewportEnvironment';
-import { useCompactTouchLayout } from '@plannotator/ui/hooks/useIsMobile';
+import { useSidebar } from '@hypermark/ui/hooks/useSidebar';
+import { useViewportEnvironment } from '@hypermark/ui/hooks/useViewportEnvironment';
+import { useCompactTouchLayout } from '@hypermark/ui/hooks/useIsMobile';
 import { FileTree } from './components/FileTree';
 import { StackedPRLabel } from './components/StackedPRLabel';
 import { PRSelector } from './components/PRSelector';
@@ -133,7 +133,7 @@ import {
 } from './dock/reviewPanelTypes';
 import type { DiffFile, AnnotationScrollTarget } from './types';
 import { annotationMatchesPrScope, proseAnnotationMatchesPr } from './utils/annotationScope';
-import type { DiffOption, WorktreeInfo, GitContext, SinceBaseSections, CommitDiffInfo } from '@plannotator/shared/types';
+import type { DiffOption, WorktreeInfo, GitContext, SinceBaseSections, CommitDiffInfo } from '@hypermark/shared/types';
 import { SectionsPanel } from './components/SectionsPanel';
 import { CommitsPanel } from './components/CommitsPanel';
 import { useCommitsView } from './hooks/useCommitsView';
@@ -158,11 +158,11 @@ import {
 import { ExternalLineAnnotationComposer } from './components/ExternalLineAnnotationComposer';
 import { DestinationSpotlight } from './components/DestinationSpotlight';
 import { needsDestinationSpotlight, markDestinationSpotlightSeen } from './utils/destinationSpotlight';
-import { TextShimmer } from '@plannotator/ui/components/TextShimmer';
-import type { PRMetadata } from '@plannotator/shared/pr-types';
-import type { PRDiffScope, PRDiffScopeOption, PRStackInfo, PRStackTree } from '@plannotator/shared/pr-stack';
-import { altKey } from '@plannotator/ui/utils/platform';
-import { copyTextToClipboard } from '@plannotator/ui/utils/clipboard';
+import { TextShimmer } from '@hypermark/ui/components/TextShimmer';
+import type { PRMetadata } from '@hypermark/shared/pr-types';
+import type { PRDiffScope, PRDiffScopeOption, PRStackInfo, PRStackTree } from '@hypermark/shared/pr-stack';
+import { altKey } from '@hypermark/ui/utils/platform';
+import { copyTextToClipboard } from '@hypermark/ui/utils/clipboard';
 import { buildPRArtifacts } from './utils/prArtifacts';
 import {
   submitPlatformReviewTargets,

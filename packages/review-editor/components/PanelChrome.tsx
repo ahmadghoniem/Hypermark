@@ -11,7 +11,7 @@ import {
   MagnifyingGlass,
   X,
 } from "@phosphor-icons/react";
-import { Tooltip } from "@plannotator/ui/components/Tooltip";
+import { Tooltip } from "@hypermark/ui/components/Tooltip";
 
 /**
  * Shared chrome for the left review panels (FileTree, SectionsPanel).

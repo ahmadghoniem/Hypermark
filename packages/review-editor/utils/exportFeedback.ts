@@ -1,7 +1,7 @@
-import type { CodeAnnotation, ConventionalLabel, ConventionalDecoration, CommentAnnotation, Annotation, ArtifactAnnotationMeta, ImageAttachment } from '@plannotator/ui/types';
-import type { PRMetadata } from '@plannotator/shared/pr-types';
-import { getMRLabel, getMRNumberLabel, getDisplayRepo } from '@plannotator/shared/pr-types';
-import { exportAnnotations, parseMarkdownToBlocks } from '@plannotator/ui/utils/parser';
+import type { CodeAnnotation, ConventionalLabel, ConventionalDecoration, CommentAnnotation, Annotation, ArtifactAnnotationMeta, ImageAttachment } from '@hypermark/ui/types';
+import type { PRMetadata } from '@hypermark/shared/pr-types';
+import { getMRLabel, getMRNumberLabel, getDisplayRepo } from '@hypermark/shared/pr-types';
+import { exportAnnotations, parseMarkdownToBlocks } from '@hypermark/ui/utils/parser';
 import { artifactAnchorLabel } from './artifactAnnotations';
 
 /**

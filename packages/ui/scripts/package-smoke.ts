@@ -84,8 +84,8 @@ function assertManifest(
     `${label} version must be ${expectedUiVersion}; got ${String(manifest.version)}`,
   );
   assert(
-    manifest.dependencies["@plannotator/core"] === expectedCoreVersion,
-    `${label} must depend on @plannotator/core ${expectedCoreVersion}; got ${String(manifest.dependencies["@plannotator/core"])}`,
+    manifest.dependencies["@hypermark/core"] === expectedCoreVersion,
+    `${label} must depend on @hypermark/core ${expectedCoreVersion}; got ${String(manifest.dependencies["@hypermark/core"])}`,
   );
   assert(
     !JSON.stringify(manifest.dependencies).includes("workspace:"),
@@ -117,30 +117,30 @@ function assertExportTargets(
 }
 
 const expectedUiVersion = sourceManifest.version;
-const expectedCoreVersion = sourceManifest.dependencies["@plannotator/core"];
+const expectedCoreVersion = sourceManifest.dependencies["@hypermark/core"];
 assert(
   EXACT_SEMVER.test(expectedUiVersion),
   `source manifest version must be an exact semver; got ${expectedUiVersion}`,
 );
 assert(
   typeof expectedCoreVersion === "string" && EXACT_SEMVER.test(expectedCoreVersion),
-  `source manifest @plannotator/core must be an exact semver; got ${String(expectedCoreVersion)}`,
+  `source manifest @hypermark/core must be an exact semver; got ${String(expectedCoreVersion)}`,
 );
 assertManifest(sourceManifest, expectedUiVersion, expectedCoreVersion, "source manifest");
 assert(
   coreSourceManifest.version === expectedCoreVersion,
-  `UI expects @plannotator/core ${expectedCoreVersion}, but the local core workspace is ${coreSourceManifest.version}`,
+  `UI expects @hypermark/core ${expectedCoreVersion}, but the local core workspace is ${coreSourceManifest.version}`,
 );
 assert(
   coreSourceManifest.exports["./annotation-threads"] === "./annotation-threads.ts",
   "core source manifest must export ./annotation-threads",
 );
 
-const installedCore = join(uiDir, "node_modules/@plannotator/core");
+const installedCore = join(uiDir, "node_modules/@hypermark/core");
 assert(existsSync(installedCore), "run bun install before the package smoke");
 assert(
   realpathSync(installedCore) === realpathSync(coreDir),
-  "Bun must keep the exact-version @plannotator/core dependency linked to the local workspace",
+  "Bun must keep the exact-version @hypermark/core dependency linked to the local workspace",
 );
 
 const workDir = mkdtempSync(join(tmpdir(), "plannotator-ui-package-smoke-"));
@@ -207,7 +207,7 @@ try {
         private: true,
         type: "module",
         dependencies: {
-          "@plannotator/ui": `file:${tarballPath}`,
+          "@hypermark/ui": `file:${tarballPath}`,
           react: "19.2.3",
           "react-dom": "19.2.3",
           tailwindcss: "4.1.18",
@@ -220,7 +220,7 @@ try {
         },
         pnpm: {
           overrides: {
-            "@plannotator/core": `file:${coreTarballPath}`,
+            "@hypermark/core": `file:${coreTarballPath}`,
           },
         },
       },
@@ -231,7 +231,7 @@ try {
 
   // bunx pins the pnpm CLI without requiring a second package manager setup
   // action. The consumer lives under the OS temp directory, outside this repo,
-  // and therefore cannot satisfy @plannotator/core from the Bun workspace.
+  // and therefore cannot satisfy @hypermark/core from the Bun workspace.
   run(
     "bunx",
     [
@@ -247,10 +247,10 @@ try {
   writeFileSync(
     join(consumerDir, "consumer.tsx"),
     [
-      'import { AnnotationPanel } from "@plannotator/ui/components/AnnotationPanel";',
-      'import { StickyHeaderLane, type StickyHeaderLaneProps } from "@plannotator/ui/components/StickyHeaderLane";',
-      'import { Viewer, type ViewerAnnotationHeaderConfig } from "@plannotator/ui/components/Viewer";',
-      'import * as parser from "@plannotator/ui/utils/parser";',
+      'import { AnnotationPanel } from "@hypermark/ui/components/AnnotationPanel";',
+      'import { StickyHeaderLane, type StickyHeaderLaneProps } from "@hypermark/ui/components/StickyHeaderLane";',
+      'import { Viewer, type ViewerAnnotationHeaderConfig } from "@hypermark/ui/components/Viewer";',
+      'import * as parser from "@hypermark/ui/utils/parser";',
       "",
       'const laneProps: Pick<StickyHeaderLaneProps, "visibility" | "sticky"> = { visibility: "always", sticky: false };',
       'const annotationHeader: ViewerAnnotationHeaderConfig = { onInputMethodChange: () => {}, onModeChange: () => {}, hideQuickLabel: true };',
@@ -292,7 +292,7 @@ try {
   run(join(consumerDir, "node_modules/.bin/tsc"), ["-p", "tsconfig.json"], consumerDir);
 
   const installedUiManifest = parseManifest(
-    readFileSync(join(consumerDir, "node_modules/@plannotator/ui/package.json"), "utf8"),
+    readFileSync(join(consumerDir, "node_modules/@hypermark/ui/package.json"), "utf8"),
     "externally installed manifest",
   );
   assertManifest(
@@ -304,15 +304,15 @@ try {
 
   const pnpmVirtualStore = join(consumerDir, "node_modules/.pnpm");
   const installedCoreEntry = readdirSync(pnpmVirtualStore).find((entry) =>
-    existsSync(join(pnpmVirtualStore, entry, "node_modules/@plannotator/core/package.json")),
+    existsSync(join(pnpmVirtualStore, entry, "node_modules/@hypermark/core/package.json")),
   );
-  assert(installedCoreEntry, "external pnpm consumer did not install @plannotator/core");
+  assert(installedCoreEntry, "external pnpm consumer did not install @hypermark/core");
   const installedCoreManifest = parseManifest(
     readFileSync(
       join(
         pnpmVirtualStore,
         installedCoreEntry,
-        "node_modules/@plannotator/core/package.json",
+        "node_modules/@hypermark/core/package.json",
       ),
       "utf8",
     ),
@@ -320,7 +320,7 @@ try {
   );
   assert(
     installedCoreManifest.version === expectedCoreVersion,
-    `external pnpm consumer installed @plannotator/core ${String(installedCoreManifest.version)}, expected ${expectedCoreVersion}`,
+    `external pnpm consumer installed @hypermark/core ${String(installedCoreManifest.version)}, expected ${expectedCoreVersion}`,
   );
   assert(
     installedCoreManifest.exports["./annotation-threads"] === "./annotation-threads.ts",
@@ -328,7 +328,7 @@ try {
   );
 
   console.log(
-    `Verified @plannotator/ui@${expectedUiVersion} packs, resolves AnnotationPanel/Viewer/StickyHeaderLane/parser, and installs externally with @plannotator/core@${expectedCoreVersion}.`,
+    `Verified @hypermark/ui@${expectedUiVersion} packs, resolves AnnotationPanel/Viewer/StickyHeaderLane/parser, and installs externally with @hypermark/core@${expectedCoreVersion}.`,
   );
 } finally {
   rmSync(workDir, { recursive: true, force: true });

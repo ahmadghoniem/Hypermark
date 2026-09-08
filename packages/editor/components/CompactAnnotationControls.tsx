@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { InputMethod } from '@plannotator/ui/types';
+import type { InputMethod } from '@hypermark/ui/types';
 
 interface CompactAnnotationControlsProps {
   inputMethod: InputMethod;

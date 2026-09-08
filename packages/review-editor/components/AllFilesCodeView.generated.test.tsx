@@ -20,7 +20,7 @@
 import { afterAll, afterEach, describe, expect, mock, test } from 'bun:test';
 import React, { act, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { CodeAnnotation } from '@plannotator/ui/types';
+import type { CodeAnnotation } from '@hypermark/ui/types';
 import type { DiffFile } from '../types';
 
 let codeViewMounts = 0;
@@ -30,7 +30,7 @@ let lastCodeViewProps: Record<string, unknown> | null = null;
 // SPREAD is load-bearing (mock.module rewrites the live module record).
 const realPierreDiffs = { ...(await import('@pierre/diffs')) };
 const realPierreDiffsReact = { ...(await import('@pierre/diffs/react')) };
-const realResolveSyntaxTheme = (await import('@plannotator/ui/utils/syntaxTheme')).resolveSyntaxTheme;
+const realResolveSyntaxTheme = (await import('@hypermark/ui/utils/syntaxTheme')).resolveSyntaxTheme;
 
 mock.module('../workerPool', () => ({
   useIsWorkerPoolReadyOrDisabled: () => true,

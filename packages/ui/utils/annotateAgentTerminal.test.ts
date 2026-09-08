@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentTerminalAgent } from "@plannotator/core/agent-terminal";
+import type { AgentTerminalAgent } from "@hypermark/core/agent-terminal";
 import {
   resolveAnnotateAgentId,
   resolveAnnotateAgentTerminalPlacement,

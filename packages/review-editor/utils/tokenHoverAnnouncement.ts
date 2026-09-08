@@ -1,5 +1,5 @@
-import { storage } from '@plannotator/ui/utils/storage';
-import { configStore } from '@plannotator/ui/config';
+import { storage } from '@hypermark/ui/utils/storage';
+import { configStore } from '@hypermark/ui/config';
 
 /**
  * One-time gate for the token hover card announcement dialog. Cookie-backed

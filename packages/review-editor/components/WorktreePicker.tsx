@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Popover } from '@base-ui/react/popover';
-import type { WorktreeInfo } from '@plannotator/shared/types';
+import type { WorktreeInfo } from '@hypermark/shared/types';
 
 interface WorktreePickerProps {
   worktrees: WorktreeInfo[];

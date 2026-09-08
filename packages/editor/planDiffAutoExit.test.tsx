@@ -13,7 +13,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import React, { act, useCallback, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { usePlanDiff, type VersionInfo } from '@plannotator/ui/hooks/usePlanDiff';
+import { usePlanDiff, type VersionInfo } from '@hypermark/ui/hooks/usePlanDiff';
 import {
   usePlanDiffNavigationAutoExit,
   usePlanDiffViewAutoExit,

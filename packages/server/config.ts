@@ -9,4 +9,4 @@ export {
   isAgentTerminalSide,
   type PlannotatorConfig,
   type DiffOptions,
-} from "@plannotator/shared/config";
+} from "@hypermark/shared/config";

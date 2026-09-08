@@ -14,7 +14,7 @@ import {
 } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 import type { SlashCommandItem } from '@plannotator/atomic-editor';
-import { planEmbedInsert } from '@plannotator/core/embed-insert';
+import { planEmbedInsert } from '@hypermark/core/embed-insert';
 
 /** What an embed can point at. The union grows as new media kinds ship. */
 export type EmbedKind = 'html';

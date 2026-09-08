@@ -23,7 +23,7 @@
 import { afterAll, afterEach, describe, expect, mock, test } from 'bun:test';
 import React, { act, useCallback, useImperativeHandle, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { SelectedLineRange } from '@plannotator/ui/types';
+import type { SelectedLineRange } from '@hypermark/ui/types';
 
 interface CapturedFileDiffProps {
   selectedLines?: SelectedLineRange;
@@ -42,7 +42,7 @@ let toolbarSelections: Array<SelectedLineRange | null> = [];
 // afterAll restore would silently re-install this file's stub as itself. Same
 // idiom (and the same reason) as AllFilesCodeView.lifecycle.test.tsx.
 const realPierreDiffsReact = { ...(await import('@pierre/diffs/react')) };
-const realResolveSyntaxTheme = (await import('@plannotator/ui/utils/syntaxTheme')).resolveSyntaxTheme;
+const realResolveSyntaxTheme = (await import('@hypermark/ui/utils/syntaxTheme')).resolveSyntaxTheme;
 
 mock.module('../workerPool', () => ({
   useIsWorkerPoolReadyOrDisabled: () => true,

@@ -1,6 +1,6 @@
 import { marked, type Token } from 'marked';
-import { isPRArtifactDocumentUrlAllowed } from '@plannotator/shared/pr-artifact-document';
-import type { PRContext, PRMetadata } from '@plannotator/shared/pr-types';
+import { isPRArtifactDocumentUrlAllowed } from '@hypermark/shared/pr-artifact-document';
+import type { PRContext, PRMetadata } from '@hypermark/shared/pr-types';
 
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp', 'avif']);
 const VIDEO_EXTENSIONS = new Set(['mp4', 'webm', 'mov']);

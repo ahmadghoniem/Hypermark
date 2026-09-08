@@ -10,7 +10,7 @@
  *
  * This module is the alias target that removes it. A host redirects the
  * `katex` specifier, for importers inside the `mermaid` package ONLY, to
- * `@plannotator/ui/utils/mermaid-math-slot` (HANDOFF.md "Lazy renderers and
+ * `@hypermark/ui/utils/mermaid-math-slot` (HANDOFF.md "Lazy renderers and
  * eager entries", item 2). Its default export has the one method Mermaid
  * calls, `renderToString`, and delegates to whatever renderer fills the slot
  * in `./math`: the host's loader result, or the eager KaTeX registration.

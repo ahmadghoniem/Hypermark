@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useState } from 'react';
-import { copyTextToClipboard } from '@plannotator/ui/utils/clipboard';
+import { copyTextToClipboard } from '@hypermark/ui/utils/clipboard';
 
 interface CopyButtonProps {
   text: string;

@@ -1,4 +1,4 @@
-import type { ActionsLabelMode } from "@plannotator/ui/types";
+import type { ActionsLabelMode } from "@hypermark/ui/types";
 
 /** Map the plan area's border-box width to the available action-label space. */
 export function actionsLabelModeForWidth(width: number): ActionsLabelMode {

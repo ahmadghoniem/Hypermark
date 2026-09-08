@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { VaultNode } from "../../types";
-import type { WorkspaceFileChange, WorkspaceStatusPayload } from "@plannotator/core/workspace-status-types";
+import type { WorkspaceFileChange, WorkspaceStatusPayload } from "@hypermark/core/workspace-status-types";
 import {
   filterFileTree,
   getAggregateWorkspaceChange,

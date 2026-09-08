@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Check, Copy, MagnifyingGlass } from '@phosphor-icons/react';
-import { CommentPopover, type CommentTargetChip } from '@plannotator/ui/components/CommentPopover';
-import type { CallFlowAnnotationTarget } from '@plannotator/ui/types';
-import { copyTextToClipboard } from '@plannotator/ui/utils/clipboard';
+import { CommentPopover, type CommentTargetChip } from '@hypermark/ui/components/CommentPopover';
+import type { CallFlowAnnotationTarget } from '@hypermark/ui/types';
+import { copyTextToClipboard } from '@hypermark/ui/utils/clipboard';
 import {
   annotationTargetForCallFlowRawLine,
   findCallFlowRawMatches,

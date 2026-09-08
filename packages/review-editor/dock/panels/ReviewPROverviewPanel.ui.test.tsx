@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { IDockviewPanelProps } from 'dockview-react';
-import type { PRContext, PRMetadata } from '@plannotator/shared/pr-types';
+import type { PRContext, PRMetadata } from '@hypermark/shared/pr-types';
 import { ReviewStateProvider, type ReviewState } from '../ReviewStateContext';
 
 const hasDom = typeof document !== 'undefined';

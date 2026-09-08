@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Annotation, AnnotationType, Block } from '@plannotator/ui/types';
+import { Annotation, AnnotationType, Block } from '@hypermark/ui/types';
 
 /** Serializable checkbox override entries used by history replay. */
 export type CheckboxOverrideSnapshot = ReadonlyArray<readonly [string, boolean]>;

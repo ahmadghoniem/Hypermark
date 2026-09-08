@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import type { AnnotateAgentTerminalSide } from '@plannotator/core/agent-terminal';
-import type { Origin } from '@plannotator/core/agents';
-import type { DiffLineBgIntensity } from '@plannotator/core/config-types';
-import type { TokenHoverDelay } from '@plannotator/core/token-hover';
+import type { AnnotateAgentTerminalSide } from '@hypermark/core/agent-terminal';
+import type { Origin } from '@hypermark/core/agents';
+import type { DiffLineBgIntensity } from '@hypermark/core/config-types';
+import type { TokenHoverDelay } from '@hypermark/core/token-hover';
 import { configStore, useConfigValue, setReviewPanelView, setReviewDefaultDiffType, setReviewAutoViewed } from '../config';
 import { setWebMcpToolsEnabled, useWebMcpToolsEnabled } from '../webmcp/preference';
 import { TaterSpritePullup } from './TaterSpritePullup';

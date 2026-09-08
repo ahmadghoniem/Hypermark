@@ -1,16 +1,16 @@
 import React, { createContext, useContext } from 'react';
-import type { CallFlowAnnotationTarget, CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, Annotation, CommentAnnotation, ArtifactAnnotationMeta, ImageAttachment } from '@plannotator/ui/types';
+import type { CallFlowAnnotationTarget, CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, Annotation, CommentAnnotation, ArtifactAnnotationMeta, ImageAttachment } from '@hypermark/ui/types';
 import type { DiffFile, AnnotationScrollTarget } from '../types';
 import type { ReviewSearchMatch } from '../utils/reviewSearch';
-import type { PRMetadata, PRContext } from '@plannotator/shared/pr-types';
+import type { PRMetadata, PRContext } from '@hypermark/shared/pr-types';
 import type { PRArtifact } from '../utils/prArtifacts';
-import type { PRDiffScope } from '@plannotator/shared/pr-stack';
+import type { PRDiffScope } from '@hypermark/shared/pr-stack';
 import type { FeedbackDiffContext } from '../utils/exportFeedback';
 import type { SuggestionHunk } from '../edit/deriveSuggestions';
 import type { EditSelectionComment } from '../edit/useEditSession';
 import type { CallFlowAnalysisState } from '../hooks/useCallFlowAnalysis';
 import type { CallFlowInstallController } from '../hooks/useCallFlowInstall';
-import type { CallFlowAdvert, CallFlowNode } from '@plannotator/shared/call-flow-types';
+import type { CallFlowAdvert, CallFlowNode } from '@hypermark/shared/call-flow-types';
 
 /** One-shot request to open the native code-annotation composer on a source range. */
 export interface LineAnnotationComposeRequest {
@@ -183,7 +183,7 @@ export interface ReviewState {
   onAllFilesCollapsedChange: (collapsed: boolean) => void;
   // Commit metadata when a commit:<sha> diff is active — heads the all-files
   // view (description card) and seeds its files collapsed.
-  commitInfo: import('@plannotator/shared/types').CommitDiffInfo | null;
+  commitInfo: import('@hypermark/shared/types').CommitDiffInfo | null;
   semanticDiffAvailable: boolean;
   isSemanticDiffActive: boolean;
   onSemanticDiffUnavailable: () => void;
@@ -201,14 +201,14 @@ export interface ReviewState {
   callFlowInstall: CallFlowInstallController;
 
   // Code navigation
-  onCodeNavRequest?: (request: import('@plannotator/shared/code-nav').CodeNavRequest) => void;
+  onCodeNavRequest?: (request: import('@hypermark/shared/code-nav').CodeNavRequest) => void;
   /** Token hover cards. Undefined whenever the gate or the setting is off. */
   onTokenHoverEnter?: (
     props: import('@pierre/diffs').DiffTokenEventBaseProps,
     filePath: string,
   ) => void;
   onTokenHoverLeave?: () => void;
-  codeNavResult: import('@plannotator/shared/code-nav').CodeNavResponse | null;
+  codeNavResult: import('@hypermark/shared/code-nav').CodeNavResponse | null;
   codeNavIsLoading: boolean;
   codeNavActiveSymbol: string | null;
 }

@@ -7,10 +7,10 @@ import type {
   ImageAttachment,
   SelectedLineRange,
   TokenAnnotationMeta,
-} from '@plannotator/ui/types';
+} from '@hypermark/ui/types';
 import type { DiffTokenEventBaseProps } from '@pierre/diffs';
-import { useConfigValue } from '@plannotator/ui/config';
-import { useAttachmentUploads } from '@plannotator/ui/hooks/useAttachmentUploads';
+import { useConfigValue } from '@hypermark/ui/config';
+import { useAttachmentUploads } from '@hypermark/ui/hooks/useAttachmentUploads';
 import { useAnnotationToolbar } from '../hooks/useAnnotationToolbar';
 import { AnnotationToolbar } from './AnnotationToolbar';
 import { SuggestionModal } from './SuggestionModal';

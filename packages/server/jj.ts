@@ -4,14 +4,14 @@ import {
   type GitCommandResult,
   type GitContext,
   type GitDiffOptions,
-} from "@plannotator/shared/review-core";
+} from "@hypermark/shared/review-core";
 import {
   type ReviewJjRuntime,
   detectJjWorkspace as detectJjWorkspaceCore,
   getJjContext as getJjContextCore,
   getJjFileContentsForDiff as getJjFileContentsForDiffCore,
   runJjDiff as runJjDiffCore,
-} from "@plannotator/shared/jj-core";
+} from "@hypermark/shared/jj-core";
 
 export {
   JJ_TRUNK_REVSET,
@@ -22,7 +22,7 @@ export {
   parseJjRemoteBookmarkList,
   parseRemoteBookmark,
   selectDefaultJjCompareTarget,
-} from "@plannotator/shared/jj-core";
+} from "@hypermark/shared/jj-core";
 
 /**
  * Read stdout with a byte ceiling, killing the command the moment it is passed.

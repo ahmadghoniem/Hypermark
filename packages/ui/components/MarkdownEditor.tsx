@@ -9,7 +9,7 @@ import { useTheme } from './ThemeProvider';
 
 export type { MarkdownEditorHandle };
 
-/* Wiki-links, re-exported through the ui surface. @plannotator/ui is the single
+/* Wiki-links, re-exported through the ui surface. @hypermark/ui is the single
    supported contract for hosts — do NOT import @plannotator/atomic-editor
    directly (it's outside the import allowlist). Build the extension with
    wikiLinks(config) and pass it through the `extensions` prop below; the
@@ -43,8 +43,8 @@ export type {
   EmbedPickerConfig,
   EmbedTarget,
 } from './MarkdownEditor/embedPicker';
-export { planEmbedInsert } from '@plannotator/core/embed-insert';
-export type { EmbedInsertPlan } from '@plannotator/core/embed-insert';
+export { planEmbedInsert } from '@hypermark/core/embed-insert';
+export type { EmbedInsertPlan } from '@hypermark/core/embed-insert';
 
 /* Grid-mode card utilities stay here (not in the package): they're Plannotator
    design-system Tailwind classes, and this file is @source-scanned. */

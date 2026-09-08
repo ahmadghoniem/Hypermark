@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { FileTree as TreesFileTree } from '@pierre/trees';
 import type { DiffFile } from '../types';
-import type { CodeAnnotation } from '@plannotator/ui/types';
+import type { CodeAnnotation } from '@hypermark/ui/types';
 import {
   resolveFileTreeTarget,
   buildFileTreePaths,

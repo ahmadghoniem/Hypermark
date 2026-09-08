@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import type { Origin } from '@plannotator/core/agents';
+import type { Origin } from '@hypermark/core/agents';
 import { getAgentSwitchSettings, type AgentSwitchSurface } from '../utils/agentSwitch';
 
 export interface Agent {

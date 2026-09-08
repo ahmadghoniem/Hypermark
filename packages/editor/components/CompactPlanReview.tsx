@@ -1,5 +1,5 @@
 import React from 'react';
-import type { CompactPlanAction } from '@plannotator/ui/components/PlanHeaderMenu';
+import type { CompactPlanAction } from '@hypermark/ui/components/PlanHeaderMenu';
 
 type CompactPlanDecisionActionId = Extract<
   CompactPlanAction['id'],

@@ -12,10 +12,10 @@ import { afterEach, beforeEach, describe, expect, jest, test } from 'bun:test';
 import React from 'react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { configStore } from '@plannotator/ui/config';
-import { resetStorageBackend, setStorageBackend } from '@plannotator/ui/utils/storage';
-import { isMac, modEventKey } from '@plannotator/ui/utils/platform';
-import { DEFAULT_TOKEN_HOVER_DELAY_MS } from '@plannotator/shared/token-hover';
+import { configStore } from '@hypermark/ui/config';
+import { resetStorageBackend, setStorageBackend } from '@hypermark/ui/utils/storage';
+import { isMac, modEventKey } from '@hypermark/ui/utils/platform';
+import { DEFAULT_TOKEN_HOVER_DELAY_MS } from '@hypermark/shared/token-hover';
 import { EXAMPLE_HOVER, TokenHoverAnnouncementDialog } from './TokenHoverAnnouncementDialog';
 
 const hasDom = typeof document !== 'undefined';

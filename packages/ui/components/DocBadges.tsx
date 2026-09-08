@@ -18,7 +18,7 @@
 import React from 'react';
 import { PlanDiffBadge } from './plan-diff/PlanDiffBadge';
 import type { PlanDiffStats } from '../utils/planDiffEngine';
-import { hostnameOrFallback } from '@plannotator/core/project';
+import { hostnameOrFallback } from '@hypermark/core/project';
 import { OpenInAppButton } from './OpenInAppButton';
 
 export interface LinkedDocBadgeInfo {

@@ -1,103 +1,103 @@
 // Eager renderer registration (side-effect imports, evaluated before every
 // other module below). These keep Plannotator's first paint, identity minting
-// and failure surface byte-identical now that @plannotator/ui loads KaTeX, the
+// and failure surface byte-identical now that @hypermark/ui loads KaTeX, the
 // username dictionary and the Mermaid runtime lazily for hosts: math is typeset
 // on the first commit, names come from the full dictionary, and Mermaid stays
 // in this app's entry chunk (the review editor never renders Mermaid and does
 // not import that entry). Guarded by tests/entry-assets.test.ts; do not drop
 // or reorder any of these lines.
-import '@plannotator/ui/utils/math-eager';
-import '@plannotator/ui/utils/identity-tater';
-import '@plannotator/ui/utils/mermaid-eager';
+import '@hypermark/ui/utils/math-eager';
+import '@hypermark/ui/utils/identity-tater';
+import '@hypermark/ui/utils/mermaid-eager';
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
 import { IconContext } from '@phosphor-icons/react';
 import { toast, Toaster } from 'sonner';
-import { type Origin, getAgentName } from '@plannotator/shared/agents';
-import { shouldStripFrontmatter } from '@plannotator/shared/annotatable';
-import { setExtraMarkdownExtensions } from '@plannotator/ui/utils/markdownExtensions';
-import { annotateFileFeedback, annotateMessageFeedback, wrapFeedbackForClipboard, type AnnotateFeedbackTemplates } from '@plannotator/shared/feedback-templates';
-import { parseMarkdownToBlocks, exportAnnotations, exportLinkedDocAnnotations, exportEditorAnnotations, exportCodeFileAnnotations, exportMessageAnnotations, extractFrontmatter, wrapFeedbackForAgent, Frontmatter, type LinkedDocAnnotationEntry, type MessageAnnotationEntry } from '@plannotator/ui/utils/parser';
-import { primeSkillCatalog, primeSkillContentsForExport } from '@plannotator/ui/utils/skillCatalog';
-import { Viewer, ViewerHandle } from '@plannotator/ui/components/Viewer';
-import { HtmlViewer } from '@plannotator/ui/components/html-viewer';
-import { MarkdownEditor, type MarkdownEditorHandle } from '@plannotator/ui/components/MarkdownEditor';
-import { AnnotationPanel } from '@plannotator/ui/components/AnnotationPanel';
-import { ConfirmDialog } from '@plannotator/ui/components/ConfirmDialog';
-import { Annotation, AnnotationType, Block, EditorMode, type CodeAnnotation, type InputMethod, type ImageAttachment, type ActionsLabelMode } from '@plannotator/ui/types';
-import { ThemeProvider } from '@plannotator/ui/components/ThemeProvider';
-import { Tooltip, TooltipProvider } from '@plannotator/ui/components/Tooltip';
-import { AnnotationToolstrip } from '@plannotator/ui/components/AnnotationToolstrip';
-import { StickyHeaderLane } from '@plannotator/ui/components/StickyHeaderLane';
-import { TaterSpriteRunning } from '@plannotator/ui/components/TaterSpriteRunning';
-import { useAgents } from '@plannotator/ui/hooks/useAgents';
-import { useActiveSection } from '@plannotator/ui/hooks/useActiveSection';
-import { storage } from '@plannotator/ui/utils/storage';
-import { getIdentity } from '@plannotator/ui/utils/identity';
-import { copyTextToClipboard } from '@plannotator/ui/utils/clipboard';
-import { configStore, useConfigValue } from '@plannotator/ui/config';
-import { CompletionOverlay } from '@plannotator/ui/components/CompletionOverlay';
-import { useUpdateCheck } from '@plannotator/ui/hooks/useUpdateCheck';
-import { LookAndFeelAnnouncementDialog } from '@plannotator/ui/components/LookAndFeelAnnouncementDialog';
-import { getAgentSwitchSettings, getEffectiveAgentName } from '@plannotator/ui/utils/agentSwitch';
-import { getPlanSaveSettings } from '@plannotator/ui/utils/planSave';
-import { markLookAndFeelChoiceResolved, needsLookAndFeelAnnouncement } from '@plannotator/ui/utils/lookAndFeelAnnouncement';
-import { getUIPreferences, type UIPreferences, type PlanWidth } from '@plannotator/ui/utils/uiPreferences';
-import { getEditorMode, saveEditorMode } from '@plannotator/ui/utils/editorMode';
-import { getInputMethod, refreshInputMethodStamp, saveInputMethod } from '@plannotator/ui/utils/inputMethod';
-import { getHtmlChromeState, saveHtmlChromeState } from '@plannotator/ui/utils/htmlChrome';
-import { useInputMethodSwitch } from '@plannotator/ui/hooks/useInputMethodSwitch';
-import { usePrintMode } from '@plannotator/ui/hooks/usePrintMode';
-import { useResizablePanel } from '@plannotator/ui/hooks/useResizablePanel';
-import { ResizeHandle } from '@plannotator/ui/components/ResizeHandle';
-import { OverlayScrollArea } from '@plannotator/ui/components/OverlayScrollArea';
+import { type Origin, getAgentName } from '@hypermark/shared/agents';
+import { shouldStripFrontmatter } from '@hypermark/shared/annotatable';
+import { setExtraMarkdownExtensions } from '@hypermark/ui/utils/markdownExtensions';
+import { annotateFileFeedback, annotateMessageFeedback, wrapFeedbackForClipboard, type AnnotateFeedbackTemplates } from '@hypermark/shared/feedback-templates';
+import { parseMarkdownToBlocks, exportAnnotations, exportLinkedDocAnnotations, exportEditorAnnotations, exportCodeFileAnnotations, exportMessageAnnotations, extractFrontmatter, wrapFeedbackForAgent, Frontmatter, type LinkedDocAnnotationEntry, type MessageAnnotationEntry } from '@hypermark/ui/utils/parser';
+import { primeSkillCatalog, primeSkillContentsForExport } from '@hypermark/ui/utils/skillCatalog';
+import { Viewer, ViewerHandle } from '@hypermark/ui/components/Viewer';
+import { HtmlViewer } from '@hypermark/ui/components/html-viewer';
+import { MarkdownEditor, type MarkdownEditorHandle } from '@hypermark/ui/components/MarkdownEditor';
+import { AnnotationPanel } from '@hypermark/ui/components/AnnotationPanel';
+import { ConfirmDialog } from '@hypermark/ui/components/ConfirmDialog';
+import { Annotation, AnnotationType, Block, EditorMode, type CodeAnnotation, type InputMethod, type ImageAttachment, type ActionsLabelMode } from '@hypermark/ui/types';
+import { ThemeProvider } from '@hypermark/ui/components/ThemeProvider';
+import { Tooltip, TooltipProvider } from '@hypermark/ui/components/Tooltip';
+import { AnnotationToolstrip } from '@hypermark/ui/components/AnnotationToolstrip';
+import { StickyHeaderLane } from '@hypermark/ui/components/StickyHeaderLane';
+import { TaterSpriteRunning } from '@hypermark/ui/components/TaterSpriteRunning';
+import { useAgents } from '@hypermark/ui/hooks/useAgents';
+import { useActiveSection } from '@hypermark/ui/hooks/useActiveSection';
+import { storage } from '@hypermark/ui/utils/storage';
+import { getIdentity } from '@hypermark/ui/utils/identity';
+import { copyTextToClipboard } from '@hypermark/ui/utils/clipboard';
+import { configStore, useConfigValue } from '@hypermark/ui/config';
+import { CompletionOverlay } from '@hypermark/ui/components/CompletionOverlay';
+import { useUpdateCheck } from '@hypermark/ui/hooks/useUpdateCheck';
+import { LookAndFeelAnnouncementDialog } from '@hypermark/ui/components/LookAndFeelAnnouncementDialog';
+import { getAgentSwitchSettings, getEffectiveAgentName } from '@hypermark/ui/utils/agentSwitch';
+import { getPlanSaveSettings } from '@hypermark/ui/utils/planSave';
+import { markLookAndFeelChoiceResolved, needsLookAndFeelAnnouncement } from '@hypermark/ui/utils/lookAndFeelAnnouncement';
+import { getUIPreferences, type UIPreferences, type PlanWidth } from '@hypermark/ui/utils/uiPreferences';
+import { getEditorMode, saveEditorMode } from '@hypermark/ui/utils/editorMode';
+import { getInputMethod, refreshInputMethodStamp, saveInputMethod } from '@hypermark/ui/utils/inputMethod';
+import { getHtmlChromeState, saveHtmlChromeState } from '@hypermark/ui/utils/htmlChrome';
+import { useInputMethodSwitch } from '@hypermark/ui/hooks/useInputMethodSwitch';
+import { usePrintMode } from '@hypermark/ui/hooks/usePrintMode';
+import { useResizablePanel } from '@hypermark/ui/hooks/useResizablePanel';
+import { ResizeHandle } from '@hypermark/ui/components/ResizeHandle';
+import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';
 import {
   getDocumentScrollViewport,
   ScrollViewportProvider,
-} from '@plannotator/ui/hooks/useScrollViewport';
-import { useOverlayViewport } from '@plannotator/ui/hooks/useOverlayViewport';
-import { useCompactTouchLayout, useIsMobile } from '@plannotator/ui/hooks/useIsMobile';
-import { useViewportEnvironment } from '@plannotator/ui/hooks/useViewportEnvironment';
+} from '@hypermark/ui/hooks/useScrollViewport';
+import { useOverlayViewport } from '@hypermark/ui/hooks/useOverlayViewport';
+import { useCompactTouchLayout, useIsMobile } from '@hypermark/ui/hooks/useIsMobile';
+import { useViewportEnvironment } from '@hypermark/ui/hooks/useViewportEnvironment';
 import {
   getPermissionModeSettings,
   needsPermissionModeSetup,
   type PermissionMode,
-} from '@plannotator/ui/utils/permissionMode';
-import { PermissionModeSetup } from '@plannotator/ui/components/PermissionModeSetup';
-import { useSidebar, type SidebarTab } from '@plannotator/ui/hooks/useSidebar';
-import { usePlanDiff, type VersionInfo, type VersionEntry, type PlanDiffFetchers } from '@plannotator/ui/hooks/usePlanDiff';
-import { useLinkedDoc, type LinkedDocSessionState } from '@plannotator/ui/hooks/useLinkedDoc';
-import { useCodeFilePopout } from '@plannotator/ui/hooks/useCodeFilePopout';
-import { useAnnotationDraft, type DraftEditedDocument, type DraftSavedFileChange } from '@plannotator/ui/hooks/useAnnotationDraft';
-import { useArchive } from '@plannotator/ui/hooks/useArchive';
-import { useEditorAnnotations } from '@plannotator/ui/hooks/useEditorAnnotations';
-import { useExternalAnnotations } from '@plannotator/ui/hooks/useExternalAnnotations';
-import { useExternalAnnotationHighlights } from '@plannotator/ui/hooks/useExternalAnnotationHighlights';
-import { useUndoHistory } from '@plannotator/ui/hooks/useUndoHistory';
-import { buildPlanAgentInstructions } from '@plannotator/ui/utils/planAgentInstructions';
-import { useFileBrowser } from '@plannotator/ui/hooks/useFileBrowser';
-import { getFileEditStatus } from '@plannotator/ui/components/sidebar/FileBrowser';
-import { isFileBrowserEnabled, getFileBrowserSettings } from '@plannotator/ui/utils/fileBrowser';
-import { generateId } from '@plannotator/ui/utils/generateId';
-import { SidebarTabs } from '@plannotator/ui/components/sidebar/SidebarTabs';
-import { SidebarContainer } from '@plannotator/ui/components/sidebar/SidebarContainer';
-import type { ArchivedPlan } from '@plannotator/ui/components/sidebar/ArchiveBrowser';
-import type { PickerMessage } from '@plannotator/ui/components/sidebar/MessagesBrowser';
-import { PlanDiffViewer } from '@plannotator/ui/components/plan-diff/PlanDiffViewer';
-import { CodeFilePopout, type CodeFileAnnotationInput } from '@plannotator/ui/components/CodeFilePopout';
-import type { PlanDiffMode } from '@plannotator/ui/components/plan-diff/PlanDiffModeSwitcher';
+} from '@hypermark/ui/utils/permissionMode';
+import { PermissionModeSetup } from '@hypermark/ui/components/PermissionModeSetup';
+import { useSidebar, type SidebarTab } from '@hypermark/ui/hooks/useSidebar';
+import { usePlanDiff, type VersionInfo, type VersionEntry, type PlanDiffFetchers } from '@hypermark/ui/hooks/usePlanDiff';
+import { useLinkedDoc, type LinkedDocSessionState } from '@hypermark/ui/hooks/useLinkedDoc';
+import { useCodeFilePopout } from '@hypermark/ui/hooks/useCodeFilePopout';
+import { useAnnotationDraft, type DraftEditedDocument, type DraftSavedFileChange } from '@hypermark/ui/hooks/useAnnotationDraft';
+import { useArchive } from '@hypermark/ui/hooks/useArchive';
+import { useEditorAnnotations } from '@hypermark/ui/hooks/useEditorAnnotations';
+import { useExternalAnnotations } from '@hypermark/ui/hooks/useExternalAnnotations';
+import { useExternalAnnotationHighlights } from '@hypermark/ui/hooks/useExternalAnnotationHighlights';
+import { useUndoHistory } from '@hypermark/ui/hooks/useUndoHistory';
+import { buildPlanAgentInstructions } from '@hypermark/ui/utils/planAgentInstructions';
+import { useFileBrowser } from '@hypermark/ui/hooks/useFileBrowser';
+import { getFileEditStatus } from '@hypermark/ui/components/sidebar/FileBrowser';
+import { isFileBrowserEnabled, getFileBrowserSettings } from '@hypermark/ui/utils/fileBrowser';
+import { generateId } from '@hypermark/ui/utils/generateId';
+import { SidebarTabs } from '@hypermark/ui/components/sidebar/SidebarTabs';
+import { SidebarContainer } from '@hypermark/ui/components/sidebar/SidebarContainer';
+import type { ArchivedPlan } from '@hypermark/ui/components/sidebar/ArchiveBrowser';
+import type { PickerMessage } from '@hypermark/ui/components/sidebar/MessagesBrowser';
+import { PlanDiffViewer } from '@hypermark/ui/components/plan-diff/PlanDiffViewer';
+import { CodeFilePopout, type CodeFileAnnotationInput } from '@hypermark/ui/components/CodeFilePopout';
+import type { PlanDiffMode } from '@hypermark/ui/components/plan-diff/PlanDiffModeSwitcher';
 import {
   GoalSetupSurface,
   type GoalSetupActionState,
   type GoalSetupSurfaceHandle,
-} from '@plannotator/ui/components/goal-setup/GoalSetupSurface';
-import type { GoalSetupBundle } from '@plannotator/shared/goal-setup';
+} from '@hypermark/ui/components/goal-setup/GoalSetupSurface';
+import type { GoalSetupBundle } from '@hypermark/shared/goal-setup';
 import {
   hasSourceSaveConflictSnapshot,
   isSourceSaveFilePath,
   type SourceSaveCapability,
   type SourceSaveResponse,
-} from '@plannotator/shared/source-save';
-import type { AgentTerminalCapability } from '@plannotator/shared/agent-terminal';
+} from '@hypermark/shared/source-save';
+import type { AgentTerminalCapability } from '@hypermark/shared/agent-terminal';
 import { observeActionsLabelMode } from './actionsLabelMode';
 // Demo content toggle. Default: the original Real-time Collaboration plan.
 // Opt-in diff-engine stress test: `VITE_DIFF_DEMO=1 bun run dev:hook` swaps
@@ -105,8 +105,8 @@ import { observeActionsLabelMode } from './actionsLabelMode';
 // same env var on the server side so V2/V3 stay paired.
 import { DEMO_PLAN_CONTENT as DEFAULT_DEMO_PLAN_CONTENT } from './demoPlan';
 import { DIFF_DEMO_PLAN_CONTENT } from './demoPlanDiffDemo';
-import { canUseAnnotateWideMode, resolveFocusShortcutAction, resolveWideModeExitLayout, type WideModeLayoutSnapshot, type WideModeType } from '@plannotator/ui/utils/wideMode';
-import { modKey } from '@plannotator/ui/utils/platform';
+import { canUseAnnotateWideMode, resolveFocusShortcutAction, resolveWideModeExitLayout, type WideModeLayoutSnapshot, type WideModeType } from '@hypermark/ui/utils/wideMode';
+import { modKey } from '@hypermark/ui/utils/platform';
 import {
   annotateSidebarShortcuts,
   useAnnotateSidebarShortcuts,
@@ -115,7 +115,7 @@ import {
   useDoubleTapShortcuts,
   useHtmlAnnotateShortcuts,
   useHistoryShortcuts,
-} from '@plannotator/ui/shortcuts';
+} from '@hypermark/ui/shortcuts';
 import {
   applyCollectionMutation,
   hasActiveHistoryOverlay,
@@ -124,7 +124,7 @@ import {
   syncHistoryHighlight,
   type CollectionMutation,
   type HistoryDirection,
-} from '@plannotator/ui/utils/undoHistory';
+} from '@hypermark/ui/utils/undoHistory';
 const USE_DIFF_DEMO =
   import.meta.env.VITE_DIFF_DEMO === '1' ||
   import.meta.env.VITE_DIFF_DEMO === 'true';
@@ -144,8 +144,8 @@ import { AppHeader } from './components/AppHeader';
 import { useHtmlRefresh, type HtmlRefreshedDocument } from './hooks/useHtmlRefresh';
 import { AgentNudgeBanner } from './components/AgentNudgeBanner';
 import { useDocumentWebMcp } from './webmcp/useDocumentWebMcp';
-import { useWebMcpActivity } from '@plannotator/ui/webmcp';
-import type { CompactPlanAction } from '@plannotator/ui/components/PlanHeaderMenu';
+import { useWebMcpActivity } from '@hypermark/ui/webmcp';
+import type { CompactPlanAction } from '@hypermark/ui/components/PlanHeaderMenu';
 import { FolderAnnotationEmptyState } from './components/FolderAnnotationEmptyState';
 import { CompactAnnotationControls } from './components/CompactAnnotationControls';
 import { CompactEditControls } from './components/CompactEditControls';
@@ -169,7 +169,7 @@ import {
 import {
   saveAnnotateAgentTerminalSide,
   type AnnotateAgentTerminalSide,
-} from '@plannotator/ui/utils/annotateAgentTerminal';
+} from '@hypermark/ui/utils/annotateAgentTerminal';
 import {
   AGENT_TERMINAL_LG_BREAKPOINT,
   getAgentTerminalLayout,
@@ -193,8 +193,8 @@ import {
   buildAnnotateApprovalBody,
   buildCompleteAnnotateFeedback,
 } from './annotateSubmission';
-import { buildDecisionSpec, type DecisionActionId, type DecisionMenuItem } from '@plannotator/ui/utils/decisionSpec';
-import { DecisionNoteDialog, type DecisionHandler } from '@plannotator/ui/components/DecisionControl';
+import { buildDecisionSpec, type DecisionActionId, type DecisionMenuItem } from '@hypermark/ui/utils/decisionSpec';
+import { DecisionNoteDialog, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import {
   compactPrimaryIdForDecision,
   compactRowIdForDecisionItem,

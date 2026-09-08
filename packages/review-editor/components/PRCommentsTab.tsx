@@ -1,12 +1,12 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
-import type { PRContext, PRComment, PRReview, PRReviewThread } from '@plannotator/shared/pr-types';
+import type { PRContext, PRComment, PRReview, PRReviewThread } from '@hypermark/shared/pr-types';
 import { MarkdownBody } from './MarkdownBody';
 import { CopyButton } from './CopyButton';
 import { DiffHunkPreview } from './DiffHunkPreview';
-import { OverlayScrollArea } from '@plannotator/ui/components/OverlayScrollArea';
-import { getItem, setItem } from '@plannotator/ui/utils/storage';
+import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';
+import { getItem, setItem } from '@hypermark/ui/utils/storage';
 import { Popover } from '@base-ui/react/popover';
-import { CommentPopover } from '@plannotator/ui/components/CommentPopover';
+import { CommentPopover } from '@hypermark/ui/components/CommentPopover';
 import { useReviewState } from '../dock/ReviewStateContext';
 import { Avatar } from './Avatar';
 

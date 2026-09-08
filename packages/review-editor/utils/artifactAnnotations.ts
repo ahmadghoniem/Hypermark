@@ -3,8 +3,8 @@ import type {
   ArtifactAnnotationAnchor,
   ArtifactAnnotationMeta,
   CommentAnnotation,
-} from '@plannotator/ui/types';
-import { AnnotationType } from '@plannotator/ui/types';
+} from '@hypermark/ui/types';
+import { AnnotationType } from '@hypermark/ui/types';
 
 /** Format a non-negative media timestamp as M:SS or H:MM:SS. */
 export function formatArtifactTimestamp(seconds: number): string {

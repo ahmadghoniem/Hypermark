@@ -12,7 +12,7 @@ import {
   resolveCodeNavHover,
   validateCodeNavRequest,
   extractChangedFiles,
-} from "@plannotator/shared/code-nav";
+} from "@hypermark/shared/code-nav";
 
 export type { CodeNavRequest, CodeNavResponse, CodeNavHoverResponse };
 

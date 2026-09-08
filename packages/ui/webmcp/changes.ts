@@ -7,7 +7,7 @@
  * `cursor`). Two agents on one tab share the implicit watermark; that is a
  * documented limitation.
  *
- * Pure, no DOM, so it can move to `@plannotator/core` untouched.
+ * Pure, no DOM, so it can move to `@hypermark/core` untouched.
  */
 
 /** `source` stamped on every annotation a browser agent creates through the tools. */

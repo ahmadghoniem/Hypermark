@@ -3,7 +3,7 @@ import { CaretDown, Check, Copy, DotsThree } from '@phosphor-icons/react';
 import { AppIcon } from './icons/AppIcon';
 import { getLastOpenInApp, setLastOpenInApp } from '../utils/storage';
 import { copyTextToClipboard } from '../utils/clipboard';
-import type { OpenInKind } from '@plannotator/core/open-in-apps';
+import type { OpenInKind } from '@hypermark/core/open-in-apps';
 import {
   DropdownMenu,
   DropdownMenuTrigger,

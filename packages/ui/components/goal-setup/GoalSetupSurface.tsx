@@ -17,7 +17,7 @@ import type {
   GoalSetupInterviewBundle,
   GoalSetupQuestion,
   GoalSetupQuestionAnswer,
-} from '@plannotator/core/goal-setup';
+} from '@hypermark/core/goal-setup';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { CommentPopover } from '../CommentPopover';
 import { Button } from '../core/button';

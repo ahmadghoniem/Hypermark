@@ -1,6 +1,6 @@
 import type { Block, Annotation, CodeAnnotation, EditorAnnotation, ImageAttachment } from '../types';
-import { planDenyFeedback } from '@plannotator/core/feedback-templates';
-import { resolveReplyParents } from '@plannotator/core/annotation-threads';
+import { planDenyFeedback } from '@hypermark/core/feedback-templates';
+import { resolveReplyParents } from '@hypermark/core/annotation-threads';
 import { skillReferenceExportBlock } from './skillReferences';
 
 /**
@@ -201,7 +201,7 @@ export interface ParseMarkdownOptions {
    * Strip a leading `--- ... ---` pair as frontmatter (default true).
    * Pass false for non-markdown plain-text sources (.yaml/.json/.txt/…)
    * where the delimiters are real content — a multi-document YAML starts
-   * with them (see shouldStripFrontmatter in @plannotator/core/annotatable).
+   * with them (see shouldStripFrontmatter in @hypermark/core/annotatable).
    */
   frontmatter?: boolean;
 }

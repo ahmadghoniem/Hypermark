@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
-import { resolveOpenInTarget } from "@plannotator/shared/html-assets-node";
+import { resolveOpenInTarget } from "@hypermark/shared/html-assets-node";
 import { openFileInApp } from "./open-in";
 
 // resolveOpenInTarget is the security boundary for POST /api/open-in: it decides

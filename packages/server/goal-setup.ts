@@ -6,7 +6,7 @@
  * launch a browser session, wait, and receive a structured JSON result.
  */
 
-import type { Origin } from "@plannotator/shared/agents";
+import type { Origin } from "@hypermark/shared/agents";
 import {
   createFactsResult,
   createInterviewResult,
@@ -14,7 +14,7 @@ import {
   type GoalSetupFactResult,
   type GoalSetupQuestionAnswer,
   type GoalSetupResult,
-} from "@plannotator/shared/goal-setup";
+} from "@hypermark/shared/goal-setup";
 import { isRemoteSession, getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
 import { getRepoInfo } from "./repo";
 import {
@@ -24,7 +24,7 @@ import {
   handleUpload,
 } from "./shared-handlers";
 import { detectGitUser, getServerConfig, saveConfig } from "./config";
-import { isFaviconStyle, type FaviconStyle } from "@plannotator/shared/favicon";
+import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
 import { isWSL } from "./browser";
 
 export { handleServerReady as handleGoalSetupServerReady } from "./shared-handlers";

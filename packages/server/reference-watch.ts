@@ -7,13 +7,13 @@ import {
 	type FileBrowserWatchRegistry,
 	type FileBrowserWatchTarget,
 	type WatchEntryHandle,
-} from "@plannotator/shared/file-browser-watch-core";
-import { isFileBrowserExcludedPath } from "@plannotator/shared/reference-common";
-import { resolveUserPath } from "@plannotator/shared/resolve-file";
-import { getGitMetadataWatchPaths } from "@plannotator/shared/workspace-status";
+} from "@hypermark/shared/file-browser-watch-core";
+import { isFileBrowserExcludedPath } from "@hypermark/shared/reference-common";
+import { resolveUserPath } from "@hypermark/shared/resolve-file";
+import { getGitMetadataWatchPaths } from "@hypermark/shared/workspace-status";
 
 // The watcher engine (deferred warmup, reconnect grace, native recursive
-// backend) lives in @plannotator/shared/file-browser-watch-core (#1313).
+// backend) lives in @hypermark/shared/file-browser-watch-core (#1313).
 // This module keeps only the Bun transport: request parsing, the SSE
 // ReadableStream, and heartbeats.
 

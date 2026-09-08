@@ -27,7 +27,7 @@ import {
   relative,
   resolve,
 } from "node:path";
-import { getPlannotatorDataDir } from "@plannotator/shared/data-dir";
+import { getPlannotatorDataDir } from "@hypermark/shared/data-dir";
 import {
   applyEdits,
   createScanner,

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ThemeProvider } from '@plannotator/ui/components/ThemeProvider';
+import { ThemeProvider } from '@hypermark/ui/components/ThemeProvider';
 import { AppHeader, CompactPlanNavigatorTrigger } from './AppHeader';
 
 const hasDom = typeof document !== 'undefined' && typeof window !== 'undefined';

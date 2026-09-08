@@ -1,4 +1,4 @@
-import type { CallFlowAnnotationTarget, CodeAnnotationScope } from '@plannotator/ui/types';
+import type { CallFlowAnnotationTarget, CodeAnnotationScope } from '@hypermark/ui/types';
 import type { DiffFile } from '../types';
 import { isLineRangeInPatch } from './patchParser';
 

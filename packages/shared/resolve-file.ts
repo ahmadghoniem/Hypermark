@@ -22,7 +22,7 @@ export { MAX_ANNOTATABLE_FILE_BYTES } from "./annotatable";
 /**
  * Extension predicates re-exported here are the CONFIG-AWARE ones (#1307):
  * they honor the user's `markdownExtensions` on top of the built-in set. The
- * pure built-in constants stay in @plannotator/core/annotatable for browser
+ * pure built-in constants stay in @hypermark/core/annotatable for browser
  * code; server code must go through these so a configured `.livemd` is
  * accepted everywhere `.md` is.
  */

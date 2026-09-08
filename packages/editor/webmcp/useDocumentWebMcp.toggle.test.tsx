@@ -18,12 +18,12 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { parseMarkdownToBlocks } from '@plannotator/ui/utils/parser';
-import { WEBMCP_TOOLS_COOKIE, getWebMcpActivity, resetWebMcpActivity, setWebMcpToolsEnabled } from '@plannotator/ui/webmcp';
-import { resetStorageBackend, setStorageBackend } from '@plannotator/ui/utils/storage';
-import type { ModelContextLike, ModelContextToolDescriptor } from '@plannotator/ui/webmcp';
-import type { Annotation } from '@plannotator/ui/types';
-import type { CachedDocState } from '@plannotator/ui/hooks/useLinkedDoc';
+import { parseMarkdownToBlocks } from '@hypermark/ui/utils/parser';
+import { WEBMCP_TOOLS_COOKIE, getWebMcpActivity, resetWebMcpActivity, setWebMcpToolsEnabled } from '@hypermark/ui/webmcp';
+import { resetStorageBackend, setStorageBackend } from '@hypermark/ui/utils/storage';
+import type { ModelContextLike, ModelContextToolDescriptor } from '@hypermark/ui/webmcp';
+import type { Annotation } from '@hypermark/ui/types';
+import type { CachedDocState } from '@hypermark/ui/hooks/useLinkedDoc';
 
 const hasDom = typeof document !== 'undefined';
 const hookModule = hasDom ? await import('./useDocumentWebMcp') : null;

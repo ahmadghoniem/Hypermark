@@ -580,9 +580,9 @@ export function devMockApi(): Plugin {
         if (req.url === '/api/hooks/status') {
           res.setHeader('Content-Type', 'application/json');
           try {
-            const { readImprovementHook, getImprovementHookExpectedPath } = await import('@plannotator/shared/improvement-hooks');
-            const { loadConfig } = await import('@plannotator/shared/config');
-            const { composeImproveContext } = await import('@plannotator/shared/pfm-reminder');
+            const { readImprovementHook, getImprovementHookExpectedPath } = await import('@hypermark/shared/improvement-hooks');
+            const { loadConfig } = await import('@hypermark/shared/config');
+            const { composeImproveContext } = await import('@hypermark/shared/pfm-reminder');
             const config = loadConfig();
             const hook = readImprovementHook('enterplanmode-improve');
             const pfmEnabled = config.pfmReminder === true;
@@ -612,7 +612,7 @@ export function devMockApi(): Plugin {
           req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
           req.on('end', async () => {
             try {
-              const { saveConfig } = await import('@plannotator/shared/config');
+              const { saveConfig } = await import('@hypermark/shared/config');
               const parsed = JSON.parse(body);
               const toSave: Record<string, unknown> = {};
               if (parsed.pfmReminder !== undefined) toSave.pfmReminder = parsed.pfmReminder;

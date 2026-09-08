@@ -3,7 +3,7 @@
  * block-boundary windowing, quote resolution and context excerpts. No DOM,
  * no React, so every anchoring rule is unit-testable with parsed blocks.
  */
-import type { Annotation, Block } from '@plannotator/ui/types';
+import type { Annotation, Block } from '@hypermark/ui/types';
 
 export interface OutlineEntry {
   /** Stable heading slug the tools accept as `section`. */

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tooltip } from '@plannotator/ui/components/Tooltip';
+import { Tooltip } from '@hypermark/ui/components/Tooltip';
 import type { DiffFile } from '../types';
 
 /**

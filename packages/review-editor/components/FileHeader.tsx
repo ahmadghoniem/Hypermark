@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { SemanticFileBadge } from './SemanticFileBadge';
 import { CallFlowFileBadge } from './CallFlowFileBadge';
-import { OpenInAppButton } from '@plannotator/ui/components/OpenInAppButton';
+import { OpenInAppButton } from '@hypermark/ui/components/OpenInAppButton';
 import { useReviewStateOptional } from '../dock/ReviewStateContext';
 import type { DiffFileStatus } from '../types';
 

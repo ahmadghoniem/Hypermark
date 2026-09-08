@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import type { SourceSaveCapability } from "@plannotator/core/source-save";
+import type { SourceSaveCapability } from "@hypermark/core/source-save";
 
 const hasDom = typeof document !== "undefined";
 
@@ -10,8 +10,8 @@ if (hasDom) {
   document.cookie = "plannotator-plan-ai-announcement-seen=1; path=/";
 }
 
-const storageModule = hasDom ? await import("@plannotator/ui/utils/storage") : null;
-const fileTreeModule = hasDom ? await import("@plannotator/ui/hooks/useFileBrowser") : null;
+const storageModule = hasDom ? await import("@hypermark/ui/utils/storage") : null;
+const fileTreeModule = hasDom ? await import("@hypermark/ui/hooks/useFileBrowser") : null;
 const appModule = hasDom ? await import("./App") : null;
 const App = appModule?.default as typeof import("./App")["default"];
 const originalFetch = globalThis.fetch;

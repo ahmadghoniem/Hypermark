@@ -24,7 +24,7 @@
  * step 3 — nothing here changes any user-visible behavior yet.
  */
 import type { FileTree as TreesFileTreeModel } from '@pierre/trees';
-import type { CodeAnnotation } from '@plannotator/ui/types';
+import type { CodeAnnotation } from '@hypermark/ui/types';
 import type { DiffFile } from '../types';
 import { buildFileTree, getAncestorPaths, getVisualFileOrder } from './buildFileTree';
 

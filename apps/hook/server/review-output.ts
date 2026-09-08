@@ -1,4 +1,4 @@
-import type { Origin } from "@plannotator/shared/agents";
+import type { Origin } from "@hypermark/shared/agents";
 
 /**
  * Whether the `plannotator review` CLI's decision consumer delivers

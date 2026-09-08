@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import type { CallFlowAdvert, CallFlowInstallStage, CallFlowNode } from '@plannotator/shared/call-flow-types';
-import { getCallFlowLanguage, type CallFlowLanguageId } from '@plannotator/shared/call-flow-languages';
+import type { CallFlowAdvert, CallFlowInstallStage, CallFlowNode } from '@hypermark/shared/call-flow-types';
+import { getCallFlowLanguage, type CallFlowLanguageId } from '@hypermark/shared/call-flow-languages';
 import type { CallFlowInstallController } from '../../hooks/useCallFlowInstall';
 import { Popover } from '@base-ui/react/popover';
 import { Check, Info, GearSix } from '@phosphor-icons/react';
-import { Tooltip } from '@plannotator/ui/components/Tooltip';
+import { Tooltip } from '@hypermark/ui/components/Tooltip';
 import { useReviewState } from '../ReviewStateContext';
 import {
   CallFlowTreeView,
@@ -13,7 +13,7 @@ import {
 import { CallFlowRawView } from '../../components/CallFlowRawView';
 import { formatCallFlowInstallSize } from '../../utils/callFlowPresentation';
 
-function errorMessage(error: Exclude<import('@plannotator/shared/call-flow-types').CallFlowResponse, { status: 'ok' }> | Error): string {
+function errorMessage(error: Exclude<import('@hypermark/shared/call-flow-types').CallFlowResponse, { status: 'ok' }> | Error): string {
   return error.message || 'Call-flow analysis failed.';
 }
 

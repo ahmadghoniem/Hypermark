@@ -288,7 +288,7 @@ taskkill /PID <pid> /F
 **Error:**
 
 ```
-Error: Cannot find module '@plannotator/ui'
+Error: Cannot find module '@hypermark/ui'
 ```
 
 **Solution:** Clean install dependencies

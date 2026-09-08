@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import type { ConventionalLabel, ConventionalDecoration } from '@plannotator/ui/types';
+import type { ConventionalLabel, ConventionalDecoration } from '@hypermark/ui/types';
 
 /** Semantic tone — maps to theme CSS variables, not arbitrary hex */
 type SemanticTone = 'danger' | 'warn' | 'success' | 'info' | 'neutral';

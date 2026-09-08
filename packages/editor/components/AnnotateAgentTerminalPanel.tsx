@@ -10,18 +10,18 @@ import React, {
 import type {
   AgentTerminalAgent,
   AgentTerminalCapability,
-} from "@plannotator/shared/agent-terminal";
+} from "@hypermark/shared/agent-terminal";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@plannotator/ui/components/Popover";
+} from "@hypermark/ui/components/Popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@plannotator/ui/components/ui/dropdown-menu";
+} from "@hypermark/ui/components/ui/dropdown-menu";
 import {
   getSavedAnnotateAgentId,
   resolveAgentTerminalWebSocketUrl,
@@ -29,8 +29,8 @@ import {
   saveAnnotateAgentId,
   type AnnotateAgentTerminalPlacement,
   type AnnotateAgentTerminalSide,
-} from "@plannotator/ui/utils/annotateAgentTerminal";
-import { getItem, setItem } from "@plannotator/ui/utils/storage";
+} from "@hypermark/ui/utils/annotateAgentTerminal";
+import { getItem, setItem } from "@hypermark/ui/utils/storage";
 import { WebSocketPtyBackend } from "@plannotator/webtui/browser";
 import { WebTuiTerminal } from "@plannotator/webtui/react";
 import type { PtyBackend, PtyExit, PtySpawnOptions } from "@plannotator/webtui/core";

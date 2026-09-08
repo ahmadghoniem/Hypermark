@@ -13,7 +13,7 @@
  * the per-file version history — and are rendered as MARKDOWN (frontmatter
  * stripped), never as HTML.
  *
- * The extension predicates themselves live in `@plannotator/core/annotatable`,
+ * The extension predicates themselves live in `@hypermark/core/annotatable`,
  * which is browser-safe and zero-dep and therefore cannot read a config file.
  * This module is the node-side seam: it reads `config.json` ONCE per process
  * through the same `loadConfig()` every other setting uses, normalizes the

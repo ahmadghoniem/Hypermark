@@ -6,7 +6,7 @@
  * server stops. No disk persistence.
  */
 
-import type { EditorAnnotation } from "@plannotator/shared/types";
+import type { EditorAnnotation } from "@hypermark/shared/types";
 
 export type { EditorAnnotation };
 

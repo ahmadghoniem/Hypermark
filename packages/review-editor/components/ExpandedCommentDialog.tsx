@@ -1,10 +1,10 @@
 import React, { useCallback, useRef } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
-import { useReviewAnnotationToolbarShortcuts } from '@plannotator/ui/shortcuts';
-import type { ImageAttachment } from '@plannotator/ui/types';
-import { AttachmentStrip, type PendingAttachment } from '@plannotator/ui/components/AttachmentStrip';
-import { AttachmentsButton } from '@plannotator/ui/components/AttachmentsButton';
-import { imageFilesFrom } from '@plannotator/ui/hooks/useAttachmentUploads';
+import { useReviewAnnotationToolbarShortcuts } from '@hypermark/ui/shortcuts';
+import type { ImageAttachment } from '@hypermark/ui/types';
+import { AttachmentStrip, type PendingAttachment } from '@hypermark/ui/components/AttachmentStrip';
+import { AttachmentsButton } from '@hypermark/ui/components/AttachmentsButton';
+import { imageFilesFrom } from '@hypermark/ui/hooks/useAttachmentUploads';
 
 interface ExpandedCommentDialogProps {
   title: string;

@@ -17,9 +17,9 @@ import { afterEach, describe, expect, mock, test } from 'bun:test';
 import React from 'react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { OVERSIZED_REVIEW_STUB_MARKER } from '@plannotator/shared/diff-paths';
+import { OVERSIZED_REVIEW_STUB_MARKER } from '@hypermark/shared/diff-paths';
 
-const realResolveSyntaxTheme = (await import('@plannotator/ui/utils/syntaxTheme')).resolveSyntaxTheme;
+const realResolveSyntaxTheme = (await import('@hypermark/ui/utils/syntaxTheme')).resolveSyntaxTheme;
 
 mock.module('../workerPool', () => ({
   useIsWorkerPoolReadyOrDisabled: () => true,

@@ -8,14 +8,14 @@
 import { existsSync, statSync } from "fs";
 import { readdir } from "fs/promises";
 import { join, relative, resolve } from "path";
-import { buildFileTree, isFileBrowserExcludedPath } from "@plannotator/shared/reference-common";
+import { buildFileTree, isFileBrowserExcludedPath } from "@hypermark/shared/reference-common";
 import {
 	filterWorkspaceStatusForDirectory,
 	getWorkspaceStatusForDirectory,
 	getWorkspaceStatusRelativePaths,
 	type WorkspaceFileChange,
-} from "@plannotator/shared/workspace-status";
-import { parseCodePath } from "@plannotator/shared/code-file";
+} from "@hypermark/shared/workspace-status";
+import { parseCodePath } from "@hypermark/shared/code-file";
 import { detectObsidianVaults } from "./integrations";
 import {
 	isAbsoluteUserPath,
@@ -29,16 +29,16 @@ import {
 	getAnnotatableDocRegex,
 	MAX_ANNOTATABLE_FILE_BYTES,
 	isAnnotatableTextPath,
-} from "@plannotator/shared/resolve-file";
-import { htmlToMarkdown } from "@plannotator/shared/html-to-markdown";
-import { disabledSourceSave, type SourceFileSnapshot, type SourceSaveCapability } from "@plannotator/shared/source-save";
+} from "@hypermark/shared/resolve-file";
+import { htmlToMarkdown } from "@hypermark/shared/html-to-markdown";
+import { disabledSourceSave, type SourceFileSnapshot, type SourceSaveCapability } from "@hypermark/shared/source-save";
 import {
 	createSourceSaveCapability,
 	createSourceSaveCapabilityFromSnapshot,
 	readSourceFileSnapshot,
 	resolveExistingSourceSaveFile,
-} from "@plannotator/shared/source-save-node";
-import type { AnnotateHistoryResult } from "@plannotator/shared/annotate-history";
+} from "@hypermark/shared/source-save-node";
+import type { AnnotateHistoryResult } from "@hypermark/shared/annotate-history";
 import { preloadFile } from "@pierre/diffs/ssr";
 
 /**
@@ -53,7 +53,7 @@ export type FolderAnnotateHistory = Omit<AnnotateHistoryResult, "diffCurrent">;
 // --- Route handlers ---
 
 // History eligibility for folder /api/doc documents is `isAnnotatableTextPath`
-// (ANNOTATABLE_TEXT_REGEX in @plannotator/core/annotatable) — the exact set the
+// (ANNOTATABLE_TEXT_REGEX in @hypermark/core/annotatable) — the exact set the
 // single-file pipeline snapshots (.md/.mdx/.txt plus the plain-text config
 // formats; no HTML, no .env). Reusing the canonical predicate keeps cross-mode
 // slug continuity: a .yaml with single-file history must diff when opened via

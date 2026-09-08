@@ -1,4 +1,4 @@
-import type { CodeAnnotation, CodeAnnotationScope, DiffAnnotationMetadata } from '@plannotator/ui/types';
+import type { CodeAnnotation, CodeAnnotationScope, DiffAnnotationMetadata } from '@hypermark/ui/types';
 
 /** A code annotation's scope, defaulting to 'line' for older/external data. */
 export function annotationScope(a: CodeAnnotation): CodeAnnotationScope {

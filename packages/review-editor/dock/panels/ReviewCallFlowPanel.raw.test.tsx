@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { CallFlowAnnotationTarget } from '@plannotator/ui/types';
+import type { CallFlowAnnotationTarget } from '@hypermark/ui/types';
 import type { ReviewState } from '../ReviewStateContext';
 import { ReviewStateProvider } from '../ReviewStateContext';
 import { ReviewCallFlowPanel } from './ReviewCallFlowPanel';

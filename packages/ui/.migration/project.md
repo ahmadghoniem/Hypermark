@@ -1,4 +1,4 @@
-# @plannotator/ui — Radix → Base UI migration (whole package)
+# @hypermark/ui — Radix → Base UI migration (whole package)
 
 2026-07-07. Strategy: transformation engine (no components.json — hand-vendored
 kit + hand-rolled wrappers; no golden-pair CLI available). `@base-ui/react@1.6.0`
@@ -45,7 +45,7 @@ Inside packages/ui:
 - `SearchableSelect.tsx:92` — `onOpenAutoFocus` on PopoverContent → `initialFocus`
 - `OpenInAppButton.tsx:238` — `onCloseAutoFocus` on DropdownMenuContent → Popup `finalFocus`; 1 `asChild`
 
-Cross-package (all imports of @plannotator/ui wrappers — packages/review-editor's
+Cross-package (all imports of @hypermark/ui wrappers — packages/review-editor's
 own `@radix-ui/*` imports are the sibling agent's scope, NOT ours):
 - `packages/editor/components/AnnotateAgentTerminalPanel.tsx:440,525` — `DropdownMenuTrigger asChild`, `PopoverTrigger asChild`
 - `packages/editor/App.tsx:3808` — `<TooltipProvider delayDuration skipDelayDuration disableHoverableContent>`

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { AnnotateAgentTerminalSide } from '@plannotator/ui/utils/annotateAgentTerminal';
+import type { AnnotateAgentTerminalSide } from '@hypermark/ui/utils/annotateAgentTerminal';
 import {
   getAgentTerminalLayout,
   type AgentTerminalLayoutOptions,

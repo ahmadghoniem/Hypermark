@@ -19,7 +19,7 @@ import { $ } from "bun";
 import {
   startReviewServer,
   handleReviewServerReady,
-} from "@plannotator/server/review";
+} from "@hypermark/server/review";
 
 // Embed the built HTML at compile time
 // @ts-ignore - Bun import attribute for text

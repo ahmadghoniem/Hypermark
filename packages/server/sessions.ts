@@ -14,7 +14,7 @@ import {
   unlinkSync,
   existsSync,
 } from "fs";
-import { getPlannotatorDataDir } from "@plannotator/shared/data-dir";
+import { getPlannotatorDataDir } from "@hypermark/shared/data-dir";
 
 export interface SessionInfo {
   pid: number;

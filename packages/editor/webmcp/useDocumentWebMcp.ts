@@ -11,12 +11,12 @@
  */
 import { useEffect, useMemo, useRef } from 'react';
 import type { RefObject } from 'react';
-import { parseMarkdownToBlocks } from '@plannotator/ui/utils/parser';
-import { getDocPreviewFetcher } from '@plannotator/ui/components/InlineMarkdown';
-import type { ViewerHandle } from '@plannotator/ui/components/Viewer';
-import type { CachedDocState } from '@plannotator/ui/hooks/useLinkedDoc';
-import { AnnotationType, type Annotation, type Block, type VaultNode } from '@plannotator/ui/types';
-import { getWebMcpPolicy, useToolset, useWebMcpToolsEnabled, type DocumentSurface } from '@plannotator/ui/webmcp';
+import { parseMarkdownToBlocks } from '@hypermark/ui/utils/parser';
+import { getDocPreviewFetcher } from '@hypermark/ui/components/InlineMarkdown';
+import type { ViewerHandle } from '@hypermark/ui/components/Viewer';
+import type { CachedDocState } from '@hypermark/ui/hooks/useLinkedDoc';
+import { AnnotationType, type Annotation, type Block, type VaultNode } from '@hypermark/ui/types';
+import { getWebMcpPolicy, useToolset, useWebMcpToolsEnabled, type DocumentSurface } from '@hypermark/ui/webmcp';
 import {
   buildDocumentHooks,
   buildDocumentTools,

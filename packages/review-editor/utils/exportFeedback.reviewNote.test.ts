@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { exportReviewFeedback } from './exportFeedback';
-import type { CodeAnnotation } from '@plannotator/ui/types';
+import type { CodeAnnotation } from '@hypermark/ui/types';
 
 /**
  * The review-level note produced by the Send control's "Send with additional

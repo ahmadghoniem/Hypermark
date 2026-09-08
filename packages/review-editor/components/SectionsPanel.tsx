@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { CodeAnnotation } from '@plannotator/ui/types';
+import { CodeAnnotation } from '@hypermark/ui/types';
 import type {
   AvailableBranches,
   CompareTargetConfig,
   RecentCommit,
   SinceBaseSections,
-} from '@plannotator/shared/types';
+} from '@hypermark/shared/types';
 import { BaseBranchPicker } from './BaseBranchPicker';
 import { PanelViewToggle } from './PanelViewToggle';
 import { SemanticDiffRow, CallFlowRow, AllFilesRow } from './PanelNavRows';
@@ -21,7 +21,7 @@ import {
 } from './FileRowBits';
 import { SearchFileGroup } from './FileTree';
 import type { ReviewSearchFileGroup, ReviewSearchMatch } from '../utils/reviewSearch';
-import { OverlayScrollArea } from '@plannotator/ui/components/OverlayScrollArea';
+import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';
 import type { DiffFile } from '../types';
 
 /**

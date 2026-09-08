@@ -1,6 +1,6 @@
 /**
  * Re-export surface test: hosts import wikiLinks (and its types) from
- * @plannotator/ui's MarkdownEditor module — never from @plannotator/atomic-editor
+ * @hypermark/ui's MarkdownEditor module — never from @plannotator/atomic-editor
  * directly (the engine is outside the consumer import allowlist).
  *
  * Runs without DOM: it pins identity and the type surface, not editor behavior

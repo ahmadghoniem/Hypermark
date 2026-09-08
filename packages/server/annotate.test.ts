@@ -21,8 +21,8 @@ import { tmpdir } from "os";
 import { dirname, join, resolve } from "path";
 import { liveAppDraftIdentity, runGuardedShutdown, startAnnotateServer } from "./annotate";
 import { getServerConfig, loadConfig } from "./config";
-import { deriveAnnotateHistorySlug } from "@plannotator/shared/annotate-history";
-import { getPlannotatorDataDir } from "@plannotator/shared/data-dir";
+import { deriveAnnotateHistorySlug } from "@hypermark/shared/annotate-history";
+import { getPlannotatorDataDir } from "@hypermark/shared/data-dir";
 
 const MINIMAL_HTML = "<html><body>Plannotator</body></html>";
 

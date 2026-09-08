@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { resetStorageBackend, setStorageBackend } from '@plannotator/ui/utils/storage';
+import { resetStorageBackend, setStorageBackend } from '@hypermark/ui/utils/storage';
 import {
   editModeAnnouncementCanShow,
   enableEditSuggestionsFromAnnouncement,

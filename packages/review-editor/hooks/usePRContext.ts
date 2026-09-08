@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import type { PRContext } from '@plannotator/shared/pr-types';
-import type { PRMetadata } from '@plannotator/shared/pr-types';
-import type { PRContextStreamEvent } from '@plannotator/shared/pr-context-live';
+import type { PRContext } from '@hypermark/shared/pr-types';
+import type { PRMetadata } from '@hypermark/shared/pr-types';
+import type { PRContextStreamEvent } from '@hypermark/shared/pr-context-live';
 
 const STREAM_URL = '/api/pr-context/stream';
 const SNAPSHOT_URL = '/api/pr-context';

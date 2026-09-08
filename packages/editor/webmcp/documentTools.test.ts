@@ -17,8 +17,8 @@
  *    DELETION and quote-verify against the page text.
  */
 import { describe, expect, test } from 'bun:test';
-import { AnnotationType, type Annotation, type Block } from '@plannotator/ui/types';
-import { parseMarkdownToBlocks } from '@plannotator/ui/utils/parser';
+import { AnnotationType, type Annotation, type Block } from '@hypermark/ui/types';
+import { parseMarkdownToBlocks } from '@hypermark/ui/utils/parser';
 import {
   BROWSER_AGENT_SOURCE,
   TOOL_DESCRIPTION_MAX_CHARS,
@@ -27,7 +27,7 @@ import {
   runTool,
   type ToolResponse,
   type ToolSpec,
-} from '@plannotator/ui/webmcp';
+} from '@hypermark/ui/webmcp';
 import {
   MAX_REMEMBERED_REQUESTS,
   buildDocumentHooks,

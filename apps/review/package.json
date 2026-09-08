@@ -1,5 +1,5 @@
 {
-  "name": "@plannotator/review",
+  "name": "@hypermark/review",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -9,9 +9,9 @@
     "serve": "bun run server/index.ts"
   },
   "dependencies": {
-    "@plannotator/review-editor": "workspace:*",
-    "@plannotator/server": "workspace:*",
-    "@plannotator/ui": "workspace:*",
+    "@hypermark/review-editor": "workspace:*",
+    "@hypermark/server": "workspace:*",
+    "@hypermark/ui": "workspace:*",
     "@pierre/diffs": "1.4.1",
     "dompurify": "^3.3.3",
     "react": "^19.2.3",

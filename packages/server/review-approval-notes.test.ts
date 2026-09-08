@@ -26,7 +26,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startReviewServer as startBunReviewServer } from "./review";
 import { getVcsContext } from "./vcs";
-import { parseFeedbackIndex } from "@plannotator/shared/feedback-archive";
+import { parseFeedbackIndex } from "@hypermark/shared/feedback-archive";
 
 const MINIMAL_HTML = "<html><body>Plannotator</body></html>";
 const PATCH = "diff --git a/src/parse.ts b/src/parse.ts\n@@ -1 +1 @@\n-a\n+b\n";

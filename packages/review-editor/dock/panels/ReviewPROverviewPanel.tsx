@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import type { IDockviewPanelProps } from 'dockview-react';
-import type { PRContext } from '@plannotator/shared/pr-types';
+import type { PRContext } from '@hypermark/shared/pr-types';
 import { useReviewState } from '../ReviewStateContext';
 import { PRSummaryTab } from '../../components/PRSummaryTab';
 import { PRCommentsTab } from '../../components/PRCommentsTab';
 import { PRChecksTab } from '../../components/PRChecksTab';
-import { OverlayScrollArea } from '@plannotator/ui/components/OverlayScrollArea';
-import { getMRLabel } from '@plannotator/shared/pr-types';
+import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';
+import { getMRLabel } from '@hypermark/shared/pr-types';
 import { getPRDiscussionCount } from './prDiscussion';
 
 /**

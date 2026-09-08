@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { configStore } from '../config/configStore';
 import { resetStorageBackend, setStorageBackend } from '../utils/storage';
 import { ThemeProvider } from './ThemeProvider';
-import { CLASSIC_FAVICON_DATA_URL } from '@plannotator/core/favicon';
+import { CLASSIC_FAVICON_DATA_URL } from '@hypermark/core/favicon';
 
 const hasDom = typeof document !== 'undefined';
 

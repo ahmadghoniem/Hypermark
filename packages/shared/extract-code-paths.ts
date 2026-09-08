@@ -1,1 +1,1 @@
-export * from '@plannotator/core/extract-code-paths';
+export * from '@hypermark/core/extract-code-paths';

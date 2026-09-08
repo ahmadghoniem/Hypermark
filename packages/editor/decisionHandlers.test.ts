@@ -11,7 +11,7 @@ import { describe, expect, test } from "bun:test";
 import {
   buildDecisionSpec,
   type DecisionSpecInput,
-} from "@plannotator/ui/utils/decisionSpec";
+} from "@hypermark/ui/utils/decisionSpec";
 import {
   compactPrimaryIdForDecision,
   compactRowIdForDecisionItem,

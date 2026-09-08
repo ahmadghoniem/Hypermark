@@ -1,5 +1,5 @@
 {
-  "name": "@plannotator/hooks",
+  "name": "@hypermark/hooks",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -9,10 +9,10 @@
     "serve": "bun run server/index.ts"
   },
   "dependencies": {
-    "@plannotator/editor": "workspace:*",
-    "@plannotator/server": "workspace:*",
-    "@plannotator/shared": "workspace:*",
-    "@plannotator/ui": "workspace:*",
+    "@hypermark/editor": "workspace:*",
+    "@hypermark/server": "workspace:*",
+    "@hypermark/shared": "workspace:*",
+    "@hypermark/ui": "workspace:*",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "tailwindcss": "^4.1.18",

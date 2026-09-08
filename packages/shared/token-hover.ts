@@ -1,1 +1,1 @@
-export * from '@plannotator/core/token-hover';
+export * from '@hypermark/core/token-hover';

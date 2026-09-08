@@ -11,13 +11,13 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { CodeAnnotation, ImageAttachment } from '@plannotator/ui/types';
+import type { CodeAnnotation, ImageAttachment } from '@hypermark/ui/types';
 import {
   setUploadTransport,
   resetUploadTransport,
   type UploadTransport,
   type UploadResult,
-} from '@plannotator/ui/utils/upload';
+} from '@hypermark/ui/utils/upload';
 import { ToolbarHost, type ToolbarHostHandle } from './ToolbarHost';
 
 const hasDom = typeof document !== 'undefined';

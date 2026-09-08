@@ -1,4 +1,4 @@
-import type { PRContext } from '@plannotator/shared/pr-types';
+import type { PRContext } from '@hypermark/shared/pr-types';
 
 /** Counts the entries that the PR comments timeline can actually render. */
 export function getPRDiscussionCount(context: PRContext): number {

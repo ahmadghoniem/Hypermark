@@ -19,8 +19,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { getPlannotatorDataDir } from "@plannotator/shared/data-dir";
-import type { AgentTerminalDisabledReason } from "@plannotator/shared/agent-terminal";
+import { getPlannotatorDataDir } from "@hypermark/shared/data-dir";
+import type { AgentTerminalDisabledReason } from "@hypermark/shared/agent-terminal";
 
 // @ts-ignore - Bun import attribute for text
 import nodeAgentTerminalSidecarSource from "./agent-terminal-node-sidecar.mjs" with { type: "text" };

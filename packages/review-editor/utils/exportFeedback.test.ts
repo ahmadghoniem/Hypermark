@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import { buildProseFeedback, exportReviewFeedback } from "./exportFeedback";
-import { AnnotationType, type Annotation, type CodeAnnotation, type CommentAnnotation } from "@plannotator/ui/types";
-import type { PRMetadata } from "@plannotator/shared/pr-types";
+import { AnnotationType, type Annotation, type CodeAnnotation, type CommentAnnotation } from "@hypermark/ui/types";
+import type { PRMetadata } from "@hypermark/shared/pr-types";
 
 const ann = (overrides: Partial<CodeAnnotation> = {}): CodeAnnotation => ({
   id: "1",

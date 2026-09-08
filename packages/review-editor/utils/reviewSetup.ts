@@ -1,5 +1,5 @@
-import { storage } from '@plannotator/ui/utils/storage';
-import { configStore, getPersistedReviewPanelView, setReviewPanelView } from '@plannotator/ui/config';
+import { storage } from '@hypermark/ui/utils/storage';
+import { configStore, getPersistedReviewPanelView, setReviewPanelView } from '@hypermark/ui/config';
 
 /**
  * First-run gate for the code-review setup dialog (panel-view default + the

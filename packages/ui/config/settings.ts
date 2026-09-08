@@ -12,16 +12,16 @@
 import {
   isAnnotateAgentTerminalSide,
   type AnnotateAgentTerminalSide,
-} from '@plannotator/core/agent-terminal';
-import type { DiffLineBgIntensity } from '@plannotator/core/config-types';
-import { isFaviconStyle, type FaviconStyle } from '@plannotator/core/favicon';
+} from '@hypermark/core/agent-terminal';
+import type { DiffLineBgIntensity } from '@hypermark/core/config-types';
+import { isFaviconStyle, type FaviconStyle } from '@hypermark/core/favicon';
 import {
   DEFAULT_TOKEN_HOVER_DELAY_MS,
   isTokenHoverDelay,
   resolveStoredTokenHoverTrigger,
   type TokenHoverDelay,
   type TokenHoverTrigger,
-} from '@plannotator/core/token-hover';
+} from '@hypermark/core/token-hover';
 import { storage } from '../utils/storage';
 import { generateIdentity } from '../utils/generateIdentity';
 import {

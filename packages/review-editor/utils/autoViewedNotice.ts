@@ -3,13 +3,13 @@ import {
   markAutoViewedNoticeSeen,
   needsAutoViewedNotice,
   setReviewAutoViewed,
-} from '@plannotator/ui/config';
+} from '@hypermark/ui/config';
 
 /**
  * Review-side facade for the auto-mark-viewed first-time notice.
  *
  * The gate itself (cookie key + version) lives beside the setting in
- * `@plannotator/ui/config` because BOTH setting writers — Settings > Git and
+ * `@hypermark/ui/config` because BOTH setting writers — Settings > Git and
  * the file-list gear popover — must consume it: someone who found the switch
  * has demonstrably discovered the feature and must never be told about it.
  * This module is the review app's entry point to it, plus the one action the

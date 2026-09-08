@@ -1,1 +1,1 @@
-export * from '@plannotator/core/feedback-templates';
+export * from '@hypermark/core/feedback-templates';

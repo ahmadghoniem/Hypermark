@@ -1,1 +1,1 @@
-export { parseDiffToFiles } from '@plannotator/core/diff-files';
+export { parseDiffToFiles } from '@hypermark/core/diff-files';

@@ -1,6 +1,6 @@
 /**
  * Re-export surface test: hosts import MarkdownDiff (and its handle/prop
- * types) from @plannotator/ui's MarkdownDiff module — never from
+ * types) from @hypermark/ui's MarkdownDiff module — never from
  * @plannotator/markdown-editor's MarkdownDiff or @plannotator/atomic-editor's
  * AtomicDiffEditor directly (both are outside the consumer import allowlist).
  *

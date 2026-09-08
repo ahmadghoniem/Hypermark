@@ -1,5 +1,5 @@
 {
-  "name": "@plannotator/review-editor",
+  "name": "@hypermark/review-editor",
   "version": "0.0.1",
   "type": "module",
   "exports": {
@@ -16,9 +16,9 @@
     "@phosphor-icons/react": "2.1.10",
     "@pierre/diffs": "1.4.1",
     "@pierre/trees": "1.0.0-beta.6",
-    "@plannotator/core": "workspace:*",
-    "@plannotator/shared": "workspace:*",
-    "@plannotator/ui": "workspace:*",
+    "@hypermark/core": "workspace:*",
+    "@hypermark/shared": "workspace:*",
+    "@hypermark/ui": "workspace:*",
     "marked": "^17.0.6",
     "motion": "^12.38.0",
     "react": "^19.2.3",

@@ -8,7 +8,7 @@
  * on the first commit exactly as it was with a static `katex` import. A host
  * that wants the same synchronous behavior imports it too:
  *
- *   import '@plannotator/ui/utils/math-eager';
+ *   import '@hypermark/ui/utils/math-eager';
  *
  * A host that does not import it gets lazy math: the TeX source in the same
  * wrapper for one frame, then the typeset markup once the chunk lands.

@@ -1,7 +1,7 @@
 /**
  * The default math renderer loader: KaTeX's JS only, fetched lazily.
  *
- * This module is the ONLY place in `@plannotator/ui` that names `katex` at
+ * This module is the ONLY place in `@hypermark/ui` that names `katex` at
  * runtime (`./math-eager` names it too, but a host chooses to import that).
  * `./math` calls `loadDefaultMathRenderer` only when no host loader is
  * registered (`setMathRendererLoader` / `configurePlannotatorUI({

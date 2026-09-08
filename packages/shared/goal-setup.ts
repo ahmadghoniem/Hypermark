@@ -1,1 +1,1 @@
-export * from '@plannotator/core/goal-setup';
+export * from '@hypermark/core/goal-setup';

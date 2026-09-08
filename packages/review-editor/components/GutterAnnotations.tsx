@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { SEVERITY_STYLES, type DiffAnnotationMetadata } from '@plannotator/ui/types';
+import { SEVERITY_STYLES, type DiffAnnotationMetadata } from '@hypermark/ui/types';
 import { ConventionalLabelBadge } from './ConventionalLabelPicker';
 import { SuggestionBlock } from './SuggestionBlock';
 import { renderInlineMarkdown } from '../utils/renderInlineMarkdown';

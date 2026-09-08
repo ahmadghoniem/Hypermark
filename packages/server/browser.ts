@@ -7,8 +7,8 @@ import { spawn } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
-import { getPlannotatorDataDir } from "@plannotator/shared/data-dir";
-import { loadConfig, resolveUseGlimpse } from "@plannotator/shared/config";
+import { getPlannotatorDataDir } from "@hypermark/shared/data-dir";
+import { loadConfig, resolveUseGlimpse } from "@hypermark/shared/config";
 
 const IPC_REGISTRY = path.join(getPlannotatorDataDir(), "vscode-ipc.json");
 

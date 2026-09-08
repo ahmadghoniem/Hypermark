@@ -3,8 +3,8 @@ import {
   ThemeProvider,
   useTheme,
   type Mode as LegacyMode,
-} from '@plannotator/ui/components/ThemeProvider';
-import { THEME_MODES, type Mode } from '@plannotator/ui/theme-modes';
+} from '@hypermark/ui/components/ThemeProvider';
+import { THEME_MODES, type Mode } from '@hypermark/ui/theme-modes';
 
 const legacyMode: LegacyMode = 'system';
 const publicMode: Mode = legacyMode;

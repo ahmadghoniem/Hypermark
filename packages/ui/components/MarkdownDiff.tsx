@@ -9,7 +9,7 @@ import { useTheme } from './ThemeProvider';
 
 export type { MarkdownDiffHandle };
 
-/* @plannotator/ui is the single supported contract for hosts — do NOT import
+/* @hypermark/ui is the single supported contract for hosts — do NOT import
    AtomicDiffEditor or @plannotator/atomic-editor directly (both are outside
    the import allowlist). Extension builders (wikiLinks, slashCommands,
    selectionToolbar) are re-exported from ./MarkdownEditor; build them there

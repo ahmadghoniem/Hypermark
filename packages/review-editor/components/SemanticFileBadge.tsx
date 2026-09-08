@@ -3,7 +3,7 @@ import { Popover } from '@base-ui/react/popover';
 import type {
   SemanticDiffBinaryChange,
   SemanticDiffChange,
-} from '@plannotator/shared/semantic-diff-types';
+} from '@hypermark/shared/semantic-diff-types';
 import { useReviewStateOptional } from '../dock/ReviewStateContext';
 import { useFileSemanticChanges } from '../hooks/useFileSemanticChanges';
 import { SemanticDiffRows, lineSelectionForChange } from '../dock/panels/semanticDiffShared';

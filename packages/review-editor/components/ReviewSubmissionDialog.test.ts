@@ -5,7 +5,7 @@ import {
   buildReviewSubmission,
   type SubmissionTarget,
 } from './ReviewSubmissionDialog';
-import type { CodeAnnotation } from '@plannotator/ui/types';
+import type { CodeAnnotation } from '@hypermark/ui/types';
 
 const inlineComment: SubmissionTarget['fileComments'][number] = {
   path: 'src/example.ts',

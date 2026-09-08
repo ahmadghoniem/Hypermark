@@ -1,1 +1,1 @@
-export * from '@plannotator/core/crypto';
+export * from '@hypermark/core/crypto';

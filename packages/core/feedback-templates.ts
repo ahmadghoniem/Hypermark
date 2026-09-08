@@ -47,7 +47,7 @@ export const annotateMessageFeedback = (feedback: string): string =>
 
 /**
  * Browser-safe `{{placeholder}}` substitution with the same semantics as
- * resolveTemplate() in @plannotator/shared/prompts: unknown placeholders are
+ * resolveTemplate() in @hypermark/shared/prompts: unknown placeholders are
  * left untouched. Used by the clipboard copy paths to apply a server-resolved
  * feedback template without any node: imports.
  */

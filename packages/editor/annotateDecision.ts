@@ -1,5 +1,5 @@
-import type { DecisionActionId, DecisionMenuItem, DecisionPrimary } from "@plannotator/ui/utils/decisionSpec";
-import type { CompactPlanAction } from "@plannotator/ui/components/PlanHeaderMenu";
+import type { DecisionActionId, DecisionMenuItem, DecisionPrimary } from "@hypermark/ui/utils/decisionSpec";
+import type { CompactPlanAction } from "@hypermark/ui/components/PlanHeaderMenu";
 
 /**
  * Pure transport routing for the annotate decision control.

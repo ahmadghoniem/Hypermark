@@ -18,7 +18,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import type { CodeAnnotation } from "@plannotator/ui/types";
+import type { CodeAnnotation } from "@hypermark/ui/types";
 import { ReviewSidebar } from "./ReviewSidebar";
 
 const hasDom = typeof document !== "undefined";

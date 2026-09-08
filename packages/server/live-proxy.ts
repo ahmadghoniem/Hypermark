@@ -8,7 +8,7 @@
  *
  * Every DECISION here (Host/Origin validation, injector state machine,
  * CSP/X-Frame-Options policy, redirect rewrite, WS origin gate) lives in
- * @plannotator/shared/live-proxy-core, shared byte-for-byte with the Node
+ * @hypermark/shared/live-proxy-core, shared byte-for-byte with the Node
  * transport the Pi extension runs (packages/shared/live-proxy-node.ts).
  * This file is only the Bun.serve plumbing around those decisions.
  *
@@ -41,7 +41,7 @@ import {
   rewriteLoopbackLocation,
   type LiveAppProxy,
   type LiveAppProxyOptions,
-} from "@plannotator/shared/live-proxy-core";
+} from "@hypermark/shared/live-proxy-core";
 
 // Re-export the shared decisions under their historical names: this module
 // is the import site for the Bun CLI (annotate-resolution.ts), the annotate
@@ -57,7 +57,7 @@ export {
   rewriteLoopbackLocation,
   type LiveAppProxy,
   type LiveAppProxyOptions,
-} from "@plannotator/shared/live-proxy-core";
+} from "@hypermark/shared/live-proxy-core";
 
 // The literal loopback address is the security contract (see header).
 const LOOPBACK_HOST = "127.0.0.1";

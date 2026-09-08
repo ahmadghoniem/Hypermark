@@ -2,8 +2,8 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { CallFlowAdvert, CallFlowInstallStatus } from '@plannotator/shared/call-flow-types';
-import type { CallFlowLanguageId } from '@plannotator/shared/call-flow-languages';
+import type { CallFlowAdvert, CallFlowInstallStatus } from '@hypermark/shared/call-flow-types';
+import type { CallFlowLanguageId } from '@hypermark/shared/call-flow-languages';
 import { useCallFlowInstall } from './useCallFlowInstall';
 import { useCallFlowAutoInstall } from './useCallFlowAutoInstall';
 

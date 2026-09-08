@@ -1,1 +1,1 @@
-export * from '@plannotator/core/project';
+export * from '@hypermark/core/project';

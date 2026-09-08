@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { CallFlowNode, CallFlowTree } from '@plannotator/shared/call-flow-types';
+import type { CallFlowNode, CallFlowTree } from '@hypermark/shared/call-flow-types';
 import {
   annotationSelectionForCallFlowNode,
   annotationTargetForCallFlowNode,

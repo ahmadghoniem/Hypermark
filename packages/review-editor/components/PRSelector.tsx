@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { SearchableSelect } from '@plannotator/ui/components/SearchableSelect';
-import { PullRequestIcon } from '@plannotator/ui/components/PullRequestIcon';
-import { getItem, setItem } from '@plannotator/ui/utils/storage';
-import type { PRListItem } from '@plannotator/shared/pr-types';
+import { SearchableSelect } from '@hypermark/ui/components/SearchableSelect';
+import { PullRequestIcon } from '@hypermark/ui/components/PullRequestIcon';
+import { getItem, setItem } from '@hypermark/ui/utils/storage';
+import type { PRListItem } from '@hypermark/shared/pr-types';
 
 type PRItem = PRListItem;
 

@@ -6,7 +6,7 @@
  * from disk via the server.
  *
  * The transport is a host seam (see packages/ui/CLAUDE.md): hosts embedding
- * `@plannotator/ui` with their own backend install a replacement via
+ * `@hypermark/ui` with their own backend install a replacement via
  * `setSkillCatalogTransport` / `configurePlannotatorUI({ skillCatalogTransport })`.
  * The default reproduces today's behavior byte-for-byte.
  *

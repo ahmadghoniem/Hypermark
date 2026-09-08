@@ -4,7 +4,7 @@ import {
   type AgentTerminalAgent,
   type AgentTerminalCapability,
   isRetainedAgentTerminalAgent,
-} from "@plannotator/shared/agent-terminal";
+} from "@hypermark/shared/agent-terminal";
 import { isRemoteSession } from "./remote";
 import {
   isAgentTerminalRemoteEnabled,

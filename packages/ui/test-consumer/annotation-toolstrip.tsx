@@ -1,7 +1,7 @@
 import {
   AnnotationToolstrip,
   type AnnotationToolstripProps,
-} from '@plannotator/ui/components/AnnotationToolstrip';
+} from '@hypermark/ui/components/AnnotationToolstrip';
 
 /** Compile-only proof that the published subpath exposes the additive opt-out. */
 export function PublishedAnnotationToolstripConsumer(

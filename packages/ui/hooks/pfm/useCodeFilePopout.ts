@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { parseCodePath } from "@plannotator/core/code-file";
+import { parseCodePath } from "@hypermark/core/code-file";
 
 interface CodeFileState {
   filepath: string;

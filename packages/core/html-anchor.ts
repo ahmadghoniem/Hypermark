@@ -1,16 +1,16 @@
 /**
  * Raw-HTML annotation anchors: the pure, host-facing helpers a consumer of
- * `@plannotator/ui`'s HtmlViewer needs on either side of its own storage.
+ * `@hypermark/ui`'s HtmlViewer needs on either side of its own storage.
  *
  * - `buildPersistedHtmlAnchor` trims a composed comment's anchor into a
  *   bounded record a host can persist (target cap, byte budget).
  * - `projectHostThreads` projects stored host rows back onto the viewer's
  *   `annotations` prop shape, in the order that becomes the marker numbering.
  *
- * Browser-safe and dependency-free (this package is `@plannotator/core`).
+ * Browser-safe and dependency-free (this package is `@hypermark/core`).
  * The types below are structurally identical to `HtmlElementAnchor` and
- * `HtmlAnnotationTarget` in `@plannotator/ui/types`; the validators mirror
- * the caps `@plannotator/ui` enforces at its own parent trust boundary
+ * `HtmlAnnotationTarget` in `@hypermark/ui/types`; the validators mirror
+ * the caps `@hypermark/ui` enforces at its own parent trust boundary
  * (`components/html-viewer/useHtmlAnnotation.ts`), so nothing persisted here
  * is ever refused on read.
  */
@@ -33,13 +33,13 @@ export interface HtmlAnnotationTarget {
   anchor?: HtmlElementAnchor;
 }
 
-/** Mirrors `MAX_ANCHOR_SELECTOR_LENGTH` in `@plannotator/ui`. */
+/** Mirrors `MAX_ANCHOR_SELECTOR_LENGTH` in `@hypermark/ui`. */
 export const MAX_HTML_ANCHOR_SELECTOR_LENGTH = 1024;
-/** Mirrors `MAX_ANCHOR_TAG_LENGTH` in `@plannotator/ui`. */
+/** Mirrors `MAX_ANCHOR_TAG_LENGTH` in `@hypermark/ui`. */
 export const MAX_HTML_ANCHOR_TAG_LENGTH = 64;
-/** Mirrors `MAX_ANCHOR_TEXT_LENGTH` in `@plannotator/ui` (the 400-char snapshot). */
+/** Mirrors `MAX_ANCHOR_TEXT_LENGTH` in `@hypermark/ui` (the 400-char snapshot). */
 export const MAX_HTML_ANCHOR_TEXT_LENGTH = 400;
-/** Mirrors `MAX_TARGET_LABEL_LENGTH` in `@plannotator/ui`. */
+/** Mirrors `MAX_TARGET_LABEL_LENGTH` in `@hypermark/ui`. */
 export const MAX_HTML_TARGET_LABEL_LENGTH = 64;
 /**
  * Persisted bound for an additional target's display text: the anchor
@@ -47,7 +47,7 @@ export const MAX_HTML_TARGET_LABEL_LENGTH = 64;
  * draft-sized texts alone would blow a 16 KiB anchor budget).
  */
 export const MAX_HTML_TARGET_TEXT_LENGTH = 400;
-/** Mirrors `MAX_ADDITIONAL_TARGETS` in `@plannotator/ui` (the draft cap). */
+/** Mirrors `MAX_ADDITIONAL_TARGETS` in `@hypermark/ui` (the draft cap). */
 export const MAX_HTML_ADDITIONAL_TARGETS = 16;
 /** Default byte budget for a persisted anchor (16 KiB of UTF-8 JSON). */
 export const DEFAULT_HTML_ANCHOR_MAX_BYTES = 16 * 1024;
@@ -304,10 +304,10 @@ export interface ProjectHostThreadsOptions {
 
 /**
  * The viewer-facing annotation shape, structurally the `Annotation` of
- * `@plannotator/ui/types` restricted to what the raw-HTML surface reads:
+ * `@hypermark/ui/types` restricted to what the raw-HTML surface reads:
  * paint fields (`originalText`, `htmlAnchor`, `htmlAdditionalTargets`), the
  * type that decides marker versus document-level card, and the optional
- * presentational fields. `@plannotator/ui` re-exports the projection typed
+ * presentational fields. `@hypermark/ui` re-exports the projection typed
  * as `Annotation[]`.
  */
 export interface ProjectedHostAnnotation {

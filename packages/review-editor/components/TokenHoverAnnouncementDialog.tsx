@@ -1,15 +1,15 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { configStore, useConfigValue } from '@plannotator/ui/config';
-import { modKeyWord } from '@plannotator/ui/utils/platform';
-import type { CodeNavHoverResponse, CodeNavRequest } from '@plannotator/shared/code-nav';
+import { configStore, useConfigValue } from '@hypermark/ui/config';
+import { modKeyWord } from '@hypermark/ui/utils/platform';
+import type { CodeNavHoverResponse, CodeNavRequest } from '@hypermark/shared/code-nav';
 import { TokenHoverCard } from './TokenHoverCard';
 import { useTokenHover } from '../hooks/useTokenHover';
 import { TOKEN_HOVER_UNDERLINE_STYLE } from './tokenHoverStyles';
 import {
   TOKEN_HOVER_TRIGGERS,
   type TokenHoverTrigger,
-} from '@plannotator/shared/token-hover';
+} from '@hypermark/shared/token-hover';
 
 /**
  * One-time hover card announcement, in the same big-format shell as

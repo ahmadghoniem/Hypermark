@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import type { SourceSaveCapability } from '@plannotator/shared/source-save';
+import type { SourceSaveCapability } from '@hypermark/shared/source-save';
 
 export type EnabledSourceSaveCapability = Extract<SourceSaveCapability, { enabled: true }>;
 

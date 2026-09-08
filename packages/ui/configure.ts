@@ -72,14 +72,14 @@ export interface PlannotatorUIConfig {
    * first math node renders. Default: `import('katex')` (JS only; the
    * stylesheet stays the host's job). A host that wants KaTeX and its CSS on
    * one lazy chunk passes a loader that imports both. Hosts that want math
-   * typeset on the first commit instead import `@plannotator/ui/utils/math-eager`.
+   * typeset on the first commit instead import `@hypermark/ui/utils/math-eager`.
    */
   mathRendererLoader?: MathRendererLoader;
   /**
    * Synchronous generator for the default "tater" display name, used only when
    * no `identityProvider` is installed. Default: a small built-in pool of the
    * same `adjective-noun-tater` shape. Plannotator registers the full
-   * dictionary by importing `@plannotator/ui/utils/identity-tater`.
+   * dictionary by importing `@hypermark/ui/utils/identity-tater`.
    */
   identityGenerator?: IdentityGenerator;
   /** Re-hydrate settings from the installed (SYNCHRONOUS) storageBackend after install. */

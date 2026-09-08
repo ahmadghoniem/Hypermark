@@ -1,4 +1,4 @@
-import type { SidebarTab } from '@plannotator/ui/hooks/useSidebar';
+import type { SidebarTab } from '@hypermark/ui/hooks/useSidebar';
 
 /**
  * The compact Plan shell presents one foreground task at a time. Navigator,

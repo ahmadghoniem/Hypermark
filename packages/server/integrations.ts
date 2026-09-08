@@ -20,8 +20,8 @@ import {
 	buildHashtags,
 	buildBearContent,
 	detectObsidianVaults,
-} from "@plannotator/shared/integrations-common";
-import { resolveUserPath } from "@plannotator/shared/resolve-file";
+} from "@hypermark/shared/integrations-common";
+import { resolveUserPath } from "@hypermark/shared/resolve-file";
 
 export type { ObsidianConfig, BearConfig, OctarineConfig, IntegrationResult };
 export { detectObsidianVaults, extractTitle, generateFrontmatter, generateFilename, generateOctarineFrontmatter, stripH1, buildHashtags, buildBearContent };

@@ -9,8 +9,8 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { ReviewCallFlowPanel } from './ReviewCallFlowPanel';
 import { ReviewStateProvider, type ReviewState } from '../ReviewStateContext';
-import type { CallFlowAdvert, CallFlowInstallStatus } from '@plannotator/shared/call-flow-types';
-import type { CallFlowLanguageId } from '@plannotator/shared/call-flow-languages';
+import type { CallFlowAdvert, CallFlowInstallStatus } from '@hypermark/shared/call-flow-types';
+import type { CallFlowLanguageId } from '@hypermark/shared/call-flow-languages';
 
 const hasDom = typeof document !== 'undefined';
 let host: HTMLDivElement | null = null;

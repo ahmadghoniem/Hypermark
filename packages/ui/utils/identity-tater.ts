@@ -9,7 +9,7 @@
  * that wants the full dictionary without its own identity provider imports it
  * too:
  *
- *   import '@plannotator/ui/utils/identity-tater';
+ *   import '@hypermark/ui/utils/identity-tater';
  *
  * A host that provides `identityProvider` never calls the generator and should
  * NOT import this, so the word lists stay out of its bundle.

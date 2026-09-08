@@ -10,7 +10,7 @@
  * it because it never renders a Mermaid block; adding the runtime there would
  * grow that bundle. A host that wants the same import adds:
  *
- *   import '@plannotator/ui/utils/mermaid-eager';
+ *   import '@hypermark/ui/utils/mermaid-eager';
  *
  * A host that does not import it gets the lazy path in `./mermaid`.
  *

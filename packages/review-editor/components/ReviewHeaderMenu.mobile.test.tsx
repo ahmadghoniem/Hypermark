@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, mock, test } from 'bun:test';
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { ThemeProvider } from '@plannotator/ui/components/ThemeProvider';
+import { ThemeProvider } from '@hypermark/ui/components/ThemeProvider';
 import { ReviewHeaderMenu } from './ReviewHeaderMenu';
 
 const hasDom = typeof document !== 'undefined';

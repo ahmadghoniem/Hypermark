@@ -1,4 +1,4 @@
-import type { SourceSaveCapability } from '@plannotator/shared/source-save';
+import type { SourceSaveCapability } from '@hypermark/shared/source-save';
 
 type EnabledSourceSaveCapability = Extract<SourceSaveCapability, { enabled: true }>;
 

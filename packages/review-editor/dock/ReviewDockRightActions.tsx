@@ -1,6 +1,6 @@
 import React from 'react';
 import type { IDockviewHeaderActionsProps } from 'dockview-react';
-import { configStore, useConfigValue } from '@plannotator/ui/config';
+import { configStore, useConfigValue } from '@hypermark/ui/config';
 import { DiffOptionsPopover } from '../components/DiffOptionsPopover';
 import { useReviewStateOptional } from './ReviewStateContext';
 import { REVIEW_ALL_FILES_PANEL_ID } from './reviewPanelTypes';

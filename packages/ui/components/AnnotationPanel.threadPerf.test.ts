@@ -8,7 +8,7 @@
  * shared root-timestamp resolution) without a DOM.
  */
 import { describe, expect, test } from 'bun:test';
-import { resolveThreadRootTimestamps } from '@plannotator/core/annotation-threads';
+import { resolveThreadRootTimestamps } from '@hypermark/core/annotation-threads';
 import { AnnotationType, type Annotation } from '../types';
 import { threadReplies } from './AnnotationPanel';
 

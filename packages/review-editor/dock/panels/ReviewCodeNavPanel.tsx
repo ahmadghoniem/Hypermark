@@ -4,7 +4,7 @@ import { useReviewState } from '../ReviewStateContext';
 import { useCodeNavPreview, type PreviewData } from '../../hooks/useCodeNavPreview';
 import { HighlightedCode } from '../../components/HighlightedCode';
 import { detectLanguage } from '../../utils/detectLanguage';
-import type { CodeNavLocation } from '@plannotator/shared/code-nav';
+import type { CodeNavLocation } from '@hypermark/shared/code-nav';
 
 function basename(filePath: string): string {
   const i = filePath.lastIndexOf('/');

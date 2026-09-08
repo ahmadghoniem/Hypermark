@@ -1,6 +1,6 @@
 import { useState, useCallback, type RefObject } from 'react';
-import type { PRDiffScope } from '@plannotator/shared/pr-stack';
-import type { SemanticDiffAdvert } from '@plannotator/shared/semantic-diff-types';
+import type { PRDiffScope } from '@hypermark/shared/pr-stack';
+import type { SemanticDiffAdvert } from '@hypermark/shared/semantic-diff-types';
 
 export interface PRSwitchResponse {
   rawPatch: string;

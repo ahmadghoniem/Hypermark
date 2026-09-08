@@ -1,4 +1,4 @@
-import type { CodeAnnotation, SelectedLineRange } from '@plannotator/ui/types';
+import type { CodeAnnotation, SelectedLineRange } from '@hypermark/ui/types';
 
 /**
  * True when an annotation belongs to the active PR + diff-scope (or carries no

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import { applyHighlight } from '@plannotator/ui/utils/codeHighlight';
-import { useFenceTheme } from '@plannotator/ui/hooks/useFenceTheme';
+import { applyHighlight } from '@hypermark/ui/utils/codeHighlight';
+import { useFenceTheme } from '@hypermark/ui/hooks/useFenceTheme';
 
 /**
  * A single highlighted code element, rendered by the same Shiki instance and in

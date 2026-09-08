@@ -7,7 +7,7 @@ import {
   createJjProvider,
   createVcsApi,
   resolveInitialDiffType,
-} from "@plannotator/shared/vcs-core";
+} from "@hypermark/shared/vcs-core";
 import {
   detectP4Workspace,
   getP4Context,
@@ -72,7 +72,7 @@ export type {
   VcsProvider,
   VcsSelection,
   WorktreeInfo,
-} from "@plannotator/shared/vcs-core";
+} from "@hypermark/shared/vcs-core";
 
 export {
   JJ_TRUNK_REVSET,
@@ -82,4 +82,4 @@ export {
   parseRemoteBookmark,
   parseWorktreeDiffType,
   validateFilePath,
-} from "@plannotator/shared/vcs-core";
+} from "@hypermark/shared/vcs-core";

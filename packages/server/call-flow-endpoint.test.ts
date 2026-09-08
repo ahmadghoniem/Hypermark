@@ -9,7 +9,7 @@ import { startReviewServer as startBunReviewServer } from './review';
 // sandboxes genuinely isolate settings POSTs. Snapshot the real config anyway
 // as a safety net: a regression back to a process-frozen config path must not
 // corrupt the developer's real configuration.
-const { getPlannotatorDataDir } = await import('@plannotator/shared/data-dir');
+const { getPlannotatorDataDir } = await import('@hypermark/shared/data-dir');
 const realConfigPath = join(getPlannotatorDataDir(), 'config.json');
 let realConfigSnapshot: Buffer | null = null;
 try {

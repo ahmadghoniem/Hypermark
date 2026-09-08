@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { altKey } from '@plannotator/ui/utils/platform';
+import { altKey } from '@hypermark/ui/utils/platform';
 
 interface DestinationSpotlightProps {
   /** The destination-switcher button to highlight. */

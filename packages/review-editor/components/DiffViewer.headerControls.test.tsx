@@ -14,7 +14,7 @@ import React from 'react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-const realResolveSyntaxTheme = (await import('@plannotator/ui/utils/syntaxTheme')).resolveSyntaxTheme;
+const realResolveSyntaxTheme = (await import('@hypermark/ui/utils/syntaxTheme')).resolveSyntaxTheme;
 
 mock.module('../workerPool', () => ({
   useIsWorkerPoolReadyOrDisabled: () => true,

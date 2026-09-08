@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { warmFileListCache } from "@plannotator/shared/resolve-file";
+import { warmFileListCache } from "@hypermark/shared/resolve-file";
 import { startAnnotateServer } from "./annotate";
 import { startPlannotatorServer } from "./index";
 

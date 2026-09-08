@@ -28,7 +28,7 @@ import type { DiffFile } from '../types';
 // SPREAD is load-bearing (mock.module rewrites the live module record).
 const realPierreDiffs = { ...(await import('@pierre/diffs')) };
 const realPierreDiffsReact = { ...(await import('@pierre/diffs/react')) };
-const realResolveSyntaxTheme = (await import('@plannotator/ui/utils/syntaxTheme')).resolveSyntaxTheme;
+const realResolveSyntaxTheme = (await import('@hypermark/ui/utils/syntaxTheme')).resolveSyntaxTheme;
 
 /** Item layout the fake viewer reports. Tops are absolute document offsets. */
 const ITEM_TOPS: Record<string, number> = {

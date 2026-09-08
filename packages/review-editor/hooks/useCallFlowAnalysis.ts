@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { CallFlowResponse } from '@plannotator/shared/call-flow-types';
+import type { CallFlowResponse } from '@hypermark/shared/call-flow-types';
 
 export type CallFlowAnalysisState =
   | { status: 'idle' | 'loading' }

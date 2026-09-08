@@ -4,7 +4,7 @@
  * (minLength / maxLength / enum), `integer` / `number` (minimum / maximum),
  * `boolean`, `array` (items / minItems / maxItems). Anything else passes.
  *
- * Pure and dependency-free so it can move to `@plannotator/core` untouched.
+ * Pure and dependency-free so it can move to `@hypermark/core` untouched.
  * Returns the first problem as one sentence for the model, or `null`.
  */
 

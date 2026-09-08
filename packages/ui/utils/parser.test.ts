@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { parseMarkdownToBlocks, computeListIndices, extractFrontmatter, exportAnnotations, resolveReferenceLinks } from "./parser";
-import { shouldStripFrontmatter } from "@plannotator/core/annotatable";
+import { shouldStripFrontmatter } from "@hypermark/core/annotatable";
 import type { Block } from "../types";
 
 /** Tiny factory for list-item blocks used by computeListIndices tests. */

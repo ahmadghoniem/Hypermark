@@ -4,17 +4,17 @@ import {
   ActionMenuDivider,
   ActionMenuItem,
   ActionMenuSectionLabel,
-} from '@plannotator/ui/components/ActionMenu';
-import { useTheme } from '@plannotator/ui/components/ThemeProvider';
-import { THEME_MODES } from '@plannotator/ui/components/themeModes';
-import { MenuVersionSection } from '@plannotator/ui/components/MenuVersionSection';
-import { ReviewAgentsIcon } from '@plannotator/ui/components/ReviewAgentsIcon';
-import { TextShimmer } from '@plannotator/ui/components/TextShimmer';
-import { GitHubIcon } from '@plannotator/ui/components/GitHubIcon';
-import { GitLabIcon } from '@plannotator/ui/components/GitLabIcon';
-import { modKey } from '@plannotator/ui/utils/platform';
-import type { UpdateInfo } from '@plannotator/ui/hooks/useUpdateCheck';
-import type { Origin } from '@plannotator/shared/agents';
+} from '@hypermark/ui/components/ActionMenu';
+import { useTheme } from '@hypermark/ui/components/ThemeProvider';
+import { THEME_MODES } from '@hypermark/ui/components/themeModes';
+import { MenuVersionSection } from '@hypermark/ui/components/MenuVersionSection';
+import { ReviewAgentsIcon } from '@hypermark/ui/components/ReviewAgentsIcon';
+import { TextShimmer } from '@hypermark/ui/components/TextShimmer';
+import { GitHubIcon } from '@hypermark/ui/components/GitHubIcon';
+import { GitLabIcon } from '@hypermark/ui/components/GitLabIcon';
+import { modKey } from '@hypermark/ui/utils/platform';
+import type { UpdateInfo } from '@hypermark/ui/hooks/useUpdateCheck';
+import type { Origin } from '@hypermark/shared/agents';
 
 export interface CompactReviewDestination {
   value: 'agent' | 'platform';

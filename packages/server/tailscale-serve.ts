@@ -34,7 +34,7 @@ import {
   runTailscale,
   TAILSCALE_SERVE_TIMEOUT_MS,
   type TailscaleRunner,
-} from "@plannotator/shared/tailscale";
+} from "@hypermark/shared/tailscale";
 
 const activePorts = new Set<number>();
 let exitCleanupInstalled = false;

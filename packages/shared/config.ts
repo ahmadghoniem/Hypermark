@@ -22,7 +22,7 @@ import {
 } from "fs";
 import { execSync } from "child_process";
 
-import type { DefaultDiffType, DiffLineBgIntensity, DiffOptions, ThemeConfig } from '@plannotator/core/config-types';
+import type { DefaultDiffType, DiffLineBgIntensity, DiffOptions, ThemeConfig } from '@hypermark/core/config-types';
 import { isFaviconStyle, type FaviconStyle } from './favicon';
 import { isAnnotateAgentTerminalSide, type AnnotateAgentTerminalSide } from './agent-terminal';
 export type { DefaultDiffType, DiffLineBgIntensity, DiffOptions, ThemeConfig, FaviconStyle };
@@ -128,7 +128,7 @@ export interface PlannotatorConfig {
    * annotate session runs on its own random port — a cookie alone would make
    * the choice per-session rather than per-user.
    *
-   * Typed from @plannotator/core rather than restating the union, so this
+   * Typed from @hypermark/core rather than restating the union, so this
    * field and `isAgentTerminalSide` cannot disagree with the client-side
    * placement logic about which sides exist.
    */
@@ -551,7 +551,7 @@ export function getServerConfig(gitUser: string | null): {
  * resolved default instead of adopting a side that does not exist.
  *
  * The set of sides has exactly one definition, `AnnotateAgentTerminalSide` in
- * @plannotator/core: `PlannotatorConfig.agentTerminalSide` IS that type and
+ * @hypermark/core: `PlannotatorConfig.agentTerminalSide` IS that type and
  * this predicate delegates to that module's guard, so neither the union nor
  * its membership test can drift on one side of the boundary. Direct import
  * rather than a duplicated literal check: the Pi vendor step rewrites the

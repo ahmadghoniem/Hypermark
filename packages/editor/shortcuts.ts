@@ -16,7 +16,7 @@ import {
   inputMethodShortcuts,
   viewerShortcuts,
   type ShortcutSurface,
-} from '@plannotator/ui/shortcuts';
+} from '@hypermark/ui/shortcuts';
 
 export const planEditorShortcuts = defineShortcutScope({
   id: 'plan-editor',

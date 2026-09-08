@@ -6,7 +6,7 @@
 
 - Added: `@base-ui/react ^1.6.0` (dependency), `@types/react` / `@types/react-dom` `^19.2.0` (devDependencies, new — see gates note).
 - Removed (7): `@radix-ui/react-checkbox`, `-collapsible`, `-context-menu`, `-dialog`, `-dropdown-menu`, `-popover`, `-tooltip`.
-  - **Never imported anywhere: `-collapsible`, `-dialog`, `-tooltip`** — dead dependencies removed without a code change. (The package's dialogs/tooltips come from `@plannotator/ui` or hand-rolled CSS, not from these deps.)
+  - **Never imported anywhere: `-collapsible`, `-dialog`, `-tooltip`** — dead dependencies removed without a code change. (The package's dialogs/tooltips come from `@hypermark/ui` or hand-rolled CSS, not from these deps.)
 - `bun.lock` regenerated. Note: the committed lock was already stale vs several package.jsons at HEAD (any install rewrites it); the first migration commit absorbed that pre-existing drift.
 
 ## Components migrated
@@ -33,9 +33,9 @@
 
 ## Boundary
 
-`packages/ui` is being migrated in parallel by another agent: not touched (verified via git status), and imports of `@plannotator/ui` from this package (Tooltip in DiffTypePicker, others in DiffOptionsPopover/StackedPRLabel/PRCommentsTab) were left exactly as-is — that seam is the other migration's contract.
+`packages/ui` is being migrated in parallel by another agent: not touched (verified via git status), and imports of `@hypermark/ui` from this package (Tooltip in DiffTypePicker, others in DiffOptionsPopover/StackedPRLabel/PRCommentsTab) were left exactly as-is — that seam is the other migration's contract.
 
-**Coordination note for the ui migration**: three call sites here pass Radix-vocabulary props through @plannotator/ui's Tooltip wrapper API — `delayDuration` (FileRowBits.tsx:21, DiffTypePicker.tsx:106) and `delayDuration`/`skipDelayDuration` on TooltipProvider (App.tsx:2651). If the ui package's migration renames its wrapper props (Base UI uses `delay`), these call sites need a one-line consumer sweep; if the wrapper keeps its prop names and maps internally, nothing to do. Check against the ui package's 0.23.0 HANDOFF notes.
+**Coordination note for the ui migration**: three call sites here pass Radix-vocabulary props through @hypermark/ui's Tooltip wrapper API — `delayDuration` (FileRowBits.tsx:21, DiffTypePicker.tsx:106) and `delayDuration`/`skipDelayDuration` on TooltipProvider (App.tsx:2651). If the ui package's migration renames its wrapper props (Base UI uses `delay`), these call sites need a one-line consumer sweep; if the wrapper keeps its prop names and maps internally, nothing to do. Check against the ui package's 0.23.0 HANDOFF notes.
 
 ## Deliberately left for a human to eyeball
 

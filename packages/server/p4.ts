@@ -12,7 +12,7 @@ import {
   type GitContext,
   parseP4DiffType,
   validateFilePath,
-} from "@plannotator/shared/review-core";
+} from "@hypermark/shared/review-core";
 
 // --- P4 command runner ---
 

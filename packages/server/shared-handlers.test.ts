@@ -10,7 +10,7 @@ import {
   writeServerReadyMetadata,
 } from "./shared-handlers";
 import { saveConfig } from "./config";
-import { CLASSIC_FAVICON_SVG, FAVICON_PNG_BYTES } from "@plannotator/shared/favicon";
+import { CLASSIC_FAVICON_SVG, FAVICON_PNG_BYTES } from "@hypermark/shared/favicon";
 
 function saveNotesRequest(body: unknown): Request {
   return new Request("http://localhost/api/save-notes", {

@@ -114,9 +114,9 @@ describe("parseAnnotateArgs", () => {
   });
 
   test("scoped-package-style path: filePath stripped, rawFilePath literal", () => {
-    expect(parseAnnotateArgs("@plannotator/ui/README.md")).toEqual({
+    expect(parseAnnotateArgs("@hypermark/ui/README.md")).toEqual({
       filePath: "plannotator/ui/README.md",
-      rawFilePath: "@plannotator/ui/README.md",
+      rawFilePath: "@hypermark/ui/README.md",
       gate: false,
       json: false,
       hook: false,

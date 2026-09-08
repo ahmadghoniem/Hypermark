@@ -1,7 +1,7 @@
 // This test guards the supported consumer surface. A regression would force a
-// host to import package internals or @plannotator/core directly.
+// host to import package internals or @hypermark/core directly.
 import { describe, expect, test } from 'bun:test';
-import { planEmbedInsert as corePlanEmbedInsert } from '@plannotator/core/embed-insert';
+import { planEmbedInsert as corePlanEmbedInsert } from '@hypermark/core/embed-insert';
 
 import {
   embedPicker,

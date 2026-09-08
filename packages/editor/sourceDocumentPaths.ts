@@ -1,13 +1,13 @@
 import {
   dirnameBrowserPath,
   normalizeBrowserPath,
-} from '@plannotator/shared/browser-paths';
+} from '@hypermark/shared/browser-paths';
 
 export {
   dirnameBrowserPath,
   normalizeBrowserPath,
   pathIsInsideDir,
-} from '@plannotator/shared/browser-paths';
+} from '@hypermark/shared/browser-paths';
 
 export interface SourceWatchSubscription {
   query: string;

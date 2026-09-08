@@ -14,8 +14,8 @@ import { afterEach, beforeEach, describe, expect, jest, test } from 'bun:test';
 import React from 'react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { CodeNavHoverResponse, CodeNavRequest } from '@plannotator/shared/code-nav';
-import { isMac, modEventKey } from '@plannotator/ui/utils/platform';
+import type { CodeNavHoverResponse, CodeNavRequest } from '@hypermark/shared/code-nav';
+import { isMac, modEventKey } from '@hypermark/ui/utils/platform';
 import {
   useTokenHover,
   type UseTokenHoverOptions,

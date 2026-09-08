@@ -9,8 +9,8 @@ import {
   resetSkillContentTransport,
   setSkillCatalogTransport,
   setSkillContentTransport,
-} from '@plannotator/ui/utils/skillCatalog';
-import type { SkillCatalogEntry } from '@plannotator/ui/utils/skillReferences';
+} from '@hypermark/ui/utils/skillCatalog';
+import type { SkillCatalogEntry } from '@hypermark/ui/utils/skillReferences';
 import { useEditableDocuments } from './editableDocuments';
 
 const hasDom = typeof document !== 'undefined';

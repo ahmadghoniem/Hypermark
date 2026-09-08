@@ -1,7 +1,7 @@
 import React from 'react';
 import { AnnotatableDescription } from './AnnotatableDescription';
 import { MarkdownBody } from './MarkdownBody';
-import type { PRContext, PRMetadata } from '@plannotator/shared/pr-types';
+import type { PRContext, PRMetadata } from '@hypermark/shared/pr-types';
 
 interface PRSummaryTabProps {
   context: PRContext;

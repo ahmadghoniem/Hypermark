@@ -1,22 +1,22 @@
 import React, { useMemo, useRef, useEffect, useLayoutEffect, useCallback, useState } from 'react';
 import { FileDiff, type DiffLineAnnotation } from '@pierre/diffs/react';
 import { getSingularPatch, processFile } from '@pierre/diffs';
-import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, DiffAnnotationMetadata, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration } from '@plannotator/ui/types';
+import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, DiffAnnotationMetadata, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration } from '@hypermark/ui/types';
 import type { DiffTokenEventBaseProps } from '@pierre/diffs';
 import { usePierreTheme } from '../hooks/usePierreTheme';
 import { useWorkerPoolThemeSync } from '../workerPool';
-import { CommentPopover } from '@plannotator/ui/components/CommentPopover';
-import { storage } from '@plannotator/ui/utils/storage';
+import { CommentPopover } from '@hypermark/ui/components/CommentPopover';
+import { storage } from '@hypermark/ui/utils/storage';
 import { detectLanguage } from '../utils/detectLanguage';
 import { buildCodeNavRequest } from '../utils/buildCodeNavRequest';
 import { ToolbarHost, type ToolbarHostHandle } from './ToolbarHost';
-import { OverlayScrollArea } from '@plannotator/ui/components/OverlayScrollArea';
-import { useOverlayViewport } from '@plannotator/ui/hooks/useOverlayViewport';
+import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';
+import { useOverlayViewport } from '@hypermark/ui/hooks/useOverlayViewport';
 import { FileHeader } from './FileHeader';
 import { BinaryFileNotice } from './BinaryFileNotice';
 import { FileCommentBanner } from './FileCommentBanner';
 import { OversizedFileNotice } from './OversizedFileNotice';
-import { isContentlessBinaryPatch, isOversizedReviewStubPatch } from '@plannotator/shared/diff-paths';
+import { isContentlessBinaryPatch, isOversizedReviewStubPatch } from '@hypermark/shared/diff-paths';
 import { isFileScopedAnnotation, lineRangeForAnnotation } from '../utils/annotationScope';
 import { lineAnnotationMetadata } from '../utils/annotationDisplay';
 import type { AnnotationScrollTarget } from '../types';
@@ -208,7 +208,7 @@ interface DiffViewerProps {
   activeSearchMatchId?: string | null;
   activeSearchMatch?: ReviewSearchMatch | null;
   // Code navigation
-  onCodeNavRequest?: (request: import('@plannotator/shared/code-nav').CodeNavRequest) => void;
+  onCodeNavRequest?: (request: import('@hypermark/shared/code-nav').CodeNavRequest) => void;
   /**
    * Token hover cards. Absent (the default) means the feature is not wired at
    * all. Deliberately raw: the view reports the token event and its file, and

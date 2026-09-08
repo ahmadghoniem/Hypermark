@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { CallFlowAnnotationTarget } from '@plannotator/ui/types';
+import type { CallFlowAnnotationTarget } from '@hypermark/ui/types';
 import type { DiffFile } from '../types';
 import { resolveCallFlowAnnotationPlacement } from './callFlowAnnotations';
 

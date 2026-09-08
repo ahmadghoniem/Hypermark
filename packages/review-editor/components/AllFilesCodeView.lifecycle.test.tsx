@@ -1,7 +1,7 @@
 import { afterAll, afterEach, describe, expect, mock, test } from 'bun:test';
 import React, { act, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { SelectedLineRange } from '@plannotator/ui/types';
+import type { SelectedLineRange } from '@hypermark/ui/types';
 import type { DiffFile } from '../types';
 
 let codeViewMounts = 0;
@@ -26,7 +26,7 @@ let toolbarSelections: Array<SelectedLineRange | null> = [];
 // any stub exists.
 const realPierreDiffs = { ...(await import('@pierre/diffs')) };
 const realPierreDiffsReact = { ...(await import('@pierre/diffs/react')) };
-const realResolveSyntaxTheme = (await import('@plannotator/ui/utils/syntaxTheme')).resolveSyntaxTheme;
+const realResolveSyntaxTheme = (await import('@hypermark/ui/utils/syntaxTheme')).resolveSyntaxTheme;
 
 mock.module('../workerPool', () => ({
   useIsWorkerPoolReadyOrDisabled: () => true,

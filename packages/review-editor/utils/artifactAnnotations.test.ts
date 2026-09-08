@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import type { CommentAnnotation } from '@plannotator/ui/types';
+import type { CommentAnnotation } from '@hypermark/ui/types';
 import {
   artifactAnchorLabel,
   commentAnnotationAsDocument,

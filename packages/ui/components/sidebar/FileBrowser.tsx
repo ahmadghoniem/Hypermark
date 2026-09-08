@@ -10,8 +10,8 @@ import { MagnifyingGlass, X } from "@phosphor-icons/react";
 import type { VaultNode } from "../../types";
 import type { DirState } from "../../hooks/useFileBrowser";
 import { CountBadge } from "./CountBadge";
-import type { WorkspaceFileChange, WorkspaceStatusPayload } from "@plannotator/core/workspace-status-types";
-import { normalizeBrowserPath } from "@plannotator/core/browser-paths";
+import type { WorkspaceFileChange, WorkspaceStatusPayload } from "@hypermark/core/workspace-status-types";
+import { normalizeBrowserPath } from "@hypermark/core/browser-paths";
 
 interface FileBrowserProps {
   dirs: DirState[];

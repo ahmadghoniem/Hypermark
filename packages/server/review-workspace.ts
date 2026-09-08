@@ -8,7 +8,7 @@ import {
 import {
   WorkspaceReviewSession,
   type WorkspaceReviewBuildOptions,
-} from "@plannotator/shared/review-workspace";
+} from "@hypermark/shared/review-workspace";
 
 export {
   WorkspaceReviewSession,
@@ -19,7 +19,7 @@ export {
   type WorkspaceDiffType,
   type WorkspaceRepoRuntimeState,
   type WorkspaceReviewPromptContext,
-} from "@plannotator/shared/review-workspace";
+} from "@hypermark/shared/review-workspace";
 
 export {
   aggregateWorkspacePatch,
@@ -27,7 +27,7 @@ export {
   prefixWorkspacePatchPaths as prefixPatchPaths,
   resolveWorkspaceFilePath,
   type WorkspacePatchAggregate,
-} from "@plannotator/shared/review-workspace-node";
+} from "@hypermark/shared/review-workspace-node";
 
 export type LocalWorkspaceReview = WorkspaceReviewSession;
 

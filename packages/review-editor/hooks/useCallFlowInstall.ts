@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { CallFlowInstallStatus } from '@plannotator/shared/call-flow-types';
-import type { CallFlowLanguageId } from '@plannotator/shared/call-flow-languages';
+import type { CallFlowInstallStatus } from '@hypermark/shared/call-flow-types';
+import type { CallFlowLanguageId } from '@hypermark/shared/call-flow-languages';
 
 export interface CallFlowInstallController {
   readonly status: CallFlowInstallStatus;

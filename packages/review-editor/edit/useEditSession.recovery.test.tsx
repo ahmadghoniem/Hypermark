@@ -19,7 +19,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { CodeViewHandle } from '@pierre/diffs/react';
 import type { CodeViewItem, FileDiffMetadata } from '@pierre/diffs';
-import type { DiffAnnotationMetadata } from '@plannotator/ui/types';
+import type { DiffAnnotationMetadata } from '@hypermark/ui/types';
 import type { DiffFile } from '../types';
 import { recoverDirtySessionHunks, useEditSession, type EditSessionApi } from './useEditSession';
 import type { SuggestionHunk } from './deriveSuggestions';

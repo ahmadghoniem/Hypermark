@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Prohibit, ChatCircleText, PencilSimple, PaperPlaneTilt } from '@phosphor-icons/react';
-import { TextShimmer } from '@plannotator/ui/components/TextShimmer';
+import { TextShimmer } from '@hypermark/ui/components/TextShimmer';
 import { EDIT_MODE_DEMO_POSTER_SRC, EDIT_MODE_DEMO_VIDEO_SRC } from './editModeDemoMedia';
 
 /**

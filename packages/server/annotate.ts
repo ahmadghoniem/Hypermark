@@ -13,18 +13,18 @@
 
 import { isRemoteSession, getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
 import { getRepoInfo } from "./repo";
-import type { Origin } from "@plannotator/shared/agents";
+import type { Origin } from "@hypermark/shared/agents";
 import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, handleReferenceSkills, handleReferenceSkillContent, handleSaveNotes, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
 import { handleDoc, handleDocExists, handleFileBrowserFiles, handleObsidianVaults, handleObsidianFiles, handleObsidianDoc, resolveAllowedDocPath, type FolderAnnotateHistory } from "./reference-handlers";
 import { closeAllFileBrowserWatchers, handleFileBrowserFilesStream } from "./reference-watch";
-import { getExtraMarkdownExtensions, MAX_ANNOTATABLE_FILE_BYTES, resolveUserPath, warmFileListCache } from "@plannotator/shared/resolve-file";
+import { getExtraMarkdownExtensions, MAX_ANNOTATABLE_FILE_BYTES, resolveUserPath, warmFileListCache } from "@hypermark/shared/resolve-file";
 import { contentHash, deleteDraft } from "./draft";
-import { getPlanVersion, getVersionCount, listVersions } from "@plannotator/shared/storage";
-import { computeAnnotateHistory, deriveAnnotateHistorySlug, persistAnnotateSubmission, type AnnotateHistoryResult } from "@plannotator/shared/annotate-history";
-import { htmlDiff } from "@plannotator/shared/html-diff";
-import { disabledSourceSave, type SourceSaveRequest } from "@plannotator/shared/source-save";
-import { getAnnotateReferenceRootPaths } from "@plannotator/shared/annotate-reference-roots-node";
-import { getAnnotateFileFeedbackTemplate, getAnnotateMessageFeedbackTemplate } from "@plannotator/shared/prompts";
+import { getPlanVersion, getVersionCount, listVersions } from "@hypermark/shared/storage";
+import { computeAnnotateHistory, deriveAnnotateHistorySlug, persistAnnotateSubmission, type AnnotateHistoryResult } from "@hypermark/shared/annotate-history";
+import { htmlDiff } from "@hypermark/shared/html-diff";
+import { disabledSourceSave, type SourceSaveRequest } from "@hypermark/shared/source-save";
+import { getAnnotateReferenceRootPaths } from "@hypermark/shared/annotate-reference-roots-node";
+import { getAnnotateFileFeedbackTemplate, getAnnotateMessageFeedbackTemplate } from "@hypermark/shared/prompts";
 import {
 	createSourceSaveCapability,
 	createSourceSaveCapabilityFromText,
@@ -32,7 +32,7 @@ import {
 	resolveFolderSourceFile,
 	resolveFolderSourceFileForSave,
 	saveSourceFileAtomic,
-} from "@plannotator/shared/source-save-node";
+} from "@hypermark/shared/source-save-node";
 import { createExternalAnnotationHandler } from "./external-annotations";
 import {
   ANNOTATE_CLIENT_LEASE_GRACE_MS,
@@ -41,14 +41,14 @@ import {
   createAnnotateClientLeaseStreamSession,
   createAnnotateClientLeaseTracker,
   type AnnotateClientLeaseStreamSession,
-} from "@plannotator/shared/annotate-client-lease";
-import { createAnnotateDecisionSettler } from "@plannotator/shared/annotate-decision";
+} from "@hypermark/shared/annotate-client-lease";
+import { createAnnotateDecisionSettler } from "@hypermark/shared/annotate-decision";
 import { saveConfig, detectGitUser, getServerConfig, isAgentTerminalSide, loadConfig, resolveAnnotateHistory, resolveFeedbackHistory } from "./config";
-import { appendFeedbackRecord, type FeedbackDecision, type FeedbackSurface } from "@plannotator/shared/feedback-archive";
-import { isFaviconStyle, type FaviconStyle } from "@plannotator/shared/favicon";
+import { appendFeedbackRecord, type FeedbackDecision, type FeedbackSurface } from "@hypermark/shared/feedback-archive";
+import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
 import { existsSync } from "fs";
 import { dirname, resolve as resolvePath } from "path";
-import { isWithinDirectory } from "@plannotator/shared/html-assets-node";
+import { isWithinDirectory } from "@hypermark/shared/html-assets-node";
 import { isWSL } from "./browser";
 import { handleOpenInApps, handleOpenIn } from "./open-in";
 import { createHtmlAssetRegistry } from "./html-assets";
@@ -59,9 +59,9 @@ import {
   buildLiveEditorOrigins,
   composeLiveBridgeJs,
   liveAppDraftIdentity,
-} from "@plannotator/shared/live-proxy-core";
+} from "@hypermark/shared/live-proxy-core";
 import { randomBytes } from "node:crypto";
-import { isAgentTerminalWsRoute, supportsAnnotateAgentTerminalMode } from "@plannotator/shared/agent-terminal";
+import { isAgentTerminalWsRoute, supportsAnnotateAgentTerminalMode } from "@hypermark/shared/agent-terminal";
 
 // Re-export utilities
 export { isRemoteSession, getServerPort } from "./remote";
@@ -86,7 +86,7 @@ export interface AnnotateServerOptions {
    * Live local app annotation (mode "annotate-app"): the server starts a
    * loopback reverse proxy mirroring targetUrl and serves the composed
    * bridge body from it. The caller supplies the bridge sources (this
-   * package deliberately does not import @plannotator/ui); the server owns
+   * package deliberately does not import @hypermark/ui); the server owns
    * the per-session token. Refused outright in remote mode.
    */
   liveApp?: {
@@ -206,7 +206,7 @@ export function runGuardedShutdown(
 // Stable identity for a live app session's annotation draft — moved to the
 // shared live-proxy core so the Pi mirror keys drafts identically; re-exported
 // here for existing import sites.
-export { liveAppDraftIdentity } from "@plannotator/shared/live-proxy-core";
+export { liveAppDraftIdentity } from "@hypermark/shared/live-proxy-core";
 
 /**
  * Start the Annotate server

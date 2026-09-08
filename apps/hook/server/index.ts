@@ -74,76 +74,76 @@
 import {
   startPlannotatorServer,
   handleServerReady,
-} from "@plannotator/server";
+} from "@hypermark/server";
 import {
   startReviewServer,
   handleReviewServerReady,
-} from "@plannotator/server/review";
+} from "@hypermark/server/review";
 import {
   startAnnotateServer,
   handleAnnotateServerReady,
   isRemoteSession,
-} from "@plannotator/server/annotate";
+} from "@hypermark/server/annotate";
 import {
   startGoalSetupServer,
   handleGoalSetupServerReady,
-} from "@plannotator/server/goal-setup";
-import { type DiffType, detectManagedVcs, prepareLocalReviewDiff, gitRuntime } from "@plannotator/server/vcs";
-import { loadConfig, resolveDefaultDiffType } from "@plannotator/shared/config";
-import { parseReviewArgs } from "@plannotator/shared/review-args";
+} from "@hypermark/server/goal-setup";
+import { type DiffType, detectManagedVcs, prepareLocalReviewDiff, gitRuntime } from "@hypermark/server/vcs";
+import { loadConfig, resolveDefaultDiffType } from "@hypermark/shared/config";
+import { parseReviewArgs } from "@hypermark/shared/review-args";
 import {
   normalizeGoalSetupBundle,
   type GoalSetupStage,
-} from "@plannotator/shared/goal-setup";
+} from "@hypermark/shared/goal-setup";
 import {
   buildAmbiguousAnnotateArgsMessage,
   buildUnresolvedAnnotateArgsMessage,
   probeAnnotateToken,
   selectAnnotateTokenTarget,
-} from "@plannotator/shared/annotate-target";
-import { createWorktreePool, type WorktreePool, type PoolEntry } from "@plannotator/shared/worktree-pool";
-import { parsePRUrl, checkPRAuth, fetchPR, getCliName, getCliInstallUrl, getMRLabel, getMRNumberLabel, getDisplayRepo } from "@plannotator/server/pr";
-import { enableTailscaleServe } from "@plannotator/server/tailscale-serve";
-import { writeUrlQr } from "@plannotator/server/qr";
+} from "@hypermark/shared/annotate-target";
+import { createWorktreePool, type WorktreePool, type PoolEntry } from "@hypermark/shared/worktree-pool";
+import { parsePRUrl, checkPRAuth, fetchPR, getCliName, getCliInstallUrl, getMRLabel, getMRNumberLabel, getDisplayRepo } from "@hypermark/server/pr";
+import { enableTailscaleServe } from "@hypermark/server/tailscale-serve";
+import { writeUrlQr } from "@hypermark/server/qr";
 import { resolveAnnotateTarget } from "./annotate-resolution";
-import { LIVE_APP_REMOTE_MESSAGE } from "@plannotator/shared/live-probe";
+import { LIVE_APP_REMOTE_MESSAGE } from "@hypermark/shared/live-probe";
 // Bridge sources for live app sessions: the CLI supplies them so
-// @plannotator/server never imports @plannotator/ui (mirrors the existing
+// @hypermark/server never imports @hypermark/ui (mirrors the existing
 // htmlContent precedent).
 import {
   ANNOTATION_HIGHLIGHT_CSS,
   BRIDGE_SCRIPT,
   LIVE_BRIDGE_BOOTSTRAP,
-} from "@plannotator/ui/components/html-viewer/bridge-script";
+} from "@hypermark/ui/components/html-viewer/bridge-script";
 import { rmSync, realpathSync, existsSync } from "fs";
-import { parseRemoteUrl } from "@plannotator/shared/repo";
+import { parseRemoteUrl } from "@hypermark/shared/repo";
 import {
   composeReviewApprovedMessage,
   getReviewDeniedSuffix,
   getPlanDeniedPrompt,
   getPlanToolName,
   buildPlanFileRule,
-} from "@plannotator/shared/prompts";
+} from "@hypermark/shared/prompts";
 import { supportsReviewApprovalNotes } from "./review-output";
-import { registerSession, unregisterSession, listSessions } from "@plannotator/server/sessions";
-import { openBrowser } from "@plannotator/server/browser";
-import { installAgentTerminalRuntime } from "@plannotator/server/agent-terminal-runtime";
-import { installCallFlowRuntime } from "@plannotator/shared/call-flow";
+import { registerSession, unregisterSession, listSessions } from "@hypermark/server/sessions";
+import { openBrowser } from "@hypermark/server/browser";
+import { installAgentTerminalRuntime } from "@hypermark/server/agent-terminal-runtime";
+import { installCallFlowRuntime } from "@hypermark/shared/call-flow";
 import {
   createDefaultUninstallEnvironment,
   formatPurgeWarning,
   formatUninstallResult,
   runPlannotatorUninstall,
-} from "@plannotator/server/uninstall";
-import { detectProjectName } from "@plannotator/server/project";
-import { hostnameOrFallback } from "@plannotator/shared/project";
-import { readImprovementHook } from "@plannotator/shared/improvement-hooks";
-import { composeImproveContext } from "@plannotator/shared/pfm-reminder";
+} from "@hypermark/server/uninstall";
+import { detectProjectName } from "@hypermark/server/project";
+import { hostnameOrFallback } from "@hypermark/shared/project";
+import { readImprovementHook } from "@hypermark/shared/improvement-hooks";
+import { composeImproveContext } from "@hypermark/shared/pfm-reminder";
 import {
   waitForPlanReviewCloseDelay,
   waitForPlanReviewDecision,
-} from "@plannotator/shared/plan-review-lifecycle";
-import { AGENT_CONFIG, type Origin } from "@plannotator/shared/agents";
+} from "@hypermark/shared/plan-review-lifecycle";
+import { AGENT_CONFIG, type Origin } from "@hypermark/shared/agents";
 import {
   findDroidSessionLogsByAncestorWalk,
   findDroidSessionLogsForCwd,
@@ -182,7 +182,7 @@ import {
 import path from "path";
 import { tmpdir } from "os";
 import { createInterface } from "node:readline/promises";
-import { buildLocalWorkspaceReview, type WorkspaceDiffType } from "@plannotator/server/review-workspace";
+import { buildLocalWorkspaceReview, type WorkspaceDiffType } from "@hypermark/server/review-workspace";
 import {
   createAnnotateOutcomeEmitter,
   supportsAnnotateApprovalNotes,

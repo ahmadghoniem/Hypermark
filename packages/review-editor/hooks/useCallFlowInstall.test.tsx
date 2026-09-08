@@ -6,7 +6,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useCallFlowInstall } from './useCallFlowInstall';
-import type { CallFlowInstallStatus } from '@plannotator/shared/call-flow-types';
+import type { CallFlowInstallStatus } from '@hypermark/shared/call-flow-types';
 
 const hasDom = typeof document !== 'undefined';
 const originalFetch = globalThis.fetch;

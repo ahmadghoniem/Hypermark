@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { exportReviewFeedback } from "./exportFeedback";
-import type { CodeAnnotation } from "@plannotator/ui/types";
+import type { CodeAnnotation } from "@hypermark/ui/types";
 
 const ann = (overrides: Partial<CodeAnnotation> = {}): CodeAnnotation => ({
   id: "1",

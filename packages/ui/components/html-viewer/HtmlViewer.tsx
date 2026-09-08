@@ -98,7 +98,7 @@ export function formatBridgeUnavailableMessage(info: BridgeUnavailableInfo): str
     return `Annotation tools did not load: the bridge script at ${info.url} sent no ready signal within ${info.timeoutMs} ms. The page is shown without annotation. Check that the URL is reachable and that your Content Security Policy allows script-src for that origin.`;
   }
   const reported = info.reportedVersion === undefined ? "no version" : `version ${info.reportedVersion}`;
-  return `Annotation tools may not work: this viewer expects bridge protocol version ${info.expectedVersion}, but the script at ${info.url} reported ${reported}. Serve the bridge-script asset from the same @plannotator/ui version as the viewer.`;
+  return `Annotation tools may not work: this viewer expects bridge protocol version ${info.expectedVersion}, but the script at ${info.url} reported ${reported}. Serve the bridge-script asset from the same @hypermark/ui version as the viewer.`;
 }
 
 /** Inputs for the sandboxed raw-HTML viewer and its parent-side annotation UI. */

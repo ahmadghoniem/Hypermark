@@ -34,7 +34,7 @@ import {
   resetStorageBackend,
   setStorageBackend,
   type StorageBackend,
-} from "@plannotator/ui/utils/storage";
+} from "@hypermark/ui/utils/storage";
 
 // Vite-only virtual module (`?worker&inline`) — bun cannot resolve it, so the
 // pool hooks are stubbed exactly like AllFilesCodeView.lifecycle.test.tsx does.
@@ -43,9 +43,9 @@ mock.module("./workerPool", () => ({
   useWorkerPoolThemeSync: () => {},
 }));
 // Image assets only Vite can load; the values are never asserted.
-mock.module("@plannotator/ui/assets/workspaces.webp", () => ({ default: "workspaces.webp" }));
-mock.module("@plannotator/ui/assets/review-sections.png", () => ({ default: "review-sections.png" }));
-mock.module("@plannotator/ui/assets/review-tree.png", () => ({ default: "review-tree.png" }));
+mock.module("@hypermark/ui/assets/workspaces.webp", () => ({ default: "workspaces.webp" }));
+mock.module("@hypermark/ui/assets/review-sections.png", () => ({ default: "review-sections.png" }));
+mock.module("@hypermark/ui/assets/review-tree.png", () => ({ default: "review-tree.png" }));
 
 const hasDom = typeof document !== "undefined";
 

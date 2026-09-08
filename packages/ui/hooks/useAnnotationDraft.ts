@@ -16,7 +16,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { SourceSaveCapability } from '@plannotator/core/source-save';
+import type { SourceSaveCapability } from '@hypermark/core/source-save';
 import type { Annotation, CodeAnnotation, ImageAttachment } from '../types';
 import { fromShareable, parseShareableImages } from '../utils/annotationSerialization';
 import type { ShareableAnnotation } from '../utils/annotationSerialization';

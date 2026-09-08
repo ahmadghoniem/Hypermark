@@ -1,4 +1,4 @@
-import type { CodeAnnotation, DiffAnnotationMetadata } from '@plannotator/ui/types';
+import type { CodeAnnotation, DiffAnnotationMetadata } from '@hypermark/ui/types';
 import type { DiffLineAnnotation } from '@pierre/diffs';
 import { annotationMatchesPrScope } from './annotationScope';
 import { lineAnnotationMetadata } from './annotationDisplay';

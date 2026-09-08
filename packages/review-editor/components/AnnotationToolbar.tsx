@@ -4,15 +4,15 @@ import { ToolbarState } from '../hooks/useAnnotationToolbar';
 import { useTabIndent } from '../hooks/useTabIndent';
 import { formatLineRange, formatTokenContext } from '../utils/formatLineRange';
 import { ConventionalLabelPicker, type LabelDef } from './ConventionalLabelPicker';
-import type { ConventionalLabel, ConventionalDecoration, ImageAttachment } from '@plannotator/ui/types';
-import { useDraggable } from '@plannotator/ui/hooks/useDraggable';
+import type { ConventionalLabel, ConventionalDecoration, ImageAttachment } from '@hypermark/ui/types';
+import { useDraggable } from '@hypermark/ui/hooks/useDraggable';
 import {
   hasPrimaryCoarsePointer,
   useVisibleViewportBounds,
-} from '@plannotator/ui/hooks/useViewportEnvironment';
-import { AttachmentStrip, type PendingAttachment } from '@plannotator/ui/components/AttachmentStrip';
-import { AttachmentsButton } from '@plannotator/ui/components/AttachmentsButton';
-import { imageFilesFrom } from '@plannotator/ui/hooks/useAttachmentUploads';
+} from '@hypermark/ui/hooks/useViewportEnvironment';
+import { AttachmentStrip, type PendingAttachment } from '@hypermark/ui/components/AttachmentStrip';
+import { AttachmentsButton } from '@hypermark/ui/components/AttachmentsButton';
+import { imageFilesFrom } from '@hypermark/ui/hooks/useAttachmentUploads';
 
 interface AnnotationToolbarProps {
   toolbarState: ToolbarState;

@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import {
   useHtmlRefresh as usePublishedHtmlRefresh,
   type HtmlRefreshSnapshot,
-} from '@plannotator/ui/hooks/useHtmlRefresh';
+} from '@hypermark/ui/hooks/useHtmlRefresh';
 import { fetchHtmlDocumentSnapshot, type HtmlVersionDiffFields } from '../sourceDocumentClient';
 
 /** What a refresh hands the app: the bytes plus, for the root document, the

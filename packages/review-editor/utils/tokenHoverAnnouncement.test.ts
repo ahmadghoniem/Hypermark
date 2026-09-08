@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { resetStorageBackend, setStorageBackend } from '@plannotator/ui/utils/storage';
-import { configStore } from '@plannotator/ui/config';
+import { resetStorageBackend, setStorageBackend } from '@hypermark/ui/utils/storage';
+import { configStore } from '@hypermark/ui/config';
 import {
   markTokenHoverAnnouncementSeen,
   needsTokenHoverAnnouncement,

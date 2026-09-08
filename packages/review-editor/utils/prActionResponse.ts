@@ -4,7 +4,7 @@ import type {
   PRReviewRetry,
   PRReviewSubmissionPartial,
   PRReviewSubmissionResult,
-} from '@plannotator/shared/pr-types';
+} from '@hypermark/shared/pr-types';
 
 /** Parsed success payload returned by the review server's platform endpoint. */
 export interface PRActionSuccess {

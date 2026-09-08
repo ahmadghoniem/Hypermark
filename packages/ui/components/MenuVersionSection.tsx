@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TextShimmer } from './TextShimmer';
 import type { UpdateInfo } from '../hooks/useUpdateCheck';
-import type { Origin } from '@plannotator/core/agents';
+import type { Origin } from '@hypermark/core/agents';
 import { isWindows } from '../utils/platform';
 import { copyTextToClipboard } from '../utils/clipboard';
 

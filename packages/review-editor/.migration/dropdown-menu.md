@@ -12,7 +12,7 @@
 
 ## Left alone
 
-- The `Tooltip` inside each item comes from `@plannotator/ui` (Radix-based, being migrated in parallel by another agent) — import and `delayDuration` prop untouched; the seam is that package's wrapper API, not a raw Radix surface. The `stopPropagation` handlers on the info icon still suppress item activation with `onClick` semantics.
+- The `Tooltip` inside each item comes from `@hypermark/ui` (Radix-based, being migrated in parallel by another agent) — import and `delayDuration` prop untouched; the seam is that package's wrapper API, not a raw Radix surface. The `stopPropagation` handlers on the info icon still suppress item activation with `onClick` semantics.
 
 ## Behavior changes
 

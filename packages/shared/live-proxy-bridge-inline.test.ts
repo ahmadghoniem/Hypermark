@@ -10,7 +10,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-// Relative on purpose: @plannotator/ui is not a dependency of shared; only the
+// Relative on purpose: @hypermark/ui is not a dependency of shared; only the
 // CLI and Pi import the bridge module, and this test reads the same file.
 import { BRIDGE_SCRIPT, LIVE_BRIDGE_BOOTSTRAP } from "../ui/components/html-viewer/bridge-script";
 import {

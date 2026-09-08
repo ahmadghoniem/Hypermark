@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useConfigValue, setReviewPanelView, setReviewDefaultDiffType } from '@plannotator/ui/config';
-import { TextShimmer } from '@plannotator/ui/components/TextShimmer';
-import workspacesImg from '@plannotator/ui/assets/workspaces.webp';
-import sectionsImg from '@plannotator/ui/assets/review-sections.png';
-import treeImg from '@plannotator/ui/assets/review-tree.png';
+import { useConfigValue, setReviewPanelView, setReviewDefaultDiffType } from '@hypermark/ui/config';
+import { TextShimmer } from '@hypermark/ui/components/TextShimmer';
+import workspacesImg from '@hypermark/ui/assets/workspaces.webp';
+import sectionsImg from '@hypermark/ui/assets/review-sections.png';
+import treeImg from '@hypermark/ui/assets/review-tree.png';
 
 /**
  * Code-review setup chooser — same shell/structure as the plan app's
@@ -68,7 +68,7 @@ export const ReviewSetupDialog: React.FC<ReviewSetupDialogProps> = ({ isOpen, on
   if (!isOpen) return null;
 
   // Coupling (sections ⟺ since-base) lives in the shared setters — never
-  // write the pair by hand (see @plannotator/ui/config/reviewView).
+  // write the pair by hand (see @hypermark/ui/config/reviewView).
   const chooseView = (key: 'sections' | 'tree') => setReviewPanelView(key);
   const chooseDiff = (value: DiffChoice) => setReviewDefaultDiffType(value);
 

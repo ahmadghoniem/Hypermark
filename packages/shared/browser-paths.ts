@@ -1,1 +1,1 @@
-export * from '@plannotator/core/browser-paths';
+export * from '@hypermark/core/browser-paths';

@@ -36,7 +36,7 @@ import {
   WorkerPoolContextProvider,
   type CodeViewHandle,
 } from '@pierre/diffs/react';
-import type { DiffAnnotationMetadata } from '@plannotator/ui/types';
+import type { DiffAnnotationMetadata } from '@hypermark/ui/types';
 import type { DiffFile } from '../types';
 import { useEditSession, type EditSessionApi } from './useEditSession';
 

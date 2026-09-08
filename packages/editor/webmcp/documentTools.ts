@@ -10,8 +10,8 @@
  * unit-testable with a fake adapter and no DOM, and a host can build the
  * same adapter over its own document state.
  */
-import { AnnotationType, type Annotation, type Block } from '@plannotator/ui/types';
-import { generateId } from '@plannotator/ui/utils/generateId';
+import { AnnotationType, type Annotation, type Block } from '@hypermark/ui/types';
+import { generateId } from '@hypermark/ui/utils/generateId';
 import {
   AnnotationChangeTracker,
   BROWSER_AGENT_SOURCE,
@@ -28,7 +28,7 @@ import {
   type ToolError,
   type ToolSpec,
   type ToolsetHooks,
-} from '@plannotator/ui/webmcp';
+} from '@hypermark/ui/webmcp';
 import {
   ANNOTATION_TEXT_MAX,
   DEFAULT_MAX_CHARS,

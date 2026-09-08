@@ -13,7 +13,7 @@
 import {
   startReviewServer,
   handleReviewServerReady,
-} from "@plannotator/server/review";
+} from "@hypermark/server/review";
 
 // @ts-ignore - Bun import attribute for text
 import html from "../../apps/review/dist/index.html" with { type: "text" };

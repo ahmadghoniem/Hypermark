@@ -20,8 +20,8 @@ import type {
   ConventionalLabel,
   DiffAnnotationMetadata,
   TokenAnnotationMeta,
-} from '@plannotator/ui/types';
-import { CommentPopover } from '@plannotator/ui/components/CommentPopover';
+} from '@hypermark/ui/types';
+import { CommentPopover } from '@hypermark/ui/components/CommentPopover';
 import { usePierreTheme } from '../hooks/usePierreTheme';
 import { useIsWorkerPoolReadyOrDisabled, useWorkerPoolThemeSync } from '../workerPool';
 import type { DiffFile, AnnotationScrollTarget } from '../types';
@@ -34,7 +34,7 @@ import {
   resolveLineSelectionBehavior,
   type LineSelectionSource,
 } from '../utils/lineSelectionBehavior';
-import { isContentlessBinaryPatch, isOversizedReviewStubPatch } from '@plannotator/shared/diff-paths';
+import { isContentlessBinaryPatch, isOversizedReviewStubPatch } from '@hypermark/shared/diff-paths';
 import { OversizedFileNotice } from './OversizedFileNotice';
 import { ToolbarHost, type ToolbarHostHandle } from './ToolbarHost';
 import { FileHeader } from './FileHeader';
@@ -244,7 +244,7 @@ export interface AllFilesCodeViewProps {
   activeSearchMatchId?: string | null;
   activeSearchMatch?: ReviewSearchMatch | null;
   // Token code navigation (P7). Cmd/Ctrl-click a token resolves symbol defs/refs.
-  onCodeNavRequest?: (request: import('@plannotator/shared/code-nav').CodeNavRequest) => void;
+  onCodeNavRequest?: (request: import('@hypermark/shared/code-nav').CodeNavRequest) => void;
   /**
    * Token hover cards. Absent (the default) means the feature is not wired at
    * all. Deliberately raw: the view reports the token event and its file, and

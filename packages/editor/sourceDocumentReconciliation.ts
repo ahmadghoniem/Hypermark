@@ -1,4 +1,4 @@
-import { pathIsInsideDir } from '@plannotator/shared/browser-paths';
+import { pathIsInsideDir } from '@hypermark/shared/browser-paths';
 import {
   canApplyEditableDocumentDiskSnapshot,
   getEditableDocumentKnownDiskHash,

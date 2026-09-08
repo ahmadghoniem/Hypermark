@@ -1,10 +1,10 @@
 import type {
   AgentTerminalAgent,
   AnnotateAgentTerminalSide,
-} from "@plannotator/core/agent-terminal";
+} from "@hypermark/core/agent-terminal";
 import { configStore } from "../config";
 
-// The side/placement vocabulary lives in @plannotator/core so the settings
+// The side/placement vocabulary lives in @hypermark/core so the settings
 // registry can reach it without importing this module (which would close a
 // cycle through ConfigStore). Re-exported here because this is the seam the
 // editor package imports from.
@@ -13,11 +13,11 @@ export {
   isAnnotateAgentTerminalSide,
   resolveAnnotateAgentTerminalPlacement,
   resolveAnnotateAgentTerminalSide,
-} from "@plannotator/core/agent-terminal";
+} from "@hypermark/core/agent-terminal";
 export type {
   AnnotateAgentTerminalPlacement,
   AnnotateAgentTerminalSide,
-} from "@plannotator/core/agent-terminal";
+} from "@hypermark/core/agent-terminal";
 
 /**
  * Both Agent TUI preferences resolve through ConfigStore (server config file >

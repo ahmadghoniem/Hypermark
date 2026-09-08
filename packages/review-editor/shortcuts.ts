@@ -11,7 +11,7 @@ import {
   reviewPrCommentsShortcuts,
   reviewSuggestionModalShortcuts,
   type ShortcutSurface,
-} from '@plannotator/ui/shortcuts';
+} from '@hypermark/ui/shortcuts';
 
 export const reviewEditorShortcuts = defineShortcutScope({
   id: 'review-editor',

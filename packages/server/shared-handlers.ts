@@ -13,7 +13,7 @@ import { isUrlHostOverridden } from "./remote";
 import { writeUrlQr } from "./qr";
 import { validateImagePath, validateUploadExtension, UPLOAD_DIR } from "./image";
 import { saveDraft, loadDraft, deleteDraft, getDraftGeneration } from "./draft";
-import { CLASSIC_FAVICON_SVG } from "@plannotator/shared/favicon";
+import { CLASSIC_FAVICON_SVG } from "@hypermark/shared/favicon";
 import { saveToObsidian, saveToBear, saveToOctarine } from "./integrations";
 import type { ObsidianConfig, BearConfig, OctarineConfig, IntegrationResult } from "./integrations";
 import { listReferenceSkills, readReferenceSkillContent } from "./review-skill-loader";

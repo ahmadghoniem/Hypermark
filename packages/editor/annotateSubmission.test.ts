@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { AnnotationType, type Annotation, type CodeAnnotation, type EditorAnnotation } from "@plannotator/ui/types";
-import { parseMarkdownToBlocks, type LinkedDocAnnotationEntry } from "@plannotator/ui/utils/parser";
+import { AnnotationType, type Annotation, type CodeAnnotation, type EditorAnnotation } from "@hypermark/ui/types";
+import { parseMarkdownToBlocks, type LinkedDocAnnotationEntry } from "@hypermark/ui/utils/parser";
 import {
   ANNOTATE_NO_FEEDBACK_SENTENCE,
   buildAnnotateApprovalBody,

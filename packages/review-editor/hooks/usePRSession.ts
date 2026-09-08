@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import type { PRMetadata } from '@plannotator/shared/pr-types';
-import type { PRDiffScope, PRDiffScopeOption, PRStackInfo, PRStackTree } from '@plannotator/shared/pr-stack';
+import type { PRMetadata } from '@hypermark/shared/pr-types';
+import type { PRDiffScope, PRDiffScopeOption, PRStackInfo, PRStackTree } from '@hypermark/shared/pr-stack';
 
 export interface PRSessionState {
   prMetadata: PRMetadata | null;

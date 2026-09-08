@@ -1,5 +1,5 @@
 import React, { useLayoutEffect } from 'react';
-import { OVERSIZED_REVIEW_STUB_LIMIT_LABEL } from '@plannotator/shared/diff-paths';
+import { OVERSIZED_REVIEW_STUB_LIMIT_LABEL } from '@hypermark/shared/diff-paths';
 
 /**
  * Why an oversized file's card has no diff in it.

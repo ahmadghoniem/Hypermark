@@ -29,7 +29,7 @@ import {
   resetStorageBackend,
   setStorageBackend,
   type StorageBackend,
-} from "@plannotator/ui/utils/storage";
+} from "@hypermark/ui/utils/storage";
 import { ANNOTATE_NO_FEEDBACK_SENTENCE } from "./annotateSubmission";
 
 const hasDom = typeof document !== "undefined";

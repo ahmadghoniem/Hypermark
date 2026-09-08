@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import type { CallFlowNode, CallFlowTree } from '@plannotator/shared/call-flow-types';
+import type { CallFlowNode, CallFlowTree } from '@hypermark/shared/call-flow-types';
 import { MagnifyingGlass } from '@phosphor-icons/react';
-import { CommentPopover, type CommentTargetChip } from '@plannotator/ui/components/CommentPopover';
-import type { CallFlowAnnotationTarget, SelectedLineRange } from '@plannotator/ui/types';
+import { CommentPopover, type CommentTargetChip } from '@hypermark/ui/components/CommentPopover';
+import type { CallFlowAnnotationTarget, SelectedLineRange } from '@hypermark/ui/types';
 import {
   computeComposerYield,
   distanceToRect,
   type ComposerYieldState,
-} from '@plannotator/ui/utils/composerYield';
+} from '@hypermark/ui/utils/composerYield';
 import { splitCallFlowFilePath } from '../utils/callFlowPresentation';
 import { CallFlowSearchControls } from './CallFlowSearchControls';
 import {

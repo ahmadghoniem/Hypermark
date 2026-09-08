@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FAVICON_PNG_DATA_URL } from '@plannotator/core/favicon';
+import { FAVICON_PNG_DATA_URL } from '@hypermark/core/favicon';
 import { copyTextToClipboard } from '../../utils/clipboard';
 
 interface HooksStatus {

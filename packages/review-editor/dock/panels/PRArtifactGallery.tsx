@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { OverlayScrollArea } from '@plannotator/ui/components/OverlayScrollArea';
-import { RenderedMarkdown } from '@plannotator/ui/components/RenderedMarkdown';
+import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';
+import { RenderedMarkdown } from '@hypermark/ui/components/RenderedMarkdown';
 import type { PRArtifact } from '../../utils/prArtifacts';
 import {
   type ArtifactProviderLocation,

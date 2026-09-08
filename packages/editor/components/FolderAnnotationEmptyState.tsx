@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@plannotator/ui/components/ui/button';
+import { Button } from '@hypermark/ui/components/ui/button';
 
 export function FolderAnnotationEmptyState({
   compactTouchLayout,

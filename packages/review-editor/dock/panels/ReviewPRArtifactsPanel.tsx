@@ -2,17 +2,17 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { IDockviewPanelProps } from 'dockview-react';
 import { EyeSlash, ArrowSquareOut, GridFour, ChatCircleText, Paperclip, ArrowClockwise } from '@phosphor-icons/react';
-import { CommentPopover } from '@plannotator/ui/components/CommentPopover';
-import { HtmlViewer } from '@plannotator/ui/components/html-viewer';
-import { OverlayScrollArea } from '@plannotator/ui/components/OverlayScrollArea';
-import { RenderedMarkdown } from '@plannotator/ui/components/RenderedMarkdown';
-import { useAnnotationHighlighter } from '@plannotator/ui/hooks/useAnnotationHighlighter';
+import { CommentPopover } from '@hypermark/ui/components/CommentPopover';
+import { HtmlViewer } from '@hypermark/ui/components/html-viewer';
+import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';
+import { RenderedMarkdown } from '@hypermark/ui/components/RenderedMarkdown';
+import { useAnnotationHighlighter } from '@hypermark/ui/hooks/useAnnotationHighlighter';
 import type {
   Annotation,
   ArtifactAnnotationAnchor,
   ArtifactAnnotationMeta,
-} from '@plannotator/ui/types';
-import { AnnotationType } from '@plannotator/ui/types';
+} from '@hypermark/ui/types';
+import { AnnotationType } from '@hypermark/ui/types';
 import {
   commentAnnotationAsDocument,
   documentAnchorFromAnnotation,

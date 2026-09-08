@@ -1,5 +1,5 @@
 import React from 'react';
-import { SEVERITY_STYLES, DiffAnnotationMetadata } from '@plannotator/ui/types';
+import { SEVERITY_STYLES, DiffAnnotationMetadata } from '@hypermark/ui/types';
 import { SuggestionBlock } from './SuggestionBlock';
 import { CommentMeta } from './CommentMeta';
 import { CommentActions } from './CommentActions';

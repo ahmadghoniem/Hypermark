@@ -10,7 +10,7 @@ import { useState, useCallback, useRef } from "react";
 import type { Annotation, ImageAttachment } from "../types";
 import type { ViewerHandle } from "../components/Viewer";
 import type { SidebarTab } from "./useSidebar";
-import type { SourceSaveCapability } from "@plannotator/core/source-save";
+import type { SourceSaveCapability } from "@hypermark/core/source-save";
 import type { VersionInfo } from "./usePlanDiff";
 
 export interface LinkedDocLoadData {

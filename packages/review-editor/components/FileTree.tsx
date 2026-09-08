@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useRef, useMemo, useState } from 'react';
-import { CodeAnnotation } from '@plannotator/ui/types';
+import { CodeAnnotation } from '@hypermark/ui/types';
 import type {
   AvailableBranches,
   CompareTargetConfig,
@@ -8,7 +8,7 @@ import type {
   RecentCommit,
   SinceBaseSections,
   WorktreeInfo,
-} from '@plannotator/shared/types';
+} from '@hypermark/shared/types';
 import { FileTree as PierreFileTree, useFileTree, useFileTreeSelector } from '@pierre/trees/react';
 import { getAncestorPaths } from '../utils/buildFileTree';
 import {
@@ -30,8 +30,8 @@ import { WorktreePicker } from './WorktreePicker';
 import { PanelViewToggle, type ReviewPanelView } from './PanelViewToggle';
 import { getReviewSearchSideLabel, type ReviewSearchFileGroup, type ReviewSearchMatch } from '../utils/reviewSearch';
 import type { DiffFile } from '../types';
-import { OverlayScrollArea } from '@plannotator/ui/components/OverlayScrollArea';
-import { GitHubIcon } from '@plannotator/ui/components/GitHubIcon';
+import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';
+import { GitHubIcon } from '@hypermark/ui/components/GitHubIcon';
 import { Paperclip } from '@phosphor-icons/react';
 
 import { SidebarActionRow, SemanticDiffRow, CallFlowRow, AllFilesRow } from './PanelNavRows';

@@ -26,7 +26,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { AGENT_CONFIG } from "@plannotator/shared/agents";
+import { AGENT_CONFIG } from "@hypermark/shared/agents";
 import {
   formatTopLevelHelp,
   SUBCOMMAND_HELP,

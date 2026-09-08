@@ -6,7 +6,7 @@ import type {
   ImageAttachment,
   SelectedLineRange,
   TokenAnnotationMeta,
-} from '@plannotator/ui/types';
+} from '@hypermark/ui/types';
 import type { DiffFile } from '../types';
 import type {
   LineAnnotationComposeRequest,

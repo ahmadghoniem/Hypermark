@@ -1,6 +1,6 @@
-import { generateId } from '@plannotator/ui/utils/generateId';
-import type { DecisionActionId, DecisionMenuItem, DecisionPrimary } from '@plannotator/ui/utils/decisionSpec';
-import type { CodeAnnotation } from '@plannotator/ui/types';
+import { generateId } from '@hypermark/ui/utils/generateId';
+import type { DecisionActionId, DecisionMenuItem, DecisionPrimary } from '@hypermark/ui/utils/decisionSpec';
+import type { CodeAnnotation } from '@hypermark/ui/types';
 import type { CompactReviewAction } from './components/ReviewHeaderMenu';
 
 /**

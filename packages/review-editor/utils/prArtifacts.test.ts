@@ -3,7 +3,7 @@ import type {
   GithubPRMetadata,
   GitlabMRMetadata,
   PRContext,
-} from '@plannotator/shared/pr-types';
+} from '@hypermark/shared/pr-types';
 import { buildPRArtifacts } from './prArtifacts';
 
 const SHOT_URL = 'https://github.com/user-attachments/assets/1234-shot';

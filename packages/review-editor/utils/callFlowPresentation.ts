@@ -1,4 +1,4 @@
-import type { CallFlowAnnotationTarget } from '@plannotator/ui/types';
+import type { CallFlowAnnotationTarget } from '@hypermark/ui/types';
 
 export function formatCallFlowInstallSize(bytes: number): string {
   const megabytes = Math.ceil(bytes / (1024 * 1024));

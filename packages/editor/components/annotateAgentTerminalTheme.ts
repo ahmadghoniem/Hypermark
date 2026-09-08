@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { useTheme } from "@plannotator/ui/components/ThemeProvider";
-import { BUILT_IN_THEMES } from "@plannotator/ui/utils/themeRegistry";
+import { useTheme } from "@hypermark/ui/components/ThemeProvider";
+import { BUILT_IN_THEMES } from "@hypermark/ui/utils/themeRegistry";
 import type { CreateAgentTerminalSessionOptions } from "@plannotator/webtui/browser";
 
 type TerminalOptions = NonNullable<CreateAgentTerminalSessionOptions["terminalOptions"]>;

@@ -104,7 +104,7 @@ export function saveFinalSnapshot(
 
 // --- Plan Archive ---
 
-import type { ArchivedPlan } from '@plannotator/core/storage-types';
+import type { ArchivedPlan } from '@hypermark/core/storage-types';
 export type { ArchivedPlan };
 
 /**

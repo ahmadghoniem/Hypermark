@@ -2,7 +2,7 @@ import {
   Viewer,
   type ViewerAnnotationHeaderConfig,
   type ViewerProps,
-} from '@plannotator/ui/components/Viewer';
+} from '@hypermark/ui/components/Viewer';
 
 const annotationHeader: ViewerAnnotationHeaderConfig = {
   onInputMethodChange: () => {},

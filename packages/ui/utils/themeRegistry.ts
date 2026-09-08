@@ -256,7 +256,7 @@ export function resolvePairTheme(pair: ThemePair, preferredMode: ThemeHalf): str
 }
 
 /* The pair a fresh install starts from. ThemeProvider installs its own props
-   here before the config store resolves, so a host embedding @plannotator/ui
+   here before the config store resolves, so a host embedding @hypermark/ui
    keeps its `defaultTheme` / `defaultColorTheme` defaults. */
 let defaultThemePair: ThemePair = DEFAULT_THEME_PAIR;
 

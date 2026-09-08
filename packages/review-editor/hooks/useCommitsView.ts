@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CommitHistoryPage, CommitListEntry } from '@plannotator/shared/types';
+import type { CommitHistoryPage, CommitListEntry } from '@hypermark/shared/types';
 
 const PAGE_SIZE = 50;
 // Quiet head-compare poll cadence while the Commits view is visible. The

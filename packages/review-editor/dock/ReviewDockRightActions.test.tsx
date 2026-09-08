@@ -2,7 +2,7 @@ import { afterEach, describe, expect, mock, test } from 'bun:test';
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { IDockviewHeaderActionsProps } from 'dockview-react';
-import { configStore } from '@plannotator/ui/config';
+import { configStore } from '@hypermark/ui/config';
 import { ReviewDockRightActions } from './ReviewDockRightActions';
 import { ReviewStateProvider, type ReviewState } from './ReviewStateContext';
 

@@ -17,7 +17,7 @@
  * separate decision. Extras are added on top of it.
  */
 
-import { normalizeMarkdownExtensions } from "@plannotator/core/annotatable";
+import { normalizeMarkdownExtensions } from "@hypermark/core/annotatable";
 
 /** Built-in extensions the renderer treats as openable local documents. */
 const BUILTIN_LINKED_DOC_REGEX = /\.(mdx?|txt|html?)$/i;

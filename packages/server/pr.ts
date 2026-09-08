@@ -14,7 +14,7 @@ import type {
   PRReviewSubmissionResult,
   PRStackTree,
   PRListItem,
-} from "@plannotator/shared/pr-types";
+} from "@hypermark/shared/pr-types";
 import {
   parsePRUrl as parsePRUrlCore,
   prRefFromMetadata,
@@ -24,7 +24,7 @@ import {
   getDisplayRepo,
   getCliName,
   getCliInstallUrl,
-} from "@plannotator/shared/pr-types";
+} from "@hypermark/shared/pr-types";
 import {
   checkAuth as checkAuthCore,
   getUser as getUserCore,
@@ -36,11 +36,11 @@ import {
   markPRFilesViewed as markPRFilesViewedCore,
   fetchPRStack as fetchPRStackCore,
   fetchPRList as fetchPRListCore,
-} from "@plannotator/shared/pr-provider";
+} from "@hypermark/shared/pr-provider";
 
-export type { PRRef, PRMetadata, PRContext, PRReviewFileComment, PRReviewSubmissionResult, PRStackTree, PRListItem } from "@plannotator/shared/pr-types";
-export { prRefFromMetadata, isSameProject, getPlatformLabel, getMRLabel, getMRNumberLabel, getDisplayRepo, getCliName, getCliInstallUrl } from "@plannotator/shared/pr-types";
-export type { GithubPRMetadata } from "@plannotator/shared/pr-types";
+export type { PRRef, PRMetadata, PRContext, PRReviewFileComment, PRReviewSubmissionResult, PRStackTree, PRListItem } from "@hypermark/shared/pr-types";
+export { prRefFromMetadata, isSameProject, getPlatformLabel, getMRLabel, getMRNumberLabel, getDisplayRepo, getCliName, getCliInstallUrl } from "@hypermark/shared/pr-types";
+export type { GithubPRMetadata } from "@hypermark/shared/pr-types";
 
 const runtime: PRRuntime = {
   async runCommand(cmd, args) {

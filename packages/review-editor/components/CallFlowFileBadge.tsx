@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Popover } from '@base-ui/react/popover';
-import type { CallFlowNode } from '@plannotator/shared/call-flow-types';
-import { getCallFlowTreesForFiles } from '@plannotator/shared/call-flow-types';
+import type { CallFlowNode } from '@hypermark/shared/call-flow-types';
+import { getCallFlowTreesForFiles } from '@hypermark/shared/call-flow-types';
 import { useReviewStateOptional } from '../dock/ReviewStateContext';
 import {
   CallFlowTreeView,

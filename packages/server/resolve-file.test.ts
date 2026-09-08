@@ -14,7 +14,7 @@ import {
 	normalizeUserPathInput,
 	resolveMarkdownFile,
 	resolveUserPath,
-} from "@plannotator/shared/resolve-file";
+} from "@hypermark/shared/resolve-file";
 
 const tempDirs: string[] = [];
 

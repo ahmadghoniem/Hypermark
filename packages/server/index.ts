@@ -12,7 +12,7 @@
  *                        "codex", "copilot-cli", "gemini-cli", "pi", "oh-my-pi".
  */
 
-import type { Origin } from "@plannotator/shared/agents";
+import type { Origin } from "@hypermark/shared/agents";
 import { resolve } from "path";
 import { isRemoteSession, getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
 import { openEditorDiff } from "./ide";
@@ -42,19 +42,19 @@ import {
 import { getRepoInfo } from "./repo";
 import { detectProjectName } from "./project";
 import { loadConfig, saveConfig, detectGitUser, getServerConfig, resolveFeedbackHistory } from "./config";
-import { appendFeedbackRecord, type FeedbackDecision } from "@plannotator/shared/feedback-archive";
-import { isFaviconStyle, type FaviconStyle } from "@plannotator/shared/favicon";
-import { readImprovementHook, getImprovementHookExpectedPath } from "@plannotator/shared/improvement-hooks";
-import { composeImproveContext } from "@plannotator/shared/pfm-reminder";
+import { appendFeedbackRecord, type FeedbackDecision } from "@hypermark/shared/feedback-archive";
+import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
+import { readImprovementHook, getImprovementHookExpectedPath } from "@hypermark/shared/improvement-hooks";
+import { composeImproveContext } from "@hypermark/shared/pfm-reminder";
 import { handleImage, handleUpload, handleAgents, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, handleReferenceSkills, handleReferenceSkillContent, handleSaveNotes, readDraftGenerationFromBody, type OpencodeClient } from "./shared-handlers";
 import { contentHash, deleteDraft } from "./draft";
 import { handleDoc, handleDocExists, handleObsidianVaults, handleObsidianFiles, handleObsidianDoc, handleFileBrowserFiles } from "./reference-handlers";
 import { closeAllFileBrowserWatchers, handleFileBrowserFilesStream } from "./reference-watch";
-import { warmFileListCache } from "@plannotator/shared/resolve-file";
+import { warmFileListCache } from "@hypermark/shared/resolve-file";
 import { createEditorAnnotationHandler } from "./editor-annotations";
 import { createExternalAnnotationHandler } from "./external-annotations";
 import { isWSL } from "./browser";
-import { isArchiveDocumentMutation } from "@plannotator/shared/archive-mode";
+import { isArchiveDocumentMutation } from "@hypermark/shared/archive-mode";
 
 // Re-export utilities
 export { isRemoteSession, getServerPort } from "./remote";
@@ -62,7 +62,7 @@ export { openBrowser } from "./browser";
 export * from "./integrations";
 export * from "./storage";
 export { handleServerReady } from "./shared-handlers";
-export { type VaultNode, buildFileTree } from "@plannotator/shared/reference-common";
+export { type VaultNode, buildFileTree } from "@hypermark/shared/reference-common";
 
 // --- Types ---
 

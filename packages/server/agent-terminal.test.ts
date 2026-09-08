@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { AGENT_TERMINAL_WS_BASE_PATH } from "@plannotator/shared/agent-terminal";
+import { AGENT_TERMINAL_WS_BASE_PATH } from "@hypermark/shared/agent-terminal";
 import { createBunAgentTerminalBridge } from "./agent-terminal";
 
 describe("bun agent terminal bridge", () => {

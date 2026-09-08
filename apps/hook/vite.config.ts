@@ -23,10 +23,10 @@ export default defineConfig({
       // highlighter. See build/shiki-wasm-stub.ts.
       'shiki/wasm': path.resolve(__dirname, '../../build/shiki-wasm-stub.ts'),
       '@': path.resolve(__dirname, '.'),
-      '@plannotator/shared': path.resolve(__dirname, '../../packages/shared'),
-      '@plannotator/ui': path.resolve(__dirname, '../../packages/ui'),
-      '@plannotator/editor/styles': path.resolve(__dirname, '../../packages/editor/index.css'),
-      '@plannotator/editor': path.resolve(__dirname, '../../packages/editor/App.tsx'),
+      '@hypermark/shared': path.resolve(__dirname, '../../packages/shared'),
+      '@hypermark/ui': path.resolve(__dirname, '../../packages/ui'),
+      '@hypermark/editor/styles': path.resolve(__dirname, '../../packages/editor/index.css'),
+      '@hypermark/editor': path.resolve(__dirname, '../../packages/editor/App.tsx'),
     }
   },
   build: {

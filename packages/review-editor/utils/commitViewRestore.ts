@@ -1,4 +1,4 @@
-import type { DiffOption } from '@plannotator/shared/types';
+import type { DiffOption } from '@hypermark/shared/types';
 
 /** The diff a Commits-view exit should switch the session back to. */
 export interface CommitViewRestoreTarget {

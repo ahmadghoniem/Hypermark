@@ -10,11 +10,11 @@
  */
 
 import { isRemoteSession, getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
-import type { Origin } from "@plannotator/shared/agents";
+import type { Origin } from "@hypermark/shared/agents";
 import { type DiffType, type GitContext, runVcsDiff, getVcsFileContentsForDiff, getVcsDiffFingerprint, resolveVcsCwd, validateFilePath, getVcsContext, detectRemoteDefaultCompareTarget, vcsOwnsDiffType, vcsSupportsSnapshot, materializeVcsSnapshot, gitRuntime } from "./vcs";
 import { basename } from "node:path";
 import { existsSync } from "node:fs";
-import { SingleFlight } from "@plannotator/shared/single-flight";
+import { SingleFlight } from "@hypermark/shared/single-flight";
 import {
   isSameCwdCommitSwitch,
   parseCommitDiffType,
@@ -26,17 +26,17 @@ import {
   listPatchFiles,
   type RemoteDefaultInfo,
   type SinceBaseSections,
-} from "@plannotator/shared/review-core";
+} from "@hypermark/shared/review-core";
 import {
   getGitButlerContextRevision,
   getGitButlerPatchFingerprint,
-} from "@plannotator/shared/gitbutler-core";
+} from "@hypermark/shared/gitbutler-core";
 import {
   getCommitDiffInfo,
   listCommitHistory,
   type CommitDiffInfo,
-} from "@plannotator/shared/commit-history";
-import { resolvePoolCwd } from "@plannotator/shared/worktree-pool";
+} from "@hypermark/shared/commit-history";
+import { resolvePoolCwd } from "@hypermark/shared/worktree-pool";
 import {
   createDefaultSemanticDiffRuntime,
   getSemanticDiffAvailability,
@@ -45,12 +45,12 @@ import {
   semanticDiffCacheKey,
   semanticDiffFileExtsFromSearchParams,
   SemanticDiffResponseCache,
-} from "@plannotator/shared/semantic-diff";
-import type { SemanticDiffAvailability, SemanticDiffResponse } from "@plannotator/shared/semantic-diff-types";
-import { CallFlowService } from "@plannotator/shared/call-flow";
-import { CallFlowInstallCoordinator, callFlowInstallOriginAllowed } from "@plannotator/shared/call-flow-install";
-import { parseCallFlowInstallRequest, resolveCallFlowInstallTargets } from "@plannotator/shared/call-flow-languages";
-import type { CallFlowResponse } from "@plannotator/shared/call-flow-types";
+} from "@hypermark/shared/semantic-diff";
+import type { SemanticDiffAvailability, SemanticDiffResponse } from "@hypermark/shared/semantic-diff-types";
+import { CallFlowService } from "@hypermark/shared/call-flow";
+import { CallFlowInstallCoordinator, callFlowInstallOriginAllowed } from "@hypermark/shared/call-flow-install";
+import { parseCallFlowInstallRequest, resolveCallFlowInstallTargets } from "@hypermark/shared/call-flow-languages";
+import type { CallFlowResponse } from "@hypermark/shared/call-flow-types";
 import {
   getPRDiffScopeOptions,
   getPRFullStackFingerprint,
@@ -61,29 +61,29 @@ import {
   runPRLayerLocalDiff,
   checkoutPRHead,
   type PRDiffScope,
-} from "@plannotator/shared/pr-stack";
-import { createCommitAvatarResolver } from "@plannotator/shared/commit-avatars";
-import { detectGeneratedFiles, detectGeneratedFilesByName } from "@plannotator/shared/generated-files";
+} from "@hypermark/shared/pr-stack";
+import { createCommitAvatarResolver } from "@hypermark/shared/commit-avatars";
+import { detectGeneratedFiles, detectGeneratedFilesByName } from "@hypermark/shared/generated-files";
 import { getRepoInfo } from "./repo";
 import { handleImage, handleUpload, handleAgents, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl, type OpencodeClient } from "./shared-handlers";
 import { contentHash, deleteDraft } from "./draft";
 import { createEditorAnnotationHandler } from "./editor-annotations";
 import { createExternalAnnotationHandler } from "./external-annotations";
 import { loadConfig, saveConfig, detectGitUser, getServerConfig, parseReviewAnalysisConfig, resolveFeedbackHistory } from "./config";
-import { appendFeedbackRecord, countChangedFiles, deriveFeedbackProject, type FeedbackDecision, type FeedbackReviewTarget } from "@plannotator/shared/feedback-archive";
-import { isFaviconStyle, type FaviconStyle } from "@plannotator/shared/favicon";
+import { appendFeedbackRecord, countChangedFiles, deriveFeedbackProject, type FeedbackDecision, type FeedbackReviewTarget } from "@hypermark/shared/feedback-archive";
+import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
 import { type PRMetadata, type PRRef, type PRReviewFileComment, type PRStackTree, type PRListItem, fetchPR, fetchPRFileContent, fetchPRContext, submitPRReview, fetchPRViewedFiles, markPRFilesViewed, fetchPRStack, fetchPRList, getPRUser, parsePRUrl, prRefFromMetadata, isSameProject, getDisplayRepo, getMRLabel, getMRNumberLabel, prCommandRuntime } from "./pr";
 import {
   PR_CONTEXT_HEARTBEAT_COMMENT,
   PR_CONTEXT_HEARTBEAT_INTERVAL_MS,
   createPRContextLiveCache,
   serializePRContextSSEEvent,
-} from "@plannotator/shared/pr-context-live";
+} from "@hypermark/shared/pr-context-live";
 import {
   fetchPRArtifactContent,
   fetchPRArtifactDocument,
   PRArtifactDocumentError,
-} from "@plannotator/shared/pr-artifact-document";
+} from "@hypermark/shared/pr-artifact-document";
 import { isWSL } from "./browser";
 import { handleOpenInApps, handleOpenIn } from "./open-in";
 import type { LocalWorkspaceReview, WorkspaceDiffType } from "./review-workspace";
@@ -162,7 +162,7 @@ export interface ReviewServerOptions {
   /** Working directory for agent processes (e.g., --local worktree). Independent of diff pipeline. */
   agentCwd?: string;
   /** Per-PR worktree pool. When set, pr-switch creates worktrees instead of checking out. */
-  worktreePool?: import("@plannotator/shared/worktree-pool").WorktreePool;
+  worktreePool?: import("@hypermark/shared/worktree-pool").WorktreePool;
   /** Cleanup callback invoked when server stops (e.g., remove temp worktree) */
   onCleanup?: () => void | Promise<void>;
 }

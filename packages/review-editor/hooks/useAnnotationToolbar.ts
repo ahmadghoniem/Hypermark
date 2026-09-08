@@ -1,11 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { CodeAnnotation, SelectedLineRange, CodeAnnotationType, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, ImageAttachment } from '@plannotator/ui/types';
-import { useDismissOnOutsideAndEscape } from '@plannotator/ui/hooks/useDismissOnOutsideAndEscape';
+import { CodeAnnotation, SelectedLineRange, CodeAnnotationType, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, ImageAttachment } from '@hypermark/ui/types';
+import { useDismissOnOutsideAndEscape } from '@hypermark/ui/hooks/useDismissOnOutsideAndEscape';
 import {
   hasPrimaryCoarsePointer,
   shouldUseExpandedComposer,
   useVisibleViewportBounds,
-} from '@plannotator/ui/hooks/useViewportEnvironment';
+} from '@hypermark/ui/hooks/useViewportEnvironment';
 import { extractLinesFromPatch } from '../utils/patchParser';
 import type { DiffTokenEventBaseProps } from '@pierre/diffs';
 

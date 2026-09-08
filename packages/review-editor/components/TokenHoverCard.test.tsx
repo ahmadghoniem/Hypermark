@@ -13,7 +13,7 @@ import { afterEach, describe, expect, jest, test } from 'bun:test';
 import React from 'react';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { CodeNavHoverResponse, CodeNavRequest } from '@plannotator/shared/code-nav';
+import type { CodeNavHoverResponse, CodeNavRequest } from '@hypermark/shared/code-nav';
 import { TokenHoverCard } from './TokenHoverCard';
 import { useTokenHover, type TokenHoverState } from '../hooks/useTokenHover';
 

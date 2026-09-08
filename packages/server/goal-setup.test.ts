@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { CLASSIC_FAVICON_SVG } from "../core/favicon";
-import { normalizeGoalSetupBundle } from "@plannotator/shared/goal-setup";
+import { normalizeGoalSetupBundle } from "@hypermark/shared/goal-setup";
 import { startGoalSetupServer, type GoalSetupServerResult } from "./goal-setup";
 
 let server: GoalSetupServerResult | null = null;

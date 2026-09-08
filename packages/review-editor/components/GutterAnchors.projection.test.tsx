@@ -5,7 +5,7 @@
  * that lands there.
  */
 import { describe, expect, test } from 'bun:test';
-import type { CodeAnnotation } from '@plannotator/ui/types';
+import type { CodeAnnotation } from '@hypermark/ui/types';
 import { projectFileAnnotations } from '../utils/lineAnnotationProjection';
 import { groupAnchors } from './GutterAnnotations';
 

@@ -1,5 +1,5 @@
 {
-  "name": "@plannotator/editor",
+  "name": "@hypermark/editor",
   "version": "0.0.1",
   "type": "module",
   "exports": {
@@ -10,8 +10,8 @@
   "dependencies": {
     "@fontsource-variable/geist-mono": "5.2.7",
     "@fontsource-variable/inter": "^5.2.8",
-    "@plannotator/shared": "workspace:*",
-    "@plannotator/ui": "workspace:*",
+    "@hypermark/shared": "workspace:*",
+    "@hypermark/ui": "workspace:*",
     "@plannotator/webtui": "0.1.0",
     "diff": "^8.0.3",
     "@phosphor-icons/react": "2.1.10",

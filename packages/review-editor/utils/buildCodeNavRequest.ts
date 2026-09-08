@@ -1,4 +1,4 @@
-import type { CodeNavRequest } from '@plannotator/shared/code-nav';
+import type { CodeNavRequest } from '@hypermark/shared/code-nav';
 import type { DiffTokenEventBaseProps } from '@pierre/diffs';
 import { detectLanguage } from './detectLanguage';
 import { stitchTokenIdentifier } from './stitchTokenIdentifier';

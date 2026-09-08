@@ -45,8 +45,8 @@ import path from "path";
 import {
   startReviewServer,
   handleReviewServerReady,
-} from "@plannotator/server/review";
-import { getGitContext, runGitDiff } from "@plannotator/server/git";
+} from "@hypermark/server/review";
+import { getGitContext, runGitDiff } from "@hypermark/server/git";
 
 // @ts-ignore - Bun import attribute for text
 import html from "../../apps/review/dist/index.html" with { type: "text" };

@@ -1,10 +1,10 @@
-// Via @plannotator/ui, which is how this package reaches shared code —
-// @plannotator/core is not one of its direct dependencies.
+// Via @hypermark/ui, which is how this package reaches shared code —
+// @hypermark/core is not one of its direct dependencies.
 import {
   resolveAnnotateAgentTerminalPlacement,
   type AnnotateAgentTerminalPlacement,
   type AnnotateAgentTerminalSide,
-} from '@plannotator/ui/utils/annotateAgentTerminal';
+} from '@hypermark/ui/utils/annotateAgentTerminal';
 
 /**
  * The Agent TUI panel is `hidden lg:flex`, so below Tailwind's `lg` breakpoint

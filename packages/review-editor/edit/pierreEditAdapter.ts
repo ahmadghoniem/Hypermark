@@ -18,7 +18,7 @@
  * - `Marker` / `SelectionActionContext` have no public export path, so they
  *   are re-derived structurally from the `Editor` class type.
  */
-import type { CodeAnnotation } from '@plannotator/ui/types';
+import type { CodeAnnotation } from '@hypermark/ui/types';
 
 type EditModule = typeof import('@pierre/diffs/edit');
 

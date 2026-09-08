@@ -1,16 +1,16 @@
 import React from 'react';
-import type { Origin } from '@plannotator/shared/agents';
-import type { Agent } from '@plannotator/ui/hooks/useAgents';
-import type { UpdateInfo } from '@plannotator/ui/hooks/useUpdateCheck';
-import { FeedbackButton, ApproveButton, ExitButton } from '@plannotator/ui/components/ToolbarButtons';
-import { ApproveDropdown } from '@plannotator/ui/components/ApproveDropdown';
-import { DecisionControl, type DecisionHandler } from '@plannotator/ui/components/DecisionControl';
-import type { DecisionActionId, DecisionSpec } from '@plannotator/ui/utils/decisionSpec';
-import { Settings } from '@plannotator/ui/components/Settings';
-import { PlanHeaderMenu } from '@plannotator/ui/components/PlanHeaderMenu';
-import type { UIPreferences } from '@plannotator/ui/utils/uiPreferences';
-import type { CompactPlanAction } from '@plannotator/ui/components/PlanHeaderMenu';
-import { HtmlSurfaceControls } from '@plannotator/ui/components/HtmlSurfaceControls';
+import type { Origin } from '@hypermark/shared/agents';
+import type { Agent } from '@hypermark/ui/hooks/useAgents';
+import type { UpdateInfo } from '@hypermark/ui/hooks/useUpdateCheck';
+import { FeedbackButton, ApproveButton, ExitButton } from '@hypermark/ui/components/ToolbarButtons';
+import { ApproveDropdown } from '@hypermark/ui/components/ApproveDropdown';
+import { DecisionControl, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
+import type { DecisionActionId, DecisionSpec } from '@hypermark/ui/utils/decisionSpec';
+import { Settings } from '@hypermark/ui/components/Settings';
+import { PlanHeaderMenu } from '@hypermark/ui/components/PlanHeaderMenu';
+import type { UIPreferences } from '@hypermark/ui/utils/uiPreferences';
+import type { CompactPlanAction } from '@hypermark/ui/components/PlanHeaderMenu';
+import { HtmlSurfaceControls } from '@hypermark/ui/components/HtmlSurfaceControls';
 
 /** Plannotator's refresh strings for the published control: the document
  * is a file on disk, so the refresh says so. */

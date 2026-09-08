@@ -15,7 +15,7 @@ import {
   resetStorageBackend,
   setStorageBackend,
   type StorageBackend,
-} from "@plannotator/ui/utils/storage";
+} from "@hypermark/ui/utils/storage";
 
 const hasDom = typeof document !== "undefined";
 

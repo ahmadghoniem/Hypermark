@@ -38,11 +38,11 @@ export default defineConfig({
       // shared with the worker build below; `plugins` would not be.
       'shiki/wasm': path.resolve(__dirname, '../../build/shiki-wasm-stub.ts'),
       '@': path.resolve(__dirname, '.'),
-      '@plannotator/shared': path.resolve(__dirname, '../../packages/shared'),
-      '@plannotator/ui': path.resolve(__dirname, '../../packages/ui'),
-      '@plannotator/review-editor/styles': path.resolve(__dirname, '../../packages/review-editor/index.css'),
-      '@plannotator/review-editor/worker-pool': path.resolve(__dirname, '../../packages/review-editor/workerPool.tsx'),
-      '@plannotator/review-editor': path.resolve(__dirname, '../../packages/review-editor/App.tsx'),
+      '@hypermark/shared': path.resolve(__dirname, '../../packages/shared'),
+      '@hypermark/ui': path.resolve(__dirname, '../../packages/ui'),
+      '@hypermark/review-editor/styles': path.resolve(__dirname, '../../packages/review-editor/index.css'),
+      '@hypermark/review-editor/worker-pool': path.resolve(__dirname, '../../packages/review-editor/workerPool.tsx'),
+      '@hypermark/review-editor': path.resolve(__dirname, '../../packages/review-editor/App.tsx'),
     }
   },
   // The Pierre highlight worker (?worker&inline) contains a dynamic

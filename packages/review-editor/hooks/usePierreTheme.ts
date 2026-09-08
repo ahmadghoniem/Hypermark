@@ -1,17 +1,17 @@
 import { useMemo } from 'react';
-import type { DiffLineBgIntensity } from '@plannotator/shared/config';
-import { useTheme } from '@plannotator/ui/components/ThemeProvider';
-import { useConfigValue } from '@plannotator/ui/config';
+import type { DiffLineBgIntensity } from '@hypermark/shared/config';
+import { useTheme } from '@hypermark/ui/components/ThemeProvider';
+import { useConfigValue } from '@hypermark/ui/config';
 
 /**
  * The (colorTheme, mode) -> Shiki theme mapping moved to
- * `@plannotator/ui/utils/syntaxTheme` so the plan editor's markdown fences
+ * `@hypermark/ui/utils/syntaxTheme` so the plan editor's markdown fences
  * resolve the same theme this diff pane does. Re-exported here because it is
  * the import path the review editor has always used.
  */
-import { resolveSyntaxTheme } from '@plannotator/ui/utils/syntaxTheme';
+import { resolveSyntaxTheme } from '@hypermark/ui/utils/syntaxTheme';
 import { tokenHoverUnderlineCss } from '../components/tokenHoverStyles';
-export { SHIKI_THEME_MAP, resolveSyntaxTheme } from '@plannotator/ui/utils/syntaxTheme';
+export { SHIKI_THEME_MAP, resolveSyntaxTheme } from '@hypermark/ui/utils/syntaxTheme';
 
 export interface PierreTheme {
   type: 'dark' | 'light';

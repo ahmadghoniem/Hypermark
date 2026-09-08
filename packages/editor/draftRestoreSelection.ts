@@ -1,4 +1,4 @@
-import type { DraftEditedDocument } from '@plannotator/ui/hooks/useAnnotationDraft';
+import type { DraftEditedDocument } from '@hypermark/ui/hooks/useAnnotationDraft';
 
 export function pickRestoredSingleFileDraftToDisplay(
   documents: DraftEditedDocument[],

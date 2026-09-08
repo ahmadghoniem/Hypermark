@@ -1,4 +1,4 @@
-export type { EditorAnnotation } from '@plannotator/core/types';
+export type { EditorAnnotation } from '@hypermark/core/types';
 
 // Git review types shared between server and client
 export type {

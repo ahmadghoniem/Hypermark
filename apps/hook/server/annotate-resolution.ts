@@ -17,23 +17,23 @@
 
 import { existsSync, statSync } from "fs";
 import path from "path";
-import { resolveAtReference, stripAtPrefix } from "@plannotator/shared/at-reference";
-import { loadConfig, resolveUseJina } from "@plannotator/shared/config";
-import { htmlToMarkdown } from "@plannotator/shared/html-to-markdown";
-import { FILE_BROWSER_EXCLUDED } from "@plannotator/shared/reference-common";
+import { resolveAtReference, stripAtPrefix } from "@hypermark/shared/at-reference";
+import { loadConfig, resolveUseJina } from "@hypermark/shared/config";
+import { htmlToMarkdown } from "@hypermark/shared/html-to-markdown";
+import { FILE_BROWSER_EXCLUDED } from "@hypermark/shared/reference-common";
 import {
   buildAnnotatableDocRegex,
   buildAnnotatableExtensionsHint,
-} from "@plannotator/shared/annotatable";
+} from "@hypermark/shared/annotatable";
 import {
   getExtraMarkdownExtensions,
   MAX_ANNOTATABLE_FILE_BYTES,
   hasMarkdownFiles,
   resolveMarkdownFile,
   resolveUserPath,
-} from "@plannotator/shared/resolve-file";
-import { isConvertedSource, urlToMarkdown } from "@plannotator/shared/url-to-markdown";
-import { isLoopbackHostname } from "@plannotator/server/live-proxy";
+} from "@hypermark/shared/resolve-file";
+import { isConvertedSource, urlToMarkdown } from "@hypermark/shared/url-to-markdown";
+import { isLoopbackHostname } from "@hypermark/server/live-proxy";
 import {
   LIVE_APP_REQUIRES_HTTP_MESSAGE,
   LIVE_APP_REQUIRES_LOOPBACK_MESSAGE,
@@ -42,7 +42,7 @@ import {
   buildLiveProbeFallbackNotice,
   classifyLiveAppCandidate,
   probeLiveAppTarget,
-} from "@plannotator/shared/live-probe";
+} from "@hypermark/shared/live-probe";
 
 export interface AnnotateResolutionSuccess {
   ok: true;
@@ -127,7 +127,7 @@ export async function resolveAnnotateTarget(options: {
     // HTML page; --static forces the classic conversion pipeline; --app
     // forces live mode and fails loudly when it cannot apply. Non-loopback
     // URLs keep the conversion pipeline untouched. Probe semantics and
-    // messages live in @plannotator/shared/live-probe so every host judges
+    // messages live in @hypermark/shared/live-probe so every host judges
     // the same URL identically.
     const { parsed: parsedUrl, loopback } = classifyLiveAppCandidate(filePath);
 

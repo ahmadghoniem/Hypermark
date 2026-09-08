@@ -10,7 +10,7 @@
  */
 
 import { afterEach, describe, expect, test } from "bun:test";
-import type { TailscaleRunResult } from "@plannotator/shared/tailscale";
+import type { TailscaleRunResult } from "@hypermark/shared/tailscale";
 import {
   disableTailscaleServe,
   enableTailscaleServe,

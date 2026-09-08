@@ -153,7 +153,7 @@ export function buildBridgeScriptTag(bridgeScriptUrl?: string): string {
     // rendered an HtmlViewer without `bridgeScriptUrl`: an empty inline
     // script would be a silently dead surface, so fail loudly instead.
     throw new Error(
-      "@plannotator/ui HtmlViewer: the inline bridge script is stubbed out "
+      "@hypermark/ui HtmlViewer: the inline bridge script is stubbed out "
         + "(bridge-script.lite alias) but no bridgeScriptUrl was passed.",
     );
   }

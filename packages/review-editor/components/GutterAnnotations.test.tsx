@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { DiffAnnotationMetadata } from '@plannotator/ui/types';
+import type { DiffAnnotationMetadata } from '@hypermark/ui/types';
 import {
   GutterAnnotationMarker,
   GutterAnnotationPopup,

@@ -368,8 +368,8 @@ export interface VaultNode {
   children?: VaultNode[];
 }
 
-export type { EditorAnnotation } from '@plannotator/core/types';
+export type { EditorAnnotation } from '@hypermark/core/types';
 
 export type {
   ExternalAnnotationEvent,
-} from '@plannotator/core/external-annotation';
+} from '@hypermark/core/external-annotation';

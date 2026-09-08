@@ -5,12 +5,12 @@ import {
   htmlAssetContentType,
   normalizeHtmlAssetRoutePath,
   rewriteHtmlAssetReferences,
-} from "@plannotator/shared/html-assets";
+} from "@hypermark/shared/html-assets";
 import {
   inlineHtmlLocalAssets,
   isWithinDirectory,
   MAX_HTML_ASSET_BYTES,
-} from "@plannotator/shared/html-assets-node";
+} from "@hypermark/shared/html-assets-node";
 
 export { inlineHtmlLocalAssets };
 

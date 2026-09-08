@@ -11,7 +11,7 @@
  * waits a short grace for instant failures. See runArgv.
  *
  * The app catalog is the single source of truth at
- * `@plannotator/shared/open-in-apps`. `kind` drives launch semantics:
+ * `@hypermark/shared/open-in-apps`. `kind` drives launch semantics:
  *   - file-manager (reveal)  -> reveal the file in the OS file manager
  *   - editor                 -> open the file itself
  *   - terminal               -> open the file's parent directory
@@ -29,8 +29,8 @@ import {
   type OpenInApp,
   type OpenInKind,
   type OpenInPlatform,
-} from "@plannotator/shared/open-in-apps";
-import { resolveOpenInTarget } from "@plannotator/shared/html-assets-node";
+} from "@hypermark/shared/open-in-apps";
+import { resolveOpenInTarget } from "@hypermark/shared/html-assets-node";
 import { isRemoteSession } from "./remote";
 
 export type OpenInLaunchResult = { ok: true } | { ok: false; error: string };

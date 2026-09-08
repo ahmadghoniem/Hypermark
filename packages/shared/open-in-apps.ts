@@ -1,1 +1,1 @@
-export * from '@plannotator/core/open-in-apps';
+export * from '@hypermark/core/open-in-apps';

@@ -6,7 +6,7 @@ import type {
   PRMetadata,
   PRReviewFileComment,
   PRReviewSubmissionResult,
-} from '@plannotator/shared/pr-types';
+} from '@hypermark/shared/pr-types';
 import { startReviewServer } from './review';
 
 const originalAI = process.env.PLANNOTATOR_AI;

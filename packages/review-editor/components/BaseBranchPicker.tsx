@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Popover } from '@base-ui/react/popover';
-import type { AvailableBranches, CompareTargetPickerCopy, RecentCommit } from '@plannotator/shared/types';
+import type { AvailableBranches, CompareTargetPickerCopy, RecentCommit } from '@hypermark/shared/types';
 
 interface BaseBranchPickerProps {
   availableBranches: AvailableBranches;

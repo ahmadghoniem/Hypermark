@@ -62,7 +62,7 @@ describe('review entry assets', () => {
     expect(highlighter).not.toMatch(/https?:\/\//);
   });
 
-  // @plannotator/ui loads KaTeX and the username dictionary through slots
+  // @hypermark/ui loads KaTeX and the username dictionary through slots
   // (utils/math.ts, utils/generateIdentity.ts) so hosts that bundle by route
   // can leave them out of a document read. Plannotator's parity rests on two
   // side-effect imports per app entry: without them, plans with math would
@@ -72,8 +72,8 @@ describe('review entry assets', () => {
     '%s registers the eager math renderer and identity dictionary',
     (path) => {
       const source = read(path);
-      expect(source).toContain("import '@plannotator/ui/utils/math-eager';");
-      expect(source).toContain("import '@plannotator/ui/utils/identity-tater';");
+      expect(source).toContain("import '@hypermark/ui/utils/math-eager';");
+      expect(source).toContain("import '@hypermark/ui/utils/identity-tater';");
     },
   );
 
@@ -81,7 +81,7 @@ describe('review entry assets', () => {
   // keep it, as on main) and deliberately absent from the review editor, which
   // never renders a Mermaid block: importing it there would grow that bundle.
   test('only the plan editor registers the eager Mermaid runtime', () => {
-    expect(read('packages/editor/App.tsx')).toContain("import '@plannotator/ui/utils/mermaid-eager';");
+    expect(read('packages/editor/App.tsx')).toContain("import '@hypermark/ui/utils/mermaid-eager';");
     expect(read('packages/review-editor/App.tsx')).not.toContain('mermaid-eager');
   });
 

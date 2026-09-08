@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Popover } from '@base-ui/react/popover';
-import { getPlatformLabel } from '@plannotator/shared/pr-types';
-import { buildMinimalStackTree } from '@plannotator/shared/pr-stack';
-import { getItem, setItem } from '@plannotator/ui/utils/storage';
-import type { PRMetadata } from '@plannotator/shared/pr-types';
-import type { PRDiffScope, PRDiffScopeOption, PRStackInfo, PRStackTree, PRStackNode } from '@plannotator/shared/pr-stack';
+import { getPlatformLabel } from '@hypermark/shared/pr-types';
+import { buildMinimalStackTree } from '@hypermark/shared/pr-stack';
+import { getItem, setItem } from '@hypermark/ui/utils/storage';
+import type { PRMetadata } from '@hypermark/shared/pr-types';
+import type { PRDiffScope, PRDiffScopeOption, PRStackInfo, PRStackTree, PRStackNode } from '@hypermark/shared/pr-stack';
 
 interface StackedPRLabelProps {
   metadata: PRMetadata;

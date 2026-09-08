@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { configStore } from '../config/configStore';
 import { readThemePairCookies, writeThemePairCookies } from '../config/settings';
 import { useConfigValue } from '../config/useConfig';
-import { faviconDataUrl } from '@plannotator/core/favicon';
+import { faviconDataUrl } from '@hypermark/core/favicon';
 import {
   BUILT_IN_THEMES,
   DEFAULT_COLOR_THEME,
@@ -85,7 +85,7 @@ interface ThemeProviderProps {
   /**
    * Opt in to letting this provider own `<link rel="icon">` on the document.
    *
-   * OFF by default, and deliberately so: `@plannotator/ui` is installed into
+   * OFF by default, and deliberately so: `@hypermark/ui` is installed into
    * host applications with their own branding, and a mounted provider must not
    * silently replace a host page's favicon with Plannotator's. Plannotator's own
    * apps pass `manageFavicon`; hosts opt in only if they want the same feature.

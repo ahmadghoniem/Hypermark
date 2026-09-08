@@ -20,7 +20,7 @@ Leftover scan: `grep -rn "radix-ui|@radix-ui" <all 7 files>` → clean. `--radix
 
 - `.popover-enter` CSS keyframe class (index.css) — mount animation, plays on mount for Base UI popups the same way; kept where used (SemanticFileBadge).
 - `@radix-ui/react-popover` stays in package.json until final cleanup.
-- Imports from `@plannotator/ui` in DiffTypePicker/DiffOptionsPopover/StackedPRLabel/PRCommentsTab — that package is being migrated in parallel by another agent; its seam is untouched.
+- Imports from `@hypermark/ui` in DiffTypePicker/DiffOptionsPopover/StackedPRLabel/PRCommentsTab — that package is being migrated in parallel by another agent; its seam is untouched.
 
 ## Behavior changes
 

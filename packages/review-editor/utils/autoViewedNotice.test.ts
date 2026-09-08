@@ -10,7 +10,7 @@
  * nothing here touches real cookies or ~/.plannotator.
  */
 import { afterEach, describe, expect, test } from 'bun:test';
-import { resetStorageBackend, setStorageBackend } from '@plannotator/ui/utils/storage';
+import { resetStorageBackend, setStorageBackend } from '@hypermark/ui/utils/storage';
 import { ConfigStoreForTest } from '../../ui/config/configStore';
 import {
   markAutoViewedNoticeSeen,

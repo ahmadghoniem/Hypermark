@@ -1,1 +1,1 @@
-export * from '@plannotator/core/compress';
+export * from '@hypermark/core/compress';

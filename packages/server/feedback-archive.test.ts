@@ -31,8 +31,8 @@ import { startReviewServer } from "./review";
 import { startAnnotateServer } from "./annotate";
 import { getPlanVersionPath } from "./storage";
 import { detectProjectName } from "./project";
-import { parseFeedbackIndex, type FeedbackRecord } from "@plannotator/shared/feedback-archive";
-import { getPlannotatorDataDir } from "@plannotator/shared/data-dir";
+import { parseFeedbackIndex, type FeedbackRecord } from "@hypermark/shared/feedback-archive";
+import { getPlannotatorDataDir } from "@hypermark/shared/data-dir";
 
 const MINIMAL_HTML = "<html><body>Plannotator</body></html>";
 

@@ -1,9 +1,9 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { FileDiff } from '@pierre/diffs/react';
 import { getSingularPatch } from '@pierre/diffs';
-import type { DiffLineBgIntensity } from '@plannotator/shared/config';
-import { useTheme } from '@plannotator/ui/components/ThemeProvider';
-import { useConfigValue } from '@plannotator/ui/config';
+import type { DiffLineBgIntensity } from '@hypermark/shared/config';
+import { useTheme } from '@hypermark/ui/components/ThemeProvider';
+import { useConfigValue } from '@hypermark/ui/config';
 import { useReviewState } from '../dock/ReviewStateContext';
 import { resolveSyntaxTheme, buildLineBgOverrides } from '../hooks/usePierreTheme';
 

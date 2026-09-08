@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { handleDoc, handleDocExists, handleFileBrowserFiles } from "./reference-handlers";
-import type { VaultNode } from "@plannotator/shared/reference-common";
-import type { WorkspaceStatusPayload } from "@plannotator/shared/workspace-status";
+import type { VaultNode } from "@hypermark/shared/reference-common";
+import type { WorkspaceStatusPayload } from "@hypermark/shared/workspace-status";
 
 const tempDirs: string[] = [];
 

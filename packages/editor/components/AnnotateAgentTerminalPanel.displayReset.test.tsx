@@ -6,7 +6,7 @@ import {
   DEFAULT_DISPLAY_SETTINGS,
   type AgentTerminalDisplaySettings,
 } from './AnnotateAgentTerminalPanel';
-import type { AnnotateAgentTerminalSide } from '@plannotator/ui/utils/annotateAgentTerminal';
+import type { AnnotateAgentTerminalSide } from '@hypermark/ui/utils/annotateAgentTerminal';
 
 /**
  * The Display popover's reset button (DOM-gated).

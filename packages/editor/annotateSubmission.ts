@@ -4,7 +4,7 @@ import type {
   CodeAnnotation,
   EditorAnnotation,
   ImageAttachment,
-} from "@plannotator/ui/types";
+} from "@hypermark/ui/types";
 import {
   exportAnnotations,
   exportCodeFileAnnotations,
@@ -14,8 +14,8 @@ import {
   parseMarkdownToBlocks,
   type LinkedDocAnnotationEntry,
   type MessageAnnotationEntry,
-} from "@plannotator/ui/utils/parser";
-import { shouldStripFrontmatter } from "@plannotator/shared/annotatable";
+} from "@hypermark/ui/utils/parser";
+import { shouldStripFrontmatter } from "@hypermark/shared/annotatable";
 import { composeFeedbackWithEditSections } from "./directEdits";
 
 export interface AnnotateApprovalBodyInput {

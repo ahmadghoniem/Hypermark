@@ -1,13 +1,13 @@
 import React from 'react';
 import { Popover } from '@base-ui/react/popover';
-import { configStore, useConfigValue } from '@plannotator/ui/config';
+import { configStore, useConfigValue } from '@hypermark/ui/config';
 import {
   DIFF_STYLE_OPTIONS,
   OVERFLOW_OPTIONS,
   INDICATOR_OPTIONS,
   LINE_DIFF_OPTIONS,
   LINE_BG_INTENSITY_OPTIONS,
-} from '@plannotator/ui/components/Settings';
+} from '@hypermark/ui/components/Settings';
 
 function CompactSegmented<T extends string>({ options, value, onChange }: {
   options: { value: T; label: string }[];
