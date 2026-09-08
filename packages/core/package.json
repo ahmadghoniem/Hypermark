@@ -1,5 +1,6 @@
 {
   "name": "@hypermark/core",
+  "private": true,
   "version": "0.25.1",
   "type": "module",
   "exports": {
