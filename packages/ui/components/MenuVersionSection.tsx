@@ -7,8 +7,8 @@ import { copyTextToClipboard } from '../utils/clipboard';
 
 function getInstallCommand(isWSL = false): string {
   return isWindows && !isWSL
-    ? 'powershell -c "irm https://plannotator.ai/install.ps1 | iex"'
-    : 'curl -fsSL https://plannotator.ai/install.sh | bash';
+    ? 'powershell -c "irm https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.ps1 | iex"'
+    : 'curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash';
 }
 
 interface MenuVersionSectionProps {
@@ -42,7 +42,7 @@ export const MenuVersionSection: React.FC<MenuVersionSectionProps> = ({
     <div className="px-3 py-2 space-y-2">
       <div className="flex items-center justify-between gap-3">
         <a
-          href="https://github.com/backnotprop/plannotator"
+          href="https://github.com/ahmadghoniem/Hypermark"
           target="_blank"
           rel="noopener noreferrer"
           onClick={closeMenu}
@@ -57,7 +57,7 @@ export const MenuVersionSection: React.FC<MenuVersionSectionProps> = ({
       <div className="flex flex-col items-start gap-1 text-[11px]">
         <span className="flex items-center gap-1.5">
           <a
-            href={hasUpdate ? updateInfo!.releaseUrl : 'https://github.com/backnotprop/plannotator/releases'}
+            href={hasUpdate ? updateInfo!.releaseUrl : 'https://github.com/ahmadghoniem/Hypermark/releases'}
             target="_blank"
             rel="noopener noreferrer"
             onClick={closeMenu}

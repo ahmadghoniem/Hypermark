@@ -163,7 +163,7 @@ async function readBodyWithLimit(res: Response): Promise<string> {
 async function fetchRawText(url: string): Promise<string | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  const headers = { "User-Agent": "Mozilla/5.0 (compatible; Hypermark/1.0; +https://plannotator.ai)" };
+  const headers = { "User-Agent": "Mozilla/5.0 (compatible; Hypermark/1.0; +https://github.com/ahmadghoniem/Hypermark)" };
   try {
     let currentUrl = url;
     let res = await fetch(currentUrl, { headers, redirect: "manual", signal: controller.signal });
@@ -217,7 +217,7 @@ async function fetchViaContentNegotiation(url: string): Promise<string | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), NEGOTIATION_TIMEOUT_MS);
   const headers = {
-    "User-Agent": "Mozilla/5.0 (compatible; Hypermark/1.0; +https://plannotator.ai)",
+    "User-Agent": "Mozilla/5.0 (compatible; Hypermark/1.0; +https://github.com/ahmadghoniem/Hypermark)",
     Accept: "text/markdown, text/html;q=0.9",
   };
 
@@ -300,7 +300,7 @@ async function fetchViaTurndown(url: string): Promise<string> {
 
   const headers = {
     "User-Agent":
-      "Mozilla/5.0 (compatible; Hypermark/1.0; +https://plannotator.ai)",
+      "Mozilla/5.0 (compatible; Hypermark/1.0; +https://github.com/ahmadghoniem/Hypermark)",
     Accept: "text/html,application/xhtml+xml",
   };
 

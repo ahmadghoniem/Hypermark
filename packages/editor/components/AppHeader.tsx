@@ -431,7 +431,7 @@ export const CompactPlanNavigatorTrigger = ({
 const AppHeaderLogo = () => (
   <div className="flex items-center gap-2 md:gap-3">
     <a
-      href="https://plannotator.ai"
+      href="https://github.com/ahmadghoniem/Hypermark"
       target="_blank"
       rel="noopener noreferrer"
       className="flex items-center gap-1.5 md:gap-2 hover:opacity-80 transition-opacity"
