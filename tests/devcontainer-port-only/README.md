@@ -1,4 +1,4 @@
-# Plannotator Test - Port Only (Expected to Fail)
+# Hypermark Test - Port Only (Expected to Fail)
 
 This test simulates the common misconfiguration reported by users running `opencode web` in Docker: setting only `PLANNOTATOR_PORT` without `PLANNOTATOR_REMOTE`.
 

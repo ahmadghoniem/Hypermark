@@ -31,7 +31,7 @@ export { detectObsidianVaults, extractTitle, generateFrontmatter, generateFilena
  * Includes project name detection (git repo or directory name)
  */
 export async function extractTags(markdown: string): Promise<string[]> {
-	const tags = new Set<string>(["plannotator"]);
+	const tags = new Set<string>(["hypermark"]);
 
 	// Add project name tag (git repo name or directory fallback)
 	const projectName = await detectProjectName();
@@ -122,7 +122,7 @@ export async function saveToObsidian(
 		}
 
 		// Build target folder path
-		const folderName = folder.trim() || "plannotator";
+		const folderName = folder.trim() || "hypermark";
 		const targetFolder = join(normalizedVault, folderName);
 
 		// Create folder if it doesn't exist (guard for Bun mkdirSync regression)
@@ -191,7 +191,7 @@ export async function saveToOctarine(
 		const { plan } = config;
 		const workspace = config.workspace.trim();
 		if (!workspace) return { success: false, error: "Workspace is required" };
-		const folder = config.folder.trim() || "plannotator";
+		const folder = config.folder.trim() || "hypermark";
 
 		const filename = generateFilename(plan);
 		// Strip .md — Octarine auto-adds it

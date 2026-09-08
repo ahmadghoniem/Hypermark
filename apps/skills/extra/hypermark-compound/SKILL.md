@@ -2,15 +2,15 @@
 name: hypermark-compound
 disable-model-invocation: true
 description: >
-  Analyze a user's Plannotator plan archive to extract denial patterns, feedback
+  Analyze a user's Hypermark plan archive to extract denial patterns, feedback
   taxonomy, evolution over time, and actionable prompt improvements — then produce
   a polished HTML dashboard report. Falls back to Claude Code ExitPlanMode denial
-  reasons when Plannotator data is unavailable.
+  reasons when Hypermark data is unavailable.
 ---
 
 # Compound Planning Analysis
 
-You are conducting a comprehensive research analysis of a user's Plannotator plan
+You are conducting a comprehensive research analysis of a user's Hypermark plan
 archive. The goal: extract patterns from their denied plans, reduce
 them into actionable insights, and produce an elegant HTML dashboard report.
 
@@ -21,12 +21,12 @@ Research integrity is paramount — every file must be read, no skipping.
 
 Before starting the analysis, determine which data source is available.
 
-1. **Plannotator mode (first-class)** — Determine the Plannotator data directory:
+1. **Hypermark mode (first-class)** — Determine the Hypermark data directory:
    use `$PLANNOTATOR_DATA_DIR` if set, otherwise `~/.plannotator`. Check the
    `plans/` subdirectory there. If it exists and contains `*-denied.md` files,
-   use this mode. The entire workflow below is written for Plannotator data.
+   use this mode. The entire workflow below is written for Hypermark data.
 
-2. **Claude Code fallback mode** — If the Plannotator archive is absent or
+2. **Claude Code fallback mode** — If the Hypermark archive is absent or
    contains no denied plans, check `~/.claude/projects/`. If present, read
    [references/claude-code-fallback.md](references/claude-code-fallback.md)
    before continuing. That reference explains how to use the bundled parser at
@@ -35,14 +35,14 @@ Before starting the analysis, determine which data source is available.
    below has a short note explaining what changes in fallback mode — the
    reference file has the details.
 
-3. **Neither available** — Ask the user for their Plannotator plans directory or
+3. **Neither available** — Ask the user for their Hypermark plans directory or
    Claude Code projects directory. Do not guess.
 
 ## Phase 0: Locate Plans & Check for Previous Reports
 
 Use the mode chosen in Source Selection above.
 
-**Plannotator mode:** Verify the plans directory contains `*-denied.md` files. If
+**Hypermark mode:** Verify the plans directory contains `*-denied.md` files. If
 none exist, fall back to Claude Code mode before stopping.
 
 **Claude Code fallback mode:** Run the bundled parser per the fallback reference to
@@ -136,7 +136,7 @@ Extract dates from all filenames.
 
 Tell the user what you found and that you're beginning the extraction.
 
-**Claude Code fallback mode:** The Plannotator inventory fields above do not apply.
+**Claude Code fallback mode:** The Hypermark inventory fields above do not apply.
 Follow the inventory instructions in
 [references/claude-code-fallback.md](references/claude-code-fallback.md) instead —
 report the denial-reason dataset assembled by the parser.
@@ -284,7 +284,7 @@ extraction files and produce the full analysis. This covers most datasets.
 
 **Claude Code fallback mode:** The reduction phase is the same. The only upstream
 difference is that extraction files were derived from normalized denial-reason JSON
-instead of Plannotator markdown files.
+instead of Hypermark markdown files.
 
 ### Reduction Prompt
 
@@ -404,7 +404,7 @@ Before the 7 sections, the page has:
   a bottom border. Generous bottom padding before section 1.
 
 - **Footer:** After section 7. Top border, centered italic Playfair Display tagline
-  summarizing the corpus (e.g., "Analysis of X denied plans from the Plannotator
+  summarizing the corpus (e.g., "Analysis of X denied plans from the Hypermark
   archive.").
 
 ### Dashboard Section Order (7 sections)
@@ -466,7 +466,7 @@ one — the flow moves from "what happened" through "why" to "what to do about i
 - If most denied files lack feedback below the `---` (bare denials with no
   annotations), note this in the narrative — the analysis will be thinner
 - **Claude Code fallback mode:** Explicitly label the report source as Claude Code
-  `ExitPlanMode` denial reasons. Do not fabricate Plannotator-only fields such as
+  `ExitPlanMode` denial reasons. Do not fabricate Hypermark-only fields such as
   annotation counts or approved-plan line counts. See the fallback reference for
   KPI substitutes and footer/provenance guidance.
 - If fewer than 5 denial categories emerge, combine the taxonomy and patterns
@@ -501,13 +501,13 @@ Tell the user:
 
 **Claude Code fallback mode:** Adapt the summary per the fallback reference —
 report human denial reasons analyzed and total `ExitPlanMode` attempts scanned
-instead of Plannotator file counts.
+instead of Hypermark file counts.
 
 ## Phase 6: Improvement Hook
 
 After presenting the summary, ask the user if they want to enable an **improvement
 hook** — this takes the corrective prompt instructions from section 7 of the report
-and writes them to a file that Plannotator's `EnterPlanMode` hook can inject into
+and writes them to a file that Hypermark's `EnterPlanMode` hook can inject into
 every future planning session automatically.
 
 > "Would you like to enable the improvement hook? This will save the corrective
@@ -556,8 +556,8 @@ Read the existing file and present the user with a choice:
 
 ## Important Notes
 
-- **Data source priority:** Plannotator is the first-class path. Claude Code log
-  analysis is the secondary path for users without Plannotator archives.
+- **Data source priority:** Hypermark is the first-class path. Claude Code log
+  analysis is the secondary path for users without Hypermark archives.
 - **Research integrity:** Every file must be read. The value of this analysis comes
   from completeness. Sampling or skipping undermines the findings.
 - **Real data only:** Never fabricate quotes, percentages, or patterns. If the data

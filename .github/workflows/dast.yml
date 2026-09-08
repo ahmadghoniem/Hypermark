@@ -99,7 +99,7 @@ jobs:
           chmod 777 security-results/zap
 
           # ZAP's stock database template allows only 32 MiB of cached response
-          # data. Plannotator's single-file UI is over 20 MiB, so derive the
+          # data. Hypermark's single-file UI is over 20 MiB, so derive the
           # exact template from the pinned image and change only that limit.
           docker run --rm \
             --network none \
@@ -245,7 +245,7 @@ jobs:
           fi
           mv security-results/zap/zap.out security-results/zap/sentinel-zap.log
 
-      - name: Scan disposable Plannotator session
+      - name: Scan disposable Hypermark session
         shell: bash
         run: |
           set -euo pipefail

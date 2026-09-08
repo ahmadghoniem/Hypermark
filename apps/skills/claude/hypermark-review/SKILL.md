@@ -1,15 +1,15 @@
 ---
 name: hypermark-review
-description: Open Plannotator's browser-based code review UI for the current worktree or a pull request URL, then act on the feedback that comes back.
-allowed-tools: Bash(plannotator:*)
+description: Open Hypermark's browser-based code review UI for the current worktree or a pull request URL, then act on the feedback that comes back.
+allowed-tools: Bash(hypermark:*)
 disable-model-invocation: true
 ---
 
-# Plannotator Review
+# Hypermark Review
 
 ## Code review feedback
 
-!`plannotator review $ARGUMENTS`
+!`hypermark review $ARGUMENTS`
 
 ## Your task
 

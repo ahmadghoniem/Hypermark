@@ -15,7 +15,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
-echo "=== Plannotator OpenCode Origin Test ==="
+echo "=== Hypermark OpenCode Test ==="
 echo ""
 
 # Build first to ensure latest code

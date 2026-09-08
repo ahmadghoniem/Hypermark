@@ -1,4 +1,4 @@
-# Plannotator-owned Semgrep Community Edition rules.
+# Hypermark-owned Semgrep Community Edition rules.
 #
 # Keeping the rules in this Apache-2.0 repository makes scans reviewable and
 # offline. Semgrep Registry configurations are intentionally not used: they
@@ -6,7 +6,7 @@
 # permit redistributing copies. CE is intrafile only; these rules do not claim
 # cross-file, cross-function, reachability, or hosted policy coverage.
 rules:
-  - id: plannotator.node.nonliteral-exec
+  - id: hypermark.node.nonliteral-exec
     message: A non-literal command reaches child_process exec/execSync. Prefer an argv-based spawn API and validate every argument.
     severity: ERROR
     languages: [javascript, typescript]
@@ -44,7 +44,7 @@ rules:
               - pattern: execSync($COMMAND, ...)
               - pattern-not: execSync("...", ...)
 
-  - id: plannotator.node.shell-command-argument
+  - id: hypermark.node.shell-command-argument
     message: Data is passed to a shell command string. Prefer a fixed executable and an argv array without `sh -c`.
     severity: ERROR
     languages: [javascript, typescript]
@@ -73,7 +73,7 @@ rules:
           - pattern: Bun.spawnSync(["sh", "-c", $COMMAND], ...)
           - pattern: Bun.spawnSync(["bash", "-c", $COMMAND])
           - pattern: Bun.spawnSync(["bash", "-c", $COMMAND], ...)
-  - id: plannotator.javascript.dynamic-code-execution
+  - id: hypermark.javascript.dynamic-code-execution
     message: Non-literal input reaches eval or the Function constructor. Avoid evaluating code assembled at runtime.
     severity: ERROR
     languages: [javascript, typescript]
@@ -94,7 +94,7 @@ rules:
           patterns:
             - pattern-not: "..."
 
-  - id: plannotator.web.request-to-network
+  - id: hypermark.web.request-to-network
     message: Request-derived data reaches a network sink in the same function. Validate the scheme, host, port, redirects, and resolved IP before use.
     severity: ERROR
     languages: [javascript, typescript]
@@ -131,7 +131,7 @@ rules:
               - pattern: http.get($DESTINATION, ...)
               - pattern: https.get($DESTINATION, ...)
 
-  - id: plannotator.web.request-to-filesystem
+  - id: hypermark.web.request-to-filesystem
     message: Request-derived data reaches a filesystem API in the same function. Resolve against an allowed root and reject traversal before access.
     severity: ERROR
     languages: [javascript, typescript]
@@ -170,7 +170,7 @@ rules:
               - pattern: createReadStream($PATH, ...)
               - pattern: createWriteStream($PATH, ...)
 
-  - id: plannotator.browser.nonliteral-innerhtml
+  - id: hypermark.browser.nonliteral-innerhtml
     message: Non-literal data is assigned to innerHTML/outerHTML. Use textContent or sanitize with the repository's DOMPurify boundary.
     severity: WARNING
     languages: [javascript, typescript]
@@ -191,7 +191,7 @@ rules:
           patterns:
             - pattern-not: "..."
 
-  - id: plannotator.browser.document-write
+  - id: hypermark.browser.document-write
     message: document.write/writeln can create a DOM XSS sink and should not process dynamic content.
     severity: ERROR
     languages: [javascript, typescript]
@@ -206,7 +206,7 @@ rules:
       - pattern: document.write(...)
       - pattern: document.writeln(...)
 
-  - id: plannotator.react.dangerously-set-inner-html
+  - id: hypermark.react.dangerously-set-inner-html
     message: React dangerouslySetInnerHTML bypasses escaping. Ensure the value is sanitized at this boundary.
     severity: WARNING
     languages: [typescript, javascript]
@@ -220,7 +220,7 @@ rules:
     patterns:
       - pattern: '<$ELEMENT ... dangerouslySetInnerHTML={{__html: $HTML}} ... />'
 
-  - id: plannotator.web.unvalidated-redirect
+  - id: hypermark.web.unvalidated-redirect
     message: Request-derived data reaches a redirect target in the same function. Restrict redirects to approved local paths or origins.
     severity: WARNING
     languages: [javascript, typescript]
@@ -251,7 +251,7 @@ rules:
               - pattern: Response.redirect($DESTINATION, ...)
               - pattern: $RESPONSE.redirect($DESTINATION, ...)
 
-  - id: plannotator.crypto.weak-digest
+  - id: hypermark.crypto.weak-digest
     message: MD5 and SHA-1 are not collision resistant. Use a modern digest for security-sensitive integrity or authentication.
     severity: WARNING
     languages: [javascript, typescript]
@@ -270,7 +270,7 @@ rules:
       - pattern: crypto.createHash("sha1")
       - pattern: crypto.createHash("sha-1")
 
-  - id: plannotator.network.tls-verification-disabled
+  - id: hypermark.network.tls-verification-disabled
     message: TLS certificate verification is disabled. Remove rejectUnauthorized:false.
     severity: ERROR
     languages: [javascript, typescript]
@@ -283,7 +283,7 @@ rules:
       technology: [node, bun]
     pattern: "{ ..., rejectUnauthorized: false, ... }"
 
-  - id: plannotator.auth.insecure-randomness
+  - id: hypermark.auth.insecure-randomness
     message: Math.random is not suitable for credentials, tokens, nonces, or session identifiers. Use a cryptographic random source.
     severity: ERROR
     languages: [javascript, typescript]
@@ -302,7 +302,7 @@ rules:
           metavariable: $NAME
           regex: (?i).*(token|secret|session|nonce|credential|password|auth).*
 
-  - id: plannotator.web.wildcard-credentials-cors
+  - id: hypermark.web.wildcard-credentials-cors
     message: A wildcard CORS origin must not be combined with credentials.
     severity: ERROR
     languages: [javascript, typescript]
@@ -318,7 +318,7 @@ rules:
           - pattern: "{ ..., 'Access-Control-Allow-Origin': '*', ..., 'Access-Control-Allow-Credentials': 'true', ... }"
           - pattern: '{ ..., "Access-Control-Allow-Origin": "*", ..., "Access-Control-Allow-Credentials": "true", ... }'
 
-  - id: plannotator.installer.remote-script-pipeline
+  - id: hypermark.installer.remote-script-pipeline
     message: A remote response is piped directly to a command interpreter. Download, authenticate, and inspect the artifact before execution.
     severity: ERROR
     languages: [generic]
@@ -342,7 +342,7 @@ rules:
       - pattern-regex: '(?im)^\s*(?:curl|wget)[^\n|]*\|\s*(?:sh|bash)(?:\s|$)'
       - pattern-regex: '(?im)^\s*(?:iwr|Invoke-WebRequest)[^\n|]*\|\s*(?:iex|Invoke-Expression)(?:\s|$)'
 
-  - id: plannotator.installer.unquoted-shell-expansion
+  - id: hypermark.installer.unquoted-shell-expansion
     message: An unquoted command substitution is used as a shell command. Store and validate data instead of executing expansion output.
     severity: ERROR
     languages: [generic]

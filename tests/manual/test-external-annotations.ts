@@ -68,7 +68,7 @@ index 7654321..fedcba9 100644
 +
    return (
      <div className="app">
-       <h1>Plannotator</h1>
+       <h1>Hypermark</h1>
 @@ -22,7 +27,7 @@ export function App() {
          {blocks.map((block, i) => (
            <div key={i} className="block">

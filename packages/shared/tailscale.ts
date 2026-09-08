@@ -232,7 +232,7 @@ export function resolveAutoHostCached(
     } else {
       autoHostResolution = { host: undefined };
       process.stderr.write(
-        `[plannotator] Warning: advertised URL host "auto" could not resolve a tailnet host — ${result.error} Advertising localhost.\n`,
+        `[hypermark] Warning: advertised URL host "auto" could not resolve a tailnet host — ${result.error} Advertising localhost.\n`,
       );
     }
   }

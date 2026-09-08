@@ -38,7 +38,7 @@ These scripts test integrations, releases, and provide utilities.
 ./tests/manual/local/test-binary.sh        # Test installed binary from ~/.local/bin/
 ```
 
-Tests the installed `plannotator` binary to verify releases work correctly.
+Tests the installed `hypermark` binary to verify releases work correctly.
 
 **Bulk plan testing (Obsidian integration):**
 
@@ -84,7 +84,7 @@ Tips:
 **Obsidian utility:**
 
 ```bash
-./tests/manual/local/fix-vault-links.sh /path/to/vault/plannotator
+./tests/manual/local/fix-vault-links.sh /path/to/vault/hypermark
 ```
 
 Adds Obsidian backlinks (`[[Plannotator Plans]]`) to existing plan files in your vault.

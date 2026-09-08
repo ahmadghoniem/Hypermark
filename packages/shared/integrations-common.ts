@@ -88,7 +88,7 @@ export function generateFrontmatter(tags: string[]): string {
 	const tagList = tags.map((t) => t.toLowerCase()).join(", ");
 	return `---
 created: ${now}
-source: plannotator
+source: hypermark
 tags: [${tagList}]
 ---`;
 }
@@ -239,5 +239,5 @@ export function buildBearContent(
 export function generateOctarineFrontmatter(tags: string[]): string {
 	const now = new Date().toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
 	const tagLines = tags.map((t) => `  - ${t.toLowerCase()}`).join("\n");
-	return `---\ntags:\n${tagLines}\nStatus: Draft\nAuthor: plannotator\nLast Edited: ${now}\n---`;
+	return `---\ntags:\n${tagLines}\nStatus: Draft\nAuthor: hypermark\nLast Edited: ${now}\n---`;
 }

@@ -27,18 +27,18 @@ describe("CLI top-level help", () => {
   test("renders concise top-level usage", () => {
     const output = formatTopLevelHelp();
 
-    expect(output).toContain("plannotator --help");
-    expect(output).toContain("plannotator --version, -v");
-    expect(output).toContain("plannotator [--browser <name>]");
-    expect(output).toContain("plannotator review [--git | --gitbutler] [--tailscale] [PR_URL]");
-    expect(output).toContain("plannotator annotate <file.md | file.txt | file.html | https://... | folder/>");
+    expect(output).toContain("hypermark --help");
+    expect(output).toContain("hypermark --version, -v");
+    expect(output).toContain("hypermark [--browser <name>]");
+    expect(output).toContain("hypermark review [--git | --gitbutler] [--tailscale] [PR_URL]");
+    expect(output).toContain("hypermark annotate <file.md | file.txt | file.html | https://... | folder/>");
     expect(output).toContain("[--markdown] [--no-jina]");
-    expect(output).toContain("plannotator annotate-last [--stdin]");
-    expect(output).toContain("plannotator copilot-last [--gate] [--json] [--hook]");
-    expect(output).toContain("plannotator setup-goal <interview|facts>");
-    expect(output).toContain("plannotator uninstall [--purge] [--yes]");
-    expect(output).toContain("Run 'plannotator <command> --help' for command-specific usage.");
-    expect(output).toContain("running 'plannotator' without arguments is for hook integration");
+    expect(output).toContain("hypermark annotate-last [--stdin]");
+    expect(output).toContain("hypermark copilot-last [--gate] [--json] [--hook]");
+    expect(output).toContain("hypermark setup-goal <interview|facts>");
+    expect(output).toContain("hypermark uninstall [--purge] [--yes]");
+    expect(output).toContain("Run 'hypermark <command> --help' for command-specific usage.");
+    expect(output).toContain("running 'hypermark' without arguments is for hook integration");
   });
 });
 
@@ -81,7 +81,7 @@ describe("CLI subcommand help", () => {
 
   test("covers every command advertised in top-level help", () => {
     // Each command listed in formatTopLevelHelp() must respond to --help so the
-    // advertised "run 'plannotator <command> --help'" contract holds.
+    // advertised "run 'hypermark <command> --help'" contract holds.
     for (const sub of [
       "annotate",
       "copilot-last",
@@ -104,7 +104,7 @@ describe("CLI subcommand help", () => {
 
   test("renders subcommand-specific usage", () => {
     expect(formatSubcommandHelp("review")).toContain(
-      "plannotator review [--git | --gitbutler]",
+      "hypermark review [--git | --gitbutler]",
     );
     expect(formatSubcommandHelp("review")).toContain("--gitbutler");
     expect(formatSubcommandHelp("review")).toContain("PR_URL");
@@ -119,7 +119,7 @@ describe("CLI subcommand help", () => {
       "Local plans, history, drafts",
     );
     expect(formatSubcommandHelp("uninstall")).toContain(
-      "not stored on a Plannotator server",
+      "not stored on a Hypermark server",
     );
     // unknown key falls back to top-level help
     expect(formatSubcommandHelp("nope")).toBe(formatTopLevelHelp());
@@ -303,7 +303,7 @@ describe("CLI --version", () => {
 
   test("formats version string", () => {
     const output = formatVersion();
-    expect(output).toStartWith("plannotator ");
+    expect(output).toStartWith("hypermark ");
   });
 });
 
@@ -320,11 +320,11 @@ describe("interactive no-arg invocation", () => {
 
     expect(output).toContain("usually launched automatically by Claude Code hooks");
     expect(output).toContain("It expects hook JSON on stdin.");
-    expect(output).toContain("plannotator review");
-    expect(output).toContain("plannotator setup-goal interview bundle.json --json");
-    expect(output).toContain("plannotator sessions");
-    expect(output).toContain("plannotator uninstall");
-    expect(output).toContain("Run 'plannotator --help' for top-level usage.");
+    expect(output).toContain("hypermark review");
+    expect(output).toContain("hypermark setup-goal interview bundle.json --json");
+    expect(output).toContain("hypermark sessions");
+    expect(output).toContain("hypermark uninstall");
+    expect(output).toContain("Run 'hypermark --help' for top-level usage.");
   });
 });
 

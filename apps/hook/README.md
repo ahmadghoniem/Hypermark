@@ -1,10 +1,10 @@
-# Plannotator Claude Code Plugin
+# Hypermark Claude Code Plugin
 
-This directory contains the Claude Code plugin configuration for Plannotator.
+This directory contains the Claude Code plugin configuration for Hypermark.
 
 ## Prerequisites
 
-Install the `plannotator` command so Claude Code can use it:
+Install the `hypermark` command so Claude Code can use it:
 
 **macOS / Linux / WSL:**
 ```bash
@@ -35,7 +35,7 @@ In Claude Code:
 
 ```
 /plugin marketplace add backnotprop/plannotator
-/plugin install plannotator@plannotator
+/plugin install hypermark@hypermark
 ```
 
 **Important:** Restart Claude Code after installing the plugin for the hooks to take effect.
@@ -53,7 +53,7 @@ If you prefer not to use the plugin system, add this to your `~/.claude/settings
         "hooks": [
           {
             "type": "command",
-            "command": "plannotator",
+            "command": "hypermark",
             "timeout": 345600
           }
         ]
@@ -67,7 +67,7 @@ If you prefer not to use the plugin system, add this to your `~/.claude/settings
 
 When Claude Code calls `ExitPlanMode`, this hook intercepts and:
 
-1. Opens Plannotator UI in your browser
+1. Opens Hypermark UI in your browser
 2. Lets you annotate the plan visually
 3. Approve → Claude proceeds with implementation
 4. Request changes → Your annotations are sent back to Claude
@@ -91,7 +91,7 @@ export PLANNOTATOR_REMOTE=1
 export PLANNOTATOR_PORT=9999  # Choose a port you'll forward
 ```
 
-This tells Plannotator to:
+This tells Hypermark to:
 - Use a fixed port instead of a random one (so you can set up port forwarding)
 - Use remote-friendly port/browser handling for forwarded environments
 - Print the URL to the terminal for you to access
@@ -106,7 +106,7 @@ Host your-server
 
 ## Slash Commands
 
-Plannotator's slash commands are installed as Claude Code skills in `~/.claude/skills` by the install script (the canonical source is `apps/skills/core/`). Claude Code skills are user-invocable by directory name, so these three work like slash commands inside your session:
+Hypermark's slash commands are installed as Claude Code skills in `~/.claude/skills` by the install script (the canonical source is `apps/skills/core/`). Claude Code skills are user-invocable by directory name, so these three work like slash commands inside your session:
 
 | Command | Description |
 |---------|-------------|
@@ -119,26 +119,26 @@ Plannotator's slash commands are installed as Claude Code skills in `~/.claude/s
 Approved plans can be automatically saved to your Obsidian vault.
 
 **Setup:**
-1. Open Settings (gear icon) in Plannotator
+1. Open Settings (gear icon) in Hypermark
 2. Enable "Obsidian Integration"
 3. Select your vault from the dropdown (auto-detected) or enter the path manually
-4. Set folder name (default: `plannotator`)
+4. Set folder name (default: `hypermark`)
 
 **What gets saved:**
 - Plans saved with human-readable filenames: `Title - Jan 2, 2026 2-30pm.md`
 - YAML frontmatter with `created`, `source`, and `tags`
 - Tags extracted automatically from the plan title and code languages
-- Backlink to `[[Plannotator Plans]]` for graph connectivity
+- Backlink to `[[Hypermark Plans]]` for graph connectivity
 
 **Example saved file:**
 ```markdown
 ---
 created: 2026-01-02T14:30:00.000Z
-source: plannotator
+source: hypermark
 tags: [plan, authentication, typescript, sql]
 ---
 
-[[Plannotator Plans]]
+[[Hypermark Plans]]
 
 # Implementation Plan: User Authentication
 ...

@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "plannotator improve-context",
+            "command": "hypermark improve-context",
             "timeout": 5
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "plannotator",
+            "command": "hypermark",
             "timeout": 345600
           }
         ]

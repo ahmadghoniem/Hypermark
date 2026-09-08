@@ -14,7 +14,7 @@ describe("UPLOAD_DIR", () => {
     // On Linux it returns /tmp
     // On Windows it returns C:\Users\...\AppData\Local\Temp
     // The key thing: it should NOT be hardcoded to /tmp/plannotator
-    expect(UPLOAD_DIR).toContain("plannotator");
+    expect(UPLOAD_DIR).toContain("hypermark");
     expect(UPLOAD_DIR.startsWith(tmpdir())).toBe(true);
   });
 });

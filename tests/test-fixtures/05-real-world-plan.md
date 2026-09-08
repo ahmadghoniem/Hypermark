@@ -3,7 +3,7 @@
 ## Overview
 
 This plan adds support for markdown hard line breaks and list continuation
-lines in the Plannotator renderer.
+lines in the Hypermark renderer.
 
 ## Changes
 

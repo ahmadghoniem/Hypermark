@@ -130,7 +130,7 @@ Write the full audit results to `~/.supply-chain/notes/<YYYY-MM-DD>.json`:
 ```json
 {
   "date": "YYYY-MM-DD",
-  "project": "plannotator",
+  "project": "hypermark",
   "bumped": [
     {
       "package": "...",

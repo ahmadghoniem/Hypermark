@@ -1,5 +1,5 @@
 {
-  "name": "Plannotator Test - Port Only (Broken)",
+  "name": "Hypermark Test - Port Only (Broken)",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {

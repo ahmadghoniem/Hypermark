@@ -960,7 +960,7 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
             className="bg-card border border-border rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl relative overflow-hidden"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="plannotator-settings-title"
+            aria-labelledby="hypermark-settings-title"
             onClick={e => e.stopPropagation()}
             onKeyDown={(event) => {
               if (event.key !== 'Escape' || event.defaultPrevented) return;
@@ -971,7 +971,7 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
           >
             {taterMode && <TaterSpritePullup />}
             <div className="flex items-center justify-between p-4 border-b border-border">
-              <h3 id="plannotator-settings-title" className="font-semibold text-sm">Settings</h3>
+              <h3 id="hypermark-settings-title" className="font-semibold text-sm">Settings</h3>
               <button
                 type="button"
                 aria-label="Close settings"

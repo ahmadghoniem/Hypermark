@@ -1,5 +1,5 @@
 // Eager renderer registration (side-effect imports, evaluated before every
-// other module below). These keep Plannotator's first paint and identity
+// other module below). These keep Hypermark's first paint and identity
 // minting byte-identical now that @hypermark/ui loads KaTeX and the username
 // dictionary lazily for hosts: math is typeset on the first commit and names
 // come from the full dictionary. Guarded by tests/entry-assets.test.ts; do not
@@ -714,7 +714,7 @@ const ReviewAppInner: React.FC = () => {
     if (updateInfo?.updateAvailable && !updateInfo.dismissed && !updateToastShown.current) {
       updateToastShown.current = true;
       const t = setTimeout(() => {
-        toast('A new version of Plannotator is available', {
+        toast('A new version of Hypermark is available', {
           description: 'Open the Options menu to update.',
           duration: 4000,
           position: 'top-right',

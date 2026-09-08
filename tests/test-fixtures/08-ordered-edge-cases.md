@@ -92,7 +92,7 @@ Tabular numerals + 1.5rem min-width should keep 9 → 10 from jittering.
 The diff renderer lives in `PlanCleanDiffView` and only appears when a prior
 version of the plan is saved. To exercise the diff view specifically:
 
-1. Serve this fixture once through the plan review flow (`plannotator` plan mode
+1. Serve this fixture once through the plan review flow (`hypermark` plan mode
    with a hook invocation), then deny + resubmit a modified copy that changes
    one of the numbered items above.
 2. Open the diff view via the `+N/-M` badge.

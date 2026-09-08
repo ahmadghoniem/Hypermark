@@ -1,6 +1,6 @@
-# Plannotator Devcontainer Test
+# Hypermark Devcontainer Test
 
-This directory contains a devcontainer setup for testing Plannotator with OpenCode in a containerized environment.
+This directory contains a devcontainer setup for testing Hypermark with OpenCode in a containerized environment.
 
 ## Prerequisites
 
@@ -23,7 +23,7 @@ This directory contains a devcontainer setup for testing Plannotator with OpenCo
 
 3. **Reopen in Container**: When prompted, click "Reopen in Container" or use Command Palette: `Dev Containers: Reopen in Container`
 
-## Testing Plannotator
+## Testing Hypermark
 
 The devcontainer is pre-configured with:
 - `PLANNOTATOR_REMOTE=1` - enables remote mode
@@ -44,7 +44,7 @@ The devcontainer is pre-configured with:
 
 2. Ask OpenCode to create a plan (e.g., "Create a plan to add user authentication")
 
-3. When OpenCode calls `submit_plan`, Plannotator should:
+3. When OpenCode calls `submit_plan`, Hypermark should:
    - Start server on port 9999 (not random)
    - Not try to open browser (remote mode)
 

@@ -1,6 +1,6 @@
 /**
- * Freshness guard for the plannotator knowledge skill
- * (apps/skills/core/plannotator/SKILL.md).
+ * Freshness guard for the hypermark knowledge skill
+ * (apps/skills/core/hypermark/SKILL.md).
  *
  * The failure this catches: the skill is a prose copy of the CLI surface, and
  * prose copies drift. What each assertion actually covers differs, so do not
@@ -39,7 +39,7 @@ const SKILL_MD_PATH = join(
   "..",
   "skills",
   "core",
-  "plannotator",
+  "hypermark",
   "SKILL.md",
 );
 
@@ -107,7 +107,7 @@ const cliSubcommands = new Set<string>([
   ...Object.keys(SUBCOMMAND_HELP_ALIASES),
 ]);
 for (const m of formatTopLevelHelp().matchAll(
-  /^ {2}plannotator ([a-z][a-z0-9-]*)/gm,
+  /^ {2}hypermark ([a-z][a-z0-9-]*)/gm,
 )) {
   cliSubcommands.add(m[1]);
 }
@@ -124,7 +124,7 @@ const annotateSkillDoc = readFileSync(ANNOTATE_SKILL_MD_PATH, "utf-8");
 
 const documentedSubcommands = new Set<string>();
 for (const fence of skillDoc.matchAll(/```[a-z]*\n([\s\S]*?)```/g)) {
-  for (const m of fence[1].matchAll(/^\s*plannotator\s+([a-z][a-z0-9-]*)/gm)) {
+  for (const m of fence[1].matchAll(/^\s*hypermark\s+([a-z][a-z0-9-]*)/gm)) {
     documentedSubcommands.add(m[1]);
   }
 }
@@ -134,11 +134,11 @@ for (const m of skillDoc.matchAll(/(?<![\w-])--[a-z][a-z0-9-]*/g)) {
   documentedFlags.add(m[0]);
 }
 
-describe("plannotator knowledge skill freshness", () => {
+describe("hypermark knowledge skill freshness", () => {
   test("file approval guidance enables the annotate gate", () => {
-    expect(skillDoc).toContain("plannotator annotate <file> --gate --json");
+    expect(skillDoc).toContain("hypermark annotate <file> --gate --json");
     expect(annotateSkillDoc).toContain(
-      "plannotator annotate <path-or-url> --gate --json",
+      "hypermark annotate <path-or-url> --gate --json",
     );
     expect(annotateSkillDoc).toContain(
       "`--json` only changes the output format and does not enable approval by itself",
@@ -162,7 +162,7 @@ describe("plannotator knowledge skill freshness", () => {
     for (const sub of documentedSubcommands) {
       expect(
         cliSubcommands.has(sub),
-        `SKILL.md documents \`plannotator ${sub}\` but the CLI has no such subcommand — update apps/skills/core/plannotator/SKILL.md`,
+        `SKILL.md documents \`hypermark ${sub}\` but the CLI has no such subcommand — update apps/skills/core/hypermark/SKILL.md`,
       ).toBe(true);
     }
   });
@@ -171,7 +171,7 @@ describe("plannotator knowledge skill freshness", () => {
     for (const flag of documentedFlags) {
       expect(
         cliFlags.has(flag),
-        `SKILL.md mentions ${flag} but no CLI usage text or parser accepts it — update apps/skills/core/plannotator/SKILL.md`,
+        `SKILL.md mentions ${flag} but no CLI usage text or parser accepts it — update apps/skills/core/hypermark/SKILL.md`,
       ).toBe(true);
     }
   });
@@ -194,13 +194,13 @@ describe("plannotator knowledge skill freshness", () => {
     for (const origin of Object.keys(AGENT_CONFIG)) {
       expect(
         documentedOrigins.has(origin),
-        `AGENT_CONFIG defines the origin \`${origin}\` but the PLANNOTATOR_ORIGIN row in apps/skills/core/plannotator/SKILL.md does not list it`,
+        `AGENT_CONFIG defines the origin \`${origin}\` but the PLANNOTATOR_ORIGIN row in apps/skills/core/hypermark/SKILL.md does not list it`,
       ).toBe(true);
     }
     for (const origin of documentedOrigins) {
       expect(
         origin in AGENT_CONFIG,
-        `The PLANNOTATOR_ORIGIN row in apps/skills/core/plannotator/SKILL.md lists \`${origin}\`, which is not an AGENT_CONFIG origin`,
+        `The PLANNOTATOR_ORIGIN row in apps/skills/core/hypermark/SKILL.md lists \`${origin}\`, which is not an AGENT_CONFIG origin`,
       ).toBe(true);
     }
   });
@@ -214,14 +214,14 @@ describe("plannotator knowledge skill freshness", () => {
       ...Object.keys(SUBCOMMAND_HELP_ALIASES),
     ]);
     for (const m of formatTopLevelHelp().matchAll(
-      /^ {2}plannotator ([a-z][a-z0-9-]*)/gm,
+      /^ {2}hypermark ([a-z][a-z0-9-]*)/gm,
     )) {
       userFacing.add(m[1]);
     }
     for (const sub of userFacing) {
       expect(
         documentedSubcommands.has(sub),
-        `CLI subcommand \`plannotator ${sub}\` is not documented in apps/skills/core/plannotator/SKILL.md — add it (a fenced \`plannotator ${sub}\` usage line)`,
+        `CLI subcommand \`hypermark ${sub}\` is not documented in apps/skills/core/hypermark/SKILL.md — add it (a fenced \`hypermark ${sub}\` usage line)`,
       ).toBe(true);
     }
   });

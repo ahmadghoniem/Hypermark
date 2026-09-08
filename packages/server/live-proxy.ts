@@ -234,7 +234,7 @@ export function startLiveAppProxy(opts: LiveAppProxyOptions): LiveAppProxy {
           // annotation does not attach on it.
           warnedEncodedHtml = true;
           console.error(
-            "[plannotator] Live app proxy: upstream returned content-encoded HTML despite the Accept-Encoding strip; the annotation bridge was not injected.",
+            "[hypermark] Live app proxy: upstream returned content-encoded HTML despite the Accept-Encoding strip; the annotation bridge was not injected.",
           );
         }
         return new Response(upstreamResponse.body, {

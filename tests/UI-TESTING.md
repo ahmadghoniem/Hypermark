@@ -1,6 +1,6 @@
 # UI Testing Guide
 
-This guide helps you test UI changes in Plannotator. Whether you're adding new features or fixing bugs, follow these
+This guide helps you test UI changes in Hypermark. Whether you're adding new features or fixing bugs, follow these
 steps to ensure your changes work correctly.
 
 ## Table of Contents
@@ -26,7 +26,7 @@ steps to ensure your changes work correctly.
 
 ```bash
 git clone https://github.com/backnotprop/plannotator.git
-cd plannotator
+cd hypermark
 bun install
 ```
 
@@ -386,29 +386,29 @@ menu with the alternate decisions and the in-place note composer. Run each flow 
 zero annotations and n annotations — on desktop AND on a real phone (touch has no `Mod+Enter`,
 which is the regression class this control exists to fix).
 
-1. **Annotate, single file** (`plannotator annotate notes.md`). At zero the primary reads `Done`;
+1. **Annotate, single file** (`hypermark annotate notes.md`). At zero the primary reads `Done`;
    clicking it submits the "no feedback" record and the terminal prints it. Caret →
    `Done with a note…` opens the composer in place: `Enter` inserts a newline, `Mod+Enter`
    submits, `Escape` steps back to the menu keeping the draft. Add an annotation: the primary
    flips to `Send Feedback · 1`, and `Done, discard 1 annotation…` raises the one confirm.
-2. **Annotate, gate mode** (`plannotator annotate notes.md --gate --json`). The zero-state
+2. **Annotate, gate mode** (`hypermark annotate notes.md --gate --json`). The zero-state
    primary is `Approve` and posts `/api/approve` (stdout records `"approved"`; with
    `--require-approval` only approval exits `0`); `Request changes…` records an annotated
    decision. `Approve with a note…` / `Approve with notes` appear only when the session
    advertises approval-notes support.
-3. **Annotate, folder and last** (`plannotator annotate docs/`, `plannotator last`). Same
+3. **Annotate, folder and last** (`hypermark annotate docs/`, `hypermark last`). Same
    control, same states; in a folder session switch documents mid-draft and confirm the header
    count tracks the session's annotations.
-4. **HTML / live-app annotate** (`plannotator annotate page.html`, `plannotator annotate
+4. **HTML / live-app annotate** (`hypermark annotate page.html`, `hypermark annotate
    http://localhost:<port>`). Open the caret menu, then click the framed page: the popover
    dismisses (iframe focus is the dismissal signal — there is no parent pointerdown).
-5. **Review, agent mode** (`plannotator review`). `Approve` at zero, `Send Feedback · n` after
+5. **Review, agent mode** (`hypermark review`). `Approve` at zero, `Send Feedback · n` after
    annotating; approving despite annotations is two clicks (caret → `Approve, discard n
    annotations…` → `Discard & approve`). With the composer open, `Escape` returns to the menu
    and does NOT collapse the file tree or close the sidebar; a second `Escape` closes the menu;
    a third runs the app's own ladder. `Mod+Enter` over the open discard confirm must fire only
    the dialog, never a second submission.
-6. **Review, platform (PR) mode** (`plannotator review <pr-url>`). Same control shape, no
+6. **Review, platform (PR) mode** (`hypermark review <pr-url>`). Same control shape, no
    composer items: every menu action opens `ReviewSubmissionDialog`. On your own PR the
    approve rows are muted with the "You can't approve your own PR/MR" reason while
    `Request changes…` / `Post comments, then…` stay live.
@@ -425,7 +425,7 @@ Not CI. Run this in Chrome or Edge with the API on: `chrome://flags/#enable-webm
 
 Before the flows, confirm the footprint rules:
 
-- Load `plannotator annotate <file.md>` and do nothing. Six `plannotator.*` tools are listed, but the header shows no "Agent" marker, no banner, and `document.cookie` has no `plannotator-webmcp-tools` entry.
+- Load `hypermark annotate <file.md>` and do nothing. Six `plannotator.*` tools are listed, but the header shows no "Agent" marker, no banner, and `document.cookie` has no `plannotator-webmcp-tools` entry.
 - Load the same session in a browser without the API. Nothing in the page changes, and the Settings General tab has no "Agent tools" row.
 
 The five flows from the design (section 3.7):
@@ -434,14 +434,14 @@ The five flows from the design (section 3.7):
 2. **The user just annotated something, what do they want?** Open the comment composer in the page; a `read_document` while it is open carries `composer_open`. Submit the comment; the next `read_document` carries `annotations_new` naming its id and the entry has `isNew: true`.
 3. **Leave a comment on section X.** Call `add_comments` with `{ section: "<outline id>", quote: "<exact text>", text: "..." }`. Expect `anchoredBy: "quote"`, a highlight in the document, and a `browser-agent` card in the panel. Repeat the same call with the same `requestId`: `created: 0`, `deduplicated: true`. Delete the card from the panel and repeat once more: the item answers `conflict` and nothing is re-created.
 4. **Reply to the user's comment.** Call `add_comments` with `{ inReplyTo: "<the human's id>", text: "..." }`. The reply renders indented under the human's card and `read_document` lists it in the parent's `replies`. `update_comment` and `remove_comments` on the human's id answer `forbidden`; on the reply they succeed.
-5. **Several files in a folder session.** Run `plannotator annotate <folder>`, open one document, comment in it, then open another. Call `read_document`: `otherDocuments` names the first document with its count, and an `other_document_active` nudge carries the exact `read_document { path }` call. Call `list_documents`: every file in the tree is listed. Call `reveal { annotationId, path }` for a comment in the first document: the view navigates there and the card is selected.
+5. **Several files in a folder session.** Run `hypermark annotate <folder>`, open one document, comment in it, then open another. Call `read_document`: `otherDocuments` names the first document with its count, and an `other_document_active` nudge carries the exact `read_document { path }` call. Call `list_documents`: every file in the tree is listed. Call `reveal { annotationId, path }` for a comment in the first document: the view navigates there and the card is selected.
 
 Then the remaining surfaces:
 
 - `reveal { section }` scrolls to the heading; `nudge_user` shows one banner that the dismiss button removes; a 281-character message answers `invalid_input`.
 - The "Agent" marker appears in the header only after the first successful call.
 - Settings, General, "Agent tools" off: `getTools()` is empty and `document.cookie` now has `plannotator-webmcp-tools=false`. Back on: six tools again and the cookie is gone.
-- `plannotator annotate <file.html>` and `plannotator annotate http://localhost:<port>`: from inside the iframe, `document.modelContext.getTools()` and `registerTool()` reject with `NotAllowedError`; the parent page still lists Plannotator's tools.
+- `hypermark annotate <file.html>` and `hypermark annotate http://localhost:<port>`: from inside the iframe, `document.modelContext.getTools()` and `registerTool()` reject with `NotAllowedError`; the parent page still lists Hypermark's tools.
 - Approve or send feedback from the page: the write tools disappear from `getTools()` and `read_document` carries `session_decided`.
 
 ## Need Help?

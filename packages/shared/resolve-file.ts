@@ -6,7 +6,7 @@
  * 2. Case-insensitive relative path search within project root
  * 3. Case-insensitive bare filename search within project root
  *
- * Used by both the CLI (`plannotator annotate`) and the `/api/doc` endpoint.
+ * Used by both the CLI (`hypermark annotate`) and the `/api/doc` endpoint.
  */
 
 import { homedir } from "os";

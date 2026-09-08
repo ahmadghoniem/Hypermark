@@ -195,7 +195,7 @@ export function runGuardedShutdown(
       try {
         dispose();
       } catch (error) {
-        log(`[plannotator] annotate shutdown: ${name} disposal failed:`, error);
+        log(`[hypermark] annotate shutdown: ${name} disposal failed:`, error);
       }
     }
   } finally {
@@ -461,7 +461,7 @@ export async function startAnnotateServer(
     if (rootHtmlUnreadableWarned) return;
     rootHtmlUnreadableWarned = true;
     const message = err instanceof Error ? err.message : String(err);
-    console.warn(`[plannotator] could not read the HTML root ${path}; serving the startup snapshot instead: ${message}`);
+    console.warn(`[hypermark] could not read the HTML root ${path}; serving the startup snapshot instead: ${message}`);
   };
 
   // A local rendered-HTML root is served from its CURRENT bytes, not the
@@ -1232,7 +1232,7 @@ export async function startAnnotateServer(
         websocket: agentTerminal.websocket,
 
         error(err) {
-          console.error("[plannotator] Server error:", err);
+          console.error("[hypermark] Server error:", err);
           return new Response(
             `Internal Server Error: ${err instanceof Error ? err.message : String(err)}`,
             { status: 500, headers: { "Content-Type": "text/plain" } },

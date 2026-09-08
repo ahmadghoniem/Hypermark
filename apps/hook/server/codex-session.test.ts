@@ -345,7 +345,7 @@ describe("getLastCodexMessage", () => {
         turnCompleted(previousTurnId),
         turnStarted(activeTurnId),
         userMessage("[$hypermark-last]"),
-        assistantMessage("I’ll open Plannotator on my last response.")
+        assistantMessage("I’ll open Hypermark on my last response.")
       )
     );
 
@@ -419,7 +419,7 @@ describe("getLatestCodexPlan", () => {
             "",
             "<proposed_plan>",
             "1. Inspect hook payloads",
-            "2. Launch Plannotator",
+            "2. Launch Hypermark",
             "</proposed_plan>",
             "",
             "I can revise it if needed.",
@@ -430,7 +430,7 @@ describe("getLatestCodexPlan", () => {
 
     const result = getLatestCodexPlan(path, { turnId });
     expect(result).toEqual({
-      text: "1. Inspect hook payloads\n2. Launch Plannotator",
+      text: "1. Inspect hook payloads\n2. Launch Hypermark",
       source: "assistant-message",
     });
   });

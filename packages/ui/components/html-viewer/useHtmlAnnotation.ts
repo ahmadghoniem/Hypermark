@@ -45,7 +45,7 @@ export function formatBridgeProtocolWarning(
 ): string {
   const reported = verdict.reported === undefined ? "none" : String(verdict.reported);
   const source = bridgeScriptUrl ? `the bridge script at ${bridgeScriptUrl}` : "the bridge script";
-  return `[plannotator] HTML bridge protocol version mismatch: this viewer expects ${verdict.expected}, ${source} reported ${reported}. Serve the bridge-script asset from the same @hypermark/ui version as the viewer.`;
+  return `[hypermark] HTML bridge protocol version mismatch: this viewer expects ${verdict.expected}, ${source} reported ${reported}. Serve the bridge-script asset from the same @hypermark/ui version as the viewer.`;
 }
 
 // Collision-proof annotation ids. `Date.now()` alone repeats within a millisecond,

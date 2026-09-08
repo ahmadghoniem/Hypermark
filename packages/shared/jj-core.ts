@@ -402,7 +402,7 @@ export async function selectDefaultJjCompareTarget(
   // returned before the line-of-work base was inferred at all. The only live
   // caller is `getJjContext`, which runs on the review startup path with no
   // handler above it, so throwing here does not report a problem: it aborts
-  // `plannotator review` with a stack trace before the server is built. That
+  // `hypermark review` with a stack trace before the server is built. That
   // also covers a `jj` too old for `fork_point`/`reachable`, where the revset
   // itself fails and the previous default is still perfectly serviceable.
   if (result.exitCode !== 0) return JJ_TRUNK_REVSET;

@@ -123,7 +123,7 @@ export function isVersionInvocation(args: string[]): boolean {
 declare const __CLI_VERSION__: string;
 
 export function formatVersion(): string {
-  return `plannotator ${typeof __CLI_VERSION__ !== "undefined" ? __CLI_VERSION__ : "dev"}`;
+  return `hypermark ${typeof __CLI_VERSION__ !== "undefined" ? __CLI_VERSION__ : "dev"}`;
 }
 
 export function isInteractiveNoArgInvocation(
@@ -136,40 +136,40 @@ export function isInteractiveNoArgInvocation(
 export function formatTopLevelHelp(): string {
   return [
     "Usage:",
-    "  plannotator --help",
-    "  plannotator --version, -v",
-    "  plannotator [--browser <name>]",
-    "  plannotator review [--git | --gitbutler] [--tailscale] [PR_URL]",
-    "  plannotator annotate <file.md | file.txt | file.html | https://... | folder/>  [--markdown] [--no-jina] [--tailscale] [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]",
-    "  plannotator annotate-last [--stdin] [--tailscale] [--gate] [--json] [--hook]",
-    "  plannotator copilot-last [--gate] [--json] [--hook]",
-    "  plannotator setup-goal <interview|facts> <bundle.json | -> [--json]",
-    "  plannotator last",
-    "  plannotator archive",
-    "  plannotator sessions",
-    "  plannotator uninstall [--purge] [--yes] [--dry-run]",
-    "  plannotator improve-context",
+    "  hypermark --help",
+    "  hypermark --version, -v",
+    "  hypermark [--browser <name>]",
+    "  hypermark review [--git | --gitbutler] [--tailscale] [PR_URL]",
+    "  hypermark annotate <file.md | file.txt | file.html | https://... | folder/>  [--markdown] [--no-jina] [--tailscale] [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]",
+    "  hypermark annotate-last [--stdin] [--tailscale] [--gate] [--json] [--hook]",
+    "  hypermark copilot-last [--gate] [--json] [--hook]",
+    "  hypermark setup-goal <interview|facts> <bundle.json | -> [--json]",
+    "  hypermark last",
+    "  hypermark archive",
+    "  hypermark sessions",
+    "  hypermark uninstall [--purge] [--yes] [--dry-run]",
+    "  hypermark improve-context",
     "",
-    "Run 'plannotator <command> --help' for command-specific usage.",
+    "Run 'hypermark <command> --help' for command-specific usage.",
     "",
     "Note:",
-    "  running 'plannotator' without arguments is for hook integration and expects JSON on stdin",
+    "  running 'hypermark' without arguments is for hook integration and expects JSON on stdin",
   ].join("\n");
 }
 
 // Per-subcommand usage text. Keyed by the canonical subcommand token; aliases
 // (e.g. `last` → `annotate-last`) are resolved in formatSubcommandHelp().
 //
-// These exist so an agent (or human) probing `plannotator <sub> --help` gets
+// These exist so an agent (or human) probing `hypermark <sub> --help` gets
 // usage on stdout instead of accidentally launching the browser UI — running
 // `review --help` used to fall through to local review mode and open a tab.
-// Exported so the plannotator knowledge skill's freshness test
-// (plannotator-skill-reference.test.ts) can diff the documented surface
+// Exported so the hypermark knowledge skill's freshness test
+// (hypermark-skill-reference.test.ts) can diff the documented surface
 // against the real one.
 export const SUBCOMMAND_HELP: Record<string, string> = {
   review: [
     "Usage:",
-    "  plannotator review [--git | --gitbutler] [--local | --no-local] [--tailscale] [PR_URL]",
+    "  hypermark review [--git | --gitbutler] [--local | --no-local] [--tailscale] [PR_URL]",
     "",
     "Review local VCS changes or a GitHub/GitLab pull request in the browser.",
     "",
@@ -182,14 +182,14 @@ export const SUBCOMMAND_HELP: Record<string, string> = {
     "  PR_URL        GitHub PR or GitLab MR URL to review",
     "",
     "Examples:",
-    "  plannotator review",
-    "  plannotator review --git",
-    "  plannotator review --gitbutler",
-    "  plannotator review https://github.com/owner/repo/pull/123",
+    "  hypermark review",
+    "  hypermark review --git",
+    "  hypermark review --gitbutler",
+    "  hypermark review https://github.com/owner/repo/pull/123",
   ].join("\n"),
   annotate: [
     "Usage:",
-    "  plannotator annotate <file.md | file.txt | file.html | https://... | folder/> [--markdown] [--no-jina] [--tailscale] [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]",
+    "  hypermark annotate <file.md | file.txt | file.html | https://... | folder/> [--markdown] [--no-jina] [--tailscale] [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]",
     "",
     "Open a markdown/text/HTML file, a URL, or a folder of documents in the annotation UI.",
     "",
@@ -208,8 +208,8 @@ export const SUBCOMMAND_HELP: Record<string, string> = {
   ].join("\n"),
   "annotate-last": [
     "Usage:",
-    "  plannotator annotate-last [--stdin] [--tailscale] [--gate] [--json] [--hook]",
-    "  plannotator last [--stdin] [--tailscale] [--gate] [--json] [--hook]",
+    "  hypermark annotate-last [--stdin] [--tailscale] [--gate] [--json] [--hook]",
+    "  hypermark last [--stdin] [--tailscale] [--gate] [--json] [--hook]",
     "",
     "Annotate the last assistant message from the current agent session.",
     "",
@@ -222,7 +222,7 @@ export const SUBCOMMAND_HELP: Record<string, string> = {
   ].join("\n"),
   "copilot-last": [
     "Usage:",
-    "  plannotator copilot-last [--gate] [--json] [--hook]",
+    "  hypermark copilot-last [--gate] [--json] [--hook]",
     "",
     "Annotate the last assistant message from the live GitHub Copilot CLI session,",
     "read from its session-state events.jsonl. Normally invoked by the Copilot",
@@ -235,7 +235,7 @@ export const SUBCOMMAND_HELP: Record<string, string> = {
   ].join("\n"),
   "setup-goal": [
     "Usage:",
-    "  plannotator setup-goal <interview|facts> <bundle.json | -> [--json]",
+    "  hypermark setup-goal <interview|facts> <bundle.json | -> [--json]",
     "",
     "Open the goal-setup question (interview) or facts-acceptance UI for /goal workflows.",
     "Pass '-' to read the bundle JSON from stdin.",
@@ -245,13 +245,13 @@ export const SUBCOMMAND_HELP: Record<string, string> = {
   ].join("\n"),
   archive: [
     "Usage:",
-    "  plannotator archive",
+    "  hypermark archive",
     "",
     "Open a read-only browser for saved plan decisions in ~/.plannotator/plans/.",
   ].join("\n"),
   "improve-context": [
     "Usage:",
-    "  plannotator improve-context",
+    "  hypermark improve-context",
     "",
     "Hook-integration command spawned by the PreToolUse hook on EnterPlanMode.",
     "Reads the hook event on stdin and emits additionalContext JSON (PFM reminder",
@@ -260,9 +260,9 @@ export const SUBCOMMAND_HELP: Record<string, string> = {
   ].join("\n"),
   sessions: [
     "Usage:",
-    "  plannotator sessions [--open [N]] [--clean]",
+    "  hypermark sessions [--open [N]] [--clean]",
     "",
-    "List active Plannotator server sessions.",
+    "List active Hypermark server sessions.",
     "",
     "Options:",
     "  --open [N]    Reopen session #N (default 1) in the browser",
@@ -270,17 +270,17 @@ export const SUBCOMMAND_HELP: Record<string, string> = {
   ].join("\n"),
   uninstall: [
     "Usage:",
-    "  plannotator uninstall [--purge] [--yes | -y] [--dry-run]",
+    "  hypermark uninstall [--purge] [--yes | -y] [--dry-run]",
     "",
-    "Remove Plannotator-installed components. Local plans, history, drafts,",
-    "settings, and other Plannotator data are preserved by default.",
+    "Remove Hypermark-installed components. Local plans, history, drafts,",
+    "settings, and other Hypermark data are preserved by default.",
     "",
     "Options:",
-    "  --purge       Also permanently delete known local Plannotator data",
+    "  --purge       Also permanently delete known local Hypermark data",
     "  --yes, -y     Skip the interactive confirmation (required without a TTY)",
     "  --dry-run     Preview recognized removal work without changing anything",
     "",
-    "Purge data is local-only: it is not stored on a Plannotator server and",
+    "Purge data is local-only: it is not stored on a Hypermark server and",
     "cannot be recovered after purge. Unrecognized custom files are preserved.",
   ].join("\n"),
 };
@@ -311,18 +311,18 @@ export function formatSubcommandHelp(subcommand: string): string {
 
 export function formatInteractiveNoArgClarification(): string {
   return [
-    "plannotator (without arguments) is usually launched automatically by Claude Code hooks.",
+    "hypermark (without arguments) is usually launched automatically by Claude Code hooks.",
     "It expects hook JSON on stdin.",
     "",
     "For interactive use, try:",
-    "  plannotator review",
-    "  plannotator annotate <file.md | file.txt | file.html | https://...>",
-    "  plannotator setup-goal interview bundle.json --json",
-    "  plannotator last",
-    "  plannotator archive",
-    "  plannotator sessions",
-    "  plannotator uninstall",
+    "  hypermark review",
+    "  hypermark annotate <file.md | file.txt | file.html | https://...>",
+    "  hypermark setup-goal interview bundle.json --json",
+    "  hypermark last",
+    "  hypermark archive",
+    "  hypermark sessions",
+    "  hypermark uninstall",
     "",
-    "Run 'plannotator --help' for top-level usage.",
+    "Run 'hypermark --help' for top-level usage.",
   ].join("\n");
 }

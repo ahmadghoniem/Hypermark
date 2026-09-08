@@ -202,7 +202,7 @@ export async function startGoalSetupServer(
         },
 
         error(err) {
-          console.error("[plannotator] Goal setup server error:", err);
+          console.error("[hypermark] Goal setup server error:", err);
           return new Response(
             `Internal Server Error: ${err instanceof Error ? err.message : String(err)}`,
             { status: 500, headers: { "Content-Type": "text/plain" } }

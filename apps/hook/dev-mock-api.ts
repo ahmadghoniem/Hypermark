@@ -1,5 +1,5 @@
 /**
- * Vite plugin that mocks plannotator API endpoints for local development.
+ * Vite plugin that mocks hypermark API endpoints for local development.
  *
  * Three plan versions are wired up so the Versions tab, the diff badge, and
  * the full word-level inline diff engine can all be exercised without running
@@ -101,7 +101,7 @@ const PLAN_V2_DEFAULT = `# Implementation Plan: Real-time Collaboration
 
 ## Context
 
-This proposal introduces real-time collaborative editing to the Plannotator editor, letting reviewers annotate the same plan simultaneously with sub-second visibility of each other's cursors and edits. We are targeting **early-access concurrency** for up to 25 active collaborators per document, with end-to-end edit-to-visible latency under 300ms at the 95th percentile. The implementation uses operational transforms running on a dedicated Node.js gateway that speaks \`Socket.IO\` to clients and \`REST\` to the storage tier. See [the technical design doc](https://docs.example.com/realtime-v1) for the full rationale and rollout plan.
+This proposal introduces real-time collaborative editing to the Hypermark editor, letting reviewers annotate the same plan simultaneously with sub-second visibility of each other's cursors and edits. We are targeting **early-access concurrency** for up to 25 active collaborators per document, with end-to-end edit-to-visible latency under 300ms at the 95th percentile. The implementation uses operational transforms running on a dedicated Node.js gateway that speaks \`Socket.IO\` to clients and \`REST\` to the storage tier. See [the technical design doc](https://docs.example.com/realtime-v1) for the full rationale and rollout plan.
 
 Runtime parameters for phase one:
 
@@ -641,7 +641,7 @@ export function devMockApi(): Plugin {
                 facts: [
                   {
                     id: "skill-batch",
-                    text: "The setup-goal skill should package all interview questions into one Plannotator UI session.",
+                    text: "The setup-goal skill should package all interview questions into one Hypermark UI session.",
                     accepted: false,
                     removed: false,
                     recommendedAutomatedVerification: true,
@@ -657,7 +657,7 @@ export function devMockApi(): Plugin {
                   },
                   {
                     id: "header-submit",
-                    text: "Goal setup submission should use the Plannotator app header action area instead of local form buttons.",
+                    text: "Goal setup submission should use the Hypermark app header action area instead of local form buttons.",
                     accepted: false,
                     removed: false,
                     recommendedAutomatedVerification: false,
@@ -713,12 +713,12 @@ export function devMockApi(): Plugin {
                     prompt: "Which inferred audience assumption should change?",
                     description: "The agent should not need basic confirmation here; only change this if the default is wrong.",
                     answerMode: "single",
-                    recommendedAnswer: "Developers using Claude Code with Plannotator installed.",
+                    recommendedAnswer: "Developers using Claude Code with Hypermark installed.",
                     recommendedOptionIds: ["devs-cc"],
                     options: [
                       { id: "devs-cc", label: "Developers on Claude Code" },
                       { id: "devs-oc", label: "Developers on OpenCode" },
-                      { id: "devs-all", label: "All Plannotator users" },
+                      { id: "devs-all", label: "All Hypermark users" },
                     ],
                   },
                   {

@@ -621,7 +621,7 @@ async function commitIndex(
   const tree = await git(runtime, cwd, ["write-tree"]);
   return git(runtime, cwd, [
     "-c", "user.name=Plannotator",
-    "-c", "user.email=snapshot@plannotator.invalid",
+    "-c", "user.email=snapshot@hypermark.invalid",
     "commit-tree", tree,
     ...(parent ? ["-p", parent] : []),
     "-m", message,

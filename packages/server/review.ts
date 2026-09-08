@@ -2453,7 +2453,7 @@ export async function startReviewServer(
             } catch (err) {
               const message =
                 err instanceof Error ? err.message : "Failed to update viewed state";
-              console.error("[plannotator] /api/pr-viewed error:", message);
+              console.error("[hypermark] /api/pr-viewed error:", message);
               return Response.json({ error: message }, { status: 500 });
             }
           }
@@ -2473,7 +2473,7 @@ export async function startReviewServer(
         },
 
         error(err) {
-          console.error("[plannotator] Server error:", err);
+          console.error("[hypermark] Server error:", err);
           return new Response(
             `Internal Server Error: ${err instanceof Error ? err.message : String(err)}`,
             { status: 500, headers: { "Content-Type": "text/plain" } },

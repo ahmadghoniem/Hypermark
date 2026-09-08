@@ -76,9 +76,9 @@ export function formatUnknownSubcommandError(subcommand: string): string {
   const suggestion = findClosestSubcommand(subcommand);
   return [
     `Unknown command: ${subcommand}`,
-    ...(suggestion ? ["", `Did you mean 'plannotator ${suggestion}'?`] : []),
+    ...(suggestion ? ["", `Did you mean 'hypermark ${suggestion}'?`] : []),
     "",
-    "Run 'plannotator --help' for the list of commands.",
+    "Run 'hypermark --help' for the list of commands.",
   ].join("\n");
 }
 

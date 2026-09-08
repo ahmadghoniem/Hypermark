@@ -1,5 +1,5 @@
 /**
- * End-to-end exit-code and stream contract for `plannotator annotate`
+ * End-to-end exit-code and stream contract for `hypermark annotate`
  * argument handling (#1182), exercised through a real process spawn of the
  * CLI entry so the strict-gate bypass and the tolerant tiers are covered as
  * wired, not as helpers.
@@ -213,7 +213,7 @@ describe("annotate CLI tolerant tiers", () => {
   });
 });
 
-describe("plannotator annotate: live app remote hard-off (CLI layer)", () => {
+describe("hypermark annotate: live app remote hard-off (CLI layer)", () => {
   test("a live-resolving loopback URL under PLANNOTATOR_REMOTE exits as a startup failure", async () => {
     // The fake app lives in THIS process, so the CLI must be spawned
     // asynchronously (a sync spawn would block the event loop and deadlock

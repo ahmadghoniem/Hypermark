@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Plannotator is actively developed. Security fixes are provided for the latest
+Hypermark is actively developed. Security fixes are provided for the latest
 released version. Older releases are not supported; users should update before
 reporting a problem that may already be fixed.
 
@@ -14,7 +14,7 @@ reporting a problem that may already be fixed.
 ## Reporting a vulnerability
 
 Do not open a public issue for a suspected vulnerability. Use GitHub's
-[private vulnerability reporting form](https://github.com/backnotprop/plannotator/security/advisories/new)
+[private vulnerability reporting form](https://github.com/ahmadghoniem/Hypermark/security/advisories/new)
 so the report and any follow-up remain confidential while the issue is assessed.
 
 Include, when available:

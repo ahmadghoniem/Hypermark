@@ -1,10 +1,10 @@
 # Design System Reference
 
-Plan documents use Plannotator's semantic theme tokens. This makes them theme-aware: standalone files render with bundled defaults; embedded in the Plannotator UI, they inherit whatever theme is active (30+ themes, light and dark variants).
+Plan documents use Hypermark's semantic theme tokens. This makes them theme-aware: standalone files render with bundled defaults; embedded in the Hypermark UI, they inherit whatever theme is active (30+ themes, light and dark variants).
 
 ## Standalone defaults
 
-Include this `:root` block so the plan works when opened directly in a browser. These are the Plannotator light theme values — they get overridden when embedded.
+Include this `:root` block so the plan works when opened directly in a browser. These are the Hypermark light theme values — they get overridden when embedded.
 
 ```css
 :root {
@@ -38,7 +38,7 @@ Include this `:root` block so the plan works when opened directly in a browser. 
 }
 ```
 
-`--font-display` is plan-specific — used for headings and titles to create visual contrast with the body. It's not part of the core Plannotator theme, so it won't be overridden when embedded (which is the desired behavior).
+`--font-display` is plan-specific — used for headings and titles to create visual contrast with the body. It's not part of the core Hypermark theme, so it won't be overridden when embedded (which is the desired behavior).
 
 ## Token usage map
 

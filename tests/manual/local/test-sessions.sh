@@ -7,9 +7,9 @@
 # Automated tests (no browser interaction needed):
 #   - Session registration (plan + review servers write session files)
 #   - Session file content (all fields: pid, port, url, mode, project, startedAt, label)
-#   - `plannotator sessions` listing
-#   - `plannotator sessions --open` (reopen URL — uses /usr/bin/true as browser)
-#   - `plannotator sessions --clean` (explicit stale cleanup)
+#   - `hypermark sessions` listing
+#   - `hypermark sessions --open` (reopen URL — uses /usr/bin/true as browser)
+#   - `hypermark sessions --clean` (explicit stale cleanup)
 #   - Stale session auto-cleanup via listing
 #   - Session file removal after server exits
 #
@@ -195,7 +195,7 @@ fi
 echo ""
 
 # -------------------------------------------------------
-# Step 4: Test `plannotator sessions` listing
+# Step 4: Test `hypermark sessions` listing
 # -------------------------------------------------------
 echo "--- Step 4: Test sessions listing ---"
 

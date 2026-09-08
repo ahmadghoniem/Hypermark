@@ -1,5 +1,5 @@
 /**
- * Plannotator CLI for Claude Code, Droid, Codex, Gemini CLI, and Copilot CLI
+ * Hypermark CLI for Claude Code, Droid, Codex, Gemini CLI, and Copilot CLI
  *
  * Supports thirteen modes:
  *
@@ -8,56 +8,56 @@
  *    - Reads hook event from stdin, extracts plan content
  *    - Serves UI, returns approve/deny decision to stdout
  *
- * 2. Code Review (`plannotator review`, `plannotator review --git`, `plannotator review --gitbutler`):
+ * 2. Code Review (`hypermark review`, `hypermark review --git`, `hypermark review --gitbutler`):
  *    - Triggered by /review slash command
  *    - Runs git diff, opens review UI
  *    - Outputs feedback to stdout (captured by slash command)
  *
- * 3. Annotate (`plannotator annotate <file.md | file.txt>`):
+ * 3. Annotate (`hypermark annotate <file.md | file.txt>`):
  *    - Triggered by /hypermark-annotate slash command
  *    - Opens any markdown file in the annotation UI
  *    - Outputs structured feedback to stdout
  *
- * 4. Archive (`plannotator archive`):
+ * 4. Archive (`hypermark archive`):
  *    - Opens read-only browser for saved plan decisions
  *    - Lists plans from ~/.plannotator/plans/ with status badges
  *    - Done button closes the browser
  *
- * 5. Sessions (`plannotator sessions`):
- *    - Lists active Plannotator server sessions
+ * 5. Sessions (`hypermark sessions`):
+ *    - Lists active Hypermark server sessions
  *    - `--open [N]` reopens a session in the browser
  *    - `--clean` removes stale session files
  *
- * 6. Copilot Plan (`plannotator copilot-plan`):
+ * 6. Copilot Plan (`hypermark copilot-plan`):
  *    - Spawned by preToolUse hook (Copilot CLI)
  *    - Intercepts exit_plan_mode, reads plan.md from session state
  *    - Outputs permissionDecision JSON to stdout
  *
- * 7. Copilot Last (`plannotator copilot-last`):
+ * 7. Copilot Last (`hypermark copilot-last`):
  *    - Annotate the last assistant message from a Copilot CLI session
  *    - Parses events.jsonl from session state
  *
- * 8. Goal Setup (`plannotator setup-goal interview|facts <bundle.json>`):
+ * 8. Goal Setup (`hypermark setup-goal interview|facts <bundle.json>`):
  *    - Opens the bundled question or facts acceptance UI
  *    - Outputs structured JSON for setup-goal workflows
  *
- * 9. OpenCode Plan (`plannotator opencode-plan`):
+ * 9. OpenCode Plan (`hypermark opencode-plan`):
  *    - Internal bridge mode used by the OpenCode plugin CLI fallback
  *    - Reads `{ plan, timeoutSeconds, agents }` from stdin
  *    - Outputs structured JSON for the plugin
  *
- * 10. OpenCode Review (`plannotator opencode-review`):
+ * 10. OpenCode Review (`hypermark opencode-review`):
  *    - Internal structured review bridge used by the OpenCode plugin CLI fallback
  *
- * 11. OpenCode Last (`plannotator opencode-annotate-last`):
+ * 11. OpenCode Last (`hypermark opencode-annotate-last`):
  *    - Internal structured last-message annotation bridge for OpenCode
  *
- * 12. Improve Context (`plannotator improve-context`):
+ * 12. Improve Context (`hypermark improve-context`):
  *    - Spawned by PreToolUse hook on EnterPlanMode
  *    - Reads improvement hook file from ~/.plannotator/hooks/
  *    - Returns additionalContext or silently passes through
  *
- * 13. Uninstall (`plannotator uninstall`):
+ * 13. Uninstall (`hypermark uninstall`):
  *    - Removes recognized installer-owned components across supported hosts
  *    - Preserves local data by default; `--purge` removes known local data
  *
@@ -241,7 +241,7 @@ if (tailscaleFlag) {
   args.splice(tailscaleIdx, 1);
   if (!TAILSCALE_COMMANDS.has(args[0] ?? "")) {
     console.error(
-      "--tailscale is only supported with: plannotator review, annotate, annotate-last (last)",
+      "--tailscale is only supported with: hypermark review, annotate, annotate-last (last)",
     );
     process.exit(1);
   }
@@ -289,7 +289,7 @@ async function handleTailscaleReady(port: number): Promise<void> {
       }),
     );
   }
-  process.stderr.write(`\n  Plannotator session ready — served over your tailnet:\n  ${url}\n\n`);
+  process.stderr.write(`\n  Hypermark session ready — served over your tailnet:\n  ${url}\n\n`);
   writeUrlQr(url);
   await handleServerReady(url, false, port, { skipBrowserOpen: true });
 }
@@ -369,7 +369,7 @@ if (isTopLevelHelpInvocation(args)) {
 }
 
 // Per-subcommand help must be handled before the subcommand branches below —
-// otherwise `plannotator review --help` (commonly run by agents probing the
+// otherwise `hypermark review --help` (commonly run by agents probing the
 // CLI) falls through to local review mode and launches the browser UI,
 // spawning a stray tab whose close injects a bogus "no feedback" signal.
 const helpSubcommand = isSubcommandHelpInvocation(args);
@@ -386,7 +386,7 @@ if (args[0] === "uninstall") {
     options = parseUninstallOptions(rawArgs.slice(1));
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
-    console.error("Run 'plannotator uninstall --help' for usage.");
+    console.error("Run 'hypermark uninstall --help' for usage.");
     process.exit(1);
   }
 
@@ -404,13 +404,13 @@ if (args[0] === "uninstall") {
       console.error(formatPurgeWarning(environment.dataDir));
     } else {
       console.error(
-        `Local Plannotator data in ${environment.dataDir} will be preserved.`,
+        `Local Hypermark data in ${environment.dataDir} will be preserved.`,
       );
     }
 
     const prompt = options.purge
       ? "Type 'purge' to permanently uninstall and delete local data: "
-      : "Remove Plannotator-installed components? [y/N] ";
+      : "Remove Hypermark-installed components? [y/N] ";
     const readline = createInterface({
       input: process.stdin,
       output: process.stdout,
@@ -443,9 +443,9 @@ if (args[0] === "uninstall") {
   if (options.dryRun) {
     console.log("Dry run complete; no changes were made.");
   } else if (options.purge && result.ok) {
-    console.log(`Known local Plannotator data was purged from ${result.dataDir}.`);
+    console.log(`Known local Hypermark data was purged from ${result.dataDir}.`);
   } else if (!options.purge) {
-    console.log(`Local Plannotator data was preserved in ${result.dataDir}.`);
+    console.log(`Local Hypermark data was preserved in ${result.dataDir}.`);
   }
 
   process.exit(result.ok ? 0 : 1);
@@ -454,7 +454,7 @@ if (args[0] === "uninstall") {
 if (args[0] === "install-runtime") {
   const runtime = args[1];
   if (runtime !== "agent-terminal" && runtime !== "call-flow") {
-    console.error("Usage: plannotator install-runtime <agent-terminal|call-flow>");
+    console.error("Usage: hypermark install-runtime <agent-terminal|call-flow>");
     process.exit(1);
   }
   const result = runtime === "call-flow"
@@ -478,7 +478,7 @@ process.on("exit", () => unregisterSession());
 // cleanup below is registered on "exit"). `once` keeps a second Ctrl-C as a
 // force-quit escape hatch if cleanup ever hangs. SIGHUP is deliberately NOT
 // routed here: installing any SIGHUP listener overrides the ignored
-// disposition `nohup` depends on, so a plain `nohup plannotator review &`
+// disposition `nohup` depends on, so a plain `nohup hypermark review &`
 // must end up with no listener and survive terminal close. The --tailscale
 // path installs its own SIGHUP→exit handler only once a serve mapping
 // actually exists (enableTailscaleServe in
@@ -608,7 +608,7 @@ if (args[0] === "sessions") {
   const sessions = listSessions();
 
   if (sessions.length === 0) {
-    console.error("No active Plannotator sessions.");
+    console.error("No active Hypermark sessions.");
     process.exit(0);
   }
 
@@ -628,14 +628,14 @@ if (args[0] === "sessions") {
   }
 
   // List sessions as a table
-  console.error("Active Plannotator sessions:\n");
+  console.error("Active Hypermark sessions:\n");
   for (let i = 0; i < sessions.length; i++) {
     const s = sessions[i];
     const age = Math.round((Date.now() - new Date(s.startedAt).getTime()) / 60000);
     const ageStr = age < 60 ? `${age}m` : `${Math.floor(age / 60)}h ${age % 60}m`;
     console.error(`  #${i + 1}  ${s.mode.padEnd(9)} ${s.project.padEnd(20)} ${s.url.padEnd(28)} ${ageStr} ago`);
   }
-  console.error(`\nReopen with: plannotator sessions --open [N]`);
+  console.error(`\nReopen with: hypermark sessions --open [N]`);
   process.exit(0);
 
 } else if (args[0] === "setup-goal") {
@@ -648,7 +648,7 @@ if (args[0] === "sessions") {
 
   if ((stage !== "interview" && stage !== "facts") || !bundlePath) {
     console.error(
-      "Usage: plannotator setup-goal <interview|facts> <bundle.json | -> [--json]"
+      "Usage: hypermark setup-goal <interview|facts> <bundle.json | -> [--json]"
     );
     process.exit(1);
   }
@@ -1093,7 +1093,7 @@ if (args[0] === "sessions") {
 
   const rawFilePath = args[1];
   if (!rawFilePath) {
-    exitAnnotateStartupFailure("Usage: plannotator annotate <file.md | file.txt | file.html | https://... | folder/>  [--markdown] [--no-jina] [--app] [--static] [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]");
+    exitAnnotateStartupFailure("Usage: hypermark annotate <file.md | file.txt | file.html | https://... | folder/>  [--markdown] [--no-jina] [--app] [--static] [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]");
   }
 
   // Use PLANNOTATOR_CWD if set (original working directory before script cd'd)
@@ -1618,7 +1618,7 @@ if (args[0] === "sessions") {
       timeoutMs: timeoutSeconds === null ? null : timeoutSeconds * 1000,
       timeoutResult: {
         approved: false,
-        feedback: `[Plannotator] No response within ${timeoutSeconds} seconds. Port released automatically. Please call submit_plan again.`,
+        feedback: `[Hypermark] No response within ${timeoutSeconds} seconds. Port released automatically. Please call submit_plan again.`,
       },
     });
     await waitForPlanReviewCloseDelay(1500);

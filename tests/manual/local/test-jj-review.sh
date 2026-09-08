@@ -26,7 +26,7 @@ if ! command -v jj >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "=== Plannotator JJ Review Test ==="
+echo "=== Hypermark JJ Review Test ==="
 echo ""
 
 echo "Building review app..."

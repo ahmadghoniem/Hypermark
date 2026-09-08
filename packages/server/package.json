@@ -2,7 +2,7 @@
   "name": "@hypermark/server",
   "version": "0.27.12",
   "private": true,
-  "description": "Shared server implementation for Plannotator plugins",
+  "description": "Shared server implementation for Hypermark plugins",
   "main": "index.ts",
   "types": "index.ts",
   "exports": {

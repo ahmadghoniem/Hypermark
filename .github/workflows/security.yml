@@ -271,13 +271,13 @@ jobs:
             (.errors | length) == 0 and
             all(.results[]; .extra.engine_kind == "OSS") and
             any(.results[];
-              .check_id == "plannotator.node.nonliteral-exec" and
+              .check_id == "hypermark.node.nonliteral-exec" and
               (.path | endswith("command-injection.ts")) and .start.line == 3) and
             any(.results[];
-              .check_id == "plannotator.node.shell-command-argument" and
+              .check_id == "hypermark.node.shell-command-argument" and
               (.path | endswith("bun-command-injection.ts")) and .start.line == 2) and
             any(.results[];
-              .check_id == "plannotator.installer.remote-script-pipeline" and
+              .check_id == "hypermark.installer.remote-script-pipeline" and
               (.path | endswith("remote-pipeline.sh")) and .start.line == 2)
           ' "$output_dir/semgrep-health.json" >/dev/null || {
             echo 'Semgrep controlled detector report failed its engine, error, or exact-line assertions.' >&2

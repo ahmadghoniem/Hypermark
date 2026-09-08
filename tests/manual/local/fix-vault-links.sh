@@ -1,9 +1,9 @@
 #!/bin/bash
-# Adds [[Plannotator Plans]] backlink to existing plan files
+# Adds [[Hypermark Plans]] backlink to existing plan files
 #
-# Usage: ./fix-vault-links.sh /path/to/vault/plannotator
+# Usage: ./fix-vault-links.sh /path/to/vault/hypermark
 
-FOLDER="${1:-$HOME/Documents/*/plannotator}"
+FOLDER="${1:-$HOME/Documents/*/hypermark}"
 
 # Expand glob
 FOLDER=$(echo $FOLDER)
@@ -22,12 +22,12 @@ for FILE in "$FOLDER"/*.md; do
         continue
     fi
 
-    # Insert [[Plannotator Plans]] after frontmatter (after second ---)
+    # Insert [[Hypermark Plans]] after frontmatter (after second ---)
     # Using awk to find the end of frontmatter and insert
     awk '
         /^---$/ { count++ }
         { print }
-        count == 2 && !inserted { print "\n[[Plannotator Plans]]"; inserted=1 }
+        count == 2 && !inserted { print "\n[[Hypermark Plans]]"; inserted=1 }
     ' "$FILE" > "$FILE.tmp" && mv "$FILE.tmp" "$FILE"
 
     COUNT=$((COUNT + 1))

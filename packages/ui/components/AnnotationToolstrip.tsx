@@ -52,7 +52,7 @@ export const AnnotationToolstrip: React.FC<AnnotationToolstripProps> = ({
   hideQuickLabel = false,
 }) => {
   const [showHelp, setShowHelp] = useState(false);
-  const [helpTab, setHelpTab] = useState<'selection' | 'plannotator'>('selection');
+  const [helpTab, setHelpTab] = useState<'selection' | 'hypermark'>('selection');
   const [mounted, setMounted] = useState(false);
 
   // Enable transitions only after first paint
@@ -203,14 +203,14 @@ export const AnnotationToolstrip: React.FC<AnnotationToolstripProps> = ({
                   Selection Modes
                 </button>
                 <button
-                  onClick={() => setHelpTab('plannotator')}
+                  onClick={() => setHelpTab('hypermark')}
                   className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                    helpTab === 'plannotator'
+                    helpTab === 'hypermark'
                       ? 'bg-background text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  How Plannotator Works
+                  How Hypermark Works
                 </button>
               </div>
               <button
@@ -231,7 +231,7 @@ export const AnnotationToolstrip: React.FC<AnnotationToolstripProps> = ({
                   ? 'https://www.youtube-nocookie.com/embed/ZNt9jtfx9TY?autoplay=1'
                   : 'https://www.youtube-nocookie.com/embed/a_AT7cEN_9I?autoplay=1'
                 }
-                title={helpTab === 'selection' ? 'How Selection Modes Work' : 'How Plannotator Works'}
+                title={helpTab === 'selection' ? 'How Selection Modes Work' : 'How Hypermark Works'}
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen

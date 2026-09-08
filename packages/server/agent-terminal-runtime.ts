@@ -12,7 +12,7 @@
  *   - **managed (compiled release binary):** the sidecar is a Bun *virtual*
  *     path (not real disk), so we materialize it to the data dir and rely on a
  *     webtui runtime `npm install`-ed there ahead of time by
- *     `plannotator install-runtime agent-terminal` (run by scripts/install.sh).
+ *     `hypermark install-runtime agent-terminal` (run by scripts/install.sh).
  *
  * See ADR adr/implementation/annotate-agent-terminal.md for the full design.
  */
@@ -156,7 +156,7 @@ async function resolveManagedAgentTerminalRuntime(
       reason: "runtime-unavailable",
       message: installedVersion
         ? `Agent terminal runtime has @plannotator/webtui ${installedVersion}; expected ${AGENT_TERMINAL_WEBTUI_VERSION}. Run plannotator install-runtime agent-terminal.`
-        : "Agent terminal runtime is not installed. Run plannotator install-runtime agent-terminal or reinstall Plannotator.",
+        : "Agent terminal runtime is not installed. Run hypermark install-runtime agent-terminal or reinstall Hypermark.",
     };
   }
 
@@ -289,7 +289,7 @@ function tryMaterializeAgentTerminalSidecar(
     return {
       ok: false,
       reason: "runtime-unavailable",
-      message: `Agent terminal runtime sidecar could not be written (${formatError(err)}). Run plannotator install-runtime agent-terminal or reinstall Plannotator.`,
+      message: `Agent terminal runtime sidecar could not be written (${formatError(err)}). Run hypermark install-runtime agent-terminal or reinstall Hypermark.`,
     };
   }
 }

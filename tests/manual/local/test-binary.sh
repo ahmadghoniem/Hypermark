@@ -1,27 +1,27 @@
 #!/bin/bash
-# Test script using the installed plannotator binary (not local codebase)
+# Test script using the installed hypermark binary (not local codebase)
 #
 # Usage:
 #   ./test-binary.sh
 #
 # Prerequisites:
-#   plannotator binary must be installed and on PATH
+#   hypermark binary must be installed and on PATH
 #   (via: curl -fsSL https://plannotator.ai/install.sh | bash)
 #
 # What it does:
-#   1. Verifies plannotator is on PATH
+#   1. Verifies hypermark is on PATH
 #   2. Pipes sample plan JSON to the binary (simulating Claude Code)
 #   3. Opens browser for you to test the UI
 #   4. Prints the hook output (allow/deny decision)
 
 set -e
 
-echo "=== Plannotator Binary Test ==="
+echo "=== Hypermark Binary Test ==="
 echo ""
 
 # Check if plannotator is installed
-if ! command -v plannotator &> /dev/null; then
-    echo "Error: plannotator not found on PATH"
+if ! command -v hypermark &> /dev/null; then
+    echo "Error: hypermark not found on PATH"
     echo ""
     echo "Install it with:"
     echo "  curl -fsSL https://plannotator.ai/install.sh | bash"
@@ -31,11 +31,11 @@ if ! command -v plannotator &> /dev/null; then
     exit 1
 fi
 
-BINARY_PATH=$(which plannotator)
+BINARY_PATH=$(which hypermark)
 echo "Using binary: $BINARY_PATH"
 echo ""
 
-echo "Starting plannotator..."
+echo "Starting hypermark..."
 echo "Browser should open automatically. Approve or deny the plan."
 echo ""
 
@@ -50,7 +50,7 @@ EOF
 )
 
 # Run the installed binary
-echo "$PLAN_JSON" | plannotator
+echo "$PLAN_JSON" | hypermark
 
 echo ""
 echo "=== Test Complete ==="

@@ -164,7 +164,7 @@ export function handleReferenceSkills(): Response {
     return Response.json({ skills: listReferenceSkills() });
   } catch (err) {
     console.error(
-      `[plannotator] Skill catalog failed: ${err instanceof Error ? err.message : String(err)}`,
+      `[hypermark] Skill catalog failed: ${err instanceof Error ? err.message : String(err)}`,
     );
     return Response.json({ skills: [] });
   }
@@ -186,7 +186,7 @@ export function handleReferenceSkillContent(req: Request): Response {
     return Response.json({ skill });
   } catch (err) {
     console.error(
-      `[plannotator] Skill content failed: ${err instanceof Error ? err.message : String(err)}`,
+      `[hypermark] Skill content failed: ${err instanceof Error ? err.message : String(err)}`,
     );
     return Response.json({ error: "Skill content failed" }, { status: 500 });
   }

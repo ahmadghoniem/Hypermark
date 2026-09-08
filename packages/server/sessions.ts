@@ -1,7 +1,7 @@
 /**
  * Session Registry
  *
- * Tracks active Plannotator server sessions in ~/.plannotator/sessions/
+ * Tracks active Hypermark server sessions in ~/.plannotator/sessions/
  * so users can discover and reopen closed browser tabs.
  */
 
@@ -50,7 +50,7 @@ function isAlive(pid: number): boolean {
 
 /**
  * Register the current server session. Best-effort: the registry only powers
- * `plannotator sessions` discovery, so an unwritable data dir (read-only
+ * `hypermark sessions` discovery, so an unwritable data dir (read-only
  * mount, disk full) must never take the server down with it.
  */
 export function registerSession(info: SessionInfo): void {

@@ -143,10 +143,10 @@ assert(
   "Bun must keep the exact-version @hypermark/core dependency linked to the local workspace",
 );
 
-const workDir = mkdtempSync(join(tmpdir(), "plannotator-ui-package-smoke-"));
+const workDir = mkdtempSync(join(tmpdir(), "hypermark-ui-package-smoke-"));
 try {
-  const coreTarballPath = join(workDir, "plannotator-core.tgz");
-  const tarballPath = join(workDir, "plannotator-ui.tgz");
+  const coreTarballPath = join(workDir, "hypermark-core.tgz");
+  const tarballPath = join(workDir, "hypermark-ui.tgz");
   run("bun", ["pm", "pack", "--filename", coreTarballPath], coreDir);
   run("bun", ["pm", "pack", "--filename", tarballPath], uiDir);
 

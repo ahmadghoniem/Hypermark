@@ -1,7 +1,7 @@
 ---
 name: hypermark-setup-goal
 disable-model-invocation: true
-description: Turn an idea or objective into a goal package for /goal. Interviews the user, builds a reviewed fact sheet via Plannotator, then explores the codebase to produce an execution plan.
+description: Turn an idea or objective into a goal package for /goal. Interviews the user, builds a reviewed fact sheet via Hypermark, then explores the codebase to produce an execution plan.
 ---
 
 # Setup Goal
@@ -22,7 +22,7 @@ mkdir -p goals/<slug>
 
 Use `goals/<slug>/` for both working JSON files and final docs. The JSON files are provenance and iteration state; the markdown files are the human-readable authoritative goal package.
 
-**Browser session patience rule:** Plannotator goal setup is a user-driven browser session. After launching an interview or facts command, be absolutely patient and keep waiting on the user until they submit, dismiss, or explicitly ask you to stop. Do not close, kill, restart, refresh, or open a second copy just because the UI is idle or the user is taking time. Never close and reopen the session as a way to update state; if a rerun is needed after the prior session ends, update the working JSON file and launch a new command from that file.
+**Browser session patience rule:** Hypermark goal setup is a user-driven browser session. After launching an interview or facts command, be absolutely patient and keep waiting on the user until they submit, dismiss, or explicitly ask you to stop. Do not close, kill, restart, refresh, or open a second copy just because the UI is idle or the user is taking time. Never close and reopen the session as a way to update state; if a rerun is needed after the prior session ends, update the working JSON file and launch a new command from that file.
 
 **Optional: grill first (deep, one-at-a-time interview).** Before building the compact interview bundle, *suggest* a grilling pass whenever the goal is vague or carries many interdependent decisions — and run one whenever the user asks for it ("grill me first"). This is opt-in: for a clear, well-scoped goal, skip it and go straight to the bundle, so grilling never fights the bundle's "fewer, higher-leverage questions" philosophy. When you grill, run the protocol below verbatim, then fold the resolved decisions forward into a higher-quality interview bundle (Phase 2) — or, if grilling fully resolves scope, straight into the fact sheet (Phase 3).
 
@@ -37,7 +37,7 @@ Use `goals/<slug>/` for both working JSON files and final docs. The JSON files a
 
 ### 2. Interview Bundle
 
-Build a compact bundle of questions that can derive every "fact" this goal should produce. Package the questions together so the user can answer them quickly in the Plannotator goal setup UI. For each question, include your recommended answer and use options when they make answering faster.
+Build a compact bundle of questions that can derive every "fact" this goal should produce. Package the questions together so the user can answer them quickly in the Hypermark goal setup UI. For each question, include your recommended answer and use options when they make answering faster.
 
 Do not ask obvious confirmation questions. If the answer can be inferred from the user's request, from the conversation, or from shallow codebase exploration, infer it and move on. If an obvious area has meaningful nuance, present the inferred answer as a recommendation with options or a custom "add/correct this" path rather than asking the user to restate the obvious.
 
@@ -86,13 +86,13 @@ Supported `answerMode` values: `text`, `single`, `multi`, `custom`, `single-cust
 Run this as a monitored foreground process and wait patiently for the browser session to finish. The command may appear idle while the user is reading, editing, or asking questions; leave it running:
 
 ```bash
-plannotator setup-goal interview goals/<slug>/interview.json --json
+hypermark setup-goal interview goals/<slug>/interview.json --json
 ```
 
 The command returns JSON on stdout with the submitted answers. Write that exact result to `goals/<slug>/interview-result.json` before continuing. A convenient pattern is:
 
 ```bash
-plannotator setup-goal interview goals/<slug>/interview.json --json | tee goals/<slug>/interview-result.json
+hypermark setup-goal interview goals/<slug>/interview.json --json | tee goals/<slug>/interview-result.json
 ```
 
 If the user revises after the session finishes, update `interview.json` and rerun the command instead of reconstructing the whole bundle from memory. If the session is dismissed, stop and tell the user the goal setup was closed.
@@ -134,13 +134,13 @@ Write the facts review bundle before showing it to the user. If revising after a
 Run this as a monitored foreground process and wait patiently for the browser session to finish. The command may appear idle while the user is reviewing, editing, or asking questions; leave it running:
 
 ```bash
-plannotator setup-goal facts goals/<slug>/facts-review.json --json
+hypermark setup-goal facts goals/<slug>/facts-review.json --json
 ```
 
 The command returns JSON on stdout with accepted/edited/removed facts plus automated verification selections. Write that exact result to `goals/<slug>/facts-result.json`. A convenient pattern is:
 
 ```bash
-plannotator setup-goal facts goals/<slug>/facts-review.json --json | tee goals/<slug>/facts-result.json
+hypermark setup-goal facts goals/<slug>/facts-review.json --json | tee goals/<slug>/facts-result.json
 ```
 
 Write `goals/<slug>/facts.md` as a flat readable list of accepted facts. Each fact is one line; add a minimal note only when the fact cannot be stated clearly on its own. Also write `goals/<slug>/facts.meta.json` preserving each accepted fact's `id`, final `text`, `comment`, `recommendedAutomatedVerification`, and `automatedVerification` value.
@@ -158,10 +158,10 @@ Write `goals/<slug>/plan.md`:
 - Verification for each step (concrete commands or checks)
 - Risks or open questions worth flagging
 
-Gate the plan with Plannotator:
+Gate the plan with Hypermark:
 
 ```bash
-plannotator annotate goals/<slug>/plan.md --gate
+hypermark annotate goals/<slug>/plan.md --gate
 ```
 
 If denied, revise from feedback and re-gate until approved.

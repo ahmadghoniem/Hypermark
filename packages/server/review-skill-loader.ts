@@ -119,7 +119,7 @@ function listSubdirs(dir: string): string[] {
     entries = readdirSync(dir, { withFileTypes: true });
   } catch (err) {
     console.error(
-      `[plannotator] Could not read skill root ${dir}: ${
+      `[hypermark] Could not read skill root ${dir}: ${
         err instanceof Error ? err.message : String(err)
       }`,
     );
@@ -475,7 +475,7 @@ export function readReferenceSkillContent(name: string): ReferenceSkillContent |
 
   const head = readFileHead(skill.skillMdPath, SKILL_CONTENT_HEAD_BYTES);
   if (head === null) {
-    console.error(`[plannotator] Could not read skill "${name}" for reference injection.`);
+    console.error(`[hypermark] Could not read skill "${name}" for reference injection.`);
     return null;
   }
 

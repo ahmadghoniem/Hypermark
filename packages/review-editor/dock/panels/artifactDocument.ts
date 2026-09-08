@@ -121,7 +121,7 @@ export function resolveArtifactReferenceUrl(
 
   let candidate = trimmed;
   if (trimmed.startsWith('/api/image?')) {
-    const localImageUrl = new URL(trimmed, 'http://plannotator.invalid');
+    const localImageUrl = new URL(trimmed, 'http://hypermark.invalid');
     const originalPath = localImageUrl.searchParams.get('path');
     if (originalPath === null || originalPath === '') return null;
     candidate = originalPath;
@@ -181,7 +181,7 @@ function existingArtifactContentProxyUrl(rawUrl: string): string | null {
   const isRelativeProxy = trimmed.startsWith('/api/pr-artifact-content?');
   let parsed: URL;
   try {
-    parsed = new URL(trimmed, browserOrigin ?? 'http://plannotator.invalid');
+    parsed = new URL(trimmed, browserOrigin ?? 'http://hypermark.invalid');
   } catch {
     return null;
   }

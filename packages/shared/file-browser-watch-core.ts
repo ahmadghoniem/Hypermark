@@ -238,7 +238,7 @@ export function createFileBrowserWatchRegistry<S>(
 					}
 					if (isCurrent(entry) && entry.contentWatcher === watcher) {
 						console.error(
-							`[plannotator] Native file watching failed for ${target.watchPath}; switching to the fallback watcher:`,
+							`[hypermark] Native file watching failed for ${target.watchPath}; switching to the fallback watcher:`,
 							error,
 						);
 						contentWatcherStarts += 1;
@@ -251,7 +251,7 @@ export function createFileBrowserWatchRegistry<S>(
 			} catch (error) {
 				// Native creation failed. Fall through to chokidar.
 				console.error(
-					`[plannotator] Native file watching unavailable for ${target.watchPath}; using the fallback watcher:`,
+					`[hypermark] Native file watching unavailable for ${target.watchPath}; using the fallback watcher:`,
 					error,
 				);
 			}
@@ -266,7 +266,7 @@ export function createFileBrowserWatchRegistry<S>(
 		} catch (error) {
 			// A watcher that cannot start must not take down the stream, but the
 			// subscriber is now living without live refreshes; say so.
-			console.error(`[plannotator] File watcher failed to start for ${target.watchPath}:`, error);
+			console.error(`[hypermark] File watcher failed to start for ${target.watchPath}:`, error);
 		}
 		try {
 			const gitWatchPaths = target.watchGit
@@ -289,7 +289,7 @@ export function createFileBrowserWatchRegistry<S>(
 			}
 		} catch (error) {
 			// Same containment for the git metadata watcher.
-			console.error(`[plannotator] Git metadata watcher failed to start for ${target.watchPath}:`, error);
+			console.error(`[hypermark] Git metadata watcher failed to start for ${target.watchPath}:`, error);
 		}
 	}
 

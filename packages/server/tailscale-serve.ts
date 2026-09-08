@@ -55,7 +55,7 @@ function runServeOff(port: number, run: TailscaleRunner): boolean {
 
 function warnLeakedMapping(port: number): void {
   process.stderr.write(
-    `[plannotator] Warning: could not remove the tailscale serve mapping for port ${port}. ` +
+    `[hypermark] Warning: could not remove the tailscale serve mapping for port ${port}. ` +
       `Remove it manually with: tailscale serve --https=${port} off\n`,
   );
 }
@@ -130,7 +130,7 @@ export function enableTailscaleServe(
     // SIGHUP is routed through process.exit ONLY once a mapping exists.
     // Installing any SIGHUP listener overrides the ignored disposition
     // `nohup` relies on, so sessions without a serve mapping must never gain
-    // one — `nohup plannotator review &` has to keep surviving terminal
+    // one — `nohup hypermark review &` has to keep surviving terminal
     // close. With a mapping, terminal close must run the exit cleanup above
     // or the `--bg` mapping leaks.
     process.once("SIGHUP", onSigHup);

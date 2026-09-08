@@ -107,7 +107,7 @@ export async function urlToMarkdown(
       return { markdown, source: "jina" };
     } catch (err) {
       process.stderr.write(
-        `[plannotator] Warning: Jina Reader failed (${err instanceof Error ? err.message : String(err)}), falling back to direct fetch...\n`,
+        `[hypermark] Warning: Jina Reader failed (${err instanceof Error ? err.message : String(err)}), falling back to direct fetch...\n`,
       );
     }
   }

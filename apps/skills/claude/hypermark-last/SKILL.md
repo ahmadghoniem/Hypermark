@@ -1,15 +1,15 @@
 ---
 name: hypermark-last
-description: Open Plannotator on the latest rendered assistant message and use the returned annotations to revise that message or continue.
-allowed-tools: Bash(plannotator:*)
+description: Open Hypermark on the latest rendered assistant message and use the returned annotations to revise that message or continue.
+allowed-tools: Bash(hypermark:*)
 disable-model-invocation: true
 ---
 
-# Plannotator Last
+# Hypermark Last
 
 ## Message annotations
 
-!`plannotator annotate-last $ARGUMENTS`
+!`hypermark annotate-last $ARGUMENTS`
 
 ## Your task
 

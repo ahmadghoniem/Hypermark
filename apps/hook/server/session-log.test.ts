@@ -1247,7 +1247,7 @@ describe("resolveSessionLogByAncestorPids", () => {
   });
 
   test("walks past bash subshell to find Claude Code ancestor", () => {
-    // Simulates: plannotator (ppid=500 = sh) → sh (ppid=400 = claude)
+    // Simulates: hypermark (ppid=500 = sh) → sh (ppid=400 = claude)
     // Claude Code's session file is at pid 400, NOT 500.
     const { sessionsDir, projectsDir, cleanup } = makeTempDirs("walks-past");
     try {

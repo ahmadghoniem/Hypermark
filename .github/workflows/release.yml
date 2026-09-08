@@ -105,35 +105,35 @@ jobs:
           VERSION=$(jq -r .version package.json)
 
           # macOS ARM64
-          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-darwin-arm64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile plannotator-darwin-arm64
-          sha256sum plannotator-darwin-arm64 > plannotator-darwin-arm64.sha256
+          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-darwin-arm64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-darwin-arm64
+          sha256sum hypermark-darwin-arm64 > hypermark-darwin-arm64.sha256
 
           # macOS x64
-          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-darwin-x64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile plannotator-darwin-x64
-          sha256sum plannotator-darwin-x64 > plannotator-darwin-x64.sha256
+          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-darwin-x64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-darwin-x64
+          sha256sum hypermark-darwin-x64 > hypermark-darwin-x64.sha256
 
           # Linux x64
-          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-linux-x64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile plannotator-linux-x64
-          sha256sum plannotator-linux-x64 > plannotator-linux-x64.sha256
+          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-linux-x64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-linux-x64
+          sha256sum hypermark-linux-x64 > hypermark-linux-x64.sha256
 
           # Linux ARM64
-          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-linux-arm64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile plannotator-linux-arm64
-          sha256sum plannotator-linux-arm64 > plannotator-linux-arm64.sha256
+          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-linux-arm64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-linux-arm64
+          sha256sum hypermark-linux-arm64 > hypermark-linux-arm64.sha256
 
           # Windows x64
-          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-windows-x64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile plannotator-win32-x64.exe
-          sha256sum plannotator-win32-x64.exe > plannotator-win32-x64.exe.sha256
+          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-windows-x64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-win32-x64.exe
+          sha256sum hypermark-win32-x64.exe > hypermark-win32-x64.exe.sha256
 
           # Windows ARM64 (native, via bun-windows-arm64 — stable since Bun v1.3.10)
-          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-windows-arm64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile plannotator-win32-arm64.exe
-          sha256sum plannotator-win32-arm64.exe > plannotator-win32-arm64.exe.sha256
+          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-windows-arm64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-win32-arm64.exe
+          sha256sum hypermark-win32-arm64.exe > hypermark-win32-arm64.exe.sha256
 
       - name: Upload artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: binaries
           path: |
-            plannotator-*
+            hypermark-*
             !*.ts
 
   smoke-binaries:
@@ -146,15 +146,15 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            binary: plannotator-linux-x64
+            binary: hypermark-linux-x64
           - os: windows-latest
-            binary: plannotator-win32-x64.exe
+            binary: hypermark-win32-x64.exe
           # macOS leg exists so a Bun cross-compile signing regression (the
           # 1.3.12 linker-signature loss, #541: binaries SIGKILLed on launch)
           # can never ship silently again. Executing the binary at all is the
           # assertion; the env smoke below rides along.
           - os: macos-latest
-            binary: plannotator-darwin-arm64
+            binary: hypermark-darwin-arm64
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -239,7 +239,7 @@ jobs:
             if [ "$ok" = "0" ]; then
               kill "$pid" 2>/dev/null || true
               wait "$pid" 2>/dev/null || true
-              echo "FAIL: plannotator annotate terminal did not respond on :${port}/api/plan"
+              echo "FAIL: hypermark annotate terminal did not respond on :${port}/api/plan"
               exit 1
             fi
 
@@ -293,15 +293,15 @@ jobs:
               exit "$result"
             fi
 
-            echo "OK: plannotator annotate terminal WebSocket reached sidecar"
+            echo "OK: hypermark annotate terminal WebSocket reached sidecar"
           }
 
           # 2. review: exercises server startup, bundled HTML, git diff, and HTTP.
-          smoke_test_server "plannotator review" 19500 "/api/diff" \
+          smoke_test_server "hypermark review" 19500 "/api/diff" \
             "$BINARY" review
 
           # 3. annotate: exercises annotate server startup with a real file.
-          smoke_test_server "plannotator annotate" 19501 "/api/plan" \
+          smoke_test_server "hypermark annotate" 19501 "/api/plan" \
             "$BINARY" annotate README.md
 
           # 4. terminal: exercises managed WebTUI runtime + compiled sidecar import.
@@ -345,7 +345,7 @@ jobs:
             Pop-Location
           }
 
-          function Test-PlannotatorServer {
+          function Test-HypermarkServer {
             param(
               [string] $Label,
               [string] $Port,
@@ -399,7 +399,7 @@ jobs:
 
           function Test-AgentTerminal {
             $port = "19502"
-            $dataDir = Join-Path ([System.IO.Path]::GetTempPath()) "plannotator-terminal-$([System.Guid]::NewGuid().ToString('N'))"
+            $dataDir = Join-Path ([System.IO.Path]::GetTempPath()) "hypermark-terminal-$([System.Guid]::NewGuid().ToString('N'))"
             New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
 
             $env:PLANNOTATOR_DATA_DIR = $dataDir
@@ -435,7 +435,7 @@ jobs:
               }
 
               if (-not $ok) {
-                throw "FAIL: plannotator annotate terminal did not respond on :$Port/api/plan"
+                throw "FAIL: hypermark annotate terminal did not respond on :$Port/api/plan"
               }
 
               $runtimeDir = Join-Path $dataDir "vendor\agent-terminal\webtui-0.1.0"
@@ -487,7 +487,7 @@ jobs:
                 Pop-Location
                 Remove-Item Env:\PLANNOTATOR_SMOKE_URL -ErrorAction SilentlyContinue
               }
-              Write-Host "OK: plannotator annotate terminal WebSocket reached sidecar"
+              Write-Host "OK: hypermark annotate terminal WebSocket reached sidecar"
             } finally {
               if (-not $process.HasExited) {
                 Stop-Process -Id $process.Id -Force
@@ -499,10 +499,10 @@ jobs:
           }
 
           # 2. review: exercises server startup, bundled HTML, git diff, and HTTP.
-          Test-PlannotatorServer "plannotator review" "19500" "/api/diff" @("review")
+          Test-HypermarkServer "hypermark review" "19500" "/api/diff" @("review")
 
           # 3. annotate: exercises annotate server startup with a real file.
-          Test-PlannotatorServer "plannotator annotate" "19501" "/api/plan" @("annotate", "README.md")
+          Test-HypermarkServer "hypermark annotate" "19501" "/api/plan" @("annotate", "README.md")
 
           # 4. terminal: exercises managed WebTUI runtime + compiled sidecar import.
           Test-AgentTerminal
@@ -519,7 +519,7 @@ jobs:
           # restores the original value in finally, and the VM is discarded.
           $sourceBinary = (Resolve-Path $env:BINARY).Path
           $runnerTemp = [System.IO.Path]::GetFullPath($env:RUNNER_TEMP)
-          $testRoot = [System.IO.Path]::GetFullPath((Join-Path $runnerTemp "plannotator-uninstall-$([System.Guid]::NewGuid().ToString('N'))"))
+          $testRoot = [System.IO.Path]::GetFullPath((Join-Path $runnerTemp "hypermark-uninstall-$([System.Guid]::NewGuid().ToString('N'))"))
           $expectedPrefix = $runnerTemp.TrimEnd('\') + '\'
           if (-not $testRoot.StartsWith($expectedPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
             throw "Refusing unsafe uninstall smoke root: $testRoot"
@@ -611,8 +611,8 @@ jobs:
             )
             $caseRoot = Join-Path $testRoot $Name
             $values = Set-IsolatedUninstallEnvironment $caseRoot
-            $installDirectory = Join-Path $values.LOCALAPPDATA "plannotator"
-            $testBinary = Join-Path $installDirectory "plannotator.exe"
+            $installDirectory = Join-Path $values.LOCALAPPDATA "hypermark"
+            $testBinary = Join-Path $installDirectory "hypermark.exe"
             $dataDirectory = $values.PLANNOTATOR_DATA_DIR
 
             New-Item -ItemType Directory -Force -Path $installDirectory | Out-Null
@@ -682,7 +682,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact: plannotator-linux-x64
+            artifact: hypermark-linux-x64
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -770,7 +770,7 @@ jobs:
 
           run_installer
 
-          test -x "$tmp_home/.local/bin/plannotator"
+          test -x "$tmp_home/.local/bin/hypermark"
           grep -q 'hooks = true' "$tmp_home/.codex/config.toml"
 
           HOME="$tmp_home" node <<'NODE'
@@ -781,7 +781,7 @@ jobs:
           const hooks = JSON.parse(fs.readFileSync(hooksPath, "utf8"));
           const command = hooks?.hooks?.Stop?.[0]?.hooks?.[0]?.command;
           const timeout = hooks?.hooks?.Stop?.[0]?.hooks?.[0]?.timeout;
-          const expected = path.join(home, ".local", "bin", "plannotator");
+          const expected = path.join(home, ".local", "bin", "hypermark");
 
           if (command !== expected) {
             throw new Error(`Expected Stop hook command ${expected}, got ${command}`);
@@ -799,7 +799,7 @@ jobs:
                   "hooks": [
                     {
                       "type": "command",
-                      "command": "PLANNOTATOR_BROWSER=/usr/bin/true plannotator",
+                      "command": "PLANNOTATOR_BROWSER=/usr/bin/true hypermark",
                       "timeout": 123
                     }
                   ]
@@ -821,7 +821,7 @@ jobs:
           if (hooks.length !== 1) {
             throw new Error(`Expected one preserved custom Stop hook, got ${hooks.length}`);
           }
-          if (hooks[0].command !== "PLANNOTATOR_BROWSER=/usr/bin/true plannotator") {
+          if (hooks[0].command !== "PLANNOTATOR_BROWSER=/usr/bin/true hypermark") {
             throw new Error(`Custom Stop hook command was changed to ${hooks[0].command}`);
           }
           NODE
@@ -884,18 +884,18 @@ jobs:
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
         with:
           subject-path: |
-            plannotator-darwin-arm64
-            plannotator-darwin-x64
-            plannotator-linux-x64
-            plannotator-linux-arm64
-            plannotator-win32-x64.exe
-            plannotator-win32-arm64.exe
-            plannotator-paste-darwin-arm64
-            plannotator-paste-darwin-x64
-            plannotator-paste-linux-x64
-            plannotator-paste-linux-arm64
-            plannotator-paste-win32-x64.exe
-            plannotator-paste-win32-arm64.exe
+            hypermark-darwin-arm64
+            hypermark-darwin-x64
+            hypermark-linux-x64
+            hypermark-linux-arm64
+            hypermark-win32-x64.exe
+            hypermark-win32-arm64.exe
+            hypermark-paste-darwin-arm64
+            hypermark-paste-darwin-x64
+            hypermark-paste-linux-x64
+            hypermark-paste-linux-arm64
+            hypermark-paste-win32-x64.exe
+            hypermark-paste-win32-arm64.exe
 
       # actions/attest is the current official general attestation action.
       # Its sbom-path mode supersedes the deprecated actions/attest-sbom
@@ -905,18 +905,18 @@ jobs:
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: |
-            plannotator-darwin-arm64
-            plannotator-darwin-x64
-            plannotator-linux-x64
-            plannotator-linux-arm64
-            plannotator-win32-x64.exe
-            plannotator-win32-arm64.exe
-            plannotator-paste-darwin-arm64
-            plannotator-paste-darwin-x64
-            plannotator-paste-linux-x64
-            plannotator-paste-linux-arm64
-            plannotator-paste-win32-x64.exe
-            plannotator-paste-win32-arm64.exe
+            hypermark-darwin-arm64
+            hypermark-darwin-x64
+            hypermark-linux-x64
+            hypermark-linux-arm64
+            hypermark-win32-x64.exe
+            hypermark-win32-arm64.exe
+            hypermark-paste-darwin-arm64
+            hypermark-paste-darwin-x64
+            hypermark-paste-linux-x64
+            hypermark-paste-linux-arm64
+            hypermark-paste-win32-x64.exe
+            hypermark-paste-win32-arm64.exe
           sbom-path: release-sbom/${{ needs.release-security.outputs.sbom-name }}
 
   release:
@@ -1049,19 +1049,19 @@ jobs:
         run: |
           version="$(jq -r .version package.json)"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "sbom-name=plannotator-${version}-release-sbom.cdx.json" >> "$GITHUB_OUTPUT"
+          echo "sbom-name=hypermark-${version}-release-sbom.cdx.json" >> "$GITHUB_OUTPUT"
 
       - name: Generate SBOM and enforce Grype policy
         env:
           PLANNOTATOR_RELEASE_SUBJECTS_DIR: ${{ github.workspace }}/release-subjects
-          PLANNOTATOR_RELEASE_SECURITY_DIR: ${{ runner.temp }}/plannotator-release-security
+          PLANNOTATOR_RELEASE_SECURITY_DIR: ${{ runner.temp }}/hypermark-release-security
         run: scripts/release-security/run-release-security.sh
 
       - name: Upload public release SBOM
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-sbom
-          path: ${{ runner.temp }}/plannotator-release-security/public/*
+          path: ${{ runner.temp }}/hypermark-release-security/public/*
           if-no-files-found: error
           retention-days: 7
 
@@ -1070,8 +1070,8 @@ jobs:
         with:
           name: release-security-subjects
           path: |
-            ${{ runner.temp }}/plannotator-release-security/evidence/release-subjects.json
-            ${{ runner.temp }}/plannotator-release-security/evidence/subject-checksums.sha256
+            ${{ runner.temp }}/hypermark-release-security/evidence/release-subjects.json
+            ${{ runner.temp }}/hypermark-release-security/evidence/subject-checksums.sha256
           if-no-files-found: error
           retention-days: 7
 
@@ -1080,7 +1080,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-security-evidence
-          path: ${{ runner.temp }}/plannotator-release-security/evidence
+          path: ${{ runner.temp }}/hypermark-release-security/evidence
           if-no-files-found: warn
           retention-days: 14
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Sandbox script for testing Plannotator with Codex
+# Sandbox script for testing Hypermark with Codex
 #
 # Usage:
 #   ./sandbox-codex.sh [--keep] [--no-git]
@@ -9,17 +9,17 @@
 #   --no-git  Don't initialize git repo
 #
 # What it does:
-#   1. Compiles the plannotator binary
+#   1. Compiles the hypermark binary
 #   2. Creates a temp directory with sample files
 #   3. Launches Codex in the sandbox
 #
 # To test:
-#   - Annotate last: !plannotator last
-#   - Annotate file: !plannotator annotate README.md
+#   - Annotate last: !hypermark last
+#   - Annotate file: !hypermark annotate README.md
 #
 # Prerequisites:
 #   - Codex CLI installed (codex or npx codex)
-#   - plannotator binary at ~/.local/bin/plannotator
+#   - hypermark binary at ~/.local/bin/hypermark
 
 set -e
 
@@ -45,18 +45,18 @@ done
 echo "=== Plannotator Codex Sandbox ==="
 echo ""
 
-# Build the plannotator binary
-echo "Compiling plannotator binary..."
+# Build the hypermark binary
+echo "Compiling hypermark binary..."
 cd "$PROJECT_ROOT"
 bun run build:hook > /dev/null 2>&1
 bun run build:review > /dev/null 2>&1
-bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --outfile ~/.local/bin/plannotator 2>&1
-echo "Binary compiled to ~/.local/bin/plannotator"
+bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --outfile ~/.local/bin/hypermark 2>&1
+echo "Binary compiled to ~/.local/bin/hypermark"
 echo ""
 
-# Verify plannotator is in PATH
-if ! command -v plannotator &>/dev/null; then
-  echo "WARNING: plannotator not found in PATH"
+# Verify hypermark is in PATH
+if ! command -v hypermark &>/dev/null; then
+  echo "WARNING: hypermark not found in PATH"
   echo "Add ~/.local/bin to your PATH:"
   echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
   echo ""
@@ -92,11 +92,11 @@ fi
 cat > README.md << 'EOF'
 # Sample Project
 
-This is a sandbox for testing Plannotator with Codex.
+This is a sandbox for testing Hypermark with Codex.
 
 ## Features
-- Last message annotation via !plannotator last
-- File annotation via !plannotator annotate <file.md>
+- Last message annotation via !hypermark last
+- File annotation via !hypermark annotate <file.md>
 EOF
 
 mkdir -p src
@@ -121,11 +121,11 @@ echo "Directory: $SANDBOX_DIR"
 echo ""
 echo "To test:"
 echo "  1. Have a conversation with Codex first"
-echo "  2. Annotate last: !plannotator last"
-echo "  3. Annotate file: !plannotator annotate README.md"
+echo "  2. Annotate last: !hypermark last"
+echo "  3. Annotate file: !hypermark annotate README.md"
 echo ""
 echo "Note: Codex injects CODEX_THREAD_ID into spawned processes."
-echo "The plannotator binary detects this to find the correct rollout file."
+echo "The hypermark binary detects this to find the correct rollout file."
 echo ""
 echo "Launching Codex..."
 echo ""

@@ -1,12 +1,12 @@
 ---
 name: hypermark-last
-description: Open Plannotator on the latest rendered assistant message and use the returned annotations to revise that message or continue.
+description: Open Hypermark on the latest rendered assistant message and use the returned annotations to revise that message or continue.
 disable-model-invocation: true
 ---
 
-# Plannotator Last
+# Hypermark Last
 
-Use this skill when the user wants to annotate the latest assistant response in Plannotator.
+Use this skill when the user wants to annotate the latest assistant response in Hypermark.
 
 Do not send a commentary/status message before running the command. The command
 targets the latest rendered assistant response, so a preamble can mistakenly become the
@@ -15,7 +15,7 @@ thing being annotated.
 Run:
 
 ```bash
-plannotator last
+hypermark last
 ```
 
 Behavior:

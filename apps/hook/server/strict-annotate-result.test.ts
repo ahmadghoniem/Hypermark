@@ -167,7 +167,7 @@ describe("annotate startup failure exit codes", () => {
     // The usage failure and every resolution failure route through the helper
     // that reads the strict flags.
     for (const failure of [
-      "Usage: plannotator annotate",
+      "Usage: hypermark annotate",
       "resolution.message",
     ]) {
       const site = annotateStartupBlock.indexOf(failure);

@@ -7,7 +7,7 @@ const skill = readFileSync(join(import.meta.dir, "SKILL.md"), "utf-8");
 describe("hypermark-setup-goal skill", () => {
   test("uses bundled goal setup UI as the default interview path", () => {
     expect(skill).toContain("Build a compact bundle of questions");
-    expect(skill).toContain("plannotator setup-goal interview");
+    expect(skill).toContain("hypermark setup-goal interview");
     expect(skill).toContain("goals/<slug>/interview.json");
     expect(skill).toContain("goals/<slug>/interview-result.json");
     expect(skill).toContain("Do not ask obvious confirmation questions");
@@ -30,7 +30,7 @@ describe("hypermark-setup-goal skill", () => {
   });
 
   test("facts phase captures automated verification selections", () => {
-    expect(skill).toContain("plannotator setup-goal facts");
+    expect(skill).toContain("hypermark setup-goal facts");
     expect(skill).toContain("goals/<slug>/facts-review.json");
     expect(skill).toContain("goals/<slug>/facts-result.json");
     expect(skill).toContain("facts.meta.json");

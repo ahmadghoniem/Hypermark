@@ -12,7 +12,7 @@ import type { UIPreferences } from '@hypermark/ui/utils/uiPreferences';
 import type { CompactPlanAction } from '@hypermark/ui/components/PlanHeaderMenu';
 import { HtmlSurfaceControls } from '@hypermark/ui/components/HtmlSurfaceControls';
 
-/** Plannotator's refresh strings for the published control: the document
+/** Hypermark's refresh strings for the published control: the document
  * is a file on disk, so the refresh says so. */
 export const PLANNOTATOR_HTML_REFRESH_LABELS = {
   refreshTitle: 'Refresh HTML from disk',
@@ -334,7 +334,7 @@ export const AppHeader = React.memo<AppHeaderProps>(({
           <span
             data-webmcp-indicator="true"
             className="hidden md:inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-            title="A browser agent has used Plannotator's tools in this session. Its comments are marked browser-agent. Turn the tools off in Settings."
+            title="A browser agent has used Hypermark's tools in this session. Its comments are marked browser-agent. Turn the tools off in Settings."
           >
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
             Agent
@@ -436,7 +436,7 @@ const AppHeaderLogo = () => (
       rel="noopener noreferrer"
       className="flex items-center gap-1.5 md:gap-2 hover:opacity-80 transition-opacity"
     >
-      <span className="text-sm font-semibold tracking-tight">Plannotator</span>
+      <span className="text-sm font-semibold tracking-tight">Hypermark</span>
     </a>
   </div>
 );

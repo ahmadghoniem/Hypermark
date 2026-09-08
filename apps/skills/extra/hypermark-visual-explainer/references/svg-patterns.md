@@ -2,7 +2,7 @@
 
 Building blocks for creating diagrams in implementation plans. All SVGs are inline — no external dependencies. Compose these patterns to build architecture diagrams, data flow visualizations, flowcharts, and charts.
 
-All colors reference Plannotator theme tokens. In SVG, use the CSS custom property values directly via `style` attributes or the corresponding CSS classes.
+All colors reference Hypermark theme tokens. In SVG, use the CSS custom property values directly via `style` attributes or the corresponding CSS classes.
 
 ## Table of Contents
 1. [Arrow Markers](#arrow-markers)

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src=".github/assets/banner.webp" alt="Plannotator" width="640" />
+  <img src=".github/assets/banner.webp" alt="Hypermark" width="640" />
 </p>
 
 
@@ -32,12 +32,12 @@
 </p>
 
 <p align="center">
-  <a href="https://www.youtube.com/watch?v=a_AT7cEN_9I">Watch the og demo</a> · <a href="https://docs.plannotator.ai/open-source/start/installation">Installation guide</a> · <a href="https://plannotator.ai/">Official site</a> · <a href="https://github.com/plannotator/effective-html">Visual HTML Skills</a> · <a href="#herdr-annotate-plannotator-in-the-terminal">Herdr Annotate</a>
+  <a href="https://www.youtube.com/watch?v=a_AT7cEN_9I">Watch the og demo</a> · <a href="https://docs.plannotator.ai/open-source/start/installation">Installation guide</a> · <a href="https://plannotator.ai/">Official site</a> · <a href="https://github.com/plannotator/effective-html">Visual HTML Skills</a> · <a href="#herdr-annotate-hypermark-in-the-terminal">Herdr Annotate</a>
 </p>
 
-# Plannotator
+# Hypermark
 
-Plannotator is a local, browser-based review surface for AI coding agents: Claude Code, Codex, Copilot CLI, Gemini CLI, OpenCode, Kiro, Droid, Amp, and Pi. 
+Hypermark is a local, browser-based review surface for AI coding agents: Claude Code, Codex, Copilot CLI, Gemini CLI, OpenCode, Kiro, Droid, Amp, and Pi. 
 
 **It plugs directly into your agent** through its hooks and commands. When the agent proposes a plan, html, or finishes writing code, the work opens in your browser and you mark it up, comment, and send feedback directly to the agent for it to act on it.
 
@@ -84,7 +84,7 @@ Review local changes or remote PRs. Comment on diffs, suggest code. Your comment
   <img src=".github/assets/html.webp" alt="Annotating a rendered HTML artifact" width="720" />
 </p>
 
-## Herdr Annotate: Plannotator in the Terminal
+## Herdr Annotate: Hypermark in the Terminal
 
 <p align="center">
   <a href="https://github.com/plannotator/herdr-annotate">
@@ -94,7 +94,7 @@ Review local changes or remote PRs. Comment on diffs, suggest code. Your comment
   <img src=".github/assets/herdr-annotate.png" alt="Plannotator TUI annotating a markdown folder in the terminal" width="480" align="middle" />
 </p>
 
-[Herdr Annotate](https://github.com/plannotator/herdr-annotate) brings Plannotator-style review to the terminal: annotate terminal text, review whole Markdown documents and your coding agent's replies inside [Herdr](https://herdr.dev), and send the feedback straight back to the agent as its next message. Works with Claude Code, Codex, Pi, Copilot CLI, and Droid replies. Annotations are saved in the Plannotator data directory, so terminal reviews and app reviews compound.
+[Herdr Annotate](https://github.com/plannotator/herdr-annotate) brings Hypermark-style review to the terminal: annotate terminal text, review whole Markdown documents and your coding agent's replies inside [Herdr](https://herdr.dev), and send the feedback straight back to the agent as its next message. Works with Claude Code, Codex, Pi, Copilot CLI, and Droid replies. Annotations are saved in the Hypermark data directory, so terminal reviews and app reviews compound.
 
 ```
 herdr plugin install plannotator/herdr-annotate
@@ -106,7 +106,7 @@ Prefer it standalone? [Plannotator TUI](https://github.com/plannotator/plannotat
 
 ## Commands
 
-<sub>On Codex, swap the slash commands for `!plannotator …` (e.g. `!plannotator review`) or the `$plannotator-*` skills.</sub>
+<sub>On Codex, swap the slash commands for `!hypermark …` (e.g. `!hypermark review`) or the `$hypermark-*` skills.</sub>
 
 ### Annotate
 
@@ -126,7 +126,7 @@ Need a realistic document to try? Copy the [product requirements document templa
 /hypermark-review                    # Review uncommitted changes
 /hypermark-review <github-pr-url>    # Review a GitHub pull request
 /hypermark-review <gitlab-mr-url>    # Review a GitLab merge request
-plannotator review --gitbutler         # Review an active GitButler workspace
+hypermark review --gitbutler         # Review an active GitButler workspace
 ```
 
 GitButler users can review the whole workspace, one stack, or one branch layer. See the [GitButler workflow guide](https://docs.plannotator.ai/open-source/workflows/gitbutler).
@@ -138,18 +138,18 @@ No command needed. Plan mode is wired in through each harness's hooks. Any time 
 ### CLI
 
 ```
-plannotator sessions                   # List active Plannotator sessions
-plannotator sessions --open 1          # Reopen a session in the browser
-plannotator archive                    # Browse saved plan decisions read-only
+hypermark sessions                   # List active Hypermark sessions
+hypermark sessions --open 1          # Reopen a session in the browser
+hypermark archive                    # Browse saved plan decisions read-only
 ```
 
 ---
 
 ## Privacy and network behavior
 
-Plannotator does not collect usage telemetry or analytics. Plans, diffs, annotations, drafts, history, and configuration stay local by default.
+Hypermark does not collect usage telemetry or analytics. Plans, diffs, annotations, drafts, history, and configuration stay local by default.
 
-Each plan review, annotate, archive, share-portal, and code-review app surface checks GitHub for the latest Plannotator release when it loads. This sends no plan or review content and gives the Plannotator project owner no usage analytics, although GitHub receives an ordinary request. There is currently no opt-out setting. Local Git code review can also query the configured `origin` with `git ls-remote` to detect the default branch and a stale baseline; it does not send the local diff.
+Each plan review, annotate, archive, share-portal, and code-review app surface checks GitHub for the latest Hypermark release when it loads. This sends no plan or review content and gives the Hypermark project owner no usage analytics, although GitHub receives an ordinary request. There is currently no opt-out setting. Local Git code review can also query the configured `origin` with `git ls-remote` to detect the default branch and a stale baseline; it does not send the local diff.
 
 Content leaves the local workflow only when a network feature needs it:
 
@@ -199,7 +199,7 @@ Sharing can be disabled entirely with `PLANNOTATOR_SHARE=disabled`.
 
 ## Install
 
-One installer covers almost every agent. It installs the `plannotator` binary, auto-detects your installed agents, and configures hooks, skills, and slash commands for each:
+One installer covers almost every agent. It installs the `hypermark` binary, auto-detects your installed agents, and configures hooks, skills, and slash commands for each:
 
 ```bash
 # macOS / Linux / WSL
@@ -213,7 +213,7 @@ irm https://plannotator.ai/install.ps1 | iex
 
 The installer downloads the binary from GitHub Releases. A full install can also contact GitHub for release resolution and agent files, Ataraxy-Labs/sem for the optional `sem` sidecar, and npm for Pi, selected extra skills, or the managed agent-terminal runtime. Pinning `--version` skips only GitHub API release resolution, not the release download. See the [privacy policy](https://plannotator.ai/privacy) for the complete network boundaries.
 
-Want just the binary and nothing else? Pass `--minimal` (or export `PLANNOTATOR_MINIMAL=1`) to install only the `plannotator` binary to `~/.local/bin`, skipping every skill, hook, slash command, and per-agent config:
+Want just the binary and nothing else? Pass `--minimal` (or export `PLANNOTATOR_MINIMAL=1`) to install only the `hypermark` binary to `~/.local/bin`, skipping every skill, hook, slash command, and per-agent config:
 
 ```bash
 curl -fsSL https://plannotator.ai/install.sh | bash -s -- --minimal
@@ -224,12 +224,12 @@ Then finish the step for your agent:
 | Agent | After the installer | Details |
 |---|---|---|
 | **Amp** | Copy [`plannotator.ts`](apps/amp-plugin/plannotator.ts) into `~/.config/amp/plugins/`, then `plugins: reload`. Workflows live in the command palette. | [README](apps/amp-plugin/README.md) |
-| **Claude Code** | `/plugin marketplace add backnotprop/plannotator`, then `/plugin install plannotator@plannotator`. Restart Claude Code. | [README](apps/hook/README.md) |
+| **Claude Code** | `/plugin marketplace add ahmadghoniem/hypermark`, then `/plugin install hypermark@hypermark`. Restart Claude Code. | [README](apps/hook/README.md) |
 | **Codex** | Nothing. Plan review is enabled automatically via Codex's experimental `Stop` hook (macOS/Linux/WSL; on native Windows, Codex hooks are experimental and the installer prints manual setup steps). `$hypermark-review`, `$hypermark-annotate`, and `$hypermark-last` skills included. | [README](apps/codex/README.md) |
-| **Copilot CLI** | `/plugin marketplace add backnotprop/plannotator`, then `/plugin install plannotator-copilot@plannotator`. Restart. Plan review activates in plan mode (`Shift+Tab`). | [README](apps/copilot/README.md) |
-| **Droid** | `droid plugin marketplace add https://github.com/backnotprop/plannotator`, then `droid plugin install plannotator@plannotator`. Commands only, no plan interception yet. | [README](apps/droid-plugin/README.md) |
+| **Copilot CLI** | `/plugin marketplace add ahmadghoniem/hypermark`, then `/plugin install hypermark-copilot@hypermark`. Restart. Plan review activates in plan mode (`Shift+Tab`). | [README](apps/copilot/README.md) |
+| **Droid** | `droid plugin marketplace add https://github.com/ahmadghoniem/Hypermark`, then `droid plugin install hypermark@hypermark`. Commands only, no plan interception yet. | [README](apps/droid-plugin/README.md) |
 | **Gemini CLI** | Nothing. The hook, policy, and slash commands are configured automatically. Requires Gemini CLI 0.36.0+. | [README](apps/gemini/README.md) |
-| **Kiro CLI** | Nothing. Skills and an example agent are installed automatically. Try `kiro-cli chat --agent plannotator`. | [README](apps/kiro-cli/README.md) |
+| **Kiro CLI** | Nothing. Skills and an example agent are installed automatically. Try `kiro-cli chat --agent hypermark`. | [README](apps/kiro-cli/README.md) |
 | **OpenCode** | Add `"plugin": ["@plannotator/opencode@latest"]` to `opencode.json`. Restart OpenCode. | [README](apps/opencode-plugin/README.md) |
 | **Pi** | Skip the installer. Just `pi install npm:@plannotator/pi-extension`. Start Pi with `--plan`, or toggle with `/plannotator-plan-mode`. | [README](apps/pi-extension/README.md) |
 
@@ -237,21 +237,21 @@ Full walkthroughs live in the [installation docs](https://docs.plannotator.ai/op
 
 ### Uninstall
 
-The safe default removes recognized Plannotator-installed components and keeps
+The safe default removes recognized Hypermark-installed components and keeps
 your local plans, history, drafts, guides, and settings:
 
 ```bash
-plannotator uninstall
+hypermark uninstall
 ```
 
-Use `--purge` for a full removal of known local Plannotator data as well:
+Use `--purge` for a full removal of known local Hypermark data as well:
 
 ```bash
-plannotator uninstall --purge
+hypermark uninstall --purge
 ```
 
 Purge requires typing `purge` at the prompt and explains that the data is
-local-only: it is not stored on a Plannotator server and cannot be recovered.
+local-only: it is not stored on a Hypermark server and cannot be recovered.
 For automation, pass `--yes` (or `-y`); non-interactive removal refuses to run
 without it. Use `--dry-run` to preview recognized work without making changes.
 Host integrations are always part of uninstall. If a broken or unavailable
@@ -286,7 +286,7 @@ If your dedicated data directory is symlinked, point `PLANNOTATOR_DATA_DIR` at
 its resolved target and retry.
 
 If you installed only the standalone Pi extension and do not have the
-`plannotator` CLI, use `pi remove npm:@plannotator/pi-extension`.
+`hypermark` CLI, use `pi remove npm:@plannotator/pi-extension`.
 
 <details>
 <summary>Claude Code: manual hook setup (without the plugin system)</summary>
@@ -302,7 +302,7 @@ Add to `~/.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "plannotator",
+            "command": "hypermark",
             "timeout": 345600
           }
         ]
@@ -329,7 +329,7 @@ curl -fsSL https://plannotator.ai/install.sh | bash -s -- --version vX.Y.Z
 
 ### Try it
 
-The fastest way to see what Plannotator does is to invoke it yourself, right now, from your agent:
+The fastest way to see what Hypermark does is to invoke it yourself, right now, from your agent:
 
 ```
 /hypermark-last                   # annotate the agent's last reply
@@ -337,7 +337,7 @@ The fastest way to see what Plannotator does is to invoke it yourself, right now
 /hypermark-annotate report.html   # annotate any file, folder, or URL
 ```
 
-(Slash commands in most agents; `$plannotator-*` skills in Codex, command palette in Amp.)
+(Slash commands in most agents; `$hypermark-* skills in Codex, command palette in Amp.)
 
 Plan review needs no command at all. The next time your agent proposes a plan, it opens in your browser automatically.
 
@@ -375,7 +375,7 @@ You run /hypermark-review
 
 **VS Code**: Open plans in editor tabs, view diffs inline, add annotations from the editor gutter. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=backnotprop.plannotator-webview).
 
-**Obsidian**: Auto-save approved plans to a vault with YAML frontmatter, tags from the plan title, and backlinks for graph connectivity. Configure in Plannotator's Settings panel.
+**Obsidian**: Auto-save approved plans to a vault with YAML frontmatter, tags from the plan title, and backlinks for graph connectivity. Configure in Hypermark's Settings panel.
 
 **Bear**: Save plans as Bear notes with nested tags and project metadata.
 
@@ -385,7 +385,7 @@ You run /hypermark-review
 
 ## Remote / SSH / devcontainer
 
-Plannotator auto-detects SSH sessions and switches to a fixed port. For explicit control:
+Hypermark auto-detects SSH sessions and switches to a fixed port. For explicit control:
 
 ```bash
 export PLANNOTATOR_REMOTE=1
@@ -414,23 +414,23 @@ To verify a released Linux x64 binary, its existing provenance, and the new SBOM
 ```bash
 tag=vX.Y.Z
 version="${tag#v}"
-mkdir -p /tmp/plannotator-release-verify
-gh release download "$tag" --repo backnotprop/plannotator \
-  --pattern 'plannotator-linux-x64*' \
-  --pattern "plannotator-${version}-release-sbom.cdx.json*" \
-  --dir /tmp/plannotator-release-verify
+mkdir -p /tmp/hypermark-release-verify
+gh release download "$tag" --repo ahmadghoniem/Hypermark \
+  --pattern 'hypermark-linux-x64*' \
+  --pattern "hypermark-${version}-release-sbom.cdx.json*" \
+  --dir /tmp/hypermark-release-verify
 
-(cd /tmp/plannotator-release-verify && sha256sum --check plannotator-linux-x64.sha256)
-(cd /tmp/plannotator-release-verify && sha256sum --check "plannotator-${version}-release-sbom.cdx.json.sha256")
+(cd /tmp/hypermark-release-verify && sha256sum --check hypermark-linux-x64.sha256)
+(cd /tmp/hypermark-release-verify && sha256sum --check "hypermark-${version}-release-sbom.cdx.json.sha256")
 
-gh attestation verify /tmp/plannotator-release-verify/plannotator-linux-x64 \
-  --repo backnotprop/plannotator --source-ref "refs/tags/$tag" \
-  --signer-workflow backnotprop/plannotator/.github/workflows/release.yml \
+gh attestation verify /tmp/hypermark-release-verify/hypermark-linux-x64 \
+  --repo ahmadghoniem/Hypermark --source-ref "refs/tags/$tag" \
+  --signer-workflow ahmadghoniem/Hypermark/.github/workflows/release.yml \
   --predicate-type https://slsa.dev/provenance/v1
 
-gh attestation verify /tmp/plannotator-release-verify/plannotator-linux-x64 \
-  --repo backnotprop/plannotator --source-ref "refs/tags/$tag" \
-  --signer-workflow backnotprop/plannotator/.github/workflows/release.yml \
+gh attestation verify /tmp/hypermark-release-verify/hypermark-linux-x64 \
+  --repo ahmadghoniem/Hypermark --source-ref "refs/tags/$tag" \
+  --signer-workflow ahmadghoniem/Hypermark/.github/workflows/release.yml \
   --predicate-type https://cyclonedx.org/bom
 ```
 
@@ -493,9 +493,9 @@ implementation architecture.
 | `PLANNOTATOR_ORIGIN` | Override agent detection: `claude-code`, `amp`, `droid`, `opencode`, `codex`, `copilot-cli`, `gemini-cli`, `kiro-cli`, `pi` |
 | `PLANNOTATOR_JINA` | `0`/`false` to disable Jina Reader for URL annotation |
 | `JINA_API_KEY` | Jina Reader API key for higher rate limits |
-| `PLANNOTATOR_DATA_DIR` | Base directory for Plannotator-managed files (plans, history, drafts, `config.json`). Default: `~/.plannotator`; if that directory doesn't exist and `$XDG_DATA_HOME` is set to an absolute path, `$XDG_DATA_HOME/plannotator` is used instead |
+| `PLANNOTATOR_DATA_DIR` | Base directory for Hypermark-managed files (plans, history, drafts, `config.json`). Default: `~/.plannotator`; if that directory doesn't exist and `$XDG_DATA_HOME` is set to an absolute path, `$XDG_DATA_HOME/plannotator` is used instead |
 
-Plannotator-managed files live under `~/.plannotator` by default. Some UI preferences are stored in functional browser cookies. To relocate the files (for example, for an XDG-clean home):
+Hypermark-managed files live under `~/.plannotator` by default. Some UI preferences are stored in functional browser cookies. To relocate the files (for example, for an XDG-clean home):
 
 ```bash
 export PLANNOTATOR_DATA_DIR=~/.local/share/plannotator
@@ -540,7 +540,7 @@ Full binary build:
 
 ```bash
 bun run --cwd apps/review build && bun run build:hook && \
-  bun build apps/hook/server/index.ts --compile --outfile ~/.local/bin/plannotator
+  bun build apps/hook/server/index.ts --compile --outfile ~/.local/bin/hypermark
 ```
 
 

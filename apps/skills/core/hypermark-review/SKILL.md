@@ -1,17 +1,17 @@
 ---
 name: hypermark-review
-description: Open Plannotator's browser-based code review UI for the current worktree or a pull request URL, then act on the feedback that comes back.
+description: Open Hypermark's browser-based code review UI for the current worktree or a pull request URL, then act on the feedback that comes back.
 disable-model-invocation: true
 ---
 
-# Plannotator Review
+# Hypermark Review
 
-Use this skill when the user wants to review current code changes in Plannotator instead of reading a diff inline.
+Use this skill when the user wants to review current code changes in Hypermark instead of reading a diff inline.
 
 Run:
 
 ```bash
-plannotator review [optional-pr-url]
+hypermark review [optional-pr-url]
 ```
 
 Behavior:

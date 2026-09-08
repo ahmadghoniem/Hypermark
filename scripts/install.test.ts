@@ -46,14 +46,14 @@ describe("install.sh", () => {
     expect(json.hooks.PermissionRequest).toBeArray();
     expect(json.hooks.PermissionRequest[0].matcher).toBe("ExitPlanMode");
     expect(json.hooks.PermissionRequest[0].hooks[0].type).toBe("command");
-    expect(json.hooks.PermissionRequest[0].hooks[0].command).toBe("plannotator");
+    expect(json.hooks.PermissionRequest[0].hooks[0].command).toBe("hypermark");
     expect(json.hooks.PermissionRequest[0].hooks[0].timeout).toBe(345600);
     // EnterPlanMode hook drives the compound-skill improvement-hook injection.
     // It must be re-emitted on every install — see apps/hook/hooks/hooks.json.
     expect(json.hooks.PreToolUse).toBeArray();
     expect(json.hooks.PreToolUse[0].matcher).toBe("EnterPlanMode");
     expect(json.hooks.PreToolUse[0].hooks[0].type).toBe("command");
-    expect(json.hooks.PreToolUse[0].hooks[0].command).toBe("plannotator improve-context");
+    expect(json.hooks.PreToolUse[0].hooks[0].command).toBe("hypermark improve-context");
     expect(json.hooks.PreToolUse[0].hooks[0].timeout).toBe(5);
   });
 
@@ -78,7 +78,7 @@ describe("install.sh", () => {
 
   test("warns about duplicate hooks", () => {
     expect(script).toContain("DUPLICATE HOOK DETECTED");
-    expect(script).toContain('"command".*plannotator');
+    expect(script).toContain('"command".*hypermark');
   });
 
   test("installs core skills via git sparse-checkout to claude + agents", () => {
@@ -101,8 +101,8 @@ describe("install.sh", () => {
     }
     // The knowledge skill has no Claude-only injection form: both scopes
     // install the single-sourced apps/skills/core/plannotator copy.
-    expect(script).toContain('copy_skill_if_present apps/skills/core/plannotator "$CLAUDE_SKILLS_DIR"');
-    expect(script).toContain('copy_skill_if_present apps/skills/core/plannotator "$AGENTS_SKILLS_DIR"');
+    expect(script).toContain('copy_skill_if_present apps/skills/core/hypermark "$CLAUDE_SKILLS_DIR"');
+    expect(script).toContain('copy_skill_if_present apps/skills/core/hypermark "$AGENTS_SKILLS_DIR"');
     // Codex no longer receives a skills install (core skills live in ~/.agents/skills).
     expect(script).not.toContain('copy_skill_if_present apps/skills/core/hypermark-review "$CODEX_SKILLS_DIR"');
     // Extras are not default-installed anywhere except Kiro.
@@ -110,7 +110,7 @@ describe("install.sh", () => {
     expect(script).not.toContain('cp -r apps/skills/* "$CLAUDE_SKILLS_DIR/"');
     // Missing git is a hard failure with an actionable message, not a silent
     // skip — the legacy commands are gone, so a no-skill install is broken.
-    expect(script).toContain("Error: git is required to install Plannotator's skills and slash commands.");
+    expect(script).toContain("Error: git is required to install Hypermark's skills and slash commands.");
     expect(script).toContain("Install git, then run this installer again.");
   });
 
@@ -147,7 +147,7 @@ describe("install.sh", () => {
     // Answers persist to the data dir and silent re-runs reuse them.
     expect(script).toContain('PREFS_FILE="$_config_dir/install-prefs"');
     // Extras install is delegated to the skills CLI with the terminal attached.
-    expect(script).toContain("npx skills add backnotprop/plannotator/apps/skills/extra --global < /dev/tty");
+    expect(script).toContain("npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global < /dev/tty");
     // Flip pass unlocks INSTALLED copies only (repo sources always stay
     // locked) and flips the Codex sidecar to match.
     expect(script).toContain("grep -v '^disable-model-invocation: true$'");
@@ -192,14 +192,14 @@ describe("install.sh", () => {
     // same single-sourced core copy as Claude and ~/.agents. Kiro shipping
     // only the action skills and no CLI reference was the #1377 install-reach
     // gap; assert the copy line so the scope cannot be dropped again.
-    expect(script).toContain('copy_skill_if_present apps/skills/core/plannotator "$KIRO_SKILLS_DIR"');
+    expect(script).toContain('copy_skill_if_present apps/skills/core/hypermark "$KIRO_SKILLS_DIR"');
     // The two extras Kiro keeps receiving come from apps/skills/extra.
     expect(script).toContain('copy_skill_if_present apps/skills/extra/hypermark-setup-goal "$KIRO_SKILLS_DIR"');
     expect(script).toContain('copy_skill_if_present apps/skills/extra/hypermark-visual-explainer "$KIRO_SKILLS_DIR"');
     // sparse-checkout fetches apps/kiro-cli (skills + agent example).
     expect(script).toContain("git sparse-checkout set apps/skills apps/kiro-cli");
     // The installer also writes the example custom agent to ~/.kiro/agents.
-    expect(script).toContain('cp apps/kiro-cli/agents/plannotator.json "$HOME/.kiro/agents/plannotator.json"');
+    expect(script).toContain('cp apps/kiro-cli/agents/hypermark.json "$HOME/.kiro/agents/hypermark.json"');
     // Parity: no bespoke flag, like every other agent.
     expect(script).not.toContain("--kiro");
     expect(script).not.toContain("INSTALL_KIRO");
@@ -234,7 +234,7 @@ describe("install.sh", () => {
 
   test("suggests installing extras via npx skills add", () => {
     expect(script).toContain("Optional skills (compound planning, setup-goal, visual explainer):");
-    expect(script).toContain("npx skills add backnotprop/plannotator/apps/skills/extra --global");
+    expect(script).toContain("npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global");
   });
 
   test("no longer installs core skills to ~/.codex/skills", () => {
@@ -265,11 +265,11 @@ describe("install.sh", () => {
     expect(script).toContain('grep -Eq \'^[[:space:]]*features[[:space:]]*=\' "$CODEX_CONFIG"');
   });
 
-  test("preserves custom Codex Plannotator hook wrappers", () => {
+  test("preserves custom Codex Hypermark hook wrappers", () => {
     expect(script).toContain("isManagedHypermarkCommand");
     expect(script).toContain("foundCustomHypermarkHook");
-    expect(script).toContain("Existing custom Codex Plannotator hook found");
-    expect(script).not.toContain('hook.command.includes("plannotator")) {\n      hook.command = command;');
+    expect(script).toContain("Existing custom Codex Hypermark hook found");
+    expect(script).not.toContain('hook.command.includes("hypermark")) {\n      hook.command = command;');
   });
 
   test("Pi extension update keeps no settings.json package-skills filter", () => {
@@ -337,7 +337,7 @@ describe("install.sh", () => {
     // the sidecar downloads, agent integrations, skill checkout, and config
     // writes — that ordering is the whole point of #977.
     const binaryInstalled = script.indexOf(
-      'mv "$tmp_file" "$INSTALL_DIR/plannotator"',
+      'mv "$tmp_file" "$INSTALL_DIR/hypermark"',
     );
     const minimalExit = script.indexOf('if [ "$minimal" -eq 1 ]; then');
     const semInstall = script.indexOf("install_sem_sidecar\n");
@@ -604,15 +604,15 @@ describe("install.ps1", () => {
     expect(script).toContain('Copy-SkillIfPresent "apps\\skills\\claude\\$skill" $claudeSkillsDir');
     expect(script).toContain('Copy-SkillIfPresent "apps\\skills\\core\\$skill" $agentsSkillsDir');
     // Knowledge skill: single-sourced from core into both scopes.
-    expect(script).toContain('Copy-SkillIfPresent "apps\\skills\\core\\plannotator" $claudeSkillsDir');
-    expect(script).toContain('Copy-SkillIfPresent "apps\\skills\\core\\plannotator" $agentsSkillsDir');
+    expect(script).toContain('Copy-SkillIfPresent "apps\\skills\\core\\hypermark" $claudeSkillsDir');
+    expect(script).toContain('Copy-SkillIfPresent "apps\\skills\\core\\hypermark" $agentsSkillsDir');
     expect(script).toContain('"hypermark-review", "hypermark-annotate", "hypermark-last"');
     // Copy-SkillIfPresent pre-removes the destination to avoid nesting on upgrade.
     expect(script).toContain("if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }");
     // No Codex skills install.
     expect(script).not.toContain('Copy-SkillIfPresent "apps\\skills\\hypermark-review" $codexSkillsDir');
     // Missing git is a hard failure with an actionable message (parity with sh).
-    expect(script).toContain("Error: git is required to install Plannotator's skills and slash commands.");
+    expect(script).toContain("Error: git is required to install Hypermark's skills and slash commands.");
     expect(script).toContain("Install git, then run this installer again.");
     expect(script).toContain("checkoutFailed");
   });
@@ -638,7 +638,7 @@ describe("install.ps1", () => {
 
   test("suggests installing extras via npx skills add", () => {
     expect(script).toContain("Optional skills (compound planning, setup-goal, visual explainer):");
-    expect(script).toContain("npx skills add backnotprop/plannotator/apps/skills/extra --global");
+    expect(script).toContain("npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global");
   });
 
   test("supports -Minimal / -BinaryOnly binary-only mode with env-var fallback", () => {
@@ -655,7 +655,7 @@ describe("install.ps1", () => {
     // Same ordering guarantee as install.sh: binary placed, then the early exit,
     // then (only in the full install) the sidecar + integration work.
     const binaryInstalled = script.indexOf(
-      'Move-Item -Force $tmpFile "$installDir\\plannotator.exe"',
+      'Move-Item -Force $tmpFile "$installDir\\hypermark.exe"',
     );
     const minimalExit = script.indexOf("if ($minimal) {");
     const semInstall = script.indexOf("Install-SemSidecar\n");
@@ -791,12 +791,12 @@ describe("install.cmd", () => {
     expect(script).toContain('xcopy /s /i /y /q "apps\\skills\\core\\%%S" "!AGENTS_SKILLS_DIR!\\%%S\\"');
     expect(script).toContain("for %%S in (hypermark-review hypermark-annotate hypermark-last) do");
     // Knowledge skill: single-sourced from core into both scopes.
-    expect(script).toContain("for %%S in (hypermark-review hypermark-annotate hypermark-last plannotator) do");
-    expect(script).toContain('xcopy /s /i /y /q "apps\\skills\\core\\plannotator" "!CLAUDE_SKILLS_DIR!\\plannotator\\"');
+    expect(script).toContain("for %%S in (hypermark-review hypermark-annotate hypermark-last hypermark) do");
+    expect(script).toContain('xcopy /s /i /y /q "apps\\skills\\core\\hypermark" "!CLAUDE_SKILLS_DIR!\\hypermark\\"');
     // No Codex skills install — only the cleanup loop references CODEX skills.
     expect(script).not.toContain('xcopy /s /i /y /q "apps\\skills\\core\\%%S" "!CODEX_SKILLS_DIR!\\%%S\\"');
     // Missing git is a hard failure with an actionable message (parity with sh/ps1).
-    expect(script).toContain("Error: git is required to install Plannotator's skills and slash commands.");
+    expect(script).toContain("Error: git is required to install Hypermark's skills and slash commands.");
     expect(script).toContain("Install git, then run this installer again.");
     expect(script).toContain("CHECKOUT_FAILED");
   });
@@ -822,7 +822,7 @@ describe("install.cmd", () => {
 
   test("suggests installing extras via npx skills add", () => {
     expect(script).toContain("Optional skills");
-    expect(script).toContain("npx skills add backnotprop/plannotator/apps/skills/extra --global");
+    expect(script).toContain("npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global");
   });
 
   test("attestation verification is off by default with three-layer opt-in", () => {
@@ -931,9 +931,9 @@ describe("install.cmd", () => {
   });
 });
 
-describe("Core Plannotator skills", () => {
+describe("Core Hypermark skills", () => {
   test("every core skill includes an OpenAI agent config sidecar", () => {
-    for (const skill of [...CORE_SKILLS, "plannotator"]) {
+    for (const skill of [...CORE_SKILLS, "hypermark"]) {
       const configPath = join(
         scriptsDir,
         "..",
@@ -949,19 +949,19 @@ describe("Core Plannotator skills", () => {
   });
 
   test("every skill in the repo sets disable-model-invocation: true (knowledge skill excepted)", () => {
-    // Maintainer rule: ALL Plannotator skills are user-invoked, never
+    // Maintainer rule: ALL Hypermark skills are user-invoked, never
     // model-auto-invoked. Load-bearing for #842: Pi natively discovers
     // ~/.agents/skills, and this frontmatter line is the only thing keeping
     // skills out of Pi's system prompt (<available_skills>). Scans every
     // SKILL.md dynamically so newly added skills are covered automatically.
     //
-    // ONE deliberate exception: apps/skills/core/plannotator, the knowledge
+    // ONE deliberate exception: apps/skills/core/hypermark, the knowledge
     // layer. Its whole purpose is that an agent asked to "use Plannotator"
     // can pull in the CLI reference itself, so it ships model-invocable; it
     // only loads reference text and runs nothing. Asserted both ways below
     // so neither an accidental lock of the knowledge skill nor an accidental
     // unlock of any other skill can slip through.
-    const MODEL_INVOCABLE_SKILLS = new Set(["plannotator"]);
+    const MODEL_INVOCABLE_SKILLS = new Set(["hypermark"]);
     const skillRoots = [
       join(scriptsDir, "..", "apps", "skills", "core"),
       join(scriptsDir, "..", "apps", "skills", "extra"),
@@ -991,7 +991,7 @@ describe("Core Plannotator skills", () => {
     // The counterpart of the exception above: the OpenAI sidecar must not
     // re-lock what the frontmatter deliberately leaves invocable.
     const sidecar = readFileSync(
-      join(scriptsDir, "..", "apps", "skills", "core", "plannotator", "agents", "openai.yaml"),
+      join(scriptsDir, "..", "apps", "skills", "core", "hypermark", "agents", "openai.yaml"),
       "utf-8",
     );
     expect(sidecar).toContain("allow_implicit_invocation: true");
@@ -1009,7 +1009,7 @@ describe("install shared behavior", () => {
       ["install.cmd", readScript("install.cmd")],
     ] as const) {
       expect(script, name).toContain(
-        "To uninstall later: plannotator uninstall",
+        "To uninstall later: hypermark uninstall",
       );
     }
   });
@@ -1021,7 +1021,7 @@ describe("install shared behavior", () => {
       "scripts/install.cmd",
       "AGENTS.md",
     ];
-    const command = "npx skills add backnotprop/plannotator/apps/skills/extra";
+    const command = "npx skills add ahmadghoniem/Hypermark/apps/skills/extra";
 
     for (const file of files) {
       const contents = readFileSync(join(scriptsDir, "..", file), "utf-8").replace(/\r\n?/g, "\n");
@@ -1226,14 +1226,14 @@ describe("install shared behavior", () => {
     // Covers release.json, the binary itself, the checksum sidecar, and
     // the gh attestation output capture.
     const cmdScript = readScript("install.cmd");
-    expect(cmdScript).toContain("plannotator-release-%RANDOM%.json");
-    expect(cmdScript).toContain("plannotator-%RANDOM%.exe");
-    expect(cmdScript).toContain("plannotator-checksum-%RANDOM%.txt");
-    expect(cmdScript).toContain("plannotator-gh-%RANDOM%.txt");
+    expect(cmdScript).toContain("hypermark-release-%RANDOM%.json");
+    expect(cmdScript).toContain("hypermark-%RANDOM%.exe");
+    expect(cmdScript).toContain("hypermark-checksum-%RANDOM%.txt");
+    expect(cmdScript).toContain("hypermark-gh-%RANDOM%.txt");
     // And every fixed-path variant must be gone
     expect(cmdScript).not.toContain("%TEMP%\\release.json");
     expect(cmdScript).not.toContain("%TEMP%\\checksum.txt");
-    expect(cmdScript).not.toMatch(/%TEMP%\\plannotator-!TAG!\.exe/);
+    expect(cmdScript).not.toMatch(/%TEMP%\\hypermark-!TAG!\.exe/);
   });
 
   test("all installers resolve verification + pre-flight BEFORE downloading the binary", () => {
@@ -1421,12 +1421,12 @@ describe("install shared behavior", () => {
     const cmdScript = readScript("install.cmd");
 
     expect(sh).toContain("install_agent_terminal_runtime");
-    expect(sh).toContain('"$INSTALL_DIR/plannotator" install-runtime agent-terminal');
+    expect(sh).toContain('"$INSTALL_DIR/hypermark" install-runtime agent-terminal');
     expect(sh).toContain("Skipping agent terminal runtime install");
     expect(sh).toContain("PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL=1");
 
     expect(ps).toContain("function Install-AgentTerminalRuntime");
-    expect(ps).toContain("& $plannotatorPath install-runtime agent-terminal");
+    expect(ps).toContain("& $hypermarkPath install-runtime agent-terminal");
     expect(ps).toContain("Skipping agent terminal runtime install");
     expect(ps).toContain("PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL");
 
@@ -1444,13 +1444,13 @@ describe("install shared behavior", () => {
     expect(sh).toContain("install_call_flow=0");
     expect(sh).toContain('if [ "$install_call_flow" -ne 1 ]; then');
     expect(sh).toContain("available as an in-app opt-in install");
-    expect(sh).toContain('"$INSTALL_DIR/plannotator" install-runtime call-flow');
+    expect(sh).toContain('"$INSTALL_DIR/hypermark" install-runtime call-flow');
 
     // install.ps1: same shape via $installCallFlowResolved (default $false).
     expect(ps).toContain("$installCallFlowResolved = $false");
     expect(ps).toContain("if (-not $installCallFlowResolved) {");
     expect(ps).toContain("available as an in-app opt-in install");
-    expect(ps).toContain("& $plannotatorPath install-runtime call-flow");
+    expect(ps).toContain("& $hypermarkPath install-runtime call-flow");
 
     // install.cmd: same shape via INSTALL_CALL_FLOW (default 0).
     expect(cmdScript).toContain('set "INSTALL_CALL_FLOW=0"');
@@ -1519,10 +1519,10 @@ describe("install shared behavior", () => {
     // regression entirely — the fragile echo lines no longer exist.
     const cmdScript = readScript("install.cmd");
     // install.cmd no longer echoes plannotator command bodies.
-    expect(cmdScript).not.toContain("echo ^^!`plannotator");
-    expect(cmdScript).not.toContain("echo ^^!{plannotator");
-    expect(cmdScript).not.toMatch(/^echo \^!`plannotator/m);
-    expect(cmdScript).not.toMatch(/^echo \^!{plannotator/m);
+    expect(cmdScript).not.toContain("echo ^^!`hypermark");
+    expect(cmdScript).not.toContain("echo ^^!{hypermark");
+    expect(cmdScript).not.toMatch(/^echo \^!`hypermark/m);
+    expect(cmdScript).not.toMatch(/^echo \^!{hypermark/m);
     // install.sh / install.ps1 no longer carry command heredocs.
     expect(sh).not.toContain("COMMAND_EOF");
     expect(sh).not.toContain("GEMINI_CMD_EOF");
@@ -1584,7 +1584,7 @@ describe("install shared behavior", () => {
     // releases/latest call when a token is available, using the same
     // precedence across platforms: GITHUB_TOKEN > GH_TOKEN > `gh auth token`.
     // When no token is found it must fall back to anonymous (unchanged
-    // behavior). See backnotprop/plannotator#1156.
+    // behavior). See ahmadghoniem/Hypermark#1156.
     const cmdScript = readScript("install.cmd");
 
     // Shared precedence + bearer scheme across all three installers.
@@ -1667,7 +1667,7 @@ describe("install shared behavior", () => {
     // failures gain nothing from a second attempt. install.cmd keeps
     // retry-on-any-failure (portable status capture in batch is not worth
     // the complexity) but only when a token was actually used.
-    // See backnotprop/plannotator#1157 (second review).
+    // See ahmadghoniem/Hypermark#1157 (second review).
     const cmdScript = readScript("install.cmd");
 
     // install.sh: status captured via curl -w; anonymous retry is gated on
@@ -1773,7 +1773,7 @@ describe("install shared behavior", () => {
     // on disk (a %RANDOM%-named .ps1 under %TEMP% would be a
     // predictable-path code-execution vector).
     expect(cmdScript).toContain("powershell -NoProfile -EncodedCommand !ATT_FETCH_B64!");
-    expect(cmdScript).not.toContain("plannotator-attfetch");
+    expect(cmdScript).not.toContain("hypermark-attfetch");
     expect(cmdScript).not.toContain('-ExecutionPolicy Bypass -File');
 
     // H1: a failure of the --bundle invocation is retried once through the
@@ -1807,7 +1807,7 @@ describe("install shared behavior", () => {
     // must exist (one per invocation), so neither path loosened the policy.
     for (const [name, script] of [["install.sh", sh], ["install.ps1", ps], ["install.cmd", cmdScript]] as const) {
       const pinned = script.split(
-        '--signer-workflow "backnotprop/plannotator/.github/workflows/release.yml"',
+        '--signer-workflow "ahmadghoniem/Hypermark/.github/workflows/release.yml"',
       ).length - 1;
       expect(pinned, `${name}: both verify invocations must pin the signer workflow`)
         .toBeGreaterThanOrEqual(2);
@@ -1882,7 +1882,7 @@ describe("HypermarkConfig schema", () => {
 // skipInstall config scoping.
 // ---------------------------------------------------------------------------
 
-const FAKE_BINARY = "fake plannotator binary\n";
+const FAKE_BINARY = "fake hypermark binary\n";
 const FAKE_BINARY_SHA256 = createHash("sha256").update(FAKE_BINARY).digest("hex");
 const ATTESTATION_FIXTURE = join(scriptsDir, "fixtures", "attestations-response.json");
 
@@ -1915,8 +1915,8 @@ if [ "$1" = "clone" ]; then
     printf 'name: %s\\n' "$skill" > "$dest/apps/skills/core/$skill/SKILL.md"
   done
   # The knowledge skill exists only under core (no Claude injection variant).
-  mkdir -p "$dest/apps/skills/core/plannotator"
-  printf 'name: plannotator\\n' > "$dest/apps/skills/core/plannotator/SKILL.md"
+  mkdir -p "$dest/apps/skills/core/hypermark"
+  printf 'name: hypermark\\n' > "$dest/apps/skills/core/hypermark/SKILL.md"
   mkdir -p "$dest/apps/opencode-plugin/commands"
   printf 'stub\\n' > "$dest/apps/opencode-plugin/commands/hypermark-review.md"
   exit 0
@@ -1933,7 +1933,7 @@ exit 0
 const GIT_NETWORK_ERROR_SHIM = `#!/bin/bash
 if [ "$1" = "clone" ]; then
   echo "Cloning into 'repo'..." >&2
-  echo "fatal: unable to access 'https://github.com/backnotprop/plannotator.git/': Could not resolve host: github.com" >&2
+  echo "fatal: unable to access 'https://github.com/ahmadghoniem/Hypermark.git/': Could not resolve host: github.com" >&2
   exit 128
 fi
 exit 1
@@ -1954,7 +1954,7 @@ function setupInstallSandbox(opts: {
   gh: GhBehavior;
   git?: GitBehavior;
   codexHome?: boolean;
-  plannotatorConfig?: string;
+  hypermarkConfig?: string;
 }) {
   const root = mkdtempSync(join(tmpdir(), "plannotator-install-test-"));
   const home = join(root, "home");
@@ -1980,8 +1980,8 @@ for a in "$@"; do
   prev="$a"
 done
 case "$url" in
-  *".sha256") printf '%s  plannotator\\n' "$STUB_CHECKSUM" ;;
-  */releases/download/*) printf 'fake plannotator binary\\n' > "$out" ;;
+  *".sha256") printf '%s  hypermark\\n' "$STUB_CHECKSUM" ;;
+  */releases/download/*) printf 'fake hypermark binary\\n' > "$out" ;;
   */attestations/sha256:*) cat "$STUB_ATT_JSON" ;;
   *) exit 22 ;;
 esac
@@ -2017,9 +2017,9 @@ exit 1`
     mkdirSync(join(home, ".codex"), { recursive: true });
     writeFileSync(join(home, ".codex", "config.toml"), 'model = "gpt-5"\n');
   }
-  if (opts.plannotatorConfig) {
+  if (opts.hypermarkConfig) {
     mkdirSync(join(home, ".plannotator"), { recursive: true });
-    writeFileSync(join(home, ".plannotator", "config.json"), opts.plannotatorConfig);
+    writeFileSync(join(home, ".plannotator", "config.json"), opts.hypermarkConfig);
   }
   return { home, stub };
 }
@@ -2066,7 +2066,7 @@ describe.skipIf(process.platform === "win32" || !Bun.which("node"))(
       expect(out).not.toContain("no valid signed provenance");
       expect(out).not.toContain("Attestation verification failed!");
       expect(code).toBe(0);
-      expect(existsSync(join(sandbox.home, ".local", "bin", "plannotator"))).toBe(true);
+      expect(existsSync(join(sandbox.home, ".local", "bin", "hypermark"))).toBe(true);
     });
 
     test("fail-closed: a real verification failure aborts with exit 1 and installs nothing", () => {
@@ -2086,7 +2086,7 @@ describe.skipIf(process.platform === "win32" || !Bun.which("node"))(
       expect(out).toContain("Attestation verification failed!");
       expect(out.trimEnd().endsWith("Refusing to install.")).toBe(true);
       expect(code).toBe(1);
-      expect(existsSync(join(sandbox.home, ".local", "bin", "plannotator"))).toBe(false);
+      expect(existsSync(join(sandbox.home, ".local", "bin", "hypermark"))).toBe(false);
     });
 
     test("M2: a foreign \"codex\": true outside skipInstall (plus explicit false inside) does NOT skip", () => {
@@ -2142,8 +2142,8 @@ describe.skipIf(process.platform === "win32" || !Bun.which("node"))(
         expect(existsSync(join(sandbox.home, ".agents", "skills", skill, "SKILL.md"))).toBe(true);
       }
       // The knowledge skill lands in both scopes from its single core source.
-      expect(existsSync(join(sandbox.home, ".claude", "skills", "plannotator", "SKILL.md"))).toBe(true);
-      expect(existsSync(join(sandbox.home, ".agents", "skills", "plannotator", "SKILL.md"))).toBe(true);
+      expect(existsSync(join(sandbox.home, ".claude", "skills", "hypermark", "SKILL.md"))).toBe(true);
+      expect(existsSync(join(sandbox.home, ".agents", "skills", "hypermark", "SKILL.md"))).toBe(true);
     });
 
     test("#1238: a genuine clone failure surfaces git's captured stderr next to the generic message", () => {
@@ -2350,7 +2350,7 @@ function runPs1SkillsCheckout(git: GitBehavior): { code: number; out: string; ho
 
   const driver = [
     `$ErrorActionPreference = "Stop"`,
-    `$repo = "backnotprop/plannotator"`,
+    `$repo = "ahmadghoniem/Hypermark"`,
     `$latestTag = "v9.9.9"`,
     `$skipSkillsResolved = $false`,
     `$skipKiroResolved = $true`,

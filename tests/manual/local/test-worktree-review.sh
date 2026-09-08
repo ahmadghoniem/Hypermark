@@ -22,7 +22,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
-echo "=== Plannotator Worktree Review Test ==="
+echo "=== Hypermark Worktree Review Test ==="
 echo ""
 
 # Build first to ensure latest code

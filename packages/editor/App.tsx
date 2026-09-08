@@ -1,5 +1,5 @@
 // Eager renderer registration (side-effect imports, evaluated before every
-// other module below). These keep Plannotator's first paint, identity minting
+// other module below). These keep Hypermark's first paint, identity minting
 // and failure surface byte-identical now that @hypermark/ui loads KaTeX, the
 // username dictionary and the Mermaid runtime lazily for hosts: math is typeset
 // on the first commit, names come from the full dictionary, and Mermaid stays
@@ -472,7 +472,7 @@ const AppInner: React.FC = () => {
     if (updateInfo?.updateAvailable && !updateInfo.dismissed && !updateToastShown.current) {
       updateToastShown.current = true;
       const t = setTimeout(() => {
-        toast('A new version of Plannotator is available', {
+        toast('A new version of Hypermark is available', {
           description: 'Open the Options menu to update.',
           duration: 4000,
           classNames: { toast: '!w-auto', description: '!text-foreground/70' },
@@ -602,7 +602,7 @@ const AppInner: React.FC = () => {
   const goalSetupMode = goalSetupBundle !== null;
 
   useEffect(() => {
-    document.title = repoInfo ? `${repoInfo.display} · Plannotator` : "Plannotator";
+    document.title = repoInfo ? `${repoInfo.display} · Hypermark` : "Hypermark";
   }, [repoInfo]);
 
   const [isPlanDiffActive, setIsPlanDiffActive] = useState(false);
@@ -2265,13 +2265,13 @@ const AppInner: React.FC = () => {
 
     if (changedOrMissing.length > 0) {
       toast('Some saved edit context was not restored', {
-        description: 'Those files changed or disappeared after Plannotator saved them.',
+        description: 'Those files changed or disappeared after Hypermark saved them.',
         duration: 5000,
       });
     }
     if (result.unverified.length > 0) {
       toast('Some saved edit context could not be verified', {
-        description: 'Plannotator kept it for now and will check again before sending feedback.',
+        description: 'Hypermark kept it for now and will check again before sending feedback.',
         duration: 5000,
       });
     }
@@ -2665,7 +2665,7 @@ const AppInner: React.FC = () => {
       editableDocuments.clearSavedFileChanges(stale.map((entry) => entry.change.key));
       scheduleDraftSave();
       toast.error('Saved edits changed on disk', {
-        description: 'Plannotator removed the stale edit context. Nothing was sent.',
+        description: 'Hypermark removed the stale edit context. Nothing was sent.',
       });
       return null;
     }
@@ -2721,7 +2721,7 @@ const AppInner: React.FC = () => {
         }
         if (result.clearedSavedChange) {
           toast('File updated from disk', {
-            description: `${result.record.basename} changed outside Plannotator, so its old Edits card was cleared.`,
+            description: `${result.record.basename} changed outside Hypermark, so its old Edits card was cleared.`,
           });
         }
       } else if (event.type === 'conflict') {
@@ -3939,18 +3939,18 @@ const AppInner: React.FC = () => {
               }
               scheduleDraftSave();
               toast('File updated from disk', {
-                description: `${result.record.basename} changed outside Plannotator, so it was reloaded instead of saved.`,
+                description: `${result.record.basename} changed outside Hypermark, so it was reloaded instead of saved.`,
               });
             } else if (!editableDocuments.getDocument(activeDocument.key)?.diskConflict) {
               editableDocuments.markError(activeDocument.key, message);
               toast.error('File changed on disk', {
-                description: 'Plannotator could not load the latest disk version. Try saving again.',
+                description: 'Hypermark could not load the latest disk version. Try saving again.',
               });
             }
           } else {
             editableDocuments.markError(activeDocument.key, message);
             toast.error('File changed on disk', {
-              description: 'Plannotator could not load the latest disk version. Try saving again.',
+              description: 'Hypermark could not load the latest disk version. Try saving again.',
             });
           }
         } else {
@@ -4970,7 +4970,7 @@ const AppInner: React.FC = () => {
         {showAgentTerminalDeliveryStatus && (
           <div className="border-b border-primary/20 bg-primary/5 px-4 py-2 text-xs text-muted-foreground flex-shrink-0">
             <span className="font-medium text-foreground">Sent to agent.</span>{" "}
-            Keep this window open while it runs. Close Plannotator when you're done.
+            Keep this window open while it runs. Close Hypermark when you're done.
           </div>
         )}
 
@@ -5423,7 +5423,7 @@ const AppInner: React.FC = () => {
               ? <>You have unsaved file edits. They are not saved to disk and will be lost if you close this session.</>
               : <>You have unsaved file edits. They are not saved to disk, and {agentName} won't get them if you {sourceFileEditWarningAction === 'approve' ? 'approve' : 'send feedback'}.</>
           }
-          subMessage="Save or discard the file edits first if you want Plannotator to keep them."
+          subMessage="Save or discard the file edits first if you want Hypermark to keep them."
           confirmText={
             sourceFileEditWarningAction === 'approve'
               ? 'Approve Anyway'
@@ -5593,7 +5593,7 @@ const AppInner: React.FC = () => {
             submitted === 'exited'
               ? 'Annotation session closed without feedback.'
               : archive.archiveMode
-                ? 'You can reopen with plannotator archive.'
+                ? 'You can reopen with hypermark archive.'
                 : goalSetupMode
                   ? `${agentName} will use your answers to continue.`
                 : submitted === 'approved'

@@ -9,7 +9,7 @@ one may be swapped for the other.
 | --- | --- | --- |
 | `apps/skills/claude/*` | Executing templates: Claude Code runs the CLI itself, before the model reads the prompt | `~/.claude/skills` |
 | `apps/skills/core/*` | Prose the model follows using its own shell | `~/.agents/skills` (shared-agent scope) |
-| `apps/skills/core/plannotator` | CLI reference / knowledge skill; no injection form, so it is single-sourced into **both** scopes | both |
+| `apps/skills/core/hypermark` | CLI reference / knowledge skill; no injection form, so it is single-sourced into **both** scopes | both |
 
 ## What every launcher here must carry
 
@@ -18,13 +18,13 @@ carries four things. Dropping any one of them changes the product:
 
 1. **`disable-model-invocation: true`** — the command is user-invoked only.
    The model never decides to open a review session on its own.
-2. **`allowed-tools: Bash(plannotator:*)`** — the injected run is pre-allowed,
+2. **`allowed-tools: Bash(hypermark:*)`** — the injected run is pre-allowed,
    so `/hypermark-*` does not raise a permission prompt (the behavior the
    original slash commands had).
 3. **Argument forwarding** — `$ARGUMENTS` passes whatever the user typed after
    the command straight through to the CLI.
 4. **The bash substitution that runs before the model sees the prompt** —
-   a line of the form ``!`plannotator <subcommand> $ARGUMENTS` ``. Claude Code
+   a line of the form ``!`hypermark <subcommand> $ARGUMENTS` ``. Claude Code
    executes it and substitutes its output into the prompt, so the model is
    handed the human's decision rather than being asked to go get it. Everything
    after `## Your task` interprets that output.

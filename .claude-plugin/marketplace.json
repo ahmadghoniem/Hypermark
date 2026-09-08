@@ -1,11 +1,11 @@
 {
-  "name": "plannotator",
+  "name": "hypermark",
   "owner": {
-    "name": "backnotprop"
+    "name": "ahmadghoniem"
   },
   "plugins": [
     {
-      "name": "plannotator",
+      "name": "hypermark",
       "source": "./apps/hook",
       "description": "Interactive Plan Review: Mark up and refine your plans using a UI, easily share for team collaboration, automatically integrates with plan mode hooks."
     }

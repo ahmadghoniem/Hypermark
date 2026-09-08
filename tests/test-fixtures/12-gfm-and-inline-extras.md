@@ -25,7 +25,7 @@ Target ship: end of sprint. Primary owner: @backnotprop. Reviewers: @alice, @bob
 
 ## Why now
 
-Plannotator's reader is where plans *land* — a plan looks wrong here, it reads wrong everywhere. Authors routinely copy-paste from GitHub Issues (#412, #438), internal docs with smart punctuation, and chat threads full of `:emoji:`. Today those snippets render with straight quotes, literal `:wave:` shortcodes, and unlinked `#123` references. It's rough.
+Hypermark's reader is where plans *land* — a plan looks wrong here, it reads wrong everywhere. Authors routinely copy-paste from GitHub Issues (#412, #438), internal docs with smart punctuation, and chat threads full of `:emoji:`. Today those snippets render with straight quotes, literal `:wave:` shortcodes, and unlinked `#123` references. It's rough.
 
 > [!NOTE]
 > This is scoped to the **reader** only. We're not touching write-path authoring, draft persistence, or the annotation store. Follow-ups for those live in #501 and #512.

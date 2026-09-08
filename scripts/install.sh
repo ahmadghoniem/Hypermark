@@ -1,12 +1,12 @@
 #!/bin/bash
 set -e
 
-REPO="backnotprop/plannotator"
+REPO="ahmadghoniem/Hypermark"
 SEM_REPO="Ataraxy-Labs/sem"
 SEM_VERSION="v0.8.0"
 INSTALL_DIR="$HOME/.local/bin"
 
-# First plannotator release that carries SLSA build-provenance attestations.
+# First hypermark release that carries SLSA build-provenance attestations.
 # Releases before this tag were cut before release.yml added the
 # `actions/attest-build-provenance` step, so `gh attestation verify` will
 # fail with "no attestations found" for them regardless of authenticity.
@@ -46,7 +46,7 @@ EXTRAS_FLAG=""
 MODEL_INVOCABLE_FLAG=""
 NON_INTERACTIVE=0
 RECONFIGURE=0
-# Binary-only mode. Installs just the plannotator binary (to $INSTALL_DIR) and
+# Binary-only mode. Installs just the hypermark binary (to $INSTALL_DIR) and
 # no persistent state elsewhere — no sem sidecar, no CallDiff or agent-terminal runtime, no
 # skills, hooks, slash commands, or per-agent config (Claude, Codex, OpenCode,
 # Gemini, Kiro). Set by --minimal (1) / --no-minimal (0); -1 = neither flag
@@ -81,7 +81,7 @@ Usage: install.sh [--version <tag>] [--verify-attestation | --skip-attestation]
 
 Options:
   --version <tag>        Install a specific version (e.g. vX.Y.Z or X.Y.Z;
-                         see https://github.com/backnotprop/plannotator/releases).
+                         see https://github.com/ahmadghoniem/Hypermark/releases).
                          Defaults to the latest GitHub release.
   --verify-attestation   Require SLSA build-provenance verification via
                          `gh attestation verify`. Fails the install if gh is
@@ -100,7 +100,7 @@ Options:
   --model-invocable <l>  Comma-separated skill names to make model-invocable
                          (e.g. hypermark-review,hypermark-compound), or
                          "none". Skills are user-invoked-only by default.
-  --minimal              Install only the plannotator binary (aliased
+  --minimal              Install only the hypermark binary (aliased
                          --binary-only). Skips the sem semantic-diff sidecar,
                          the CallDiff runtime, the agent-terminal runtime, and every per-agent
                          integration (skills, hooks, slash commands, and config
@@ -130,7 +130,7 @@ Options:
                          so this is a plain do-not-write switch. Env var:
                          PLANNOTATOR_SKIP_OPENCODE_INSTALL; config key:
                          skipInstall.opencode.
-  --skip-skills          Do not fetch or write the /plannotator-* skills and
+  --skip-skills          Do not fetch or write the /hypermark-* skills and
                          slash commands (the sparse checkout that feeds Claude
                          Code, ~/.agents, OpenCode, Gemini, and Kiro), the
                          extras, or the skill-scope cleanup sweeps. Nothing
@@ -165,13 +165,13 @@ public bundle fetch or bundle verification does not complete, gh's
 authenticated fetch runs as the fallback.
 
 The optional semantic-diff sidecar (the 'sem' binary, used by code review) is
-installed after Plannotator itself. Skip it by exporting
+installed after Hypermark itself. Skip it by exporting
 PLANNOTATOR_SKIP_SEM_INSTALL=1. Its download is time-bounded, so a slow network
 never blocks an otherwise-complete install.
 
-The optional annotate agent terminal runtime is installed after Plannotator
+The optional annotate agent terminal runtime is installed after Hypermark
 itself. Skip it by exporting PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL=1. If
-Node/npm is unavailable, Plannotator still installs and annotate mode works
+Node/npm is unavailable, Hypermark still installs and annotate mode works
 without the integrated terminal.
 
 Examples:
@@ -363,13 +363,13 @@ case "$(uname -m)" in
 esac
 
 platform="${os}-${arch}"
-binary_name="plannotator-${platform}"
+binary_name="hypermark-${platform}"
 
 # Clean up old Windows install locations (for users running bash on Windows)
 if [ -n "$USERPROFILE" ]; then
     # Running on Windows (Git Bash, MSYS, etc.) - clean up old locations
-    rm -f "$USERPROFILE/.local/bin/plannotator" "$USERPROFILE/.local/bin/plannotator.exe" 2>/dev/null || true
-    rm -f "$LOCALAPPDATA/plannotator/plannotator.exe" 2>/dev/null || true
+    rm -f "$USERPROFILE/.local/bin/hypermark" "$USERPROFILE/.local/bin/hypermark.exe" 2>/dev/null || true
+    rm -f "$LOCALAPPDATA/hypermark/hypermark.exe" 2>/dev/null || true
     echo "Cleaned up old Windows install locations"
 fi
 
@@ -401,7 +401,7 @@ if [ "$VERSION" = "latest" ]; then
     # 60/hour per-IP pool, so a blind retry on any failure would double the
     # burn, and network failures gain nothing from a second attempt.
     # Note: no -f here, so a 401 body doesn't abort curl before -w prints
-    # the status code. See backnotprop/plannotator#1157.
+    # the status code. See ahmadghoniem/Hypermark#1157.
     _api_url="https://api.github.com/repos/${REPO}/releases/latest"
     _api_body=$(curl -sSL -w '\n%{http_code}' "${GH_AUTH_HEADER[@]}" "$_api_url" 2>/dev/null) || true
     _api_code="${_api_body##*$'\n'}"
@@ -430,7 +430,7 @@ else
     esac
 fi
 
-echo "Installing plannotator ${latest_tag}..."
+echo "Installing hypermark ${latest_tag}..."
 
 # Resolve SLSA build-provenance verification opt-in BEFORE the download so we
 # can fail fast without wasting bandwidth if the requested tag predates
@@ -446,14 +446,14 @@ verify_attestation=0
 # Resolve the data directory, expanding ~ the same way the runtime does.
 # Unset: an existing ~/.plannotator (legacy default) always wins; otherwise
 # an explicitly-set absolute XDG_DATA_HOME places it at
-# $XDG_DATA_HOME/plannotator; otherwise ~/.plannotator.
+# $XDG_DATA_HOME/hypermark; otherwise ~/.plannotator.
 _raw_dir="${PLANNOTATOR_DATA_DIR:-}"
 case "$_raw_dir" in
     "")
         _config_dir="$HOME/.plannotator"
         if [ ! -d "$_config_dir" ]; then
             case "${XDG_DATA_HOME:-}" in
-                /*) _config_dir="$XDG_DATA_HOME/plannotator" ;;
+                /*) _config_dir="$XDG_DATA_HOME/hypermark" ;;
             esac
         fi
         ;;
@@ -657,7 +657,7 @@ fi
 if [ "$verify_attestation" -eq 1 ]; then
     if ! version_ge "$latest_tag" "$MIN_ATTESTED_VERSION"; then
         echo "Provenance verification was requested, but ${latest_tag} predates" >&2
-        echo "plannotator's attestation support. The first release carrying signed" >&2
+        echo "hypermark's attestation support. The first release carrying signed" >&2
         echo "build provenance is ${MIN_ATTESTED_VERSION}. Options:" >&2
         echo "  - Pin to ${MIN_ATTESTED_VERSION} or later: --version ${MIN_ATTESTED_VERSION}" >&2
         echo "  - Install without provenance verification: --skip-attestation" >&2
@@ -799,7 +799,7 @@ sys.stdout.write("\n".join(lines) + "\n")
                 --bundle "$attestation_bundle" \
                 --repo "$REPO" \
                 --source-ref "refs/tags/${latest_tag}" \
-                --signer-workflow "backnotprop/plannotator/.github/workflows/release.yml" 2>&1) || gh_status=$?
+                --signer-workflow "ahmadghoniem/Hypermark/.github/workflows/release.yml" 2>&1) || gh_status=$?
             if [ "$gh_status" -ne 0 ]; then
                 # H1: a --bundle failure is not necessarily a provenance
                 # failure (an older gh rejects the flag outright, a corrupted
@@ -813,14 +813,14 @@ sys.stdout.write("\n".join(lines) + "\n")
                 gh_output=$(gh attestation verify "$tmp_file" \
                     --repo "$REPO" \
                     --source-ref "refs/tags/${latest_tag}" \
-                    --signer-workflow "backnotprop/plannotator/.github/workflows/release.yml" 2>&1) || gh_status=$?
+                    --signer-workflow "ahmadghoniem/Hypermark/.github/workflows/release.yml" 2>&1) || gh_status=$?
             fi
         else
             echo "${bundle_fallback_reason}; falling back to gh's authenticated fetch."
             gh_output=$(gh attestation verify "$tmp_file" \
                 --repo "$REPO" \
                 --source-ref "refs/tags/${latest_tag}" \
-                --signer-workflow "backnotprop/plannotator/.github/workflows/release.yml" 2>&1) || gh_status=$?
+                --signer-workflow "ahmadghoniem/Hypermark/.github/workflows/release.yml" 2>&1) || gh_status=$?
         fi
         if [ -n "$attestation_bundle_dir" ]; then rm -rf "$attestation_bundle_dir"; fi
         if [ "$gh_status" -eq 0 ]; then
@@ -878,13 +878,13 @@ else
 fi
 
 # Remove old binary first (handles Windows .exe and locked file issues)
-rm -f "$INSTALL_DIR/plannotator" "$INSTALL_DIR/plannotator.exe" 2>/dev/null || true
+rm -f "$INSTALL_DIR/hypermark" "$INSTALL_DIR/hypermark.exe" 2>/dev/null || true
 
-mv "$tmp_file" "$INSTALL_DIR/plannotator"
-chmod +x "$INSTALL_DIR/plannotator"
+mv "$tmp_file" "$INSTALL_DIR/hypermark"
+chmod +x "$INSTALL_DIR/hypermark"
 
 echo ""
-echo "plannotator ${latest_tag} installed to ${INSTALL_DIR}/plannotator"
+echo "hypermark ${latest_tag} installed to ${INSTALL_DIR}/hypermark"
 
 # Print the PATH-setup hint if $INSTALL_DIR isn't already on PATH. Extracted so
 # both the normal flow and the --minimal early exit below can reuse it.
@@ -904,7 +904,7 @@ print_path_advice() {
         echo "  source ${shell_config}"
     fi
     echo ""
-    echo "To uninstall later: plannotator uninstall"
+    echo "To uninstall later: hypermark uninstall"
 }
 
 # Binary-only mode stops here: the binary is installed, so print PATH advice and
@@ -916,7 +916,7 @@ print_path_advice() {
 if [ "$minimal" -eq 1 ]; then
     print_path_advice
     echo ""
-    echo "Minimal install complete — only the plannotator binary was installed."
+    echo "Minimal install complete — only the hypermark binary was installed."
     echo "No skills, hooks, agent integrations, or config files were written."
     exit 0
 fi
@@ -957,7 +957,7 @@ install_sem_sidecar() {
     sem_base_url="https://github.com/${SEM_REPO}/releases/download/${SEM_VERSION}"
 
     # Bounded so a slow/hung download of this optional sidecar can't wedge an
-    # install where plannotator itself already landed. On timeout curl fails and
+    # install where hypermark itself already landed. On timeout curl fails and
     # we skip gracefully. Opt out entirely with PLANNOTATOR_SKIP_SEM_INSTALL=1.
     if ! curl -fsSL --connect-timeout 10 --max-time 120 -o "$sem_archive" "${sem_base_url}/${sem_asset}"; then
         echo "Skipping semantic diff sidecar install (download failed)"
@@ -1030,8 +1030,8 @@ install_agent_terminal_runtime() {
             ;;
     esac
 
-    if ! "$INSTALL_DIR/plannotator" install-runtime agent-terminal; then
-        echo "Skipping agent terminal runtime install (plannotator install-runtime failed)"
+    if ! "$INSTALL_DIR/hypermark" install-runtime agent-terminal; then
+        echo "Skipping agent terminal runtime install (hypermark install-runtime failed)"
     fi
 }
 
@@ -1039,11 +1039,11 @@ install_agent_terminal_runtime() {
 # downloads even its pruned core. Review-specific packs install in-app.
 install_call_flow_runtime() {
     if [ "$install_call_flow" -ne 1 ]; then
-        echo "Call-flow analysis: available as an in-app opt-in install (enable Call flow in review Settings), or run: plannotator install-runtime call-flow"
+        echo "Call-flow analysis: available as an in-app opt-in install (enable Call flow in review Settings), or run: hypermark install-runtime call-flow"
         return 0
     fi
 
-    if ! "$INSTALL_DIR/plannotator" install-runtime call-flow; then
+    if ! "$INSTALL_DIR/hypermark" install-runtime call-flow; then
         echo "Call-flow runtime install failed; it remains available as an in-app opt-in install"
     fi
 }
@@ -1080,7 +1080,7 @@ if [ "$codex_available" -eq 1 ] && [ "$skip_codex" -eq 1 ]; then
     # nothing under $CODEX_DIR is created, updated, or removed on this run.
     echo ""
     echo "Codex: detected, skipped (${skip_codex_source})."
-    if [ -f "$CODEX_DIR/hooks.json" ] && grep -q "plannotator" "$CODEX_DIR/hooks.json" 2>/dev/null; then
+    if [ -f "$CODEX_DIR/hooks.json" ] && grep -q "hypermark" "$CODEX_DIR/hooks.json" 2>/dev/null; then
         echo "An existing Codex integration at ${CODEX_DIR}/hooks.json was left untouched."
     fi
     echo "Note: the shared agent skills in ~/.agents/skills serve multiple agents"
@@ -1088,7 +1088,7 @@ if [ "$codex_available" -eq 1 ] && [ "$skip_codex" -eq 1 ]; then
 elif [ "$codex_available" -eq 1 ]; then
     CODEX_CONFIG="$CODEX_DIR/config.toml"
     CODEX_HOOKS="$CODEX_DIR/hooks.json"
-    PLANNOTATOR_BIN="${INSTALL_DIR}/plannotator"
+    PLANNOTATOR_BIN="${INSTALL_DIR}/hypermark"
     codex_hook_configured=0
 
     mkdir -p "$CODEX_DIR"
@@ -1106,7 +1106,7 @@ CODEX_CONFIG_EOF
         if grep -Eq '^[[:space:]]*features[[:space:]]*=' "$CODEX_CONFIG"; then
             echo ""
             echo "Codex config uses inline features in ${CODEX_CONFIG}; leaving it unchanged."
-            echo "Add this manually to enable Plannotator plan review:"
+            echo "Add this manually to enable Hypermark plan review:"
             echo ""
             echo "  [features]"
             echo "  hooks = true"
@@ -1194,8 +1194,8 @@ let foundCustomHypermarkHook = false;
 
 function isManagedHypermarkCommand(value) {
   const current = value.trim();
-  if (current === "plannotator" || current === command) return true;
-  return current.startsWith("/") && path.posix.basename(current) === "plannotator";
+  if (current === "hypermark" || current === command) return true;
+  return current.startsWith("/") && path.posix.basename(current) === "hypermark";
 }
 
 for (const entry of stopHooks) {
@@ -1207,7 +1207,7 @@ for (const entry of stopHooks) {
       hook.command = command;
       hook.timeout = 345600;
       updated = true;
-    } else if (hook.command.includes("plannotator")) {
+    } else if (hook.command.includes("hypermark")) {
       foundCustomHypermarkHook = true;
     }
   }
@@ -1232,7 +1232,7 @@ NODE
         ); then
             case "$codex_merge_result" in
                 custom)
-                    echo "Existing custom Codex Plannotator hook found at ${CODEX_HOOKS}; left it unchanged."
+                    echo "Existing custom Codex Hypermark hook found at ${CODEX_HOOKS}; left it unchanged."
                     ;;
                 added)
                     echo "Added Codex hooks at ${CODEX_HOOKS}"
@@ -1265,7 +1265,7 @@ NODE
 fi
 
 # Validate plugin hooks.json if plugin is already installed
-PLUGIN_HOOKS="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/marketplaces/plannotator/apps/hook/hooks/hooks.json"
+PLUGIN_HOOKS="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/marketplaces/hypermark/apps/hook/hooks/hooks.json"
 if [ -f "$PLUGIN_HOOKS" ]; then
     cat > "$PLUGIN_HOOKS" << 'HOOKS_EOF'
 {
@@ -1276,7 +1276,7 @@ if [ -f "$PLUGIN_HOOKS" ]; then
         "hooks": [
           {
             "type": "command",
-            "command": "plannotator improve-context",
+            "command": "hypermark improve-context",
             "timeout": 5
           }
         ]
@@ -1288,7 +1288,7 @@ if [ -f "$PLUGIN_HOOKS" ]; then
         "hooks": [
           {
             "type": "command",
-            "command": "plannotator",
+            "command": "hypermark",
             "timeout": 345600
           }
         ]
@@ -1350,7 +1350,7 @@ done
 
 # Extras are no longer installed by this script anywhere except Kiro. Remove
 # previously default-installed copies ONCE per machine — recorded in the
-# migrations ledger under the Plannotator data dir — because copies the user
+# migrations ledger under the Hypermark data dir — because copies the user
 # reinstalls via `npx skills add` are byte-identical to ours and can only be
 # told apart by remembering that this cleanup already ran.
 CLAUDE_SKILLS_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills"
@@ -1362,7 +1362,7 @@ if [ ! -f "$EXTRAS_MIGRATION" ]; then
         for skill in hypermark-compound hypermark-setup-goal hypermark-visual-explainer; do
             if [ -d "$scope/$skill" ]; then
                 rm -rf "$scope/$skill"
-                echo "Removed extra Plannotator skill from ${scope}/$skill (reinstall via npx skills add)"
+                echo "Removed extra Hypermark skill from ${scope}/$skill (reinstall via npx skills add)"
             fi
         done
     done
@@ -1522,7 +1522,7 @@ if [ "$run_wizard" -eq 1 ]; then
     {
         echo ""
         echo "=========================================="
-        echo "  PLANNOTATOR GUIDED INSTALL"
+        echo "  HYPERMARK GUIDED INSTALL"
         echo "=========================================="
         echo ""
     } > /dev/tty
@@ -1578,10 +1578,10 @@ fi
 if [ "$skip_skills" -eq 0 ] && [ "$extras_choice" = "yes" ] && [ "$extras_present" -eq 0 ]; then
     if [ "$can_prompt" -eq 1 ] && command -v npx >/dev/null 2>&1; then
         echo "Launching the skills CLI for the extras (pick your agents in its UI)..."
-        npx skills add backnotprop/plannotator/apps/skills/extra --global < /dev/tty || \
-            echo "skills CLI did not complete — install later with: npx skills add backnotprop/plannotator/apps/skills/extra --global"
+        npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global < /dev/tty || \
+            echo "skills CLI did not complete — install later with: npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global"
     else
-        echo "Install the extras with: npx skills add backnotprop/plannotator/apps/skills/extra --global"
+        echo "Install the extras with: npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global"
     fi
 fi
 
@@ -1593,19 +1593,19 @@ if [ "$skip_skills" -eq 1 ]; then
     echo ""
     echo "Skills: skipped (${skip_skills_source})."
     echo "No skills or slash commands were fetched, and none already installed"
-    echo "were changed or removed. The /plannotator-* commands are NOT installed"
+    echo "were changed or removed. The /hypermark-* commands are NOT installed"
     echo "by this run — re-run without the opt-out to install them."
 fi
 
 # Install skills and slash commands from a sparse checkout (requires git).
-# Hard requirement: without git we cannot install the /plannotator-* skills,
+# Hard requirement: without git we cannot install the /hypermark-* skills,
 # so fail loudly instead of leaving a partial install. Hook/config writing
 # above has already run by this point; the Pi update and Gemini config below
 # are skipped on failure and complete when the user re-runs the installer.
 # Nothing is fetched under --skip-skills, so git stops being a requirement
 # there — a git-less machine must still get the binary, hooks, and config.
 if [ "$skip_skills" -eq 0 ] && ! command -v git &>/dev/null; then
-    echo "Error: git is required to install Plannotator's skills and slash commands." >&2
+    echo "Error: git is required to install Hypermark's skills and slash commands." >&2
     echo "Install git, then run this installer again." >&2
     echo "To install without them, re-run with --skip-skills." >&2
     exit 1
@@ -1723,14 +1723,14 @@ checkout_failed=0
         fi
     fi
 
-    # Core skills -> Claude Code (also serve as /plannotator-* slash commands)
+    # Core skills -> Claude Code (also serve as /hypermark-* slash commands)
     # and the official OpenAI shared-agent path. SOFT guard: a tag pinned
     # via --version may predate the core/extra layout — skip core skills
     # but keep installing the command files below (matches install.ps1 and
     # install.cmd, which guard each block independently).
     # Claude Code and Codex consume different skill bodies. Claude Code reads
     # the apps/skills/claude/* copies, which use dynamic-context injection
-    # (`!`plannotator … $ARGUMENTS``) + allowed-tools so /plannotator-* run the
+    # (`!`hypermark … $ARGUMENTS``) + allowed-tools so /hypermark-* run the
     # binary directly with no permission prompt — matching the old slash
     # commands. Codex (the OpenAI shared-agent path) reads apps/skills/core/*,
     # whose prose bodies the model follows via its own shell; the `!`…``
@@ -1741,10 +1741,10 @@ checkout_failed=0
         copy_skill_if_present apps/skills/claude/hypermark-review "$CLAUDE_SKILLS_DIR"
         copy_skill_if_present apps/skills/claude/hypermark-annotate "$CLAUDE_SKILLS_DIR"
         copy_skill_if_present apps/skills/claude/hypermark-last "$CLAUDE_SKILLS_DIR"
-        # The plannotator knowledge skill (CLI reference) has no Claude-only
+        # The hypermark knowledge skill (CLI reference) has no Claude-only
         # injection form — its body is pure prose — so Claude installs the
         # same single-sourced copy Codex gets from apps/skills/core.
-        copy_skill_if_present apps/skills/core/plannotator "$CLAUDE_SKILLS_DIR"
+        copy_skill_if_present apps/skills/core/hypermark "$CLAUDE_SKILLS_DIR"
         echo "Installed Claude Code skills to ${CLAUDE_SKILLS_DIR}/"
     else
         echo "Tag ${latest_tag} predates the per-agent skill layout — skipping Claude Code skill install"
@@ -1754,7 +1754,7 @@ checkout_failed=0
         copy_skill_if_present apps/skills/core/hypermark-review "$AGENTS_SKILLS_DIR"
         copy_skill_if_present apps/skills/core/hypermark-annotate "$AGENTS_SKILLS_DIR"
         copy_skill_if_present apps/skills/core/hypermark-last "$AGENTS_SKILLS_DIR"
-        copy_skill_if_present apps/skills/core/plannotator "$AGENTS_SKILLS_DIR"
+        copy_skill_if_present apps/skills/core/hypermark "$AGENTS_SKILLS_DIR"
         echo "Installed shared agent skills to ${AGENTS_SKILLS_DIR}/"
     else
         echo "Tag ${latest_tag} predates the core/extra skill layout — skipping shared agent skill install"
@@ -1781,19 +1781,19 @@ checkout_failed=0
         # Kiro-specific skills (origin baked in) come from apps/kiro-cli/skills.
         copy_skill_if_present apps/kiro-cli/skills/hypermark-review "$KIRO_SKILLS_DIR"
         copy_skill_if_present apps/kiro-cli/skills/hypermark-annotate "$KIRO_SKILLS_DIR"
-        # The plannotator knowledge skill (CLI reference) has no Kiro-specific
+        # The hypermark knowledge skill (CLI reference) has no Kiro-specific
         # form, so Kiro receives the single-sourced core copy like every other
         # scope. Without it, Kiro users get the action skills but no reference.
-        copy_skill_if_present apps/skills/core/plannotator "$KIRO_SKILLS_DIR"
+        copy_skill_if_present apps/skills/core/hypermark "$KIRO_SKILLS_DIR"
         # Extras come from apps/skills/extra (not duplicated into apps/kiro-cli/skills).
         copy_skill_if_present apps/skills/extra/hypermark-setup-goal "$KIRO_SKILLS_DIR"
         copy_skill_if_present apps/skills/extra/hypermark-visual-explainer "$KIRO_SKILLS_DIR"
-        # Plannotator custom agent — don't clobber a user's existing one.
-        if [ ! -f "$HOME/.kiro/agents/plannotator.json" ] && [ -f "apps/kiro-cli/agents/plannotator.json" ]; then
+        # Hypermark custom agent — don't clobber a user's existing one.
+        if [ ! -f "$HOME/.kiro/agents/hypermark.json" ] && [ -f "apps/kiro-cli/agents/hypermark.json" ]; then
             mkdir -p "$HOME/.kiro/agents"
-            cp apps/kiro-cli/agents/plannotator.json "$HOME/.kiro/agents/plannotator.json"
+            cp apps/kiro-cli/agents/hypermark.json "$HOME/.kiro/agents/hypermark.json"
         fi
-        echo "Installed Kiro skills to ${KIRO_SKILLS_DIR}/ and agent to ~/.kiro/agents/plannotator.json"
+        echo "Installed Kiro skills to ${KIRO_SKILLS_DIR}/ and agent to ~/.kiro/agents/hypermark.json"
     fi
 ) || checkout_failed=1
 
@@ -1864,7 +1864,7 @@ for skill in hypermark-review hypermark-annotate hypermark-last hypermark-compou
                 ;;
         esac
         rm -rf "$STALE_CODEX_SKILLS_DIR/$skill"
-        echo "Removed Plannotator skill from ${STALE_CODEX_SKILLS_DIR}/$skill"
+        echo "Removed Hypermark skill from ${STALE_CODEX_SKILLS_DIR}/$skill"
     fi
 done
 
@@ -1903,29 +1903,29 @@ if [ -d "$HOME/.gemini" ] && [ "$skip_gemini" -eq 1 ]; then
     # state. Nothing under ~/.gemini is created, updated, or removed.
     echo ""
     echo "Gemini: detected, skipped (${skip_gemini_source})."
-    if [ -f "$HOME/.gemini/settings.json" ] && grep -q '"plannotator"' "$HOME/.gemini/settings.json" 2>/dev/null; then
+    if [ -f "$HOME/.gemini/settings.json" ] && grep -q '"hypermark"' "$HOME/.gemini/settings.json" 2>/dev/null; then
         echo "An existing Gemini integration at ~/.gemini/settings.json was left untouched."
     fi
 elif [ -d "$HOME/.gemini" ]; then
     # Install policy file
     GEMINI_POLICIES_DIR="$HOME/.gemini/policies"
     mkdir -p "$GEMINI_POLICIES_DIR"
-    cat > "$GEMINI_POLICIES_DIR/plannotator.toml" << 'GEMINI_POLICY_EOF'
-# Plannotator policy for Gemini CLI
+    cat > "$GEMINI_POLICIES_DIR/hypermark.toml" << 'GEMINI_POLICY_EOF'
+# Hypermark policy for Gemini CLI
 # Allows exit_plan_mode without TUI confirmation so the browser UI is the sole gate.
 [[rule]]
 toolName = "exit_plan_mode"
 decision = "allow"
 priority = 100
 GEMINI_POLICY_EOF
-    echo "Installed Gemini policy to ${GEMINI_POLICIES_DIR}/plannotator.toml"
+    echo "Installed Gemini policy to ${GEMINI_POLICIES_DIR}/hypermark.toml"
 
     # Configure hook in settings.json
     GEMINI_SETTINGS="$HOME/.gemini/settings.json"
-    PLANNOTATOR_HOOK='{"matcher":"exit_plan_mode","hooks":[{"type":"command","command":"plannotator","timeout":345600}]}'
+    PLANNOTATOR_HOOK='{"matcher":"exit_plan_mode","hooks":[{"type":"command","command":"hypermark","timeout":345600}]}'
 
     if [ -f "$GEMINI_SETTINGS" ]; then
-        if ! grep -q '"plannotator"' "$GEMINI_SETTINGS" 2>/dev/null; then
+        if ! grep -q '"hypermark"' "$GEMINI_SETTINGS" 2>/dev/null; then
             # Merge hook into existing settings.json using node (ships with Gemini CLI)
             if command -v node &>/dev/null; then
                 node -e "
@@ -1936,7 +1936,7 @@ GEMINI_POLICY_EOF
                   settings.hooks.BeforeTool.push($PLANNOTATOR_HOOK);
                   fs.writeFileSync('$GEMINI_SETTINGS', JSON.stringify(settings, null, 2) + '\n');
                 "
-                echo "Added plannotator hook to ${GEMINI_SETTINGS}"
+                echo "Added hypermark hook to ${GEMINI_SETTINGS}"
             else
                 echo ""
                 echo "Add the following to your ~/.gemini/settings.json hooks:"
@@ -1944,7 +1944,7 @@ GEMINI_POLICY_EOF
                 echo '  "hooks": {'
                 echo '    "BeforeTool": [{'
                 echo '      "matcher": "exit_plan_mode",'
-                echo '      "hooks": [{"type": "command", "command": "plannotator", "timeout": 345600}]'
+                echo '      "hooks": [{"type": "command", "command": "hypermark", "timeout": 345600}]'
                 echo '    }]'
                 echo '  }'
             fi
@@ -1959,7 +1959,7 @@ GEMINI_POLICY_EOF
         "hooks": [
           {
             "type": "command",
-            "command": "plannotator",
+            "command": "hypermark",
             "timeout": 345600
           }
         ]
@@ -1993,7 +1993,7 @@ elif [ "$skip_skills" -eq 1 ]; then
     echo ""
     echo '  "plugin": ["@plannotator/opencode@latest"]'
     echo ""
-    echo "Skills were skipped (${skip_skills_source}), so no /plannotator-* command"
+    echo "Skills were skipped (${skip_skills_source}), so no /hypermark-* command"
     echo "stubs were installed. Re-run without the opt-out to add them."
 else
     echo "Add the plugin to your opencode.json:"
@@ -2074,15 +2074,15 @@ elif [ "$kiro_available" -eq 1 ] && [ "$skip_skills" -eq 1 ]; then
     echo "Kiro skills or agent were installed. Re-run without the opt-out to add them."
 elif [ "$kiro_available" -eq 1 ]; then
     echo "Kiro skills are installed to ~/.kiro/skills/"
-    echo "The Plannotator agent is installed to ~/.kiro/agents/plannotator.json"
-    echo "Launch it: kiro-cli chat --agent plannotator"
+    echo "The Hypermark agent is installed to ~/.kiro/agents/hypermark.json"
+    echo "Launch it: kiro-cli chat --agent hypermark"
 else
     echo "Kiro was not detected. After installing Kiro, rerun this installer to add Kiro skills."
 fi
 echo ""
 echo "=========================================="
 if [ "$skip_skills" -eq 1 ]; then
-    # Never claim the /plannotator-* commands are ready when nothing was
+    # Never claim the /hypermark-* commands are ready when nothing was
     # installed — that false banner is exactly what the skills-checkout guard
     # exists to prevent.
     echo "  CLAUDE CODE USERS: BINARY INSTALLED"
@@ -2092,11 +2092,11 @@ fi
 echo "=========================================="
 echo ""
 echo "Install the Claude Code plugin:"
-echo "  /plugin marketplace add backnotprop/plannotator"
-echo "  /plugin install plannotator@plannotator"
+echo "  /plugin marketplace add ahmadghoniem/Hypermark"
+echo "  /plugin install hypermark@hypermark"
 echo ""
 echo "Upgrading from an older version? Also run /plugin marketplace update"
-echo "so the plugin drops its old plannotator:* command entries."
+echo "so the plugin drops its old hypermark:* command entries."
 echo ""
 if [ "$skip_skills" -eq 1 ]; then
     echo "Skills were skipped (${skip_skills_source}), so the /hypermark-review,"
@@ -2109,21 +2109,21 @@ fi
 if [ "$skip_skills" -eq 0 ] && [ "$extras_choice" != "yes" ]; then
     echo ""
     echo "Optional skills (compound planning, setup-goal, visual explainer):"
-    echo "  npx skills add backnotprop/plannotator/apps/skills/extra --global"
+    echo "  npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global"
 fi
 
-# Warn if plannotator is configured in both settings.json hooks AND the plugin (causes double execution)
+# Warn if hypermark is configured in both settings.json hooks AND the plugin (causes double execution)
 # Only warn when the plugin is installed — manual-only users won't have overlap
 CLAUDE_SETTINGS="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
-if [ -f "$PLUGIN_HOOKS" ] && [ -f "$CLAUDE_SETTINGS" ] && grep -q '"command".*plannotator' "$CLAUDE_SETTINGS" 2>/dev/null; then
+if [ -f "$PLUGIN_HOOKS" ] && [ -f "$CLAUDE_SETTINGS" ] && grep -q '"command".*hypermark' "$CLAUDE_SETTINGS" 2>/dev/null; then
     echo ""
     echo "⚠️ ⚠️ ⚠️  WARNING: DUPLICATE HOOK DETECTED  ⚠️ ⚠️ ⚠️"
     echo ""
-    echo "  plannotator was found in your settings.json hooks:"
+    echo "  hypermark was found in your settings.json hooks:"
     echo "  $CLAUDE_SETTINGS"
     echo ""
-    echo "  This will cause plannotator to run TWICE on each plan review."
-    echo "  Remove the plannotator hook from settings.json and rely on the"
+    echo "  This will cause hypermark to run TWICE on each plan review."
+    echo "  Remove the hypermark hook from settings.json and rely on the"
     echo "  plugin instead (installed automatically via marketplace)."
     echo ""
     echo "⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️"

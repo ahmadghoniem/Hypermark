@@ -1,5 +1,5 @@
 {
-  "name": "Plannotator OpenCode Test",
+  "name": "Hypermark OpenCode Test",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
@@ -19,7 +19,7 @@
       "type": "bind"
     }
   ],
-  "postCreateCommand": "echo 'Plannotator devcontainer ready. Port 9999 should be forwarded.'",
+  "postCreateCommand": "echo 'Hypermark devcontainer ready. Port 9999 should be forwarded.'",
   "customizations": {
     "vscode": {
       "settings": {

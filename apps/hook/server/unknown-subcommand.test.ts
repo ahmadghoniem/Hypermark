@@ -44,7 +44,7 @@ describe("unknown subcommand", () => {
   test("error text names the typo and points at --help", () => {
     const message = formatUnknownSubcommandError("annotatte");
     expect(message).toContain("Unknown command: annotatte");
-    expect(message).toContain("plannotator annotate");
+    expect(message).toContain("hypermark annotate");
     expect(message).toContain("--help");
   });
 
@@ -92,7 +92,7 @@ describe("unknown subcommand", () => {
 
     expect(code).toBe(1);
     expect(stderr).toContain("Unknown command: annotatte");
-    expect(stderr).toContain("plannotator annotate");
+    expect(stderr).toContain("hypermark annotate");
     } finally {
       for (const file of created) rmSync(file, { force: true });
       if (createdDir) rmSync(distDir, { recursive: true, force: true });

@@ -2,13 +2,13 @@
 name: hypermark-visual-explainer
 disable-model-invocation: true
 description: >
-  Generate self-contained HTML visualizations with Plannotator theming. Use for implementation
+  Generate self-contained HTML visualizations with Hypermark theming. Use for implementation
   plans, PR explainers, architecture diagrams, data tables, slide decks, and any visual
-  explanation of technical concepts. Plans and PR explainers follow Plannotator's prescriptive
+  explanation of technical concepts. Plans and PR explainers follow Hypermark's prescriptive
   approach; all other visual content delegates to nicobailon/visual-explainer.
 ---
 
-# Plannotator Visual Explainer
+# Hypermark Visual Explainer
 
 Three paths depending on content type. Each has its own references and structure.
 
@@ -18,11 +18,11 @@ Three paths depending on content type. Each has its own references and structure
 
 **PR explainer, diff review, or code change walkthrough** → Follow the [PR path](#pr-path). Read `references/design-system.md` and `references/pr-components.md`. Prescriptive structure.
 
-**Everything else** (architecture diagrams, data tables, slide decks, project recaps, general visual explanations) → Follow the [Visual explainer path](#visual-explainer-path). Delegates to nicobailon/visual-explainer with Plannotator theme tokens.
+**Everything else** (architecture diagrams, data tables, slide decks, project recaps, general visual explanations) → Follow the [Visual explainer path](#visual-explainer-path). Delegates to nicobailon/visual-explainer with Hypermark theme tokens.
 
 ## Delivery
 
-Always deliver via Plannotator's annotation UI. Do NOT use `open` or `xdg-open`.
+Always deliver via Hypermark's annotation UI. Do NOT use `open` or `xdg-open`.
 
 For any deliverable that uses Mermaid, render every diagram with Mermaid 11 in both the light
 and dark palettes before opening the annotation UI. Rendering is a hard gate: an exception,
@@ -32,12 +32,12 @@ palettes until every SVG passes.
 
 **Plans/proposals** (user should approve/deny):
 ```bash
-plannotator annotate <file> --gate
+hypermark annotate <file> --gate
 ```
 
 **Everything else** (informational):
 ```bash
-plannotator annotate <file>
+hypermark annotate <file>
 ```
 
 ---
@@ -47,7 +47,7 @@ plannotator annotate <file>
 For implementation plans, design docs, feature specs, migration guides, and proposals.
 
 **Before generating, read:**
-1. `references/design-system.md` — Plannotator theme tokens, typography, component patterns
+1. `references/design-system.md` — Hypermark theme tokens, typography, component patterns
 2. `references/svg-patterns.md` — inline SVG building blocks for architecture diagrams, flowcharts, data flow
 
 **Document structure (in order, pick what fits):**
@@ -74,7 +74,7 @@ Not every plan needs every section. Skip what doesn't serve the content. Never i
 For PR walkthroughs, diff reviews, code change explainers, and reviewer guides.
 
 **Before generating, read:**
-1. `references/design-system.md` — Plannotator theme tokens, typography, component patterns
+1. `references/design-system.md` — Hypermark theme tokens, typography, component patterns
 2. `references/pr-components.md` — diff rendering, review comment bubbles, risk chips, file cards, before/after panels
 
 **Document structure (in order, pick what fits):**
@@ -103,9 +103,9 @@ For architecture diagrams, data tables, slide decks, project recaps, comparisons
    - If not found: `npx skills add nicobailon/visual-explainer -g --yes`
 2. Read visual-explainer's `SKILL.md` (workflow, diagram types, anti-slop rules)
 3. Read the relevant visual-explainer references and templates for your content type
-4. Read `references/theme-override.md` — Plannotator tokens replacing Nico's palettes
+4. Read `references/theme-override.md` — Hypermark tokens replacing Nico's palettes
 
-Follow visual-explainer's structure, component classes (`.ve-card`, `.kpi-card`, `.pipeline`), and anti-slop rules. The only override is the color/typography layer — Plannotator tokens instead of Nico's custom palettes.
+Follow visual-explainer's structure, component classes (`.ve-card`, `.kpi-card`, `.pipeline`), and anti-slop rules. The only override is the color/typography layer — Hypermark tokens instead of Nico's custom palettes.
 
 ---
 

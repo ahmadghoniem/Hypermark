@@ -1,4 +1,4 @@
-# Plannotator Windows Installer
+# Hypermark Windows Installer
 param(
     [string]$Version = "latest",
     [switch]$VerifyAttestation,
@@ -41,7 +41,7 @@ if ($Minimal -and $NoMinimal) {
     exit 1
 }
 
-# Binary-only mode. Installs just the plannotator binary and no persistent state
+# Binary-only mode. Installs just the hypermark binary and no persistent state
 # elsewhere - no sem sidecar, CallDiff or agent-terminal runtime, skills, hooks, or per-agent
 # config. Precedence: -Minimal / -NoMinimal switch > PLANNOTATOR_MINIMAL env var
 # > default (off). Mirrors install.sh's --minimal / --no-minimal.
@@ -52,12 +52,12 @@ if ($env:PLANNOTATOR_MINIMAL -match '^(1|true|yes)$') {
 if ($Minimal) { $minimal = $true }
 if ($NoMinimal) { $minimal = $false }
 
-$repo = "backnotprop/plannotator"
+$repo = "ahmadghoniem/Hypermark"
 $semRepo = "Ataraxy-Labs/sem"
 $semVersion = "v0.8.0"
-$installDir = "$env:LOCALAPPDATA\plannotator"
+$installDir = "$env:LOCALAPPDATA\hypermark"
 
-# First plannotator release that carries SLSA build-provenance attestations.
+# First hypermark release that carries SLSA build-provenance attestations.
 # See scripts/install.sh for the full explanation - this constant is bumped
 # once at the first attested release via the release skill.
 $minAttestedVersion = "v0.17.2"
@@ -92,12 +92,12 @@ if ($hostArch -eq "ARM64") {
 }
 
 $platform = "win32-$arch"
-$binaryName = "plannotator-$platform.exe"
+$binaryName = "hypermark-$platform.exe"
 
 # Clean up old install locations that may take precedence in PATH
 $oldLocations = @(
-    "$env:USERPROFILE\.local\bin\plannotator.exe",
-    "$env:USERPROFILE\.local\bin\plannotator"
+    "$env:USERPROFILE\.local\bin\hypermark.exe",
+    "$env:USERPROFILE\.local\bin\hypermark"
 )
 
 foreach ($oldPath in $oldLocations) {
@@ -134,7 +134,7 @@ if ($Version -eq "latest") {
     # burn, and network failures gain nothing from a second attempt. The
     # [int] cast handles both Windows PowerShell 5.1 (HttpWebResponse enum)
     # and PowerShell 7 (HttpResponseMessage); the inner try guards a null
-    # Response (e.g. DNS failure). See backnotprop/plannotator#1157.
+    # Response (e.g. DNS failure). See ahmadghoniem/Hypermark#1157.
     $apiUrl = "https://api.github.com/repos/$repo/releases/latest"
     try {
         $release = Invoke-RestMethod -Uri $apiUrl -Headers $ghHeaders
@@ -149,7 +149,7 @@ if ($Version -eq "latest") {
                 exit 1
             }
         } else {
-            Write-Error "Failed to fetch latest version: $($_.Exception.Message) (if this is HTTP 403, the GitHub API may be rate-limiting your IP; see https://github.com/backnotprop/plannotator/issues/1156)"
+            Write-Error "Failed to fetch latest version: $($_.Exception.Message) (if this is HTTP 403, the GitHub API may be rate-limiting your IP; see https://github.com/ahmadghoniem/Hypermark/issues/1156)"
             exit 1
         }
     }
@@ -170,7 +170,7 @@ if ($Version -eq "latest") {
     }
 }
 
-Write-Host "Installing plannotator $latestTag..."
+Write-Host "Installing hypermark $latestTag..."
 
 # Resolve SLSA build-provenance verification opt-in BEFORE the download so we
 # can fail fast without wasting bandwidth if the requested tag predates
@@ -185,14 +185,14 @@ $installCallFlowResolved = $false
 # Unset PLANNOTATOR_DATA_DIR: an existing ~/.plannotator (legacy default)
 # always wins; otherwise an explicitly-set absolute XDG_DATA_HOME (rare on
 # Windows but honored the same way as the runtime) places the directory at
-# $XDG_DATA_HOME\plannotator; otherwise ~/.plannotator.
+# $XDG_DATA_HOME\hypermark; otherwise ~/.plannotator.
 $configDir = if ($env:PLANNOTATOR_DATA_DIR) { $env:PLANNOTATOR_DATA_DIR.Trim() } else {
     $legacyDir = Join-Path $env:USERPROFILE ".plannotator"
     $xdgDataHome = if ($env:XDG_DATA_HOME) { $env:XDG_DATA_HOME.Trim() } else { "" }
     if (Test-Path $legacyDir) {
         $legacyDir
     } elseif ($xdgDataHome -and [System.IO.Path]::IsPathRooted($xdgDataHome)) {
-        Join-Path $xdgDataHome "plannotator"
+        Join-Path $xdgDataHome "hypermark"
     } else {
         $legacyDir
     }
@@ -229,7 +229,7 @@ function Install-SemSidecar {
         }
     }
 
-    $tmpSemDir = Join-Path ([System.IO.Path]::GetTempPath()) "plannotator-sem-$([System.Guid]::NewGuid().ToString('N'))"
+    $tmpSemDir = Join-Path ([System.IO.Path]::GetTempPath()) "hypermark-sem-$([System.Guid]::NewGuid().ToString('N'))"
     New-Item -ItemType Directory -Force -Path $tmpSemDir | Out-Null
 
     try {
@@ -237,7 +237,7 @@ function Install-SemSidecar {
         $semArchive = Join-Path $tmpSemDir $semAsset
         $semChecksums = Join-Path $tmpSemDir "checksums.txt"
         # Bounded so a slow/hung download of this optional sidecar can't wedge an
-        # install where plannotator already landed; the catch below skips it.
+        # install where hypermark already landed; the catch below skips it.
         Invoke-WebRequest -Uri "$semBaseUrl/$semAsset" -OutFile $semArchive -UseBasicParsing -TimeoutSec 120
         Invoke-WebRequest -Uri "$semBaseUrl/checksums.txt" -OutFile $semChecksums -UseBasicParsing -TimeoutSec 60
 
@@ -276,11 +276,11 @@ function Install-AgentTerminalRuntime {
         return
     }
 
-    $plannotatorPath = Join-Path $installDir "plannotator.exe"
+    $hypermarkPath = Join-Path $installDir "hypermark.exe"
     try {
-        & $plannotatorPath install-runtime agent-terminal
+        & $hypermarkPath install-runtime agent-terminal
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "Skipping agent terminal runtime install (plannotator install-runtime failed)"
+            Write-Host "Skipping agent terminal runtime install (hypermark install-runtime failed)"
         }
     } catch {
         Write-Host "Skipping agent terminal runtime install ($($_.Exception.Message))"
@@ -291,13 +291,13 @@ function Install-AgentTerminalRuntime {
 # downloads even its pruned core. Review-specific packs install in-app.
 function Install-CallFlowRuntime {
     if (-not $installCallFlowResolved) {
-        Write-Host "Call-flow analysis: available as an in-app opt-in install (enable Call flow in review Settings), or run: plannotator install-runtime call-flow"
+        Write-Host "Call-flow analysis: available as an in-app opt-in install (enable Call flow in review Settings), or run: hypermark install-runtime call-flow"
         return
     }
 
-    $plannotatorPath = Join-Path $installDir "plannotator.exe"
+    $hypermarkPath = Join-Path $installDir "hypermark.exe"
     try {
-        & $plannotatorPath install-runtime call-flow
+        & $hypermarkPath install-runtime call-flow
         if ($LASTEXITCODE -ne 0) {
             Write-Host "Call-flow runtime install failed; it remains available as an in-app opt-in install"
         }
@@ -399,7 +399,7 @@ if ($verifyAttestationResolved) {
         Write-Error "Could not parse version tags for provenance check: latest=$latestTag min=$minAttestedVersion"
     }
     if ($resolvedVersion -lt $minVersion) {
-        [Console]::Error.WriteLine("Provenance verification was requested, but $latestTag predates plannotator's attestation support.")
+        [Console]::Error.WriteLine("Provenance verification was requested, but $latestTag predates hypermark's attestation support.")
         [Console]::Error.WriteLine("The first release carrying signed build provenance is $minAttestedVersion. Options:")
         [Console]::Error.WriteLine("  - Pin to $minAttestedVersion or later: -Version $minAttestedVersion")
         [Console]::Error.WriteLine("  - Install without provenance verification: -SkipAttestation")
@@ -508,7 +508,7 @@ if ($verifyAttestationResolved) {
             if ($bundles.Count -gt 0) {
                 # WriteAllText writes UTF-8 without a BOM so gh's JSON
                 # parser accepts the first line.
-                $bundleFile = Join-Path ([System.IO.Path]::GetTempPath()) "plannotator-bundle-$([System.Guid]::NewGuid().ToString('N')).jsonl"
+                $bundleFile = Join-Path ([System.IO.Path]::GetTempPath()) "hypermark-bundle-$([System.Guid]::NewGuid().ToString('N')).jsonl"
                 [System.IO.File]::WriteAllText($bundleFile, (($bundles -join "`n") + "`n"))
             } else {
                 $bundleFallbackReason = "Could not extract a bundle from the attestations API response"
@@ -526,7 +526,7 @@ if ($verifyAttestationResolved) {
                 --bundle $bundleFile `
                 --repo $repo `
                 --source-ref "refs/tags/$latestTag" `
-                --signer-workflow "backnotprop/plannotator/.github/workflows/release.yml" 2>&1
+                --signer-workflow "ahmadghoniem/Hypermark/.github/workflows/release.yml" 2>&1
             if ($LASTEXITCODE -ne 0) {
                 # H1: a --bundle failure is not necessarily a provenance
                 # failure (an older gh rejects the flag outright, a corrupt
@@ -539,14 +539,14 @@ if ($verifyAttestationResolved) {
                 $verifyOutput = & gh attestation verify $tmpFile `
                     --repo $repo `
                     --source-ref "refs/tags/$latestTag" `
-                    --signer-workflow "backnotprop/plannotator/.github/workflows/release.yml" 2>&1
+                    --signer-workflow "ahmadghoniem/Hypermark/.github/workflows/release.yml" 2>&1
             }
         } else {
             Write-Host "$bundleFallbackReason; falling back to gh's authenticated fetch."
             $verifyOutput = & gh attestation verify $tmpFile `
                 --repo $repo `
                 --source-ref "refs/tags/$latestTag" `
-                --signer-workflow "backnotprop/plannotator/.github/workflows/release.yml" 2>&1
+                --signer-workflow "ahmadghoniem/Hypermark/.github/workflows/release.yml" 2>&1
         }
         $verifyExitCode = $LASTEXITCODE
         if ($bundleFile) { Remove-Item $bundleFile -Force -ErrorAction SilentlyContinue }
@@ -594,10 +594,10 @@ if ($verifyAttestationResolved) {
     Write-Host "https://docs.plannotator.ai/open-source/start/installation#pin-or-verify-a-release"
 }
 
-Move-Item -Force $tmpFile "$installDir\plannotator.exe"
+Move-Item -Force $tmpFile "$installDir\hypermark.exe"
 
 Write-Host ""
-Write-Host "plannotator $latestTag installed to $installDir\plannotator.exe"
+Write-Host "hypermark $latestTag installed to $installDir\hypermark.exe"
 
 # Add $installDir to the user PATH if not already there. Extracted so both the
 # -Minimal early exit and the normal flow reuse it (mirrors install.sh's
@@ -611,7 +611,7 @@ function Show-PathAdvice {
         Write-Host "Added to PATH. Restart your terminal for changes to take effect."
     }
     Write-Host ""
-    Write-Host "To uninstall later: plannotator uninstall"
+    Write-Host "To uninstall later: hypermark uninstall"
 }
 
 # Binary-only mode stops here (see the $minimal resolution near the top): the
@@ -622,7 +622,7 @@ function Show-PathAdvice {
 if ($minimal) {
     Show-PathAdvice
     Write-Host ""
-    Write-Host "Minimal install complete - only the plannotator binary was installed."
+    Write-Host "Minimal install complete - only the hypermark binary was installed."
     Write-Host "No skills, hooks, agent integrations, or config files were written."
     exit 0
 }
@@ -634,10 +634,10 @@ Install-CallFlowRuntime
 Show-PathAdvice
 
 # Validate plugin hooks.json if plugin is already installed
-$pluginHooks = if ($env:CLAUDE_CONFIG_DIR) { "$env:CLAUDE_CONFIG_DIR\plugins\marketplaces\plannotator\apps\hook\hooks\hooks.json" } else { "$env:USERPROFILE\.claude\plugins\marketplaces\plannotator\apps\hook\hooks\hooks.json" }
+$pluginHooks = if ($env:CLAUDE_CONFIG_DIR) { "$env:CLAUDE_CONFIG_DIR\plugins\marketplaces\hypermark\apps\hook\hooks\hooks.json" } else { "$env:USERPROFILE\.claude\plugins\marketplaces\hypermark\apps\hook\hooks\hooks.json" }
 if (Test-Path $pluginHooks) {
     # Use full path on Windows so the hook works without PATH being set in the shell
-    $exePath = "$installDir\plannotator.exe"
+    $exePath = "$installDir\hypermark.exe"
     # Convert backslashes to forward slashes and escape for JSON
     $exePathJson = $exePath.Replace('\', '/')
     @"
@@ -698,7 +698,7 @@ foreach ($junk in @("core", "extra")) {
 # Extras (compound / setup-goal / visual-explainer) are no longer managed in
 # the Claude or shared-agent skill scopes. Remove previously default-installed
 # copies ONCE per machine - recorded in the migrations ledger under the
-# Plannotator data dir - because copies the user reinstalls via `npx skills
+# Hypermark data dir - because copies the user reinstalls via `npx skills
 # add` are byte-identical to ours and can only be told apart by remembering
 # that this cleanup already ran.
 $claudeSkillsDir = if ($env:CLAUDE_CONFIG_DIR) { "$env:CLAUDE_CONFIG_DIR\skills" } else { "$env:USERPROFILE\.claude\skills" }
@@ -721,7 +721,7 @@ if (-not (Test-Path $extrasMigration)) {
 
 # --- Guided install (interactive consoles only) ---
 # Mirrors install.sh: two questions (extras? model-invocable skills?), answers
-# persisted to install-prefs in the Plannotator data dir and reused silently on
+# persisted to install-prefs in the Hypermark data dir and reused silently on
 # re-runs. -Reconfigure re-opens the wizard; -NonInteractive forces silence;
 # redirected/CI runs never prompt. Flags win over everything.
 $prefsFile = Join-Path $configDir "install-prefs"
@@ -853,7 +853,7 @@ $invocableChoice = ""
 if ($runWizard) {
     Write-Host ""
     Write-Host "=========================================="
-    Write-Host "  PLANNOTATOR GUIDED INSTALL"
+    Write-Host "  HYPERMARK GUIDED INSTALL"
     Write-Host "=========================================="
     Write-Host ""
     if ($extrasPresent) {
@@ -903,12 +903,12 @@ if ($runWizard -or $Extras -or $NoExtras -or $ModelInvocable) {
 if ((-not $skipSkillsResolved) -and ($extrasChoice -eq "yes") -and (-not $extrasPresent)) {
     if ($canPrompt -and (Get-Command npx -ErrorAction SilentlyContinue)) {
         Write-Host "Launching the skills CLI for the extras (pick your agents in its UI)..."
-        npx skills add backnotprop/plannotator/apps/skills/extra --global
+        npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "skills CLI did not complete - install later with: npx skills add backnotprop/plannotator/apps/skills/extra --global"
+            Write-Host "skills CLI did not complete - install later with: npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global"
         }
     } else {
-        Write-Host "Install the extras with: npx skills add backnotprop/plannotator/apps/skills/extra --global"
+        Write-Host "Install the extras with: npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global"
     }
 }
 
@@ -917,7 +917,7 @@ if ((-not $skipSkillsResolved) -and ($extrasChoice -eq "yes") -and (-not $extras
 # Core skills are copied verbatim from a sparse checkout of the release tag.
 # copy-if-present means older pinned tags that lack a given path simply skip it
 # rather than failing. Hard requirement: without git we cannot install the
-# /plannotator-* skills, so fail loudly instead of leaving a partial install.
+# /hypermark-* skills, so fail loudly instead of leaving a partial install.
 #
 # Skills/commands opt-out (-SkipSkills / PLANNOTATOR_SKIP_SKILLS_INSTALL /
 # skipInstall.skills). HONEST reporting like the per-agent family: the skipped
@@ -928,17 +928,17 @@ if ($skipSkillsResolved) {
     Write-Host ""
     Write-Host "Skills: skipped ($skipSkillsSource)."
     Write-Host "No skills or slash commands were fetched, and none already installed"
-    Write-Host "were changed or removed. The /plannotator-* commands are NOT installed"
+    Write-Host "were changed or removed. The /hypermark-* commands are NOT installed"
     Write-Host "by this run - re-run without the opt-out to install them."
 } elseif (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Write-Host "Error: git is required to install Plannotator's skills and slash commands."
+    Write-Host "Error: git is required to install Hypermark's skills and slash commands."
     Write-Host "Install git, then run this installer again."
     Write-Host "To install without them, re-run with -SkipSkills."
     exit 1
 }
 
 $checkoutFailed = $false
-$skillsTmp = Join-Path ([System.IO.Path]::GetTempPath()) "plannotator-skills-$(Get-Random)"
+$skillsTmp = Join-Path ([System.IO.Path]::GetTempPath()) "hypermark-skills-$(Get-Random)"
 New-Item -ItemType Directory -Force -Path $skillsTmp | Out-Null
 
 function Copy-SkillIfPresent {
@@ -1031,7 +1031,7 @@ try {
             }
 
             # Claude Code reads apps/skills/claude/* (dynamic-context injection
-            # `!`plannotator ... $ARGUMENTS`` + allowed-tools, so /plannotator-*
+            # `!`hypermark ... $ARGUMENTS`` + allowed-tools, so /hypermark-*
             # run with no permission prompt - like the old slash commands). The
             # shared-agent scope reads apps/skills/core/* (plain prose). The
             # `!`...`` injection is a Claude-Code-only extension, so the two are
@@ -1043,10 +1043,10 @@ try {
                 foreach ($skill in @("hypermark-review", "hypermark-annotate", "hypermark-last")) {
                     Copy-SkillIfPresent "apps\skills\claude\$skill" $claudeSkillsDir
                 }
-                # The plannotator knowledge skill (CLI reference) has no
+                # The hypermark knowledge skill (CLI reference) has no
                 # Claude-only injection form, so Claude installs the same
                 # single-sourced copy from apps\skills\core.
-                Copy-SkillIfPresent "apps\skills\core\plannotator" $claudeSkillsDir
+                Copy-SkillIfPresent "apps\skills\core\hypermark" $claudeSkillsDir
                 Write-Host "Installed Claude Code skills to $claudeSkillsDir\"
             } else {
                 Write-Host "Tag $latestTag predates the per-agent skill layout - skipping Claude Code skill install"
@@ -1056,7 +1056,7 @@ try {
                 foreach ($skill in @("hypermark-review", "hypermark-annotate", "hypermark-last")) {
                     Copy-SkillIfPresent "apps\skills\core\$skill" $agentsSkillsDir
                 }
-                Copy-SkillIfPresent "apps\skills\core\plannotator" $agentsSkillsDir
+                Copy-SkillIfPresent "apps\skills\core\hypermark" $agentsSkillsDir
                 Write-Host "Installed shared agent skills to $agentsSkillsDir\"
             } else {
                 Write-Host "Tag $latestTag predates the core/extra skill layout - skipping shared agent skill install"
@@ -1145,7 +1145,7 @@ if ((-not $skipSkillsResolved) -and $invocableChoice -and ($invocableChoice -ne 
 Write-Host ""
 Write-Host "=========================================="
 if ($skipSkillsResolved) {
-    # Never claim the /plannotator-* commands are ready when nothing was
+    # Never claim the /hypermark-* commands are ready when nothing was
     # installed - that false banner is exactly what the skills-checkout
     # guard exists to prevent.
     Write-Host "  CLAUDE CODE USERS: BINARY INSTALLED"
@@ -1155,11 +1155,11 @@ if ($skipSkillsResolved) {
 Write-Host "=========================================="
 Write-Host ""
 Write-Host "Install the Claude Code plugin:"
-Write-Host "  /plugin marketplace add backnotprop/plannotator"
-Write-Host "  /plugin install plannotator@plannotator"
+Write-Host "  /plugin marketplace add ahmadghoniem/Hypermark"
+Write-Host "  /plugin install hypermark@hypermark"
 Write-Host ""
 Write-Host "Upgrading from an older version? Also run /plugin marketplace update"
-Write-Host "so the plugin drops its old plannotator:* command entries."
+Write-Host "so the plugin drops its old hypermark:* command entries."
 Write-Host ""
 if ($skipSkillsResolved) {
     Write-Host "Skills were skipped ($skipSkillsSource), so the /hypermark-review,"
@@ -1172,23 +1172,23 @@ if ($skipSkillsResolved) {
 if ((-not $skipSkillsResolved) -and ($extrasChoice -ne "yes")) {
     Write-Host ""
     Write-Host "Optional skills (compound planning, setup-goal, visual explainer):"
-    Write-Host "  npx skills add backnotprop/plannotator/apps/skills/extra --global"
+    Write-Host "  npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global"
 }
 
-# Warn if plannotator is configured in both settings.json hooks AND the plugin (causes double execution)
+# Warn if hypermark is configured in both settings.json hooks AND the plugin (causes double execution)
 # Only warn when the plugin is installed - manual-only users won't have overlap
 $claudeSettings = if ($env:CLAUDE_CONFIG_DIR) { "$env:CLAUDE_CONFIG_DIR\settings.json" } else { "$env:USERPROFILE\.claude\settings.json" }
 if ((Test-Path $pluginHooks) -and (Test-Path $claudeSettings)) {
     $settingsContent = Get-Content -Path $claudeSettings -Raw -ErrorAction SilentlyContinue
-    if ($settingsContent -match '"command".*plannotator') {
+    if ($settingsContent -match '"command".*hypermark') {
         Write-Host ""
         Write-Host "!!! WARNING: DUPLICATE HOOK DETECTED !!!"
         Write-Host ""
-        Write-Host "  plannotator was found in your settings.json hooks:"
+        Write-Host "  hypermark was found in your settings.json hooks:"
         Write-Host "  $claudeSettings"
         Write-Host ""
-        Write-Host "  This will cause plannotator to run TWICE on each plan review."
-        Write-Host "  Remove the plannotator hook from settings.json and rely on the"
+        Write-Host "  This will cause hypermark to run TWICE on each plan review."
+        Write-Host "  Remove the hypermark hook from settings.json and rely on the"
         Write-Host "  plugin instead (installed automatically via marketplace)."
         Write-Host ""
         Write-Host "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"

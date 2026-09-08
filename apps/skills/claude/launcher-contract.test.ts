@@ -5,7 +5,7 @@
  * Why this file exists: `apps/skills/claude` and `apps/skills/core` hold
  * same-named skills with deliberately different bodies. The claude/ copies are
  * the launcher source of truth — Claude Code's dynamic-context injection
- * (a leading `!` line) runs `plannotator ...` BEFORE the model sees the
+ * (a leading `!` line) runs `hypermark ...` BEFORE the model sees the
  * prompt, and `allowed-tools` keeps that run out of the permission prompt.
  * The core/ copies are prose the model follows with its own shell. Swapping
  * one for the other silently turns /hypermark-review into "the model might
@@ -80,13 +80,13 @@ describe("Claude launcher templates (apps/skills/claude)", () => {
     }
   });
 
-  test("every launcher pre-allows the plannotator CLI via allowed-tools", () => {
+  test("every launcher pre-allows the hypermark CLI via allowed-tools", () => {
     // Without this the injected command would raise a permission prompt on
-    // every /plannotator-* invocation, which is exactly what the old slash
+    // every /hypermark-* invocation, which is exactly what the old slash
     // commands avoided.
     for (const { skill } of LAUNCHERS) {
       expect(frontmatterOf(readSkill(CLAUDE_DIR, skill)), skill).toContain(
-        "allowed-tools: Bash(plannotator:*)",
+        "allowed-tools: Bash(hypermark:*)",
       );
     }
   });
@@ -94,7 +94,7 @@ describe("Claude launcher templates (apps/skills/claude)", () => {
   test("every launcher injects its command with $ARGUMENTS before the prompt", () => {
     for (const { skill, command } of LAUNCHERS) {
       const doc = readSkill(CLAUDE_DIR, skill);
-      const injection = "!`plannotator " + command + " $ARGUMENTS`";
+      const injection = "!`hypermark " + command + " $ARGUMENTS`";
       expect(doc, skill).toContain(injection);
 
       // The substitution must be its own line: Claude Code only executes a
@@ -120,7 +120,7 @@ describe("Claude launcher templates (apps/skills/claude)", () => {
       const core = readSkill(CORE_DIR, skill);
       expect(frontmatterOf(core), skill).not.toContain("allowed-tools");
       expect(core, skill).not.toContain("$ARGUMENTS");
-      expect(core, skill).not.toContain("!`plannotator");
+      expect(core, skill).not.toContain("!`hypermark");
       // Both roots agree on the one thing they must: never model-invoked.
       expect(frontmatterOf(core), skill).toContain(
         "disable-model-invocation: true",
@@ -129,9 +129,9 @@ describe("Claude launcher templates (apps/skills/claude)", () => {
   });
 
   test("launchers carry no reference to features specs 01/02 removed", () => {
-    // Guided Review, Code Tours, Workspaces, Vim, and `plannotator guide`.
+    // Guided Review, Code Tours, Workspaces, Vim, and `hypermark guide`.
     const banned =
-      /\bguided review\b|\bcode tours?\b|\bplannotator guide\b|\bworkspaces\b|\bvim\b/i;
+      /\bguided review\b|\bcode tours?\b|\bhypermark guide\b|\bworkspaces\b|\bvim\b/i;
     for (const { skill } of LAUNCHERS) {
       expect(readSkill(CLAUDE_DIR, skill), skill).not.toMatch(banned);
     }
@@ -150,10 +150,10 @@ describe("installers source the Claude scope from apps/skills/claude", () => {
       'Copy-SkillIfPresent "apps\\skills\\claude\\$skill" $claudeSkillsDir',
     );
     // The knowledge/CLI-reference skill has no injection form, so the Claude
-    // scope gets the single-sourced core copy. Its owner is core/plannotator,
-    // which apps/hook/server/plannotator-skill-reference.test.ts keeps fresh.
+    // scope gets the single-sourced core copy. Its owner is core/hypermark,
+    // which apps/hook/server/hypermark-skill-reference.test.ts keeps fresh.
     expect(ps1).toContain(
-      'Copy-SkillIfPresent "apps\\skills\\core\\plannotator" $claudeSkillsDir',
+      'Copy-SkillIfPresent "apps\\skills\\core\\hypermark" $claudeSkillsDir',
     );
     // ... and never the prose launcher bodies.
     expect(ps1).not.toContain(
@@ -169,7 +169,7 @@ describe("installers source the Claude scope from apps/skills/claude", () => {
       'xcopy /s /i /y /q "apps\\skills\\claude\\%%S" "!CLAUDE_SKILLS_DIR!\\%%S\\"',
     );
     expect(cmd).toContain(
-      'xcopy /s /i /y /q "apps\\skills\\core\\plannotator" "!CLAUDE_SKILLS_DIR!\\plannotator\\"',
+      'xcopy /s /i /y /q "apps\\skills\\core\\hypermark" "!CLAUDE_SKILLS_DIR!\\hypermark\\"',
     );
     expect(cmd).not.toContain(
       'xcopy /s /i /y /q "apps\\skills\\core\\%%S" "!CLAUDE_SKILLS_DIR!\\%%S\\"',
@@ -275,10 +275,10 @@ function expectInstalledLaunchers(claudeScope: string) {
     const doc = readFileSync(installed, "utf-8").replace(/\r\n?/g, "\n");
     // The executing body survived the copy verbatim — not the prose variant.
     expect(doc, skill).toBe(readSkill(CLAUDE_DIR, skill));
-    expect(doc, skill).toContain("!`plannotator " + command + " $ARGUMENTS`");
+    expect(doc, skill).toContain("!`hypermark " + command + " $ARGUMENTS`");
   }
   // Knowledge skill rides along from core/.
-  expect(existsSync(join(claudeScope, "plannotator", "SKILL.md"))).toBe(true);
+  expect(existsSync(join(claudeScope, "hypermark", "SKILL.md"))).toBe(true);
   // ... and the copy is not nested one level deeper (the re-run trap).
   expect(existsSync(join(claudeScope, "hypermark-review", "hypermark-review"))).toBe(
     false,
@@ -320,7 +320,7 @@ describe.if(isWindows)("install.ps1 copy stage on a spaced/Unicode path", () => 
           '  foreach ($skill in @("hypermark-review", "hypermark-annotate", "hypermark-last")) {',
           '    Copy-SkillIfPresent "apps\\skills\\claude\\$skill" $ClaudeSkillsDir',
           "  }",
-          '  Copy-SkillIfPresent "apps\\skills\\core\\plannotator" $ClaudeSkillsDir',
+          '  Copy-SkillIfPresent "apps\\skills\\core\\hypermark" $ClaudeSkillsDir',
           "} finally { Pop-Location }",
         ].join("\n"),
         "utf-8",
@@ -427,7 +427,7 @@ describe.if(isWindows)("install.cmd copy stage on a spaced/Unicode path", () => 
           readSkill(CORE_DIR, skill),
         );
       }
-      expect(existsSync(join(fixture.agentsScope, "plannotator", "SKILL.md"))).toBe(
+      expect(existsSync(join(fixture.agentsScope, "hypermark", "SKILL.md"))).toBe(
         true,
       );
 

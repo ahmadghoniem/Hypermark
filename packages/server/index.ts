@@ -1,5 +1,5 @@
 /**
- * Plannotator Shared Server
+ * Hypermark Shared Server
  *
  * Provides a consistent server implementation for both Claude Code and OpenCode plugins.
  *
@@ -109,7 +109,7 @@ export interface ServerResult {
 // --- Server Implementation ---
 
 /**
- * Start the Plannotator server
+ * Start the Hypermark server
  *
  * Handles:
  * - Remote detection and port configuration
@@ -619,7 +619,7 @@ export async function startHypermarkServer(
         },
 
         error(err) {
-          console.error("[plannotator] Server error:", err);
+          console.error("[hypermark] Server error:", err);
           return new Response(
             `Internal Server Error: ${err instanceof Error ? err.message : String(err)}`,
             { status: 500, headers: { "Content-Type": "text/plain" } },

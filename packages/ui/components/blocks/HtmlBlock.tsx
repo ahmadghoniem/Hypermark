@@ -15,7 +15,7 @@ interface HtmlBlockProps {
 // Walks the sanitized DOM and rewrites relative <img src> / <a href> so they
 // behave the same as their markdown counterparts:
 // - Relative image paths route through /api/image?path=... so they load from
-//   the plan's directory, not the plannotator server root.
+//   the plan's directory, not the hypermark server root.
 // - Relative .md / .mdx / .txt / .html links open in the linked-doc overlay when
 //   onOpenLinkedDoc is provided (same as [[wiki-links]] and [label](./x.md)).
 // Absolute http(s) URLs and mailto: are left untouched.
@@ -39,7 +39,7 @@ function rewriteRelativeRefs(
     const href = a.getAttribute('href');
     if (!href) return;
     // External http(s) links: open in a new tab and close the tab-nabbing
-    // vector (opener reference back to the plannotator tab). Matches the
+    // vector (opener reference back to the hypermark tab). Matches the
     // markdown renderer's behavior for [label](https://...).
     if (/^(https?:|\/\/)/i.test(href)) {
       a.setAttribute('target', '_blank');

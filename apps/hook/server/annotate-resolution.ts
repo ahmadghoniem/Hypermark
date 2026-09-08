@@ -1,5 +1,5 @@
 /**
- * Annotate target resolution for the direct CLI (`plannotator annotate`).
+ * Annotate target resolution for the direct CLI (`hypermark annotate`).
  *
  * Extracted from the annotate branch of index.ts so the resolution pipeline
  * can be re-run once by the tolerant token fallback (#1182) and unit tested.
@@ -303,7 +303,7 @@ export async function resolveAnnotateTarget(options: {
         message:
           `File type not supported: ${ext}\n` +
           `Supported types: ${buildAnnotatableExtensionsHint(extraMarkdownExtensions)}\n` +
-          `For code review, use: plannotator review [file]`,
+          `For code review, use: hypermark review [file]`,
       };
     }
     return {

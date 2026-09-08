@@ -367,7 +367,7 @@ const MARKER_LOOKALIKE_RE =
 const INVISIBLE_FORMAT_CHARS_RE = /\p{Cf}/gu;
 
 const NEUTRALIZED_LINE_PREFIX =
-  '[plannotator: the following skill-body line matched an injection marker and was neutralized] ';
+  '[hypermark: the following skill-body line matched an injection marker and was neutralized] ';
 
 /**
  * Neutralize body lines that match our own structural markers, visibly: each

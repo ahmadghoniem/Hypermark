@@ -1,5 +1,5 @@
 #!/bin/bash
-# Create a fresh isolated Codex + Plannotator sandbox and open a shell inside it.
+# Create a fresh isolated Codex + Hypermark sandbox and open a shell inside it.
 
 set -euo pipefail
 

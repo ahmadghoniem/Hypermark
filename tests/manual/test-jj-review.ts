@@ -81,7 +81,7 @@ async function createSeedGitRemote(): Promise<void> {
   await mkdir(seedRepo, { recursive: true });
   await $`git init -q -b main`.cwd(seedRepo);
   await $`git config user.email "plannotator@example.com"`.cwd(seedRepo);
-  await $`git config user.name "Plannotator Test User"`.cwd(seedRepo);
+  await $`git config user.name "Hypermark Test User"`.cwd(seedRepo);
 
   await writeSeed(".gitignore", lines([
     "node_modules/",
@@ -102,7 +102,7 @@ async function createSeedGitRemote(): Promise<void> {
   await writeSeed("README.md", lines([
     "# JJ Demo Service",
     "",
-    "A small service used to exercise Plannotator's JJ review modes.",
+    "A small service used to exercise Hypermark's JJ review modes.",
   ]));
   await writeSeed("src/index.ts", lines([
     "import { createApp } from './app';",

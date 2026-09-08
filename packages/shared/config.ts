@@ -168,7 +168,7 @@ export interface HypermarkConfig {
   };
   /**
    * Enable Jina Reader for URL-to-markdown conversion during annotation.
-   * When true (default), `plannotator annotate <url>` routes through
+   * When true (default), `hypermark annotate <url>` routes through
    * r.jina.ai for better JS-rendered page support and reader-mode extraction.
    * Set to false to always use plain fetch + Turndown.
    */
@@ -285,7 +285,7 @@ export function loadConfig(): HypermarkConfig {
     const parsed = JSON.parse(raw);
     return typeof parsed === "object" && parsed !== null ? parsed : {};
   } catch (e) {
-    process.stderr.write(`[plannotator] Warning: failed to read config.json: ${e}\n`);
+    process.stderr.write(`[hypermark] Warning: failed to read config.json: ${e}\n`);
     return {};
   }
 }
@@ -459,7 +459,7 @@ export function saveConfig(partial: Partial<HypermarkConfig>): void {
     locked = acquireConfigLock(lockPath);
     if (!locked) {
       process.stderr.write(
-        `[plannotator] Warning: config.json lock unavailable after ${configLockWaitBudgetMs}ms; `
+        `[hypermark] Warning: config.json lock unavailable after ${configLockWaitBudgetMs}ms; `
         + `saving without it (a concurrent save may be overwritten).\n`,
       );
     }
@@ -486,7 +486,7 @@ export function saveConfig(partial: Partial<HypermarkConfig>): void {
     };
     writeConfigAtomic(getConfigPath(), JSON.stringify(merged, null, 2) + "\n");
   } catch (e) {
-    process.stderr.write(`[plannotator] Warning: failed to write config.json: ${e}\n`);
+    process.stderr.write(`[hypermark] Warning: failed to write config.json: ${e}\n`);
   } finally {
     if (locked && lockPath) releaseConfigLock(lockPath);
   }
@@ -703,7 +703,7 @@ export function resolveUrlHost(config: HypermarkConfig): string | undefined {
   if (!warnedInvalidUrlHosts.has(host)) {
     warnedInvalidUrlHosts.add(host);
     process.stderr.write(
-      `[plannotator] Warning: invalid advertised URL host ${JSON.stringify(host)} — expected a bare hostname, IPv4, or bracketed IPv6 (no scheme, port, or path); using localhost\n`,
+      `[hypermark] Warning: invalid advertised URL host ${JSON.stringify(host)} — expected a bare hostname, IPv4, or bracketed IPv6 (no scheme, port, or path); using localhost\n`,
     );
   }
   return undefined;

@@ -1,10 +1,10 @@
-# Plannotator Theme Override
+# Hypermark Theme Override
 
-When visual-explainer's workflow says to pick a palette and font pairing, use these Plannotator tokens instead. Everything else — layout, structure, components, anti-slop rules — stays as visual-explainer prescribes.
+When visual-explainer's workflow says to pick a palette and font pairing, use these Hypermark tokens instead. Everything else — layout, structure, components, anti-slop rules — stays as visual-explainer prescribes.
 
 ## Host theme opt-in (required)
 
-Plannotator's HTML viewer renders arbitrary documents untouched — it never injects bare theme tokens into a document unless the document asks for them. For the generated file to follow the active Plannotator theme when embedded in raw HTML annotation mode, it MUST declare the opt-in in its `<head>`:
+Hypermark's HTML viewer renders arbitrary documents untouched — it never injects bare theme tokens into a document unless the document asks for them. For the generated file to follow the active Hypermark theme when embedded in raw HTML annotation mode, it MUST declare the opt-in in its `<head>`:
 
 ```html
 <meta name="plannotator-theme" content="host">
@@ -14,7 +14,7 @@ With this tag present, the viewer overrides the document's bare tokens (`--backg
 
 ## CSS Custom Properties
 
-Replace visual-explainer's `--bg`, `--surface`, `--border`, `--text`, `--accent` variables with Plannotator's semantic tokens. Include these as `:root` defaults so the file works standalone. When embedded in Plannotator's raw HTML annotation mode (with the meta opt-in above), these get overridden by the active theme.
+Replace visual-explainer's `--bg`, `--surface`, `--border`, `--text`, `--accent` variables with Hypermark's semantic tokens. Include these as `:root` defaults so the file works standalone. When embedded in Hypermark's raw HTML annotation mode (with the meta opt-in above), these get overridden by the active theme.
 
 ```css
 :root {
@@ -51,11 +51,11 @@ Replace visual-explainer's `--bg`, `--surface`, `--border`, `--text`, `--accent`
 }
 ```
 
-## Mapping visual-explainer variables to Plannotator tokens
+## Mapping visual-explainer variables to Hypermark tokens
 
 When visual-explainer references or templates use these variables, substitute:
 
-| visual-explainer | Plannotator | Notes |
+| visual-explainer | Hypermark | Notes |
 |-----------------|-------------|-------|
 | `--bg` | `var(--background)` | Page background |
 | `--surface` | `var(--card)` | Card/panel surfaces |
@@ -75,7 +75,7 @@ When visual-explainer references or templates use these variables, substitute:
 
 ## Typography exception
 
-Visual-explainer forbids Inter as `--font-body`. Plannotator uses Inter as its default sans-serif. This is intentional — Plannotator's identity is defined by its theme tokens, not font novelty. When using this skill, Inter is permitted as the body font because the output is meant to look like part of Plannotator, not like an independent design piece.
+Visual-explainer forbids Inter as `--font-body`. Hypermark uses Inter as its default sans-serif. This is intentional — Hypermark's identity is defined by its theme tokens, not font novelty. When using this skill, Inter is permitted as the body font because the output is meant to look like part of Hypermark, not like an independent design piece.
 
 The `--font-display` (serif) is still used for headings to create visual contrast, matching the visual-explainer's emphasis on distinctive typography.
 
@@ -83,9 +83,9 @@ The `--font-display` (serif) is still used for headings to create visual contras
 
 Mermaid processes `themeVariables` itself and derives additional colors from them. That color-processing boundary does not accept every color syntax that browsers accept in CSS. Use Mermaid-compatible literal hex colors here instead of copying the semantic CSS token declarations above.
 
-Do not pass OKLCH color functions, CSS custom-property references such as `var()`, or `color-mix()` values directly into `themeVariables`. This restriction applies only to Mermaid's color-processing boundary. Continue using Plannotator's OKLCH custom properties and other modern color functions for ordinary page CSS.
+Do not pass OKLCH color functions, CSS custom-property references such as `var()`, or `color-mix()` values directly into `themeVariables`. This restriction applies only to Mermaid's color-processing boundary. Continue using Hypermark's OKLCH custom properties and other modern color functions for ordinary page CSS.
 
-Use the same light/dark state as the page, but keep both Mermaid palettes literal. With the host-theme opt-in, Plannotator synchronizes `color-scheme`; standalone documents fall back to the operating-system preference:
+Use the same light/dark state as the page, but keep both Mermaid palettes literal. With the host-theme opt-in, Hypermark synchronizes `color-scheme`; standalone documents fall back to the operating-system preference:
 
 ```javascript
 const colorScheme = getComputedStyle(document.documentElement).colorScheme;
@@ -130,9 +130,9 @@ mermaid.initialize({
 
 ## Dark mode
 
-Plannotator handles dark/light via theme classes, not `prefers-color-scheme`. The standalone defaults above are the light theme. When embedded in raw HTML annotation mode (with the `plannotator-theme` meta opt-in), the active theme's tokens override automatically — no media query needed in the generated HTML.
+Hypermark handles dark/light via theme classes, not `prefers-color-scheme`. The standalone defaults above are the light theme. When embedded in raw HTML annotation mode (with the `plannotator-theme` meta opt-in), the active theme's tokens override automatically — no media query needed in the generated HTML.
 
-For standalone viewing, you may optionally add a `prefers-color-scheme: dark` block with the Plannotator dark theme values:
+For standalone viewing, you may optionally add a `prefers-color-scheme: dark` block with the Hypermark dark theme values:
 
 ```css
 @media (prefers-color-scheme: dark) {
@@ -157,7 +157,7 @@ For standalone viewing, you may optionally add a `prefers-color-scheme: dark` bl
 
 ## Depth tiers
 
-Visual-explainer defines depth tiers (hero, elevated, default, recessed). Map them using Plannotator tokens:
+Visual-explainer defines depth tiers (hero, elevated, default, recessed). Map them using Hypermark tokens:
 
 ```css
 /* Hero — elevated, accent-tinted */

@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM Plannotator Windows CMD Bootstrap Script
+REM Hypermark Windows CMD Bootstrap Script
 
 REM Parse command line arguments
 set "VERSION=latest"
@@ -23,7 +23,7 @@ set "EXTRAS_FLAG="
 set "MODEL_INVOCABLE_FLAG="
 set "NON_INTERACTIVE=0"
 set "RECONFIGURE=0"
-REM Binary-only mode. Installs just plannotator.exe and no persistent state
+REM Binary-only mode. Installs just hypermark.exe and no persistent state
 REM elsewhere. Set by --minimal (1) / --no-minimal (0); -1 = neither flag given
 REM (fall through to the PLANNOTATOR_MINIMAL env var, resolved after :args_done).
 set "MINIMAL_FLAG=-1"
@@ -182,12 +182,12 @@ if /i "!PLANNOTATOR_MINIMAL!"=="yes"  set "MINIMAL=1"
 if "!MINIMAL_FLAG!"=="1" set "MINIMAL=1"
 if "!MINIMAL_FLAG!"=="0" set "MINIMAL=0"
 
-set "REPO=backnotprop/plannotator"
+set "REPO=ahmadghoniem/Hypermark"
 set "SEM_REPO=Ataraxy-Labs/sem"
 set "SEM_VERSION=v0.8.0"
 set "INSTALL_DIR=%USERPROFILE%\.local\bin"
 
-REM First plannotator release that carries SLSA build-provenance attestations.
+REM First hypermark release that carries SLSA build-provenance attestations.
 REM See scripts/install.sh for the full explanation - this constant is
 REM bumped once at the first attested release via the release skill.
 set "MIN_ATTESTED_VERSION=v0.17.2"
@@ -263,7 +263,7 @@ if /i "%PROCESSOR_ARCHITEW6432%"=="AMD64"    set "PLATFORM=win32-x64"
 if /i "%PROCESSOR_ARCHITEW6432%"=="ARM64"    set "PLATFORM=win32-arm64"
 
 if "!PLATFORM!"=="" (
-    echo Plannotator does not support 32-bit Windows. >&2
+    echo Hypermark does not support 32-bit Windows. >&2
     exit /b 1
 )
 
@@ -335,7 +335,7 @@ if /i "!VERSION!"=="latest" (
     REM Download release info to a randomized temp file so concurrent
     REM invocations don't collide and a same-user pre-placed symlink at
     REM a predictable path can't redirect curl's output.
-    set "RELEASE_JSON=%TEMP%\plannotator-release-%RANDOM%.json"
+    set "RELEASE_JSON=%TEMP%\hypermark-release-%RANDOM%.json"
     curl -fsSL !GH_AUTH_HEADER! "https://api.github.com/repos/!REPO!/releases/latest" -o "!RELEASE_JSON!"
     REM A stale/revoked token (expired GITHUB_TOKEN lingering in CI images,
     REM dotfiles, direnv) gets a 401 here and would break an install that
@@ -345,7 +345,7 @@ if /i "!VERSION!"=="latest" (
     REM Note: install.sh / install.ps1 inspect the HTTP status and retry
     REM only on 401; capturing the status portably in batch is not worth the
     REM complexity, so cmd retries on any failure when a token was used - an
-    REM accepted cmd-only compromise. See backnotprop/plannotator#1157.
+    REM accepted cmd-only compromise. See ahmadghoniem/Hypermark#1157.
     REM Both ERRORLEVEL reads below sit immediately adjacent to the curl
     REM they test (only REM lines and a no-op if in between); the token
     REM clears deliberately come AFTER the failure check because `set` can
@@ -384,7 +384,7 @@ if /i "!VERSION!"=="latest" (
     if not "!TAG:~0,1!"=="v" set "TAG=v!TAG!"
 )
 
-echo Installing plannotator !TAG!...
+echo Installing hypermark !TAG!...
 
 REM Resolve SLSA build-provenance verification opt-in BEFORE the download so
 REM we can fail fast without wasting bandwidth if the requested tag predates
@@ -395,7 +395,7 @@ REM Layer 3: config file (lowest precedence of the opt-in sources).
 REM Unset PLANNOTATOR_DATA_DIR: an existing %USERPROFILE%\.plannotator
 REM (legacy default) always wins; otherwise an explicitly-set absolute
 REM XDG_DATA_HOME (rare on Windows but honored the same way as the runtime;
-REM drive-rooted or UNC) places the directory at XDG_DATA_HOME\plannotator;
+REM drive-rooted or UNC) places the directory at XDG_DATA_HOME\hypermark;
 REM otherwise %USERPROFILE%\.plannotator.
 if defined PLANNOTATOR_DATA_DIR (
     set "_CONFIG_DIR=!PLANNOTATOR_DATA_DIR!"
@@ -403,9 +403,9 @@ if defined PLANNOTATOR_DATA_DIR (
     set "_CONFIG_DIR=%USERPROFILE%\.plannotator"
     if not exist "%USERPROFILE%\.plannotator\" if defined XDG_DATA_HOME (
         if "!XDG_DATA_HOME:~1,1!"==":" (
-            set "_CONFIG_DIR=!XDG_DATA_HOME!\plannotator"
+            set "_CONFIG_DIR=!XDG_DATA_HOME!\hypermark"
         ) else if "!XDG_DATA_HOME:~0,2!"=="\\" (
-            set "_CONFIG_DIR=!XDG_DATA_HOME!\plannotator"
+            set "_CONFIG_DIR=!XDG_DATA_HOME!\hypermark"
         )
     )
 )
@@ -516,7 +516,7 @@ if "!VERIFY_ATTESTATION!"=="1" (
     for /f "delims=" %%i in ('powershell -NoProfile -Command "try { if ([version]$env:TAG_NUM -ge [version]$env:MIN_NUM) { 'yes' } } catch {}"') do set "VERSION_OK=%%i"
     if not "!VERSION_OK!"=="yes" (
         echo Provenance verification was requested, but !TAG! predates >&2
-        echo plannotator's attestation support. The first release carrying >&2
+        echo hypermark's attestation support. The first release carrying >&2
         echo signed build provenance is !MIN_ATTESTED_VERSION!. Options: >&2
         echo   - Pin to !MIN_ATTESTED_VERSION! or later: --version !MIN_ATTESTED_VERSION! >&2
         echo   - Install without provenance verification: --skip-attestation >&2
@@ -526,7 +526,7 @@ if "!VERIFY_ATTESTATION!"=="1" (
     )
 )
 
-set "BINARY_NAME=plannotator-!PLATFORM!.exe"
+set "BINARY_NAME=hypermark-!PLATFORM!.exe"
 set "BINARY_URL=https://github.com/!REPO!/releases/download/!TAG!/!BINARY_NAME!"
 set "CHECKSUM_URL=!BINARY_URL!.sha256"
 
@@ -535,7 +535,7 @@ REM don't collide and a same-user pre-placed symlink at a predictable
 REM path can't redirect where curl writes the downloaded executable.
 REM The SHA256 check would pass regardless (content is authentic), but
 REM the install destination would be corrupted.
-set "TEMP_FILE=%TEMP%\plannotator-%RANDOM%.exe"
+set "TEMP_FILE=%TEMP%\hypermark-%RANDOM%.exe"
 curl -fsSL "!BINARY_URL!" -o "!TEMP_FILE!"
 if !ERRORLEVEL! neq 0 (
     echo Failed to download binary >&2
@@ -545,7 +545,7 @@ if !ERRORLEVEL! neq 0 (
 
 REM Download checksum to a randomized temp path for the same reason as
 REM the binary download above (concurrent collision + symlink pre-placement).
-set "CHECKSUM_FILE=%TEMP%\plannotator-checksum-%RANDOM%.txt"
+set "CHECKSUM_FILE=%TEMP%\hypermark-checksum-%RANDOM%.txt"
 curl -fsSL "!CHECKSUM_URL!" -o "!CHECKSUM_FILE!"
 if !ERRORLEVEL! neq 0 (
     echo Failed to download checksum >&2
@@ -612,7 +612,7 @@ if "!VERIFY_ATTESTATION!"=="1" (
         REM nothing is re-parsed as code, and no helper file ever exists on
         REM disk. Exit codes: 0 = bundle written, 2 = fetch failed, 3 = no
         REM bundle extracted.
-        set "ATT_BUNDLE_FILE=%TEMP%\plannotator-bundle-%RANDOM%.jsonl"
+        set "ATT_BUNDLE_FILE=%TEMP%\hypermark-bundle-%RANDOM%.jsonl"
         set "ATT_DIGEST=!ACTUAL_CHECKSUM!"
         set "ATT_BUNDLE_OK=0"
         REM NOTE: the ATT_FALLBACK_REASON literals below are assigned inside
@@ -625,7 +625,7 @@ if "!VERIFY_ATTESTATION!"=="1" (
         ) else if !ERRORLEVEL! equ 3 (
             set "ATT_FALLBACK_REASON=Could not extract a bundle from the attestations API response"
         )
-        set "GH_OUTPUT=%TEMP%\plannotator-gh-%RANDOM%.txt"
+        set "GH_OUTPUT=%TEMP%\hypermark-gh-%RANDOM%.txt"
         set "ATT_USED_BUNDLE=0"
         if "!ATT_BUNDLE_OK!"=="1" (
             set "ATT_USED_BUNDLE=1"
@@ -633,7 +633,7 @@ if "!VERIFY_ATTESTATION!"=="1" (
                 --bundle "!ATT_BUNDLE_FILE!" ^
                 --repo "!REPO!" ^
                 --source-ref "refs/tags/!TAG!" ^
-                --signer-workflow "backnotprop/plannotator/.github/workflows/release.yml" ^
+                --signer-workflow "ahmadghoniem/Hypermark/.github/workflows/release.yml" ^
                 > "!GH_OUTPUT!" 2>&1
             if !ERRORLEVEL! neq 0 (
                 REM H1: a --bundle failure is not necessarily a provenance
@@ -647,7 +647,7 @@ if "!VERIFY_ATTESTATION!"=="1" (
                 gh attestation verify "!TEMP_FILE!" ^
                     --repo "!REPO!" ^
                     --source-ref "refs/tags/!TAG!" ^
-                    --signer-workflow "backnotprop/plannotator/.github/workflows/release.yml" ^
+                    --signer-workflow "ahmadghoniem/Hypermark/.github/workflows/release.yml" ^
                     > "!GH_OUTPUT!" 2>&1
             )
         ) else (
@@ -655,7 +655,7 @@ if "!VERIFY_ATTESTATION!"=="1" (
             gh attestation verify "!TEMP_FILE!" ^
                 --repo "!REPO!" ^
                 --source-ref "refs/tags/!TAG!" ^
-                --signer-workflow "backnotprop/plannotator/.github/workflows/release.yml" ^
+                --signer-workflow "ahmadghoniem/Hypermark/.github/workflows/release.yml" ^
                 > "!GH_OUTPUT!" 2>&1
         )
         if !ERRORLEVEL! neq 0 (
@@ -717,11 +717,11 @@ if "!VERIFY_ATTESTATION!"=="1" (
 )
 
 REM Install binary
-set "INSTALL_PATH=!INSTALL_DIR!\plannotator.exe"
+set "INSTALL_PATH=!INSTALL_DIR!\hypermark.exe"
 move /y "!TEMP_FILE!" "!INSTALL_PATH!" >nul
 
 echo.
-echo plannotator !TAG! installed to !INSTALL_PATH!
+echo hypermark !TAG! installed to !INSTALL_PATH!
 
 REM Binary-only mode stops here (see the MINIMAL resolution after :args_done):
 REM the binary is installed, so print PATH advice and exit before any sidecar
@@ -730,7 +730,7 @@ REM persistent state is written outside !INSTALL_DIR!.
 if "!MINIMAL!"=="1" (
     call :PrintPathAdvice
     echo.
-    echo Minimal install complete - only the plannotator binary was installed.
+    echo Minimal install complete - only the hypermark binary was installed.
     echo No skills, hooks, agent integrations, or config files were written.
     exit /b 0
 )
@@ -743,9 +743,9 @@ call :PrintPathAdvice
 
 REM Validate plugin hooks.json if plugin is already installed
 if defined CLAUDE_CONFIG_DIR (
-    set "PLUGIN_HOOKS=%CLAUDE_CONFIG_DIR%\plugins\marketplaces\plannotator\apps\hook\hooks\hooks.json"
+    set "PLUGIN_HOOKS=%CLAUDE_CONFIG_DIR%\plugins\marketplaces\hypermark\apps\hook\hooks\hooks.json"
 ) else (
-    set "PLUGIN_HOOKS=%USERPROFILE%\.claude\plugins\marketplaces\plannotator\apps\hook\hooks\hooks.json"
+    set "PLUGIN_HOOKS=%USERPROFILE%\.claude\plugins\marketplaces\hypermark\apps\hook\hooks\hooks.json"
 )
 if exist "!PLUGIN_HOOKS!" (
     REM Use full path so the hook works without PATH being set in the shell
@@ -794,7 +794,7 @@ REM name (/hypermark-review etc.), so no command files are written anymore.
 REM
 REM Install matrix (all copies verbatim, copy-if-present so older-tag pinned
 REM installs never fail when a source dir is absent):
-REM   %%USERPROFILE%%\.claude\skills            <- apps\skills\claude\* (3) + apps\skills\core\plannotator
+REM   %%USERPROFILE%%\.claude\skills            <- apps\skills\claude\* (3) + apps\skills\core\hypermark
 REM   %%USERPROFILE%%\.agents\skills            <- apps\skills\core\* (all 4)
 REM ----------------------------------------------------------------------
 
@@ -825,7 +825,7 @@ for %%J in (core extra) do (
 
 REM Extras are no longer managed in the Claude / shared-agent scopes. Remove
 REM previously default-installed copies ONCE per machine - recorded in the
-REM migrations ledger under the Plannotator data dir - because copies the user
+REM migrations ledger under the Hypermark data dir - because copies the user
 REM reinstalls via `npx skills add` are byte-identical to ours and can only be
 REM told apart by remembering that this cleanup already ran.
 if defined CLAUDE_CONFIG_DIR (
@@ -840,11 +840,11 @@ if not exist "!EXTRAS_MIGRATION!" (
     for %%S in (hypermark-compound hypermark-setup-goal hypermark-visual-explainer) do (
         if exist "!CLAUDE_SKILLS_DIR!\%%S" (
             rmdir /s /q "!CLAUDE_SKILLS_DIR!\%%S" >nul 2>&1
-            echo Removed extra Plannotator skill from !CLAUDE_SKILLS_DIR!\%%S ^(reinstall via npx skills add^)
+            echo Removed extra Hypermark skill from !CLAUDE_SKILLS_DIR!\%%S ^(reinstall via npx skills add^)
         )
         if exist "!AGENTS_SKILLS_DIR!\%%S" (
             rmdir /s /q "!AGENTS_SKILLS_DIR!\%%S" >nul 2>&1
-            echo Removed extra Plannotator skill from !AGENTS_SKILLS_DIR!\%%S ^(reinstall via npx skills add^)
+            echo Removed extra Hypermark skill from !AGENTS_SKILLS_DIR!\%%S ^(reinstall via npx skills add^)
         )
     )
     if not exist "!MIGRATIONS_DIR!" mkdir "!MIGRATIONS_DIR!" >nul 2>&1
@@ -853,7 +853,7 @@ if not exist "!EXTRAS_MIGRATION!" (
 
 REM --- Guided install (interactive consoles only) ---
 REM Mirrors install.sh: two questions (extras? model-invocable skills?),
-REM answers persisted to install-prefs in the Plannotator data dir and reused
+REM answers persisted to install-prefs in the Hypermark data dir and reused
 REM silently on re-runs. --reconfigure re-opens the wizard; --non-interactive
 REM forces silence. `set /p` returns empty at EOF, so redirected/CI runs fall
 REM through to the defaults without hanging. Flags win over everything.
@@ -930,15 +930,15 @@ if "!SKIP_SKILLS!"=="0" if "!EXTRAS_CHOICE!"=="yes" if "!EXTRAS_PRESENT!"=="0" (
     if !ERRORLEVEL! equ 0 if "!RUN_WIZARD!"=="1" set "NPX_OK=1"
     if "!NPX_OK!"=="1" (
         echo Launching the skills CLI for the extras ^(pick your agents in its UI^)...
-        call npx skills add backnotprop/plannotator/apps/skills/extra --global
-        if not !ERRORLEVEL! equ 0 echo skills CLI did not complete - install later with: npx skills add backnotprop/plannotator/apps/skills/extra --global
+        call npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global
+        if not !ERRORLEVEL! equ 0 echo skills CLI did not complete - install later with: npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global
     ) else (
-        echo Install the extras with: npx skills add backnotprop/plannotator/apps/skills/extra --global
+        echo Install the extras with: npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global
     )
 )
 
 REM File-copy installs require git (sparse checkout). Hard requirement: without
-REM git we cannot install the /plannotator-* skills, so fail loudly instead of
+REM git we cannot install the /hypermark-* skills, so fail loudly instead of
 REM leaving a partial install. Hook/config writing above has already run.
 REM
 REM Skills/commands opt-out (--skip-skills / PLANNOTATOR_SKIP_SKILLS_INSTALL /
@@ -950,23 +950,23 @@ if "!SKIP_SKILLS!"=="1" (
     echo.
     echo Skills: skipped ^(!SKIP_SKILLS_SOURCE!^).
     echo No skills or slash commands were fetched, and none already installed
-    echo were changed or removed. The /plannotator-* commands are NOT installed
+    echo were changed or removed. The /hypermark-* commands are NOT installed
     echo by this run - re-run without the opt-out to install them.
 ) else (
     where git >nul 2>&1
     if not !ERRORLEVEL! equ 0 (
-        echo Error: git is required to install Plannotator's skills and slash commands. 1>&2
+        echo Error: git is required to install Hypermark's skills and slash commands. 1>&2
         echo Install git, then run this installer again. 1>&2
         echo To install without them, re-run with --skip-skills. 1>&2
         exit /b 1
     )
 )
 set "CHECKOUT_FAILED=0"
-set "SKILLS_TMP=%TEMP%\plannotator-skills-%RANDOM%"
+set "SKILLS_TMP=%TEMP%\hypermark-skills-%RANDOM%"
 REM git's stderr is captured OUTSIDE SKILLS_TMP (which is removed before the
 REM failure message prints) so a failed clone can show the real git error
 REM (#1238) instead of only the generic "network or git error" line.
-set "GIT_ERR_FILE=%TEMP%\plannotator-git-stderr-%RANDOM%.txt"
+set "GIT_ERR_FILE=%TEMP%\hypermark-git-stderr-%RANDOM%.txt"
 mkdir "!SKILLS_TMP!" >nul 2>&1
 
 REM Opt-out: jump past the clone so no network call is made and
@@ -1011,8 +1011,8 @@ if "!CLONE_OK!"=="1" (
     pushd "!SKILLS_TMP!\repo"
     if "!SPARSE_CLONE!"=="1" git sparse-checkout set apps/skills >nul 2>&1
 
-    REM Claude Code reads apps\skills\claude\* (injection `!`plannotator ... $ARGUMENTS``
-    REM + allowed-tools, so /plannotator-* run with no permission prompt); the
+    REM Claude Code reads apps\skills\claude\* (injection `!`hypermark ... $ARGUMENTS``
+    REM + allowed-tools, so /hypermark-* run with no permission prompt); the
     REM shared-agent scope reads apps\skills\core\* (prose). The `!`...`` injection
     REM is Claude-Code-only, so the two are sourced separately and are NOT
     REM interchangeable. Replace on each run.
@@ -1024,17 +1024,17 @@ if "!CLONE_OK!"=="1" (
                 xcopy /s /i /y /q "apps\skills\claude\%%S" "!CLAUDE_SKILLS_DIR!\%%S\" >nul 2>&1
             )
         )
-        REM The plannotator knowledge skill (CLI reference) has no Claude-only
+        REM The hypermark knowledge skill (CLI reference) has no Claude-only
         REM injection form, so Claude installs the single-sourced core copy.
-        if exist "apps\skills\core\plannotator" (
-            if exist "!CLAUDE_SKILLS_DIR!\plannotator" rmdir /s /q "!CLAUDE_SKILLS_DIR!\plannotator" >nul 2>&1
-            xcopy /s /i /y /q "apps\skills\core\plannotator" "!CLAUDE_SKILLS_DIR!\plannotator\" >nul 2>&1
+        if exist "apps\skills\core\hypermark" (
+            if exist "!CLAUDE_SKILLS_DIR!\hypermark" rmdir /s /q "!CLAUDE_SKILLS_DIR!\hypermark" >nul 2>&1
+            xcopy /s /i /y /q "apps\skills\core\hypermark" "!CLAUDE_SKILLS_DIR!\hypermark\" >nul 2>&1
         )
         echo Installed Claude Code skills to !CLAUDE_SKILLS_DIR!\
     )
     if exist "apps\skills\core" (
         if not exist "!AGENTS_SKILLS_DIR!" mkdir "!AGENTS_SKILLS_DIR!"
-        for %%S in (hypermark-review hypermark-annotate hypermark-last plannotator) do (
+        for %%S in (hypermark-review hypermark-annotate hypermark-last hypermark) do (
             if exist "apps\skills\core\%%S" (
                 REM Replace rather than merge so files removed upstream don't linger.
                 if exist "!AGENTS_SKILLS_DIR!\%%S" rmdir /s /q "!AGENTS_SKILLS_DIR!\%%S" >nul 2>&1
@@ -1122,16 +1122,16 @@ if "!SKIP_SKILLS!"=="0" if defined INVOCABLE_CHOICE if not "!INVOCABLE_CHOICE!"=
 
 echo.
 echo Test the install:
-echo   echo {"tool_input":{"plan":"# Test Plan\\n\\nHello world"}} ^| plannotator
+echo   echo {"tool_input":{"plan":"# Test Plan\\n\\nHello world"}} ^| hypermark
 echo.
 echo Then install the Claude Code plugin:
-echo   /plugin marketplace add backnotprop/plannotator
-echo   /plugin install plannotator@plannotator
+echo   /plugin marketplace add ahmadghoniem/Hypermark
+echo   /plugin install hypermark@hypermark
 echo.
 echo Upgrading from an older version? Also run /plugin marketplace update
-echo so the plugin drops its old plannotator:* command entries.
+echo so the plugin drops its old hypermark:* command entries.
 echo.
-REM Never claim the /plannotator-* skills are ready when nothing was installed -
+REM Never claim the /hypermark-* skills are ready when nothing was installed -
 REM that false banner is exactly what the skills-checkout guard exists to prevent.
 if "!SKIP_SKILLS!"=="1" (
     echo Skills were skipped ^(!SKIP_SKILLS_SOURCE!^), so the /hypermark-review,
@@ -1143,10 +1143,10 @@ if "!SKIP_SKILLS!"=="1" (
 if "!SKIP_SKILLS!"=="0" if not "!EXTRAS_CHOICE!"=="yes" (
     echo.
     echo Optional skills ^(compound planning, setup-goal, visual explainer^):
-    echo   npx skills add backnotprop/plannotator/apps/skills/extra --global
+    echo   npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global
 )
 
-REM Warn if plannotator is configured in both settings.json hooks AND the plugin (causes double execution)
+REM Warn if hypermark is configured in both settings.json hooks AND the plugin (causes double execution)
 REM Only warn when the plugin is installed - manual-only users won't have overlap
 if defined CLAUDE_CONFIG_DIR (
     set "CLAUDE_SETTINGS=%CLAUDE_CONFIG_DIR%\settings.json"
@@ -1154,16 +1154,16 @@ if defined CLAUDE_CONFIG_DIR (
     set "CLAUDE_SETTINGS=%USERPROFILE%\.claude\settings.json"
 )
 if exist "!PLUGIN_HOOKS!" if exist "!CLAUDE_SETTINGS!" (
-    findstr /r /c:"\"command\".*plannotator" "!CLAUDE_SETTINGS!" >nul 2>&1
+    findstr /r /c:"\"command\".*hypermark" "!CLAUDE_SETTINGS!" >nul 2>&1
     if !ERRORLEVEL! equ 0 (
         echo.
         echo WARNING: DUPLICATE HOOK DETECTED
         echo.
-        echo   plannotator was found in your settings.json hooks:
+        echo   hypermark was found in your settings.json hooks:
         echo   !CLAUDE_SETTINGS!
         echo.
-        echo   This will cause plannotator to run TWICE on each plan review.
-        echo   Remove the plannotator hook from settings.json and rely on the
+        echo   This will cause hypermark to run TWICE on each plan review.
+        echo   Remove the hypermark hook from settings.json and rely on the
         echo   plugin instead ^(installed automatically via marketplace^).
         echo.
     )
@@ -1192,11 +1192,11 @@ if !ERRORLEVEL! neq 0 (
     echo   set PATH=%%PATH%%;!INSTALL_DIR!
 )
 echo.
-echo To uninstall later: plannotator uninstall
+echo To uninstall later: hypermark uninstall
 goto :eof
 
 REM ======================================================================
-REM Optional annotate agent terminal runtime install. Non-fatal: Plannotator
+REM Optional annotate agent terminal runtime install. Non-fatal: Hypermark
 REM remains installed if Node/npm or npm install is unavailable.
 REM ======================================================================
 :InstallAgentTerminalRuntime
@@ -1215,7 +1215,7 @@ if /i "!PLANNOTATOR_SKIP_AGENT_TERMINAL_INSTALL!"=="yes" (
 
 "!INSTALL_PATH!" install-runtime agent-terminal
 if !ERRORLEVEL! neq 0 (
-    echo Skipping agent terminal runtime install ^(plannotator install-runtime failed^)
+    echo Skipping agent terminal runtime install ^(hypermark install-runtime failed^)
 )
 goto :eof
 
@@ -1226,7 +1226,7 @@ REM install in-app. Non-fatal when the opt-in install fails.
 REM ======================================================================
 :InstallCallFlowRuntime
 if not "!INSTALL_CALL_FLOW!"=="1" (
-    echo Call-flow analysis: available as an in-app opt-in install ^(enable Call flow in review Settings^), or run: plannotator install-runtime call-flow
+    echo Call-flow analysis: available as an in-app opt-in install ^(enable Call flow in review Settings^), or run: hypermark install-runtime call-flow
     goto :eof
 )
 
@@ -1237,7 +1237,7 @@ if !ERRORLEVEL! neq 0 (
 goto :eof
 
 REM ======================================================================
-REM Optional semantic diff sidecar install. Non-fatal: Plannotator remains
+REM Optional semantic diff sidecar install. Non-fatal: Hypermark remains
 REM installed if sem download, checksum, or extraction fails.
 REM ======================================================================
 :InstallSemSidecar
@@ -1272,13 +1272,13 @@ if exist "!SEM_PATH!" (
 )
 
 set "SEM_BASE_URL=https://github.com/!SEM_REPO!/releases/download/!SEM_VERSION!"
-set "SEM_ARCHIVE=%TEMP%\plannotator-sem-%RANDOM%.zip"
-set "SEM_CHECKSUMS=%TEMP%\plannotator-sem-checksums-%RANDOM%.txt"
-set "SEM_EXTRACT=%TEMP%\plannotator-sem-%RANDOM%"
+set "SEM_ARCHIVE=%TEMP%\hypermark-sem-%RANDOM%.zip"
+set "SEM_CHECKSUMS=%TEMP%\hypermark-sem-checksums-%RANDOM%.txt"
+set "SEM_EXTRACT=%TEMP%\hypermark-sem-%RANDOM%"
 mkdir "!SEM_EXTRACT!" >nul 2>&1
 
 REM Bounded so a slow/hung download of this optional sidecar can't wedge an
-REM install where plannotator already landed. Opt out with PLANNOTATOR_SKIP_SEM_INSTALL=1.
+REM install where hypermark already landed. Opt out with PLANNOTATOR_SKIP_SEM_INSTALL=1.
 curl -fsSL --connect-timeout 10 --max-time 120 "!SEM_BASE_URL!/!SEM_ASSET!" -o "!SEM_ARCHIVE!"
 if !ERRORLEVEL! neq 0 (
     echo Skipping semantic diff sidecar install ^(download failed^)
@@ -1347,7 +1347,7 @@ REM ======================================================================
 :guided_wizard
 echo.
 echo ==========================================
-echo   PLANNOTATOR GUIDED INSTALL
+echo   HYPERMARK GUIDED INSTALL
 echo ==========================================
 echo.
 if "!EXTRAS_PRESENT!"=="1" (

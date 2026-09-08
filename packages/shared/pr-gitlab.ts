@@ -718,7 +718,7 @@ export async function submitGlMRReview(
           JSON.stringify({ ref, headSha, baseSha, startSha, errors, failedComments: failed }, null, 2),
         );
       } catch (writeErr) {
-        console.error(`[plannotator] Failed to persist unposted comments: ${writeErr instanceof Error ? writeErr.message : String(writeErr)}`);
+        console.error(`[hypermark] Failed to persist unposted comments: ${writeErr instanceof Error ? writeErr.message : String(writeErr)}`);
       }
       recoveryFile = savedTo ?? undefined;
       const suffix = savedTo ? ` (unposted bodies saved to ${savedTo})` : "";
@@ -735,7 +735,7 @@ export async function submitGlMRReview(
       // approval request, then return the exact safe retry instead of making
       // callers infer that replaying the original review is safe.
       console.error(
-        `[plannotator] ${errors.length}/${fileComments.length} inline comments failed${suffix}:\n${errors.join("\n")}`,
+        `[hypermark] ${errors.length}/${fileComments.length} inline comments failed${suffix}:\n${errors.join("\n")}`,
       );
     }
   }

@@ -1,5 +1,5 @@
 /**
- * Test script for Plannotator server
+ * Test script for Hypermark server
  *
  * Usage:
  *   bun run tests/manual/test-server.ts [origin]
@@ -22,7 +22,7 @@ const origin = process.argv[2] || "claude-code";
 const plan = `# Test Plan: Sample Feature
 
 ## Overview
-This is a sample plan for testing the Plannotator UI.
+This is a sample plan for testing the Hypermark UI.
 
 ## Implementation
 
@@ -38,7 +38,7 @@ function hello() {
 - [x] Step 3
 `;
 
-console.error(`Starting Plannotator server with origin: ${origin}`);
+console.error(`Starting Hypermark server with origin: ${origin}`);
 
 const server = await startHypermarkServer({
   plan,

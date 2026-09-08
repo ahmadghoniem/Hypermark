@@ -11,9 +11,9 @@ body:
   - type: input
     id: version
     attributes:
-      label: Plannotator version
-      description: Paste the output of `plannotator --version`
-      placeholder: plannotator 0.24.1
+      label: Hypermark version
+      description: Paste the output of `hypermark --version`
+      placeholder: hypermark 0.24.1
     validations:
       required: true
   - type: dropdown
@@ -31,7 +31,7 @@ body:
     id: agent
     attributes:
       label: Agent
-      description: Which coding agent were you using Plannotator with?
+      description: Which coding agent were you using Hypermark with?
       options:
         - Claude Code
         - OpenCode

@@ -1,6 +1,6 @@
 # Testing SSH Remote Support with Docker
 
-This setup creates a Docker container with SSH server to test Plannotator's SSH remote session detection.
+This setup creates a Docker container with SSH server to test Hypermark's SSH remote session detection.
 
 ## Build and Run
 

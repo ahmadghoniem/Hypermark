@@ -1,9 +1,9 @@
 ---
-name: release-plannotator
-description: Prepare and execute a Plannotator release — draft release notes with full contributor credit, bump versions across all package files, build in dependency order, and kick off the tag-driven release pipeline. Use this skill whenever the user mentions preparing a release, bumping versions, writing release notes, tagging a release, or publishing. Also trigger when the user says things like "let's ship", "prep a release", "what's changed since last release", or "time to cut a new version".
+name: release-hypermark
+description: Prepare and execute a Hypermark release — draft release notes with full contributor credit, bump versions across all package files, build in dependency order, and kick off the tag-driven release pipeline. Use this skill whenever the user mentions preparing a release, bumping versions, writing release notes, tagging a release, or publishing. Also trigger when the user says things like "let's ship", "prep a release", "what's changed since last release", or "time to cut a new version".
 ---
 
-# Plannotator Release
+# Hypermark Release
 
 The process has four phases. Phase 1 (release notes) is where most of the work happens — present the draft for review before proceeding to later phases.
 
@@ -37,10 +37,10 @@ Use the GitHub API via `gh`:
 gh issue view <number> --json author,title,body
 
 # Get issue comments to find participants
-gh api repos/backnotprop/plannotator/issues/<number>/comments --jq '.[].user.login'
+gh api repos/ahmadghoniem/Hypermark/issues/<number>/comments --jq '.[].user.login'
 
 # Get PR review comments
-gh api repos/backnotprop/plannotator/pulls/<number>/comments --jq '.[].user.login'
+gh api repos/ahmadghoniem/Hypermark/pulls/<number>/comments --jq '.[].user.login'
 ```
 
 ### Step 3: Write the release notes
@@ -94,7 +94,7 @@ Write the file to the repo root as `RELEASE_NOTES_v<VERSION>.md`.
 
 8. **Full Changelog link**:
    ```
-   **Full Changelog**: https://github.com/backnotprop/plannotator/compare/<prev-tag>...<new-tag>
+   **Full Changelog**: https://github.com/ahmadghoniem/Hypermark/compare/<prev-tag>...<new-tag>
    ```
 
 #### Writing guidelines
@@ -187,7 +187,7 @@ Verify all builds succeed before proceeding.
    Verify:
    - All jobs pass, including `release-security`, `attest`, `release`, and `npm-publish`
    - `release-security-evidence` records the Syft/Grype versions, active database schema/build/checksum/update status, all Grype matches, and an `ACCEPT` policy decision
-   - The GitHub Release was created with all binary artifacts, SHA256 sidecars, the versioned `plannotator-X.Y.Z-release-sbom.cdx.json`, and its `.sha256` sidecar
+   - The GitHub Release was created with all binary artifacts, SHA256 sidecars, the versioned `hypermark-X.Y.Z-release-sbom.cdx.json`, and its `.sha256` sidecar
 
    A pull request proves generation, schema/sentinel validation, database policy, Grype evaluation, least-privilege job wiring, and all report artifacts. GitHub OIDC issuance, publication to the artifact-attestation service, and final release-asset publication only run for a real eligible `v*` tag. For the first release after this control lands, complete this bounded tag-only verification before calling the rollout complete:
 
@@ -196,20 +196,20 @@ Verify all builds succeed before proceeding.
    ```bash
    tag=vX.Y.Z
    version="${tag#v}"
-   gh release download "$tag" --pattern 'plannotator-linux-x64*' --pattern "plannotator-${version}-release-sbom.cdx.json*" --dir /tmp/plannotator-release-verify
-   (cd /tmp/plannotator-release-verify && sha256sum --check plannotator-linux-x64.sha256)
-   (cd /tmp/plannotator-release-verify && sha256sum --check "plannotator-${version}-release-sbom.cdx.json.sha256")
+   gh release download "$tag" --pattern 'hypermark-linux-x64*' --pattern "plannotator-${version}-release-sbom.cdx.json*" --dir /tmp/hypermark-release-verify
+   (cd /tmp/hypermark-release-verify && sha256sum --check hypermark-linux-x64.sha256)
+   (cd /tmp/hypermark-release-verify && sha256sum --check "plannotator-${version}-release-sbom.cdx.json.sha256")
 
-   gh attestation verify /tmp/plannotator-release-verify/plannotator-linux-x64 \
-     --repo backnotprop/plannotator \
+   gh attestation verify /tmp/hypermark-release-verify/hypermark-linux-x64 \
+     --repo ahmadghoniem/Hypermark \
      --source-ref "refs/tags/$tag" \
-     --signer-workflow backnotprop/plannotator/.github/workflows/release.yml \
+     --signer-workflow ahmadghoniem/Hypermark/.github/workflows/release.yml \
      --predicate-type https://slsa.dev/provenance/v1
 
-   gh attestation verify /tmp/plannotator-release-verify/plannotator-linux-x64 \
-     --repo backnotprop/plannotator \
+   gh attestation verify /tmp/hypermark-release-verify/hypermark-linux-x64 \
+     --repo ahmadghoniem/Hypermark \
      --source-ref "refs/tags/$tag" \
-     --signer-workflow backnotprop/plannotator/.github/workflows/release.yml \
+     --signer-workflow ahmadghoniem/Hypermark/.github/workflows/release.yml \
      --predicate-type https://cyclonedx.org/bom
    ```
 

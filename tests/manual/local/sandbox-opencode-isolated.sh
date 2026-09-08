@@ -1,12 +1,12 @@
 #!/bin/bash
-# One-command isolated OpenCode sandbox for Plannotator local development.
+# One-command isolated OpenCode sandbox for Hypermark local development.
 #
 # Usage:
 #   ./tests/manual/local/sandbox-opencode-isolated.sh [sandbox-opencode.sh options]
 #
 # Defaults:
 #   - isolated HOME/XDG/Bun cache dirs
-#   - forced Plannotator CLI bridge runtime
+#   - forced Hypermark CLI bridge runtime
 #   - OpenCode sharing disabled
 #
 # Examples:

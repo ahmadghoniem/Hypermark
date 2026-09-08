@@ -1,9 +1,9 @@
 #!/bin/bash
-# End-to-end Codex Stop-hook test harness for Plannotator.
+# End-to-end Codex Stop-hook test harness for Hypermark.
 #
 # Creates a disposable HOME and sample workspace, enables Codex hooks there,
 # runs a real `codex exec` plan-only prompt, and leaves behind artifacts that
-# make it easy to inspect rollout files, Plannotator history, and active URLs.
+# make it easy to inspect rollout files, Hypermark history, and active URLs.
 #
 # Usage:
 #   ./tests/manual/local/test-codex-plan-review-e2e.sh [--keep] [--detach] [--setup-only]
@@ -16,7 +16,7 @@ usage() {
   cat <<'EOF'
 Usage: ./tests/manual/local/test-codex-plan-review-e2e.sh [options]
 
-Runs a real Codex exec in a disposable HOME/workspace with Plannotator Stop hooks enabled.
+Runs a real Codex exec in a disposable HOME/workspace with Hypermark Stop hooks enabled.
 
 Options:
   --keep              Keep the sandbox directory after exit
@@ -216,7 +216,7 @@ cat > "$TEMP_HOME/.codex/hooks.json" <<'EOF'
         "hooks": [
           {
             "type": "command",
-            "command": "plannotator",
+            "command": "hypermark",
             "timeout": 345600
           }
         ]
@@ -226,7 +226,7 @@ cat > "$TEMP_HOME/.codex/hooks.json" <<'EOF'
 }
 EOF
 
-cat > "$BIN_DIR/plannotator" <<EOF
+cat > "$BIN_DIR/hypermark" <<EOF
 #!/bin/sh
 export PATH="$(dirname "$BUN_BIN"):\$PATH"
 payload_file="$ARTIFACTS_DIR/hook-payload.\$\$.\$(date +%s).json"
@@ -240,7 +240,7 @@ cat > "\$payload_file"
 } >> "$ARTIFACTS_DIR/plannotator-hook-events.log"
 PLANNOTATOR_DEBUG=1 exec "$BUN_BIN" run "$PROJECT_ROOT/apps/hook/server/index.ts" "\$@" < "\$payload_file" 2>> "$ARTIFACTS_DIR/plannotator-hook.stderr.log"
 EOF
-chmod +x "$BIN_DIR/plannotator"
+chmod +x "$BIN_DIR/hypermark"
 
 cat > "$WORKSPACE_DIR/package.json" <<'EOF'
 {
@@ -399,7 +399,7 @@ if [[ "$DETACH" == "true" ]]; then
   echo "Metadata:     $METADATA_FILE"
   echo
   echo "To inspect active Plannotator sessions inside the sandbox:"
-  echo "  HOME=\"$TEMP_HOME\" PATH=\"$BIN_DIR:\$PATH\" plannotator sessions"
+  echo "  HOME=\"$TEMP_HOME\" PATH=\"$BIN_DIR:\$PATH\" hypermark sessions"
   exit 0
 fi
 

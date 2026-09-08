@@ -1,11 +1,11 @@
 #!/bin/bash
-# Test script to run Plannotator against all plans in ~/.claude/plans
+# Test script to run Hypermark against all plans in ~/.claude/plans
 #
 # Usage:
 #   ./test-bulk-plans.sh
 #
 # For each plan file:
-#   1. Launches Plannotator server with that plan
+#   1. Launches Hypermark server with that plan
 #   2. Opens browser for you to review
 #   3. After approve/deny, moves to next plan
 #
@@ -17,7 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 PLANS_DIR="$HOME/.claude/plans"
 
-echo "=== Plannotator Bulk Plan Test ==="
+echo "=== Hypermark Bulk Plan Test ==="
 echo ""
 
 # Check plans directory exists

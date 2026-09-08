@@ -40,7 +40,7 @@ The most common callout pattern on GitHub is a Note or Warning with a bulleted l
 
 The reader links `@alice` and `#42` based on whether the current repo has a slash-shaped name (org/repo). That assumption is fine for GitHub but wrong for GitLab, Bitbucket, Azure DevOps, or self-hosted forges — all of which use the same `group/project` shape.
 
-For a team running Plannotator inside a GitLab repo, every reference like @bob, @carol, or #123, #456 generates a link pointing at `github.com/bob` or `github.com/group/project/issues/123` — wrong destination.
+For a team running Hypermark inside a GitLab repo, every reference like @bob, @carol, or #123, #456 generates a link pointing at `github.com/bob` or `github.com/group/project/issues/123` — wrong destination.
 
 **Impact:** non-GitHub teams see broken links on every mention throughout every plan.
 
@@ -57,7 +57,7 @@ See the <a href="https://tanstack.com/table/v8/docs">TanStack docs</a> for sort/
 
 </details>
 
-Click any link above to reproduce — the whole Plannotator session disappears, the back button restores it but any unsaved state is lost.
+Click any link above to reproduce — the whole Hypermark session disappears, the back button restores it but any unsaved state is lost.
 
 **Security-adjacent note:** this also opens a tab-nabbing vector if the pasted HTML ever comes from an untrusted source. The opened page gets a live reference back to the Plannotator tab and can redirect it. Scheduled for fix alongside this.
 

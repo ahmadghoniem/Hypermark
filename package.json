@@ -1,20 +1,20 @@
 {
-  "name": "plannotator",
+  "name": "hypermark",
   "version": "0.27.12",
   "private": true,
   "description": "Interactive Plan Review for Claude Code - annotate plans visually, share with team, automatically send feedback",
-  "author": "backnotprop",
+  "author": "ahmadghoniem",
   "license": "MIT OR Apache-2.0",
   "bin": {
-    "plannotator": "bin/plannotator.js"
+    "hypermark": "bin/hypermark.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/backnotprop/plannotator.git"
+    "url": "git+https://github.com/ahmadghoniem/Hypermark.git"
   },
-  "homepage": "https://github.com/backnotprop/plannotator",
+  "homepage": "https://github.com/ahmadghoniem/Hypermark",
   "bugs": {
-    "url": "https://github.com/backnotprop/plannotator/issues"
+    "url": "https://github.com/ahmadghoniem/Hypermark/issues"
   },
   "workspaces": [
     "apps/*",

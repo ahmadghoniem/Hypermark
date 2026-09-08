@@ -1,7 +1,7 @@
 /**
  * Feedback Archive — durable local storage of every submitted review.
  *
- * Plannotator's decision paths hand the user's feedback to the invoking agent
+ * Hypermark's decision paths hand the user's feedback to the invoking agent
  * and then forget it: code review persisted nothing at all, plan decisions
  * only landed in `plans/` while the client-side planSave setting was on (and
  * overwrote the previous decision for the same slug), and the annotate
@@ -19,7 +19,7 @@
  * users grep it; it is written only for records that carry content (a bare
  * approval or a dismissal is a decision-only line).
  *
- * SHARED INDEX, not a Plannotator-private store. Several tools that share this
+ * SHARED INDEX, not a Hypermark-private store. Several tools that share this
  * data dir append to the SAME `feedback/{project}/index.jsonl`, distinguished
  * by the `client` field on every line rather than by separate files. Known
  * writers: `plannotator` (this module) and `plannotator-tui`, the Rust
@@ -449,7 +449,7 @@ export function appendFeedbackRecord(input: FeedbackArchiveInput): string | null
     return indexPath;
   } catch (error) {
     console.error(
-      `[plannotator] warning: could not archive submitted feedback (${error instanceof Error ? error.message : String(error)}); keeping the annotation draft as the recovery copy`,
+      `[hypermark] warning: could not archive submitted feedback (${error instanceof Error ? error.message : String(error)}); keeping the annotation draft as the recovery copy`,
     );
     return null;
   }

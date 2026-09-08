@@ -94,12 +94,12 @@ export async function isWSL(): Promise<boolean> {
  */
 export function shouldTryRemoteBrowserFallback(isRemote: boolean): boolean {
   if (!isRemote) return false;
-  const plannotatorBrowser = process.env.PLANNOTATOR_BROWSER;
+  const hypermarkBrowser = process.env.PLANNOTATOR_BROWSER;
   const browser = process.env.BROWSER;
   // Treat headless sentinels (e.g. BROWSER=true from Claude Code's agent view)
   // as if no real browser handler were configured, so the IPC fallback still runs.
   const hasRealHandler =
-    (plannotatorBrowser && !isNoOpBrowserSentinel(plannotatorBrowser)) ||
+    (hypermarkBrowser && !isNoOpBrowserSentinel(hypermarkBrowser)) ||
     (browser && !isNoOpBrowserSentinel(browser));
   return !hasRealHandler;
 }
@@ -192,11 +192,11 @@ export async function openBrowser(
   try {
     const rawHypermarkBrowser = process.env.PLANNOTATOR_BROWSER;
     const rawBrowser = process.env.BROWSER;
-    const plannotatorBrowser = isNoOpBrowserSentinel(rawHypermarkBrowser)
+    const hypermarkBrowser = isNoOpBrowserSentinel(rawHypermarkBrowser)
       ? undefined
       : rawHypermarkBrowser;
     const envBrowser = isNoOpBrowserSentinel(rawBrowser) ? undefined : rawBrowser;
-    const browser = plannotatorBrowser || envBrowser;
+    const browser = hypermarkBrowser || envBrowser;
     const isRemote = options?.isRemote ?? false;
     if (shouldTryRemoteBrowserFallback(isRemote)) {
       const openedViaIpc = await tryVscodeIpc(url);
@@ -216,14 +216,14 @@ export async function openBrowser(
     const wsl = await isWSL();
 
     if (browser) {
-      if (plannotatorBrowser && platform === "darwin") {
-        if (plannotatorBrowser.includes("/") && !plannotatorBrowser.endsWith(".app")) {
-          await $`${plannotatorBrowser} ${url}`.quiet();
+      if (hypermarkBrowser && platform === "darwin") {
+        if (hypermarkBrowser.includes("/") && !hypermarkBrowser.endsWith(".app")) {
+          await $`${hypermarkBrowser} ${url}`.quiet();
         } else {
-          await $`open -a ${plannotatorBrowser} ${url}`.quiet();
+          await $`open -a ${hypermarkBrowser} ${url}`.quiet();
         }
-      } else if ((platform === "win32" || wsl) && plannotatorBrowser) {
-        await $`cmd.exe /c start "" ${plannotatorBrowser} ${url}`.quiet();
+      } else if ((platform === "win32" || wsl) && hypermarkBrowser) {
+        await $`cmd.exe /c start "" ${hypermarkBrowser} ${url}`.quiet();
       } else {
         await $`${browser} ${url}`.quiet();
       }

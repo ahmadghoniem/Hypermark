@@ -74,7 +74,7 @@ async function reservePort(): Promise<number> {
   return port;
 }
 
-/** Spawn `plannotator opencode-review` with the given stdin, read the advert
+/** Spawn `hypermark opencode-review` with the given stdin, read the advert
  *  off /api/diff, dismiss the session, and return the served advert plus the
  *  CLI's final decision record. */
 async function runBridgeReview(stdinJson: object): Promise<{
