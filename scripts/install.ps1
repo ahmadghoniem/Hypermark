@@ -182,19 +182,22 @@ $verifyAttestationResolved = $false
 $installCallFlowResolved = $false
 
 # Layer 3: config file (lowest precedence of the opt-in sources).
-# Unset HYPERMARK_DATA_DIR: an existing ~/.plannotator (legacy default)
-# always wins; otherwise an explicitly-set absolute XDG_DATA_HOME (rare on
-# Windows but honored the same way as the runtime) places the directory at
-# $XDG_DATA_HOME\hypermark; otherwise ~/.plannotator.
+# Unset HYPERMARK_DATA_DIR: an existing ~/.hypermark always wins, so an
+# install never relocates itself; otherwise an explicitly-set absolute
+# XDG_DATA_HOME (rare on Windows but honored the same way as the runtime)
+# places the directory at $XDG_DATA_HOME\hypermark; otherwise ~/.hypermark.
+# A fresh root (spec 06, decision D5): Hypermark starts at ~/.hypermark and
+# never probes ~/.plannotator, so an existing Plannotator install keeps its
+# plans, drafts and config exactly where they are.
 $configDir = if ($env:HYPERMARK_DATA_DIR) { $env:HYPERMARK_DATA_DIR.Trim() } else {
-    $legacyDir = Join-Path $env:USERPROFILE ".plannotator"
+    $defaultDir = Join-Path $env:USERPROFILE ".hypermark"
     $xdgDataHome = if ($env:XDG_DATA_HOME) { $env:XDG_DATA_HOME.Trim() } else { "" }
-    if (Test-Path $legacyDir) {
-        $legacyDir
+    if (Test-Path $defaultDir) {
+        $defaultDir
     } elseif ($xdgDataHome -and [System.IO.Path]::IsPathRooted($xdgDataHome)) {
         Join-Path $xdgDataHome "hypermark"
     } else {
-        $legacyDir
+        $defaultDir
     }
 }
 if ($configDir -eq "~") {
@@ -591,7 +594,7 @@ if ($verifyAttestationResolved) {
     }
 } else {
     Write-Host "SHA256 verified. For build provenance verification, see"
-    Write-Host "https://docs.plannotator.ai/open-source/start/installation#pin-or-verify-a-release"
+    Write-Host "https://github.com/ahmadghoniem/Hypermark/releases"
 }
 
 Move-Item -Force $tmpFile "$installDir\hypermark.exe"
@@ -673,7 +676,6 @@ if (Test-Path $pluginHooks) {
     Write-Host "Updated plugin hooks at $pluginHooks"
 }
 
-Remove-Item -Recurse -Force "$env:USERPROFILE\.bun\install\cache\@plannotator" -ErrorAction SilentlyContinue
 
 # Aggressive cleanup of stale install locations from prior versions.
 # Echo each removal and ignore anything that is already gone.
@@ -1097,18 +1099,6 @@ foreach ($cmd in @("hypermark-review", "hypermark-annotate", "hypermark-last")) 
     if ((Test-Path $skillPath) -and (Test-Path $cmdPath)) {
         Write-Host "Removing stale Claude command $cmdPath (replaced by the $cmd skill)"
         Remove-Item -Force $cmdPath -ErrorAction SilentlyContinue
-    }
-}
-
-# plannotator-archive no longer ships as a skill. Remove any stale installed
-# copy from every skill scope so upgraders don't keep a dead skill around.
-foreach ($scope in @($claudeSkillsDir, $agentsSkillsDir)) {
-    # A skills opt-out leaves every skill scope untouched, sweep included.
-    if ($skipSkillsResolved) { continue }
-    $staleArchivePath = Join-Path $scope "plannotator-archive"
-    if (Test-Path $staleArchivePath) {
-        Write-Host "Removing stale plannotator-archive skill $staleArchivePath"
-        Remove-Item -Recurse -Force $staleArchivePath -ErrorAction SilentlyContinue
     }
 }
 

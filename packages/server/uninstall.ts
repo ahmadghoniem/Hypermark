@@ -32,9 +32,7 @@ import {
   applyEdits,
   createScanner,
   findNodeAtLocation,
-  parse as parseJsonc,
   parseTree,
-  type ParseError,
 } from "jsonc-parser";
 
 const CORE_SKILLS = [
@@ -43,13 +41,12 @@ const CORE_SKILLS = [
   "hypermark-last",
 ] as const;
 
-// The knowledge-layer CLI reference skill (apps/skills/core/plannotator).
+// The knowledge-layer CLI reference skill (apps/skills/core/hypermark).
 // Installed to the same two scopes as CORE_SKILLS, but kept out of that list:
-// it never had a legacy slash command or a Codex-home era, so it must not
-// join LEGACY_COMMAND_NAMES (a user's own ~/.claude/commands/plannotator.md
-// would be collateral) or STALE_CODEX_SKILLS.
+// it has no legacy slash command, so it must not join LEGACY_COMMAND_NAMES —
+// a user's own ~/.claude/commands/hypermark.md would be collateral.
 const KNOWLEDGE_SKILLS = [
-  "plannotator",
+  "hypermark",
 ] as const;
 
 const EXTRA_SKILLS = [
@@ -58,32 +55,13 @@ const EXTRA_SKILLS = [
   "hypermark-visual-explainer",
 ] as const;
 
+// Claude Code command files this product replaced with skills of the same
+// name. Every entry is a name Hypermark itself writes: an existing Plannotator
+// installation's commands, skills and agent homes are another product's files
+// and are left untouched (spec 06, decision D5). Uninstall ownership does not
+// widen just because the label on the box changed.
 const LEGACY_COMMAND_NAMES = [
   ...CORE_SKILLS,
-  "plannotator-archive",
-] as const;
-
-const KIRO_SKILLS = [
-  "hypermark-review",
-  "hypermark-annotate",
-  // The knowledge skill installs into ~/.kiro/skills like the action skills.
-  // Safe to name here: this list only ever removes ~/.kiro/skills/<name>
-  // directories, never a command file a user may own.
-  "plannotator",
-  "hypermark-setup-goal",
-  "hypermark-visual-explainer",
-  "plannotator-archive",
-] as const;
-
-const STALE_CODEX_SKILLS = [
-  ...CORE_SKILLS,
-  "hypermark-compound",
-  "hypermark-setup-goal",
-  "plannotator-archive",
-] as const;
-
-const STALE_SHARED_SKILLS = [
-  "plannotator-archive",
 ] as const;
 
 const PURGE_OWNED_TOP_LEVEL = [
@@ -103,10 +81,6 @@ const PURGE_OWNED_TOP_LEVEL = [
   "install-prefs",
   "review-skills.json",
   "vscode-ipc.json",
-  "codex-review-debug.log",
-  "codex-review-schema.json",
-  "tour-schema.json",
-  "guide-schema.json",
 ] as const;
 
 /**
@@ -295,7 +269,7 @@ type PathIdentityResult =
 type PathRelation = "same" | "different" | "unknown";
 
 /**
- * Build the real process boundary used by `plannotator uninstall`.
+ * Build the real process boundary used by `hypermark uninstall`.
  *
  * No filesystem mutation occurs until `runHypermarkUninstall` is called.
  */
@@ -445,8 +419,8 @@ export function formatUninstallResult(result: UninstallResult): string {
 
 function formatUninstallRetryCommand(request: UninstallRequest): string {
   return request.purge
-    ? "plannotator uninstall --purge"
-    : "plannotator uninstall";
+    ? "hypermark uninstall --purge"
+    : "hypermark uninstall";
 }
 
 function reportHostCleanupFailure(
@@ -464,33 +438,21 @@ function reportHostCleanupFailure(
 function resolveOwnedPaths(environment: UninstallEnvironment) {
   const { homeDir, env } = environment;
   const claudeDir = env.CLAUDE_CONFIG_DIR || join(homeDir, ".claude");
-  const codexDir = env.CODEX_HOME || join(homeDir, ".codex");
-  const factoryDir = env.FACTORY_CONFIG_DIR || join(homeDir, ".factory");
-  const copilotDir = env.COPILOT_HOME || join(homeDir, ".copilot");
-  const xdgConfigDir = env.XDG_CONFIG_HOME || join(homeDir, ".config");
-  const xdgCacheDir = env.XDG_CACHE_HOME || join(homeDir, ".cache");
-  const configDirs = uniquePaths([
-    xdgConfigDir,
-    join(homeDir, ".config"),
-  ]);
   const localAppData = env.LOCALAPPDATA || join(homeDir, "AppData", "Local");
   const unixInstallDir = join(homeDir, ".local", "bin");
-  const windowsInstallDir = join(localAppData, "plannotator");
+  const windowsInstallDir = join(localAppData, "hypermark");
 
+  // install.ps1 lands in %LOCALAPPDATA%\hypermark; install.cmd and install.sh
+  // land in ~/.local/bin. Both are listed because a machine can carry either.
   const binaryPaths = uniquePaths([
-    join(unixInstallDir, "plannotator"),
-    join(unixInstallDir, "plannotator.exe"),
-    join(windowsInstallDir, "plannotator"),
-    join(windowsInstallDir, "plannotator.exe"),
+    join(unixInstallDir, "hypermark"),
+    join(unixInstallDir, "hypermark.exe"),
+    join(windowsInstallDir, "hypermark"),
+    join(windowsInstallDir, "hypermark.exe"),
   ]);
 
   return {
     claudeDir,
-    codexDir,
-    factoryDir,
-    copilotDir,
-    configDirs,
-    xdgCacheDir,
     windowsInstallDir,
     binaryPaths,
   };
@@ -502,14 +464,18 @@ async function removeHostPlugins(
   paths: ReturnType<typeof resolveOwnedPaths>,
   state: MutableUninstallResult,
 ): Promise<void> {
+  // Claude Code is the only host this product installs a plugin into, so it is
+  // the only one uninstalled from. The Copilot, Droid, Pi and VS Code entries
+  // this list used to carry belonged to integrations removed in spec 02; a
+  // Hypermark uninstall must not reach into hosts it never wrote to.
   const actions = [
     {
-      label: "Claude Code plugin plannotator@plannotator",
+      label: "Claude Code plugin hypermark@hypermark",
       command: "claude",
       args: [
         "plugin",
         "uninstall",
-        "plannotator@plannotator",
+        "hypermark@hypermark",
         "--scope",
         "user",
         ...(request.purge ? [] : ["--keep-data"]),
@@ -518,66 +484,12 @@ async function removeHostPlugins(
       installed:
         hasEnabledPlugin(
           join(paths.claudeDir, "settings.json"),
-          "plannotator@plannotator",
+          "hypermark@hypermark",
         ) ||
         hasInstalledPlugin(
           join(paths.claudeDir, "plugins", "installed_plugins.json"),
-          "plannotator@plannotator",
+          "hypermark@hypermark",
         ),
-    },
-    {
-      label: "GitHub Copilot CLI plugin plannotator-copilot@plannotator",
-      command: "copilot",
-      args: ["plugins", "remove", "plannotator-copilot@plannotator", "--plugin"],
-      installed:
-        hasEnabledPlugin(
-          join(paths.copilotDir, "settings.json"),
-          "plannotator-copilot@plannotator",
-        ) ||
-        hasDirectoryWithPrefix(
-          join(paths.copilotDir, "installed-plugins", "plannotator"),
-          "plannotator-copilot",
-        ),
-    },
-    {
-      label: "Droid plugin plannotator@plannotator",
-      command: "droid",
-      args: [
-        "plugin",
-        "uninstall",
-        "plannotator@plannotator",
-        "--scope",
-        "user",
-      ],
-      installed:
-        hasEnabledPlugin(
-          join(paths.factoryDir, "settings.json"),
-          "plannotator@plannotator",
-        ) ||
-        hasInstalledPlugin(
-          join(paths.factoryDir, "plugins", "installed_plugins.json"),
-          "plannotator@plannotator",
-        ),
-    },
-    {
-      label: "Pi extension npm:@plannotator/pi-extension",
-      command: "pi",
-      args: ["remove", "npm:@plannotator/pi-extension"],
-      installed: hasPiPackage(
-        join(
-          environment.env.PI_CODING_AGENT_DIR || join(environment.homeDir, ".pi", "agent"),
-          "settings.json",
-        ),
-      ),
-    },
-    {
-      label: "VS Code extension backnotprop.plannotator-webview",
-      command: "code",
-      args: ["--uninstall-extension", "backnotprop.plannotator-webview"],
-      installed: hasDirectoryWithPrefix(
-        join(environment.homeDir, ".vscode", "extensions"),
-        "backnotprop.plannotator-webview-",
-      ),
     },
   ] as const;
 
@@ -632,43 +544,6 @@ function removeHostConfigEntries(
     state,
   );
 
-  cleanupHooksJson(
-    join(paths.codexDir, "hooks.json"),
-    [{ event: "Stop", suffix: "" }],
-    paths.binaryPaths,
-    environment.platform,
-    {
-      allowRelocatedBinary: true,
-      removeFileWhenEmpty: true,
-    },
-    "managed Codex Stop hook",
-    `Make ${join(paths.codexDir, "hooks.json")} a readable, writable strict JSON object. Remove only Hypermark command hooks from hooks.Stop entries, then save the file; delete it only if no other settings remain.`,
-    request,
-    state,
-  );
-  cleanupCodexConfig(
-    join(paths.codexDir, "config.toml"),
-    request,
-    state,
-  );
-
-  cleanupGeminiSettings(
-    join(environment.homeDir, ".gemini", "settings.json"),
-    paths.binaryPaths,
-    environment.platform,
-    request,
-    state,
-  );
-
-  for (const configDir of paths.configDirs) {
-    for (const name of ["opencode.json", "opencode.jsonc"]) {
-      cleanupOpenCodeConfig(
-        join(configDir, "opencode", name),
-        request,
-        state,
-      );
-    }
-  }
 }
 
 function removeInstalledFiles(
@@ -690,15 +565,6 @@ function removeInstalledFiles(
     );
   }
 
-  for (const skill of STALE_SHARED_SKILLS) {
-    removePath(join(paths.claudeDir, "skills", skill), request, state);
-    removePath(
-      join(environment.homeDir, ".agents", "skills", skill),
-      request,
-      state,
-    );
-  }
-
   cleanupStaleSkillLayout(
     join(paths.claudeDir, "skills", "core"),
     [...CORE_SKILLS, ...KNOWLEDGE_SKILLS],
@@ -712,120 +578,18 @@ function removeInstalledFiles(
     state,
   );
 
-  for (const skill of STALE_CODEX_SKILLS) {
-    removePath(join(paths.codexDir, "skills", skill), request, state);
-  }
-
-  for (const skill of KIRO_SKILLS) {
-    removePath(
-      join(environment.homeDir, ".kiro", "skills", skill),
-      request,
-      state,
-    );
-  }
-
+  // Claude Code command files only. The Codex, Kiro, Gemini, OpenCode and Amp
+  // sweeps that used to follow removed files this product never writes; they
+  // went with the integrations spec 02 deleted. A machine that also ran
+  // Plannotator keeps those files — removing them is that product's uninstall
+  // to run, not ours (spec 06, decision D5).
   for (const command of LEGACY_COMMAND_NAMES) {
     removePath(
       join(paths.claudeDir, "commands", `${command}.md`),
       request,
       state,
     );
-    for (const configDir of paths.configDirs) {
-      removePath(
-        join(configDir, "opencode", "commands", `${command}.md`),
-        request,
-        state,
-      );
-    }
   }
-
-  // @plannotator/opencode's postinstall writes the knowledge skill here so
-  // OpenCode's `{skill,skills}/**/SKILL.md` scan under its config dir finds it.
-  // Skills only — the sibling commands/ sweep above is driven by
-  // LEGACY_COMMAND_NAMES precisely so a user's own commands/plannotator.md
-  // stays out of scope.
-  for (const skill of KNOWLEDGE_SKILLS) {
-    for (const configDir of paths.configDirs) {
-      removePath(
-        join(configDir, "opencode", "skills", skill),
-        request,
-        state,
-      );
-    }
-  }
-
-  for (const command of [
-    "hypermark-review",
-    "hypermark-annotate",
-    "hypermark-last",
-  ]) {
-    removePath(
-      join(environment.homeDir, ".gemini", "commands", `${command}.toml`),
-      request,
-      state,
-    );
-  }
-
-  removePath(
-    join(environment.homeDir, ".gemini", "policies", "plannotator.toml"),
-    request,
-    state,
-  );
-
-  cleanupRecognizableKiroAgent(
-    join(environment.homeDir, ".kiro", "agents", "plannotator.json"),
-    request,
-    state,
-  );
-  for (const configDir of paths.configDirs) {
-    cleanupRecognizableAmpPlugin(
-      join(configDir, "amp", "plugins", "plannotator.ts"),
-      request,
-      state,
-    );
-  }
-
-  for (const cachePath of [
-    join(
-      paths.xdgCacheDir,
-      "opencode",
-      "node_modules",
-      "@plannotator",
-      "opencode",
-    ),
-    join(
-      paths.xdgCacheDir,
-      "opencode",
-      "packages",
-      "@plannotator",
-      "opencode",
-    ),
-    join(
-      environment.homeDir,
-      ".cache",
-      "opencode",
-      "node_modules",
-      "@plannotator",
-      "opencode",
-    ),
-    join(
-      environment.homeDir,
-      ".cache",
-      "opencode",
-      "packages",
-      "@plannotator",
-      "opencode",
-    ),
-  ]) {
-    removePath(cachePath, request, state);
-  }
-
-  cleanupDirectoryEntriesWithPrefix(
-    join(environment.homeDir, ".bun", "install", "cache", "@plannotator"),
-    "opencode",
-    request,
-    state,
-  );
 }
 
 function removeInstallerData(
@@ -1195,193 +959,6 @@ function cleanupHooksJson(
   writeJson(filePath, parsed, label, recovery, request, state);
 }
 
-function cleanupCodexConfig(
-  filePath: string,
-  request: UninstallRequest,
-  state: MutableUninstallResult,
-): void {
-  if (!existsSync(filePath)) return;
-  const recovery = {
-    manualCleanup: `Make ${filePath} readable and writable. If its only nonblank lines are [features] and hooks = true, delete the file; otherwise leave its custom content in place.`,
-  };
-  let content: string;
-  try {
-    content = readFileSync(filePath, "utf8");
-  } catch (error) {
-    reportHostCleanupFailure(
-      `Could not inspect ${filePath}`,
-      formatError(error),
-      recovery,
-      request,
-      state,
-    );
-    return;
-  }
-
-  const meaningfulLines = content
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-  const isInstallerTemplate =
-    meaningfulLines.length === 2 &&
-    meaningfulLines[0] === "[features]" &&
-    /^hooks\s*=\s*true$/.test(meaningfulLines[1]);
-
-  if (!isInstallerTemplate) return;
-  removePath(filePath, request, state, recovery);
-}
-
-function cleanupGeminiSettings(
-  filePath: string,
-  binaryPaths: readonly string[],
-  platform: NodeJS.Platform,
-  request: UninstallRequest,
-  state: MutableUninstallResult,
-): void {
-  const recovery = {
-    manualCleanup: `Make ${filePath} a readable, writable strict JSON object. Remove only Hypermark command hooks from hooks.BeforeTool entries whose matcher is "exit_plan_mode", then save the file.`,
-  };
-  const parsed = readJsonRecord(
-    filePath,
-    "managed Gemini hooks",
-    recovery,
-    request,
-    state,
-  );
-  if (!parsed) return;
-  const wasInstallerTemplate = isGeminiInstallerTemplate(
-    parsed,
-    binaryPaths,
-    platform,
-  );
-
-  const hooks = asRecord(parsed.hooks);
-  const beforeTool = hooks?.BeforeTool;
-  if (!hooks || !Array.isArray(beforeTool)) return;
-
-  let changed = false;
-  const nextEntries: unknown[] = [];
-  for (const value of beforeTool) {
-    const entry = asRecord(value);
-    if (
-      !entry ||
-      entry.matcher !== "exit_plan_mode" ||
-      !Array.isArray(entry.hooks)
-    ) {
-      nextEntries.push(value);
-      continue;
-    }
-
-    const nextHooks = entry.hooks.filter(
-      (hook) => !isManagedHook(hook, binaryPaths, "", platform),
-    );
-    if (nextHooks.length === entry.hooks.length) {
-      nextEntries.push(value);
-      continue;
-    }
-
-    changed = true;
-    if (nextHooks.length === 0 && hasOnlyKeys(entry, ["matcher", "hooks"])) {
-      continue;
-    }
-    nextEntries.push({ ...entry, hooks: nextHooks });
-  }
-
-  if (!changed) return;
-  if (request.dryRun) {
-    state.planned.push(`managed Gemini hook in ${filePath}`);
-    return;
-  }
-
-  if (wasInstallerTemplate) {
-    removePath(filePath, request, state, recovery);
-    return;
-  }
-
-  if (nextEntries.length === 0) delete hooks.BeforeTool;
-  else hooks.BeforeTool = nextEntries;
-  if (Object.keys(hooks).length === 0) delete parsed.hooks;
-  else parsed.hooks = hooks;
-  writeJson(
-    filePath,
-    parsed,
-    "managed Gemini hook",
-    recovery,
-    request,
-    state,
-  );
-}
-
-function cleanupOpenCodeConfig(
-  filePath: string,
-  request: UninstallRequest,
-  state: MutableUninstallResult,
-): void {
-  if (!existsSync(filePath)) return;
-  const recovery = {
-    manualCleanup: `Make ${filePath} readable, writable, and valid JSON or JSONC. Remove every plugin array entry for @plannotator/opencode, including versioned entries and tuple entries, then save the file.`,
-  };
-
-  let content: string;
-  try {
-    content = readFileSync(filePath, "utf8");
-  } catch (error) {
-    reportHostCleanupFailure(
-      `Could not inspect ${filePath}`,
-      formatError(error),
-      recovery,
-      request,
-      state,
-    );
-    return;
-  }
-
-  const parseErrors: ParseError[] = [];
-  const parsedValue: unknown = parseJsonc(content, parseErrors, {
-    allowTrailingComma: true,
-    disallowComments: false,
-  });
-  const parsed = asRecord(parsedValue);
-  if (parseErrors.length > 0 || !parsed) {
-    reportMalformedSharedConfig(
-      filePath,
-      "it is not valid JSON or JSONC",
-      "@plannotator/opencode plugin entries",
-      recovery,
-      request,
-      state,
-    );
-    return;
-  }
-  if (!Array.isArray(parsed.plugin)) return;
-
-  const matchingIndexes = parsed.plugin
-    .map((entry, index) =>
-      isHypermarkOpenCodePlugin(entry) ? index : -1,
-    )
-    .filter((index) => index >= 0)
-    .reverse();
-  if (matchingIndexes.length === 0) return;
-
-  if (request.dryRun) {
-    state.planned.push(`@plannotator/opencode entry in ${filePath}`);
-    return;
-  }
-
-  let updated = content;
-  for (const index of matchingIndexes) {
-    updated = removeJsoncArrayEntry(updated, ["plugin"], index);
-  }
-  writeTextUpdate(
-    filePath,
-    updated,
-    "@plannotator/opencode entry",
-    recovery,
-    request,
-    state,
-  );
-}
-
 function removeJsoncArrayEntry(
   content: string,
   path: (string | number)[],
@@ -1440,73 +1017,6 @@ function findJsoncCommaOffset(
     }
   }
   return null;
-}
-
-function cleanupRecognizableKiroAgent(
-  filePath: string,
-  request: UninstallRequest,
-  state: MutableUninstallResult,
-): void {
-  const recovery = {
-    manualCleanup: `Make ${filePath} a readable, writable strict JSON object without changing its intent. If it is the installer-provided Hypermark Kiro agent, delete it; otherwise keep the repaired custom agent at that path.`,
-  };
-  const parsed = readJsonRecord(
-    filePath,
-    "the Hypermark Kiro agent",
-    recovery,
-    request,
-    state,
-  );
-  if (!parsed) return;
-
-  const prompt = typeof parsed.prompt === "string" ? parsed.prompt : "";
-  const description =
-    typeof parsed.description === "string" ? parsed.description : "";
-  const recognizable =
-    parsed.name === "plannotator" &&
-    description.includes("Kiro custom agent wiring for Hypermark") &&
-    prompt.includes("Each skill runs a `plannotator` shell command");
-
-  if (recognizable) {
-    removePath(filePath, request, state, recovery);
-  } else {
-    state.preserved.push(`${filePath} (custom or unrecognized Kiro agent)`);
-  }
-}
-
-function cleanupRecognizableAmpPlugin(
-  filePath: string,
-  request: UninstallRequest,
-  state: MutableUninstallResult,
-): void {
-  if (!existsSync(filePath)) return;
-  const recovery = {
-    manualCleanup: `Make ${filePath} readable and writable. If it contains the installer-provided Hypermark Amp plugin, delete it; otherwise keep the custom plugin at that path.`,
-  };
-  let content: string;
-  try {
-    content = readFileSync(filePath, "utf8");
-  } catch (error) {
-    reportHostCleanupFailure(
-      `Could not inspect ${filePath}`,
-      formatError(error),
-      recovery,
-      request,
-      state,
-    );
-    return;
-  }
-
-  const recognizable =
-    content.includes('const CATEGORY = "Hypermark"') &&
-    content.includes("export default function plannotatorAmpPlugin") &&
-    content.includes("HYPERMARK_ORIGIN");
-
-  if (recognizable) {
-    removePath(filePath, request, state, recovery);
-  } else {
-    state.preserved.push(`${filePath} (custom or unrecognized Amp plugin)`);
-  }
 }
 
 function readJsonRecord(
@@ -1670,30 +1180,6 @@ function cleanupStaleSkillLayout(
   }
 }
 
-function cleanupDirectoryEntriesWithPrefix(
-  directory: string,
-  prefix: string,
-  request: UninstallRequest,
-  state: MutableUninstallResult,
-): void {
-  let entries: string[];
-  try {
-    const stat = lstatSync(directory);
-    if (!stat.isDirectory() || stat.isSymbolicLink()) return;
-    entries = readdirSync(directory);
-  } catch (error) {
-    if (isMissingPathError(error)) return;
-    state.errors.push(`Could not inspect ${directory}: ${formatError(error)}`);
-    return;
-  }
-
-  for (const entry of entries) {
-    if (entry === prefix || entry.startsWith(`${prefix}@`)) {
-      removePath(join(directory, entry), request, state);
-    }
-  }
-}
-
 function directoryContainsOnly(
   directory: string,
   allowedEntries: readonly string[],
@@ -1805,7 +1291,7 @@ function isManagedHook(
   }
 
   const command = hook.command.trim();
-  const expectedBare = suffix ? `plannotator ${suffix}` : "plannotator";
+  const expectedBare = suffix ? `hypermark ${suffix}` : "hypermark";
   if (command === expectedBare) return true;
 
   for (const binaryPath of binaryPaths) {
@@ -1838,56 +1324,7 @@ function isRelocatedHypermarkCommand(
   if (!isAbsolute(unquoted)) return false;
 
   const executableName = basename(unquoted).toLowerCase();
-  return executableName === "plannotator" || executableName === "plannotator.exe";
-}
-
-function isGeminiInstallerTemplate(
-  value: JsonRecord,
-  binaryPaths: readonly string[],
-  platform: NodeJS.Platform,
-): boolean {
-  const hooks = asRecord(value.hooks);
-  const experimental = asRecord(value.experimental);
-  if (!hooks || !experimental || experimental.plan !== true) return false;
-  if (!hasOnlyKeys(value, ["hooks", "experimental"])) return false;
-  if (!hasOnlyKeys(experimental, ["plan"])) return false;
-
-  const beforeTool = hooks.BeforeTool;
-  if (
-    !hasOnlyKeys(hooks, ["BeforeTool"]) ||
-    !Array.isArray(beforeTool) ||
-    beforeTool.length !== 1
-  ) {
-    return false;
-  }
-
-  const entry = asRecord(beforeTool[0]);
-  if (
-    !entry ||
-    entry.matcher !== "exit_plan_mode" ||
-    !hasOnlyKeys(entry, ["matcher", "hooks"]) ||
-    !Array.isArray(entry.hooks) ||
-    entry.hooks.length !== 1
-  ) {
-    return false;
-  }
-
-  const hook = asRecord(entry.hooks[0]);
-  return (
-    hook !== null &&
-    hasOnlyKeys(hook, ["type", "command", "timeout"]) &&
-    isManagedHook(hook, binaryPaths, "", platform)
-  );
-}
-
-function isHypermarkOpenCodePlugin(value: unknown): boolean {
-  const spec =
-    typeof value === "string"
-      ? value
-      : Array.isArray(value) && typeof value[0] === "string"
-        ? value[0]
-        : null;
-  return spec !== null && /^@plannotator\/opencode(?:@|$)/.test(spec);
+  return executableName === "hypermark" || executableName === "hypermark.exe";
 }
 
 function hasEnabledPlugin(filePath: string, pluginId: string): boolean {
@@ -1903,26 +1340,6 @@ function hasInstalledPlugin(filePath: string, pluginId: string): boolean {
   return Array.isArray(installs) && installs.length > 0;
 }
 
-function hasPiPackage(filePath: string): boolean {
-  const parsed = tryReadJsonRecord(filePath);
-  const packages = parsed?.packages;
-  if (!Array.isArray(packages)) return false;
-
-  return packages.some((entry) => {
-    const record = asRecord(entry);
-    const source =
-      typeof entry === "string"
-        ? entry
-        : typeof record?.source === "string"
-          ? record.source
-          : null;
-    return (
-      typeof source === "string" &&
-      /^npm:@plannotator\/pi-extension(?:@|$)/.test(source)
-    );
-  });
-}
-
 function tryReadJsonRecord(filePath: string): JsonRecord | null {
   if (!existsSync(filePath)) return null;
   try {
@@ -1930,14 +1347,6 @@ function tryReadJsonRecord(filePath: string): JsonRecord | null {
     return asRecord(parsed);
   } catch {
     return null;
-  }
-}
-
-function hasDirectoryWithPrefix(directory: string, prefix: string): boolean {
-  try {
-    return readdirSync(directory).some((entry) => entry.startsWith(prefix));
-  } catch {
-    return false;
   }
 }
 

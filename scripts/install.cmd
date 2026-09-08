@@ -9,7 +9,7 @@ REM Tracks whether a version was explicitly set via --version or positional.
 REM Used to reject mixing --version <tag> with a stray positional token.
 set "VERSION_EXPLICIT=0"
 REM Three-layer opt-in for SLSA provenance verification.
-REM Precedence: CLI flag > env var > %USERPROFILE%\.plannotator\config.json > default.
+REM Precedence: CLI flag > env var > %USERPROFILE%\.hypermark\config.json > default.
 REM -1 = flag not set (fall through); 0 = disable; 1 = enable.
 set "VERIFY_ATTESTATION_FLAG=-1"
 REM Opt-in install of the pruned CallDiff call-flow core (default off; the
@@ -392,16 +392,19 @@ REM provenance support. Precedence: CLI flag > env var > config.json > default.
 set "VERIFY_ATTESTATION=0"
 
 REM Layer 3: config file (lowest precedence of the opt-in sources).
-REM Unset HYPERMARK_DATA_DIR: an existing %USERPROFILE%\.plannotator
-REM (legacy default) always wins; otherwise an explicitly-set absolute
-REM XDG_DATA_HOME (rare on Windows but honored the same way as the runtime;
-REM drive-rooted or UNC) places the directory at XDG_DATA_HOME\hypermark;
-REM otherwise %USERPROFILE%\.plannotator.
+REM Unset HYPERMARK_DATA_DIR: an existing %USERPROFILE%\.hypermark always
+REM wins, so an install never relocates itself; otherwise an explicitly-set
+REM absolute XDG_DATA_HOME (rare on Windows but honored the same way as the
+REM runtime; drive-rooted or UNC) places the directory at
+REM XDG_DATA_HOME\hypermark; otherwise %USERPROFILE%\.hypermark.
+REM A fresh root (spec 06, decision D5): Hypermark starts at ~/.hypermark and
+REM never probes ~/.plannotator, so an existing Plannotator install keeps its
+REM plans, drafts and config exactly where they are.
 if defined HYPERMARK_DATA_DIR (
     set "_CONFIG_DIR=!HYPERMARK_DATA_DIR!"
 ) else (
-    set "_CONFIG_DIR=%USERPROFILE%\.plannotator"
-    if not exist "%USERPROFILE%\.plannotator\" if defined XDG_DATA_HOME (
+    set "_CONFIG_DIR=%USERPROFILE%\.hypermark"
+    if not exist "%USERPROFILE%\.hypermark\" if defined XDG_DATA_HOME (
         if "!XDG_DATA_HOME:~1,1!"==":" (
             set "_CONFIG_DIR=!XDG_DATA_HOME!\hypermark"
         ) else if "!XDG_DATA_HOME:~0,2!"=="\\" (
@@ -521,7 +524,7 @@ if "!VERIFY_ATTESTATION!"=="1" (
         echo   - Pin to !MIN_ATTESTED_VERSION! or later: --version !MIN_ATTESTED_VERSION! >&2
         echo   - Install without provenance verification: --skip-attestation >&2
         echo   - Or unset HYPERMARK_VERIFY_ATTESTATION / remove verifyAttestation >&2
-        echo     from %USERPROFILE%\.plannotator\config.json >&2
+        echo     from %USERPROFILE%\.hypermark\config.json >&2
         exit /b 1
     )
 )
@@ -707,13 +710,13 @@ if "!VERIFY_ATTESTATION!"=="1" (
         echo Install https://cli.github.com ^(no login is needed when the public >&2
         echo attestation bundle fetch succeeds^), or unset >&2
         echo HYPERMARK_VERIFY_ATTESTATION / remove verifyAttestation >&2
-        echo from %USERPROFILE%\.plannotator\config.json / pass --skip-attestation. >&2
+        echo from %USERPROFILE%\.hypermark\config.json / pass --skip-attestation. >&2
         del "!TEMP_FILE!"
         exit /b 1
     )
 ) else (
     echo SHA256 verified. For build provenance verification, see
-    echo https://docs.plannotator.ai/open-source/start/installation#pin-or-verify-a-release
+    echo https://github.com/ahmadghoniem/Hypermark/releases
 )
 
 REM Install binary
@@ -783,7 +786,6 @@ echo }
     echo Updated plugin hooks at !PLUGIN_HOOKS!
 )
 
-if exist "%USERPROFILE%\.bun\install\cache\@plannotator" rmdir /s /q "%USERPROFILE%\.bun\install\cache\@plannotator" >nul 2>&1
 
 REM ----------------------------------------------------------------------
 REM Skills + command stubs install (requires git)
@@ -1076,18 +1078,6 @@ for %%C in (hypermark-review hypermark-annotate hypermark-last) do (
     if "!SKIP_SKILLS!"=="0" if exist "!CLAUDE_SKILLS_DIR!\%%C" if exist "!CLAUDE_COMMANDS_DIR!\%%C.md" (
         del /q "!CLAUDE_COMMANDS_DIR!\%%C.md" >nul 2>&1
         echo Removed deprecated Claude command !CLAUDE_COMMANDS_DIR!\%%C.md ^(replaced by the %%C skill^)
-    )
-)
-
-REM plannotator-archive no longer ships as a skill. Remove any stale installed
-REM copy from every skill scope so upgraders don't keep a dead skill around.
-for %%D in ("!CLAUDE_SKILLS_DIR!" "!AGENTS_SKILLS_DIR!") do (
-    REM A skills opt-out leaves every skill scope untouched, sweep included.
-    set "SCOPE_OK=1"
-    if "!SKIP_SKILLS!"=="1" set "SCOPE_OK=0"
-    if "!SCOPE_OK!"=="1" if exist "%%~D\plannotator-archive" (
-        rmdir /s /q "%%~D\plannotator-archive" >nul 2>&1
-        echo Removed stale plannotator-archive skill from %%~D\plannotator-archive
     )
 )
 

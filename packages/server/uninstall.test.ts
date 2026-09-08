@@ -45,7 +45,7 @@ const temporaryRoots: string[] = [];
 let supportsCaseVariantPaths = false;
 
 function detectCaseVariantPathSupport(): boolean {
-  const root = mkdtempSync(join(tmpdir(), "plannotator-case-probe-"));
+  const root = mkdtempSync(join(tmpdir(), "hypermark-case-probe-"));
   try {
     const exact = join(root, "case-probe");
     const variant = join(root, "CASE-PROBE");
@@ -172,10 +172,10 @@ describe("Windows PATH scripts", () => {
 function createFixture(
   overrides: Partial<UninstallEnvironment> = {},
 ): Fixture {
-  const root = mkdtempSync(join(tmpdir(), "plannotator-uninstall-test-"));
+  const root = mkdtempSync(join(tmpdir(), "hypermark-uninstall-test-"));
   temporaryRoots.push(root);
   const homeDir = join(root, "home");
-  const dataDir = join(homeDir, ".plannotator");
+  const dataDir = join(homeDir, ".hypermark");
   mkdirSync(dataDir, { recursive: true });
 
   const commandCalls: CommandCall[] = [];
@@ -185,7 +185,7 @@ function createFixture(
     homeDir,
     tempDir: tmpdir(),
     dataDir,
-    execPath: join(root, "running-plannotator"),
+    execPath: join(root, "running-hypermark"),
     env: {},
     which: () => null,
     runCommand: async (command, args, env) => {
@@ -193,7 +193,7 @@ function createFixture(
       return {
         exitCode: 0,
         timedOut: false,
-        stdout: JSON.stringify("C:\\Tools;C:\\Users\\fixture\\AppData\\Local\\plannotator;C:\\Windows;;"),
+        stdout: JSON.stringify("C:\\Tools;C:\\Users\\fixture\\AppData\\Local\\hypermark;C:\\Windows;;"),
       };
     },
     scheduleWindowsSelfDelete: async (target, parent) => {
@@ -253,13 +253,8 @@ describe("default uninstall", () => {
   test("removes recognized installer components and preserves local data", async () => {
     const fixture = createFixture();
     const { homeDir, dataDir } = fixture;
-    const alternateConfig = join(fixture.root, "xdg-config");
-    fixture.environment = {
-      ...fixture.environment,
-      env: { XDG_CONFIG_HOME: alternateConfig },
-    };
 
-    const binary = join(homeDir, ".local", "bin", "plannotator");
+    const binary = join(homeDir, ".local", "bin", "hypermark");
     writeText(binary);
     writeText(join(dataDir, "plans", "approved.md"), "# plan");
     writeJson(join(dataDir, "config.json"), { theme: "dark" });
@@ -279,7 +274,7 @@ describe("default uninstall", () => {
       "hypermark-annotate",
       "hypermark-last",
       // The knowledge-layer CLI reference skill, installed to the same scopes.
-      "plannotator",
+      "hypermark",
     ]) {
       writeText(join(homeDir, ".claude", "skills", skill, "SKILL.md"));
       writeText(join(homeDir, ".agents", "skills", skill, "SKILL.md"));
@@ -287,9 +282,6 @@ describe("default uninstall", () => {
     writeText(
       join(homeDir, ".agents", "skills", "hypermark-compound", "SKILL.md"),
       "user-managed extra skill",
-    );
-    writeText(
-      join(homeDir, ".agents", "skills", "plannotator-archive", "SKILL.md"),
     );
     writeText(
       join(homeDir, ".claude", "skills", "core", "hypermark-review", "SKILL.md"),
@@ -303,62 +295,39 @@ describe("default uninstall", () => {
       "SKILL.md",
     );
     writeText(customStaleLayoutEntry, "custom");
-    writeText(
+    writeText(join(homeDir, ".claude", "commands", "hypermark-review.md"));
+
+    // A machine that also ran Plannotator. Decision D5 says Hypermark starts
+    // fresh and never uninstalls the other product, so none of these is ours
+    // to touch: not its data root, not its skills or commands, and not the
+    // Codex, Kiro, Gemini, OpenCode or Amp integrations that spec 02 removed
+    // from this fork. Uninstall ownership does not widen with a relabel.
+    const foreign = [
+      join(homeDir, ".plannotator", "config.json"),
+      join(homeDir, ".claude", "skills", "plannotator", "SKILL.md"),
+      join(homeDir, ".claude", "commands", "plannotator-archive.md"),
+      join(homeDir, ".agents", "skills", "plannotator-archive", "SKILL.md"),
       join(homeDir, ".codex", "skills", "plannotator-archive", "SKILL.md"),
-    );
-    writeText(
-      join(homeDir, ".kiro", "skills", "hypermark-setup-goal", "SKILL.md"),
-    );
-    const openCodePackageCache = join(
-      homeDir,
-      ".cache",
-      "opencode",
-      "node_modules",
-      "@plannotator",
-      "opencode",
-      "package.json",
-    );
-    const unrelatedScopedCache = join(
-      homeDir,
-      ".cache",
-      "opencode",
-      "node_modules",
-      "@plannotator",
-      "ui",
-      "package.json",
-    );
-    const unrelatedBunCache = join(
-      homeDir,
-      ".bun",
-      "install",
-      "cache",
-      "@plannotator",
-      "ui",
-      "package.json",
-    );
-    const bunOpenCodeVersionCache = join(
-      homeDir,
-      ".bun",
-      "install",
-      "cache",
-      "@plannotator",
-      "opencode@0.25.1@@@1",
-      "package.json",
-    );
-    const bunOpenCodeAliasCache = join(
-      homeDir,
-      ".bun",
-      "install",
-      "cache",
-      "@plannotator",
-      "opencode",
-      "0.25.1@@@1",
-    );
-    writeText(openCodePackageCache);
-    writeText(unrelatedScopedCache);
-    writeText(unrelatedBunCache);
-    writeText(bunOpenCodeVersionCache);
-    writeText(bunOpenCodeAliasCache);
+      join(homeDir, ".codex", "hooks.json"),
+      join(homeDir, ".codex", "config.toml"),
+      join(homeDir, ".kiro", "skills", "plannotator", "SKILL.md"),
+      join(homeDir, ".kiro", "agents", "plannotator.json"),
+      join(homeDir, ".gemini", "settings.json"),
+      join(homeDir, ".gemini", "policies", "plannotator.toml"),
+      join(homeDir, ".gemini", "commands", "plannotator-review.toml"),
+      join(homeDir, ".config", "opencode", "opencode.json"),
+      join(homeDir, ".config", "opencode", "commands", "plannotator-annotate.md"),
+      join(homeDir, ".config", "amp", "plugins", "plannotator.ts"),
+      join(
+        homeDir, ".cache", "opencode", "node_modules",
+        "@plannotator", "opencode", "package.json",
+      ),
+      join(
+        homeDir, ".bun", "install", "cache",
+        "@plannotator", "opencode", "package.json",
+      ),
+    ];
+    for (const path of foreign) writeText(path, "not ours");
 
     const claudeSettings = join(homeDir, ".claude", "settings.json");
     writeJson(claudeSettings, {
@@ -388,82 +357,6 @@ describe("default uninstall", () => {
       },
     });
 
-    const codexHooks = join(homeDir, ".codex", "hooks.json");
-    writeJson(codexHooks, {
-      hooks: {
-        Stop: [
-          {
-            hooks: [
-              { type: "command", command: binary, timeout: 345600 },
-              { type: "command", command: "custom-stop-hook" },
-            ],
-          },
-        ],
-      },
-    });
-    const codexConfig = join(homeDir, ".codex", "config.toml");
-    writeText(codexConfig, "[features]\nhooks = true\n\nmodel = \"custom\"\n");
-
-    const geminiSettings = join(homeDir, ".gemini", "settings.json");
-    writeJson(geminiSettings, {
-      theme: "custom",
-      hooks: {
-        BeforeTool: [
-          {
-            matcher: "exit_plan_mode",
-            hooks: [
-              { type: "command", command: "plannotator", timeout: 345600 },
-              { type: "command", command: "custom-gemini-hook" },
-            ],
-          },
-        ],
-      },
-    });
-    writeText(join(homeDir, ".gemini", "policies", "plannotator.toml"));
-    writeText(
-      join(homeDir, ".gemini", "commands", "hypermark-review.toml"),
-    );
-
-    const conventionalOpenCode = join(
-      homeDir,
-      ".config",
-      "opencode",
-      "opencode.json",
-    );
-    writeJson(conventionalOpenCode, {
-      plugin: ["@plannotator/opencode@latest", "keep-plugin"],
-      theme: "keep",
-    });
-    writeText(
-      join(
-        alternateConfig,
-        "opencode",
-        "commands",
-        "hypermark-annotate.md",
-      ),
-    );
-
-    const recognizableAmp = [
-      'const CATEGORY = "Hypermark";',
-      "export default function plannotatorAmpPlugin() {}",
-      'const origin = "HYPERMARK_ORIGIN";',
-    ].join("\n");
-    writeText(
-      join(homeDir, ".config", "amp", "plugins", "plannotator.ts"),
-      recognizableAmp,
-    );
-    const customKiroAgent = join(
-      homeDir,
-      ".kiro",
-      "agents",
-      "plannotator.json",
-    );
-    writeJson(customKiroAgent, {
-      name: "plannotator",
-      description: "my custom agent",
-      prompt: "custom",
-    });
-
     const result = await runHypermarkUninstall(
       { purge: false, dryRun: false },
       fixture.environment,
@@ -472,17 +365,18 @@ describe("default uninstall", () => {
     expect(result.ok).toBe(true);
     expect(existsSync(binary)).toBe(false);
     expect(existsSync(join(homeDir, ".claude", "skills", "hypermark-review"))).toBe(false);
-    expect(existsSync(join(homeDir, ".claude", "skills", "plannotator"))).toBe(false);
-    expect(existsSync(join(homeDir, ".agents", "skills", "plannotator"))).toBe(false);
+    expect(existsSync(join(homeDir, ".claude", "skills", "hypermark"))).toBe(false);
+    expect(existsSync(join(homeDir, ".agents", "skills", "hypermark"))).toBe(false);
     expect(existsSync(join(homeDir, ".agents", "skills", "hypermark-compound"))).toBe(true);
-    expect(existsSync(join(homeDir, ".agents", "skills", "plannotator-archive"))).toBe(false);
-    expect(existsSync(join(homeDir, ".kiro", "skills", "hypermark-setup-goal"))).toBe(false);
+    expect(
+      existsSync(join(homeDir, ".claude", "commands", "hypermark-review.md")),
+    ).toBe(false);
     expect(existsSync(customStaleLayoutEntry)).toBe(true);
-    expect(existsSync(openCodePackageCache)).toBe(false);
-    expect(existsSync(unrelatedScopedCache)).toBe(true);
-    expect(existsSync(unrelatedBunCache)).toBe(true);
-    expect(existsSync(bunOpenCodeVersionCache)).toBe(false);
-    expect(existsSync(bunOpenCodeAliasCache)).toBe(false);
+
+    for (const path of foreign) {
+      expect(readFileSync(path, "utf8"), `${path} must survive uninstall`)
+        .toBe("not ours");
+    }
 
     expect(existsSync(join(dataDir, "plans", "approved.md"))).toBe(true);
     expect(readJson(join(dataDir, "config.json"))).toEqual({ theme: "dark" });
@@ -504,81 +398,25 @@ describe("default uninstall", () => {
         ],
       },
     });
-    expect(readJson(codexHooks)).toEqual({
-      hooks: {
-        Stop: [
-          {
-            hooks: [
-              { type: "command", command: "custom-stop-hook" },
-            ],
-          },
-        ],
-      },
-    });
-    expect(readFileSync(codexConfig, "utf8")).toContain('model = "custom"');
-    expect(readJson(geminiSettings)).toEqual({
-      theme: "custom",
-      hooks: {
-        BeforeTool: [
-          {
-            matcher: "exit_plan_mode",
-            hooks: [
-              { type: "command", command: "custom-gemini-hook" },
-            ],
-          },
-        ],
-      },
-    });
-    expect(readJson(conventionalOpenCode)).toEqual({
-      plugin: ["keep-plugin"],
-      theme: "keep",
-    });
-    expect(
-      existsSync(
-        join(
-          alternateConfig,
-          "opencode",
-          "commands",
-          "hypermark-annotate.md",
-        ),
-      ),
-    ).toBe(false);
-    expect(
-      existsSync(
-        join(homeDir, ".config", "amp", "plugins", "plannotator.ts"),
-      ),
-    ).toBe(false);
-    expect(existsSync(customKiroAgent)).toBe(true);
-    expect(result.preserved).toContain(
-      `${customKiroAgent} (custom or unrecognized Kiro agent)`,
-    );
     expect(fixture.commandCalls).toEqual([]);
   });
 
   test("removes the knowledge skill from every scope that installs it, and only those", async () => {
-    // The knowledge skill is named `plannotator` — the same bare name as a
-    // legacy slash command and as anything else a user might name after the
-    // product. That is exactly why KNOWLEDGE_SKILLS is a separate list from
-    // CORE_SKILLS: folding it into CORE_SKILLS would put `plannotator` into
-    // LEGACY_COMMAND_NAMES and STALE_CODEX_SKILLS, and uninstall would start
-    // deleting a user's own commands/plannotator.md. This test is the wall.
+    // The knowledge skill is named `hypermark` — the same bare name as the
+    // binary, and as anything else a user might name after the product. That
+    // is why KNOWLEDGE_SKILLS is a separate list from CORE_SKILLS: folding it
+    // in would put `hypermark` into LEGACY_COMMAND_NAMES and uninstall would
+    // start deleting a user's own commands/hypermark.md. This test is the wall.
     const fixture = createFixture();
     const { homeDir } = fixture;
-    const alternateConfig = join(fixture.root, "xdg-config");
-    fixture.environment = {
-      ...fixture.environment,
-      env: { XDG_CONFIG_HOME: alternateConfig },
-    };
 
     // Scopes an install actually writes the knowledge skill to.
     const installedScopes = [
-      join(homeDir, ".claude", "skills", "plannotator"),
-      join(homeDir, ".agents", "skills", "plannotator"),
-      join(homeDir, ".kiro", "skills", "plannotator"),
-      join(alternateConfig, "opencode", "skills", "plannotator"),
+      join(homeDir, ".claude", "skills", "hypermark"),
+      join(homeDir, ".agents", "skills", "hypermark"),
       // Pre-0.27 Claude layout; cleanupStaleSkillLayout must know the
       // knowledge skill too, or an upgrader keeps a dead copy forever.
-      join(homeDir, ".claude", "skills", "core", "plannotator"),
+      join(homeDir, ".claude", "skills", "core", "hypermark"),
     ];
     for (const scope of installedScopes) {
       writeText(join(scope, "SKILL.md"), "# Hypermark CLI Reference");
@@ -586,9 +424,9 @@ describe("default uninstall", () => {
 
     // Paths that merely share the name and are NOT ours to delete.
     const userOwned = [
-      join(homeDir, ".claude", "commands", "plannotator.md"),
-      join(alternateConfig, "opencode", "commands", "plannotator.md"),
-      join(homeDir, ".codex", "skills", "plannotator", "SKILL.md"),
+      join(homeDir, ".claude", "commands", "hypermark.md"),
+      join(homeDir, ".config", "opencode", "skills", "hypermark", "SKILL.md"),
+      join(homeDir, ".codex", "skills", "hypermark", "SKILL.md"),
     ];
     for (const path of userOwned) {
       writeText(path, "the user's own file");
@@ -615,11 +453,11 @@ describe("default uninstall", () => {
       fixture.homeDir,
       ".local",
       "bin",
-      "plannotator",
+      "hypermark",
     );
     writeText(binary);
     writeJson(join(fixture.homeDir, ".claude", "settings.json"), {
-      enabledPlugins: { "plannotator@plannotator": true },
+      enabledPlugins: { "hypermark@hypermark": true },
     });
     const before = snapshotTree(fixture.root);
 
@@ -634,155 +472,25 @@ describe("default uninstall", () => {
     expect(result.ok).toBe(true);
     expect(result.planned).toContain(binary);
     expect(result.planned).toContain(
-      "Claude Code plugin plannotator@plannotator",
+      "Claude Code plugin hypermark@hypermark",
     );
     expect(existsSync(binary)).toBe(true);
     expect(fixture.commandCalls).toEqual([]);
     expect(snapshotTree(fixture.root)).toEqual(before);
   });
 
-  test("removes OpenCode from JSONC while preserving comments and unrelated plugins", async () => {
-    const fixture = createFixture();
-    const configPath = join(
-      fixture.homeDir,
-      ".config",
-      "opencode",
-      "opencode.jsonc",
-    );
-    const contents = [
-      "{",
-      "  // custom JSONC",
-      '  "plugin": [',
-      '    "@plannotator/opencode", // managed',
-      "    // keep this plugin because it configures the user's workflow",
-      '    "keep-plugin",',
-      '    ["@plannotator/opencode@0.25.1", { "enabled": true }],',
-      "  ],",
-      '  "theme": "keep",',
-      "}",
-      "",
-    ].join("\n");
-    writeText(configPath, contents);
-
-    const result = await runHypermarkUninstall(
-      { purge: false, dryRun: false },
-      fixture.environment,
-    );
-
-    const updated = readFileSync(configPath, "utf8");
-    expect(updated).toContain("// custom JSONC");
-    expect(updated).toContain(
-      "// keep this plugin because it configures the user's workflow",
-    );
-    expect(updated).toContain('"keep-plugin"');
-    expect(updated).toContain('"theme": "keep"');
-    expect(updated).not.toContain("@plannotator/opencode");
-    expect(result.errors).toEqual([]);
-  });
-
-  test("keeps the binary until malformed OpenCode config is cleaned manually", async () => {
-    const fixture = createFixture();
-    const binary = join(
-      fixture.homeDir,
-      ".local",
-      "bin",
-      "plannotator",
-    );
-    writeText(binary);
-    const configPath = join(
-      fixture.homeDir,
-      ".config",
-      "opencode",
-      "opencode.jsonc",
-    );
-    const contents = '{ "plugin": ["@plannotator/opencode", } broken';
-    writeText(configPath, contents);
-
-    const result = await runHypermarkUninstall(
-      { purge: false, dryRun: false },
-      fixture.environment,
-    );
-
-    expect(readFileSync(configPath, "utf8")).toBe(contents);
-    expect(existsSync(binary)).toBe(true);
-    expect(result.ok).toBe(false);
-    expect(result.errors[0]).toContain(
-      `Preserved ${configPath}: it is not valid JSON or JSONC, so @plannotator/opencode plugin entries cannot be classified safely.`,
-    );
-    expect(result.errors[0]).toContain(
-      "Remove every plugin array entry for @plannotator/opencode, including versioned entries and tuple entries",
-    );
-    expect(result.errors[0]).toContain(
-      "Then rerun `plannotator uninstall`.",
-    );
-
-    writeJson(configPath, { plugin: ["keep-plugin"] });
-    const retry = await runHypermarkUninstall(
-      { purge: false, dryRun: false },
-      fixture.environment,
-    );
-    expect(retry.ok).toBe(true);
-    expect(existsSync(binary)).toBe(false);
-    expect(readJson(configPath)).toEqual({ plugin: ["keep-plugin"] });
-  });
-
-  test("preserves a custom Gemini hook sharing the managed matcher", async () => {
-    const fixture = createFixture();
-    const settingsPath = join(
-      fixture.homeDir,
-      ".gemini",
-      "settings.json",
-    );
-    writeJson(settingsPath, {
-      hooks: {
-        BeforeTool: [
-          {
-            matcher: "exit_plan_mode",
-            hooks: [
-              { type: "command", command: "plannotator", timeout: 345600 },
-              { type: "command", command: "my-custom-plan-hook" },
-            ],
-          },
-        ],
-      },
-      experimental: { plan: true },
-    });
-
-    await runHypermarkUninstall(
-      { purge: false, dryRun: false },
-      fixture.environment,
-    );
-
-    expect(readJson(settingsPath)).toEqual({
-      hooks: {
-        BeforeTool: [
-          {
-            matcher: "exit_plan_mode",
-            hooks: [
-              { type: "command", command: "my-custom-plan-hook" },
-            ],
-          },
-        ],
-      },
-      experimental: { plan: true },
-    });
-  });
 
   test("preserves strict JSON indentation, line endings, and trailing newline", async () => {
     const fixture = createFixture();
-    const settingsPath = join(
-      fixture.homeDir,
-      ".gemini",
-      "settings.json",
-    );
+    const settingsPath = join(fixture.homeDir, ".claude", "settings.json");
     const contents = [
       "{",
       '    "theme": "custom",',
       '    "hooks": {',
-      '        "BeforeTool": [',
+      '        "PermissionRequest": [',
       "            {",
-      '                "matcher": "exit_plan_mode",',
-      '                "hooks": [{ "type": "command", "command": "plannotator" }]',
+      '                "matcher": "ExitPlanMode",',
+      '                "hooks": [{ "type": "command", "command": "hypermark" }]',
       "            }",
       "        ]",
       "    }",
@@ -798,28 +506,24 @@ describe("default uninstall", () => {
 
     expect(result.ok).toBe(true);
     expect(readFileSync(settingsPath, "utf8")).toBe(
-      ['{', '    "theme": "custom"', '}', ''].join("\r\n"),
+      ["{", '    "theme": "custom"', "}", ""].join("\r\n"),
     );
   });
 
   test.skipIf(process.platform === "win32")(
-    "keeps the binary and hook when Gemini settings cannot be edited",
+    "keeps the binary and hook when Claude settings cannot be edited",
     async () => {
       const fixture = createFixture();
-      const binary = join(fixture.homeDir, ".local", "bin", "plannotator");
-      const settingsPath = join(
-        fixture.homeDir,
-        ".gemini",
-        "settings.json",
-      );
+      const binary = join(fixture.homeDir, ".local", "bin", "hypermark");
+      const settingsPath = join(fixture.homeDir, ".claude", "settings.json");
       writeText(binary);
       writeJson(settingsPath, {
         theme: "custom",
         hooks: {
-          BeforeTool: [
+          PermissionRequest: [
             {
-              matcher: "exit_plan_mode",
-              hooks: [{ type: "command", command: "plannotator" }],
+              matcher: "ExitPlanMode",
+              hooks: [{ type: "command", command: "hypermark" }],
             },
           ],
         },
@@ -833,15 +537,15 @@ describe("default uninstall", () => {
 
       expect(blocked.ok).toBe(false);
       expect(existsSync(binary)).toBe(true);
-      expect(readFileSync(settingsPath, "utf8")).toContain("plannotator");
+      expect(readFileSync(settingsPath, "utf8")).toContain("hypermark");
       expect(blocked.errors[0]).toContain(
         `Could not update ${settingsPath}`,
       );
       expect(blocked.errors[0]).toContain(
-        'Remove only Hypermark command hooks from hooks.BeforeTool entries whose matcher is "exit_plan_mode"',
+        'Remove only Hypermark command hooks from hooks.PermissionRequest entries whose matcher is "ExitPlanMode"',
       );
       expect(blocked.errors[0]).toContain(
-        "Then rerun `plannotator uninstall`.",
+        "Then rerun `hypermark uninstall`.",
       );
 
       chmodSync(settingsPath, 0o600);
@@ -856,141 +560,13 @@ describe("default uninstall", () => {
     },
   );
 
-  test("removes a relocated Codex hook adopted by the installer", async () => {
-    const fixture = createFixture();
-    const hooksPath = join(fixture.homeDir, ".codex", "hooks.json");
-    writeJson(hooksPath, {
-      hooks: {
-        Stop: [
-          {
-            hooks: [
-              {
-                type: "command",
-                command: join(fixture.root, "relocated", "plannotator"),
-              },
-              {
-                type: "command",
-                command: join(fixture.root, "relocated", "plannotator-helper"),
-              },
-            ],
-          },
-        ],
-      },
-    });
-
-    const result = await runHypermarkUninstall(
-      { purge: false, dryRun: false },
-      fixture.environment,
-    );
-
-    expect(result.ok).toBe(true);
-    expect(readJson(hooksPath)).toEqual({
-      hooks: {
-        Stop: [
-          {
-            hooks: [
-              {
-                type: "command",
-                command: join(fixture.root, "relocated", "plannotator-helper"),
-              },
-            ],
-          },
-        ],
-      },
-    });
-  });
-
-  test("requires manual repair for unrelated malformed Gemini settings", async () => {
-    const fixture = createFixture();
-    const binary = join(fixture.homeDir, ".local", "bin", "plannotator");
-    const settingsPath = join(
-      fixture.homeDir,
-      ".gemini",
-      "settings.json",
-    );
-    const contents = '{ "theme": "custom" // comments are not strict JSON\n}';
-    writeText(binary);
-    writeText(settingsPath, contents);
-
-    const blocked = await runHypermarkUninstall(
-      { purge: false, dryRun: false },
-      fixture.environment,
-    );
-
-    expect(blocked.ok).toBe(false);
-    expect(existsSync(binary)).toBe(true);
-    expect(readFileSync(settingsPath, "utf8")).toBe(contents);
-    expect(blocked.errors[0]).toContain(
-      `Preserved ${settingsPath}: it is not strict JSON, so managed Gemini hooks cannot be classified safely.`,
-    );
-    expect(blocked.errors[0]).toContain(
-      'Remove only Hypermark command hooks from hooks.BeforeTool entries whose matcher is "exit_plan_mode"',
-    );
-    expect(blocked.errors[0]).toContain(
-      "Then rerun `plannotator uninstall`.",
-    );
-
-    writeJson(settingsPath, { theme: "custom" });
-    const retry = await runHypermarkUninstall(
-      { purge: false, dryRun: false },
-      fixture.environment,
-    );
-    expect(retry.ok).toBe(true);
-    expect(existsSync(binary)).toBe(false);
-    expect(readJson(settingsPath)).toEqual({ theme: "custom" });
-  });
-
-  test("fails safe for escaped managed spellings in malformed host config", async () => {
-    const fixture = createFixture();
-    const binary = join(fixture.homeDir, ".local", "bin", "plannotator");
-    const settingsPath = join(
-      fixture.homeDir,
-      ".gemini",
-      "settings.json",
-    );
-    const kiroAgentPath = join(
-      fixture.homeDir,
-      ".kiro",
-      "agents",
-      "plannotator.json",
-    );
-    const contents = '{ "command": "pl\\u0061nnotator" // malformed managed hook\n}';
-    const kiroContents = '{ "name": "plannotator" // malformed agent\n}';
-    writeText(binary);
-    writeText(settingsPath, contents);
-    writeText(kiroAgentPath, kiroContents);
-
-    const blocked = await runHypermarkUninstall(
-      { purge: false, dryRun: false },
-      fixture.environment,
-    );
-
-    expect(blocked.ok).toBe(false);
-    expect(existsSync(binary)).toBe(true);
-    expect(contents.toLowerCase()).not.toContain("plannotator");
-    expect(blocked.errors).toHaveLength(2);
-    expect(blocked.errors[0]).toContain(
-      "managed Gemini hooks cannot be classified safely",
-    );
-    expect(blocked.errors[1]).toContain(
-      "the Hypermark Kiro agent cannot be classified safely",
-    );
-    expect(
-      blocked.errors.every((error) =>
-        error.includes("Then rerun `plannotator uninstall`.")
-      ),
-    ).toBe(true);
-    expect(readFileSync(settingsPath, "utf8")).toBe(contents);
-    expect(readFileSync(kiroAgentPath, "utf8")).toBe(kiroContents);
-  });
-
   test("skips data-contained runtimes when the configured data root is broad", async () => {
     const fixture = createFixture();
     const binary = join(
       fixture.homeDir,
       ".local",
       "bin",
-      "plannotator",
+      "hypermark",
     );
     const unrelatedVendorFile = join(
       fixture.homeDir,
@@ -1125,7 +701,7 @@ describe("purge uninstall", () => {
       fixture.homeDir,
       ".local",
       "bin",
-      "plannotator",
+      "hypermark",
     );
     writeText(binary);
 
@@ -1153,13 +729,13 @@ describe("purge uninstall", () => {
       fixture.homeDir,
       ".local",
       "bin",
-      "plannotator",
+      "hypermark",
     );
     writeText(originalPlan, "original data");
     writeText(replacementPlan, "unrelated replacement data");
     writeText(binary);
     writeJson(join(fixture.homeDir, ".claude", "settings.json"), {
-      enabledPlugins: { "plannotator@plannotator": true },
+      enabledPlugins: { "hypermark@hypermark": true },
     });
 
     const result = await runHypermarkUninstall(
@@ -1198,7 +774,7 @@ describe("purge uninstall", () => {
         fixture.homeDir,
         ".local",
         "bin",
-        "plannotator",
+        "hypermark",
       );
       writeText(plan, "local-only data");
       writeText(binary);
@@ -1249,7 +825,7 @@ describe("purge uninstall", () => {
         fixture.homeDir,
         ".local",
         "bin",
-        "plannotator",
+        "hypermark",
       );
       writeText(binary);
 
@@ -1299,7 +875,7 @@ describe("purge uninstall", () => {
       fixture.homeDir,
       ".local",
       "bin",
-      "plannotator",
+      "hypermark",
     );
     writeText(binary);
 
@@ -1325,7 +901,7 @@ describe("purge uninstall", () => {
       fixture.homeDir,
       ".local",
       "bin",
-      "plannotator",
+      "hypermark",
     );
     writeText(binary);
 
@@ -1350,11 +926,11 @@ describe("host and platform integrations", () => {
       fixture.homeDir,
       ".local",
       "bin",
-      "plannotator",
+      "hypermark",
     );
     writeText(binary);
-    writeJson(join(fixture.homeDir, ".factory", "settings.json"), {
-      enabledPlugins: { "plannotator@plannotator": true },
+    writeJson(join(fixture.homeDir, ".claude", "settings.json"), {
+      enabledPlugins: { "hypermark@hypermark": true },
     });
 
     const result = await runHypermarkUninstall(
@@ -1364,21 +940,21 @@ describe("host and platform integrations", () => {
 
     expect(result.ok).toBe(false);
     expect(result.errors[0]).toContain(
-      "Droid plugin plannotator@plannotator",
+      "Claude Code plugin hypermark@hypermark",
     );
-    expect(result.errors[0]).toContain("droid is unavailable");
+    expect(result.errors[0]).toContain("claude is unavailable");
     expect(result.errors[0]).toContain(
-      "restore droid on PATH and run `droid plugin uninstall plannotator@plannotator --scope user`",
+      "restore claude on PATH and run `claude plugin uninstall hypermark@hypermark --scope user --keep-data --yes`",
     );
     expect(result.errors[0]).toContain(
-      "After it succeeds, rerun `plannotator uninstall`.",
+      "After it succeeds, rerun `hypermark uninstall`.",
     );
     expect(existsSync(binary)).toBe(true);
     expect(result.warnings).toContain(
       "Preserved the Hypermark CLI and its Windows PATH entry so you can resolve the errors and retry uninstall.",
     );
 
-    writeJson(join(fixture.homeDir, ".factory", "settings.json"), {
+    writeJson(join(fixture.homeDir, ".claude", "settings.json"), {
       enabledPlugins: {},
     });
     const retry = await runHypermarkUninstall(
@@ -1391,17 +967,17 @@ describe("host and platform integrations", () => {
 
   test("keeps the binary and reports the exact command when a host manager fails", async () => {
     const fixture = createFixture();
-    const binary = join(fixture.homeDir, ".local", "bin", "plannotator");
+    const binary = join(fixture.homeDir, ".local", "bin", "hypermark");
     writeText(binary);
-    writeJson(join(fixture.homeDir, ".pi", "agent", "settings.json"), {
-      packages: [{ source: "npm:@plannotator/pi-extension@0.25.1" }],
+    writeJson(join(fixture.homeDir, ".claude", "settings.json"), {
+      enabledPlugins: { "hypermark@hypermark": true },
     });
 
     const result = await runHypermarkUninstall(
       { purge: true, dryRun: false },
       {
         ...fixture.environment,
-        which: (command) => command === "pi" ? "/fake/pi" : null,
+        which: (command) => command === "claude" ? "/fake/claude" : null,
         runCommand: async (command, args, env) => {
           fixture.commandCalls.push({ command, args, env });
           return { exitCode: 23, timedOut: false };
@@ -1412,34 +988,24 @@ describe("host and platform integrations", () => {
     expect(result.ok).toBe(false);
     expect(existsSync(binary)).toBe(true);
     expect(result.errors[0]).toContain(
-      "Pi extension npm:@plannotator/pi-extension was not removed automatically (exit 23)",
+      "Claude Code plugin hypermark@hypermark was not removed automatically (exit 23)",
     );
     expect(result.errors[0]).toContain(
-      "run `pi remove npm:@plannotator/pi-extension` directly",
+      "run `claude plugin uninstall hypermark@hypermark --scope user --yes` directly",
     );
     expect(result.errors[0]).toContain(
-      "Then rerun `plannotator uninstall --purge`.",
+      "Then rerun `hypermark uninstall --purge`.",
     );
   });
 
-  test("detects disabled Claude and Droid plugins from installation metadata", async () => {
+  test("detects a disabled Claude plugin from installation metadata", async () => {
     const fixture = createFixture();
     writeJson(
       join(fixture.homeDir, ".claude", "plugins", "installed_plugins.json"),
       {
         plugins: {
-          "plannotator@plannotator": [
-            { installPath: "/fake/claude/plannotator" },
-          ],
-        },
-      },
-    );
-    writeJson(
-      join(fixture.homeDir, ".factory", "plugins", "installed_plugins.json"),
-      {
-        plugins: {
-          "plannotator@plannotator": [
-            { installPath: "/fake/droid/plannotator" },
+          "hypermark@hypermark": [
+            { installPath: "/fake/claude/hypermark" },
           ],
         },
       },
@@ -1457,26 +1023,22 @@ describe("host and platform integrations", () => {
       [
         "plugin",
         "uninstall",
-        "plannotator@plannotator",
+        "hypermark@hypermark",
         "--scope",
         "user",
         "--keep-data",
         "--yes",
       ],
-      [
-        "plugin",
-        "uninstall",
-        "plannotator@plannotator",
-        "--scope",
-        "user",
-      ],
     ]);
   });
 
-  test("uses host plugin managers and preserves Claude plugin data by default", async () => {
+  // Claude Code is the only plugin host Hypermark installs into. A machine
+  // that also ran Plannotator may still carry its Copilot, Droid, Pi and
+  // VS Code entries; not one of them may be invoked from here.
+  test("uses the Claude plugin manager and preserves plugin data by default", async () => {
     const fixture = createFixture();
     writeJson(join(fixture.homeDir, ".claude", "settings.json"), {
-      enabledPlugins: { "plannotator@plannotator": true },
+      enabledPlugins: { "hypermark@hypermark": true },
     });
     writeJson(join(fixture.homeDir, ".copilot", "settings.json"), {
       enabledPlugins: { "plannotator-copilot@plannotator": true },
@@ -1509,34 +1071,19 @@ describe("host and platform integrations", () => {
       [
         "plugin",
         "uninstall",
-        "plannotator@plannotator",
+        "hypermark@hypermark",
         "--scope",
         "user",
         "--keep-data",
         "--yes",
       ],
-      [
-        "plugins",
-        "remove",
-        "plannotator-copilot@plannotator",
-        "--plugin",
-      ],
-      [
-        "plugin",
-        "uninstall",
-        "plannotator@plannotator",
-        "--scope",
-        "user",
-      ],
-      ["remove", "npm:@plannotator/pi-extension"],
-      ["--uninstall-extension", "backnotprop.plannotator-webview"],
     ]);
   });
 
   test("allows Claude to remove its plugin data during purge", async () => {
     const fixture = createFixture();
     writeJson(join(fixture.homeDir, ".claude", "settings.json"), {
-      enabledPlugins: { "plannotator@plannotator": true },
+      enabledPlugins: { "hypermark@hypermark": true },
     });
 
     await runHypermarkUninstall(
@@ -1554,12 +1101,12 @@ describe("host and platform integrations", () => {
   test("removes Windows PATH registration and schedules the running exe", async () => {
     const fixture = createFixture();
     const localAppData = join(fixture.homeDir, "AppData", "Local");
-    const currentExe = join(localAppData, "plannotator", "plannotator.exe");
+    const currentExe = join(localAppData, "hypermark", "hypermark.exe");
     const legacyExe = join(
       fixture.homeDir,
       ".local",
       "bin",
-      "plannotator.exe",
+      "hypermark.exe",
     );
     writeText(currentExe);
     writeText(legacyExe);
@@ -1595,7 +1142,7 @@ describe("host and platform integrations", () => {
     const fixture = createFixture();
     const localAppData = join(fixture.homeDir, "AppData", "Local");
     const sharedBin = join(fixture.homeDir, ".local", "bin");
-    const currentExe = join(sharedBin, "plannotator.exe");
+    const currentExe = join(sharedBin, "hypermark.exe");
     const unrelatedFile = join(sharedBin, "unrelated-tool.exe");
     writeText(currentExe);
     writeText(unrelatedFile);
@@ -1622,7 +1169,7 @@ describe("host and platform integrations", () => {
   test("keeps the running Windows CLI when PATH cleanup fails", async () => {
     const fixture = createFixture();
     const localAppData = join(fixture.homeDir, "AppData", "Local");
-    const currentExe = join(localAppData, "plannotator", "plannotator.exe");
+    const currentExe = join(localAppData, "hypermark", "hypermark.exe");
     writeText(currentExe);
 
     const result = await runHypermarkUninstall(
@@ -1648,7 +1195,7 @@ describe("host and platform integrations", () => {
   test("proceeds without a PATH error when the entry is not present (exit 3)", async () => {
     const fixture = createFixture();
     const localAppData = join(fixture.homeDir, "AppData", "Local");
-    const currentExe = join(localAppData, "plannotator", "plannotator.exe");
+    const currentExe = join(localAppData, "hypermark", "hypermark.exe");
     writeText(currentExe);
 
     const result = await runHypermarkUninstall(
@@ -1676,7 +1223,7 @@ describe("host and platform integrations", () => {
   test("reports a timed-out PATH edit as a timeout and keeps the CLI", async () => {
     const fixture = createFixture();
     const localAppData = join(fixture.homeDir, "AppData", "Local");
-    const currentExe = join(localAppData, "plannotator", "plannotator.exe");
+    const currentExe = join(localAppData, "hypermark", "hypermark.exe");
     writeText(currentExe);
 
     const result = await runHypermarkUninstall(
@@ -1703,7 +1250,7 @@ describe("host and platform integrations", () => {
   test("treats a timeout after the rollback echo as a completed PATH edit", async () => {
     const fixture = createFixture();
     const localAppData = join(fixture.homeDir, "AppData", "Local");
-    const currentExe = join(localAppData, "plannotator", "plannotator.exe");
+    const currentExe = join(localAppData, "hypermark", "hypermark.exe");
     writeText(currentExe);
     const originalPath = `C:\\Before;${dirname(currentExe)};C:\\After;;`;
 
@@ -1737,7 +1284,7 @@ describe("host and platform integrations", () => {
   test("treats a non-zero exit after the rollback echo as a completed PATH edit", async () => {
     const fixture = createFixture();
     const localAppData = join(fixture.homeDir, "AppData", "Local");
-    const currentExe = join(localAppData, "plannotator", "plannotator.exe");
+    const currentExe = join(localAppData, "hypermark", "hypermark.exe");
     writeText(currentExe);
     const originalPath = `C:\\Before;${dirname(currentExe)};C:\\After;;`;
 
@@ -1777,7 +1324,7 @@ describe("host and platform integrations", () => {
     ]) {
       const fixture = createFixture();
       const localAppData = join(fixture.homeDir, "AppData", "Local");
-      const currentExe = join(localAppData, "plannotator", "plannotator.exe");
+      const currentExe = join(localAppData, "hypermark", "hypermark.exe");
       writeText(currentExe);
       let commandCount = 0;
 
@@ -1827,7 +1374,7 @@ describe("host and platform integrations", () => {
   test("reports a restore that never printed its sentinel as failed", async () => {
     const fixture = createFixture();
     const localAppData = join(fixture.homeDir, "AppData", "Local");
-    const currentExe = join(localAppData, "plannotator", "plannotator.exe");
+    const currentExe = join(localAppData, "hypermark", "hypermark.exe");
     writeText(currentExe);
     let commandCount = 0;
 
@@ -1867,7 +1414,7 @@ describe("host and platform integrations", () => {
   test("restores Windows PATH when scheduling self-delete fails", async () => {
     const fixture = createFixture();
     const localAppData = join(fixture.homeDir, "AppData", "Local");
-    const currentExe = join(localAppData, "plannotator", "plannotator.exe");
+    const currentExe = join(localAppData, "hypermark", "hypermark.exe");
     writeText(currentExe);
 
     const result = await runHypermarkUninstall(
@@ -1890,14 +1437,14 @@ describe("host and platform integrations", () => {
     expect(fixture.commandCalls).toHaveLength(2);
     expect(fixture.commandCalls[1]?.env).toEqual({
       HYPERMARK_UNINSTALL_ORIGINAL_PATH:
-        "C:\\Tools;C:\\Users\\fixture\\AppData\\Local\\plannotator;C:\\Windows;;",
+        "C:\\Tools;C:\\Users\\fixture\\AppData\\Local\\hypermark;C:\\Windows;;",
     });
   });
 
   test("reports the full CLI path when Windows PATH restoration also fails", async () => {
     const fixture = createFixture();
     const localAppData = join(fixture.homeDir, "AppData", "Local");
-    const currentExe = join(localAppData, "plannotator", "plannotator.exe");
+    const currentExe = join(localAppData, "hypermark", "hypermark.exe");
     writeText(currentExe);
     let commandCount = 0;
 

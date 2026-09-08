@@ -1,7 +1,7 @@
 /**
  * Hypermark Config
  *
- * Reads/writes ~/.plannotator/config.json for persistent user settings.
+ * Reads/writes ~/.hypermark/config.json for persistent user settings.
  * Runtime-agnostic: uses only node:fs, node:os, node:child_process.
  */
 
@@ -148,23 +148,21 @@ export interface HypermarkConfig {
    */
   verifyAttestation?: boolean;
   /**
-   * Per-agent installer integration opt-outs. Read by
+   * Installer opt-out for the skills / slash-command checkout. Read by
    * scripts/install.sh|ps1|cmd on every run (not by any runtime code).
-   * When an agent's flag is true, the installer does not write that agent's
-   * integration even when the agent is detected, reports the detected state
-   * honestly ("detected, skipped"), and never removes an integration a
-   * previous install already wired. Overridden by the
-   * HYPERMARK_SKIP_CODEX_INSTALL / HYPERMARK_SKIP_GEMINI_INSTALL /
-   * HYPERMARK_SKIP_KIRO_INSTALL / HYPERMARK_SKIP_OPENCODE_INSTALL env
-   * vars, which are in turn overridden by the --skip-codex / --skip-gemini /
-   * --skip-kiro / --skip-opencode flags. OpenCode has no detection leg, so
-   * its entry is a plain do-not-write switch. Default: all off.
+   * When true, the installer fetches nothing and writes nothing to the
+   * Claude Code or ~/.agents skill scopes, reports the skip honestly, and
+   * never removes a skill a previous install already wrote. Overridden by
+   * the HYPERMARK_SKIP_SKILLS_INSTALL env var, which is in turn overridden
+   * by the --skip-skills flag. Default: off.
+   *
+   * The per-agent codex/gemini/kiro/opencode entries this object used to
+   * carry went with the integrations spec 02 removed. It stays an object
+   * rather than a bare boolean so an existing config.json carrying those
+   * keys still parses; unknown keys are simply not read.
    */
   skipInstall?: {
-    codex?: boolean;
-    gemini?: boolean;
-    kiro?: boolean;
-    opencode?: boolean;
+    skills?: boolean;
   };
   /**
    * Enable Jina Reader for URL-to-markdown conversion during annotation.
@@ -177,12 +175,12 @@ export interface HypermarkConfig {
    * Save per-file version history when annotating local files. Powers the
    * annotate version diff ("what changed since I last looked"). NOTE: this
    * writes a copy of each annotated file's content under
-   * ~/.plannotator/history/ (or HYPERMARK_DATA_DIR). Set to false to keep
+   * ~/.hypermark/history/ (or HYPERMARK_DATA_DIR). Set to false to keep
    * annotate sessions fully stateless. Default: true.
    */
   annotateHistory?: boolean;
   /**
-   * Durably archive every submitted review under ~/.plannotator/feedback/
+   * Durably archive every submitted review under ~/.hypermark/feedback/
    * (or HYPERMARK_DATA_DIR): one append-only JSONL record per submission
    * plus a markdown sidecar for the ones that carry content. NOTE: this
    * writes the user's own feedback text and the document/code excerpts it
@@ -274,7 +272,7 @@ function getConfigPath(): string {
 }
 
 /**
- * Load config from ~/.plannotator/config.json.
+ * Load config from ~/.hypermark/config.json.
  * Returns {} on missing file or malformed JSON.
  */
 export function loadConfig(): HypermarkConfig {
@@ -443,7 +441,7 @@ function writeConfigAtomic(configPath: string, contents: string): void {
 
 /**
  * Save config by merging partial values into the existing file.
- * Creates ~/.plannotator/ directory if needed.
+ * Creates ~/.hypermark/ directory if needed.
  *
  * The read-merge-write runs under an advisory lockfile so concurrent writers
  * (in this process or another one sharing the data dir) cannot drop each

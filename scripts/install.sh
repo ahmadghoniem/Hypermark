@@ -11,7 +11,7 @@ INSTALL_DIR="$HOME/.local/bin"
 # `actions/attest-build-provenance` step, so `gh attestation verify` will
 # fail with "no attestations found" for them regardless of authenticity.
 # When provenance verification is enabled (via flag, env var, or
-# ~/.plannotator/config.json), the installer compares the resolved tag
+# ~/.hypermark/config.json), the installer compares the resolved tag
 # against this constant and fails fast with a clear message instead of
 # downloading a binary, running SHA256, and then hitting a cryptic gh
 # failure. Bumped once at the first attested release via the release skill.
@@ -30,7 +30,7 @@ VERSION="latest"
 # which would otherwise silently overwrite the earlier value and 404.
 VERSION_EXPLICIT=0
 # Three-layer opt-in for SLSA build-provenance verification.
-# Precedence: CLI flag > env var > ~/.plannotator/config.json > default (off).
+# Precedence: CLI flag > env var > ~/.hypermark/config.json > default (off).
 # -1 = flag not set yet (fall through to lower layers); 0 = disable; 1 = enable.
 VERIFY_ATTESTATION_FLAG=-1
 # Three-layer opt-in for the CallDiff call-flow runtime (large on-disk
@@ -48,24 +48,15 @@ NON_INTERACTIVE=0
 RECONFIGURE=0
 # Binary-only mode. Installs just the hypermark binary (to $INSTALL_DIR) and
 # no persistent state elsewhere — no sem sidecar, no CallDiff or agent-terminal runtime, no
-# skills, hooks, slash commands, or per-agent config (Claude, Codex, OpenCode,
-# Gemini, Kiro). Set by --minimal (1) / --no-minimal (0); -1 = neither flag
+# skills, hooks, slash commands, or Claude configuration. Set by --minimal
+# (1) / --no-minimal (0); -1 = neither flag
 # given (fall through to the HYPERMARK_MINIMAL env var). Resolved after arg
 # parsing so a flag overrides the env var in either direction.
 MINIMAL_FLAG=-1
-# Per-agent integration opt-outs (#1178). Skip means do-not-write: when a
-# skipped agent is detected, the installer reports "detected, skipped" and
-# writes nothing to that agent's home; it never removes an integration a
-# previous install already wired. 1 = flag passed. Resolution (flag > env >
-# config skipInstall.<agent> > default off) happens after _config_dir is known.
-SKIP_CODEX_FLAG=0
-SKIP_GEMINI_FLAG=0
-SKIP_KIRO_FLAG=0
-SKIP_OPENCODE_FLAG=0
 # Same shape, but scoped to the skills/slash-command sparse checkout rather
 # than one agent's home: --skip-skills turns the whole fetch into a no-op for
-# every scope it writes (Claude, ~/.agents, OpenCode, Gemini, Kiro), including
-# the extras and the skill-scope cleanup sweeps. Needed by any environment that
+# every scope it writes (Claude Code and ~/.agents), including the extras and
+# the skill-scope cleanup sweeps. Needed by any environment that
 # cannot reach github.com for the tag being installed — the release smoke test
 # installs a synthetic v9.9.9 whose tag has no GitHub counterpart.
 SKIP_SKILLS_FLAG=0
@@ -74,8 +65,7 @@ usage() {
     cat <<'USAGE'
 Usage: install.sh [--version <tag>] [--verify-attestation | --skip-attestation]
                   [--extras | --no-extras] [--model-invocable <list>|none]
-                  [--minimal | --no-minimal] [--skip-codex] [--skip-gemini]
-                  [--skip-kiro] [--skip-opencode] [--skip-skills]
+                  [--minimal | --no-minimal] [--skip-skills]
                   [--non-interactive] [--reconfigure] [--help]
        install.sh <tag>
 
@@ -87,7 +77,7 @@ Options:
                          `gh attestation verify`. Fails the install if gh is
                          not available or the check does not pass.
   --skip-attestation     Force-skip provenance verification even if enabled
-                         via env var or ~/.plannotator/config.json.
+                         via env var or ~/.hypermark/config.json.
   --with-call-flow       Also install the optional pruned CallDiff core
                          (about 5 MB on macOS arm64, needs Node.js 22+).
                          By default it is NOT installed; the review UI offers
@@ -102,40 +92,20 @@ Options:
                          "none". Skills are user-invoked-only by default.
   --minimal              Install only the hypermark binary (aliased
                          --binary-only). Skips the sem semantic-diff sidecar,
-                         the CallDiff runtime, the agent-terminal runtime, and every per-agent
-                         integration (skills, hooks, slash commands, and config
-                         for Claude, Codex, OpenCode, Gemini, and Kiro). No
+                         the CallDiff runtime, the agent-terminal runtime, and every
+                         integration (skills, hooks, slash commands, and the
+                         Claude Code configuration). No
                          persistent state is written outside $HOME/.local/bin
                          (a temp download file is still used and removed). Also
                          enabled by exporting HYPERMARK_MINIMAL=1.
   --no-minimal           Force a full install even when HYPERMARK_MINIMAL is
                          set in the environment.
-  --skip-codex           Do not write the Codex integration (hooks.json /
-                         config.toml under CODEX_HOME) even when Codex is
-                         detected. Never removes an existing integration.
-                         Also enabled by HYPERMARK_SKIP_CODEX_INSTALL=1 or
-                         { "skipInstall": { "codex": true } } in
-                         ~/.plannotator/config.json (flag > env var > config).
-  --skip-gemini          Same opt-out for the Gemini CLI integration
-                         (~/.gemini policy, settings hook, commands). Env var:
-                         HYPERMARK_SKIP_GEMINI_INSTALL; config key:
-                         skipInstall.gemini.
-  --skip-kiro            Same opt-out for the Kiro CLI integration
-                         (~/.kiro skills and agent). Env var:
-                         HYPERMARK_SKIP_KIRO_INSTALL; config key:
-                         skipInstall.kiro.
-  --skip-opencode        Do not write the OpenCode integration (command stubs
-                         under ~/.config/opencode/commands and the OpenCode
-                         plugin cache clear). OpenCode has no detection leg,
-                         so this is a plain do-not-write switch. Env var:
-                         HYPERMARK_SKIP_OPENCODE_INSTALL; config key:
-                         skipInstall.opencode.
   --skip-skills          Do not fetch or write the /hypermark-* skills and
                          slash commands (the sparse checkout that feeds Claude
-                         Code, ~/.agents, OpenCode, Gemini, and Kiro), the
-                         extras, or the skill-scope cleanup sweeps. Nothing
-                         already installed is removed. The binary, hooks, and
-                         per-agent config still install. Use it where
+                         Code and ~/.agents), the extras, or the skill-scope
+                         cleanup sweeps. Nothing already installed is removed.
+                         The binary, hooks, and Claude configuration still
+                         install. Use it where
                          github.com cannot serve the tag being installed. Env
                          var: HYPERMARK_SKIP_SKILLS_INSTALL; config key:
                          skipInstall.skills.
@@ -156,7 +126,7 @@ keep the defaults.
 Provenance verification is off by default. Enable it by any of:
   - passing --verify-attestation
   - exporting HYPERMARK_VERIFY_ATTESTATION=1
-  - setting { "verifyAttestation": true } in ~/.plannotator/config.json
+  - setting { "verifyAttestation": true } in ~/.hypermark/config.json
 When enabled, the attestation bundle is fetched from GitHub's public
 attestations API and verified with `gh attestation verify --bundle`, so no
 gh login is required. The credential-free path needs one JSON tool on PATH
@@ -175,9 +145,9 @@ Node/npm is unavailable, Hypermark still installs and annotate mode works
 without the integrated terminal.
 
 Examples:
-  curl -fsSL https://plannotator.ai/install.sh | bash
-  curl -fsSL https://plannotator.ai/install.sh | bash -s -- --version vX.Y.Z
-  curl -fsSL https://plannotator.ai/install.sh | bash -s -- --no-extras --model-invocable none
+  curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash -s -- --version vX.Y.Z
+  curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash -s -- --no-extras --model-invocable none
   bash install.sh vX.Y.Z
 USAGE
 }
@@ -293,22 +263,6 @@ while [ $# -gt 0 ]; do
             MINIMAL_FLAG=0
             shift
             ;;
-        --skip-codex)
-            SKIP_CODEX_FLAG=1
-            shift
-            ;;
-        --skip-gemini)
-            SKIP_GEMINI_FLAG=1
-            shift
-            ;;
-        --skip-kiro)
-            SKIP_KIRO_FLAG=1
-            shift
-            ;;
-        --skip-opencode)
-            SKIP_OPENCODE_FLAG=1
-            shift
-            ;;
         --skip-skills)
             SKIP_SKILLS_FLAG=1
             shift
@@ -353,7 +307,7 @@ fi
 case "$(uname -s)" in
     Darwin) os="darwin" ;;
     Linux)  os="linux" ;;
-    *)      echo "Unsupported OS. For Windows, run: irm https://plannotator.ai/install.ps1 | iex" >&2; exit 1 ;;
+    *)      echo "Unsupported OS. For Windows, run: irm https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.ps1 | iex" >&2; exit 1 ;;
 esac
 
 case "$(uname -m)" in
@@ -437,20 +391,23 @@ echo "Installing hypermark ${latest_tag}..."
 # provenance support. The three layers (config file, env var, CLI flag) are
 # all cheap to check — no reason to defer this past the arg parse.
 #
-# Precedence: CLI flag > env var > ~/.plannotator/config.json > default (off).
+# Precedence: CLI flag > env var > ~/.hypermark/config.json > default (off).
 verify_attestation=0
 
 # Layer 3: config file (lowest precedence of the opt-in sources).
 # Crude grep against a flat boolean — HypermarkConfig has no nested
 # verifyAttestation, so false positives are not a concern.
 # Resolve the data directory, expanding ~ the same way the runtime does.
-# Unset: an existing ~/.plannotator (legacy default) always wins; otherwise
-# an explicitly-set absolute XDG_DATA_HOME places it at
-# $XDG_DATA_HOME/hypermark; otherwise ~/.plannotator.
+# Unset: an existing ~/.hypermark always wins, so an install never relocates
+# itself; otherwise an explicitly-set absolute XDG_DATA_HOME places it at
+# $XDG_DATA_HOME/hypermark; otherwise ~/.hypermark.
+# A fresh root (spec 06, decision D5): Hypermark starts at ~/.hypermark and
+# never probes ~/.plannotator, so an existing Plannotator install keeps its
+# plans, drafts and config exactly where they are.
 _raw_dir="${HYPERMARK_DATA_DIR:-}"
 case "$_raw_dir" in
     "")
-        _config_dir="$HOME/.plannotator"
+        _config_dir="$HOME/.hypermark"
         if [ ! -d "$_config_dir" ]; then
             case "${XDG_DATA_HOME:-}" in
                 /*) _config_dir="$XDG_DATA_HOME/hypermark" ;;
@@ -500,20 +457,11 @@ fi
 # The config layer first extracts JUST the skipInstall object (from the
 # first "{" after the "skipInstall" key to its first "}" — the object is a
 # flat map of booleans, so the first closing brace ends it) and matches
-# per-agent keys only inside that region. This keeps a "codex": true under
-# some OTHER key from opting anyone out (M2), works whether the JSON is
-# pretty-printed or single-line, and an explicit `"codex": false` inside
-# skipInstall is honored as a veto rather than being ignored. Each resolved
-# skip remembers its source so the detected-but-skipped report can name
-# what the user set.
-skip_codex=0
-skip_codex_source=""
-skip_gemini=0
-skip_gemini_source=""
-skip_kiro=0
-skip_kiro_source=""
-skip_opencode=0
-skip_opencode_source=""
+# its keys only inside that region. This keeps a "skills": true under some
+# OTHER key from opting anyone out (M2), works whether the JSON is
+# pretty-printed or single-line, and an explicit `"skills": false` inside
+# skipInstall is honored as a veto rather than being ignored. The resolved
+# skip remembers its source so the report can name what the user set.
 # skipInstall.skills is not an agent — it opts out of the skills/slash-command
 # checkout for every scope at once — but it shares the same three layers and
 # the same key region, so it rides along in the loop below.
@@ -546,28 +494,12 @@ if [ -f "$_config_dir/config.json" ]; then
         }' "$_config_dir/config.json" 2>/dev/null) || _skip_install_block=""
 fi
 if [ -n "$_skip_install_block" ]; then
-    for _agent in codex gemini kiro opencode skills; do
+    for _agent in skills; do
         if printf '%s' "$_skip_install_block" | grep -q "\"$_agent\"[[:space:]]*:[[:space:]]*false"; then
             continue # explicit false is a veto, never a skip
         fi
         if printf '%s' "$_skip_install_block" | grep -q "\"$_agent\"[[:space:]]*:[[:space:]]*true"; then
             case "$_agent" in
-                codex)
-                    skip_codex=1
-                    skip_codex_source="config skipInstall.codex"
-                    ;;
-                gemini)
-                    skip_gemini=1
-                    skip_gemini_source="config skipInstall.gemini"
-                    ;;
-                kiro)
-                    skip_kiro=1
-                    skip_kiro_source="config skipInstall.kiro"
-                    ;;
-                opencode)
-                    skip_opencode=1
-                    skip_opencode_source="config skipInstall.opencode"
-                    ;;
                 skills)
                     skip_skills=1
                     skip_skills_source="config skipInstall.skills"
@@ -578,46 +510,6 @@ if [ -n "$_skip_install_block" ]; then
     unset _agent
 fi
 unset _skip_install_block
-case "${HYPERMARK_SKIP_CODEX_INSTALL:-}" in
-    1|true|yes|TRUE|YES|True|Yes)
-        skip_codex=1
-        skip_codex_source="HYPERMARK_SKIP_CODEX_INSTALL"
-        ;;
-    0|false|no|FALSE|NO|False|No)
-        skip_codex=0
-        skip_codex_source=""
-        ;;
-esac
-case "${HYPERMARK_SKIP_GEMINI_INSTALL:-}" in
-    1|true|yes|TRUE|YES|True|Yes)
-        skip_gemini=1
-        skip_gemini_source="HYPERMARK_SKIP_GEMINI_INSTALL"
-        ;;
-    0|false|no|FALSE|NO|False|No)
-        skip_gemini=0
-        skip_gemini_source=""
-        ;;
-esac
-case "${HYPERMARK_SKIP_KIRO_INSTALL:-}" in
-    1|true|yes|TRUE|YES|True|Yes)
-        skip_kiro=1
-        skip_kiro_source="HYPERMARK_SKIP_KIRO_INSTALL"
-        ;;
-    0|false|no|FALSE|NO|False|No)
-        skip_kiro=0
-        skip_kiro_source=""
-        ;;
-esac
-case "${HYPERMARK_SKIP_OPENCODE_INSTALL:-}" in
-    1|true|yes|TRUE|YES|True|Yes)
-        skip_opencode=1
-        skip_opencode_source="HYPERMARK_SKIP_OPENCODE_INSTALL"
-        ;;
-    0|false|no|FALSE|NO|False|No)
-        skip_opencode=0
-        skip_opencode_source=""
-        ;;
-esac
 case "${HYPERMARK_SKIP_SKILLS_INSTALL:-}" in
     1|true|yes|TRUE|YES|True|Yes)
         skip_skills=1
@@ -628,22 +520,6 @@ case "${HYPERMARK_SKIP_SKILLS_INSTALL:-}" in
         skip_skills_source=""
         ;;
 esac
-if [ "$SKIP_CODEX_FLAG" -eq 1 ]; then
-    skip_codex=1
-    skip_codex_source="--skip-codex"
-fi
-if [ "$SKIP_GEMINI_FLAG" -eq 1 ]; then
-    skip_gemini=1
-    skip_gemini_source="--skip-gemini"
-fi
-if [ "$SKIP_KIRO_FLAG" -eq 1 ]; then
-    skip_kiro=1
-    skip_kiro_source="--skip-kiro"
-fi
-if [ "$SKIP_OPENCODE_FLAG" -eq 1 ]; then
-    skip_opencode=1
-    skip_opencode_source="--skip-opencode"
-fi
 if [ "$SKIP_SKILLS_FLAG" -eq 1 ]; then
     skip_skills=1
     skip_skills_source="--skip-skills"
@@ -662,7 +538,7 @@ if [ "$verify_attestation" -eq 1 ]; then
         echo "  - Pin to ${MIN_ATTESTED_VERSION} or later: --version ${MIN_ATTESTED_VERSION}" >&2
         echo "  - Install without provenance verification: --skip-attestation" >&2
         echo "  - Or unset HYPERMARK_VERIFY_ATTESTATION / remove verifyAttestation" >&2
-        echo "    from ~/.plannotator/config.json" >&2
+        echo "    from ~/.hypermark/config.json" >&2
         exit 1
     fi
 fi
@@ -868,13 +744,13 @@ sys.stdout.write("\n".join(lines) + "\n")
         echo "Install https://cli.github.com (no login is needed when the public" >&2
         echo "attestation bundle fetch succeeds), or unset" >&2
         echo "HYPERMARK_VERIFY_ATTESTATION / remove verifyAttestation from" >&2
-        echo "~/.plannotator/config.json / pass --skip-attestation." >&2
+        echo "~/.hypermark/config.json / pass --skip-attestation." >&2
         rm -f "$tmp_file"
         exit 1
     fi
 else
     echo "SHA256 verified. For build provenance verification, see"
-    echo "https://docs.plannotator.ai/open-source/start/installation#pin-or-verify-a-release"
+    echo "https://github.com/ahmadghoniem/Hypermark/releases"
 fi
 
 # Remove old binary first (handles Windows .exe and locked file issues)
@@ -1054,216 +930,6 @@ install_call_flow_runtime
 
 print_path_advice
 
-# --- Codex CLI / Desktop app support (only if Codex is installed or configured) ---
-# Codex stores config and state under $CODEX_HOME when set, falling back to
-# ~/.codex (https://developers.openai.com/codex/config-advanced).
-CODEX_DIR="${CODEX_HOME:-$HOME/.codex}"
-
-codex_home_has_user_config() {
-    [ -d "$CODEX_DIR" ] || return 1
-    [ -n "$(find "$CODEX_DIR" -mindepth 1 -maxdepth 1 ! -name skills ! -name .DS_Store -print -quit 2>/dev/null)" ]
-}
-
-codex_available=0
-if command -v codex >/dev/null 2>&1 || codex_home_has_user_config; then
-    codex_available=1
-fi
-
-kiro_available=0
-if command -v kiro-cli >/dev/null 2>&1 || [ -d "$HOME/.kiro" ]; then
-    kiro_available=1
-fi
-
-if [ "$codex_available" -eq 1 ] && [ "$skip_codex" -eq 1 ]; then
-    # HONEST three-state reporting (#1178): detected-but-skipped is its own
-    # state, never conflated with "not detected". Skip is do-not-write only:
-    # nothing under $CODEX_DIR is created, updated, or removed on this run.
-    echo ""
-    echo "Codex: detected, skipped (${skip_codex_source})."
-    if [ -f "$CODEX_DIR/hooks.json" ] && grep -q "hypermark" "$CODEX_DIR/hooks.json" 2>/dev/null; then
-        echo "An existing Codex integration at ${CODEX_DIR}/hooks.json was left untouched."
-    fi
-    echo "Note: the shared agent skills in ~/.agents/skills serve multiple agents"
-    echo "(Codex among them) and are still installed."
-elif [ "$codex_available" -eq 1 ]; then
-    CODEX_CONFIG="$CODEX_DIR/config.toml"
-    CODEX_HOOKS="$CODEX_DIR/hooks.json"
-    HYPERMARK_BIN="${INSTALL_DIR}/hypermark"
-    codex_hook_configured=0
-
-    mkdir -p "$CODEX_DIR"
-
-    enable_codex_hooks_config() {
-        if [ ! -f "$CODEX_CONFIG" ]; then
-            cat > "$CODEX_CONFIG" << 'CODEX_CONFIG_EOF'
-[features]
-hooks = true
-CODEX_CONFIG_EOF
-            echo "Created Codex config at ${CODEX_CONFIG}"
-            return 0
-        fi
-
-        if grep -Eq '^[[:space:]]*features[[:space:]]*=' "$CODEX_CONFIG"; then
-            echo ""
-            echo "Codex config uses inline features in ${CODEX_CONFIG}; leaving it unchanged."
-            echo "Add this manually to enable Hypermark plan review:"
-            echo ""
-            echo "  [features]"
-            echo "  hooks = true"
-            return 1
-        fi
-
-        tmp_config="$(mktemp)"
-        if awk '
-            function is_table(line) {
-                return line ~ /^[[:space:]]*\[[^]]+\][[:space:]]*$/
-            }
-            BEGIN {
-                in_features = 0
-                saw_features = 0
-                saw_hook = 0
-            }
-            {
-                if (is_table($0)) {
-                    if (in_features && !saw_hook) {
-                        print "hooks = true"
-                        saw_hook = 1
-                    }
-                    in_features = ($0 ~ /^[[:space:]]*\[features\][[:space:]]*$/)
-                    if (in_features) saw_features = 1
-                }
-
-                if (in_features && $0 ~ /^[[:space:]]*(codex_hooks|hooks)[[:space:]]*=/) {
-                    print "hooks = true"
-                    saw_hook = 1
-                    next
-                }
-
-                print
-            }
-            END {
-                if (saw_features && in_features && !saw_hook) {
-                    print "hooks = true"
-                } else if (!saw_features) {
-                    print ""
-                    print "[features]"
-                    print "hooks = true"
-                }
-            }
-        ' "$CODEX_CONFIG" > "$tmp_config"; then
-            mv "$tmp_config" "$CODEX_CONFIG"
-            echo "Enabled Codex hooks in ${CODEX_CONFIG}"
-            return 0
-        fi
-
-        rm -f "$tmp_config"
-        echo "Could not update ${CODEX_CONFIG}; add hooks manually." >&2
-        return 1
-    }
-
-    if [ ! -f "$CODEX_HOOKS" ]; then
-        cat > "$CODEX_HOOKS" << CODEX_HOOKS_EOF
-{
-  "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${HYPERMARK_BIN}",
-            "timeout": 345600
-          }
-        ]
-      }
-    ]
-  }
-}
-CODEX_HOOKS_EOF
-        echo "Created Codex hooks at ${CODEX_HOOKS}"
-        codex_hook_configured=1
-    elif command -v node >/dev/null 2>&1; then
-        if codex_merge_result=$(node - "$CODEX_HOOKS" "$HYPERMARK_BIN" <<'NODE'
-const fs = require("fs");
-const path = require("path");
-const [hooksPath, command] = process.argv.slice(2);
-const config = JSON.parse(fs.readFileSync(hooksPath, "utf8"));
-config.hooks ||= {};
-const stopHooks = Array.isArray(config.hooks.Stop) ? config.hooks.Stop : [];
-let updated = false;
-let foundCustomHypermarkHook = false;
-
-function isManagedHypermarkCommand(value) {
-  const current = value.trim();
-  if (current === "hypermark" || current === command) return true;
-  return current.startsWith("/") && path.posix.basename(current) === "hypermark";
-}
-
-for (const entry of stopHooks) {
-  const hooks = Array.isArray(entry?.hooks) ? entry.hooks : [];
-  for (const hook of hooks) {
-    if (hook?.type !== "command" || typeof hook.command !== "string") continue;
-
-    if (isManagedHypermarkCommand(hook.command)) {
-      hook.command = command;
-      hook.timeout = 345600;
-      updated = true;
-    } else if (hook.command.includes("hypermark")) {
-      foundCustomHypermarkHook = true;
-    }
-  }
-}
-if (!updated && !foundCustomHypermarkHook) {
-  stopHooks.push({
-    hooks: [
-      {
-        type: "command",
-        command,
-        timeout: 345600,
-      },
-    ],
-  });
-}
-config.hooks.Stop = stopHooks;
-if (updated || !foundCustomHypermarkHook) {
-  fs.writeFileSync(hooksPath, JSON.stringify(config, null, 2) + "\n");
-}
-process.stdout.write(updated ? "updated" : foundCustomHypermarkHook ? "custom" : "added");
-NODE
-        ); then
-            case "$codex_merge_result" in
-                custom)
-                    echo "Existing custom Codex Hypermark hook found at ${CODEX_HOOKS}; left it unchanged."
-                    ;;
-                added)
-                    echo "Added Codex hooks at ${CODEX_HOOKS}"
-                    ;;
-                *)
-                    echo "Updated Codex hooks at ${CODEX_HOOKS}"
-                    ;;
-            esac
-            codex_hook_configured=1
-        else
-            echo ""
-            echo "Codex hooks file already exists at ${CODEX_HOOKS}, but it could not be merged automatically."
-            echo "Leaving Codex hook support unchanged. Add or update this Stop hook manually:"
-            echo ""
-            echo "  command: ${HYPERMARK_BIN}"
-            echo "  timeout: 345600"
-        fi
-    else
-        echo ""
-        echo "Codex hooks file already exists at ${CODEX_HOOKS}, but node was not found to merge it safely."
-        echo "Leaving Codex hook support unchanged. Add or update this Stop hook manually:"
-        echo ""
-        echo "  command: ${HYPERMARK_BIN}"
-        echo "  timeout: 345600"
-    fi
-
-    if [ "$codex_hook_configured" -eq 1 ]; then
-        enable_codex_hooks_config || true
-    fi
-fi
-
 # Validate plugin hooks.json if plugin is already installed
 PLUGIN_HOOKS="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/marketplaces/hypermark/apps/hook/hooks/hooks.json"
 if [ -f "$PLUGIN_HOOKS" ]; then
@@ -1300,43 +966,12 @@ HOOKS_EOF
     echo "Updated plugin hooks at ${PLUGIN_HOOKS}"
 fi
 
-# Clear any cached OpenCode plugin to force fresh download on next run.
-# An OpenCode opt-out (#1178) leaves OpenCode's own cache directory alone;
-# the Bun package cache is a shared cache, not OpenCode's home, and is
-# always cleared.
-if [ "$skip_opencode" -eq 0 ]; then
-    rm -rf "$HOME/.cache/opencode/node_modules/@plannotator" "$HOME/.cache/opencode/packages/@plannotator" 2>/dev/null || true
-fi
-rm -rf "$HOME/.bun/install/cache/@plannotator" 2>/dev/null || true
-
-# Clear Pi jiti cache to force fresh download on next run
-rm -rf /tmp/jiti 2>/dev/null || true
-
-update_pi_extension_if_present() {
-    if ! command -v pi &>/dev/null; then
-        return 0
-    fi
-
-    echo "Updating Pi extension..."
-    if pi install npm:@plannotator/pi-extension; then
-        echo "Pi extension updated."
-    else
-        echo "Skipping Pi extension update (pi install failed)"
-    fi
-}
-
 # --- Aggressive cleanup of skills/commands we no longer manage ---
 # Echo each removal; ignore missing entries.
 
 # NOTE: legacy Claude command cleanup happens AFTER the skill install below —
 # a command file is only removed once its replacement skill is on disk, so a
 # failed or skipped skill install never leaves users with neither.
-
-# NOTE: Codex stale-skill cleanup happens AFTER the skill install below —
-# the core skills are only removed from the Codex home once their replacement
-# exists in ~/.agents/skills, so an old pinned tag never strips Codex users
-# of working skills without a successor.
-STALE_CODEX_SKILLS_DIR="$CODEX_DIR/skills"
 
 # Old installers (pre core/extra split) ran `cp -r apps/skills/*` against a
 # new-layout tag and could leave junk `core`/`extra` directory copies in the
@@ -1348,7 +983,7 @@ for junk in core extra; do
     fi
 done
 
-# Extras are no longer installed by this script anywhere except Kiro. Remove
+# Extras are no longer installed by this script anywhere. Remove
 # previously default-installed copies ONCE per machine — recorded in the
 # migrations ledger under the Hypermark data dir — because copies the user
 # reinstalls via `npx skills add` are byte-identical to ours and can only be
@@ -1600,8 +1235,8 @@ fi
 # Install skills and slash commands from a sparse checkout (requires git).
 # Hard requirement: without git we cannot install the /hypermark-* skills,
 # so fail loudly instead of leaving a partial install. Hook/config writing
-# above has already run by this point; the Pi update and Gemini config below
-# are skipped on failure and complete when the user re-runs the installer.
+# above has already run by this point; a failed fetch leaves it in place and
+# completes when the user re-runs the installer.
 # Nothing is fetched under --skip-skills, so git stops being a requirement
 # there — a git-less machine must still get the binary, hooks, and config.
 if [ "$skip_skills" -eq 0 ] && ! command -v git &>/dev/null; then
@@ -1611,9 +1246,6 @@ if [ "$skip_skills" -eq 0 ] && ! command -v git &>/dev/null; then
     exit 1
 fi
 
-KIRO_SKILLS_DIR="$HOME/.kiro/skills"
-OPENCODE_COMMANDS_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode/commands"
-GEMINI_COMMANDS_DIR="$HOME/.gemini/commands"
 skills_tmp=$(mktemp -d)
 
 copy_skill_if_present() {
@@ -1625,19 +1257,6 @@ copy_skill_if_present() {
         # nest (cp -r dir dest/dir would otherwise create dest/dir/dir).
         rm -rf "$target_dir/$(basename "$source_dir")"
         cp -r "$source_dir" "$target_dir/"
-    fi
-}
-
-# Copy every command file in a directory if the source dir exists.
-# Used for OpenCode (.md stubs) and Gemini (.toml) commands, both of
-# which are checked out from the repo rather than generated by heredocs.
-copy_commands_if_present() {
-    local source_dir="$1"
-    local target_dir="$2"
-
-    if [ -d "$source_dir" ] && [ -n "$(ls -A "$source_dir" 2>/dev/null)" ]; then
-        mkdir -p "$target_dir"
-        cp "$source_dir"/* "$target_dir/"
     fi
 }
 
@@ -1717,25 +1336,24 @@ checkout_failed=0
     fi
     cd repo || exit 1
     if [ "$sparse_clone" -eq 1 ]; then
-        if ! git sparse-checkout set apps/skills apps/kiro-cli apps/opencode-plugin/commands apps/gemini/commands 2>"$git_err"; then
+        if ! git sparse-checkout set apps/skills 2>"$git_err"; then
             surface_git_error
             exit 1
         fi
     fi
 
     # Core skills -> Claude Code (also serve as /hypermark-* slash commands)
-    # and the official OpenAI shared-agent path. SOFT guard: a tag pinned
-    # via --version may predate the core/extra layout — skip core skills
-    # but keep installing the command files below (matches install.ps1 and
-    # install.cmd, which guard each block independently).
-    # Claude Code and Codex consume different skill bodies. Claude Code reads
-    # the apps/skills/claude/* copies, which use dynamic-context injection
+    # and the shared ~/.agents/skills scope. SOFT guard: a tag pinned via
+    # --version may predate the core/extra layout — skip core skills but keep
+    # installing the rest (matches install.ps1 and install.cmd, which guard
+    # each block independently).
+    # The two scopes consume different skill bodies. Claude Code reads the
+    # apps/skills/claude/* copies, which use dynamic-context injection
     # (`!`hypermark … $ARGUMENTS``) + allowed-tools so /hypermark-* run the
-    # binary directly with no permission prompt — matching the old slash
-    # commands. Codex (the OpenAI shared-agent path) reads apps/skills/core/*,
-    # whose prose bodies the model follows via its own shell; the `!`…``
-    # injection is a Claude-Code-only extension, so the two are sourced
-    # separately rather than sharing one body.
+    # binary directly with no permission prompt. The shared scope reads
+    # apps/skills/core/*, whose prose bodies an agent follows via its own
+    # shell; the `!`…`` injection is a Claude-Code-only extension, so the two
+    # are sourced separately rather than sharing one body.
     if [ -d "apps/skills/claude" ] && [ -n "$(ls -A apps/skills/claude 2>/dev/null)" ]; then
         mkdir -p "$CLAUDE_SKILLS_DIR"
         copy_skill_if_present apps/skills/claude/hypermark-review "$CLAUDE_SKILLS_DIR"
@@ -1743,7 +1361,7 @@ checkout_failed=0
         copy_skill_if_present apps/skills/claude/hypermark-last "$CLAUDE_SKILLS_DIR"
         # The hypermark knowledge skill (CLI reference) has no Claude-only
         # injection form — its body is pure prose — so Claude installs the
-        # same single-sourced copy Codex gets from apps/skills/core.
+        # same single-sourced copy the shared scope gets from apps/skills/core.
         copy_skill_if_present apps/skills/core/hypermark "$CLAUDE_SKILLS_DIR"
         echo "Installed Claude Code skills to ${CLAUDE_SKILLS_DIR}/"
     else
@@ -1760,41 +1378,6 @@ checkout_failed=0
         echo "Tag ${latest_tag} predates the core/extra skill layout — skipping shared agent skill install"
     fi
 
-    # OpenCode slash command stubs (the plugin intercepts execution) —
-    # always installed when the checkout provides them. Guard the echo on
-    # the same condition as the copy so old pinned tags don't report a
-    # success that never happened (ps1/cmd already gate this way).
-    if [ "$skip_opencode" -eq 0 ] && [ -d "apps/opencode-plugin/commands" ] && [ -n "$(ls -A apps/opencode-plugin/commands 2>/dev/null)" ]; then
-        copy_commands_if_present apps/opencode-plugin/commands "$OPENCODE_COMMANDS_DIR"
-        echo "Installed OpenCode commands to ${OPENCODE_COMMANDS_DIR}/"
-    fi
-
-    # Gemini native TOML commands — only when Gemini is present and not
-    # opted out (#1178; skip_gemini is inherited by this subshell).
-    if [ -d "$HOME/.gemini" ] && [ "$skip_gemini" -eq 0 ] && [ -d "apps/gemini/commands" ] && [ -n "$(ls -A apps/gemini/commands 2>/dev/null)" ]; then
-        copy_commands_if_present apps/gemini/commands "$GEMINI_COMMANDS_DIR"
-        echo "Installed Gemini commands to ${GEMINI_COMMANDS_DIR}/"
-    fi
-
-    if [ "$kiro_available" -eq 1 ] && [ "$skip_kiro" -eq 0 ] && [ -d "apps/kiro-cli/skills" ] && [ -n "$(ls -A apps/kiro-cli/skills 2>/dev/null)" ]; then
-        mkdir -p "$KIRO_SKILLS_DIR"
-        # Kiro-specific skills (origin baked in) come from apps/kiro-cli/skills.
-        copy_skill_if_present apps/kiro-cli/skills/hypermark-review "$KIRO_SKILLS_DIR"
-        copy_skill_if_present apps/kiro-cli/skills/hypermark-annotate "$KIRO_SKILLS_DIR"
-        # The hypermark knowledge skill (CLI reference) has no Kiro-specific
-        # form, so Kiro receives the single-sourced core copy like every other
-        # scope. Without it, Kiro users get the action skills but no reference.
-        copy_skill_if_present apps/skills/core/hypermark "$KIRO_SKILLS_DIR"
-        # Extras come from apps/skills/extra (not duplicated into apps/kiro-cli/skills).
-        copy_skill_if_present apps/skills/extra/hypermark-setup-goal "$KIRO_SKILLS_DIR"
-        copy_skill_if_present apps/skills/extra/hypermark-visual-explainer "$KIRO_SKILLS_DIR"
-        # Hypermark custom agent — don't clobber a user's existing one.
-        if [ ! -f "$HOME/.kiro/agents/hypermark.json" ] && [ -f "apps/kiro-cli/agents/hypermark.json" ]; then
-            mkdir -p "$HOME/.kiro/agents"
-            cp apps/kiro-cli/agents/hypermark.json "$HOME/.kiro/agents/hypermark.json"
-        fi
-        echo "Installed Kiro skills to ${KIRO_SKILLS_DIR}/ and agent to ~/.kiro/agents/hypermark.json"
-    fi
 ) || checkout_failed=1
 
 rm -rf "$skills_tmp"
@@ -1822,56 +1405,10 @@ for cmd in hypermark-review hypermark-annotate hypermark-last; do
     fi
 done
 
-# plannotator-archive no longer ships as a skill. Remove any stale installed
-# copy from every skill scope so upgraders don't keep a dead skill around.
-for scope in "$CLAUDE_SKILLS_DIR" "$AGENTS_SKILLS_DIR" "$KIRO_SKILLS_DIR"; do
-    # A skills opt-out leaves every skill scope untouched, sweep included.
-    if [ "$skip_skills" -eq 1 ]; then
-        continue
-    fi
-    # A Kiro opt-out leaves ~/.kiro entirely untouched — including this sweep.
-    if [ "$scope" = "$KIRO_SKILLS_DIR" ] && [ "$skip_kiro" -eq 1 ]; then
-        continue
-    fi
-    if [ -d "$scope/plannotator-archive" ]; then
-        rm -rf "$scope/plannotator-archive"
-        echo "Removed stale plannotator-archive skill from ${scope}/plannotator-archive"
-    fi
-done
-# The /plannotator-archive OpenCode command was removed too — sweep the stub
-# (only npm-plugin-postinstall users ever had it written here). An OpenCode
-# opt-out suspends the sweep: skip means do-not-write, never remove.
-# A skills opt-out suspends it for the same reason.
-if [ "$skip_opencode" -eq 0 ] && [ "$skip_skills" -eq 0 ] && [ -f "$OPENCODE_COMMANDS_DIR/plannotator-archive.md" ]; then
-    rm -f "$OPENCODE_COMMANDS_DIR/plannotator-archive.md"
-    echo "Removed stale plannotator-archive command from ${OPENCODE_COMMANDS_DIR}/"
-fi
-
-# Codex no longer hosts core skills (they now live in ~/.agents/skills).
-# Core skills are removed only once their replacement exists; the stale
-# shared-agent extras were never Codex's and are removed unconditionally.
-for skill in hypermark-review hypermark-annotate hypermark-last hypermark-compound hypermark-setup-goal; do
-    # A Codex opt-out leaves $CODEX_DIR entirely untouched — including this
-    # stale-skill cleanup. Skip means do-not-write, never remove. A skills
-    # opt-out installed no replacement, so it suspends the sweep as well.
-    if [ "$skip_codex" -eq 1 ] || [ "$skip_skills" -eq 1 ]; then
-        continue
-    fi
-    if [ -d "$STALE_CODEX_SKILLS_DIR/$skill" ]; then
-        case "$skill" in
-            hypermark-review|hypermark-annotate|hypermark-last)
-                [ -d "$AGENTS_SKILLS_DIR/$skill" ] || continue
-                ;;
-        esac
-        rm -rf "$STALE_CODEX_SKILLS_DIR/$skill"
-        echo "Removed Hypermark skill from ${STALE_CODEX_SKILLS_DIR}/$skill"
-    fi
-done
-
 # Apply the saved model-invocation choices. Installed skill copies always
 # arrive locked (disable-model-invocation: true in SKILL.md); for each chosen
-# skill we unlock the INSTALLED copy by removing that line, and flip the Codex
-# sidecar's allow_implicit_invocation to match. Re-applied on every run
+# skill we unlock the INSTALLED copy by removing that line, and flip the
+# agents/openai.yaml sidecar's allow_implicit_invocation to match. Re-applied on every run
 # because installs replace the skill folders wholesale. Source files in the
 # repo never change.
 # A skills opt-out installed no skill copies this run, so there is nothing to
@@ -1893,192 +1430,6 @@ if [ "$skip_skills" -eq 0 ] && [ -n "$invocable_choice" ] && [ "$invocable_choic
     done
 fi
 
-# Update Pi extension if pi is installed. The pi-extension no longer bundles
-# skills; Pi keeps its extension commands and the plannotator_submit_plan tool.
-update_pi_extension_if_present
-
-# --- Gemini CLI support (only if Gemini is installed) ---
-if [ -d "$HOME/.gemini" ] && [ "$skip_gemini" -eq 1 ]; then
-    # HONEST three-state reporting (#1178): detected-but-skipped is its own
-    # state. Nothing under ~/.gemini is created, updated, or removed.
-    echo ""
-    echo "Gemini: detected, skipped (${skip_gemini_source})."
-    if [ -f "$HOME/.gemini/settings.json" ] && grep -q '"hypermark"' "$HOME/.gemini/settings.json" 2>/dev/null; then
-        echo "An existing Gemini integration at ~/.gemini/settings.json was left untouched."
-    fi
-elif [ -d "$HOME/.gemini" ]; then
-    # Install policy file
-    GEMINI_POLICIES_DIR="$HOME/.gemini/policies"
-    mkdir -p "$GEMINI_POLICIES_DIR"
-    cat > "$GEMINI_POLICIES_DIR/hypermark.toml" << 'GEMINI_POLICY_EOF'
-# Hypermark policy for Gemini CLI
-# Allows exit_plan_mode without TUI confirmation so the browser UI is the sole gate.
-[[rule]]
-toolName = "exit_plan_mode"
-decision = "allow"
-priority = 100
-GEMINI_POLICY_EOF
-    echo "Installed Gemini policy to ${GEMINI_POLICIES_DIR}/hypermark.toml"
-
-    # Configure hook in settings.json
-    GEMINI_SETTINGS="$HOME/.gemini/settings.json"
-    HYPERMARK_HOOK='{"matcher":"exit_plan_mode","hooks":[{"type":"command","command":"hypermark","timeout":345600}]}'
-
-    if [ -f "$GEMINI_SETTINGS" ]; then
-        if ! grep -q '"hypermark"' "$GEMINI_SETTINGS" 2>/dev/null; then
-            # Merge hook into existing settings.json using node (ships with Gemini CLI)
-            if command -v node &>/dev/null; then
-                node -e "
-                  const fs = require('fs');
-                  const settings = JSON.parse(fs.readFileSync('$GEMINI_SETTINGS', 'utf8'));
-                  if (!settings.hooks) settings.hooks = {};
-                  if (!settings.hooks.BeforeTool) settings.hooks.BeforeTool = [];
-                  settings.hooks.BeforeTool.push($HYPERMARK_HOOK);
-                  fs.writeFileSync('$GEMINI_SETTINGS', JSON.stringify(settings, null, 2) + '\n');
-                "
-                echo "Added hypermark hook to ${GEMINI_SETTINGS}"
-            else
-                echo ""
-                echo "Add the following to your ~/.gemini/settings.json hooks:"
-                echo ""
-                echo '  "hooks": {'
-                echo '    "BeforeTool": [{'
-                echo '      "matcher": "exit_plan_mode",'
-                echo '      "hooks": [{"type": "command", "command": "hypermark", "timeout": 345600}]'
-                echo '    }]'
-                echo '  }'
-            fi
-        fi
-    else
-        cat > "$GEMINI_SETTINGS" << 'GEMINI_SETTINGS_EOF'
-{
-  "hooks": {
-    "BeforeTool": [
-      {
-        "matcher": "exit_plan_mode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "hypermark",
-            "timeout": 345600
-          }
-        ]
-      }
-    ]
-  },
-  "experimental": {
-    "plan": true
-  }
-}
-GEMINI_SETTINGS_EOF
-        echo "Created Gemini settings at ${GEMINI_SETTINGS}"
-    fi
-
-    # Gemini slash commands (.toml) are installed from the sparse checkout in
-    # the skills/commands install block above (apps/gemini/commands).
-fi
-
-echo ""
-echo "=========================================="
-echo "  OPENCODE USERS"
-echo "=========================================="
-echo ""
-if [ "$skip_opencode" -eq 1 ]; then
-    echo "OpenCode: integration skipped (${skip_opencode_source})."
-    echo "No command stubs were written and OpenCode's plugin cache was left alone."
-    echo "Re-run without the opt-out to install the command stubs."
-elif [ "$skip_skills" -eq 1 ]; then
-    # The stubs ship in the skills checkout, so this run installed none.
-    echo "Add the plugin to your opencode.json:"
-    echo ""
-    echo '  "plugin": ["@plannotator/opencode@latest"]'
-    echo ""
-    echo "Skills were skipped (${skip_skills_source}), so no /hypermark-* command"
-    echo "stubs were installed. Re-run without the opt-out to add them."
-else
-    echo "Add the plugin to your opencode.json:"
-    echo ""
-    echo '  "plugin": ["@plannotator/opencode@latest"]'
-    echo ""
-    echo "Then restart OpenCode. The /hypermark-review, /hypermark-annotate, and /hypermark-last commands are ready!"
-fi
-echo ""
-echo "=========================================="
-echo "  PI USERS"
-echo "=========================================="
-echo ""
-echo "Install or update the extension:"
-echo ""
-echo "  pi install npm:@plannotator/pi-extension"
-echo ""
-echo "=========================================="
-echo "  GEMINI CLI USERS"
-echo "=========================================="
-echo ""
-if [ -d "$HOME/.gemini" ] && [ "$skip_gemini" -eq 1 ]; then
-    echo "Gemini was detected, but the integration was skipped (${skip_gemini_source})."
-    echo "No files under ~/.gemini were written or removed. Re-run without the"
-    echo "opt-out to configure plan mode."
-elif [ -d "$HOME/.gemini" ]; then
-    echo "Enable plan mode in Gemini settings, then run:"
-    echo ""
-    echo "  gemini"
-    echo "  /plan"
-    echo ""
-    echo "Plans will open in your browser for review."
-    echo "If settings.json was not auto-configured, see:"
-    echo "  ~/.gemini/settings.json (add BeforeTool hook)"
-else
-    echo "Gemini was not detected. After installing the Gemini CLI, rerun this"
-    echo "installer to configure plan mode."
-fi
-echo ""
-echo "=========================================="
-echo "  CODEX USERS"
-echo "=========================================="
-echo ""
-if [ "$codex_available" -eq 1 ] && [ "$skip_codex" -eq 1 ]; then
-    echo "Codex was detected, but the integration was skipped (${skip_codex_source})."
-    echo "No files under ${CODEX_DIR} were written or removed. The shared agent"
-    echo "skills in ~/.agents/skills serve multiple agents and are still installed."
-    echo "Re-run without the opt-out to add the Stop hook."
-elif [ "$codex_available" -eq 1 ]; then
-    echo "Restart Codex Desktop or CLI after installing."
-    echo "Plan review is configured through the Codex Stop hook."
-    echo ""
-    if [ "$skip_skills" -eq 1 ]; then
-        echo "Skills were skipped (${skip_skills_source}), so no core skills were"
-        echo "installed to ~/.agents/skills/. The Stop hook works without them;"
-        echo "re-run without the opt-out to add \$hypermark-review and friends."
-    else
-        echo "Core skills are installed to ~/.agents/skills/:"
-        echo "  \$hypermark-review"
-        echo "  \$hypermark-annotate <file|url|folder>"
-        echo "  \$hypermark-last"
-    fi
-else
-    echo "Codex was not detected. After installing Codex, rerun this installer to add"
-    echo "the Stop hook."
-fi
-echo ""
-echo "=========================================="
-echo "  KIRO CLI USERS"
-echo "=========================================="
-echo ""
-if [ "$kiro_available" -eq 1 ] && [ "$skip_kiro" -eq 1 ]; then
-    echo "Kiro was detected, but the integration was skipped (${skip_kiro_source})."
-    echo "No files under ~/.kiro were written or removed. Re-run without the"
-    echo "opt-out to add Kiro skills."
-elif [ "$kiro_available" -eq 1 ] && [ "$skip_skills" -eq 1 ]; then
-    echo "Kiro was detected, but skills were skipped (${skip_skills_source}), so no"
-    echo "Kiro skills or agent were installed. Re-run without the opt-out to add them."
-elif [ "$kiro_available" -eq 1 ]; then
-    echo "Kiro skills are installed to ~/.kiro/skills/"
-    echo "The Hypermark agent is installed to ~/.kiro/agents/hypermark.json"
-    echo "Launch it: kiro-cli chat --agent hypermark"
-else
-    echo "Kiro was not detected. After installing Kiro, rerun this installer to add Kiro skills."
-fi
 echo ""
 echo "=========================================="
 if [ "$skip_skills" -eq 1 ]; then
@@ -2095,8 +1446,6 @@ echo "Install the Claude Code plugin:"
 echo "  /plugin marketplace add ahmadghoniem/Hypermark"
 echo "  /plugin install hypermark@hypermark"
 echo ""
-echo "Upgrading from an older version? Also run /plugin marketplace update"
-echo "so the plugin drops its old hypermark:* command entries."
 echo ""
 if [ "$skip_skills" -eq 1 ]; then
     echo "Skills were skipped (${skip_skills_source}), so the /hypermark-review,"
