@@ -43,13 +43,13 @@ interface CommentPopoverProps {
   /** Called on submit with comment text and optional images */
   onSubmit: (text: string, images?: ImageAttachment[]) => void;
   /**
-   * One-click "Looks good" action (comment-only HTML/live surfaces, where
+   * One-click "Agreed" action (comment-only HTML/live surfaces, where
    * pinpoint clicks open this composer directly and never see the selection
-   * toolbar's 👍). Renders a thumbs-up button in the footer; disabled once
-   * the user has typed or attached anything, so a click can never discard a
-   * draft. The parent owns annotation creation and closing.
+   * toolbar's own Agreed button). Renders an Agreed button in the footer;
+   * disabled once the user has typed or attached anything, so a click can
+   * never discard a draft. The parent owns annotation creation and closing.
    */
-  onQuickLookGood?: () => void;
+  onQuickAgree?: () => void;
   /** Optional live draft observer for submit paths outside the popover. */
   onDraftChange?: (text: string, images?: ImageAttachment[]) => void;
   /** Called when popover is closed/cancelled */
@@ -141,7 +141,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   isGlobal,
   initialText = '',
   onSubmit,
-  onQuickLookGood,
+  onQuickAgree,
   onDraftChange,
   onClose,
   draftKey,
@@ -551,16 +551,18 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 
   // Shared by both footers. Disabled once anything is typed or attached so a
   // click can never discard a draft; with content present, Save is the path.
-  const quickLookGoodButton = onQuickLookGood ? (
+  const quickLookGoodButton = onQuickAgree ? (
     <button
       type="button"
-      onClick={onQuickLookGood}
+      onClick={onQuickAgree}
       disabled={hasUnsavedContent}
       className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium rounded-md text-muted-foreground hover:text-foreground hover:bg-green-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      title={hasUnsavedContent ? 'Clear the comment to use Looks good' : 'Add "Looks good" without typing'}
+      title={hasUnsavedContent ? 'Clear the comment to use Agreed' : 'Add "Agreed" without typing'}
     >
-      <span aria-hidden="true">👍</span>
-      Looks good
+      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+      Agreed
     </button>
   ) : null;
 

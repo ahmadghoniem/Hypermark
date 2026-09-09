@@ -43,7 +43,7 @@ import { GraphvizBlock } from './GraphvizBlock';
 import { MermaidBlock } from './MermaidBlock';
 import { isGraphvizLanguage, isMermaidLanguage } from './diagramLanguages';
 import { getIdentity } from '../utils/identity';
-import { type QuickLabel } from '../utils/quickLabels';
+import { type QuickLabel, formatQuickLabel } from '../utils/quickLabels';
 import { DocBadges, type DocBadgesProps, type LinkedDocBadgeInfo } from './DocBadges';
 import { PinpointOverlay } from './PinpointOverlay';
 import { usePinpoint } from '../hooks/usePinpoint';
@@ -94,8 +94,6 @@ export interface ViewerProps {
    * viewers suppress the annotation header rather than expose dead controls.
    */
   annotationHeader?: ViewerAnnotationHeaderConfig;
-  /** Render the plan as a floating card on a grid background (shadow/border/padding). Default false. */
-  gridEnabled?: boolean;
   onOpenLinkedDoc?: (path: string) => void;
   onOpenCodeFile?: (path: string) => void;
   imageBaseDir?: string;
@@ -203,7 +201,6 @@ interface ViewerDocumentHeaderProps {
   readonly config: ViewerAnnotationHeaderConfig;
   readonly inputMethod: InputMethod;
   readonly mode: EditorMode;
-  readonly taterMode: boolean;
   readonly sticky: boolean;
   readonly stuck: boolean;
   readonly sentinelRef: React.RefObject<HTMLDivElement | null>;
@@ -216,7 +213,6 @@ const ViewerDocumentHeader: React.FC<ViewerDocumentHeaderProps> = ({
   config,
   inputMethod,
   mode,
-  taterMode,
   sticky,
   stuck,
   sentinelRef,
@@ -287,7 +283,6 @@ const ViewerDocumentHeader: React.FC<ViewerDocumentHeaderProps> = ({
                 onInputMethodChange={config.onInputMethodChange}
                 mode={mode}
                 onModeChange={config.onModeChange}
-                taterMode={taterMode}
                 hideQuickLabel={config.hideQuickLabel}
                 compact
                 iconOnly={iconOnly}
@@ -330,7 +325,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   repoInfo,
   stickyActions = true,
   annotationHeader,
-  gridEnabled = false,
   planDiffStats,
   isPlanDiffActive,
   onPlanDiffToggle,
@@ -760,7 +754,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     if (!codeEl) return;
     applyCodeBlockAnnotation(
       codeBlockToolbar.block.id, codeEl, AnnotationType.COMMENT,
-      `${label.emoji} ${label.text}`, undefined, true, label.tip
+      formatQuickLabel(label), undefined, true, label.tip
     );
     setCodeBlockToolbar(null);
   };
@@ -895,14 +889,14 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
       {taterMode && <TaterSpriteSitting />}
       <article
         ref={containerRef}
-        className={`w-full bg-card rounded-xl py-5 md:py-8 lg:py-10 xl:py-12 relative ${gridEnabled ? 'px-5 md:px-8 lg:px-10 xl:px-12 shadow-xl border border-border/50' : ''} ${inputMethod === 'pinpoint' ? 'cursor-pointer' : ''}`}
+        className={`w-full bg-card rounded-xl py-5 md:py-8 lg:py-10 xl:py-12 relative ${inputMethod === 'pinpoint' ? 'cursor-pointer' : ''}`}
         style={{
           WebkitTouchCallout: 'none',
         } as React.CSSProperties}
       >
         {/* Legacy badge placement remains byte-for-byte opt-out behavior. */}
         {!viewerAnnotationHeader && (repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo || archiveInfo || sourceInfo || openInAppPath) && (
-          <div ref={docBadgesRef} className={`absolute top-3 md:top-4 ${gridEnabled ? 'left-3 md:left-5' : 'left-0'}`}>
+          <div ref={docBadgesRef} className="absolute top-3 md:top-4 left-0">
             <DocBadges
               layout="column"
               repoInfo={repoInfo}
@@ -926,7 +920,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
             config={viewerAnnotationHeader}
             inputMethod={inputMethod}
             mode={mode}
-            taterMode={taterMode}
             sticky={stickyActions}
             stuck={isStuck}
             sentinelRef={stickySentinelRef}
@@ -950,7 +943,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
           <>
             {badgeClearance > 0 && <div style={{ height: badgeClearance }} aria-hidden="true" />}
             {stickyActions && <div ref={stickySentinelRef} className="h-0 w-0 float-right" aria-hidden="true" />}
-            <div data-sticky-actions className={`${stickyActions ? 'sticky top-3' : ''} z-30 float-right flex items-start gap-1 md:gap-2 rounded-lg p-1 md:p-2 transition-colors duration-150 ${isStuck ? 'bg-card/95 backdrop-blur-sm shadow-sm' : ''} ${gridEnabled ? '-mr-3 md:-mr-5 lg:-mr-7 xl:-mr-9' : '-mr-1 md:-mr-2'} mt-6 md:-mt-5 lg:-mt-7 xl:-mt-9`}>
+            <div data-sticky-actions className={`${stickyActions ? 'sticky top-3' : ''} z-30 float-right flex items-start gap-1 md:gap-2 rounded-lg p-1 md:p-2 transition-colors duration-150 ${isStuck ? 'bg-card/95 backdrop-blur-sm shadow-sm' : ''} -mr-1 md:-mr-2 mt-6 md:-mt-5 lg:-mt-7 xl:-mt-9`}>
               {documentActions}
             </div>
           </>
@@ -1223,7 +1216,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               if (codeEl) {
                 applyCodeBlockAnnotation(
                   codeBlockQuickLabelPicker.codeBlock.block.id, codeEl, AnnotationType.COMMENT,
-                  `${label.emoji} ${label.text}`, undefined, true, label.tip
+                  formatQuickLabel(label), undefined, true, label.tip
                 );
               }
               setCodeBlockQuickLabelPicker(null);

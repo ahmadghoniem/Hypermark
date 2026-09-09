@@ -33,7 +33,6 @@ import {
   PERMISSION_MODE_OPTIONS,
   type PermissionMode,
 } from '../utils/permissionMode';
-import { getAutoCloseDelay, setAutoCloseDelay, AUTO_CLOSE_OPTIONS, type AutoCloseDelay } from '../utils/storage';
 import { useAgents } from '../hooks/useAgents';
 import { KeyboardShortcuts } from './KeyboardShortcuts';
 import { type QuickLabel, getQuickLabels, saveQuickLabels, resetQuickLabels, DEFAULT_QUICK_LABELS, getLabelColors, LABEL_COLOR_MAP } from '../utils/quickLabels';
@@ -41,14 +40,9 @@ import { ThemeTab } from './ThemeTab';
 import { isMac, modKeyWord, altKey } from '../utils/platform';
 import { HooksTab } from './settings/HooksTab';
 import { OverlayScrollArea } from './OverlayScrollArea';
-import {
-  getFileBrowserSettings,
-  saveFileBrowserSettings,
-  type FileBrowserSettings,
-} from '../utils/fileBrowser';
 import { AnalysisLayerToggle } from './AnalysisLayerToggle';
 
-type SettingsTab = 'general' | 'theme' | 'git' | 'display' | 'analysis' | 'saving' | 'labels' | 'shortcuts' | 'files' | 'comments' | 'hooks';
+type SettingsTab = 'general' | 'theme' | 'git' | 'display' | 'analysis' | 'saving' | 'labels' | 'shortcuts' | 'comments' | 'hooks';
 
 interface SettingsProps {
   taterMode: boolean;
@@ -445,7 +439,7 @@ const ReviewDisplayTab: React.FC<{ isCompactTouchLayout?: boolean }> = ({ isComp
         <select
           value={diffFontFamily}
           onChange={(e) => configStore.set('diffFontFamily', e.target.value)}
-          className="w-full px-3 py-1.5 text-sm rounded-md bg-muted/50 border border-border text-foreground"
+          className="w-full max-w-[16rem] px-3 py-1.5 text-sm rounded-md bg-muted/50 border border-border text-foreground"
           style={diffFontFamily ? { fontFamily: `'${diffFontFamily}', monospace` } : undefined}
         >
           {DIFF_FONT_OPTIONS.map((opt) => (
@@ -825,7 +819,6 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
     return () => document.removeEventListener('keydown', handler);
   }, [themePreview]);
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
-  const gridEnabled = useConfigValue('gridEnabled');
   const agentTerminalSide = useConfigValue('agentTerminalSide');
   // The agent switch default depends on the surface: plan approval hands off to
   // the build agent, review feedback stays on the current agent.
@@ -835,12 +828,9 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
   const [uiPrefs, setUiPrefs] = useState<UIPreferences>({ tocEnabled: true, stickyActionsEnabled: true, planWidth: 'compact' });
   const [permissionMode, setPermissionMode] = useState<PermissionMode>('bypassPermissions');
   const [agentWarning, setAgentWarning] = useState<string | null>(null);
-  const [autoCloseDelay, setAutoCloseDelayState] = useState<AutoCloseDelay>('off');
   const [quickLabelsState, setQuickLabelsState] = useState<QuickLabel[]>([]);
   const [editingTipIndex, setEditingTipIndex] = useState<number | null>(null);
   const [editingTipValue, setEditingTipValue] = useState('');
-  const [fileBrowserSettings, setFileBrowserSettings] = useState<FileBrowserSettings>({ enabled: false, directories: [] });
-  const [newDirPath, setNewDirPath] = useState('');
 
   // Fetch available agents for OpenCode
   const { agents: availableAgents, validateAgent, getAgentWarning } = useAgents(origin ?? null, agentSurface);
@@ -866,10 +856,6 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
     return t;
   }, [mode]);
 
-  const integrationTabs: { id: SettingsTab; label: string }[] = [
-    { id: 'files', label: 'Files' },
-  ];
-
   // Sync external open state
   useEffect(() => {
     if (externalOpen) {
@@ -884,9 +870,7 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
       setPlanSave(getPlanSaveSettings());
       setUiPrefs(getUIPreferences());
       setPermissionMode(getPermissionModeSettings().mode);
-      setAutoCloseDelayState(getAutoCloseDelay());
       setQuickLabelsState(getQuickLabels());
-      setFileBrowserSettings(getFileBrowserSettings());
 
       // Validate agent setting when dialog opens
       if (origin === 'opencode') {
@@ -894,23 +878,6 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
       }
     }
   }, [showDialog, availableAgents, origin, getAgentWarning]);
-
-  const handleFileBrowserChange = (updates: Partial<FileBrowserSettings>) => {
-    const newSettings = { ...fileBrowserSettings, ...updates };
-    setFileBrowserSettings(newSettings);
-    saveFileBrowserSettings(newSettings);
-    if (onUIPreferencesChange) onUIPreferencesChange({ ...uiPrefs });
-  };
-
-  const addDirectory = () => {
-    const trimmed = newDirPath.trim();
-    if (trimmed && !fileBrowserSettings.directories.includes(trimmed)) {
-      handleFileBrowserChange({
-        directories: [...fileBrowserSettings.directories, trimmed],
-      });
-    }
-    setNewDirPath('');
-  };
 
   const handleAgentChange = (switchTo: AgentSwitchSettings['switchTo'], customName?: string) => {
     const newSettings = { switchTo, customName: customName ?? agent.customName };
@@ -987,7 +954,7 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
             <div className="flex flex-col md:flex-row md:min-h-[420px] flex-1 min-h-0 overflow-hidden">
               {/* Mobile: horizontal tab bar */}
               <nav className="md:hidden flex overflow-x-auto border-b border-border px-2 py-1.5 gap-1 flex-shrink-0">
-                {[...mainTabs, ...integrationTabs].map(tab => (
+                {mainTabs.map(tab => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
@@ -1019,29 +986,6 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
                     </button>
                   ))}
                 </div>
-                {integrationTabs.length > 0 && (
-                  <>
-                    <div className="mx-2 my-2 border-t border-border/50" />
-                    <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-                      Integrations
-                    </div>
-                    <div className="space-y-0.5">
-                      {integrationTabs.map(tab => (
-                        <button
-                          key={tab.id}
-                          onClick={() => setActiveTab(tab.id)}
-                          className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
-                            activeTab === tab.id
-                              ? 'bg-primary/10 text-primary font-medium'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                          }`}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
               </nav>
 
               {/* Content — scrollable */}
@@ -1098,7 +1042,7 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
                           <select
                             value={permissionMode}
                             onChange={(e) => handlePermissionModeChange(e.target.value as PermissionMode)}
-                            className="w-full px-3 py-2 bg-muted rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
+                            className="w-full max-w-[16rem] px-3 py-2 bg-muted rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
                           >
                             {PERMISSION_MODE_OPTIONS.map((option) => (
                               <option key={option.value} value={option.value}>
@@ -1140,7 +1084,7 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
                               handleAgentChange(e.target.value);
                               setAgentWarning(null);
                             }}
-                            className="w-full px-3 py-2 bg-muted rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
+                            className="w-full max-w-[16rem] px-3 py-2 bg-muted rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
                           >
                             {availableAgents.length > 0 ? (
                               <>
@@ -1185,7 +1129,7 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
                                 }
                               }}
                               placeholder="Enter agent name..."
-                              className="w-full px-3 py-2 bg-muted rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/50"
+                              className="w-full max-w-[16rem] px-3 py-2 bg-muted rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground/50"
                             />
                           )}
                           <div className="text-[10px] text-muted-foreground/70">
@@ -1229,31 +1173,6 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
                         </div>
                       </>
                     )}
-
-                    <div className="border-t border-border" />
-
-                    {/* Auto-close Tab */}
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium">Auto-close Tab</div>
-                      <select
-                        value={autoCloseDelay}
-                        onChange={(e) => {
-                          const next = e.target.value as AutoCloseDelay;
-                          setAutoCloseDelayState(next);
-                          setAutoCloseDelay(next);
-                        }}
-                        className="w-full px-3 py-2 bg-muted rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
-                      >
-                        {AUTO_CLOSE_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="text-[10px] text-muted-foreground/70">
-                        {AUTO_CLOSE_OPTIONS.find(o => o.value === autoCloseDelay)?.description}
-                      </div>
-                    </div>
                   </>
                 )}
 
@@ -1323,21 +1242,6 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
                             uiPrefs.stickyActionsEnabled ? 'translate-x-6' : 'translate-x-1'
                           }`}
                         />
-                      </button>
-                    </div>
-
-                    <div className="border-t border-border" />
-
-                    {/* Grid Background */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-medium">Grid Background</div>
-                        <div className="text-xs text-muted-foreground">Show the plan as a floating card on a grid</div>
-                      </div>
-                      <button role="switch" aria-checked={gridEnabled}
-                        onClick={() => configStore.set('gridEnabled', !gridEnabled)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${gridEnabled ? 'bg-primary' : 'bg-muted'}`}>
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${gridEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
                     </div>
 
@@ -1711,92 +1615,6 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
                 {/* === COMMENTS TAB === */}
                 {activeTab === 'comments' && (
                   <CommentsTab />
-                )}
-
-                {/* === FILES TAB === */}
-                {activeTab === 'files' && (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-medium">File Browser</div>
-                        <div className="text-xs text-muted-foreground">
-                          Your project files are shown automatically. Add extra directories below.
-                        </div>
-                      </div>
-                      <button
-                        role="switch"
-                        aria-checked={fileBrowserSettings.enabled}
-                        onClick={() => handleFileBrowserChange({ enabled: !fileBrowserSettings.enabled })}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          fileBrowserSettings.enabled ? 'bg-primary' : 'bg-muted'
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-                            fileBrowserSettings.enabled ? 'translate-x-6' : 'translate-x-1'
-                          }`}
-                        />
-                      </button>
-                    </div>
-
-                    {fileBrowserSettings.enabled && (
-                      <>
-                        <div className="border-t border-border" />
-
-                        {/* Directory list */}
-                        {fileBrowserSettings.directories.length > 0 && (
-                          <div className="space-y-1">
-                            <label className="text-xs text-muted-foreground">Directories</label>
-                            {fileBrowserSettings.directories.map((dir) => (
-                              <div key={dir} className="flex items-center gap-2 group">
-                                <div className="flex-1 px-3 py-2 bg-muted rounded-lg text-xs font-mono truncate" title={dir}>
-                                  {dir}
-                                </div>
-                                <button
-                                  onClick={() => handleFileBrowserChange({
-                                    directories: fileBrowserSettings.directories.filter((d) => d !== dir),
-                                  })}
-                                  className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
-                                  title="Remove directory"
-                                >
-                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                  </svg>
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Add directory */}
-                        <div className="space-y-1.5">
-                          <label className="text-xs text-muted-foreground">Add Directory</label>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={newDirPath}
-                              onChange={(e) => setNewDirPath(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') addDirectory();
-                              }}
-                              placeholder="/path/to/directory"
-                              className="flex-1 px-3 py-2 bg-muted rounded-lg text-xs font-mono placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
-                            />
-                            <button
-                              onClick={addDirectory}
-                              disabled={!newDirPath.trim()}
-                              className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-                            >
-                              Add
-                            </button>
-                          </div>
-                          <div className="text-[10px] text-muted-foreground/70">
-                            Add directories outside your project that contain markdown files.
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </>
                 )}
 
                 {/* === HOOKS TAB === */}

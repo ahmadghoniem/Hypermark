@@ -11,7 +11,7 @@ import { createPortal } from "react-dom";
 import type { Annotation, EditorMode, ImageAttachment, InputMethod } from "../../types";
 import { AnnotationType } from "../../types";
 import { getIdentity } from "../../utils/identity";
-import { THUMBS_UP_LABEL } from "../../utils/quickLabels";
+import { AGREED_LABEL } from "../../utils/quickLabels";
 import { AnnotationToolbar } from "../AnnotationToolbar";
 import {
   CommentPopover,
@@ -901,12 +901,12 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
               copyText={hook.toolbarState.selectionText}
               // HTML/live surfaces are comment-only: no Delete, no label
               // picker, no Alt+digit labels (commentOnly). Exactly ONE label
-              // affordance is restored: the hardcoded 👍 "Looks good". The
+              // affordance is restored: the hardcoded "Agreed". The
               // wrapper filters by id as defense in depth, so no present or
               // future toolbar path can emit an arbitrary label here.
               commentOnly
               onQuickLabel={(label) => {
-                if (label.id === THUMBS_UP_LABEL.id) hook.handleQuickLabel(label);
+                if (label.id === AGREED_LABEL.id) hook.handleQuickLabel(label);
               }}
               onAnnotate={hook.handleAnnotate}
               onRequestComment={hook.handleRequestComment}
@@ -926,9 +926,9 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
               draftKey={`html:${hook.commentPopover.draftKey}`}
               onSubmit={hook.handleCommentSubmit}
               // Pinpoint clicks open this composer directly, so it carries
-              // the surface's one-click "Looks good" (the global composer
-              // does not: a document-wide thumbs-up is not a thing).
-              onQuickLookGood={hook.handleCommentLooksGood}
+              // the surface's one-click "Agreed" (the global composer does
+              // not: a document-wide Agreed is not a thing).
+              onQuickAgree={hook.handleCommentAgree}
               onClose={hook.handleCommentClose}
               skillReferences
               targetChips={targetChips}

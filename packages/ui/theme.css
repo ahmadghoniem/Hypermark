@@ -399,13 +399,6 @@ html:has([data-pn-compact-touch-layout='true'])
   }
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .plan-look-choice-option[aria-pressed='false']:hover {
-    border-color: color-mix(in srgb, var(--muted-foreground) 40%, transparent);
-    background: color-mix(in srgb, var(--muted) 35%, transparent);
-  }
-}
-
 .math-inline {
   display: inline-flex;
   align-items: center;
@@ -437,21 +430,6 @@ html:has([data-pn-compact-touch-layout='true'])
   margin: 0;
   text-align: center;
 }
-
-/* Subtle grid background */
-.bg-grid {
-  background-image:
-    linear-gradient(to right, oklch(0.32 0.02 260 / 0.5) 1px, transparent 1px),
-    linear-gradient(to bottom, oklch(0.32 0.02 260 / 0.5) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-.light .bg-grid {
-  background-image:
-    linear-gradient(to right, oklch(0.90 0.01 260 / 0.6) 1px, transparent 1px),
-    linear-gradient(to bottom, oklch(0.90 0.01 260 / 0.6) 1px, transparent 1px);
-}
-
 
 /* Glow effects */
 .glow-primary {

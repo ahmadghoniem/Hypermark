@@ -13,6 +13,7 @@
     "./components/html-viewer/bridge-script": "./components/html-viewer/bridge-script.ts",
     "./components/html-viewer/bridge-script.asset.js": "./components/html-viewer/bridge-script.asset.js",
     "./components/html-viewer/bridge-script.lite": "./components/html-viewer/bridge-script.lite.ts",
+    "./components/icons/*": "./components/icons/*.tsx",
     "./components/sidebar/*": "./components/sidebar/*.tsx",
     "./components/plan-diff/*": "./components/plan-diff/*.tsx",
     "./utils/*": "./utils/*.ts",

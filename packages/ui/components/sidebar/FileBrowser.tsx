@@ -1,8 +1,8 @@
 /**
  * FileBrowser — markdown/text file tree for the sidebar
  *
- * Displays collapsible trees of markdown/text files from user-configured directories.
- * Clicking a file opens it in the main viewer for annotation.
+ * Displays collapsible trees of the markdown/text files under the session's
+ * project root. Clicking a file opens it in the main viewer for annotation.
  */
 
 import React from "react";
@@ -498,7 +498,7 @@ export const FileBrowser: React.FC<FileBrowserProps> = ({
   if (dirs.length === 0) {
     return (
       <div className="p-3 text-[11px] text-muted-foreground">
-        No directories configured. Add directories in Settings → Files.
+        No project files to browse in this session.
       </div>
     );
   }

@@ -232,14 +232,14 @@ Don't import these in a host. Each hits hardcoded Hypermark endpoints:
 - `components/sidebar/VersionBrowser`, `hooks/usePlanDiff`, `components/plan-diff/*` — `/api/plan/version(s)` (Hypermark's version history; Workspaces builds its own versions UI anyway).
 - `hooks/useArchive`, `components/sidebar/ArchiveBrowser` — `/api/archive/*`.
 - `hooks/useAgents` — `/api/agents`.
-- `components/Settings`, `components/settings/HooksTab` — Hypermark-specific tabs (Obsidian vaults, hooks, integrations).
+- `components/Settings`, `components/settings/HooksTab` — Hypermark-specific tabs (Obsidian vaults, hooks).
 - `components/ExportModal`, `components/OpenInAppButton` — `/api/save-notes`, `/api/open-in` (Obsidian/Bear/editor integrations).
 - `components/goal-setup/*` — Hypermark's goal-package scaffolding endpoints.
 - `hooks/useEditorAnnotations` — `/api/editor-annotations` (VS Code extension only).
 - `hooks/useLinkedDoc` — `/api/doc` directly (the `docPreviewFetcher` seam covers `InlineMarkdown`'s hover previews, **not** this full linked-doc overlay).
 - `hooks/useValidatedCodePaths` — `/api/doc/exists` (this is what `Viewer`'s `disableCodePathValidation` turns off).
 - `utils/sharing` — Hypermark's public paste service (share-URL feature).
-- `hooks/useUpdateCheck`, `components/MenuVersionSection`, `components/PlanHeaderMenu` — Hypermark release checks.
+- `components/PlanHeaderMenu` — Hypermark's plan-session Options menu (agent instructions + the compact shell's action list). The release-check pair that used to sit beside it, `hooks/useUpdateCheck` and `components/MenuVersionSection`, is gone: the app no longer polls GitHub for a newer tag.
 - `utils/planAgentInstructions`, `utils/reviewAgentInstructions` — generate agent instructions that curl Hypermark's local API.
 - `components/DecisionControl`, `utils/decisionSpec`, `hooks/useDismissablePopover` — session decision chrome for Hypermark's own approve/deny/exit endpoints (a host's session decisions are its own outcomes against its own backend).
 

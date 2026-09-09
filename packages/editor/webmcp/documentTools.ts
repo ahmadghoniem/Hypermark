@@ -568,7 +568,7 @@ export function buildDocumentTools(adapter: DocumentToolAdapter, state: Document
           createdA: now(),
           // Author and source both name the agent, exactly like an
           // external-annotation comment names its tool: the panel then shows
-          // "browser-agent" instead of the human's name with "(me)".
+          // "browser-agent" instead of the human's name.
           author: BROWSER_AGENT_SOURCE,
           source: BROWSER_AGENT_SOURCE,
         };

@@ -1,13 +1,14 @@
 import React from 'react';
 import type { Origin } from '@hypermark/shared/agents';
 import type { Agent } from '@hypermark/ui/hooks/useAgents';
-import type { UpdateInfo } from '@hypermark/ui/hooks/useUpdateCheck';
 import { FeedbackButton, ApproveButton, ExitButton } from '@hypermark/ui/components/ToolbarButtons';
 import { ApproveDropdown } from '@hypermark/ui/components/ApproveDropdown';
 import { DecisionControl, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import type { DecisionActionId, DecisionSpec } from '@hypermark/ui/utils/decisionSpec';
 import { Settings } from '@hypermark/ui/components/Settings';
 import { PlanHeaderMenu } from '@hypermark/ui/components/PlanHeaderMenu';
+import { ThemeModeButton } from '@hypermark/ui/components/ThemeModeButton';
+import { DownloadIcon, SettingsIcon } from '@hypermark/ui/components/icons/headerIcons';
 import type { UIPreferences } from '@hypermark/ui/utils/uiPreferences';
 import type { CompactPlanAction } from '@hypermark/ui/components/PlanHeaderMenu';
 import { HtmlSurfaceControls } from '@hypermark/ui/components/HtmlSurfaceControls';
@@ -106,9 +107,6 @@ interface AppHeaderProps {
   onDownloadAnnotations: () => void;
 
   // PlanHeaderMenu config
-  appVersion: string;
-  updateInfo?: UpdateInfo | null;
-  isWSL?: boolean;
   agentInstructionsEnabled: boolean;
 }
 
@@ -165,9 +163,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   onCloseSettings,
   onCopyAgentInstructions,
   onDownloadAnnotations,
-  appVersion,
-  updateInfo,
-  isWSL,
   agentInstructionsEnabled,
 }) => {
   return (
@@ -363,7 +358,41 @@ export const AppHeader = React.memo<AppHeaderProps>(({
           </button>
         )}
 
-        {/* Settings dialog (controlled, button hidden — opened from PlanHeaderMenu) */}
+        {/* Download, Theme and Settings sit in the header rather than under
+            Options: they are the three controls reached most often, and a
+            two-click menu hop for each was the whole reason Options existed.
+            Compact touch is the exception — its header is a three-region grid
+            whose trailing region is one 44px target wide, so there they stay
+            rows in the Options menu (see PlanHeaderMenu). */}
+        {!compactTouchLayout && (
+          <>
+            {!goalSetupMode && (
+              <button
+                type="button"
+                onClick={onDownloadAnnotations}
+                className="flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                title="Download annotations"
+                aria-label="Download annotations"
+              >
+                <DownloadIcon className="w-4 h-4" />
+              </button>
+            )}
+
+            <ThemeModeButton />
+
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              className="flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title="Settings"
+              aria-label="Settings"
+            >
+              <SettingsIcon className="w-4 h-4" />
+            </button>
+          </>
+        )}
+
+        {/* Settings dialog (controlled, button hidden — opened by the gear above) */}
         <div className="hidden">
           <Settings
             taterMode={taterMode}
@@ -379,14 +408,9 @@ export const AppHeader = React.memo<AppHeaderProps>(({
         </div>
 
         <PlanHeaderMenu
-          appVersion={appVersion}
-          updateInfo={updateInfo}
-          origin={origin}
-          isWSL={isWSL}
           onOpenSettings={onOpenSettings}
           onCopyAgentInstructions={onCopyAgentInstructions}
           onDownloadAnnotations={onDownloadAnnotations}
-          isApiMode={isApiMode}
           agentInstructionsEnabled={agentInstructionsEnabled}
           compactTouchLayout={compactTouchLayout}
           compactSessionActions={compactSessionActions}

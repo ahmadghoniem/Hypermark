@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AnnotationType, type Annotation, type Block, type CodeAnnotation, type EditorAnnotation } from '../types';
-import { isCurrentUser } from '../utils/identity';
 import { ImageThumbnail } from './ImageThumbnail';
 import { EditorAnnotationCard } from './EditorAnnotationCard';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -287,7 +286,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                     <AnnotationCard
                       annotation={entry.annotation}
                       isSelected={selectedId === entry.annotation.id}
-                      isMe={isCurrentUser(entry.annotation.author)}
                       onSelect={() => onSelect(entry.annotation.id)}
                       onDelete={() => onDelete(entry.annotation.id)}
                       onEdit={onEdit ? (updates: Partial<Annotation>) => onEdit(entry.annotation.id, updates) : undefined}
@@ -301,7 +299,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                   key={entry.annotation.id}
                   annotation={entry.annotation}
                   isSelected={selectedId === entry.annotation.id}
-                  isMe={isCurrentUser(entry.annotation.author)}
                   onSelect={() => onSelect(entry.annotation.id)}
                   onDelete={() => onDelete(entry.annotation.id)}
                   onEdit={onEdit ? (updates: Partial<Annotation>) => onEdit(entry.annotation.id, updates) : undefined}
@@ -315,7 +312,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                   key={entry.annotation.id}
                   annotation={entry.annotation}
                   isSelected={selectedId === entry.annotation.id}
-                  isMe={isCurrentUser(entry.annotation.author)}
                   onSelect={() => onSelectCodeAnnotation?.(entry.annotation.id)}
                   onDelete={() => onDeleteCodeAnnotation?.(entry.annotation.id)}
                   onEdit={onEditCodeAnnotation ? (updates: Partial<CodeAnnotation>) => onEditCodeAnnotation(entry.annotation.id, updates) : undefined}
@@ -519,7 +515,6 @@ const DirectEditsCard: React.FC<{
 const AnnotationCard: React.FC<{
   annotation: Annotation;
   isSelected: boolean;
-  isMe: boolean;
   onSelect: () => void;
   onDelete: () => void;
   onEdit?: (updates: Partial<Annotation>) => void;
@@ -527,7 +522,7 @@ const AnnotationCard: React.FC<{
   footer?: React.ReactNode;
   /** The annotation has no live location in the document (host-reported). */
   unanchored?: boolean;
-}> = ({ annotation, isSelected, isMe, onSelect, onDelete, onEdit, readOnly = false, footer, unanchored = false }) => {
+}> = ({ annotation, isSelected, onSelect, onDelete, onEdit, readOnly = false, footer, unanchored = false }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(annotation.text || '');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -642,7 +637,7 @@ const AnnotationCard: React.FC<{
           </span>
         )}
         <span className="text-[10px] text-muted-foreground/50 truncate">
-          {annotation.author ? `${annotation.author}${isMe ? ' (me)' : ''} · ` : ''}{formatTimestamp(annotation.createdA)}
+          {annotation.author ? `${annotation.author} · ` : ''}{formatTimestamp(annotation.createdA)}
         </span>
         {!readOnly && (
           <div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100">
@@ -734,12 +729,11 @@ const AnnotationCard: React.FC<{
 const CodeAnnotationCard: React.FC<{
   annotation: CodeAnnotation;
   isSelected: boolean;
-  isMe: boolean;
   onSelect: () => void;
   onDelete: () => void;
   onEdit?: (updates: Partial<CodeAnnotation>) => void;
   readOnly?: boolean;
-}> = ({ annotation, isSelected, isMe, onSelect, onDelete, onEdit, readOnly = false }) => {
+}> = ({ annotation, isSelected, onSelect, onDelete, onEdit, readOnly = false }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(annotation.text || '');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -791,7 +785,7 @@ const CodeAnnotationCard: React.FC<{
       <div className="mb-1.5 flex items-center gap-1.5">
         <span className="text-[11px] font-medium text-primary">Code</span>
         <span className="text-[10px] text-muted-foreground/50 truncate">
-          {annotation.author ? `${annotation.author}${isMe ? ' (me)' : ''} · ` : ''}{formatTimestamp(annotation.createdAt)}
+          {annotation.author ? `${annotation.author} · ` : ''}{formatTimestamp(annotation.createdAt)}
         </span>
         {!readOnly && (
           <div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100">

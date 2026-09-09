@@ -122,18 +122,6 @@ export const SETTINGS = {
     toServer: (v: FaviconStyle) => ({ favicon: v }),
   },
 
-  gridEnabled: {
-    // Default ON: plans open in the classic grid / floating-card look. The UI 2.0
-    // flat look is offered as an opt-in via the look-and-feel chooser dialog.
-    defaultValue: true as boolean,
-    fromCookie: () => {
-      const v = storage.getItem('hypermark-grid-enabled');
-      return v === 'true' ? true : v === 'false' ? false : undefined;
-    },
-    toCookie: (v: boolean) => storage.setItem('hypermark-grid-enabled', String(v)),
-    serverKey: undefined, fromServer: undefined, toServer: undefined,
-  },
-
   // --- Diff display options (namespaced under diffOptions in config.json) ---
 
   // Which left-panel view a code review OPENS in. 'sections' = the git-status

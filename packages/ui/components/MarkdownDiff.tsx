@@ -16,16 +16,8 @@ export type { MarkdownDiffHandle };
    and pass the result through the `extensions` prop below — the frozen diff
    view composes them the same way the editor does. */
 
-/* Grid-mode card utilities mirror components/MarkdownEditor.tsx exactly, so a
-   host toggling editor <-> diff keeps identical card chrome. They stay here
-   (not in the package) because they're Hypermark design-system Tailwind
-   classes and this file is @source-scanned. */
-const GRID_CARD_CLASSES = 'px-5 md:px-8 lg:px-10 xl:px-12 shadow-xl border border-border/50';
-
 export interface MarkdownDiffProps
   extends Omit<PackagedMarkdownDiffProps, 'mode' | 'cardClassName'> {
-  /** Mirrors MarkdownEditor's grid card chrome so editor <-> diff doesn't jump. */
-  gridEnabled?: boolean;
   /** Theme color mode. Defaults to the ThemeProvider's resolved mode (Hypermark
       passes nothing); a host without ThemeProvider can supply it directly. */
   mode?: PackagedMarkdownDiffProps['mode'];
@@ -48,13 +40,12 @@ export interface MarkdownDiffProps
    stable array and feed changing data through callbacks that close over live
    state. Build extensions against YOUR copy of the `@codemirror/*` packages;
    two live copies of `@codemirror/state` break the view. */
-export const MarkdownDiff: React.FC<MarkdownDiffProps> = ({ gridEnabled, mode, ...props }) => {
+export const MarkdownDiff: React.FC<MarkdownDiffProps> = ({ mode, ...props }) => {
   const { resolvedMode } = useTheme();
   return (
     <PackagedMarkdownDiff
       {...props}
       mode={mode ?? resolvedMode}
-      cardClassName={gridEnabled ? GRID_CARD_CLASSES : undefined}
     />
   );
 };

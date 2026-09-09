@@ -1,26 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getAutoCloseDelay, setAutoCloseDelay } from '../utils/storage';
+import { useState, useEffect } from 'react';
 
 /**
- * Phases of the auto-close lifecycle after a form submission.
+ * Phases of the close attempt that follows a form submission.
  *
  * - idle:        nothing submitted yet
- * - counting:    countdown is ticking (seconds remaining in `remaining`)
- * - prompt:      auto-close is disabled; offer the user a checkbox to opt in
- * - closed:      window.close() succeeded (terminal state)
- * - closeFailed: window.close() was blocked by the browser
+ * - closing:     window.close() has been requested
+ * - closeFailed: the browser refused to close the tab
  */
 type AutoClosePhase =
   | { phase: 'idle' }
-  | { phase: 'counting'; remaining: number }
-  | { phase: 'prompt' }
-  | { phase: 'closed' }
+  | { phase: 'closing' }
   | { phase: 'closeFailed' };
 
 interface UseAutoCloseReturn {
   state: AutoClosePhase;
-  /** User opted in via the checkbox — persist "3s" and start countdown. */
-  enableAndStart: () => void;
 }
 
 type GlimpseWindow = Window & {
@@ -59,46 +52,26 @@ function tryClose(onFail: () => void): void {
 }
 
 /**
- * Manages the auto-close countdown that runs after a submission overlay appears.
+ * Closes the tab as soon as a submission lands.
  *
- * @param active - pass `true` once the overlay should appear (i.e. form was submitted)
+ * There is no delay and no setting. Every caller awaits its POST before
+ * flipping `active`, so by the time this runs the agent already has the
+ * feedback — the completion screen was a receipt for something the tab's own
+ * disappearance reports better. What survives is the failure path: a tab the
+ * browser refuses to close (one the user opened by hand rather than one the
+ * agent opened) reports `closeFailed`, which is the only case where the
+ * overlay has something to say.
+ *
+ * @param active - pass `true` once the submission has been accepted
  */
 export function useAutoClose(active: boolean): UseAutoCloseReturn {
   const [state, setState] = useState<AutoClosePhase>({ phase: 'idle' });
 
-  // On activation, read persisted delay and transition to the right phase.
   useEffect(() => {
     if (!active) return;
-
-    const delay = getAutoCloseDelay();
-    if (delay === '0') {
-      tryClose(() => setState({ phase: 'closeFailed' }));
-      setState({ phase: 'closed' });
-    } else if (delay !== 'off') {
-      setState({ phase: 'counting', remaining: Number(delay) });
-    } else {
-      setState({ phase: 'prompt' });
-    }
+    setState({ phase: 'closing' });
+    tryClose(() => setState({ phase: 'closeFailed' }));
   }, [active]);
 
-  // Tick the countdown once per second.
-  useEffect(() => {
-    if (state.phase !== 'counting') return;
-    if (state.remaining <= 0) {
-      tryClose(() => setState({ phase: 'closeFailed' }));
-      return;
-    }
-    const timer = setTimeout(
-      () => setState((prev) => (prev.phase === 'counting' ? { phase: 'counting', remaining: prev.remaining - 1 } : prev)),
-      1000,
-    );
-    return () => clearTimeout(timer);
-  }, [state]);
-
-  const enableAndStart = useCallback(() => {
-    setAutoCloseDelay('3');
-    setState({ phase: 'counting', remaining: 3 });
-  }, []);
-
-  return { state, enableAndStart };
+  return { state };
 }

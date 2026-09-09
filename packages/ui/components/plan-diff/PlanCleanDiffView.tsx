@@ -18,7 +18,7 @@ import type {
   InlineDiffToken,
   InlineDiffWrap,
 } from "../../utils/planDiffEngine";
-import type { QuickLabel } from "../../utils/quickLabels";
+import { formatQuickLabel, type QuickLabel } from "../../utils/quickLabels";
 import { AnnotationToolbar } from "../AnnotationToolbar";
 import { CommentPopover } from "../CommentPopover";
 import { FloatingQuickLabelPicker } from "../FloatingQuickLabelPicker";
@@ -212,7 +212,7 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
     if (!hoveredBlock) return;
     createDiffAnnotation(
       hoveredBlock.block, hoveredBlock.index, hoveredBlock.diffContext,
-      AnnotationType.COMMENT, `${label.emoji} ${label.text}`, undefined, true, label.tip
+      AnnotationType.COMMENT, formatQuickLabel(label), undefined, true, label.tip
     );
     setHoveredBlock(null);
     setIsExiting(false);
@@ -254,7 +254,7 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
     if (!quickLabelPicker) return;
     createDiffAnnotation(
       quickLabelPicker.block, quickLabelPicker.index, quickLabelPicker.diffContext,
-      AnnotationType.COMMENT, `${label.emoji} ${label.text}`, undefined, true, label.tip
+      AnnotationType.COMMENT, formatQuickLabel(label), undefined, true, label.tip
     );
     setQuickLabelPicker(null);
   }, [quickLabelPicker, createDiffAnnotation]);

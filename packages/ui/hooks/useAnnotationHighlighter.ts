@@ -9,7 +9,7 @@ import { useEffect, useRef, useState, useCallback, type RefObject } from 'react'
 import Highlighter from '@plannotator/web-highlighter';
 import type { Annotation, EditorMode, ImageAttachment } from '../types';
 import { AnnotationType } from '../types';
-import type { QuickLabel } from '../utils/quickLabels';
+import { formatQuickLabel, type QuickLabel } from '../utils/quickLabels';
 import { getIdentity } from '../utils/identity';
 import { transformPlainText } from '../utils/inlineTransforms';
 
@@ -1201,7 +1201,7 @@ export function useAnnotationHighlighter({
     if (isMathAnnotationSource(toolbarState.source)) {
       createAnnotationFromMathSource(
         toolbarState.source, AnnotationType.COMMENT,
-        `${label.emoji} ${label.text}`, undefined, true, label.tip
+        formatQuickLabel(label), undefined, true, label.tip
       );
       clearPendingSelection();
       setToolbarState(null);
@@ -1211,7 +1211,7 @@ export function useAnnotationHighlighter({
     if (!highlighter) return;
     createAnnotationFromSource(
       highlighter, toolbarState.source, AnnotationType.COMMENT,
-      `${label.emoji} ${label.text}`, undefined, true, label.tip
+      formatQuickLabel(label), undefined, true, label.tip
     );
     clearPendingSelection();
     setToolbarState(null);
@@ -1282,7 +1282,7 @@ export function useAnnotationHighlighter({
       createAnnotationFromMathSource(
         quickLabelPicker.source,
         AnnotationType.COMMENT,
-        `${label.emoji} ${label.text}`,
+        formatQuickLabel(label),
         undefined,
         true,
         label.tip,
@@ -1295,7 +1295,7 @@ export function useAnnotationHighlighter({
     if (!highlighterRef.current) return;
     createAnnotationFromSource(
       highlighterRef.current, quickLabelPicker.source, AnnotationType.COMMENT,
-      `${label.emoji} ${label.text}`, undefined, true, label.tip
+      formatQuickLabel(label), undefined, true, label.tip
     );
     clearPendingSelection();
     setQuickLabelPicker(null);

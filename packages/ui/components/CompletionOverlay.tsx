@@ -32,7 +32,7 @@ interface CompletionOverlayProps {
 }
 
 export function CompletionOverlay({ submitted, title, subtitle, agentLabel }: CompletionOverlayProps) {
-  const { state, enableAndStart } = useAutoClose(!!submitted);
+  const { state } = useAutoClose(!!submitted);
 
   if (!submitted) return null;
 
@@ -54,16 +54,11 @@ export function CompletionOverlay({ submitted, title, subtitle, agentLabel }: Co
           <p className="text-muted-foreground">{subtitle}</p>
         </div>
 
+        {/* The tab closes itself the moment the submission lands, so this
+            panel is normally on screen for a frame or two. It has something to
+            say only when the browser refuses to close a tab it did not open. */}
         <div className="pt-4 border-t border-border space-y-2">
-          {state.phase === 'counting' ? (
-            <>
-              <p className="text-sm text-muted-foreground">
-                This tab will close in <span className="text-foreground font-medium">{state.remaining}</span> second
-                {state.remaining !== 1 ? 's' : ''}...
-              </p>
-              <p className="text-xs text-muted-foreground/60">You can change this in Settings.</p>
-            </>
-          ) : state.phase === 'closeFailed' ? (
+          {state.phase === 'closeFailed' ? (
             <>
               <p className="text-sm text-muted-foreground">
                 Could not close this tab automatically. Please close it manually.
@@ -77,19 +72,7 @@ export function CompletionOverlay({ submitted, title, subtitle, agentLabel }: Co
               <p className="text-sm text-muted-foreground">
                 You can close this tab and return to <span className="text-foreground font-medium">{agentLabel}</span>.
               </p>
-              {state.phase === 'prompt' ? (
-                <>
-                  <label className="flex items-center justify-center gap-2 cursor-pointer group">
-                    <input type="checkbox" checked={false} onChange={enableAndStart} className="accent-primary" />
-                    <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-                      Auto-close this tab after 3 seconds
-                    </span>
-                  </label>
-                  <p className="text-xs text-muted-foreground/60">You can change the delay in Settings.</p>
-                </>
-              ) : (
-                <p className="text-xs text-muted-foreground/60">Your response has been sent.</p>
-              )}
+              <p className="text-xs text-muted-foreground/60">Your response has been sent.</p>
             </>
           )}
         </div>

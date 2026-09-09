@@ -11,10 +11,21 @@ const STORAGE_KEY = 'hypermark-quick-labels';
 
 export interface QuickLabel {
   id: string;     // kebab-case identifier e.g. "needs-tests"
-  emoji: string;  // single emoji e.g. "🧪"
+  emoji: string;  // single emoji e.g. "🧪", or '' for a label that carries none
   text: string;   // display text e.g. "Needs tests"
   color: string;  // key into LABEL_COLOR_MAP
   tip?: string;   // optional instruction injected into feedback for the agent
+}
+
+/**
+ * The text a quick label writes into an annotation: "🧪 Needs tests", or just
+ * "Agreed" for a label with no emoji. Every call site that used to inline
+ * `${emoji} ${text}` goes through here so an empty emoji cannot leave a
+ * leading space in the stored annotation text (which would then fail to match
+ * in findLabelByText).
+ */
+export function formatQuickLabel(label: QuickLabel): string {
+  return label.emoji ? `${label.emoji} ${label.text}` : label.text;
 }
 
 /** Inline styles for label colors (avoids Tailwind dynamic class purging) */
@@ -32,15 +43,18 @@ export const LABEL_COLOR_MAP: Record<string, { bg: string; text: string; darkTex
 };
 
 /**
- * The hardcoded one-click positive label behind the toolbar's 👍 button and
- * the composer's "Looks good" action. Deliberately NOT part of the
- * configurable set: it is the ONLY label comment-only surfaces (HTML /
- * live-app) may emit — their restricted handlers filter on this id.
+ * The hardcoded one-click positive label behind the selection toolbar's and
+ * the composer's "Agreed" action. Deliberately NOT part of the configurable
+ * set: it is the ONLY label comment-only surfaces (HTML / live-app) may
+ * emit — their restricted handlers filter on this id.
+ *
+ * It carries no emoji: it reads as a plain verdict on the selection, not as a
+ * reaction to it.
  */
-export const THUMBS_UP_LABEL: QuickLabel = {
-  id: 'thumbs-up',
-  emoji: '👍',
-  text: 'Looks good',
+export const AGREED_LABEL: QuickLabel = {
+  id: 'agreed',
+  emoji: '',
+  text: 'Agreed',
   color: 'green',
 };
 
@@ -76,9 +90,9 @@ export function resetQuickLabels(): void {
   storage.removeItem(STORAGE_KEY);
 }
 
-/** Find a configured label whose "emoji text" matches an annotation's text field */
+/** Find a configured label whose formatted text matches an annotation's text field */
 export function findLabelByText(annotationText: string): QuickLabel | undefined {
-  return getQuickLabels().find(l => `${l.emoji} ${l.text}` === annotationText);
+  return getQuickLabels().find(l => formatQuickLabel(l) === annotationText);
 }
 
 /** Get color styles for a label, respecting dark mode */

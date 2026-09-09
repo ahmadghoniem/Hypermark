@@ -18,13 +18,17 @@ import { generateIdentity } from './generateIdentity';
  *
  * Default = today's tater behavior (ConfigStore-backed nickname + cookie match).
  * A host (e.g. Workspaces) calls setIdentityProvider once at startup to stamp its
- * logged-in user on comments and drive the `(me)` badge instead. Mirrors the
- * swappable storage backend in ./storage.ts (StorageBackend/setStorageBackend).
+ * logged-in user on comments instead. Mirrors the swappable storage backend in
+ * ./storage.ts (StorageBackend/setStorageBackend).
+ *
+ * Hypermark itself renders every author the same way — it is a single-annotator
+ * app, so nothing here distinguishes "mine" from "theirs". `isCurrentUser`
+ * stays on the interface for hosts that do have several authors per document.
  */
 export interface IdentityProvider {
   /** Display name stamped as `author` on new annotations. */
   getIdentity(): string;
-  /** Whether an annotation's `author` is the current user (drives the `(me)` badge). */
+  /** Whether an annotation's `author` is the current user. */
   isCurrentUser(author: string | undefined): boolean;
   /**
    * Whether the user may change their own display name from the Settings UI.

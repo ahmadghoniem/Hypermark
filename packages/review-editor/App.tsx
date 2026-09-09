@@ -24,7 +24,6 @@ import {
   resolvePlatformDecisionAction,
   resolveReviewDecisionAction,
 } from './reviewDecision';
-import { useUpdateCheck } from '@hypermark/ui/hooks/useUpdateCheck';
 import { storage } from '@hypermark/ui/utils/storage';
 import { CompletionOverlay } from '@hypermark/ui/components/CompletionOverlay';
 import { GitHubIcon } from '@hypermark/ui/components/GitHubIcon';
@@ -36,8 +35,6 @@ import type { SemanticDiffAdvert } from '@hypermark/shared/semantic-diff-types';
 import type { CallFlowAdvert, CallFlowNode } from '@hypermark/shared/call-flow-types';
 import { configStore, useConfigValue, setReviewPanelView } from '@hypermark/ui/config';
 import { getAgentSwitchSettings, getEffectiveAgentName } from '@hypermark/ui/utils/agentSwitch';
-import { LookAndFeelAnnouncementDialog } from '@hypermark/ui/components/LookAndFeelAnnouncementDialog';
-import { markLookAndFeelChoiceResolved, needsLookAndFeelAnnouncement } from '@hypermark/ui/utils/lookAndFeelAnnouncement';
 import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, Annotation, CommentAnnotation, type ArtifactAnnotationMeta, type CallFlowAnnotationTarget, type ImageAttachment } from '@hypermark/ui/types';
 import { useResizablePanel } from '@hypermark/ui/hooks/useResizablePanel';
 import { useCodeAnnotationDraft } from '@hypermark/ui/hooks/useCodeAnnotationDraft';
@@ -80,10 +77,13 @@ import { ResizeHandle } from '@hypermark/ui/components/ResizeHandle';
 import { IconContext, Tree } from '@phosphor-icons/react';
 import { DockviewReact, type DockviewReadyEvent, type DockviewApi } from 'dockview-react';
 import {
+  ExportIcon,
   ReviewHeaderMenu,
   type CompactReviewAction,
   type CompactReviewDestination,
 } from './components/ReviewHeaderMenu';
+import { ThemeModeButton } from '@hypermark/ui/components/ThemeModeButton';
+import { SettingsIcon } from '@hypermark/ui/components/icons/headerIcons';
 import { ReviewSidebar } from './components/ReviewSidebar';
 import type { ReviewSidebarTab } from './components/ReviewSidebar';
 import { useSidebar } from '@hypermark/ui/hooks/useSidebar';
@@ -174,8 +174,6 @@ import {
   type ReviewSubmissionRecovery,
   type ReviewRecoveryStorage,
 } from './utils/reviewSubmissionRecovery';
-
-declare const __APP_VERSION__: string;
 
 function getReviewRecoveryStorage(): ReviewRecoveryStorage | null {
   try {
@@ -429,7 +427,6 @@ const ReviewAppInner: React.FC = () => {
   const confirmedAnalysisSettings = useRef({ semanticDiff: semanticDiffEnabled, callFlow: callFlowEnabled });
   // Global plan-look preference. Code review can resolve this shared first-use
   // choice even though the visual result applies to plan/document surfaces.
-  const gridEnabled = useConfigValue('gridEnabled');
 
   // Apply custom diff font and override --font-mono for surrounding review elements
   useEffect(() => {
@@ -504,7 +501,6 @@ const ReviewAppInner: React.FC = () => {
   }, []);
   const [origin, setOrigin] = useState<Origin | null>(null);
   const [gitUser, setGitUser] = useState<string | undefined>();
-  const [isWSL, setIsWSL] = useState(false);
   const [reviewMode, setReviewMode] = useState<string | null>(null);
   const [diffType, setDiffType] = useState<string>('uncommitted');
   const [gitContext, setGitContext] = useState<GitContext | null>(null);
@@ -707,23 +703,6 @@ const ReviewAppInner: React.FC = () => {
   const mrLabel = prMetadata ? getMRLabel(prMetadata) : 'PR';
   const mrNumberLabel = prMetadata ? getMRNumberLabel(prMetadata) : '';
   const displayRepo = prMetadata ? getDisplayRepo(prMetadata) : '';
-  const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
-  const updateInfo = useUpdateCheck();
-  const updateToastShown = useRef(false);
-  useEffect(() => {
-    if (updateInfo?.updateAvailable && !updateInfo.dismissed && !updateToastShown.current) {
-      updateToastShown.current = true;
-      const t = setTimeout(() => {
-        toast('A new version of Hypermark is available', {
-          description: 'Open the Options menu to update.',
-          duration: 4000,
-          position: 'top-right',
-          classNames: { toast: '!w-auto', description: '!text-foreground/70' },
-        });
-      }, 1500);
-      return () => clearTimeout(t);
-    }
-  }, [updateInfo?.updateAvailable, updateInfo?.dismissed]);
 
   const identity = useConfigValue('displayName');
 
@@ -929,15 +908,6 @@ const ReviewAppInner: React.FC = () => {
       toast.error('Failed to copy');
     }
   }, []);
-
-  // The explicit choice marker is shared, so resolving this in either app
-  // suppresses the chooser everywhere without release-version milestones.
-  const [showLookAndFeel, setShowLookAndFeel] = useState(needsLookAndFeelAnnouncement);
-  const dismissLookAndFeel = useCallback(() => {
-    configStore.set('gridEnabled', gridEnabled);
-    markLookAndFeelChoiceResolved();
-    setShowLookAndFeel(false);
-  }, [gridEnabled]);
   // One-time Edit Mode (edit-to-suggest) announcement. LAST in the dialog
   // chain (guide intro → look-and-feel → review setup → edit mode) — the
   // chain dialogs never stack. Skipped forever when the user already enabled
@@ -949,7 +919,7 @@ const ReviewAppInner: React.FC = () => {
   const editModeIntroVisible = editModeAnnouncementCanShow({
     announcementPending: editModeIntroPending,
     isLoading,
-    lookAndFeelVisible: showLookAndFeel,
+    lookAndFeelVisible: false,
     reviewSetupVisible: showReviewSetup,
   });
   const dismissEditModeIntro = useCallback(() => {
@@ -1194,7 +1164,7 @@ const ReviewAppInner: React.FC = () => {
     announcementPending: tokenHoverIntroPending,
     isLoading,
     featureAvailable: tokenHoverAvailable === true,
-    lookAndFeelVisible: showLookAndFeel,
+    lookAndFeelVisible: false,
     reviewSetupVisible: showReviewSetup,
     editModeVisible: editModeIntroVisible,
   });
@@ -1646,7 +1616,6 @@ const ReviewAppInner: React.FC = () => {
           setViewedFiles(new Set(data.viewedFiles));
         }
         if (data.error) setDiffError(data.error);
-        if (data.isWSL) setIsWSL(true);
         setSemanticDiffAvailable(data.semanticDiff?.available === true);
         if (data.callFlow) setCallFlowAdvert(data.callFlow);
         setSections(data.sections ?? null);
@@ -2075,7 +2044,7 @@ const ReviewAppInner: React.FC = () => {
     // (not lost) behind a first-run dialog — the file still marks and the
     // next auto-view retries the toast.
     if (!needsAutoViewedNotice()) return;
-    if (showLookAndFeel || showReviewSetup || editModeIntroVisible || tokenHoverIntroVisible) return;
+    if (showReviewSetup || editModeIntroVisible || tokenHoverIntroVisible) return;
     markAutoViewedNoticeSeen();
     toast('Files are marked viewed as you scroll', {
       description: "Scroll past a file or move on to the next and it's checked off. Turn this off in Settings → Git, or from the gear above the file list.",
@@ -2095,7 +2064,7 @@ const ReviewAppInner: React.FC = () => {
         },
       },
     });
-  }, [showLookAndFeel, showReviewSetup, editModeIntroVisible, tokenHoverIntroVisible]);
+  }, [showReviewSetup, editModeIntroVisible, tokenHoverIntroVisible]);
   const { handleReadingFileChange: handleAutoViewReadingFile, handleFileScrolledPast } = useAutoViewed({
     enabled: autoViewedEnabled,
     // Rule 4 — only the review target. A commit diff is a documented
@@ -3632,7 +3601,7 @@ const ReviewAppInner: React.FC = () => {
     if (event.defaultPrevented || isNativeHistoryOwner(event)) return false;
     if (submitted || isSendingFeedback || isApproving || isExiting || isPlatformActioning || isLoadingDiff) return false;
     if (openSettingsMenu || showDestinationMenu || platformCommentDialog || showExportModal || showWorktreeDialog || showNoAnnotationsDialog || showExitWarning) return false;
-    if (showLookAndFeel || showReviewSetup || editModeIntroVisible || tokenHoverIntroVisible) return false;
+    if (showReviewSetup || editModeIntroVisible || tokenHoverIntroVisible) return false;
     return !hasActiveHistoryOverlay(document);
   }, [
     isApproving,
@@ -3649,7 +3618,6 @@ const ReviewAppInner: React.FC = () => {
     showExportModal,
     showNoAnnotationsDialog,
     showWorktreeDialog,
-    showLookAndFeel,
     showReviewSetup,
     submitted,
   ]);
@@ -4275,10 +4243,41 @@ const ReviewAppInner: React.FC = () => {
             )}
             <div className="w-px h-5 bg-border/50 mx-1 hidden lg:block" />
 
+            {/* Export, theme and Settings are header buttons rather than
+                Options rows: they are the three the reviewer reaches for
+                most, and a menu hop for each was the only reason to open
+                Options at all. Compact touch keeps them in the menu — its
+                header's trailing region is one 44px target wide. */}
+            {!isCompactTouchLayout && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowExportModal(true)}
+                  className="flex h-7 items-center justify-center rounded-md px-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  title="Export review"
+                  aria-label="Export review"
+                >
+                  <ExportIcon className="w-4 h-4" />
+                </button>
+
+                <ThemeModeButton />
+
+                <button
+                  type="button"
+                  onClick={() => setOpenSettingsMenu(true)}
+                  className="flex h-7 items-center justify-center rounded-md px-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  title="Settings"
+                  aria-label="Settings"
+                >
+                  <SettingsIcon className="w-4 h-4" />
+                </button>
+              </>
+            )}
+
             <ReviewHeaderMenu
               onOpenSettings={() => setOpenSettingsMenu(true)}
-              onOpenReviewSetup={sectionsCapable ? () => { reviewSetupIsFirstRun.current = false; setShowReviewSetup(true); } : undefined}
               onOpenExport={() => setShowExportModal(true)}
+              onOpenReviewSetup={sectionsCapable ? () => { reviewSetupIsFirstRun.current = false; setShowReviewSetup(true); } : undefined}
               onCopyAgentInstructions={handleCopyAgentInstructions}
               onToggleFileTree={toggleNavigator}
               onToggleSidebar={() => reviewSidebar.isOpen ? reviewSidebar.close() : reviewSidebar.open()}
@@ -4289,10 +4288,6 @@ const ReviewAppInner: React.FC = () => {
               isSidebarOpen={reviewSidebar.isOpen}
               compactTouchLayout={isCompactTouchLayout}
               agentInstructionsEnabled={!!origin}
-              appVersion={appVersion}
-              updateInfo={updateInfo}
-              origin={origin}
-              isWSL={isWSL}
             />
           </div>
         </header>
@@ -4805,22 +4800,11 @@ const ReviewAppInner: React.FC = () => {
           showCancel
         />
 
-        {/* First-use Grid/Clean choice. Its explicit-choice marker is shared
-            with the plan editor, so resolving it in either app suppresses it everywhere.
-            First in the dialog chain (look-and-feel → review setup → edit
-            mode) — the chain dialogs never stack. */}
-        <LookAndFeelAnnouncementDialog
-          isOpen={showLookAndFeel}
-          gridEnabled={gridEnabled}
-          onToggleGrid={(v) => configStore.set('gridEnabled', v)}
-          onDismiss={dismissLookAndFeel}
-        />
-
         {/* First-run review-view chooser (panel view + tree default diff).
-            Second in the dialog chain (look-and-feel → review setup → edit
-            mode) so the chain dialogs never stack. On dismiss,
-            apply the chosen default to the current session. */}
-        {showReviewSetup && !showLookAndFeel && (
+            First in the dialog chain (review setup → edit mode) so the chain
+            dialogs never stack. On dismiss, apply the chosen default to the
+            current session. */}
+        {showReviewSetup && (
           <ReviewSetupDialog
             isOpen
             onDismiss={() => {
@@ -4860,11 +4844,11 @@ const ReviewAppInner: React.FC = () => {
         )}
 
         {/* One-time PR feedback-destination spotlight. Strictly AFTER the
-            first-run dialog chain (look-and-feel → review
-            setup → edit mode → token hover): it only mounts once none of the four is
-            showing, so it never stacks with them. PR mode only — the switcher
-            it points at doesn't render otherwise. */}
-        {showDestSpotlight && !isCompactTouchLayout && !!prMetadata && !isLoading && !showLookAndFeel && !showReviewSetup && !editModeIntroVisible && !tokenHoverIntroVisible && (
+            first-run dialog chain (review setup → edit mode → token hover):
+            it only mounts once none of the three is showing, so it never
+            stacks with them. PR mode only — the switcher it points at
+            doesn't render otherwise. */}
+        {showDestSpotlight && !isCompactTouchLayout && !!prMetadata && !isLoading && !showReviewSetup && !editModeIntroVisible && !tokenHoverIntroVisible && (
           <DestinationSpotlight
             targetRef={destToggleRef}
             platformLabel={platformLabel}

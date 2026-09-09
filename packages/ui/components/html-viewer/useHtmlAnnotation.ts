@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, type RefObject } from "react";
 import { AnnotationType, type Annotation, type EditorMode, type HtmlAnnotationTarget, type HtmlElementAnchor, type ImageAttachment } from "../../types";
-import { THUMBS_UP_LABEL, type QuickLabel } from "../../utils/quickLabels";
+import { AGREED_LABEL, type QuickLabel } from "../../utils/quickLabels";
 import { getIdentity } from "../../utils/identity";
 import type {
   ToolbarState,
@@ -437,9 +437,9 @@ export function useHtmlAnnotation({
   flashDraftTarget: (key: string) => void;
   /** Bumped after every target add/remove so the composer can refocus its textarea. */
   composerFocusToken: number;
-  /** Composer one-click "Looks good": submits the hardcoded positive label
+  /** Composer one-click "Agreed": submits the hardcoded positive label
    *  with the same anchor and multi-select targets a typed comment would carry. */
-  handleCommentLooksGood: () => void;
+  handleCommentAgree: () => void;
   /** Ids this module minted for locally created annotations (create-mark),
    *  for the unanchored union: a minted id the host never listed is a
    *  swapped-out local mark, not a host row. Read-only, stable identity. */
@@ -898,12 +898,12 @@ export function useHtmlAnnotation({
     [post],
   );
 
-  // The composer's one-click "Looks good" (the restored thumbs-up for
+  // The composer's one-click "Agreed" (the one label affordance restored to
   // comment-only surfaces, where pinpoint clicks land straight in the
   // composer and never see the selection toolbar). Mirrors
   // handleCommentSubmit — same anchor, same multi-select targets — but
   // emits the hardcoded positive label instead of typed prose.
-  const handleCommentLooksGood = useCallback(() => {
+  const handleCommentAgree = useCallback(() => {
     if (!enabledRef.current) return;
     const text = commentPopoverRef.current?.selectedText || pendingTextRef.current;
     if (!text) return;
@@ -927,10 +927,10 @@ export function useHtmlAnnotation({
       startOffset: 0,
       endOffset: 0,
       type: AnnotationType.COMMENT,
-      text: THUMBS_UP_LABEL.text,
+      text: AGREED_LABEL.text,
       originalText: text,
       isQuickLabel: true,
-      quickLabelTip: THUMBS_UP_LABEL.tip,
+      quickLabelTip: AGREED_LABEL.tip,
       author: getIdentity(),
       createdA: Date.now(),
       htmlAnchor: pendingAnchorRef.current ?? undefined,
@@ -1065,7 +1065,7 @@ export function useHtmlAnnotation({
     handleToolbarClose,
     handleRequestComment,
     handleCommentSubmit,
-    handleCommentLooksGood,
+    handleCommentAgree,
     handleCommentClose,
     handleFloatingQuickLabel,
     handleQuickLabelPickerDismiss,

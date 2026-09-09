@@ -36,11 +36,8 @@ import { getIdentity } from '@hypermark/ui/utils/identity';
 import { copyTextToClipboard } from '@hypermark/ui/utils/clipboard';
 import { configStore, useConfigValue } from '@hypermark/ui/config';
 import { CompletionOverlay } from '@hypermark/ui/components/CompletionOverlay';
-import { useUpdateCheck } from '@hypermark/ui/hooks/useUpdateCheck';
-import { LookAndFeelAnnouncementDialog } from '@hypermark/ui/components/LookAndFeelAnnouncementDialog';
 import { getAgentSwitchSettings, getEffectiveAgentName } from '@hypermark/ui/utils/agentSwitch';
 import { getPlanSaveSettings } from '@hypermark/ui/utils/planSave';
-import { markLookAndFeelChoiceResolved, needsLookAndFeelAnnouncement } from '@hypermark/ui/utils/lookAndFeelAnnouncement';
 import { getUIPreferences, type UIPreferences, type PlanWidth } from '@hypermark/ui/utils/uiPreferences';
 import { getEditorMode, saveEditorMode } from '@hypermark/ui/utils/editorMode';
 import { getInputMethod, refreshInputMethodStamp, saveInputMethod } from '@hypermark/ui/utils/inputMethod';
@@ -76,7 +73,6 @@ import { useUndoHistory } from '@hypermark/ui/hooks/useUndoHistory';
 import { buildPlanAgentInstructions } from '@hypermark/ui/utils/planAgentInstructions';
 import { useFileBrowser } from '@hypermark/ui/hooks/useFileBrowser';
 import { getFileEditStatus } from '@hypermark/ui/components/sidebar/FileBrowser';
-import { isFileBrowserEnabled, getFileBrowserSettings } from '@hypermark/ui/utils/fileBrowser';
 import { generateId } from '@hypermark/ui/utils/generateId';
 import { SidebarTabs } from '@hypermark/ui/components/sidebar/SidebarTabs';
 import { SidebarContainer } from '@hypermark/ui/components/sidebar/SidebarContainer';
@@ -442,7 +438,6 @@ const AppInner: React.FC = () => {
     const stored = storage.getItem('hypermark-tater-mode');
     return stored === 'true';
   });
-  const gridEnabled = useConfigValue('gridEnabled');
   const [uiPrefs, setUiPrefs] = useState(() => getUIPreferences());
 
   // Plan-area width (inside the OverlayScrollArea, after sidebar/panel
@@ -464,23 +459,6 @@ const AppInner: React.FC = () => {
     if (isApiMode) primeSkillCatalog();
   }, [isApiMode]);
   const [origin, setOrigin] = useState<Origin | null>(null);
-  const [isWSL, setIsWSL] = useState(false);
-  const updateInfo = useUpdateCheck();
-  const updateToastShown = useRef(false);
-  useEffect(() => {
-    if (window.location.hash) return;
-    if (updateInfo?.updateAvailable && !updateInfo.dismissed && !updateToastShown.current) {
-      updateToastShown.current = true;
-      const t = setTimeout(() => {
-        toast('A new version of Hypermark is available', {
-          description: 'Open the Options menu to update.',
-          duration: 4000,
-          classNames: { toast: '!w-auto', description: '!text-foreground/70' },
-        });
-      }, 1500);
-      return () => clearTimeout(t);
-    }
-  }, [updateInfo?.updateAvailable, updateInfo?.dismissed]);
   // Markdown edit mode (prototype): CM6 live-preview editor over the raw plan
   // text. originalMarkdownRef is the as-submitted baseline for the edit diff —
   // set once at plan load, never by linked-doc navigation or edit commits.
@@ -609,7 +587,6 @@ const AppInner: React.FC = () => {
   const [planDiffMode, setPlanDiffMode] = useState<PlanDiffMode>('clean');
   const [previousPlan, setPreviousPlan] = useState<string | null>(null);
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
-  const [showLookAndFeelAnnouncement, setShowLookAndFeelAnnouncement] = useState(needsLookAndFeelAnnouncement);
   const isMobile = useIsMobile();
   const isBelowAgentTerminalBreakpoint = useIsMobile(AGENT_TERMINAL_LG_BREAKPOINT);
   const isCompactTouchLayout = useCompactTouchLayout();
@@ -953,14 +930,6 @@ const AppInner: React.FC = () => {
     }
     setIsPanelOpen(prev => !prev);
   }, [agentTerminalPlacement, exitWideMode, isAgentTerminalVisible, isCompactTouchLayout, openCompactPlanSurface, replaceRightAgentTerminalWithPanel, wideModeType]);
-
-  const dismissLookAndFeelAnnouncement = useCallback(() => {
-    // Persist even when the user accepts the displayed default without first
-    // clicking its already-selected card, then record the explicit decision.
-    configStore.set('gridEnabled', gridEnabled);
-    markLookAndFeelChoiceResolved();
-    setShowLookAndFeelAnnouncement(false);
-  }, [gridEnabled]);
 
   /**
    * Record the durable placement. Writing through ConfigStore is the whole
@@ -1358,10 +1327,11 @@ const AppInner: React.FC = () => {
 
   // Markdown file browser
   const fileBrowser = useFileBrowser();
-  const showFilesTab = useMemo(
-    () => !!projectRoot || isFileBrowserEnabled(),
-    [projectRoot, uiPrefs]
-  );
+  // The browser is scoped to the project the session was launched in. There
+  // is no user-configured list of extra directories: browsing arbitrary
+  // folders was a settings surface nobody used, so the project root is the
+  // whole tree.
+  const showFilesTab = !!projectRoot;
 
   // Shared gate for the chrome-level keyboard commands (sidebars, focus mode):
   // never while a dialog, an overlay, a submission, or a text field owns the
@@ -1469,13 +1439,10 @@ const AppInner: React.FC = () => {
     },
   });
 
-  const fileBrowserDirs = useMemo(() => {
-    const projectDirs = projectRoot ? [projectRoot] : [];
-    const userDirs = isFileBrowserEnabled()
-      ? getFileBrowserSettings().directories
-      : [];
-    return [...new Set([...projectDirs, ...userDirs])];
-  }, [projectRoot, uiPrefs]);
+  const fileBrowserDirs = useMemo(
+    () => (projectRoot ? [projectRoot] : []),
+    [projectRoot],
+  );
 
   // Clear active file when file browser is disabled
   useEffect(() => {
@@ -3003,9 +2970,6 @@ const AppInner: React.FC = () => {
           }
           // Load saved permission mode preference
           setPermissionMode(getPermissionModeSettings().mode);
-        }
-        if (data.isWSL) {
-          setIsWSL(true);
         }
       })
       .catch(() => {
@@ -4602,12 +4566,6 @@ const AppInner: React.FC = () => {
       )}
     </div>
   ) : null;
-  // Only greet in a normal authoring context — never over the goal-setup /
-  // permission-mode flows. Deferred (not marked seen) until then.
-  const shouldShowLookAndFeelAnnouncement =
-    showLookAndFeelAnnouncement &&
-    !goalSetupMode &&
-    !showPermissionModeSetup;
   const compactNavigatorTabs: SidebarTab[] = [
     ...(hasTocEntries ? ['toc' as const] : []),
     ...(!isHtmlSurface && activeDiffVersionInfo !== null && activeDiffVersionInfo.totalVersions > 1
@@ -4799,7 +4757,7 @@ const AppInner: React.FC = () => {
   // Mobile Safari paints the browser-controls backdrop from the document/app
   // canvas, not from the nested document scroller. Keep that canvas continuous
   // with the active surface so a card-backed plan does not end in a dark band.
-  const browserCanvas = isHtmlSurface || gridEnabled ? 'background' : 'card';
+  const browserCanvas = isHtmlSurface ? 'background' : 'card';
   if (isLoading) {
     return (
       <ThemeProvider defaultTheme="dark" manageFavicon>
@@ -4870,9 +4828,6 @@ const AppInner: React.FC = () => {
           onCloseSettings={handleCloseSettings}
           onCopyAgentInstructions={handleHeaderCopyAgentInstructions}
           onDownloadAnnotations={handleHeaderDownloadAnnotations}
-          appVersion={typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0'}
-          updateInfo={updateInfo}
-          isWSL={isWSL}
           agentInstructionsEnabled={isApiMode && !archive.archiveMode && !annotateMode && !goalSetupMode}
         />
 
@@ -5009,7 +4964,7 @@ const AppInner: React.FC = () => {
           {/* Document Area */}
           <OverlayScrollArea
             element="main"
-            className={`flex-1 min-w-0 ${isHtmlSurface ? 'bg-background' : `${gridEnabled ? "bg-grid " : "bg-card "}${!goalSetupMode && !sidebar.isOpen && !isLeftAgentTerminalVisible && wideModeType === null ? 'lg:pl-[30px]' : ''}`}`}
+            className={`flex-1 min-w-0 ${isHtmlSurface ? 'bg-background' : `bg-card ${!goalSetupMode && !sidebar.isOpen && !isLeftAgentTerminalVisible && wideModeType === null ? 'lg:pl-[30px]' : ''}`}`}
             overflowX={usesDocumentScroll ? 'visible' : 'hidden'}
             overflowY={usesDocumentScroll ? 'visible' : 'auto'}
             onViewportReady={handleDocumentViewportReady}
@@ -5038,7 +4993,6 @@ const AppInner: React.FC = () => {
                   onInputMethodChange={handleInputMethodChange}
                   mode={editorMode}
                   onModeChange={handleEditorModeChange}
-                  taterMode={taterMode}
                   repoInfo={repoInfo}
                   planDiffStats={planDiff.diffStats}
                   isPlanDiffActive={isPlanDiffActive}
@@ -5073,8 +5027,6 @@ const AppInner: React.FC = () => {
                       onInputMethodChange={handleInputMethodChange}
                       mode={editorMode}
                       onModeChange={handleEditorModeChange}
-                      taterMode={taterMode}
-                      showHelpLink
                     />
                   )}
                 </div>
@@ -5288,7 +5240,6 @@ const AppInner: React.FC = () => {
                     editorHandleRef={markdownEditorHandleRef}
                     onMarkdownChange={handleEditorChange}
                     maxWidth={annotateReaderMaxWidth}
-                    gridEnabled={gridEnabled}
                   />
                 ) : (
                   <Viewer
@@ -5304,7 +5255,6 @@ const AppInner: React.FC = () => {
                     mode={effectiveEditorMode}
                     inputMethod={effectiveInputMethod}
                     taterMode={taterMode}
-                    gridEnabled={gridEnabled}
                     repoInfo={repoInfo}
                     stickyActions={uiPrefs.stickyActionsEnabled && !usesDocumentScroll}
                     planDiffStats={planDiff.diffStats}
@@ -5605,13 +5555,6 @@ const AppInner: React.FC = () => {
                     : `${agentName} will revise the plan based on your feedback.`
           }
           agentLabel={agentName}
-        />
-
-        <LookAndFeelAnnouncementDialog
-          isOpen={shouldShowLookAndFeelAnnouncement}
-          gridEnabled={gridEnabled}
-          onToggleGrid={(v) => configStore.set('gridEnabled', v)}
-          onDismiss={dismissLookAndFeelAnnouncement}
         />
 
         {/* Permission Mode Setup (Claude Code first-time) */}

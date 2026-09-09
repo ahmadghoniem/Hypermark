@@ -1,6 +1,5 @@
 import React from 'react';
 import type { ConventionalLabel, ConventionalDecoration } from '@hypermark/ui/types';
-import { isCurrentUser } from '@hypermark/ui/utils/identity';
 import { ConventionalLabelBadge } from './ConventionalLabelPicker';
 import { formatRelativeTime } from '../utils/formatRelativeTime';
 
@@ -23,6 +22,10 @@ interface CommentMetaProps {
  * relative time, then any surface-specific actions. Centralizing it keeps author
  * + timestamp + badge styling identical everywhere (they used to be hand-rolled
  * three different ways).
+ *
+ * Every author renders the same. The row used to dim the current user's name
+ * and append "(me)" — a distinction that only meant something when several
+ * people annotated one document, which this fork no longer does.
  */
 export const CommentMeta: React.FC<CommentMetaProps> = ({
   leading,
@@ -49,13 +52,8 @@ export const CommentMeta: React.FC<CommentMetaProps> = ({
         </span>
       ) : null}
       {author && (
-        <span
-          className={`text-[10px] truncate max-w-[120px] ${
-            isCurrentUser(author) ? 'text-muted-foreground/50' : 'text-muted-foreground/70'
-          }`}
-        >
+        <span className="text-[10px] truncate max-w-[120px] text-muted-foreground/70">
           {author}
-          {isCurrentUser(author) && ' (me)'}
         </span>
       )}
     </div>

@@ -1,6 +1,5 @@
 import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
 import type { EditorMode, InputMethod } from '../types';
-import { TaterSpritePullup } from './TaterSpritePullup';
 
 /** Props for the shared annotation input and action mode toolstrip. */
 export interface AnnotationToolstripProps {
@@ -8,18 +7,11 @@ export interface AnnotationToolstripProps {
   onInputMethodChange: (method: InputMethod) => void;
   mode: EditorMode;
   onModeChange: (mode: EditorMode) => void;
-  taterMode?: boolean;
   /**
    * Compact mode: used inside the sticky header lane. Buttons only expand for
-   * the active mode (no hover expansion), gap is tightened, and the help link
-   * is hidden.
+   * the active mode (no hover expansion) and the gap is tightened.
    */
   compact?: boolean;
-  /**
-   * Show the "how does this work?" help link. Default true; hidden on the
-   * floating HTML toolstrip where space is tight.
-   */
-  showHelpLink?: boolean;
   /**
    * Icon-only mode: no button ever expands to show a label, even the active
    * one. Used in the sticky header lane on mobile so the toolstrip stays
@@ -44,15 +36,11 @@ export const AnnotationToolstrip: React.FC<AnnotationToolstripProps> = ({
   onInputMethodChange,
   mode,
   onModeChange,
-  taterMode,
   compact = false,
-  showHelpLink = true,
   iconOnly = false,
   hideInputMethodSwitch = false,
   hideQuickLabel = false,
 }) => {
-  const [showHelp, setShowHelp] = useState(false);
-  const [helpTab, setHelpTab] = useState<'selection' | 'hypermark'>('selection');
   const [mounted, setMounted] = useState(false);
 
   // Enable transitions only after first paint
@@ -61,8 +49,7 @@ export const AnnotationToolstrip: React.FC<AnnotationToolstripProps> = ({
   }, []);
 
   return (
-    <>
-      <div className={`flex items-center flex-wrap ${compact ? 'gap-1' : 'gap-1.5'}`}>
+    <div className={`flex items-center flex-wrap ${compact ? 'gap-1' : 'gap-1.5'}`}>
         {/* Input method group */}
         {!hideInputMethodSwitch && (
         <div className="inline-flex items-center gap-0.5 bg-muted/50 rounded-lg p-0.5 border border-border/30">
@@ -167,80 +154,7 @@ export const AnnotationToolstrip: React.FC<AnnotationToolstripProps> = ({
             />
           )}
         </div>
-
-        {/* Help */}
-        {!compact && showHelpLink && (
-          <button
-            onClick={() => setShowHelp(true)}
-            className="ml-2 text-[10px] text-muted-foreground/60 hover:text-muted-foreground transition-colors hidden sm:block"
-          >
-            how does this work?
-          </button>
-        )}
-      </div>
-
-      {/* Help Video Dialog */}
-      {showHelp && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
-          onClick={() => setShowHelp(false)}
-        >
-          <div
-            className="bg-card border border-border rounded-xl w-full max-w-2xl shadow-2xl relative"
-            onClick={e => e.stopPropagation()}
-          >
-            {taterMode && <TaterSpritePullup />}
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5">
-                <button
-                  onClick={() => setHelpTab('selection')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                    helpTab === 'selection'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Selection Modes
-                </button>
-                <button
-                  onClick={() => setHelpTab('hypermark')}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                    helpTab === 'hypermark'
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  How Hypermark Works
-                </button>
-              </div>
-              <button
-                onClick={() => setShowHelp(false)}
-                className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="aspect-video">
-              <iframe
-                key={helpTab}
-                width="100%"
-                height="100%"
-                src={helpTab === 'selection'
-                  ? 'https://www.youtube-nocookie.com/embed/ZNt9jtfx9TY?autoplay=1'
-                  : 'https://www.youtube-nocookie.com/embed/a_AT7cEN_9I?autoplay=1'
-                }
-                title={helpTab === 'selection' ? 'How Selection Modes Work' : 'How Hypermark Works'}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 };
 
