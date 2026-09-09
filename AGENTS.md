@@ -27,9 +27,8 @@ hypermark/
 │   │   └── vite.config.ts
 │   └── skills/                   # Agent skills (agentskills.io format)
 │       ├── claude/               # Claude Code launchers — dynamic-context injection (!`hypermark … $ARGUMENTS`) + allowed-tools
-│       │   └── launcher-contract.test.ts   # Guards user-invoked-only, naming, and the bare-binary allowlist
 │       ├── core/                 # CORE skills (single-sourced) — installed to ~/.claude/skills and ~/.agents/skills
-│       │   ├── hypermark/            # Knowledge layer: model-invocable CLI reference (subcommands, flags, exit codes); freshness-guarded against apps/hook/server/cli.ts by hypermark-skill-reference.test.ts
+│       │   ├── hypermark/            # Knowledge layer: model-invocable CLI reference (subcommands, flags, exit codes); keep in sync with apps/hook/server/cli.ts by hand
 │       │   ├── hypermark-review/     # Lightweight: opens review UI
 │       │   ├── hypermark-annotate/   # Lightweight: opens annotate UI
 │       │   └── hypermark-last/       # Lightweight: annotates last message

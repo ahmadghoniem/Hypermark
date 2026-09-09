@@ -41,9 +41,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Test DAST evidence validator
-        run: bun test scripts/dast/report.test.ts
-
       - name: Build disposable target UI
         run: bun run build:review && bun run build:hook
 

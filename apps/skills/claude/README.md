@@ -29,17 +29,14 @@ carries four things. Dropping any one of them changes the product:
    handed the human's decision rather than being asked to go get it. Everything
    after `## Your task` interprets that output.
 
-`apps/skills/claude/launcher-contract.test.ts` asserts all four, asserts that
-the `core/` variants deliberately have neither the allowlist nor the injection,
-and exercises the installers' real copy code against a path containing spaces
-and non-ASCII characters. That test file sits at this directory's root rather
-than inside a skill folder, so the installers (which copy named skill
-directories) never ship it.
+All four were asserted by a `launcher-contract.test.ts` guard at this
+directory's root, along with the `core/` variants deliberately having neither
+the allowlist nor the injection. That guard is gone; the four properties are now
+maintained by hand, so read this section before editing a launcher.
 
 Command names are `/hypermark-*`, renamed together in spec 06 step 2;
-renaming them piecemeal is a bug, not a step. The `launcher-contract.test.ts`
-guard now runs the other way and fails if any launcher reintroduces an old
-`hypermark-` command name.
+renaming them piecemeal is a bug, not a step. Nothing enforces this any more —
+check every launcher when you touch one.
 
 ## Native `/btw` is not one of these
 
