@@ -11,9 +11,9 @@
     "./components/*": "./components/*.tsx"
   },
   "dependencies": {
-    "@base-ui/react": "^1.6.0",
-    "@fontsource-variable/geist-mono": "5.2.7",
-    "@fontsource-variable/inter": "^5.2.8",
+    "@base-ui/react": "^1.7.0",
+    "@fontsource-variable/geist-mono": "5.3.0",
+    "@fontsource-variable/inter": "^5.3.0",
     "@phosphor-icons/react": "2.1.10",
     "@pierre/diffs": "1.4.1",
     "@pierre/trees": "1.0.0-beta.6",
@@ -22,14 +22,14 @@
     "@hypermark/ui": "workspace:*",
     "marked": "^17.0.6",
     "motion": "^12.38.0",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "tailwindcss": "^4.1.18",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tailwindcss": "^4.3.3",
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0",
-    "@types/bun": "^1.2.0"
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@types/bun": "^1.4.0"
   }
 }
