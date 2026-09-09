@@ -1,22 +1,8 @@
-import type { CodeAnnotation, ConventionalLabel, ConventionalDecoration, CommentAnnotation, Annotation, ArtifactAnnotationMeta, ImageAttachment } from '@hypermark/ui/types';
+import type { CodeAnnotation, CommentAnnotation, Annotation, ArtifactAnnotationMeta, ImageAttachment } from '@hypermark/ui/types';
 import type { PRMetadata } from '@hypermark/shared/pr-types';
 import { getMRLabel, getMRNumberLabel, getDisplayRepo } from '@hypermark/shared/pr-types';
 import { exportAnnotations, parseMarkdownToBlocks } from '@hypermark/ui/utils/parser';
 import { artifactAnchorLabel } from './artifactAnnotations';
-
-/**
- * Format a conventional comment prefix per the Conventional Comments spec:
- * `**label (decorations):** ` — entire label+decorations+colon wrapped in bold.
- * See https://conventionalcomments.org for examples.
- */
-export function formatConventionalPrefix(
-  label?: ConventionalLabel,
-  decorations?: ConventionalDecoration[],
-): string {
-  if (!label) return '';
-  const decs = decorations?.length ? ` (${decorations.join(', ')})` : '';
-  return `**${label}${decs}:** `;
-}
 
 /**
  * Describes what the reviewer was looking at in local-review mode — diff mode,
@@ -175,19 +161,15 @@ function formatFileAnnotations(fileAnnotations: CodeAnnotation[], headingLevel =
 
   for (const ann of sorted) {
     const scope = ann.scope ?? 'line';
-    const prefix = formatConventionalPrefix(ann.conventionalLabel, ann.decorations);
 
     if (scope === 'file') {
       output += `${headingLevel} File Comment\n`;
       output += commitMismatchNote(ann, commitShaFromMode(currentDiff?.mode));
       output += gitButlerMismatchNote(ann, currentDiff);
       if (ann.text) {
-        output += `${prefix}${ann.text}\n`;
-      } else if (prefix) {
-        output += `${prefix.trimEnd()}\n`;
+        output += `${ann.text}\n`;
       }
       output += formatCallFlowAnnotationTargets(ann);
-      output += formatSuggestionBlocks(ann);
       output += formatAttachedImages(ann.images);
       output += '\n';
       continue;
@@ -204,16 +186,13 @@ function formatFileAnnotations(fileAnnotations: CodeAnnotation[], headingLevel =
     output += gitButlerMismatchNote(ann, currentDiff);
 
     if (ann.text) {
-      output += `${prefix}${ann.text}\n`;
-    } else if (prefix) {
-      output += `${prefix.trimEnd()}\n`;
+      output += `${ann.text}\n`;
     }
     if (ann.reasoning) {
       output += `\n**Reasoning:** ${ann.reasoning}\n`;
     }
     output += formatCallFlowAnnotationTargets(ann);
     output += formatSelectedTextBlock(ann);
-    output += formatSuggestionBlocks(ann);
     output += formatAttachedImages(ann.images);
     output += '\n';
   }
@@ -222,52 +201,20 @@ function formatFileAnnotations(fileAnnotations: CodeAnnotation[], headingLevel =
 }
 
 /**
- * The highlighted-text payload for a comment created inside an edit session:
- * the exact text the reviewer had selected in the editor. When the selection
- * overlapped the reviewer's own in-progress edits, the line anchor points at
- * the pristine lines that region replaces (approximate), and the note says so
- * — otherwise the anchored lines and the highlighted text are the same code.
+ * The highlighted-text payload for an annotation that carries the exact text
+ * the reviewer had selected, so the agent sees what was highlighted even when
+ * it differs from the anchored diff lines.
  */
 function formatSelectedTextBlock(ann: CodeAnnotation): string {
   if (!ann.selectedText) return '';
-  let output = '';
-  if (ann.selectedTextFromEdits) {
-    output += `_The highlighted text below includes the reviewer's in-progress edits; the line range above anchors to the current file lines that region replaces (approximate)._\n`;
-  }
-  output += `\n**Highlighted text:**\n\`\`\`\n${ann.selectedText}\n\`\`\`\n`;
-  return output;
-}
-
-/**
- * The suggestion payload for one annotation: an optional "Replaces:" block
- * (the exact current lines the suggestion swaps out — the applying agent
- * must verify these against the file before applying, and skip with a note
- * if they no longer match) followed by the "Suggested code:" block. Both
- * SuggestionModal-authored and edit-session-derived suggestions carry
- * `originalCode`, so both sources export through this one format. A
- * deletion-only suggestion (no suggestedCode; the annotation text describes
- * the removal) still emits its "Replaces:" block so the anchor stays
- * verifiable.
- */
-function formatSuggestionBlocks(ann: CodeAnnotation): string {
-  let output = '';
-  if ((ann.suggestedCode || ann.text) && ann.originalCode) {
-    output += `\n**Replaces:**\n\`\`\`\n${ann.originalCode}\n\`\`\`\n`;
-  }
-  if (ann.suggestedCode) {
-    output += `\n**Suggested code:**\n\`\`\`\n${ann.suggestedCode}\n\`\`\`\n`;
-  }
-  return output;
+  return `\n**Highlighted text:**\n\`\`\`\n${ann.selectedText}\n\`\`\`\n`;
 }
 
 function renderGeneralComments(annotations: CodeAnnotation[]): string {
   let output = '## General\n\n';
   for (const ann of annotations) {
-    const prefix = formatConventionalPrefix(ann.conventionalLabel, ann.decorations);
     if (ann.text) {
-      output += `${prefix}${ann.text}\n`;
-    } else if (prefix) {
-      output += `${prefix.trimEnd()}\n`;
+      output += `${ann.text}\n`;
     }
     if (ann.reasoning) {
       output += `\n**Reasoning:** ${ann.reasoning}\n`;

@@ -3531,7 +3531,6 @@ const AppInner: React.FC = () => {
       side: 'new',
       text: input.text,
       images: input.images,
-      originalCode: input.originalCode,
       createdAt: Date.now(),
       author: configStore.get('displayName') || undefined,
     };

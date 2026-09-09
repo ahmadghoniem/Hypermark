@@ -242,9 +242,8 @@ export const FileTree: React.FC<FileTreeProps> = ({
 
       // Don't interfere with input fields. composedPath()[0] pierces shadow DOM
       // (same guard as AllFilesCodeView): window-level e.target retargets to the
-      // shadow HOST, so keystrokes in the Pierre editor's contenteditable (edit
-      // sessions) would otherwise read as non-editable and Home/End/arrows would
-      // switch files mid-edit.
+      // shadow HOST, so keystrokes in a contenteditable would otherwise read as
+      // non-editable and Home/End/arrows would switch files mid-typing.
       const origin = (e.composedPath?.()[0] ?? e.target) as HTMLElement | null;
       if (origin && (origin.tagName === 'INPUT' || origin.tagName === 'TEXTAREA' || origin.isContentEditable)) {
         return;

@@ -27,13 +27,6 @@ import { isFaviconStyle, type FaviconStyle } from './favicon';
 import { isAnnotateAgentTerminalSide, type AnnotateAgentTerminalSide } from './agent-terminal';
 export type { DefaultDiffType, DiffLineBgIntensity, DiffOptions, ThemeConfig, FaviconStyle };
 
-/** Single conventional comment label entry stored in config.json */
-export interface CCLabelConfig {
-  label: string;
-  display: string;
-  blocking: boolean;
-}
-
 export type PromptSectionOverrides = Record<string, string | undefined>;
 
 export type PromptRuntime =
@@ -118,9 +111,6 @@ export interface HypermarkConfig {
    */
   theme?: ThemeConfig;
   prompts?: PromptConfig;
-  conventionalComments?: boolean;
-  /** null = explicitly cleared (use defaults), undefined = not set */
-  conventionalLabels?: CCLabelConfig[] | null;
   /**
    * Where the annotate-mode Agent TUI docks: "left" (the historic default),
    * "right", or "hidden" to keep it out of the layout until the user opens it
@@ -514,8 +504,6 @@ export function getServerConfig(gitUser: string | null): {
   favicon?: FaviconStyle;
   reviewAnalysis: NonNullable<HypermarkConfig["reviewAnalysis"]>;
   gitUser?: string;
-  conventionalComments?: boolean;
-  conventionalLabels?: CCLabelConfig[] | null;
   agentTerminalSide?: HypermarkConfig["agentTerminalSide"];
   agentTerminalDefaultAgent?: string;
 } {
@@ -533,8 +521,6 @@ export function getServerConfig(gitUser: string | null): {
       callFlow: cfg.reviewAnalysis?.callFlow === true,
     },
     gitUser: gitUser ?? undefined,
-    ...(cfg.conventionalComments !== undefined && { conventionalComments: cfg.conventionalComments }),
-    ...(cfg.conventionalLabels !== undefined && { conventionalLabels: cfg.conventionalLabels }),
     ...(isAgentTerminalSide(cfg.agentTerminalSide) && { agentTerminalSide: cfg.agentTerminalSide }),
     ...(typeof cfg.agentTerminalDefaultAgent === "string" &&
       cfg.agentTerminalDefaultAgent !== "" && {

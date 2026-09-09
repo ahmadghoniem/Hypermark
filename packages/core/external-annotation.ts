@@ -189,8 +189,6 @@ interface ReviewAnnotation {
   lineEnd: number;
   side: string;
   text?: string;
-  suggestedCode?: string;
-  originalCode?: string;
   createdAt: number;
   author?: string;
   source?: string;
@@ -318,10 +316,10 @@ export function transformReviewInput(
       };
     }
 
-    // Must have at least text or suggestedCode
-    if (typeof obj.text !== "string" && typeof obj.suggestedCode !== "string") {
+    // A comment with no body says nothing.
+    if (typeof obj.text !== "string") {
       return {
-        error: `annotations[${i}] must have at least one of: text, suggestedCode`,
+        error: `annotations[${i}] must have text`,
       };
     }
 
@@ -348,8 +346,6 @@ export function transformReviewInput(
       lineEnd,
       side,
       text: typeof obj.text === "string" ? obj.text : undefined,
-      suggestedCode: typeof obj.suggestedCode === "string" ? obj.suggestedCode : undefined,
-      originalCode: typeof obj.originalCode === "string" ? obj.originalCode : undefined,
       createdAt: Date.now(),
       author: typeof obj.author === "string" ? obj.author : undefined,
       source,

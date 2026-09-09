@@ -55,32 +55,6 @@ interface ReviewSidebarProps {
   prMetadata?: PRMetadata | null;
 }
 
-const SuggestionPreview: React.FC<{ code: string; originalCode?: string; language?: string }> = ({ code, originalCode, language }) => {
-  const diffStats = originalCode ? {
-    removed: originalCode.split('\n').length,
-    added: code.split('\n').length,
-  } : null;
-
-  return (
-    <div className="suggestion-block compact">
-      <div className="suggestion-block-header">
-        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
-        </svg>
-        Suggestion
-        {diffStats && (
-          <span className="ml-auto text-[9px] font-mono">
-            <span style={{ color: 'var(--success)' }}>+{diffStats.added}</span>
-            {' '}
-            <span style={{ color: 'var(--destructive)' }}>-{diffStats.removed}</span>
-          </span>
-        )}
-      </div>
-      <pre className="suggestion-block-code"><HighlightedCode code={code} language={language} /></pre>
-    </div>
-  );
-};
-
 /**
  * "+ General comment" — the human producer for a durable review-level comment
  * (the sole producer before this was Call Flow). The SAME button renders in
@@ -343,8 +317,6 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
               </span>
             )
           }
-          conventionalLabel={annotation.conventionalLabel}
-          decorations={annotation.decorations}
           reviewProfileLabel={annotation.reviewProfileLabel}
           source={annotation.source}
           author={annotation.author}
@@ -353,11 +325,6 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
         {annotation.text && (
           <div className="text-xs text-foreground/80 line-clamp-2 review-comment-markdown">
             {renderInlineMarkdown(annotation.text)}
-          </div>
-        )}
-        {annotation.suggestedCode && !isGeneralScope && (
-          <div className="mt-1.5">
-            <SuggestionPreview code={annotation.suggestedCode} originalCode={annotation.originalCode} language={detectLanguage(annotation.filePath)} />
           </div>
         )}
         <CommentActions

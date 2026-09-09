@@ -183,24 +183,6 @@ export type CallFlowAnnotationTarget = CallFlowAnnotationTargetBase & (
   | { rawLine?: undefined; filePath?: undefined; lineStart?: undefined; lineEnd?: undefined }
 );
 
-/** Conventional Comments label — see https://conventionalcomments.org */
-export type ConventionalLabel =
-  | 'praise'
-  | 'nitpick'
-  | 'suggestion'
-  | 'issue'
-  | 'todo'
-  | 'question'
-  | 'thought'
-  | 'chore'
-  | 'note'
-  | 'typo'
-  | 'polish'
-  | (string & {}); // Allow custom labels while preserving autocomplete for built-ins
-
-/** Conventional Comments decoration (parenthesized modifier) */
-export type ConventionalDecoration = 'blocking' | 'non-blocking' | 'if-minor';
-
 /**
  * A note attached to a whole PR comment/review/thread (code-review Phase 2).
  * Button-driven (not text-anchored): the reviewer clicks "Annotate" on a card
@@ -228,8 +210,6 @@ export interface CodeAnnotation {
   side: 'old' | 'new'; // Maps to 'deletions' | 'additions' in @pierre/diffs
   text?: string;
   images?: ImageAttachment[];
-  suggestedCode?: string;
-  originalCode?: string; // Original selected lines for suggestion diff
   charStart?: number; // Character offset within lineStart (token-level selection)
   charEnd?: number; // Character offset within lineEnd (token-level selection)
   tokenText?: string; // Selected token/span text (token-level selection)
@@ -238,10 +218,6 @@ export interface CodeAnnotation {
    *  comment so the agent sees what was highlighted even when it differs
    *  from the anchored diff lines. */
   selectedText?: string;
-  /** True when the edit-session selection overlapped in-session edits: the
-   *  line anchor maps to the pristine lines those edits replace, so it is
-   *  approximate and the export labels it as such. */
-  selectedTextFromEdits?: boolean;
   /**
    * Complete Call Flow selection for an annotation authored from that
    * surface. When any target maps to the patch, one target also supplies this
@@ -255,8 +231,6 @@ export interface CodeAnnotation {
   severity?: 'important' | 'nit' | 'pre_existing'; // Agent review severity (Claude)
   reasoning?: string; // Validation chain — how the issue was confirmed (Claude)
   reviewProfileLabel?: string; // Custom review that produced this finding — shown as a tag
-  conventionalLabel?: ConventionalLabel;
-  decorations?: ConventionalDecoration[];
   prUrl?: string;
   prNumber?: number;
   prTitle?: string;
@@ -298,13 +272,9 @@ export interface DiffAnnotationMetadata {
   annotationId: string;
   type: CodeAnnotationType;
   text?: string;
-  suggestedCode?: string;
-  originalCode?: string;
   author?: string;
   severity?: 'important' | 'nit' | 'pre_existing';
   reasoning?: string;
-  conventionalLabel?: ConventionalLabel;
-  decorations?: ConventionalDecoration[];
   // Shared comment-meta fields (so the inline diff card shows the same identity
   // row — author, time, badges — as the sidebar and file-banner cards).
   createdAt?: number;

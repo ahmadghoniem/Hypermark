@@ -1,13 +1,12 @@
 import React, { useMemo, useRef, useEffect, useLayoutEffect, useCallback, useState } from 'react';
 import { FileDiff, type DiffLineAnnotation } from '@pierre/diffs/react';
 import { getSingularPatch, processFile } from '@pierre/diffs';
-import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, DiffAnnotationMetadata, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration } from '@hypermark/ui/types';
+import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, DiffAnnotationMetadata, TokenAnnotationMeta, ImageAttachment } from '@hypermark/ui/types';
 import type { DiffTokenEventBaseProps } from '@pierre/diffs';
 import { usePierreTheme } from '../hooks/usePierreTheme';
 import { useWorkerPoolThemeSync } from '../workerPool';
 import { CommentPopover } from '@hypermark/ui/components/CommentPopover';
 import { storage } from '@hypermark/ui/utils/storage';
-import { detectLanguage } from '../utils/detectLanguage';
 import { buildCodeNavRequest } from '../utils/buildCodeNavRequest';
 import { ToolbarHost, type ToolbarHostHandle } from './ToolbarHost';
 import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';
@@ -187,9 +186,9 @@ interface DiffViewerProps {
   /** Compact coarse-pointer shell. Keeps range selection separate from writing. */
   compactTouchLayout?: boolean;
   onLineSelection: (range: SelectedLineRange | null) => void;
-  onAddAnnotation: (type: CodeAnnotationType, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel, decorations?: ConventionalDecoration[], tokenMeta?: TokenAnnotationMeta) => void;
+  onAddAnnotation: (type: CodeAnnotationType, text?: string, tokenMeta?: TokenAnnotationMeta, images?: ImageAttachment[]) => void;
   onAddFileComment: (text: string) => void;
-  onEditAnnotation: (id: string, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel | null, decorations?: ConventionalDecoration[]) => void;
+  onEditAnnotation: (id: string, text?: string, images?: ImageAttachment[]) => void;
   onSelectAnnotation: (id: string | null) => void;
   onDeleteAnnotation: (id: string) => void;
   isViewed?: boolean;
@@ -839,7 +838,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
           anchor={openAnchor}
           state={gutter.state}
           controller={gutter}
-          language={detectLanguage(filePath)}
           selectedAnnotationId={selectedAnnotationId}
           onSelect={onSelectAnnotation}
           onEdit={handleEdit}
@@ -849,7 +847,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 
       <ToolbarHost
         ref={toolbarHostRef}
-        patch={patch}
         filePath={filePath}
         isFocused={isFocused}
         onLineSelection={onLineSelection}

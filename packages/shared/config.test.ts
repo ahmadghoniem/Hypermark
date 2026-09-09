@@ -358,12 +358,12 @@ describe("saveConfig write serialization", () => {
   test("concurrent saves in one process all land", async () => {
     await Promise.all([
       (async () => saveConfig({ displayName: "a" }))(),
-      (async () => saveConfig({ conventionalComments: true }))(),
+      (async () => saveConfig({ glimpse: true }))(),
       (async () => saveConfig({ favicon: "classic" }))(),
     ]);
     const cfg = loadConfig();
     expect(cfg.displayName).toBe("a");
-    expect(cfg.conventionalComments).toBe(true);
+    expect(cfg.glimpse).toBe(true);
     expect(cfg.favicon).toBe("classic");
   });
 

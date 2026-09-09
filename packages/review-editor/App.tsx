@@ -35,12 +35,10 @@ import type { SemanticDiffAdvert } from '@hypermark/shared/semantic-diff-types';
 import type { CallFlowAdvert, CallFlowNode } from '@hypermark/shared/call-flow-types';
 import { configStore, useConfigValue, setReviewPanelView } from '@hypermark/ui/config';
 import { getAgentSwitchSettings, getEffectiveAgentName } from '@hypermark/ui/utils/agentSwitch';
-import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, Annotation, CommentAnnotation, type ArtifactAnnotationMeta, type CallFlowAnnotationTarget, type ImageAttachment } from '@hypermark/ui/types';
+import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, Annotation, CommentAnnotation, type ArtifactAnnotationMeta, type CallFlowAnnotationTarget, type ImageAttachment } from '@hypermark/ui/types';
 import { useResizablePanel } from '@hypermark/ui/hooks/useResizablePanel';
 import { useCodeAnnotationDraft } from '@hypermark/ui/hooks/useCodeAnnotationDraft';
 import { generateId } from './utils/generateId';
-import type { SuggestionHunk } from './edit/deriveSuggestions';
-import type { EditSelectionComment } from './edit/useEditSession';
 import { toast, Toaster } from 'sonner';
 import { useCodeNav, type CodeNavRequest } from './hooks/useCodeNav';
 import { useTokenHover } from './hooks/useTokenHover';
@@ -141,13 +139,6 @@ import { ReviewSetupDialog } from './components/ReviewSetupDialog';
 import { initializeReviewSetup, markReviewSetupSeen } from './utils/reviewSetup';
 import { resolvePanelView } from './utils/resolvePanelView';
 import { isCommitDiffType, resolveCommitExitDiff, type CommitViewRestoreTarget } from './utils/commitViewRestore';
-import { EditModeAnnouncementDialog } from './components/EditModeAnnouncementDialog';
-import {
-  editModeAnnouncementCanShow,
-  enableEditSuggestionsFromAnnouncement,
-  markEditModeAnnouncementSeen,
-  needsEditModeAnnouncement,
-} from './utils/editModeAnnouncement';
 import { TokenHoverAnnouncementDialog } from './components/TokenHoverAnnouncementDialog';
 import {
   markTokenHoverAnnouncementSeen,
@@ -420,8 +411,6 @@ const ReviewAppInner: React.FC = () => {
   const reviewShowViewedControls = useConfigValue('reviewShowViewedControls');
   const tokenHoverTrigger = useConfigValue('tokenHoverTrigger');
   const tokenHoverDelay = useConfigValue('tokenHoverDelay');
-  // EXPERIMENTAL: edit code in place to author suggestions (default OFF).
-  const editSuggestionsEnabled = useConfigValue('editSuggestions');
   const semanticDiffEnabled = useConfigValue('semanticDiffEnabled');
   const callFlowEnabled = useConfigValue('callFlowEnabled');
   const confirmedAnalysisSettings = useRef({ semanticDiff: semanticDiffEnabled, callFlow: callFlowEnabled });
@@ -908,28 +897,6 @@ const ReviewAppInner: React.FC = () => {
       toast.error('Failed to copy');
     }
   }, []);
-  // One-time Edit Mode (edit-to-suggest) announcement. LAST in the dialog
-  // chain (guide intro → look-and-feel → review setup → edit mode) — the
-  // chain dialogs never stack. Skipped forever when the user already enabled
-  // the setting from Settings (latched at mount so enabling from the dialog
-  // itself doesn't unmount it mid-click).
-  const [editModeIntroPending, setEditModeIntroPending] = useState(
-    () => needsEditModeAnnouncement() && !configStore.get('editSuggestions'),
-  );
-  const editModeIntroVisible = editModeAnnouncementCanShow({
-    announcementPending: editModeIntroPending,
-    isLoading,
-    lookAndFeelVisible: false,
-    reviewSetupVisible: showReviewSetup,
-  });
-  const dismissEditModeIntro = useCallback(() => {
-    markEditModeAnnouncementSeen();
-    setEditModeIntroPending(false);
-  }, []);
-  const enableEditModeIntro = useCallback(() => {
-    enableEditSuggestionsFromAnnouncement();
-    setEditModeIntroPending(false);
-  }, []);
   // One-time token hover card announcement. LAST in the dialog chain (guide
   // intro → look-and-feel → review setup → edit mode → token hover) — the
   // chain dialogs never stack. Latched at mount so choosing a trigger inside
@@ -1166,7 +1133,7 @@ const ReviewAppInner: React.FC = () => {
     featureAvailable: tokenHoverAvailable === true,
     lookAndFeelVisible: false,
     reviewSetupVisible: showReviewSetup,
-    editModeVisible: editModeIntroVisible,
+    editModeVisible: false,
   });
   const hoveredTokenSymbol = tokenHover.hover?.request.symbol;
   const startTokenHover = tokenHover.onTokenHoverEnter;
@@ -1692,10 +1659,6 @@ const ReviewAppInner: React.FC = () => {
     filePath: string,
     type: CodeAnnotationType,
     text?: string,
-    suggestedCode?: string,
-    originalCode?: string,
-    conventionalLabel?: ConventionalLabel,
-    decorations?: ConventionalDecoration[],
     tokenMeta?: TokenAnnotationMeta,
     images?: ImageAttachment[]
   ) => {
@@ -1711,8 +1674,6 @@ const ReviewAppInner: React.FC = () => {
       lineEnd,
       side: pendingSelection.side === 'additions' ? 'new' : 'old',
       text,
-      suggestedCode,
-      originalCode,
       ...(tokenMeta && {
         charStart: tokenMeta.charStart,
         charEnd: tokenMeta.charEnd,
@@ -1720,8 +1681,6 @@ const ReviewAppInner: React.FC = () => {
       }),
       createdAt: Date.now(),
       author: identity,
-      conventionalLabel,
-      decorations,
       images,
     };
     addCodeAnnotationsWithHistory([withPRContext(newAnnotation)]);
@@ -1758,74 +1717,14 @@ const ReviewAppInner: React.FC = () => {
     return true;
   }, [files, identity, withPRContext, addCodeAnnotationsWithHistory]);
 
-  // Sink for the experimental edit-to-suggestion flow: a completed edit
-  // session delivers one hunk per contiguous changed region, each becoming a
-  // normal suggestion annotation (same shape SuggestionModal produces —
-  // type 'comment' carrying suggestedCode/originalCode) so it flows through
-  // rendering, sidebar, and feedback export unchanged. The browser never
-  // writes files; the agent applies these suggestions.
-  const handleAddSuggestionsForFile = useCallback((filePath: string, hunks: SuggestionHunk[]) => {
-    if (hunks.length === 0) return;
-    const now = Date.now();
-    addCodeAnnotationsWithHistory(
-      hunks.map((hunk) => withPRContext({
-        id: generateId(),
-        type: 'comment' as CodeAnnotationType,
-        scope: 'line' as const,
-        filePath,
-        lineStart: hunk.lineStart,
-        lineEnd: hunk.lineEnd,
-        side: 'new' as const,
-        // A fully-emptied file derives an empty suggestion; the export
-        // template skips falsy suggestedCode, so describe it in text instead.
-        text: hunk.suggestedCode === '' ? 'Suggested change: remove these lines.' : undefined,
-        suggestedCode: hunk.suggestedCode === '' ? undefined : hunk.suggestedCode,
-        originalCode: hunk.originalCode === '' ? undefined : hunk.originalCode,
-        createdAt: now,
-        author: identity,
-      })),
-    );
-  }, [identity, withPRContext, addCodeAnnotationsWithHistory]);
-
-  // Sink for the edit session's "Make annotation" selection action: a plain
-  // line-scoped comment whose anchor was mapped from the edited buffer to
-  // PRISTINE new-side coordinates at selection time (edit/selectionAnchor.ts),
-  // so it renders and exports correctly whether the session later completes
-  // or is discarded. `selectedText` preserves what was actually highlighted;
-  // `selectedTextFromEdits` flags an approximate anchor (selection overlapped
-  // in-session edits) so the export can label it honestly.
-  const handleAddEditorCommentForFile = useCallback((filePath: string, comment: EditSelectionComment) => {
-    const trimmed = comment.text.trim();
-    if (!trimmed) return;
-    const newAnnotation: CodeAnnotation = {
-      id: generateId(),
-      type: 'comment',
-      scope: 'line',
-      filePath,
-      lineStart: comment.lineStart,
-      lineEnd: comment.lineEnd,
-      side: 'new',
-      text: trimmed,
-      selectedText: comment.selectedText || undefined,
-      ...(comment.exact ? {} : { selectedTextFromEdits: true }),
-      createdAt: Date.now(),
-      author: identity,
-    };
-    addCodeAnnotationsWithHistory([withPRContext(newAnnotation)]);
-  }, [identity, withPRContext, addCodeAnnotationsWithHistory]);
-
   const handleAddAnnotation = useCallback((
     type: CodeAnnotationType,
     text?: string,
-    suggestedCode?: string,
-    originalCode?: string,
-    conventionalLabel?: ConventionalLabel,
-    decorations?: ConventionalDecoration[],
     tokenMeta?: TokenAnnotationMeta,
     images?: ImageAttachment[]
   ) => {
     if (!files[activeFileIndex]) return;
-    handleAddAnnotationForFile(files[activeFileIndex].path, type, text, suggestedCode, originalCode, conventionalLabel, decorations, tokenMeta, images);
+    handleAddAnnotationForFile(files[activeFileIndex].path, type, text, tokenMeta, images);
   }, [files, activeFileIndex, handleAddAnnotationForFile]);
 
   const handleAddFileComment = useCallback((text: string) => {
@@ -1873,21 +1772,12 @@ const ReviewAppInner: React.FC = () => {
   const handleEditAnnotation = useCallback((
     id: string,
     text?: string,
-    suggestedCode?: string,
-    originalCode?: string,
-    conventionalLabel?: ConventionalLabel | null,
-    decorations?: ConventionalDecoration[],
     images?: ImageAttachment[],
   ) => {
     const ann = allAnnotationsRef.current.find(a => a.id === id);
     if (ann?.source) reviewHistory.clear();
     const updates: Partial<CodeAnnotation> = {
       ...(text !== undefined && { text }),
-      ...(suggestedCode !== undefined && { suggestedCode }),
-      ...(originalCode !== undefined && { originalCode }),
-      // null clears the label; undefined means "not provided, keep existing"
-      ...(conventionalLabel !== undefined && { conventionalLabel: conventionalLabel ?? undefined }),
-      ...(decorations !== undefined && { decorations }),
       // The composer always sends its concrete image list (never omits it), so
       // an edit that removed every image clears the saved list instead of
       // leaving stale references behind (spec 05 §4.1.5).
@@ -1948,14 +1838,6 @@ const ReviewAppInner: React.FC = () => {
   }, [deleteExternalAnnotation, externalAnnotations, reviewHistory]);
 
   // Handle identity change - update author on existing annotations
-  const handleIdentityChange = useCallback((oldIdentity: string, newIdentity: string) => {
-    reviewHistory.clear();
-    annotationsRef.current = annotationsRef.current.map(ann =>
-      ann.author === oldIdentity ? { ...ann, author: newIdentity } : ann
-    );
-    setAnnotations(annotationsRef.current);
-  }, [reviewHistory]);
-
   // Switch file in the dedicated center diff panel.
   const handleFilePreview = useCallback((index: number) => {
     const file = files[index];
@@ -2044,7 +1926,7 @@ const ReviewAppInner: React.FC = () => {
     // (not lost) behind a first-run dialog — the file still marks and the
     // next auto-view retries the toast.
     if (!needsAutoViewedNotice()) return;
-    if (showReviewSetup || editModeIntroVisible || tokenHoverIntroVisible) return;
+    if (showReviewSetup || tokenHoverIntroVisible) return;
     markAutoViewedNoticeSeen();
     toast('Files are marked viewed as you scroll', {
       description: "Scroll past a file or move on to the next and it's checked off. Turn this off in Settings → Git, or from the gear above the file list.",
@@ -2064,7 +1946,7 @@ const ReviewAppInner: React.FC = () => {
         },
       },
     });
-  }, [showReviewSetup, editModeIntroVisible, tokenHoverIntroVisible]);
+  }, [showReviewSetup, tokenHoverIntroVisible]);
   const { handleReadingFileChange: handleAutoViewReadingFile, handleFileScrolledPast } = useAutoViewed({
     enabled: autoViewedEnabled,
     // Rule 4 — only the review target. A commit diff is a documented
@@ -2964,9 +2846,6 @@ const ReviewAppInner: React.FC = () => {
     onAddCallFlowAnnotation: handleAddCallFlowAnnotation,
     onAddAnnotation: handleAddAnnotation,
     onAddAnnotationForFile: handleAddAnnotationForFile,
-    editSuggestionsEnabled,
-    onAddSuggestionsForFile: handleAddSuggestionsForFile,
-    onAddEditorCommentForFile: handleAddEditorCommentForFile,
     onAddFileComment: handleAddFileComment,
     onAddFileCommentForFile: handleAddFileCommentForFile,
     onEditAnnotation: handleEditAnnotation,
@@ -3059,7 +2938,6 @@ const ReviewAppInner: React.FC = () => {
     isAllFilesActive, allFilesOrder, allFilesAllCollapsed, onToggleAllFilesCollapsed, registerAllFilesCollapseToggle, commitInfo, isSemanticDiffActive, semanticDiffUsable,
     handleSemanticDiffUnavailable, handleSemanticDiffLoadError, handleSemanticDiffLoadSuccess, handleAddAnnotationForFile,
     callFlowAvailable, callFlowAdvert, callFlowAnalysis, retryCallFlowAnalysis, isCallFlowNodeInPatch, isCallFlowActive, openCallFlowPanel, callFlowInstall,
-    editSuggestionsEnabled, handleAddSuggestionsForFile, handleAddEditorCommentForFile,
     handleCodeNavRequest, codeNav.result, codeNav.isLoading, codeNav.activeSymbol,
     tokenHoverEnabled, handleTokenHoverEnter, tokenHover.onTokenHoverLeave,
   ]);
@@ -3601,7 +3479,7 @@ const ReviewAppInner: React.FC = () => {
     if (event.defaultPrevented || isNativeHistoryOwner(event)) return false;
     if (submitted || isSendingFeedback || isApproving || isExiting || isPlatformActioning || isLoadingDiff) return false;
     if (openSettingsMenu || showDestinationMenu || platformCommentDialog || showExportModal || showWorktreeDialog || showNoAnnotationsDialog || showExitWarning) return false;
-    if (showReviewSetup || editModeIntroVisible || tokenHoverIntroVisible) return false;
+    if (showReviewSetup || tokenHoverIntroVisible) return false;
     return !hasActiveHistoryOverlay(document);
   }, [
     isApproving,
@@ -3609,7 +3487,6 @@ const ReviewAppInner: React.FC = () => {
     isLoadingDiff,
     isPlatformActioning,
     isSendingFeedback,
-    editModeIntroVisible,
     tokenHoverIntroVisible,
     openSettingsMenu,
     platformCommentDialog,
@@ -4691,10 +4568,8 @@ const ReviewAppInner: React.FC = () => {
           <Settings
             taterMode={false}
             onTaterModeChange={() => {}}
-            onIdentityChange={handleIdentityChange}
             origin={origin}
             mode="review"
-            gitUser={gitUser}
             externalOpen={openSettingsMenu}
             onExternalClose={() => setOpenSettingsMenu(false)}
             // Local git session where since-base isn't offered (base ref
@@ -4823,18 +4698,6 @@ const ReviewAppInner: React.FC = () => {
           />
         )}
 
-        {/* One-time Edit Mode (edit-to-suggest) announcement. LAST in the
-            dialog chain (look-and-feel → review setup
-            → edit mode) — editModeAnnouncementCanShow gates on every earlier dialog, so the
-            chain dialogs never stack. */}
-        {editModeIntroVisible && (
-          <EditModeAnnouncementDialog
-            isOpen
-            onEnable={enableEditModeIntro}
-            onDismiss={dismissEditModeIntro}
-          />
-        )}
-
         {/* One-time token hover card announcement. LAST in the dialog chain
             (look-and-feel → review setup → edit mode → token
             hover) — tokenHoverAnnouncementCanShow gates on every earlier
@@ -4844,11 +4707,11 @@ const ReviewAppInner: React.FC = () => {
         )}
 
         {/* One-time PR feedback-destination spotlight. Strictly AFTER the
-            first-run dialog chain (review setup → edit mode → token hover):
-            it only mounts once none of the three is showing, so it never
+            first-run dialog chain (review setup → token hover):
+            it only mounts once neither is showing, so it never
             stacks with them. PR mode only — the switcher it points at
             doesn't render otherwise. */}
-        {showDestSpotlight && !isCompactTouchLayout && !!prMetadata && !isLoading && !showReviewSetup && !editModeIntroVisible && !tokenHoverIntroVisible && (
+        {showDestSpotlight && !isCompactTouchLayout && !!prMetadata && !isLoading && !showReviewSetup && !tokenHoverIntroVisible && (
           <DestinationSpotlight
             targetRef={destToggleRef}
             platformLabel={platformLabel}

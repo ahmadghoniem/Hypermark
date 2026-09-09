@@ -1,13 +1,11 @@
 import React, { createContext, useContext } from 'react';
-import type { CallFlowAnnotationTarget, CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ConventionalLabel, ConventionalDecoration, Annotation, CommentAnnotation, ArtifactAnnotationMeta, ImageAttachment } from '@hypermark/ui/types';
+import type { CallFlowAnnotationTarget, CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, Annotation, CommentAnnotation, ArtifactAnnotationMeta, ImageAttachment } from '@hypermark/ui/types';
 import type { DiffFile, AnnotationScrollTarget } from '../types';
 import type { ReviewSearchMatch } from '../utils/reviewSearch';
 import type { PRMetadata, PRContext } from '@hypermark/shared/pr-types';
 import type { PRArtifact } from '../utils/prArtifacts';
 import type { PRDiffScope } from '@hypermark/shared/pr-stack';
 import type { FeedbackDiffContext } from '../utils/exportFeedback';
-import type { SuggestionHunk } from '../edit/deriveSuggestions';
-import type { EditSelectionComment } from '../edit/useEditSession';
 import type { CallFlowAnalysisState } from '../hooks/useCallFlowAnalysis';
 import type { CallFlowInstallController } from '../hooks/useCallFlowInstall';
 import type { CallFlowAdvert, CallFlowNode } from '@hypermark/shared/call-flow-types';
@@ -79,19 +77,11 @@ export interface ReviewState {
     targets: readonly CallFlowAnnotationTarget[],
     text: string,
   ) => boolean;
-  onAddAnnotation: (type: CodeAnnotationType, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel, decorations?: ConventionalDecoration[], tokenMeta?: TokenAnnotationMeta, images?: ImageAttachment[]) => void;
-  onAddAnnotationForFile: (filePath: string, type: CodeAnnotationType, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel, decorations?: ConventionalDecoration[], tokenMeta?: TokenAnnotationMeta, images?: ImageAttachment[]) => void;
-  /** EXPERIMENTAL edit-to-suggestion flag (cookie setting, default OFF). */
-  editSuggestionsEnabled: boolean;
-  /** Sink for suggestions derived from a completed edit session (one hunk per
-   * contiguous changed region; becomes normal suggestion annotations). */
-  onAddSuggestionsForFile: (filePath: string, hunks: SuggestionHunk[]) => void;
-  /** Sink for a comment authored through the edit session's Selection Action
-   * ("Make annotation"): line-scoped comment on pristine new-side lines. */
-  onAddEditorCommentForFile: (filePath: string, comment: EditSelectionComment) => void;
+  onAddAnnotation: (type: CodeAnnotationType, text?: string, tokenMeta?: TokenAnnotationMeta, images?: ImageAttachment[]) => void;
+  onAddAnnotationForFile: (filePath: string, type: CodeAnnotationType, text?: string, tokenMeta?: TokenAnnotationMeta, images?: ImageAttachment[]) => void;
   onAddFileComment: (text: string) => void;
   onAddFileCommentForFile: (filePath: string, text: string) => void;
-  onEditAnnotation: (id: string, text?: string, suggestedCode?: string, originalCode?: string, conventionalLabel?: ConventionalLabel | null, decorations?: ConventionalDecoration[], images?: ImageAttachment[]) => void;
+  onEditAnnotation: (id: string, text?: string, images?: ImageAttachment[]) => void;
   /** Highlight a comment without moving the viewport (in-diff click). */
   onSelectAnnotation: (id: string | null) => void;
   /** Select AND scroll the diff to a comment (sidebar / findings-list click). */

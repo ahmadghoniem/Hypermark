@@ -1,10 +1,8 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ToolbarState } from '../hooks/useAnnotationToolbar';
-import { useTabIndent } from '../hooks/useTabIndent';
 import { formatLineRange, formatTokenContext } from '../utils/formatLineRange';
-import { ConventionalLabelPicker, type LabelDef } from './ConventionalLabelPicker';
-import type { ConventionalLabel, ConventionalDecoration, ImageAttachment } from '@hypermark/ui/types';
+import type { ImageAttachment } from '@hypermark/ui/types';
 import { useDraggable } from '@hypermark/ui/hooks/useDraggable';
 import {
   hasPrimaryCoarsePointer,
@@ -19,24 +17,11 @@ interface AnnotationToolbarProps {
   toolbarRef: React.RefObject<HTMLDivElement | null>;
   commentText: string;
   setCommentText: (text: string) => void;
-  suggestedCode: string;
-  setSuggestedCode: React.Dispatch<React.SetStateAction<string>>;
-  showSuggestedCode: boolean;
-  setShowSuggestedCode: (show: boolean) => void;
-  selectedOriginalCode?: string;
   isEditing?: boolean;
-  setShowCodeModal: (show: boolean) => void;
   setShowCommentModal: (show: boolean) => void;
   onSubmit: () => void;
   onDismiss: () => void;
   onCancel: () => void;
-  // Conventional Comments
-  conventionalCommentsEnabled: boolean;
-  conventionalLabel: ConventionalLabel | null;
-  onConventionalLabelChange: (label: ConventionalLabel | null) => void;
-  decorations: ConventionalDecoration[];
-  onDecorationsChange: (decorations: ConventionalDecoration[]) => void;
-  enabledLabels?: LabelDef[];
   // Spec 05 §3.2: comment-owned image attachments, owned by ToolbarHost so
   // in-flight uploads survive the collapse/expand switch to ExpandedCommentDialog.
   images: ImageAttachment[];
@@ -57,23 +42,11 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
   toolbarRef,
   commentText,
   setCommentText,
-  suggestedCode,
-  setSuggestedCode,
-  showSuggestedCode,
-  setShowSuggestedCode,
-  selectedOriginalCode,
   isEditing = false,
-  setShowCodeModal,
   setShowCommentModal,
   onSubmit,
   onDismiss,
   onCancel,
-  conventionalCommentsEnabled,
-  conventionalLabel,
-  onConventionalLabelChange,
-  decorations,
-  onDecorationsChange,
-  enabledLabels,
   images,
   pendingAttachments,
   onAddImage,
@@ -86,8 +59,6 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
   const visibleBounds = useVisibleViewportBounds(coarsePointer ? 16 : 0);
   const toolbarWidth = Math.min(TOOLBAR_MAX_WIDTH, visibleBounds.width);
   const horizontalInset = toolbarWidth / 2;
-  const suggestedCodeRef = useRef<HTMLTextAreaElement>(null);
-  const handleTabIndent = useTabIndent(setSuggestedCode);
   const { dragPosition, dragHandleProps, wasDragged, reset: resetDrag } = useDraggable(toolbarRef);
 
   // Paste anywhere in this open composer attaches to this comment (spec 05 §3.2.5).
@@ -199,16 +170,6 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
             </div>
           </div>
 
-          {conventionalCommentsEnabled && (
-            <ConventionalLabelPicker
-              selected={conventionalLabel}
-              decorations={decorations}
-              onSelect={onConventionalLabelChange}
-              onDecorationsChange={onDecorationsChange}
-              enabledLabels={enabledLabels}
-            />
-          )}
-
           <div onDragOver={handleComposerDragOver} onDrop={handleComposerDrop}>
             <textarea
               data-pn-mobile-editable="true"
@@ -241,66 +202,6 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
             className="mt-2"
           />
 
-          {/* Optional suggested code section */}
-          {showSuggestedCode ? (
-            <div className="mt-2">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] text-muted-foreground">Suggested code</span>
-                <button
-                  onClick={() => setShowCodeModal(true)}
-                  className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                  title="Expand editor"
-                >
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
-                  </svg>
-                </button>
-              </div>
-              <textarea
-                ref={suggestedCodeRef}
-                value={suggestedCode}
-                onChange={(e) => setSuggestedCode(e.target.value)}
-                placeholder="Enter code suggestion..."
-                className="suggested-code-input"
-                rows={4}
-                autoFocus={!coarsePointer}
-                spellCheck={false}
-                onKeyDown={(e) => {
-                  if (e.key === 'Tab') {
-                    handleTabIndent(e);
-                  } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
-                    onSubmit();
-                  }
-                }}
-              />
-            </div>
-          ) : (
-            <button
-              onClick={() => {
-                setShowSuggestedCode(true);
-
-                const prefill = !suggestedCode && selectedOriginalCode;
-                if (prefill) {
-                  setSuggestedCode(selectedOriginalCode);
-
-                  // Focus at the end of the textarea
-                  requestAnimationFrame(() => {
-                    const ta = suggestedCodeRef.current;
-                    if (ta) {
-                      ta.setSelectionRange(ta.value.length, ta.value.length);
-                    }
-                  });
-                }
-              }}
-              className="mt-2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-            >
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              Add suggested code
-            </button>
-          )}
-
           <div className="flex items-center gap-2 mt-3">
             <AttachmentsButton
               images={images}
@@ -311,7 +212,7 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
             {/* Add Comment button — right side */}
             <button
               onClick={onSubmit}
-              disabled={!commentText.trim() && !suggestedCode.trim() && images.length === 0}
+              disabled={!commentText.trim() && images.length === 0}
               className="review-toolbar-btn primary disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
             >
               {isEditing ? 'Update' : 'Add Comment'}

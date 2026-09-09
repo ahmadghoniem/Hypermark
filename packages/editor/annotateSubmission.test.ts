@@ -104,7 +104,6 @@ describe("annotate approval submission", () => {
       lineEnd: 8,
       side: "new",
       text: "Cap this loop.",
-      originalCode: "while (true)",
       createdAt: 1,
     };
     const editorAnnotation: EditorAnnotation = {

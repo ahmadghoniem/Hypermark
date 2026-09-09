@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { SEVERITY_STYLES, type DiffAnnotationMetadata } from '@hypermark/ui/types';
-import { ConventionalLabelBadge } from './ConventionalLabelPicker';
-import { SuggestionBlock } from './SuggestionBlock';
 import { renderInlineMarkdown } from '../utils/renderInlineMarkdown';
 
 /**
@@ -26,8 +24,6 @@ import { renderInlineMarkdown } from '../utils/renderInlineMarkdown';
 export interface GutterAnchor {
   /** Stable per-anchor key: file path, side, and line. */
   key: string;
-  /** Owning file, so a host can resolve the language for suggestions. */
-  filePath?: string;
   side: string;
   lineNumber: number;
   annotations: DiffAnnotationMetadata[];
@@ -250,7 +246,6 @@ interface GutterAnnotationPopupProps {
   anchor: GutterAnchor;
   state: GutterPopupState;
   controller: GutterAnnotationsController;
-  language?: string;
   selectedAnnotationId?: string | null;
   onSelect: (id: string) => void;
   onEdit: (id: string) => void;
@@ -267,7 +262,6 @@ export const GutterAnnotationPopup: React.FC<GutterAnnotationPopupProps> = ({
   anchor,
   state,
   controller,
-  language,
   selectedAnnotationId,
   onSelect,
   onEdit,
@@ -346,7 +340,6 @@ export const GutterAnnotationPopup: React.FC<GutterAnnotationPopupProps> = ({
         <GutterAnnotationEntry
           key={metadata.annotationId}
           metadata={metadata}
-          language={language}
           isSelected={metadata.annotationId === selectedAnnotationId}
           interactive={pinned}
           onSelect={onSelect}
@@ -361,7 +354,6 @@ export const GutterAnnotationPopup: React.FC<GutterAnnotationPopupProps> = ({
 
 interface GutterAnnotationEntryProps {
   metadata: DiffAnnotationMetadata;
-  language?: string;
   isSelected: boolean;
   /** Hover previews are read-only; actions appear once the popup is pinned. */
   interactive: boolean;
@@ -372,7 +364,6 @@ interface GutterAnnotationEntryProps {
 
 const GutterAnnotationEntry: React.FC<GutterAnnotationEntryProps> = ({
   metadata,
-  language,
   isSelected,
   interactive,
   onSelect,
@@ -388,20 +379,12 @@ const GutterAnnotationEntry: React.FC<GutterAnnotationEntryProps> = ({
       className={`review-comment${isSelected ? ' is-selected' : ''}`}
       onClick={() => interactive && onSelect(metadata.annotationId)}
     >
-      {(severity || metadata.conventionalLabel) && (
+      {severity && (
         <div className="flex items-center gap-1.5">
-          {severity && (
-            <span
-              className={`w-2 h-2 rounded-full flex-shrink-0 ${severity.dot}`}
-              title={severity.label}
-            />
-          )}
-          {metadata.conventionalLabel && (
-            <ConventionalLabelBadge
-              label={metadata.conventionalLabel}
-              decorations={metadata.decorations}
-            />
-          )}
+          <span
+            className={`w-2 h-2 rounded-full flex-shrink-0 ${severity.dot}`}
+            title={severity.label}
+          />
         </div>
       )}
       {metadata.text && (
@@ -410,15 +393,6 @@ const GutterAnnotationEntry: React.FC<GutterAnnotationEntryProps> = ({
       {metadata.reasoning && (
         <div className="review-comment-reasoning text-[11px] text-muted-foreground/60 leading-relaxed mt-1.5">
           {metadata.reasoning}
-        </div>
-      )}
-      {metadata.suggestedCode && (
-        <div className="mt-2">
-          <SuggestionBlock
-            code={metadata.suggestedCode}
-            originalCode={metadata.originalCode}
-            language={language}
-          />
         </div>
       )}
       {interactive && (
@@ -467,7 +441,6 @@ export function groupAnchors(
     else {
       anchors.set(key, {
         key,
-        filePath,
         side: entry.side,
         lineNumber: entry.lineNumber,
         annotations: [entry.metadata],

@@ -1,14 +1,10 @@
 import React from 'react';
-import type { ConventionalLabel, ConventionalDecoration } from '@hypermark/ui/types';
-import { ConventionalLabelBadge } from './ConventionalLabelPicker';
 import { formatRelativeTime } from '../utils/formatRelativeTime';
 
 interface CommentMetaProps {
   /** Surface-specific leading element(s): severity dot, scope/file/line badge,
    *  collapse toggle, etc. Rendered first in the left cluster. */
   leading?: React.ReactNode;
-  conventionalLabel?: ConventionalLabel | null;
-  decorations?: ConventionalDecoration[];
   reviewProfileLabel?: string;
   source?: string;
   author?: string;
@@ -18,7 +14,7 @@ interface CommentMetaProps {
 /**
  * The single identity row shared by every comment surface — the inline diff
  * card, the sidebar list, and the file-comment banner. Left cluster: leading
- * badge(s) → conventional label → review-profile/source badge → author. Right:
+ * badge(s) → review-profile/source badge → author. Right:
  * relative time, then any surface-specific actions. Centralizing it keeps author
  * + timestamp + badge styling identical everywhere (they used to be hand-rolled
  * three different ways).
@@ -29,8 +25,6 @@ interface CommentMetaProps {
  */
 export const CommentMeta: React.FC<CommentMetaProps> = ({
   leading,
-  conventionalLabel,
-  decorations,
   reviewProfileLabel,
   source,
   author,
@@ -39,9 +33,6 @@ export const CommentMeta: React.FC<CommentMetaProps> = ({
   <div className="review-comment-header">
     <div className="flex min-w-0 items-center gap-1.5">
       {leading}
-      {conventionalLabel && (
-        <ConventionalLabelBadge label={conventionalLabel} decorations={decorations} />
-      )}
       {reviewProfileLabel ? (
         <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent/10 text-accent/90 truncate max-w-[140px]">
           {reviewProfileLabel}

@@ -9,7 +9,6 @@ import {
   reviewAnnotationToolbarShortcuts,
   reviewFileTreeShortcuts,
   reviewPrCommentsShortcuts,
-  reviewSuggestionModalShortcuts,
   type ShortcutSurface,
 } from '@hypermark/ui/shortcuts';
 
@@ -94,7 +93,6 @@ export const reviewSettingsShortcutRegistry = createShortcutRegistry([
   reviewFileTreeShortcuts,
   reviewAllFilesDiffShortcuts,
   reviewAnnotationToolbarShortcuts,
-  reviewSuggestionModalShortcuts,
   reviewPrCommentsShortcuts,
 ] as const);
 

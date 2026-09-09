@@ -1482,9 +1482,6 @@ export const exportCodeFileAnnotations = (annotations: CodeAnnotation[]): string
       : `lines ${ann.lineStart}-${ann.lineEnd}`;
 
     output += `## ${index + 1}. ${ann.filePath} (${lineRange})\n`;
-    if (ann.originalCode) {
-      output += `\`\`\`\n${ann.originalCode}\n\`\`\`\n`;
-    }
     if (ann.text) {
       output += `> ${ann.text}\n`;
     }

@@ -1,10 +1,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import type {
   CodeAnnotationType,
-  ConventionalDecoration,
-  ConventionalLabel,
   ImageAttachment,
-  SelectedLineRange,
   TokenAnnotationMeta,
 } from '@hypermark/ui/types';
 import type { DiffFile } from '../types';
@@ -43,30 +40,15 @@ export function ExternalLineAnnotationComposer({
   const addAnnotation = useCallback((
     type: CodeAnnotationType,
     text?: string,
-    suggestedCode?: string,
-    originalCode?: string,
-    conventionalLabel?: ConventionalLabel,
-    decorations?: ConventionalDecoration[],
     tokenMeta?: TokenAnnotationMeta,
     images?: ImageAttachment[],
   ) => {
-    onAddAnnotationForFile(
-      file.path,
-      type,
-      text,
-      suggestedCode,
-      originalCode,
-      conventionalLabel,
-      decorations,
-      tokenMeta,
-      images,
-    );
+    onAddAnnotationForFile(file.path, type, text, tokenMeta, images);
   }, [file.path, onAddAnnotationForFile]);
 
   return (
     <ToolbarHost
       ref={toolbarRef}
-      patch={file.patch}
       filePath={file.path}
       isFocused
       onLineSelection={onLineSelection}

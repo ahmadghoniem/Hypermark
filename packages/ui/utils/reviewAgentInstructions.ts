@@ -80,8 +80,7 @@ curl -s ${origin}/api/external-annotations \\
     "filePath": "src/server/auth.ts",
     "lineStart": 42,
     "lineEnd": 44,
-    "text": "Guard against a missing token.",
-    "suggestedCode": "const token = req.headers.authorization;\\nif (!token) return res.status(401).end();"
+    "text": "Guard against a missing token."
   }'
 \`\`\`
 
@@ -123,8 +122,7 @@ All endpoints return \`201 {"ids": ["<uuid>"]}\` on success, \`400 {"error": "..
 | \`lineEnd\` | for \`line\` | File line number where the comment ends. Use the same value as \`lineStart\` for a single line. |
 | \`side\` | no | \`"new"\` (default) for added/context lines, \`"old"\` for deleted lines. |
 | \`type\` | no | \`"comment"\` (default), \`"suggestion"\`, or \`"concern"\`. |
-| \`text\` | yes* | The comment body the user will read. |
-| \`suggestedCode\` | no | Proposed replacement code, rendered as a suggestion block. *Either \`text\` or \`suggestedCode\` is required. |
+| \`text\` | yes | The comment body the user will read. |
 | \`author\` | no | Human-readable label shown next to the comment (e.g. \`"Claude Opus"\`). |
 
 A \`scope: "line"\` annotation must carry \`lineStart\` and \`lineEnd\` — a line comment missing its line numbers is rejected, not silently downgraded. If a line isn't present in the current diff view, the comment still appears in the sidebar but won't pin inline.

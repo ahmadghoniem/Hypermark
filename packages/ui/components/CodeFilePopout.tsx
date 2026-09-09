@@ -14,7 +14,6 @@ export interface CodeFileAnnotationInput {
   lineEnd: number;
   text: string;
   images?: ImageAttachment[];
-  originalCode: string;
 }
 
 interface CodeFilePopoutProps {
@@ -37,7 +36,6 @@ interface CodeFilePopoutProps {
 interface PendingComment {
   range: { start: number; end: number };
   contextText: string;
-  originalCode: string;
   anchorEl?: HTMLElement;
   anchorRect?: DOMRect;
 }
@@ -377,7 +375,6 @@ export const CodeFilePopout: React.FC<CodeFilePopoutProps> = ({
       anchorEl,
       anchorRect: anchorRect ?? anchorEl?.getBoundingClientRect() ?? lastPointerRectRef.current ?? undefined,
       contextText: `${relativePath} ${lineLabel(start, end)}`,
-      originalCode: getLineSlice(contents, start, end),
     });
   }, [contents, relativePath]);
 
@@ -591,7 +588,6 @@ export const CodeFilePopout: React.FC<CodeFilePopoutProps> = ({
               lineEnd: pendingComment.range.end,
               text,
               images,
-              originalCode: pendingComment.originalCode,
             });
             setPendingComment(null);
           }}

@@ -1,13 +1,11 @@
 import React from 'react';
 import { SEVERITY_STYLES, DiffAnnotationMetadata } from '@hypermark/ui/types';
-import { SuggestionBlock } from './SuggestionBlock';
 import { CommentMeta } from './CommentMeta';
 import { CommentActions } from './CommentActions';
 import { renderInlineMarkdown } from '../utils/renderInlineMarkdown';
 
 interface InlineAnnotationProps {
   metadata: DiffAnnotationMetadata;
-  language?: string;
   isSelected?: boolean;
   onSelect: (id: string) => void;
   onEdit: (id: string) => void;
@@ -17,7 +15,6 @@ interface InlineAnnotationProps {
 /** Renders a single annotation comment inside the diff view */
 export const InlineAnnotation: React.FC<InlineAnnotationProps> = ({
   metadata,
-  language,
   isSelected = false,
   onSelect,
   onEdit,
@@ -37,8 +34,6 @@ export const InlineAnnotation: React.FC<InlineAnnotationProps> = ({
             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${severity.dot}`} title={severity.label} />
           )
         }
-        conventionalLabel={metadata.conventionalLabel}
-        decorations={metadata.decorations}
         reviewProfileLabel={metadata.reviewProfileLabel}
         source={metadata.source}
         author={metadata.author}
@@ -50,11 +45,6 @@ export const InlineAnnotation: React.FC<InlineAnnotationProps> = ({
       {metadata.reasoning && (
         <div className="review-comment-reasoning text-[11px] text-muted-foreground/60 leading-relaxed mt-1.5">
           {metadata.reasoning}
-        </div>
-      )}
-      {metadata.suggestedCode && (
-        <div className="mt-2">
-          <SuggestionBlock code={metadata.suggestedCode} originalCode={metadata.originalCode} language={language} />
         </div>
       )}
       <CommentActions

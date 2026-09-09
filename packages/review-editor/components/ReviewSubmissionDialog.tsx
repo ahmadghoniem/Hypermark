@@ -5,7 +5,6 @@ import { CopyButton } from './CopyButton';
 import {
   exportReviewFeedback,
   formatCallFlowAnnotationTargets,
-  formatConventionalPrefix,
 } from '../utils/exportFeedback';
 import { useCompactTouchLayout } from '@hypermark/ui/hooks/useIsMobile';
 import {
@@ -87,12 +86,8 @@ function buildAnnotationFileComments(
   return annotations
     .filter(a => (a.scope ?? 'line') === 'line')
     .map(ann => {
-      const ccPrefix = formatConventionalPrefix(ann.conventionalLabel, ann.decorations);
-      let body = ccPrefix + (ann.text ?? '');
+      let body = ann.text ?? '';
       body += formatCallFlowAnnotationTargets(ann);
-      if (ann.suggestedCode) {
-        body += `\n\n\`\`\`suggestion\n${ann.suggestedCode}\n\`\`\``;
-      }
       const side = (ann.side === 'old' ? 'LEFT' : 'RIGHT') as 'LEFT' | 'RIGHT';
       const isMultiLine = ann.lineStart != null && ann.lineEnd != null && ann.lineStart !== ann.lineEnd;
       return {

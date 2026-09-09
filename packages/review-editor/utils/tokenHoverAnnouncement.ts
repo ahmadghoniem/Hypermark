@@ -19,8 +19,7 @@ export function markTokenHoverAnnouncementSeen(): void {
 }
 
 /**
- * Latch the pending flag at mount. PURE, like its `needsEditModeAnnouncement()
- * && !configStore.get('editSuggestions')` sibling: a React state initializer
+ * Latch the pending flag at mount. PURE: a React state initializer
  * can run more than once (StrictMode, a re-render before the store commits),
  * so the cookie write that goes with this decision lives in an effect
  * (`shouldConsumeTokenHoverAnnouncement` below), never here.

@@ -816,12 +816,6 @@ const CodeAnnotationCard: React.FC<{
         {fileName} · {lineRange}
       </div>
 
-      {annotation.originalCode && (
-        <p className="mt-1.5 line-clamp-2 whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-muted-foreground/80">
-          {annotation.originalCode}
-        </p>
-      )}
-
       {isEditing ? (
         <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
           <textarea

@@ -434,25 +434,6 @@ export const SETTINGS = {
     },
     toServer: (v: DiffLineBgIntensity) => ({ diffOptions: { lineBgIntensity: v } }),
   },
-  /** Experimental: author suggestions by editing code in place in the review
-   *  all-files view. Cookie-only (no server sync) while the feature is
-   *  experimental — default OFF, and when off no edit UI renders and no
-   *  editor is ever constructed. (In code-split hosts the editor chunk is
-   *  never fetched; Hypermark's single-file production build inlines all
-   *  dynamic imports, so there the module namespace exists at page load —
-   *  audited free of top-level side effects — but stays inert.) */
-  editSuggestions: {
-    defaultValue: false as boolean,
-    fromCookie: () => {
-      const v = storage.getItem('hypermark-experimental-edit-suggestions');
-      return v === 'true' ? true : v === 'false' ? false : undefined;
-    },
-    toCookie: (v: boolean) =>
-      storage.setItem('hypermark-experimental-edit-suggestions', String(v)),
-    serverKey: undefined,
-    fromServer: undefined,
-    toServer: undefined,
-  },
   semanticDiffEnabled: {
     defaultValue: true as boolean,
     fromCookie: () => {
@@ -482,45 +463,6 @@ export const SETTINGS = {
       return typeof value === 'boolean' ? value : undefined;
     },
     toServer: (value: boolean) => ({ reviewAnalysis: { callFlow: value } }),
-  },
-  conventionalComments: {
-    defaultValue: false as boolean,
-    fromCookie: () => {
-      const v = storage.getItem('hypermark-conventional-comments');
-      return v === 'true' ? true : v === 'false' ? false : undefined;
-    },
-    toCookie: (v: boolean) => storage.setItem('hypermark-conventional-comments', String(v)),
-    serverKey: 'conventionalComments',
-    fromServer: (sc: Record<string, unknown>) => {
-      const v = sc.conventionalComments;
-      return typeof v === 'boolean' ? v : undefined;
-    },
-    toServer: (v: boolean) => ({ conventionalComments: v }),
-  },
-  /** JSON-serialized array of label configs, or null for defaults.
-   *  Synced to ~/.hypermark/config.json as a parsed array (not a string). */
-  conventionalLabels: {
-    defaultValue: null as string | null,
-    fromCookie: () => storage.getItem('hypermark-cc-labels') || undefined,
-    toCookie: (v: string | null) => {
-      if (v) storage.setItem('hypermark-cc-labels', v);
-      else storage.removeItem('hypermark-cc-labels');
-    },
-    serverKey: 'conventionalLabels',
-    fromServer: (sc: Record<string, unknown>) => {
-      const v = sc.conventionalLabels;
-      if (v === null) return null;
-      if (Array.isArray(v)) return JSON.stringify(v);
-      return undefined;
-    },
-    toServer: (v: string | null) => {
-      if (v === null) return { conventionalLabels: null };
-      try {
-        return { conventionalLabels: JSON.parse(v) };
-      } catch {
-        return {};
-      }
-    },
   },
   /**
    * Where the annotate-mode Agent TUI docks: 'left' (where it always docked),
