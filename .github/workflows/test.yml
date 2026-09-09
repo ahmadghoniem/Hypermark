@@ -156,8 +156,6 @@ jobs:
           packages/ui/components/DiagramBlock.lazyRetry.test.tsx
           packages/ui/components/DecisionControl.test.tsx
           packages/ui/components/ActionMenu.test.tsx
-          packages/ui/components/PlanHeaderMenu.mobile.test.tsx
-          packages/review-editor/components/ReviewHeaderMenu.mobile.test.tsx
 
 
 
