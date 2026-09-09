@@ -7,13 +7,14 @@
  * Run: bun test scripts/install.test.ts
  */
 
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import {
   existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
+  rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
@@ -22,6 +23,22 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const scriptsDir = import.meta.dir;
+
+// Sandboxes are torn down in one place. Without this every run leaves its
+// fixture directories behind in %TEMP% -- harmless on disk, but on Windows each
+// one is an NTFS directory that Defender, the search indexer and every %TEMP%
+// enumeration afterwards has to walk.
+const tempDirs: string[] = [];
+function makeTempDir(prefix: string): string {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+}
+afterAll(() => {
+  for (const dir of tempDirs.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 function readScript(name: string): string {
   return readFileSync(join(scriptsDir, name), "utf-8").replace(/\r\n?/g, "\n");
@@ -1809,7 +1826,7 @@ function setupInstallSandbox(opts: {
   git?: GitBehavior;
   hypermarkConfig?: string;
 }) {
-  const root = mkdtempSync(join(tmpdir(), "hypermark-install-test-"));
+  const root = makeTempDir("hypermark-install-test-");
   const home = join(root, "home");
   const stub = join(root, "stub-bin");
   mkdirSync(home, { recursive: true });
@@ -2050,7 +2067,7 @@ function extractCmdScannerRegion(): string {
 }
 
 function runScanner(scannerBody: string, rawJson: string): string[] {
-  const dir = mkdtempSync(join(tmpdir(), "plannotator-scanner-test-"));
+  const dir = makeTempDir("hypermark-scanner-test-");
   const inputPath = join(dir, "input.json");
   writeFileSync(inputPath, rawJson);
   // Both scanner variants read the raw response text; ps1 calls it $attRaw,
@@ -2184,7 +2201,7 @@ function extractPs1SkillsCheckoutRegion(): string {
 }
 
 function runPs1SkillsCheckout(git: GitBehavior): { code: number; out: string; home: string } {
-  const root = mkdtempSync(join(tmpdir(), "plannotator-ps1-checkout-test-"));
+  const root = makeTempDir("hypermark-ps1-checkout-test-");
   const home = join(root, "home");
   const stub = join(root, "stub-bin");
   mkdirSync(join(home, "tmp"), { recursive: true });

@@ -21,12 +21,46 @@ function getGitTimeoutMs(): number {
 	return Number.isFinite(timeout) && timeout > 0 ? timeout : DEFAULT_GIT_TIMEOUT_MS;
 }
 
+/**
+ * Kill a child and everything it spawned. `child.kill()` on Windows kills only
+ * the immediate process, so a shim (`git.cmd`, a PATH wrapper) leaves its own
+ * children orphaned and unreapable. Mirrors the taskkill path in
+ * `server/git.ts` and `shared/call-flow.ts`.
+ */
+function killGitTree(child: { pid?: number; kill(signal?: NodeJS.Signals): boolean }): void {
+	try {
+		if (process.platform === "win32" && child.pid) {
+			const killed = spawnSync("taskkill.exe", ["/pid", String(child.pid), "/t", "/f"], {
+				stdio: "ignore",
+				windowsHide: true,
+			});
+			if (killed.status === 0) return;
+		}
+		child.kill("SIGKILL");
+	} catch {
+		try {
+			child.kill("SIGKILL");
+		} catch {
+			/* process already exited */
+		}
+	}
+}
+
 function runGit(cwd: string, args: string[]): GitResult {
 	const result = spawnSync("git", ["--no-optional-locks", "-C", cwd, ...args], {
 		encoding: "utf8",
 		maxBuffer: GIT_MAX_BUFFER,
+		timeout: getGitTimeoutMs(),
+		killSignal: "SIGKILL",
+		windowsHide: true,
 	});
-	if (result.error) return { ok: false, error: result.error.message };
+	if (result.error) {
+		const timedOut = (result.error as NodeJS.ErrnoException).code === "ETIMEDOUT";
+		return {
+			ok: false,
+			error: timedOut ? `git timed out after ${getGitTimeoutMs()}ms` : result.error.message,
+		};
+	}
 	if (result.status !== 0) {
 		const stderr = typeof result.stderr === "string" ? result.stderr.trim() : "";
 		return { ok: false, error: stderr || `git exited with status ${result.status ?? "unknown"}` };
@@ -38,6 +72,7 @@ function runGitAsync(cwd: string, args: string[]): Promise<GitResult> {
 	return new Promise((resolveResult) => {
 		const child = spawn("git", ["--no-optional-locks", "-C", cwd, ...args], {
 			stdio: ["ignore", "pipe", "pipe"],
+			windowsHide: true,
 		});
 		let stdout = "";
 		let stderr = "";
@@ -55,7 +90,7 @@ function runGitAsync(cwd: string, args: string[]): Promise<GitResult> {
 
 		const timeoutMs = getGitTimeoutMs();
 		timeout = setTimeout(() => {
-			child.kill("SIGKILL");
+			killGitTree(child);
 			finish({ ok: false, error: `git timed out after ${timeoutMs}ms` });
 		}, timeoutMs);
 
@@ -64,7 +99,7 @@ function runGitAsync(cwd: string, args: string[]): Promise<GitResult> {
 		child.stdout.on("data", (chunk: string) => {
 			stdoutBytes += Buffer.byteLength(chunk);
 			if (stdoutBytes > GIT_MAX_BUFFER) {
-				child.kill();
+				killGitTree(child);
 				finish({ ok: false, error: `git stdout exceeded ${GIT_MAX_BUFFER} bytes` });
 				return;
 			}

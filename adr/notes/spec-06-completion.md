@@ -174,12 +174,6 @@ because the matrix asks for it.
 Both are recorded as **unverified**, not as passes. Everything else in the
 matrix that can be checked without a live session or a browser has been.
 
-**Known documentation gap.** `packages/ui/HANDOFF.md` still describes handing
-this UI to the commercial Workspaces app and references `/api/ai/*` endpoints
-that no longer exist. It is a historical handoff document rather than live
-guidance, so it was left alone; a future pass should either date-stamp it as
-historical or rewrite it.
-
 ## Not done, deliberately
 
 No publish, no deploy, no tag, no upload. The local artifact is

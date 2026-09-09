@@ -1,12 +1,26 @@
-import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { afterAll, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHtmlAssetRegistry, inlineHtmlLocalAssets } from "./html-assets";
 
+// Every fixture directory is torn down together; see scripts/install.test.ts
+// for why leaving them behind costs more on Windows than the bytes suggest.
+const tempDirs: string[] = [];
+function makeTempDir(prefix: string): string {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+}
+afterAll(() => {
+  for (const dir of tempDirs.splice(0)) {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 describe("annotate raw HTML assets", () => {
   test("rewrites raw HTML support assets and serves them from the source directory", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "hypermark-html-assets-"));
+    const dir = makeTempDir("hypermark-html-assets-");
     const htmlPath = join(dir, "page.html");
     const cssPath = join(dir, "style.css");
     const imagePath = join(dir, "logo.png");
@@ -40,7 +54,7 @@ describe("annotate raw HTML assets", () => {
   });
 
   test("inlines raw HTML support assets for portable share payloads", () => {
-    const dir = mkdtempSync(join(tmpdir(), "hypermark-html-share-"));
+    const dir = makeTempDir("hypermark-html-share-");
     const htmlPath = join(dir, "page.html");
     const cssDir = join(dir, "styles");
     const imageDir = join(dir, "images");
@@ -66,7 +80,7 @@ describe("annotate raw HTML assets", () => {
 
   test("does not serve a symlinked asset that escapes the source directory", async () => {
     // Attacker bundle: a symlink inside the HTML's dir pointing at a secret outside it.
-    const base = mkdtempSync(join(tmpdir(), "hypermark-html-symlink-"));
+    const base = makeTempDir("hypermark-html-symlink-");
     const htmlDir = join(base, "site");
     mkdirSync(htmlDir);
     const secretPath = join(base, "secret.css");
@@ -88,7 +102,7 @@ describe("annotate raw HTML assets", () => {
   });
 
   test("does not inline a symlinked asset that escapes the source directory", () => {
-    const base = mkdtempSync(join(tmpdir(), "hypermark-html-symlink-inline-"));
+    const base = makeTempDir("hypermark-html-symlink-inline-");
     const htmlDir = join(base, "site");
     mkdirSync(htmlDir);
     const secretPath = join(base, "secret.css");
