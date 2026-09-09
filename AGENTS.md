@@ -818,10 +818,17 @@ bun run dev:vscode     # VS Code extension (watch mode)
 
 ## Testing Rules
 
+**There is no DOM or React-render test layer in this fork.** Every `.test.tsx`
+file and every test that mounted a component or touched `document` was removed,
+along with the happy-dom preload and the `DOM_TESTS=1` CI steps. `bun test` is
+now a single process running logic tests only. Component and layout behavior is
+verified in the browser, by a human — see the manual smokes under `tests/manual/`.
+Do not add a `.test.tsx` back without deciding to reinstate that layer
+deliberately: one file would need the preload, the gate, and its own CI step.
+
 A test must guard a behavior that can actually regress. Before writing one, name the failure it catches; if you can't, don't write it.
 
 - **Pin copy only on purpose, never as a snapshot.** Locking a short user-facing string is legitimate when it is a deliberate decision — an action label ("Approve"), a command name, a legally/UX-critical phrase the maintainer wants frozen so agents can't drift it. Mark it as such in a comment. What is banned is incidentally snapshotting explanatory prose (intro dialogs, setting descriptions, empty-state copy) with `toBe` just because it was on screen when the test was written — that couples wording edits to test churn while guarding nothing. If such a string carries data that must stay truthful (a server-computed size, a language list, a version), assert those facts with `toContain` on the data, not the sentence around them.
-- **No round-trip prop tests.** Asserting that a hardcoded string passed as a prop appears in the DOM verifies nothing — any string round-trips. If the only thing worth checking is "this prop renders somewhere," use a sentinel string and one assertion, and say so in a comment.
 - **Assert behavior, not implementation echo.** A test that restates what the code obviously does (calls X with Y, sets state to Z) without exercising an observable outcome is noise; it breaks on refactors and catches nothing.
 - **Bun runs every test file in one process.** Never mutate `process.env`, `~/.hypermark`, or any global at module scope; mutate inside tests with restore in `finally`/`afterEach`, and sandbox all server/data-dir interaction under a temp `HYPERMARK_DATA_DIR`. Never read or write the real user config.
 

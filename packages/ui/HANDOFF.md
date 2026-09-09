@@ -4,6 +4,13 @@ This document is for the team building the commercial **Workspaces** app. It exp
 
 If you read nothing else, read **"The 60-second version"**, **"Supported imports"**, and **"The seam catalog"**.
 
+> **Note for this fork:** the "Pinned by ..." references throughout this
+> document name `.test.tsx` files and DOM-gated tests that no longer exist here
+> — the React render test layer was removed wholesale. The contracts they
+> describe are still real and still what the code does; nothing enforces them
+> automatically any more. Treat every such reference as a description of the
+> contract to preserve, not as a suite you can run.
+
 ---
 
 ## The 60-second version
