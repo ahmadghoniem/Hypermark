@@ -81,10 +81,6 @@ export function getAgentTerminalManagedRuntimeDir(
   return join(dataDir, "vendor", "agent-terminal", `webtui-${AGENT_TERMINAL_WEBTUI_VERSION}`);
 }
 
-export function isAgentTerminalRemoteEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return isTruthy(env.HYPERMARK_AGENT_TERMINAL_REMOTE);
-}
-
 export function shouldSkipAgentTerminalRuntimeInstall(env: NodeJS.ProcessEnv = process.env): boolean {
   return isTruthy(env.HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL);
 }

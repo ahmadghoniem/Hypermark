@@ -15,8 +15,6 @@ import {
   resolveAnnotateHistory,
   resolveUseJina,
   resolveTodoProviderEnabled,
-  resolveUrlHost,
-  isValidUrlHost,
   parseReviewAnalysisConfig,
   loadConfig,
   saveConfig,
@@ -93,111 +91,8 @@ describe("resolveTodoProviderEnabled", () => {
   });
 });
 
-const URL_HOST_ENV = "HYPERMARK_URL_HOST";
-const originalUrlHostEnv = process.env[URL_HOST_ENV];
 
-describe("isValidUrlHost", () => {
-  test("accepts bare hostnames, IPv4, and bracketed IPv6", () => {
-    for (const host of [
-      "localhost",
-      "my-machine",
-      "my-machine.tailnet.ts.net",
-      "raspberrypi.local",
-      "100.101.102.103",
-      "[fd7a::1]",
-      "[::1]",
-      "[::ffff:100.101.102.103]",
-    ]) {
-      expect(isValidUrlHost(host)).toBe(true);
-    }
-  });
 
-  test("rejects schemes, paths, ports, credentials, query, fragment, whitespace", () => {
-    for (const host of [
-      "http://my-machine",
-      "https://my-machine.ts.net",
-      "my-machine/path",
-      "my-machine:8080",
-      "user@my-machine",
-      "my-machine?x=1",
-      "my-machine#frag",
-      "my machine",
-      "fd7a::1", // unbracketed IPv6 reads as ":" outside brackets
-      "-leading-hyphen",
-      ".leading.dot",
-      "trailing-hyphen-",
-      "",
-    ]) {
-      expect(isValidUrlHost(host)).toBe(false);
-    }
-  });
-});
-
-describe("resolveUrlHost", () => {
-  beforeEach(() => {
-    delete process.env[URL_HOST_ENV];
-  });
-  afterAll(() => {
-    if (originalUrlHostEnv === undefined) delete process.env[URL_HOST_ENV];
-    else process.env[URL_HOST_ENV] = originalUrlHostEnv;
-  });
-
-  test("defaults to undefined (localhost) with no env var and no config key", () => {
-    expect(resolveUrlHost({})).toBeUndefined();
-  });
-
-  test("config.urlHost is honored when the env var is unset", () => {
-    expect(resolveUrlHost({ urlHost: "my-machine.tailnet.ts.net" })).toBe("my-machine.tailnet.ts.net");
-  });
-
-  test("env wins over the config key", () => {
-    process.env[URL_HOST_ENV] = "env-host";
-    expect(resolveUrlHost({ urlHost: "config-host" })).toBe("env-host");
-  });
-
-  test("an empty (but set) env var suppresses the config key", () => {
-    process.env[URL_HOST_ENV] = "";
-    expect(resolveUrlHost({ urlHost: "config-host" })).toBeUndefined();
-  });
-
-  test("values are trimmed", () => {
-    process.env[URL_HOST_ENV] = "  my-machine  ";
-    expect(resolveUrlHost({})).toBe("my-machine");
-  });
-
-  test("invalid values fall back to undefined (localhost) instead of throwing", () => {
-    for (const v of ["http://my-machine", "my-machine:8080", "a@b", "a b", "host/path"]) {
-      process.env[URL_HOST_ENV] = v;
-      expect(resolveUrlHost({})).toBeUndefined();
-    }
-  });
-
-  test("non-string config values are ignored", () => {
-    expect(resolveUrlHost({ urlHost: 42 as unknown as string })).toBeUndefined();
-    expect(resolveUrlHost({ urlHost: null as unknown as string })).toBeUndefined();
-  });
-
-  test("the invalid-host warning stays a single line for newline-embedded values", () => {
-    // Hosts surface stderr lines like "Hypermark session ready" as clickable
-    // links, so an echoed value must not be able to forge extra lines.
-    const writes: string[] = [];
-    const spy = spyOn(process.stderr, "write").mockImplementation(((chunk: unknown) => {
-      writes.push(String(chunk));
-      return true;
-    }) as typeof process.stderr.write);
-    try {
-      process.env[URL_HOST_ENV] = "bad\nHypermark session ready:\n  http://evil.example";
-      expect(resolveUrlHost({})).toBeUndefined();
-    } finally {
-      spy.mockRestore();
-    }
-    const warning = writes.find((w) => w.includes("invalid advertised URL host"));
-    expect(warning).toBeDefined();
-    // One trailing newline terminates the warning; no interior newlines.
-    expect(warning!.endsWith("\n")).toBe(true);
-    expect(warning!.slice(0, -1)).not.toContain("\n");
-  });
-});
 
 // config.json is hand-edited, so boolean settings often arrive as quoted
 // strings ("false" instead of false). Each boolean resolver must coerce those

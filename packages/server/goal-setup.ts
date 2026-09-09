@@ -15,7 +15,7 @@ import {
   type GoalSetupQuestionAnswer,
   type GoalSetupResult,
 } from "@hypermark/shared/goal-setup";
-import { isRemoteSession, getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
+import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
 import { getRepoInfo } from "./repo";
 import {
   handleFavicon,
@@ -25,7 +25,6 @@ import {
 } from "./shared-handlers";
 import { detectGitUser, getServerConfig, saveConfig } from "./config";
 import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
-import { isWSL } from "./browser";
 
 export { handleServerReady as handleGoalSetupServerReady } from "./shared-handlers";
 
@@ -33,13 +32,12 @@ export interface GoalSetupServerOptions {
   bundle: GoalSetupBundle;
   htmlContent: string;
   origin?: Origin;
-  onReady?: (url: string, isRemote: boolean, port: number) => void;
+  onReady?: (url: string, port: number) => void;
 }
 
 export interface GoalSetupServerResult {
   port: number;
   url: string;
-  isRemote: boolean;
   waitForDecision: () => Promise<{
     result?: GoalSetupResult;
     exit?: boolean;
@@ -77,8 +75,6 @@ export async function startGoalSetupServer(
   options: GoalSetupServerOptions
 ): Promise<GoalSetupServerResult> {
   const { bundle, htmlContent, origin = "claude-code", onReady } = options;
-  const isRemote = isRemoteSession();
-  const wslFlag = await isWSL();
   const repoInfo = await getRepoInfo();
   const gitUser = detectGitUser();
 
@@ -122,7 +118,6 @@ export async function startGoalSetupServer(
               goalSetup: bundle,
               repoInfo,
               projectRoot: process.cwd(),
-              isWSL: wslFlag,
               serverConfig: getServerConfig(gitUser),
             });
           }
@@ -205,12 +200,11 @@ export async function startGoalSetupServer(
 
   const port = server.port!;
   const serverUrl = buildAdvertisedUrl(port);
-  onReady?.(serverUrl, isRemote, port);
+  onReady?.(serverUrl, port);
 
   return {
     port,
     url: serverUrl,
-    isRemote,
     waitForDecision: () => decisionPromise,
     stop: () => server.stop(),
   };

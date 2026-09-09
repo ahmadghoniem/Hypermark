@@ -11,7 +11,7 @@
  *   HYPERMARK_PORT   - Fixed port or inclusive range (default: random locally, 19432 for remote)
  */
 
-import { isRemoteSession, getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
+import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
 import { getRepoInfo } from "./repo";
 import type { Origin } from "@hypermark/shared/agents";
 import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, handleReferenceSkills, handleReferenceSkillContent, handleSaveNotes, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
@@ -49,7 +49,6 @@ import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
 import { existsSync } from "fs";
 import { dirname, resolve as resolvePath } from "path";
 import { isWithinDirectory } from "@hypermark/shared/html-assets-node";
-import { isWSL } from "./browser";
 import { handleOpenInApps, handleOpenIn } from "./open-in";
 import { createHtmlAssetRegistry } from "./html-assets";
 import { createBunAgentTerminalBridge } from "./agent-terminal";
@@ -64,7 +63,7 @@ import { randomBytes } from "node:crypto";
 import { isAgentTerminalWsRoute, supportsAnnotateAgentTerminalMode } from "@hypermark/shared/agent-terminal";
 
 // Re-export utilities
-export { isRemoteSession, getServerPort } from "./remote";
+export { getServerPort } from "./remote";
 export { openBrowser } from "./browser";
 export { handleServerReady as handleAnnotateServerReady } from "./shared-handlers";
 
@@ -115,12 +114,9 @@ export interface AnnotateServerOptions {
   approvalNotesSupported?: boolean;
   /**
    * Whether this transport can safely resolve an abandoned gate automatically.
-   * Only local direct structured annotate gates (`--gate --json`, not `--hook`,
-   * not remote/shared) qualify — see supportsAnnotateClientLease in
-   * apps/hook/server/annotate-output.ts. The server additionally forces this
-   * off while `tailnetPublished` is set: `--tailscale` counts as local to the
-   * CLI predicate, but the session is reached through the serve proxy, whose
-   * disconnects would read as abandonment exactly like a remote tunnel's.
+   * Only direct structured annotate gates (`--gate --json`, not `--hook`)
+   * qualify — see supportsAnnotateClientLease in
+   * apps/hook/server/annotate-output.ts.
    */
   clientLeaseSupported?: boolean;
   /**
@@ -138,19 +134,10 @@ export interface AnnotateServerOptions {
   convertHtml?: boolean;
   /** CWD where the optional annotate agent terminal should launch. Defaults to process.cwd(). */
   agentCwd?: string;
-  /**
-   * The session is loopback-bound but published across the user's tailnet
-   * (--tailscale). Gates the agent terminal behind the same
-   * HYPERMARK_AGENT_TERMINAL_REMOTE opt-in remote mode uses: the PTY token
-   * is not an auth boundary against network peers (wsPath ships in the
-   * /api/plan capability payload), so tailnet reachability implies terminal
-   * reachability.
-   */
-  tailnetPublished?: boolean;
   /** Project name for keying per-file version history (powers the annotate version diff). */
   project?: string;
-  /** Called when server starts with the URL, remote status, and port */
-  onReady?: (url: string, isRemote: boolean, port: number) => void | Promise<void>;
+  /** Called when server starts with the URL and port */
+  onReady?: (url: string, port: number) => void | Promise<void>;
 }
 
 export interface AnnotateServerResult {
@@ -158,8 +145,6 @@ export interface AnnotateServerResult {
   port: number;
   /** The full URL to access the server */
   url: string;
-  /** Whether running in remote mode */
-  isRemote: boolean;
   /** Wait for user feedback submission */
   waitForDecision: () => Promise<{
     feedback: string;
@@ -241,32 +226,10 @@ export async function startAnnotateServer(
     onReady,
   } = options;
 
-  // Effective client-lease capability. A --tailscale session forces local
-  // mode, so the CLI-side supportsAnnotateClientLease predicate reads it as
-  // local — but every client reaches it through the tailscale serve proxy,
-  // and a proxy/network disconnect longer than the grace period would
-  // auto-dismiss a live review. Same rationale that keeps the capability off
-  // for remote/shared sessions; this is the single decision point both the
-  // /api/plan advert and the SSE endpoint below read.
-  const clientLeaseSupported =
-    (options.clientLeaseSupported ?? false) && options.tailnetPublished !== true;
+  // The single decision point both the /api/plan advert and the SSE endpoint
+  // below read.
+  const clientLeaseSupported = options.clientLeaseSupported ?? false;
 
-  // Remote hard-off, defense in depth behind the CLI check: a live proxy
-  // relays the user's authenticated dev app, so it must never coexist with a
-  // beyond-loopback annotate bind. No override env var exists on purpose.
-  // A --tailscale session forces local mode but is reachable across the
-  // tailnet through the serve proxy, so it is exposure all the same (the
-  // annotate agent terminal treats tailnet publication identically).
-  if (liveApp && (isRemoteSession() || options.tailnetPublished === true)) {
-    throw new Error(
-      options.tailnetPublished === true && !isRemoteSession()
-        ? "Live app annotation is unavailable in tailnet-published sessions"
-        : "Live app annotation is unavailable in remote mode",
-    );
-  }
-
-  const isRemote = isRemoteSession();
-  const wslFlag = await isWSL();
   const gitUser = detectGitUser();
 
   // Per-file version history → powers the native version diff in annotate mode.
@@ -451,7 +414,6 @@ export async function startAnnotateServer(
   const agentTerminal = await createBunAgentTerminalBridge({
     enabled: supportsAnnotateAgentTerminalMode(mode),
     cwd: agentCwd ?? process.cwd(),
-    tailnetPublished: options.tailnetPublished === true,
   });
 
   // The fallback is silent to the reviewer, so the reason is logged once per
@@ -709,7 +671,6 @@ export async function startAnnotateServer(
               convertHtml: false,
               repoInfo,
               projectRoot: process.cwd(),
-              isWSL: wslFlag,
               serverConfig: getServerConfig(gitUser),
               agentTerminal: agentTerminal.capability,
               feedbackTemplates: {
@@ -770,7 +731,6 @@ export async function startAnnotateServer(
                 : {}),
               repoInfo,
               projectRoot: folderPath || process.cwd(),
-              isWSL: wslFlag,
               // Extra extensions the user registered as markdown (#1307).
               // The renderer needs them to linkify relative/wiki links to
               // sibling docs the same way it linkifies .md ones.
@@ -1293,12 +1253,12 @@ export async function startAnnotateServer(
   };
 
   // Notify caller that server is ready. An async ready handler that rejects
-  // (e.g. --tailscale publishing failed) must stop the server and propagate:
-  // firing-and-forgetting it would leave an unhandled rejection while the
-  // loopback server keeps listening and the session hangs forever.
+  // must stop the server and propagate: firing-and-forgetting it would leave
+  // an unhandled rejection while the server keeps listening and the session
+  // hangs forever.
   if (onReady) {
     try {
-      await onReady(serverUrl, isRemote, port);
+      await onReady(serverUrl, port);
     } catch (error) {
       stop();
       throw error;
@@ -1308,7 +1268,6 @@ export async function startAnnotateServer(
   return {
     port,
     url: serverUrl,
-    isRemote,
     waitForDecision: () => decisionPromise,
     stop,
   };

@@ -1521,7 +1521,7 @@ const ReviewAppInner: React.FC = () => {
         platformUser?: string;
         viewedFiles?: string[];
         error?: string;
-        isWSL?: boolean;
+       
         semanticDiff?: SemanticDiffAdvert;
         callFlow?: CallFlowAdvert;
         sections?: SinceBaseSections;

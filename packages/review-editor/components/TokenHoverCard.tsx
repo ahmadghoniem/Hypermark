@@ -178,7 +178,7 @@ function TokenHoverCardContent({
         <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">
           {modKey}
         </kbd>
-        {modKey === '⌘' ? '' : '+'}click a token for the full References panel.
+        +click a token for the full References panel.
       </div>
     </>
   );

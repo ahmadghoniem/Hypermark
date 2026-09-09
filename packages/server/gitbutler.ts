@@ -30,20 +30,11 @@ async function runBut(
     let timer: ReturnType<typeof setTimeout> | undefined;
     if (options?.timeoutMs) {
       timer = setTimeout(() => {
-        if (process.platform !== "win32") {
-          try {
-            process.kill(-proc.pid, "SIGKILL");
-            return;
-          } catch {
-            // Fall through when the process exited between the timer and signal.
-          }
-        } else {
-          const killed = Bun.spawnSync(
-            ["taskkill.exe", "/pid", String(proc.pid), "/t", "/f"],
-            { stdin: "ignore", stdout: "ignore", stderr: "ignore", windowsHide: true },
-          );
-          if (killed.exitCode === 0) return;
-        }
+        const killed = Bun.spawnSync(
+          ["taskkill.exe", "/pid", String(proc.pid), "/t", "/f"],
+          { stdin: "ignore", stdout: "ignore", stderr: "ignore", windowsHide: true },
+        );
+        if (killed.exitCode === 0) return;
         proc.kill("SIGKILL");
       }, options.timeoutMs);
     }

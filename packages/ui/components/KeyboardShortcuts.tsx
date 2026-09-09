@@ -3,7 +3,7 @@ import {
   formatShortcutBindingTokens,
   listScopeShortcuts,
 } from '../shortcuts';
-import { isMac, modKey, altKey } from '../utils/platform';
+import { modKey, altKey } from '../utils/platform';
 
 /* ─── Key cap component ─── */
 
@@ -57,10 +57,10 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
   </div>
 );
 
-/* ─── Platform-aware key names ─── */
+/* ─── Key names ─── */
 
-const enter = isMac ? '⏎' : '↵';
-const shiftKey = isMac ? '⇧' : 'Shift';
+const enter = '↵';
+const shiftKey = 'Shift';
 
 /* ─── Shortcut data ─── */
 

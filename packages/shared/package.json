@@ -73,7 +73,6 @@
     "./workspace-status": "./workspace-status.ts",
     "./open-in-apps": "./open-in-apps.ts",
     "./port-range": "./port-range.ts",
-    "./tailscale": "./tailscale.ts",
     "./plan-review-lifecycle": "./plan-review-lifecycle.ts",
     "./commit-avatars": "./commit-avatars.ts",
     "./generated-files": "./generated-files.ts",

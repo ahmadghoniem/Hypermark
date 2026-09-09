@@ -134,7 +134,8 @@ export function createExactFileWatchListener(
 }
 
 function nativeRecursiveSupported(): boolean {
-	return process.platform === "darwin" || process.platform === "win32";
+	// Windows supports fs.watch's recursive mode natively.
+	return true;
 }
 
 export function createFileBrowserWatchRegistry<S>(

@@ -9,8 +9,6 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { openBrowser as openBrowserImpl } from "./browser";
-import { isUrlHostOverridden } from "./remote";
-import { writeUrlQr } from "./qr";
 import { validateImagePath, validateUploadExtension, UPLOAD_DIR } from "./image";
 import { saveDraft, loadDraft, deleteDraft, getDraftGeneration } from "./draft";
 import { CLASSIC_FAVICON_SVG } from "@hypermark/shared/favicon";
@@ -217,7 +215,6 @@ interface ServerReadyOptions {
 
 export interface ServerReadyMetadata {
   url: string;
-  isRemote: boolean;
   port: number;
 }
 
@@ -233,52 +230,32 @@ export function isCodexDesktopHost(env: NodeJS.ProcessEnv = process.env): boolea
 /** Attempt to open the browser for the session URL. */
 export async function handleServerReady(
   url: string,
-  isRemote: boolean,
   port: number,
   options: ServerReadyOptions = {},
 ): Promise<void> {
   const readyFile = options.readyFile ?? process.env.HYPERMARK_READY_FILE;
   if (readyFile) {
     try {
-      writeServerReadyMetadata(readyFile, { url, isRemote, port });
+      writeServerReadyMetadata(readyFile, { url, port });
     } catch (error) {
       if (options.readyFile) throw error;
       // Best effort: host plugins use this side channel to open the browser.
     }
   }
 
-  // A remote/SSH session can't pop a browser on the user's machine, so the
-  // session URL must be visible in the terminal — independently of whether URL
-  // sharing is enabled. The share link (gated on sharing) is an extra; this
-  // reachable URL is the lifeline. Without it, a sharing-disabled remote user
-  // saw no URL at all and the agent hung waiting on the review.
-  if (isRemote) {
-    // With an advertised-URL host override the link is directly reachable
-    // (e.g. over a tailnet), so the port-forwarding advice would be wrong.
-    if (isUrlHostOverridden()) {
-      process.stderr.write(`\n  Hypermark session ready — open on your device:\n  ${url}\n\n`);
-      // The URL makes a device hop; a QR skips the retyping (TTY only). Only
-      // for overridden hosts: a QR of a localhost URL scans to nowhere.
-      writeUrlQr(url);
-    } else {
-      process.stderr.write(
-        `\n  Hypermark session ready — open on your local machine (forward port ${port} if needed):\n  ${url}\n\n`,
-      );
-    }
-  } else if (isCodexDesktopHost()) {
+  if (isCodexDesktopHost()) {
     process.stderr.write(`\n  Hypermark session ready:\n  ${url}\n\n`);
   }
 
   const skipBrowserOpen = options.skipBrowserOpen ?? process.env.HYPERMARK_SKIP_BROWSER_OPEN === "1";
   if (skipBrowserOpen) return;
 
-  const opened = await (options.openBrowser ?? openBrowserImpl)(url, { isRemote, useGlimpse: true });
+  const opened = await (options.openBrowser ?? openBrowserImpl)(url, { useGlimpse: true });
 
-  // Local fallback lifeline: if the browser couldn't be opened (headless box,
-  // devcontainer with no display, broken open/xdg-open), the user otherwise has
-  // no URL and the agent hangs at waitForDecision. Remote already printed the
-  // URL above; only cover the local case here to avoid a double print.
-  if (!opened && !isRemote) {
+  // Fallback lifeline: if the browser couldn't be opened (no display, broken
+  // opener), the user otherwise has no URL and the agent hangs at
+  // waitForDecision.
+  if (!opened) {
     process.stderr.write(`\n  Hypermark session ready — open in your browser:\n  ${url}\n\n`);
   }
 }

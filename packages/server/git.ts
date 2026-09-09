@@ -59,15 +59,7 @@ async function runGit(
   let timer: ReturnType<typeof setTimeout> | undefined;
   if (options?.timeoutMs) {
     timer = setTimeout(() => {
-      if (command.isolateProcessGroup && process.platform !== "win32") {
-        try {
-          process.kill(-proc.pid, "SIGKILL");
-          return;
-        } catch {
-          // Fall through when the process exited between the timer and signal.
-        }
-      }
-      if (command.isolateProcessGroup && process.platform === "win32") {
+      if (command.isolateProcessGroup) {
         const killed = Bun.spawnSync(
           ["taskkill.exe", "/pid", String(proc.pid), "/t", "/f"],
           { stdin: "ignore", stdout: "ignore", stderr: "ignore", windowsHide: true },

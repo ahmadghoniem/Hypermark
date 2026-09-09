@@ -37,7 +37,7 @@ import { useAgents } from '../hooks/useAgents';
 import { KeyboardShortcuts } from './KeyboardShortcuts';
 import { type QuickLabel, getQuickLabels, saveQuickLabels, resetQuickLabels, DEFAULT_QUICK_LABELS, getLabelColors, LABEL_COLOR_MAP } from '../utils/quickLabels';
 import { ThemeTab } from './ThemeTab';
-import { isMac, modKeyWord, altKey } from '../utils/platform';
+import { modKeyWord, altKey } from '../utils/platform';
 import { HooksTab } from './settings/HooksTab';
 import { OverlayScrollArea } from './OverlayScrollArea';
 import { AnalysisLayerToggle } from './AnalysisLayerToggle';
@@ -1291,7 +1291,7 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
                                 ))}
                               </select>
                               <span className="text-[10px] text-muted-foreground/50 font-mono w-8 text-center flex-shrink-0">
-                                {index < 10 ? `${altKey}${isMac ? '' : '+'}${index === 9 ? '0' : index + 1}` : ''}
+                                {index < 10 ? `${altKey}+${index === 9 ? '0' : index + 1}` : ''}
                               </span>
                               <button
                                 onClick={() => {
@@ -1382,7 +1382,7 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
                     )}
 
                     <div className="text-[10px] text-muted-foreground/70">
-                      Use {altKey}{isMac ? '' : '+'}1 through {altKey}{isMac ? '' : '+'}0 when the annotation toolbar is visible to apply a label instantly.
+                      Use {altKey}+1 through {altKey}+0 when the annotation toolbar is visible to apply a label instantly.
                     </div>
                   </>
                 )}

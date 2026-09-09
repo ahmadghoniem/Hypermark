@@ -67,8 +67,7 @@
  *   --browser <name>   - Override which browser to open (e.g. "Google Chrome")
  *
  * Environment variables:
- *   HYPERMARK_REMOTE - Set to "1"/"true" for remote, "0"/"false" for local
- *   HYPERMARK_PORT   - Fixed port to use (default: random locally, 19432 for remote)
+ *   HYPERMARK_PORT   - Fixed port to use (default: random)
  *
  * The former HYPERMARK_* names still work as deprecated aliases; see
  * `@hypermark/shared/env-aliases` for the precedence rule. The import below is
@@ -88,7 +87,6 @@ import {
 import {
   startAnnotateServer,
   handleAnnotateServerReady,
-  isRemoteSession,
 } from "@hypermark/server/annotate";
 import {
   startGoalSetupServer,
@@ -109,10 +107,7 @@ import {
 } from "@hypermark/shared/annotate-target";
 import { createWorktreePool, type WorktreePool, type PoolEntry } from "@hypermark/shared/worktree-pool";
 import { parsePRUrl, checkPRAuth, fetchPR, getCliName, getCliInstallUrl, getMRLabel, getMRNumberLabel, getDisplayRepo } from "@hypermark/server/pr";
-import { enableTailscaleServe } from "@hypermark/server/tailscale-serve";
-import { writeUrlQr } from "@hypermark/server/qr";
 import { resolveAnnotateTarget } from "./annotate-resolution";
-import { LIVE_APP_REMOTE_MESSAGE } from "@hypermark/shared/live-probe";
 // Bridge sources for live app sessions: the CLI supplies them so
 // @hypermark/server never imports @hypermark/ui (mirrors the existing
 // htmlContent precedent).
@@ -231,73 +226,6 @@ const browserIdx = args.indexOf("--browser");
 if (browserIdx !== -1 && args[browserIdx + 1]) {
   process.env.HYPERMARK_BROWSER = args[browserIdx + 1];
   args.splice(browserIdx, 2);
-}
-
-// Transport flag: --tailscale (review / annotate / annotate-last) — publish
-// the session over the user's tailnet via `tailscale serve`. The server stays
-// LOOPBACK-bound: serve provides reachability plus TLS, so remote mode's wide
-// bind is redundant and would only broaden exposure. Forcing local mode here
-// (before any port/bind decision) is the safer resolution of the
-// --tailscale + HYPERMARK_REMOTE combination; it also restores the random
-// local port, so simultaneous sessions get distinct serve mappings.
-const TAILSCALE_COMMANDS = new Set(["review", "annotate", "annotate-last", "last"]);
-const tailscaleIdx = args.indexOf("--tailscale");
-const tailscaleFlag = tailscaleIdx !== -1;
-if (tailscaleFlag) {
-  args.splice(tailscaleIdx, 1);
-  if (!TAILSCALE_COMMANDS.has(args[0] ?? "")) {
-    console.error(
-      "--tailscale is only supported with: hypermark review, annotate, annotate-last (last)",
-    );
-    process.exit(1);
-  }
-  if (isRemoteSession()) {
-    process.stderr.write(
-      "[hypermark] --tailscale keeps the server loopback-bound behind `tailscale serve`; ignoring remote mode (HYPERMARK_REMOTE/SSH detection) for this session.\n",
-    );
-  }
-  process.env.HYPERMARK_REMOTE = "0";
-  // urlHost is irrelevant here — the advertised URL comes from tailscale
-  // serve, and the session is local-bound. An empty-but-set env var also
-  // suppresses a config-file urlHost, avoiding the misleading
-  // "set HYPERMARK_REMOTE=1" local-session warning mid --tailscale run.
-  process.env.HYPERMARK_URL_HOST = "";
-}
-
-/**
- * --tailscale ready path: publish the loopback port over the tailnet, print
- * the HTTPS URL (with a QR for the device hop), and hand the reachable URL to
- * the ready-file side channel. Never opens a local browser. Publishing
- * failures resolve HERE with a clean actionable message and a nonzero exit —
- * under the bang-prefix skill a hanging session blocks the whole Claude Code
- * prompt, so this path must never leave the loopback server waiting. (The
- * server APIs also await ready handlers and stop the server on rejection,
- * which covers any other async onReady user.)
- *
- * A publish failure is a STARTUP failure: no reviewer ever saw the session.
- * Under a strict annotate gate (--require-approval / --result-file) exit 1
- * is reserved for "the reviewer did not approve, decision record published",
- * so this exits through annotateStartupFailureExitCode with the strict flags
- * the invocation parsed — exit 2 for strict gates, the documented exit 1
- * otherwise (review and non-strict annotate; strict flags only parse on the
- * annotate subcommand, so review sessions always take the exit-1 leg).
- */
-async function handleTailscaleReady(port: number): Promise<void> {
-  let url: string;
-  try {
-    ({ url } = enableTailscaleServe(port));
-  } catch (error) {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-    process.exit(
-      annotateStartupFailureExitCode({
-        requireApproval: requireApprovalFlag,
-        resultFile,
-      }),
-    );
-  }
-  process.stderr.write(`\n  Hypermark session ready — served over your tailnet:\n  ${url}\n\n`);
-  writeUrlQr(url);
-  await handleServerReady(url, false, port, { skipBrowserOpen: true });
 }
 
 // Global flag: --no-jina (disables Jina Reader for URL annotation)
@@ -485,11 +413,7 @@ process.on("exit", () => unregisterSession());
 // force-quit escape hatch if cleanup ever hangs. SIGHUP is deliberately NOT
 // routed here: installing any SIGHUP listener overrides the ignored
 // disposition `nohup` depends on, so a plain `nohup hypermark review &`
-// must end up with no listener and survive terminal close. The --tailscale
-// path installs its own SIGHUP→exit handler only once a serve mapping
-// actually exists (enableTailscaleServe in
-// packages/server/tailscale-serve.ts), which is the only case where terminal
-// close would otherwise leak tailnet state.
+// must end up with no listener and survive terminal close.
 process.once("SIGINT", () => process.exit(130));
 process.once("SIGTERM", () => process.exit(143));
 
@@ -675,8 +599,8 @@ if (args[0] === "sessions") {
     bundle,
     origin: detectedOrigin,
     htmlContent: planHtmlContent,
-    onReady: (url, isRemote, port) => {
-      handleGoalSetupServerReady(url, isRemote, port);
+    onReady: (url, port) => {
+      handleGoalSetupServerReady(url, port);
     },
   });
 
@@ -1028,12 +952,8 @@ if (args[0] === "sessions") {
     approvalNotesSupported: supportsReviewApprovalNotes(detectedOrigin),
     htmlContent: reviewHtmlContent,
     onCleanup: worktreeCleanup,
-    onReady: async (url, isRemote, port) => {
-      if (tailscaleFlag) {
-        await handleTailscaleReady(port);
-        return;
-      }
-      handleReviewServerReady(url, isRemote, port);
+    onReady: async (url, port) => {
+      handleReviewServerReady(url, port);
     },
   });
 
@@ -1224,24 +1144,6 @@ if (args[0] === "sessions") {
     liveApp: liveAppResolved,
   } = resolution;
 
-  // Remote hard-off (layer 1 of 3; the server throw and the proxy's
-  // unconditional loopback bind are the others). No override env var exists
-  // on purpose: a live proxy relays the user's authenticated dev app.
-  if (liveAppResolved && isRemoteSession()) {
-    exitAnnotateStartupFailure(LIVE_APP_REMOTE_MESSAGE);
-  }
-
-  // --tailscale is the same exposure in different clothes: the annotate
-  // server stays loopback-bound but is published across the tailnet through
-  // the serve proxy, so a live proxy would relay the user's authenticated
-  // dev app to every tailnet peer. Hard-off, matching how the annotate agent
-  // terminal treats tailnet publication; the server throw backstops this.
-  if (liveAppResolved && tailscaleFlag) {
-    exitAnnotateStartupFailure(
-      "Live app annotation is unavailable with --tailscale (the session is reachable across your tailnet). Run without --tailscale, or use --static to annotate a converted snapshot of the page.",
-    );
-  }
-
   const annotateProject = (await detectProjectName()) ?? "_unknown";
 
   // Start the annotate server (reuses plan editor HTML)
@@ -1271,7 +1173,6 @@ if (args[0] === "sessions") {
       gate: gateFlag,
       json: jsonFlag,
       hook: hookFlag,
-      isRemote: isRemoteSession(),
     }),
     rawHtml,
     renderHtml: !!rawHtml,
@@ -1279,13 +1180,8 @@ if (args[0] === "sessions") {
     agentCwd: projectRoot,
     project: annotateProject,
     htmlContent: planHtmlContent,
-    tailnetPublished: tailscaleFlag,
-    onReady: async (url, isRemote, port) => {
-      if (tailscaleFlag) {
-        await handleTailscaleReady(port);
-        return;
-      }
-      handleAnnotateServerReady(url, isRemote, port);
+    onReady: async (url, port) => {
+      handleAnnotateServerReady(url, port);
     },
   });
 
@@ -1504,17 +1400,11 @@ if (args[0] === "sessions") {
       gate: gateFlag,
       json: jsonFlag,
       hook: hookFlag,
-      isRemote: isRemoteSession(),
     }),
     htmlContent: planHtmlContent,
     recentMessages: pickerMessages,
-    tailnetPublished: tailscaleFlag,
-    onReady: async (url, isRemote, port) => {
-      if (tailscaleFlag) {
-        await handleTailscaleReady(port);
-        return;
-      }
-      handleAnnotateServerReady(url, isRemote, port);
+    onReady: async (url, port) => {
+      handleAnnotateServerReady(url, port);
     },
   });
 
@@ -1549,8 +1439,8 @@ if (args[0] === "sessions") {
     origin: detectedOrigin,
     mode: "archive",
     htmlContent: planHtmlContent,
-    onReady: (url, isRemote, port) => {
-      handleServerReady(url, isRemote, port);
+    onReady: (url, port) => {
+      handleServerReady(url, port);
     },
   });
 
@@ -1602,8 +1492,8 @@ if (args[0] === "sessions") {
     origin: "opencode",
     htmlContent: planHtmlContent,
     opencodeClient: makeOpenCodeBridgeClient(input.agents),
-    onReady: async (url, isRemote, port) => {
-      await handleServerReady(url, isRemote, port);
+    onReady: async (url, port) => {
+      await handleServerReady(url, port);
     },
   });
 
@@ -1759,8 +1649,8 @@ if (args[0] === "sessions") {
       supportsReviewApprovalNotes("opencode") && input.supportsApprovalNotes === true,
     htmlContent: reviewHtmlContent,
     opencodeClient: makeOpenCodeBridgeClient(input.agents),
-    onReady: (url, isRemote, port) => {
-      handleReviewServerReady(url, isRemote, port);
+    onReady: (url, port) => {
+      handleReviewServerReady(url, port);
     },
   });
 
@@ -1853,11 +1743,10 @@ if (args[0] === "sessions") {
       gate: input.gate === true,
       json: true,
       hook: false,
-      isRemote: isRemoteSession(),
     }),
     htmlContent: planHtmlContent,
-    onReady: (url, isRemote, port) => {
-      handleAnnotateServerReady(url, isRemote, port);
+    onReady: (url, port) => {
+      handleAnnotateServerReady(url, port);
     },
   });
 
@@ -1916,8 +1805,8 @@ if (args[0] === "sessions") {
     plan: planContent,
     origin: "copilot-cli",
     htmlContent: planHtmlContent,
-    onReady: async (url, isRemote, port) => {
-      handleServerReady(url, isRemote, port);
+    onReady: async (url, port) => {
+      handleServerReady(url, port);
     },
   });
 
@@ -2013,11 +1902,10 @@ if (args[0] === "sessions") {
       gate: gateFlag,
       json: jsonFlag,
       hook: hookFlag,
-      isRemote: isRemoteSession(),
     }),
     htmlContent: planHtmlContent,
-    onReady: async (url, isRemote, port) => {
-      handleAnnotateServerReady(url, isRemote, port);
+    onReady: async (url, port) => {
+      handleAnnotateServerReady(url, port);
     },
   });
 
@@ -2113,8 +2001,8 @@ if (args[0] === "sessions") {
       plan: latestPlan.text,
       origin: "codex",
       htmlContent: planHtmlContent,
-      onReady: async (url, isRemote, port) => {
-        handleServerReady(url, isRemote, port);
+      onReady: async (url, port) => {
+        handleServerReady(url, port);
       },
     });
 
@@ -2185,8 +2073,8 @@ if (args[0] === "sessions") {
     origin: isGemini ? "gemini-cli" : detectedOrigin,
     permissionMode,
     htmlContent: planHtmlContent,
-    onReady: async (url, isRemote, port) => {
-      handleServerReady(url, isRemote, port);
+    onReady: async (url, port) => {
+      handleServerReady(url, port);
     },
   });
 

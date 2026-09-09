@@ -4,7 +4,6 @@
 
 import { $ } from "bun";
 import { spawn } from "node:child_process";
-import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
 import { getHypermarkDataDir } from "@hypermark/shared/data-dir";
@@ -56,54 +55,13 @@ async function tryVscodeIpc(url: string): Promise<boolean> {
 }
 
 /**
- * Check if running in WSL (Windows Subsystem for Linux)
- */
-export async function isWSL(): Promise<boolean> {
-  if (process.platform !== "linux") {
-    return false;
-  }
-
-  if (os.release().toLowerCase().includes("microsoft")) {
-    return true;
-  }
-
-  // Fallback: check /proc/version for WSL signature (if available)
-  try {
-    const file = Bun.file("/proc/version");
-    if (await file.exists()) {
-      const content = await file.text();
-      return (
-        content.toLowerCase().includes("wsl") ||
-        content.toLowerCase().includes("microsoft")
-      );
-    }
-  } catch {
-    // Ignore errors reading /proc/version
-  }
-  return false;
-}
-
-/**
  * Open a URL in the browser
  *
- * Uses HYPERMARK_BROWSER env var if set, otherwise uses system default.
- * - macOS: Set to app name ("Google Chrome") or path ("/Applications/Firefox.app")
- * - Linux/Windows/WSL: Set to executable path ("/usr/bin/firefox")
+ * Uses HYPERMARK_BROWSER env var if set, otherwise uses the system default.
+ * Set it to an executable path, e.g. "C:\\Program Files\\Mozilla Firefox\\firefox.exe".
  *
  * Fails silently if browser can't be opened
  */
-export function shouldTryRemoteBrowserFallback(isRemote: boolean): boolean {
-  if (!isRemote) return false;
-  const hypermarkBrowser = process.env.HYPERMARK_BROWSER;
-  const browser = process.env.BROWSER;
-  // Treat headless sentinels (e.g. BROWSER=true from Claude Code's agent view)
-  // as if no real browser handler were configured, so the IPC fallback still runs.
-  const hasRealHandler =
-    (hypermarkBrowser && !isNoOpBrowserSentinel(hypermarkBrowser)) ||
-    (browser && !isNoOpBrowserSentinel(browser));
-  return !hasRealHandler;
-}
-
 function buildGlimpseHtml(url: string): string {
   const encodedUrl = JSON.stringify(url);
   return `<!doctype html>
@@ -139,12 +97,12 @@ async function openGlimpse(url: string): Promise<boolean> {
   ];
   const html = buildGlimpseHtml(url);
 
-  // On Windows, `glimpseui` resolves to an npm script shim, not an exe, which
-  // spawn() can't launch without a shell. `shell: true` would break the stdin
-  // HTML pipe below, so run the package entry with node directly instead.
+  // `glimpseui` resolves to an npm script shim, not an exe, which spawn()
+  // can't launch without a shell. `shell: true` would break the stdin HTML
+  // pipe below, so run the package entry with node directly instead.
   let command = glimpseCli;
   let spawnArgs = args;
-  if (process.platform === "win32" && !/\.exe$/i.test(glimpseCli)) {
+  if (!/\.exe$/i.test(glimpseCli)) {
     const node = Bun.which("node");
     const entry = path.join(
       path.dirname(glimpseCli),
@@ -187,7 +145,7 @@ async function openGlimpse(url: string): Promise<boolean> {
 
 export async function openBrowser(
   url: string,
-  options?: { isRemote?: boolean; useGlimpse?: boolean }
+  options?: { useGlimpse?: boolean }
 ): Promise<boolean> {
   try {
     const rawHypermarkBrowser = process.env.HYPERMARK_BROWSER;
@@ -197,45 +155,19 @@ export async function openBrowser(
       : rawHypermarkBrowser;
     const envBrowser = isNoOpBrowserSentinel(rawBrowser) ? undefined : rawBrowser;
     const browser = hypermarkBrowser || envBrowser;
-    const isRemote = options?.isRemote ?? false;
-    if (shouldTryRemoteBrowserFallback(isRemote)) {
-      const openedViaIpc = await tryVscodeIpc(url);
-      if (openedViaIpc) {
-        return true;
-      }
-    }
-
-    if (options?.useGlimpse && !browser && !isRemote && resolveUseGlimpse(loadConfig())) {
+    if (options?.useGlimpse && !browser && resolveUseGlimpse(loadConfig())) {
       const openedViaGlimpse = await openGlimpse(url);
       if (openedViaGlimpse) {
         return true;
       }
     }
 
-    const platform = process.platform;
-    const wsl = await isWSL();
-
-    if (browser) {
-      if (hypermarkBrowser && platform === "darwin") {
-        if (hypermarkBrowser.includes("/") && !hypermarkBrowser.endsWith(".app")) {
-          await $`${hypermarkBrowser} ${url}`.quiet();
-        } else {
-          await $`open -a ${hypermarkBrowser} ${url}`.quiet();
-        }
-      } else if ((platform === "win32" || wsl) && hypermarkBrowser) {
-        await $`cmd.exe /c start "" ${hypermarkBrowser} ${url}`.quiet();
-      } else {
-        await $`${browser} ${url}`.quiet();
-      }
+    if (hypermarkBrowser) {
+      await $`cmd.exe /c start "" ${hypermarkBrowser} ${url}`.quiet();
+    } else if (browser) {
+      await $`${browser} ${url}`.quiet();
     } else {
-      // Default system browser
-      if (platform === "win32" || wsl) {
-        await $`cmd.exe /c start ${url}`.quiet();
-      } else if (platform === "darwin") {
-        await $`open ${url}`.quiet();
-      } else {
-        await $`xdg-open ${url}`.quiet();
-      }
+      await $`cmd.exe /c start ${url}`.quiet();
     }
     return true;
   } catch {

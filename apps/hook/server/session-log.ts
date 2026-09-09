@@ -31,13 +31,10 @@ const DEFAULT_FACTORY_SESSIONS_DIR = join(factoryConfigDir, "sessions");
 /**
  * Normalize a cwd for comparison. On Windows, filesystems are case-insensitive
  * and processes can report drive letters in either case, so we lowercase and
- * fold slashes. On Unix, cwds are compared as-is.
+ * fold slashes.
  */
 export function normalizeCwdForCompare(cwd: string): string {
-  if (process.platform === "win32") {
-    return cwd.replace(/\//g, "\\").toLowerCase();
-  }
-  return cwd;
+  return cwd.replace(/\//g, "\\").toLowerCase();
 }
 
 // --- Types ---

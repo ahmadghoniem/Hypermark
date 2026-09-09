@@ -14,7 +14,7 @@
 
 import type { Origin } from "@hypermark/shared/agents";
 import { resolve } from "path";
-import { isRemoteSession, getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
+import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
 import { openEditorDiff } from "./ide";
 import {
   saveToObsidian,
@@ -53,11 +53,10 @@ import { closeAllFileBrowserWatchers, handleFileBrowserFilesStream } from "./ref
 import { warmFileListCache } from "@hypermark/shared/resolve-file";
 import { createEditorAnnotationHandler } from "./editor-annotations";
 import { createExternalAnnotationHandler } from "./external-annotations";
-import { isWSL } from "./browser";
 import { isArchiveDocumentMutation } from "@hypermark/shared/archive-mode";
 
 // Re-export utilities
-export { isRemoteSession, getServerPort } from "./remote";
+export { getServerPort } from "./remote";
 export { openBrowser } from "./browser";
 export * from "./integrations";
 export * from "./storage";
@@ -76,7 +75,7 @@ export interface ServerOptions {
   /** Current permission mode to preserve (Claude Code only) */
   permissionMode?: string;
   /** Called when server starts with the URL, remote status, and port */
-  onReady?: (url: string, isRemote: boolean, port: number) => void | Promise<void>;
+  onReady?: (url: string, port: number) => void | Promise<void>;
   /** OpenCode client for querying available agents (OpenCode only) */
   opencodeClient?: OpencodeClient;
   /** When set to "archive", server runs in read-only archive browser mode */
@@ -90,8 +89,6 @@ export interface ServerResult {
   port: number;
   /** The full URL to access the server */
   url: string;
-  /** Whether running in remote mode */
-  isRemote: boolean;
   /** Wait for user decision (approve/deny) */
   waitForDecision: () => Promise<{
     approved: boolean;
@@ -122,8 +119,6 @@ export async function startHypermarkServer(
 ): Promise<ServerResult> {
   const { plan, origin, htmlContent, permissionMode, onReady, mode, customPlanPath } = options;
 
-  const isRemote = isRemoteSession();
-  const wslFlag = await isWSL();
   const gitUser = detectGitUser();
 
   // --- Archive mode setup ---
@@ -317,11 +312,10 @@ export async function startHypermarkServer(
                 origin,
                 mode: "archive",
                 archivePlans,
-                isWSL: wslFlag,
                 serverConfig: getServerConfig(gitUser),
               });
             }
-            return Response.json({ plan, origin, permissionMode, repoInfo, previousPlan, versionInfo, projectRoot: process.cwd(), isWSL: wslFlag, serverConfig: getServerConfig(gitUser) });
+            return Response.json({ plan, origin, permissionMode, repoInfo, previousPlan, versionInfo, projectRoot: process.cwd(), serverConfig: getServerConfig(gitUser) });
           }
 
           // API: Serve a linked markdown document
@@ -647,7 +641,7 @@ export async function startHypermarkServer(
   // Notify caller that server is ready
   if (onReady) {
     try {
-      await onReady(serverUrl, isRemote, port);
+      await onReady(serverUrl, port);
     } catch (error) {
       await stop();
       throw error;
@@ -657,7 +651,6 @@ export async function startHypermarkServer(
   return {
     port,
     url: serverUrl,
-    isRemote,
     waitForDecision: () => decisionPromise,
     ...(donePromise && { waitForDone: () => donePromise }),
     stop,

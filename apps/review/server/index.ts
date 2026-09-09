@@ -69,12 +69,9 @@ const server = await startReviewServer({
   // This dev server emits the full decision JSON below — feedback included on
   // approve — so it advertises approve-with-notes (spec §6.4).
   approvalNotesSupported: true,
-  onReady: (url, isRemote, port) => {
-    handleReviewServerReady(url, isRemote, port);
+  onReady: (url, port) => {
+    handleReviewServerReady(url, port);
     console.error(`Code review at ${url}`);
-    if (isRemote) {
-      console.error(`(Remote mode detected — if no browser opens automatically, use the URL above)`);
-    }
   },
 });
 

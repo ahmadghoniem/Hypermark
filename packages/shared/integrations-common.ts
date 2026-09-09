@@ -36,21 +36,8 @@ export interface IntegrationResult {
 export function detectObsidianVaults(): string[] {
 	try {
 		const home = process.env.HOME || process.env.USERPROFILE || "";
-		let configPath: string;
-
-		// Platform-specific config locations
-		if (process.platform === "darwin") {
-			configPath = join(
-				home,
-				"Library/Application Support/obsidian/obsidian.json",
-			);
-		} else if (process.platform === "win32") {
-			const appData = process.env.APPDATA || join(home, "AppData/Roaming");
-			configPath = join(appData, "obsidian/obsidian.json");
-		} else {
-			// Linux
-			configPath = join(home, ".config/obsidian/obsidian.json");
-		}
+		const appData = process.env.APPDATA || join(home, "AppData/Roaming");
+		const configPath = join(appData, "obsidian/obsidian.json");
 
 		if (!existsSync(configPath)) {
 			return [];

@@ -29,7 +29,7 @@ function getGitTimeoutMs(): number {
  */
 function killGitTree(child: { pid?: number; kill(signal?: NodeJS.Signals): boolean }): void {
 	try {
-		if (process.platform === "win32" && child.pid) {
+		if (child.pid) {
 			const killed = spawnSync("taskkill.exe", ["/pid", String(child.pid), "/t", "/f"], {
 				stdio: "ignore",
 				windowsHide: true,

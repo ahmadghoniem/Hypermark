@@ -9,7 +9,7 @@
  *   HYPERMARK_PORT   - Fixed port or inclusive range (default: random locally, 19432 for remote)
  */
 
-import { isRemoteSession, getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
+import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
 import type { Origin } from "@hypermark/shared/agents";
 import { type DiffType, type GitContext, runVcsDiff, getVcsFileContentsForDiff, getVcsDiffFingerprint, resolveVcsCwd, validateFilePath, getVcsContext, detectRemoteDefaultCompareTarget, vcsOwnsDiffType, vcsSupportsSnapshot, materializeVcsSnapshot, gitRuntime } from "./vcs";
 import { basename } from "node:path";
@@ -84,13 +84,12 @@ import {
   fetchPRArtifactDocument,
   PRArtifactDocumentError,
 } from "@hypermark/shared/pr-artifact-document";
-import { isWSL } from "./browser";
 import { handleOpenInApps, handleOpenIn } from "./open-in";
 import type { LocalWorkspaceReview, WorkspaceDiffType } from "./review-workspace";
 import { handleCodeNavResolve, handleCodeNavHover, extractChangedFiles } from "./code-nav";
 
 // Re-export utilities
-export { isRemoteSession, getServerPort } from "./remote";
+export { getServerPort } from "./remote";
 export { openBrowser } from "./browser";
 export { type DiffType, type DiffOption, type GitContext, type WorktreeInfo } from "./vcs";
 export { type PRMetadata } from "./pr";
@@ -137,7 +136,7 @@ export interface ReviewServerOptions {
    */
   approvalNotesSupported?: boolean;
   /** Called when server starts with the URL, remote status, and port */
-  onReady?: (url: string, isRemote: boolean, port: number) => void | Promise<void>;
+  onReady?: (url: string, port: number) => void | Promise<void>;
   /** OpenCode client for querying available agents (OpenCode only) */
   opencodeClient?: OpencodeClient;
   /** PR metadata when reviewing a pull request (PR mode) */
@@ -172,8 +171,6 @@ export interface ReviewServerResult {
   port: number;
   /** The full URL to access the server */
   url: string;
-  /** Whether running in remote mode */
-  isRemote: boolean;
   /** Wait for user review decision */
   waitForDecision: () => Promise<{
     approved: boolean;
@@ -985,8 +982,6 @@ export async function startReviewServer(
     });
   };
 
-  const isRemote = isRemoteSession();
-  const wslFlag = await isWSL();
   const gitUser = detectGitUser();
 
   // Detect repo info (cached for this session)
@@ -1113,7 +1108,6 @@ export async function startReviewServer(
               gitContext: hasLocalAccess ? servedGitContext : undefined,
               approvalNotesSupported,
               repoInfo,
-              isWSL: wslFlag,
               // PR mode advertises the ready PR checkout (null while warming), so
               // the Open-in button gates correctly from the initial load — not
               // the launch repo. Non-PR keeps the workspace/local cwd.
@@ -2496,12 +2490,12 @@ export async function startReviewServer(
   };
 
   // Notify caller that server is ready. An async ready handler that rejects
-  // (e.g. --tailscale publishing failed) must stop the server and propagate:
-  // firing-and-forgetting it would leave an unhandled rejection while the
-  // loopback server keeps listening and the session hangs forever.
+  // must stop the server and propagate: firing-and-forgetting it would leave
+  // an unhandled rejection while the server keeps listening and the session
+  // hangs forever.
   if (onReady) {
     try {
-      await onReady(serverUrl, isRemote, port);
+      await onReady(serverUrl, port);
     } catch (error) {
       stop();
       throw error;
@@ -2511,7 +2505,6 @@ export async function startReviewServer(
   return {
     port,
     url: serverUrl,
-    isRemote,
     waitForDecision: () => decisionPromise,
     stop,
   };

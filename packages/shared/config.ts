@@ -204,17 +204,6 @@ export interface HypermarkConfig {
    */
   glimpse?: boolean;
   /**
-   * Display-only hostname for advertised session URLs (issue #657). Lets a
-   * remote-mode user hand out a reachable link (e.g. a Tailscale MagicDNS
-   * name or tailnet IP) instead of localhost. Host only — the port is chosen
-   * at runtime and always appended. Never affects which interface the server
-   * binds; that stays governed by HYPERMARK_REMOTE. Applied only in remote
-   * sessions: a local session binds loopback, so the override is ignored
-   * (localhost is advertised) with a once-per-process stderr warning.
-   * Mirrors the HYPERMARK_URL_HOST env var, which takes precedence.
-   */
-  urlHost?: string;
-  /**
    * Mirror the approved plan checklist into an editable todo provider during
    * execution (issue #484). "auto" (default) syncs whenever a provider is
    * detected — currently pi-todos. Detection checks the configured todo
@@ -640,57 +629,6 @@ export function resolveUseJina(cliNoJina: boolean, config: HypermarkConfig): boo
 
   // Config file (default: enabled)
   return coerceConfigBoolean(config.jina, true);
-}
-
-// Bare hostname or IPv4: letters/digits/dots/hyphens, no leading/trailing
-// dot or hyphen. Covers MagicDNS names ("my-machine.tailnet.ts.net").
-const URL_HOST_HOSTNAME_RE = /^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$/;
-// Bracketed IPv6 literal, e.g. [fd7a::1]; dots allow IPv4-mapped forms.
-const URL_HOST_IPV6_RE = /^\[[0-9A-Fa-f:.]+\]$/;
-
-/**
- * Validate a display host for advertised URLs. Host only: anything carrying a
- * scheme, path, query, credentials, whitespace, or a port (":" outside IPv6
- * brackets — the runtime-chosen port is always appended) is rejected.
- */
-export function isValidUrlHost(host: string): boolean {
-  return URL_HOST_HOSTNAME_RE.test(host) || URL_HOST_IPV6_RE.test(host);
-}
-
-const warnedInvalidUrlHosts = new Set<string>();
-
-/**
- * Resolve the display-only hostname used in advertised session URLs.
- * Returns undefined when unset (callers advertise localhost). An empty (but
- * set) env var suppresses the config key. Callers apply this only to remote
- * sessions; local sessions ignore it (see buildAdvertisedUrl).
- *
- * Priority (highest wins):
- *   HYPERMARK_URL_HOST env var  →  config.urlHost  →  undefined
- *
- * An invalid value warns once per value on stderr and falls back to
- * localhost — a display setting must never crash a server launch. The echoed
- * value is JSON-encoded so an embedded newline cannot forge extra stderr
- * lines (hosts surface "Hypermark session ready" lines as clickable links).
- *
- * The sentinel "auto" is returned verbatim (it matches the hostname shape);
- * the advertised-URL layer resolves it via Tailscale detection
- * (packages/server/remote.ts and the Pi network.ts mirror).
- */
-export function resolveUrlHost(config: HypermarkConfig): string | undefined {
-  const envVal = process.env.HYPERMARK_URL_HOST;
-  const raw = envVal !== undefined ? envVal : config.urlHost;
-  if (typeof raw !== "string") return undefined;
-  const host = raw.trim();
-  if (host === "") return undefined;
-  if (isValidUrlHost(host)) return host;
-  if (!warnedInvalidUrlHosts.has(host)) {
-    warnedInvalidUrlHosts.add(host);
-    process.stderr.write(
-      `[hypermark] Warning: invalid advertised URL host ${JSON.stringify(host)} — expected a bare hostname, IPv4, or bracketed IPv6 (no scheme, port, or path); using localhost\n`,
-    );
-  }
-  return undefined;
 }
 
 /**

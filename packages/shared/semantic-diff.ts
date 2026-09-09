@@ -151,15 +151,14 @@ export function createDefaultSemanticDiffRuntime(): SemanticDiffRuntime {
   };
 }
 
-function semBinaryName(platform: NodeJS.Platform): string {
-  return platform === "win32" ? "sem.exe" : "sem";
+function semBinaryName(): string {
+  return "sem.exe";
 }
 
 export function getManagedSemBinaryPath(
   dataDir = getHypermarkDataDir(),
-  platform: NodeJS.Platform = process.platform,
 ): string {
-  return join(dataDir, "vendor", "sem", HYPERMARK_SEM_VERSION, semBinaryName(platform));
+  return join(dataDir, "vendor", "sem", HYPERMARK_SEM_VERSION, semBinaryName());
 }
 
 export function getSemanticDiffScratchCwd(dataDir = getHypermarkDataDir()): string {
@@ -211,7 +210,7 @@ function semCandidates(runtime: SemanticDiffRuntime): SemCandidate[] {
     return candidates;
   }
 
-  const managed = getManagedSemBinaryPath(runtime.dataDir, runtime.platform);
+  const managed = getManagedSemBinaryPath(runtime.dataDir);
   if (runtime.fileExists(managed)) {
     candidates.push({ command: managed, source: "managed", explicit: false });
   }

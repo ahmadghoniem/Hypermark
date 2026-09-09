@@ -1,4 +1,3 @@
-import { isMac } from '../utils/platform';
 
 export type ShortcutPlatform = 'mac' | 'non-mac' | 'cross-platform';
 
@@ -261,7 +260,7 @@ export function listRegistryShortcutSections(registry: ShortcutRegistry): Shortc
 }
 
 export function getShortcutPlatform(): Exclude<ShortcutPlatform, 'cross-platform'> {
-  return isMac ? 'mac' : 'non-mac';
+  return 'non-mac';
 }
 
 function formatKeycapToken(token: string, platform: Exclude<ShortcutPlatform, 'cross-platform'>): string {
