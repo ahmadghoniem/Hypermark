@@ -52,12 +52,11 @@ describe("annotate stdout", () => {
     expect(supportsAnnotateApprovalNotes({ gate: true, json: true, hook: true })).toBe(false);
   });
 
-  test("advertises client-lease only for gated direct JSON, local sessions", () => {
-    expect(supportsAnnotateClientLease({ gate: true, json: true, hook: false, isRemote: false })).toBe(true);
-    expect(supportsAnnotateClientLease({ gate: false, json: true, hook: false, isRemote: false })).toBe(false);
-    expect(supportsAnnotateClientLease({ gate: true, json: false, hook: false, isRemote: false })).toBe(false);
-    expect(supportsAnnotateClientLease({ gate: true, json: true, hook: true, isRemote: false })).toBe(false);
-    expect(supportsAnnotateClientLease({ gate: true, json: true, hook: false, isRemote: true })).toBe(false);
+  test("advertises client-lease only for gated direct JSON sessions", () => {
+    expect(supportsAnnotateClientLease({ gate: true, json: true, hook: false })).toBe(true);
+    expect(supportsAnnotateClientLease({ gate: false, json: true, hook: false })).toBe(false);
+    expect(supportsAnnotateClientLease({ gate: true, json: false, hook: false })).toBe(false);
+    expect(supportsAnnotateClientLease({ gate: true, json: true, hook: true })).toBe(false);
   });
 });
 
@@ -109,9 +108,8 @@ describe("annotate client-lease call sites", () => {
     for (const site of sites) {
       // Every transport that blocks on waitForDecision() must decide the lease
       // through supportsAnnotateClientLease rather than hardcoding a boolean —
-      // that is what keeps hook/plaintext/remote transports opted out.
+      // that is what keeps hook/plaintext transports opted out.
       expect(site).toContain("clientLeaseSupported: supportsAnnotateClientLease({");
-      expect(site).toContain("isRemote: isRemoteSession()");
     }
 
     // Cross-check the brace scan against a plain occurrence count, so a call

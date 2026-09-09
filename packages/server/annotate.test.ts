@@ -1550,38 +1550,6 @@ describe("annotate server: client lease", () => {
     }
   });
 
-  test("a tailnet-published session neither advertises nor serves the lease even when the CLI predicate allowed it", async () => {
-    // --tailscale forces local mode, so the CLI-side predicate reads the
-    // session as local and passes clientLeaseSupported: true — but clients
-    // reach it through the serve proxy, and a proxy disconnect longer than
-    // the grace would auto-dismiss a live review. The server must force the
-    // capability off, exactly like a remote session.
-    const savedDataDir = process.env.HYPERMARK_DATA_DIR;
-    const sandboxDataDir = mkdtempSync(join(tmpdir(), "hypermark-lease-tailnet-"));
-    process.env.HYPERMARK_DATA_DIR = sandboxDataDir;
-    const server = await startAnnotateServer({
-      markdown: "# Test",
-      filePath: join(tmpdir(), "client-lease-tailnet.md"),
-      htmlContent: MINIMAL_HTML,
-      gate: true,
-      approvalNotesSupported: true,
-      clientLeaseSupported: true,
-      tailnetPublished: true,
-    });
-
-    try {
-      const response = await fetch(`${server.url}/api/plan`);
-      const plan = await response.json() as { clientLease?: { enabled: boolean } };
-      expect(plan.clientLease).toEqual({ enabled: false });
-      const stream = await fetch(`${server.url}/api/annotate/client-lease`);
-      expect(stream.status).toBe(404);
-    } finally {
-      server.stop();
-      if (savedDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
-      else process.env.HYPERMARK_DATA_DIR = savedDataDir;
-      rmSync(sandboxDataDir, { recursive: true, force: true });
-    }
-  });
 
   test("returns 404 for the client-lease stream when the capability is disabled", async () => {
     const server = await startAnnotateServer({
@@ -2118,7 +2086,7 @@ describe("annotate server: live app mode (annotate-app)", () => {
     });
   }
 
-  async function startLiveServer(targetUrl: string, extra?: { tailnetPublished?: boolean }) {
+  async function startLiveServer(targetUrl: string) {
     return startAnnotateServer({
       markdown: "",
       filePath: targetUrl,
@@ -2131,7 +2099,6 @@ describe("annotate server: live app mode (annotate-app)", () => {
         bridgeBootstrap: "/* bootstrap body */",
         annotationCss: ".pn-live {}",
       },
-      ...extra,
     });
   }
 
@@ -2365,15 +2332,6 @@ describe("annotate server: live app mode (annotate-app)", () => {
     );
   });
 
-  test("tailnet-published sessions reject live app sessions outright", async () => {
-    // --tailscale keeps the annotate server loopback-bound but publishes it
-    // across the tailnet through the serve proxy; a live proxy would relay
-    // the user's authenticated dev app to every tailnet peer, so it is the
-    // same hard-off as remote mode, keyed on tailnetPublished.
-    await expect(
-      startLiveServer("http://127.0.0.1:65500", { tailnetPublished: true }),
-    ).rejects.toThrow("Live app annotation is unavailable in tailnet-published sessions");
-  });
 });
 
 describe("annotate server: guarded shutdown (runGuardedShutdown)", () => {

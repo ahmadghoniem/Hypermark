@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { isNoOpBrowserSentinel, shouldTryRemoteBrowserFallback } from "./browser";
+import { isNoOpBrowserSentinel } from "./browser";
 
 const savedEnv: Record<string, string | undefined> = {};
 const envKeys = ["HYPERMARK_BROWSER", "BROWSER"];
@@ -21,41 +21,6 @@ afterEach(() => {
   }
 });
 
-describe("shouldTryRemoteBrowserFallback", () => {
-  test("false for local sessions", () => {
-    clearEnv();
-    expect(shouldTryRemoteBrowserFallback(false)).toBe(false);
-  });
-
-  test("true for remote sessions without browser handlers", () => {
-    clearEnv();
-    expect(shouldTryRemoteBrowserFallback(true)).toBe(true);
-  });
-
-  test("false for remote sessions with BROWSER configured", () => {
-    clearEnv();
-    process.env.BROWSER = "/usr/bin/browser";
-    expect(shouldTryRemoteBrowserFallback(true)).toBe(false);
-  });
-
-  test("false for remote sessions with HYPERMARK_BROWSER configured", () => {
-    clearEnv();
-    process.env.HYPERMARK_BROWSER = "/usr/bin/browser";
-    expect(shouldTryRemoteBrowserFallback(true)).toBe(false);
-  });
-
-  test("true for remote sessions when BROWSER is a no-op sentinel", () => {
-    clearEnv();
-    process.env.BROWSER = "true";
-    expect(shouldTryRemoteBrowserFallback(true)).toBe(true);
-  });
-
-  test("true for remote sessions when HYPERMARK_BROWSER is a no-op sentinel", () => {
-    clearEnv();
-    process.env.HYPERMARK_BROWSER = "none";
-    expect(shouldTryRemoteBrowserFallback(true)).toBe(true);
-  });
-});
 
 describe("isNoOpBrowserSentinel", () => {
   test("returns false for undefined and empty values", () => {

@@ -322,24 +322,6 @@ You run /hypermark-review
 
 ---
 
-## Remote / SSH / devcontainer
-
-Hypermark auto-detects SSH sessions and switches to a fixed port. For explicit control:
-
-```bash
-export HYPERMARK_REMOTE=1
-export HYPERMARK_PORT=9999  # forward this port
-```
-
-VS Code devcontainers forward the port automatically (check the Ports tab). For raw SSH, add to `~/.ssh/config`:
-
-```
-Host your-server
-    LocalForward 9999 localhost:9999
-```
-
----
-
 ## Security
 
 Every released binary ships with a SHA256 sidecar. [SLSA provenance](https://slsa.dev/) attestations are available from v0.17.2. The current release workflow also attaches a CycloneDX JSON SBOM, evaluates it with a fresh Grype database before anything is attested or published, and creates a GitHub/Sigstore SBOM attestation for the shipped binaries and npm tarballs.
@@ -422,8 +404,7 @@ implementation architecture.
 
 | Variable | Description |
 |---|---|
-| `HYPERMARK_REMOTE` | `1`/`true` for remote mode, `0`/`false` for local, unset for SSH auto-detection |
-| `HYPERMARK_PORT` | Fixed port (default: random locally, `19432` remote) |
+| `HYPERMARK_PORT` | Fixed port (default: random) |
 | `HYPERMARK_BROWSER` | Custom browser to open plans in |
 | `HYPERMARK_ORIGIN` | Override agent detection. Only `claude-code` is installed by this fork |
 | `HYPERMARK_JINA` | `0`/`false` to disable Jina Reader for URL annotation |

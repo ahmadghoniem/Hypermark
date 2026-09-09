@@ -96,13 +96,11 @@ describe("writeServerReadyMetadata", () => {
     try {
       writeServerReadyMetadata(readyFile, {
         url: "http://localhost:12345",
-        isRemote: false,
         port: 12345,
       });
       const [line] = readFileSync(readyFile, "utf8").trim().split(/\r?\n/);
       expect(JSON.parse(line)).toEqual({
         url: "http://localhost:12345",
-        isRemote: false,
         port: 12345,
       });
     } finally {
@@ -123,7 +121,7 @@ describe("handleServerReady", () => {
     process.env.__CFBundleIdentifier = "com.apple.Terminal";
 
     try {
-      await handleServerReady("http://localhost:12345", false, 12345, {
+      await handleServerReady("http://localhost:12345", 12345, {
         skipBrowserOpen: true,
         openBrowser: async () => {
           opened = true;
@@ -140,25 +138,6 @@ describe("handleServerReady", () => {
     expect(opened).toBe(false);
   });
 
-  // Regression: a remote session must surface a reachable URL in the terminal
-  // regardless of URL sharing — otherwise a sharing-disabled remote user is left
-  // with no URL and the agent hangs waiting on the review.
-  test("prints the reachable URL to stderr for a remote session", async () => {
-    const writes: string[] = [];
-    const original = process.stderr.write.bind(process.stderr);
-    (process.stderr as { write: unknown }).write = (chunk: unknown) => {
-      writes.push(String(chunk));
-      return true;
-    };
-    try {
-      await handleServerReady("http://localhost:19432", true, 19432, {
-        skipBrowserOpen: true,
-      });
-    } finally {
-      (process.stderr as { write: unknown }).write = original;
-    }
-    expect(writes.join("")).toContain("http://localhost:19432");
-  });
 
   test("does not print the URL for a local session when the browser opens", async () => {
     const writes: string[] = [];
@@ -171,7 +150,7 @@ describe("handleServerReady", () => {
     };
     process.env.__CFBundleIdentifier = "com.apple.Terminal";
     try {
-      await handleServerReady("http://localhost:3000", false, 3000, {
+      await handleServerReady("http://localhost:3000", 3000, {
         openBrowser: async (u: string) => {
           opened = u;
           return true;
@@ -199,7 +178,7 @@ describe("handleServerReady", () => {
     };
     process.env.__CFBundleIdentifier = "com.openai.codex";
     try {
-      await handleServerReady("http://localhost:3000", false, 3000, {
+      await handleServerReady("http://localhost:3000", 3000, {
         openBrowser: async () => true,
       });
     } finally {
@@ -224,7 +203,7 @@ describe("handleServerReady", () => {
       return true;
     };
     try {
-      await handleServerReady("http://localhost:4000", false, 4000, {
+      await handleServerReady("http://localhost:4000", 4000, {
         openBrowser: async () => false,
       });
     } finally {

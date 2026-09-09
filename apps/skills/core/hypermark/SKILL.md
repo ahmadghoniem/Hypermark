@@ -5,7 +5,7 @@ description: "Reference for using the Hypermark CLI: plan review, code review, a
 
 # Hypermark CLI Reference
 
-Hypermark is a local, browser-based review layer for agent workflows: it opens plans, diffs, and documents in an annotation UI, the human marks them up, and the structured feedback comes back to you on stdout. It installs as a single `hypermark` binary plus per-host hooks, so plan review fires automatically when you exit plan mode; every other surface is launched explicitly from the CLI. A session runs on a random localhost port (fixed port 19432 in remote mode) and blocks until the reviewer submits feedback, approves, or closes the tab.
+Hypermark is a local, browser-based review layer for agent workflows: it opens plans, diffs, and documents in an annotation UI, the human marks them up, and the structured feedback comes back to you on stdout. It installs as a single `hypermark` binary plus per-host hooks, so plan review fires automatically when you exit plan mode; every other surface is launched explicitly from the CLI. A session runs on a random localhost port and blocks until the reviewer submits feedback, approves, or closes the tab.
 
 This skill is the knowledge layer. The `hypermark-review`, `hypermark-annotate`, and `hypermark-last` skills are thin launchers for the three most common actions; use this reference when you need to pick the right command or flags yourself.
 
@@ -40,7 +40,7 @@ The stdout contract is the whole interface:
 ## hypermark review
 
 ```bash
-hypermark review [--git | --gitbutler] [--local | --no-local] [--tailscale] [PR_URL]
+hypermark review [--git | --gitbutler] [--local | --no-local] [PR_URL]
 ```
 
 Reviews local VCS changes, or a pull request when a URL is given. Feedback and annotations come back on stdout when the reviewer submits; an approval comes back as an LGTM-style message.
@@ -48,12 +48,11 @@ Reviews local VCS changes, or a pull request when a URL is given. Feedback and a
 - VCS is auto-detected (JJ, GitButler, Git, and P4 where supported). `--git` forces plain Git; `--gitbutler` forces GitButler (requires the `but` CLI 0.21.0+). Running from a non-VCS parent folder that contains nested repos produces a combined workspace diff.
 - The default diff is "everything a PR would show now": merge-base of the trunk vs the working tree plus untracked files. The reviewer can switch diff types in the UI; you do not control that from the CLI.
 - PR review (`hypermark review https://github.com/owner/repo/pull/123`, GitLab MR URLs too) needs an authenticated `gh` or `glab` CLI. `--local` (the default) builds a local checkout of the PR head in the background for full file access; `--no-local` skips it and reviews the platform diff only.
-- `--tailscale` publishes the loopback session over the user's tailnet via `tailscale serve` (HTTPS, never public) and prints the URL with a QR code. A publish failure exits nonzero instead of leaving the server hanging.
 
 ## hypermark annotate
 
 ```bash
-hypermark annotate <target> [--markdown] [--no-jina] [--app | --static] [--render-html] [--tailscale] [--gate] [--json] [--hook]
+hypermark annotate <target> [--markdown] [--no-jina] [--app | --static] [--render-html] [--gate] [--json] [--hook]
 ```
 
 Opens one document, page, or app in the annotation UI and returns the human's annotations on stdout.
@@ -98,7 +97,7 @@ Without strict flags, startup failures exit 1 and the exit code carries no decis
 ## hypermark annotate-last
 
 ```bash
-hypermark annotate-last [--stdin] [--tailscale] [--gate] [--json] [--hook]
+hypermark annotate-last [--stdin] [--gate] [--json] [--hook]
 hypermark last
 ```
 
@@ -147,7 +146,6 @@ hypermark improve-context
 
 | Variable | Use |
 | --- | --- |
-| `HYPERMARK_REMOTE=1` | Force remote mode (fixed port 19432, wide bind) for SSH/devcontainer sessions; `0` forces local. Unset means SSH auto-detection. |
 | `HYPERMARK_PORT` | Fix the port instead of a random one. |
 | `HYPERMARK_ORIGIN` | Override agent-origin detection (`claude-code`, `codex`, `opencode`, `pi`, `oh-my-pi`, `amp`, `droid`, `copilot-cli`, `gemini-cli`, `kiro-cli`). Set it when launching Hypermark from a wrapper the detection cannot see through. |
 | `HYPERMARK_AI=disabled` | Disable Ask AI and agent-launched review surfaces in the UI. |

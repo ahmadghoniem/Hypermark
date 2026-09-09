@@ -6,7 +6,6 @@ import { handleServerReady } from "./shared-handlers";
 
 const envKeys = [
   "HYPERMARK_PORT",
-  "HYPERMARK_REMOTE",
   "HYPERMARK_DATA_DIR",
   "HYPERMARK_SKIP_BROWSER_OPEN",
   "__CFBundleIdentifier",
@@ -18,31 +17,26 @@ afterEach(() => environment.restore());
 describe("Bun startup port compatibility", () => {
   test("unset local startup keeps its random URL and browser-ready handoff", async () => {
     environment.reset();
-    process.env.HYPERMARK_REMOTE = "0";
     process.env.HYPERMARK_DATA_DIR = environment.makeTempDir();
     process.env.__CFBundleIdentifier = "com.apple.Terminal";
-    let ready: { url: string; isRemote: boolean; port: number } | undefined;
+    let ready: { url: string; port: number } | undefined;
 
     const server = await startHypermarkServer({
       plan: "# Port compatibility",
       origin: "codex",
       htmlContent: "<!doctype html><html><body>plan</body></html>",
-      onReady: (url, isRemote, port) => {
-        ready = { url, isRemote, port };
+      onReady: (url, port) => {
+        ready = { url, port };
       },
     });
 
     try {
       expect(server.port).toBeGreaterThan(0);
       expect(server.url).toBe(`http://localhost:${server.port}`);
-      expect(ready).toEqual({
-        url: server.url,
-        isRemote: false,
-        port: server.port,
-      });
+      expect(ready).toEqual({ url: server.url, port: server.port });
 
       let openedUrl: string | undefined;
-      await handleServerReady(server.url, server.isRemote, server.port, {
+      await handleServerReady(server.url, server.port, {
         openBrowser: async (url) => {
           openedUrl = url;
           return true;
@@ -58,24 +52,23 @@ describe("Bun startup port compatibility", () => {
     environment.reset();
     const { start, servers } = await occupyConsecutivePorts(1);
     await closeServer(servers[0]);
-    process.env.HYPERMARK_REMOTE = "0";
     process.env.HYPERMARK_PORT = String(start);
     process.env.HYPERMARK_DATA_DIR = environment.makeTempDir();
-    let ready: { url: string; isRemote: boolean; port: number } | undefined;
+    let ready: { url: string; port: number } | undefined;
 
     const server = await startHypermarkServer({
       plan: "# Fixed port compatibility",
       origin: "codex",
       htmlContent: "<!doctype html><html><body>plan</body></html>",
-      onReady: (url, isRemote, port) => {
-        ready = { url, isRemote, port };
+      onReady: (url, port) => {
+        ready = { url, port };
       },
     });
 
     try {
       expect(server.port).toBe(start);
       expect(server.url).toBe(`http://localhost:${start}`);
-      expect(ready).toEqual({ url: server.url, isRemote: false, port: start });
+      expect(ready).toEqual({ url: server.url, port: start });
     } finally {
       await server.stop();
     }
@@ -85,7 +78,6 @@ describe("Bun startup port compatibility", () => {
     environment.reset();
     const { start, servers } = await occupyConsecutivePorts(1);
     await closeServer(servers[0]);
-    process.env.HYPERMARK_REMOTE = "0";
     process.env.HYPERMARK_PORT = String(start);
     process.env.HYPERMARK_DATA_DIR = environment.makeTempDir();
     const readyError = new Error("ready handoff failed");
