@@ -6,15 +6,13 @@ import {
   type CodeNavRequest,
   type CodeNavRuntime,
   type CodeNavResponse,
-  type CodeNavHoverResponse,
   CODE_NAV_MAX_FILE_BYTES,
   resolveCodeNav,
-  resolveCodeNavHover,
   validateCodeNavRequest,
   extractChangedFiles,
 } from "@hypermark/shared/code-nav";
 
-export type { CodeNavRequest, CodeNavResponse, CodeNavHoverResponse };
+export type { CodeNavRequest, CodeNavResponse };
 
 const bunCodeNavRuntime: CodeNavRuntime = {
   async runCommand(command, args, options) {
@@ -70,39 +68,6 @@ export async function handleCodeNavResolve(
     }
 
     const result = await resolveCodeNav(
-      bunCodeNavRuntime,
-      body,
-      cwd,
-      changedFiles,
-    );
-
-    return Response.json(result);
-  } catch (err) {
-    return Response.json(
-      { error: err instanceof Error ? err.message : "Code navigation failed" },
-      { status: 500 },
-    );
-  }
-}
-
-/**
- * Hover card resolution. A separate handler from {@link handleCodeNavResolve}
- * on purpose: the two answer different shapes, and Cmd+click's handler stays
- * untouched by construction.
- */
-export async function handleCodeNavHover(
-  req: Request,
-  cwd: string,
-  changedFiles: string[],
-): Promise<Response> {
-  try {
-    const body = (await req.json()) as CodeNavRequest;
-    const error = validateCodeNavRequest(body);
-    if (error) {
-      return Response.json({ error }, { status: 400 });
-    }
-
-    const result = await resolveCodeNavHover(
       bunCodeNavRuntime,
       body,
       cwd,

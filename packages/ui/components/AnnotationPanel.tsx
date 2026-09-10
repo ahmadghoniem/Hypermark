@@ -6,6 +6,7 @@ import { OverlayScrollArea } from './OverlayScrollArea';
 import { Button } from './ui/button';
 import { cn } from '../lib/utils';
 import { resolveReplyParents, resolveThreadRootTimestamps } from '@hypermark/core/annotation-threads';
+import { isCurrentUser } from '../utils/identity';
 
 // Card type-word colors. Deletion uses `destructive` (reliably red on every
 // theme, matching the in-document .deletion highlight). Comment uses the
@@ -109,10 +110,6 @@ interface PanelProps {
     *  `false` suppresses the "Copied" flash. A void resolution (existing hosts)
     *  is treated as success, preserving the original behavior. */
   onQuickCopy?: () => Promise<void | boolean>;
-  /** Download the annotations as a file. Sits beside Copy in the footer —
-   *  both are "take this out of the browser" actions, so they live together
-   *  rather than one here and one in the header. */
-  onDownloadAnnotations?: () => void;
   otherFileAnnotations?: { count: number; files: number };
   onOtherFileAnnotationsClick?: () => void;
   /** Committed direct edits to one or more documents. Rendered as pinned cards
@@ -151,7 +148,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
   width,
   onClose,
   onQuickCopy,
-  onDownloadAnnotations,
   otherFileAnnotations,
   onOtherFileAnnotationsClick,
   directEdits = null,
@@ -354,18 +350,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                   Copy
                 </>
               )}
-            </button>
-          )}
-          {onDownloadAnnotations && (
-            <button
-              onClick={onDownloadAnnotations}
-              className="flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-surface-1 hover:text-foreground"
-              title="Download annotations"
-              aria-label="Download annotations"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0 0l-4-4m4 4l4-4" />
-              </svg>
             </button>
           )}
         </div>
@@ -630,7 +614,11 @@ const AnnotationCard: React.FC<{
           </span>
         )}
         <span className="text-[10px] text-muted-foreground/50 truncate">
-          {annotation.author ? `${annotation.author} · ` : ''}{formatTimestamp(annotation.createdA)}
+          {/* Your own name is noise: Hypermark is a single-annotator app and
+              the generated identity says nothing you did not already know.
+              Someone else's — an agent, a host-stamped account — is the whole
+              point of the field, so that one still renders. */}
+          {annotation.author && !isCurrentUser(annotation.author) ? `${annotation.author} · ` : ''}{formatTimestamp(annotation.createdA)}
         </span>
         {!readOnly && (
           <div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100">

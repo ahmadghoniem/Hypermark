@@ -15,13 +15,6 @@ import {
 } from '@hypermark/core/agent-terminal';
 import type { DiffLineBgIntensity } from '@hypermark/core/config-types';
 import { isFaviconStyle, type FaviconStyle } from '@hypermark/core/favicon';
-import {
-  DEFAULT_TOKEN_HOVER_DELAY_MS,
-  isTokenHoverDelay,
-  resolveStoredTokenHoverTrigger,
-  type TokenHoverDelay,
-  type TokenHoverTrigger,
-} from '@hypermark/core/token-hover';
 import { storage } from '../utils/storage';
 import { generateIdentity } from '../utils/generateIdentity';
 import {
@@ -192,44 +185,6 @@ export const SETTINGS = {
     },
     toCookie: (value: boolean) =>
       storage.setItem('hypermark-review-auto-viewed', String(value)),
-    serverKey: undefined, fromServer: undefined, toServer: undefined,
-  },
-
-  // Hovering a token in a code-review diff opens a card with what the search
-  // backend knows about that symbol. Cookie-only like the other review-chrome
-  // preferences: it is presentational, per-browser, and changes no review
-  // semantics — `off` simply means no listeners, no requests and no card.
-  //
-  // This one select REPLACED the original `tokenHoverCards` boolean rather
-  // than sitting beside it: a toggle plus a mode has an unreachable state
-  // (disabled + modifier) and asks one question with two controls. The legacy
-  // cookie is still read — on every load until the user touches this setting,
-  // since a migrating read returns a value and so never triggers the
-  // registry's default-seeding write — so an early adopter who turned cards
-  // off stays off. Resolution is pure and identical every time; see
-  // resolveStoredTokenHoverTrigger.
-  tokenHoverTrigger: {
-    defaultValue: 'hover' as TokenHoverTrigger,
-    fromCookie: () => resolveStoredTokenHoverTrigger(
-      storage.getItem('hypermark-token-hover-trigger'),
-      storage.getItem('hypermark-token-hover-cards'),
-    ),
-    toCookie: (value: TokenHoverTrigger) =>
-      storage.setItem('hypermark-token-hover-trigger', value),
-    serverKey: undefined, fromServer: undefined, toServer: undefined,
-  },
-
-  // How long the pointer rests on a symbol before a card is requested. Three
-  // fixed steps, not a slider: "too eager" is a real complaint that neither
-  // `modifier` nor `off` answers, but nobody can tell 340ms from 360ms.
-  tokenHoverDelay: {
-    defaultValue: DEFAULT_TOKEN_HOVER_DELAY_MS as TokenHoverDelay,
-    fromCookie: () => {
-      const parsed = Number(storage.getItem('hypermark-token-hover-delay'));
-      return isTokenHoverDelay(parsed) ? parsed : undefined;
-    },
-    toCookie: (value: TokenHoverDelay) =>
-      storage.setItem('hypermark-token-hover-delay', String(value)),
     serverKey: undefined, fromServer: undefined, toServer: undefined,
   },
 

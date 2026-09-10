@@ -10,7 +10,6 @@ import { useConfigValue } from '@hypermark/ui/config';
  * the import path the review editor has always used.
  */
 import { resolveSyntaxTheme } from '@hypermark/ui/utils/syntaxTheme';
-import { tokenHoverUnderlineCss } from '../components/tokenHoverStyles';
 export { SHIKI_THEME_MAP, resolveSyntaxTheme } from '@hypermark/ui/utils/syntaxTheme';
 
 export interface PierreTheme {
@@ -275,9 +274,10 @@ export function usePierreTheme(options?: {
           [data-diff-type='split'][data-overflow='scroll'] > [data-code][data-additions] [data-content] {
             min-width: 0 !important;
           }
-          .pn-token-hover {${tokenHoverUnderlineCss('var(--primary, oklch(0.70 0.20 280))')}
-          }
           .pn-token-nav {
+            text-decoration: underline;
+            text-decoration-color: var(--primary, oklch(0.70 0.20 280));
+            text-underline-offset: 2px;
             text-decoration-thickness: 2px;
             /* Pierre's [data-*] selectors outrank a bare class inside the
                shadow root, so the pointer needs the same !important the

@@ -3768,19 +3768,6 @@ const AppInner: React.FC = () => {
     // This is just a placeholder for future custom logic
   };
 
-  // Download handler for the options menu and the Mod+S shortcut
-  const handleDownloadAnnotations = () => {
-    const output = getCurrentFeedbackPayload();
-    const blob = new Blob([output], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'annotations.md';
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Downloaded annotations');
-  };
-
   const handleSaveEditedSourceFile = useCallback(async (options?: { overwriteDiskConflict?: boolean }): Promise<boolean> => {
     const activeDocument = editableDocuments.getActiveDocumentLive();
     const activeSourceSave = activeDocument?.sourceSave;
@@ -3977,8 +3964,7 @@ const AppInner: React.FC = () => {
     }
   };
 
-  // Cmd/Ctrl+S keyboard shortcut — while editing, save the active source file;
-  // otherwise download the annotations.
+  // Cmd/Ctrl+S keyboard shortcut — saves the active source file while editing.
   useEffect(() => {
     const handleSaveShortcut = (e: KeyboardEvent) => {
       if (e.key !== 's' || !(e.metaKey || e.ctrlKey)) return;
@@ -3996,11 +3982,7 @@ const AppInner: React.FC = () => {
       if (isEditingMarkdown && editableDocuments.getActiveDocumentLive()?.sourceSave?.enabled) {
         e.preventDefault();
         void handleSaveEditedSourceFile();
-        return;
       }
-
-      e.preventDefault();
-      handleDownloadAnnotations();
     };
 
     window.addEventListener('keydown', handleSaveShortcut);
@@ -4022,7 +4004,6 @@ const AppInner: React.FC = () => {
     handleAnnotateApprove,
     handleAnnotateFeedback,
     handleAnnotateExit,
-    handleDownloadAnnotations,
     handleCopyAgentInstructions,
     getDocAnnotations: linkedDocHook.getDocAnnotations,
   });
@@ -4032,7 +4013,6 @@ const AppInner: React.FC = () => {
     handleAnnotateApprove,
     handleAnnotateFeedback,
     handleAnnotateExit,
-    handleDownloadAnnotations,
     handleCopyAgentInstructions,
     getDocAnnotations: linkedDocHook.getDocAnnotations,
   };
@@ -4280,7 +4260,6 @@ const AppInner: React.FC = () => {
     if (compactDecisionComposer !== null && !compactComposerItem) setCompactDecisionComposer(null);
     if (compactDecisionConfirm !== null && !compactConfirmItem) setCompactDecisionConfirm(null);
   }, [compactComposerItem, compactConfirmItem, compactDecisionComposer, compactDecisionConfirm]);
-  const handleHeaderDownloadAnnotations = useCallback(() => headerHandlersRef.current.handleDownloadAnnotations(), []);
   const handleHeaderCopyAgentInstructions = useCallback(() => headerHandlersRef.current.handleCopyAgentInstructions(), []);
   const handleOpenSettings = useCallback(() => setMobileSettingsOpen(true), []);
   const handleCloseSettings = useCallback(() => setMobileSettingsOpen(false), []);
@@ -4682,7 +4661,6 @@ const AppInner: React.FC = () => {
         const output = getCurrentFeedbackPayload();
         return copyTextToClipboard(wrapCopiedFeedback(output));
       }}
-      onDownloadAnnotations={handleHeaderDownloadAnnotations}
       otherFileAnnotations={otherFileAnnotations}
       directEdits={directEditsPanelInfo?.map((item) => ({
         ...item,
@@ -4773,7 +4751,6 @@ const AppInner: React.FC = () => {
           onOpenSettings={handleOpenSettings}
           onCloseSettings={handleCloseSettings}
           onCopyAgentInstructions={handleHeaderCopyAgentInstructions}
-          onDownloadAnnotations={handleHeaderDownloadAnnotations}
           agentInstructionsEnabled={isApiMode && !archive.archiveMode && !annotateMode && !goalSetupMode}
         />
 

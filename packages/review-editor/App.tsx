@@ -39,9 +39,6 @@ import { useCodeAnnotationDraft } from '@hypermark/ui/hooks/useCodeAnnotationDra
 import { generateId } from './utils/generateId';
 import { toast, Toaster } from 'sonner';
 import { useCodeNav, type CodeNavRequest } from './hooks/useCodeNav';
-import { useTokenHover } from './hooks/useTokenHover';
-import { TokenHoverCard } from './components/TokenHoverCard';
-import { buildTokenHoverRequest } from './utils/buildCodeNavRequest';
 import { detectLanguage } from './utils/detectLanguage';
 import type { DiffTokenEventBaseProps } from '@pierre/diffs';
 import { useCallFlowAnalysis } from './hooks/useCallFlowAnalysis';
@@ -135,13 +132,6 @@ import { ReviewSetupDialog } from './components/ReviewSetupDialog';
 import { initializeReviewSetup, markReviewSetupSeen } from './utils/reviewSetup';
 import { resolvePanelView } from './utils/resolvePanelView';
 import { isCommitDiffType, resolveCommitExitDiff, type CommitViewRestoreTarget } from './utils/commitViewRestore';
-import { TokenHoverAnnouncementDialog } from './components/TokenHoverAnnouncementDialog';
-import {
-  markTokenHoverAnnouncementSeen,
-  resolveTokenHoverAnnouncementPending,
-  shouldConsumeTokenHoverAnnouncement,
-  tokenHoverAnnouncementCanShow,
-} from './utils/tokenHoverAnnouncement';
 import { ExternalLineAnnotationComposer } from './components/ExternalLineAnnotationComposer';
 import { DestinationSpotlight } from './components/DestinationSpotlight';
 import { needsDestinationSpotlight, markDestinationSpotlightSeen } from './utils/destinationSpotlight';
@@ -405,8 +395,6 @@ const ReviewAppInner: React.FC = () => {
   const diffFontSize = useConfigValue('diffFontSize');
   const diffTabSize = useConfigValue('diffTabSize');
   const reviewShowViewedControls = useConfigValue('reviewShowViewedControls');
-  const tokenHoverTrigger = useConfigValue('tokenHoverTrigger');
-  const tokenHoverDelay = useConfigValue('tokenHoverDelay');
   const semanticDiffEnabled = useConfigValue('semanticDiffEnabled');
   const callFlowEnabled = useConfigValue('callFlowEnabled');
   const confirmedAnalysisSettings = useRef({ semanticDiff: semanticDiffEnabled, callFlow: callFlowEnabled });
@@ -891,69 +879,8 @@ const ReviewAppInner: React.FC = () => {
       toast.error('Failed to copy');
     }
   }, []);
-  // One-time token hover card announcement. LAST in the dialog chain (guide
-  // intro → look-and-feel → review setup → edit mode → token hover) — the
-  // chain dialogs never stack. Latched at mount so choosing a trigger inside
-  // the dialog does not unmount it mid-click; a user who already has a
-  // non-default trigger never sees it (resolveTokenHoverAnnouncementPending).
-  const [tokenHoverIntroPending, setTokenHoverIntroPending] = useState(
-    resolveTokenHoverAnnouncementPending,
-  );
-  const dismissTokenHoverIntro = useCallback(() => {
-    markTokenHoverAnnouncementSeen();
-    setTokenHoverIntroPending(false);
-  }, []);
-  // Retiring the announcement for a reviewer who already chose a trigger is a
-  // WRITE, so it belongs here rather than in the state initializer above.
-  useEffect(() => {
-    if (shouldConsumeTokenHoverAnnouncement()) markTokenHoverAnnouncementSeen();
-  }, []);
   const codeNav = useCodeNav();
-  // The other half of the held-modifier gesture. The diff views paint
-  // `pn-token-nav` from the pointer ENTER event, which covers "hold the key,
-  // then move onto a symbol" but neither half of the gesture modifier mode
-  // exists for: a key going down over a parked pointer, and the release after
-  // it, fire no pointer event at all. The hook reports those two transitions
-  // and this paints them, so the affordance and the card arrive and leave
-  // together — which is the composite gesture the mode is modelled on.
-  //
-  // It lives here rather than in the views because both are compiled into the
-  // portable guides.show viewer and their prop signatures must not move.
-  const navAffordanceRef = useRef<HTMLElement | null>(null);
-  const handleModifierGate = useCallback((armed: boolean, tokenElement: HTMLElement | null) => {
-    const previous = navAffordanceRef.current;
-    // The pointer can drift to a neighbour while the key is held: that token
-    // was painted by its own enter event, and this one was left painted by an
-    // arm. Both come off.
-    if (previous && previous !== tokenElement) previous.classList.remove('pn-token-nav');
-    navAffordanceRef.current = null;
-    if (!tokenElement) return;
-    if (!armed) {
-      tokenElement.classList.remove('pn-token-nav');
-      return;
-    }
-    tokenElement.classList.add('pn-token-nav');
-    navAffordanceRef.current = tokenElement;
-  }, []);
-  // `off` never reaches the hook: it is enforced below by withholding the
-  // handler props entirely, so the diff views wire no listeners at all.
-  const tokenHover = useTokenHover(snapshotId, {
-    mode: tokenHoverTrigger === 'modifier' ? 'modifier' : 'hover',
-    delayMs: tokenHoverDelay,
-    onModifierGate: handleModifierGate,
-  });
-
-  const closeTokenHover = tokenHover.close;
-
   const handleCodeNavRequest = useCallback((request: CodeNavRequest) => {
-    // Opening References is a deliberate action; a hover is an idle gesture,
-    // and the two must never be on screen together. This covers EVERY route
-    // in: Cmd+click, Ctrl+click, the Alt+click alias, and the card's own
-    // location links. It also settles the overlap #1461 shipped with, where a
-    // Cmd+click landed on a token whose hover card was open or mid-dwell and
-    // both surfaces appeared. close() cancels the pending dwell too, so a
-    // click during the dwell never resolves into a card behind the panel.
-    closeTokenHover();
     if (!gitContext && !agentCwd) {
       toast('Code navigation requires a local checkout', {
         description: 'Re-run with --local for PR reviews',
@@ -986,7 +913,7 @@ const ReviewAppInner: React.FC = () => {
         initialWidth: 420,
       });
     }
-  }, [closeTokenHover, codeNav.resolve, dockApi, isAllFilesActive, isCallFlowActive, isSemanticDiffActive, gitContext, agentCwd]);
+  }, [codeNav.resolve, dockApi, isAllFilesActive, isCallFlowActive, isSemanticDiffActive, gitContext, agentCwd]);
 
   // Resizable panels
   const panelResize = useResizablePanel({
@@ -1091,83 +1018,11 @@ const ReviewAppInner: React.FC = () => {
   }, [activeDiffBase, diffData?.gitRef, committedBase, snapshotId]);
   const canUseLiveWorkspaceActions = !activeDiffBase.startsWith('gitbutler:stack:') &&
     !activeDiffBase.startsWith('gitbutler:branch:');
-  // Token hover cards ride the same gate as Cmd+click code navigation, plus
-  // their own setting. Off means no handler props reach the diff views, so
-  // there are no listeners, no requests and no card in the tree.
-  const tokenHoverEnabled = canUseLiveWorkspaceActions && tokenHoverTrigger !== 'off';
-  // Announcing a feature this session cannot run is noise, so a stack/branch
-  // view skips it — and skips it WITHOUT consuming the cookie, so the next
-  // ordinary review still shows it (same rule the guide intro uses for an
-  // empty diff). `off` is not part of the availability test: a user who
-  // reaches the dialog has, by construction, never chosen a trigger.
-  //
-  // Eligibility is LATCHED once the initial load clears:
-  // canUseLiveWorkspaceActions changes on mid-session diff switches, and a
-  // stack→ordinary switch must not pop the announcement over work in
-  // progress, nor an ordinary→stack switch yank an open one away mid-read.
-  //
-  // In an effect rather than in the render body: a latch written during render
-  // is a side effect React may discard (a concurrent render that never
-  // commits would still have stamped the ref). The commit ordering is safe
-  // because the gate below independently requires !isLoading, so the render
-  // that first clears the flag shows no dialog and the effect has latched
-  // before the next one.
-  const [tokenHoverAvailable, setTokenHoverAvailable] = useState<boolean | null>(null);
-  useEffect(() => {
-    if (isLoading) return;
-    setTokenHoverAvailable((current) => (current === null ? canUseLiveWorkspaceActions : current));
-  }, [isLoading, canUseLiveWorkspaceActions]);
-  const tokenHoverIntroVisible = tokenHoverAnnouncementCanShow({
-    announcementPending: tokenHoverIntroPending,
-    isLoading,
-    featureAvailable: tokenHoverAvailable === true,
-    lookAndFeelVisible: false,
-    reviewSetupVisible: showReviewSetup,
-    editModeVisible: false,
-  });
-  const hoveredTokenSymbol = tokenHover.hover?.request.symbol;
-  const startTokenHover = tokenHover.onTokenHoverEnter;
-  // Stitching lives here, not in the diff views: rebuilding a fragmented
-  // identifier is app-only work, and both views are compiled into the portable
-  // guide viewer, which must not carry it.
-  const handleTokenHoverEnter = useCallback(
-    (props: DiffTokenEventBaseProps, filePath: string) => {
-      const request = buildTokenHoverRequest(props, filePath);
-      if (request) startTokenHover(request, props.tokenElement);
-    },
-    [startTokenHover],
-  );
   useEffect(() => {
     if (canUseLiveWorkspaceActions) return;
     codeNav.clear();
     dockApi?.getPanel(REVIEW_CODE_NAV_PANEL_ID)?.api.close();
   }, [canUseLiveWorkspaceActions, codeNav.clear, dockApi]);
-  // Turning cards off (or losing the workspace gate) with one already open
-  // would otherwise leave it standing over the diff with nothing left to
-  // close it: the handler props are gone, so no leave event can arrive.
-  useEffect(() => {
-    if (tokenHoverEnabled) return;
-    closeTokenHover();
-  }, [tokenHoverEnabled, closeTokenHover]);
-  const handleTokenHoverSelectLocation = useCallback(
-    (location: { filePath: string; line: number; column: number }) => {
-      closeTokenHover();
-      if (!hoveredTokenSymbol) return;
-      // Same References flow Cmd+click opens, but described from the CLICKED
-      // location: carrying the hover's own charStart and language would tell
-      // the server a column in another file and, for a cross-language jump, a
-      // language the target file is not written in.
-      handleCodeNavRequest({
-        symbol: hoveredTokenSymbol,
-        filePath: location.filePath,
-        line: location.line,
-        charStart: location.column,
-        side: 'new',
-        language: detectLanguage(location.filePath),
-      });
-    },
-    [handleCodeNavRequest, hoveredTokenSymbol, closeTokenHover],
-  );
   const { withPRContext } = useAnnotationFactory(
     prMetadata,
     prStackInfo ? prDiffScope : undefined,
@@ -1916,7 +1771,7 @@ const ReviewAppInner: React.FC = () => {
     // (not lost) behind a first-run dialog — the file still marks and the
     // next auto-view retries the toast.
     if (!needsAutoViewedNotice()) return;
-    if (showReviewSetup || tokenHoverIntroVisible) return;
+    if (showReviewSetup) return;
     markAutoViewedNoticeSeen();
     toast('Files are marked viewed as you scroll', {
       description: "Scroll past a file or move on to the next and it's checked off. Turn this off in Settings → Git, or from the gear above the file list.",
@@ -1936,7 +1791,7 @@ const ReviewAppInner: React.FC = () => {
         },
       },
     });
-  }, [showReviewSetup, tokenHoverIntroVisible]);
+  }, [showReviewSetup]);
   const { handleReadingFileChange: handleAutoViewReadingFile, handleFileScrolledPast } = useAutoViewed({
     enabled: autoViewedEnabled,
     // Rule 4 — only the review target. A commit diff is a documented
@@ -2900,8 +2755,6 @@ const ReviewAppInner: React.FC = () => {
     openCallFlowPanel,
     callFlowInstall,
     onCodeNavRequest: canUseLiveWorkspaceActions ? handleCodeNavRequest : undefined,
-    onTokenHoverEnter: tokenHoverEnabled ? handleTokenHoverEnter : undefined,
-    onTokenHoverLeave: tokenHoverEnabled ? tokenHover.onTokenHoverLeave : undefined,
     codeNavResult: codeNav.result,
     codeNavIsLoading: codeNav.isLoading,
     codeNavActiveSymbol: codeNav.activeSymbol,
@@ -2929,7 +2782,6 @@ const ReviewAppInner: React.FC = () => {
     handleSemanticDiffUnavailable, handleSemanticDiffLoadError, handleSemanticDiffLoadSuccess, handleAddAnnotationForFile,
     callFlowAvailable, callFlowAdvert, callFlowAnalysis, retryCallFlowAnalysis, isCallFlowNodeInPatch, isCallFlowActive, openCallFlowPanel, callFlowInstall,
     handleCodeNavRequest, codeNav.result, codeNav.isLoading, codeNav.activeSymbol,
-    tokenHoverEnabled, handleTokenHoverEnter, tokenHover.onTokenHoverLeave,
   ]);
 
   // Copy raw diff to clipboard
@@ -3459,7 +3311,7 @@ const ReviewAppInner: React.FC = () => {
     if (event.defaultPrevented || isNativeHistoryOwner(event)) return false;
     if (submitted || isSendingFeedback || isApproving || isExiting || isPlatformActioning || isLoadingDiff) return false;
     if (openSettingsMenu || showDestinationMenu || platformCommentDialog || showExportModal || showWorktreeDialog || showNoAnnotationsDialog) return false;
-    if (showReviewSetup || tokenHoverIntroVisible) return false;
+    if (showReviewSetup) return false;
     return !hasActiveHistoryOverlay(document);
   }, [
     isApproving,
@@ -3467,7 +3319,6 @@ const ReviewAppInner: React.FC = () => {
     isLoadingDiff,
     isPlatformActioning,
     isSendingFeedback,
-    tokenHoverIntroVisible,
     openSettingsMenu,
     platformCommentDialog,
     showDestinationMenu,
@@ -4629,20 +4480,11 @@ const ReviewAppInner: React.FC = () => {
           />
         )}
 
-        {/* One-time token hover card announcement. LAST in the dialog chain
-            (look-and-feel → review setup → edit mode → token
-            hover) — tokenHoverAnnouncementCanShow gates on every earlier
-            dialog, so the chain dialogs never stack. */}
-        {tokenHoverIntroVisible && (
-          <TokenHoverAnnouncementDialog isOpen onDismiss={dismissTokenHoverIntro} />
-        )}
-
         {/* One-time PR feedback-destination spotlight. Strictly AFTER the
-            first-run dialog chain (review setup → token hover):
-            it only mounts once neither is showing, so it never
-            stacks with them. PR mode only — the switcher it points at
-            doesn't render otherwise. */}
-        {showDestSpotlight && !isCompactTouchLayout && !!prMetadata && !isLoading && !showReviewSetup && !tokenHoverIntroVisible && (
+            first-run review setup: it only mounts once that is not showing,
+            so it never stacks with it. PR mode only — the switcher it points
+            at doesn't render otherwise. */}
+        {showDestSpotlight && !isCompactTouchLayout && !!prMetadata && !isLoading && !showReviewSetup && (
           <DestinationSpotlight
             targetRef={destToggleRef}
             platformLabel={platformLabel}
@@ -4712,17 +4554,6 @@ const ReviewAppInner: React.FC = () => {
           />
         );
       })()}
-
-    {/* One instance for the whole app, portaled to <body> so it escapes the
-        Dockview panels' overflow and stacking context. */}
-    {tokenHoverEnabled && tokenHover.hover && (
-      <TokenHoverCard
-        hover={tokenHover.hover}
-        onPointerEnter={tokenHover.onCardEnter}
-        onPointerLeave={tokenHover.onCardLeave}
-        onSelectLocation={handleTokenHoverSelectLocation}
-      />
-    )}
 
     <Toaster
       position="bottom-center"

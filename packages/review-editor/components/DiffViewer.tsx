@@ -215,8 +215,6 @@ interface DiffViewerProps {
    * identifier is app-only work, and this component is also compiled into the
    * read-only portable guide viewer, which passes neither handler.
    */
-  onTokenHoverEnter?: (props: DiffTokenEventBaseProps, filePath: string) => void;
-  onTokenHoverLeave?: () => void;
 }
 
 export const DiffViewer: React.FC<DiffViewerProps> = ({
@@ -260,8 +258,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
   activeSearchMatchId = null,
   activeSearchMatch = null,
   onCodeNavRequest,
-  onTokenHoverEnter,
-  onTokenHoverLeave,
 }) => {
   const pierreTheme = usePierreTheme({ fontFamily, fontSize, compactTouchLayout });
   // Worker-pool highlighting: keep the pool's theme pair in step with the UI
@@ -698,22 +694,14 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
   }, [filePath, onCodeNavRequest]);
 
   const handleTokenEnter = useCallback((props: DiffTokenEventBaseProps, event: PointerEvent) => {
-    // Only where a card can actually open. The class carries a pointer cursor
-    // (now !important, so it genuinely wins over Pierre's I-beam), and painting
-    // it unconditionally promised clickability on every token even with hover
-    // cards switched off.
-    if (onTokenHoverEnter) props.tokenElement.classList.add('pn-token-hover');
     if ((event.metaKey || event.ctrlKey) && onCodeNavRequest) {
       props.tokenElement.classList.add('pn-token-nav');
     }
-    onTokenHoverEnter?.(props, filePath);
-  }, [filePath, onCodeNavRequest, onTokenHoverEnter]);
+  }, [onCodeNavRequest]);
 
   const handleTokenLeave = useCallback((props: DiffTokenEventBaseProps) => {
-    props.tokenElement.classList.remove('pn-token-hover');
     props.tokenElement.classList.remove('pn-token-nav');
-    onTokenHoverLeave?.();
-  }, [onTokenHoverLeave]);
+  }, []);
 
   const splitGridStyle = useMemo(() => {
     if (!isSplitLayout || diffOverflow === 'wrap') return undefined;

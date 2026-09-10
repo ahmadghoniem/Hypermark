@@ -100,8 +100,6 @@ export const ReviewDiffPanel: React.FC<IDockviewPanelProps> = (props) => {
             : null
         }
         onCodeNavRequest={state.onCodeNavRequest}
-        onTokenHoverEnter={state.onTokenHoverEnter}
-        onTokenHoverLeave={state.onTokenHoverLeave}
       />
     </div>
   );

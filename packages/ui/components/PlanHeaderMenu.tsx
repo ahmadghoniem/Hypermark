@@ -8,7 +8,7 @@ import {
 import { useTheme } from './ThemeProvider';
 import { THEME_MODES } from './themeModes';
 import { ReviewAgentsIcon } from './ReviewAgentsIcon';
-import { DownloadIcon, SettingsIcon } from './icons/headerIcons';
+import { SettingsIcon } from './icons/headerIcons';
 
 /**
  * On desktop this menu is down to the agent-specific rows: Theme, Settings
@@ -26,7 +26,6 @@ import { DownloadIcon, SettingsIcon } from './icons/headerIcons';
 interface PlanHeaderMenuProps {
   onOpenSettings: () => void;
   onCopyAgentInstructions: () => void;
-  onDownloadAnnotations: () => void;
   agentInstructionsEnabled: boolean;
   compactTouchLayout?: boolean;
   compactSessionActions?: CompactPlanAction[];
@@ -44,7 +43,6 @@ export interface CompactPlanAction {
 export const PlanHeaderMenu: React.FC<PlanHeaderMenuProps> = ({
   onOpenSettings,
   onCopyAgentInstructions,
-  onDownloadAnnotations,
   agentInstructionsEnabled,
   compactTouchLayout = false,
   compactSessionActions = [],
@@ -52,8 +50,8 @@ export const PlanHeaderMenu: React.FC<PlanHeaderMenuProps> = ({
 }) => {
   const { mode, setMode } = useTheme();
 
-  // Desktop reaches Theme / Settings / Download from the header, so with no
-  // agent instructions to copy there is nothing left to open.
+  // Desktop reaches Theme and Settings from the header, so with no agent
+  // instructions to copy there is nothing left to open.
   if (!compactTouchLayout && !agentInstructionsEnabled) return null;
 
   return (
@@ -153,17 +151,6 @@ export const PlanHeaderMenu: React.FC<PlanHeaderMenuProps> = ({
               icon={<ReviewAgentsIcon />}
               label="Agent Instructions"
               subtitle="Copy agent instructions for external annotations"
-            />
-          )}
-
-          {compactTouchLayout && (
-            <ActionMenuItem
-              onClick={() => {
-                closeMenu();
-                onDownloadAnnotations();
-              }}
-              icon={<DownloadIcon />}
-              label="Download Annotations"
             />
           )}
         </>

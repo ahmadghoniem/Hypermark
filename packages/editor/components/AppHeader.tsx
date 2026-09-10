@@ -100,7 +100,6 @@ interface AppHeaderProps {
   onOpenSettings: () => void;
   onCloseSettings: () => void;
   onCopyAgentInstructions: () => void;
-  onDownloadAnnotations: () => void;
 
   // PlanHeaderMenu config
   agentInstructionsEnabled: boolean;
@@ -156,7 +155,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   onOpenSettings,
   onCloseSettings,
   onCopyAgentInstructions,
-  onDownloadAnnotations,
   agentInstructionsEnabled,
 }) => {
   return (
@@ -334,9 +332,9 @@ export const AppHeader = React.memo<AppHeaderProps>(({
           </button>
         )}
 
-        {/* Download, Theme and Settings sit in the header rather than under
-            Options: they are the three controls reached most often, and a
-            two-click menu hop for each was the whole reason Options existed.
+        {/* Theme and Settings sit in the header rather than under Options:
+            they are the controls reached most often, and a two-click menu hop
+            for each was the whole reason Options existed.
             Compact touch is the exception — its header is a three-region grid
             whose trailing region is one 44px target wide, so there they stay
             rows in the Options menu (see PlanHeaderMenu). */}
@@ -374,7 +372,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
         <PlanHeaderMenu
           onOpenSettings={onOpenSettings}
           onCopyAgentInstructions={onCopyAgentInstructions}
-          onDownloadAnnotations={onDownloadAnnotations}
           agentInstructionsEnabled={agentInstructionsEnabled}
           compactTouchLayout={compactTouchLayout}
           compactSessionActions={compactSessionActions}

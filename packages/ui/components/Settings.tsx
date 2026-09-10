@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import type { AnnotateAgentTerminalSide } from '@hypermark/core/agent-terminal';
 import type { Origin } from '@hypermark/core/agents';
 import type { DiffLineBgIntensity } from '@hypermark/core/config-types';
-import type { TokenHoverDelay } from '@hypermark/core/token-hover';
 import { configStore, useConfigValue, setReviewPanelView, setReviewDefaultDiffType, setReviewAutoViewed } from '../config';
 import { setWebMcpToolsEnabled, useWebMcpToolsEnabled } from '../webmcp/preference';
 import { TaterSpritePullup } from './TaterSpritePullup';
@@ -92,18 +91,6 @@ export const DIFF_STYLE_OPTIONS = [
  * Windows and Linux. Labeled through modKeyWord so the control names the key
  * the reader actually has.
  */
-export const TOKEN_HOVER_TRIGGER_OPTIONS = [
-  { value: 'hover' as const, label: 'On hover' },
-  { value: 'modifier' as const, label: `Hold ${modKeyWord}` },
-  { value: 'off' as const, label: 'Off' },
-];
-/** SegmentedControl keys on strings, so the ms values ride as their digits. */
-export type TokenHoverDelayOption = '150' | '300' | '700';
-export const TOKEN_HOVER_DELAY_OPTIONS = [
-  { value: '150' as const, label: 'Fast' },
-  { value: '300' as const, label: 'Default' },
-  { value: '700' as const, label: 'Relaxed' },
-];
 export const OVERFLOW_OPTIONS = [
   { value: 'scroll' as const, label: 'Scroll' },
   { value: 'wrap' as const, label: 'Wrap' },
@@ -365,46 +352,8 @@ const ReviewDisplayTab: React.FC<{ isCompactTouchLayout?: boolean }> = ({ isComp
   const diffExpandUnchanged = useConfigValue('diffExpandUnchanged');
   const diffFontFamily = useConfigValue('diffFontFamily');
   const diffFontSize = useConfigValue('diffFontSize');
-  const tokenHoverTrigger = useConfigValue('tokenHoverTrigger');
-  const tokenHoverDelay = useConfigValue('tokenHoverDelay');
-
   return (
     <>
-      {/* Hover cards (internally tokenHover*; the label is what changed, not
-          the ids). One trigger select rather than a toggle plus a mode: `Off`
-          is a value of the same question, so there is no unreachable
-          enabled-but-off state to reason about. The delay stays a separate
-          axis because "too eager" is a complaint neither the hold-modifier option
-          nor Off answers. */}
-      <div className="space-y-3">
-        <div>
-          <div className="text-sm font-medium">Hover cards</div>
-          <div className="text-xs text-muted-foreground">
-            Rest the pointer on a symbol in a diff to see where it is defined and who
-            references it. Needs ripgrep and a local checkout; nothing appears when the
-            search comes back empty. {modKeyWord}+click still opens the References panel either way.
-          </div>
-        </div>
-        <SegmentedControl
-          options={TOKEN_HOVER_TRIGGER_OPTIONS}
-          value={tokenHoverTrigger}
-          onChange={(v) => configStore.set('tokenHoverTrigger', v)}
-        />
-        <div className="space-y-2">
-          <div className="text-xs text-muted-foreground">
-            How long the pointer rests before a card is requested
-          </div>
-          <SegmentedControl
-            options={TOKEN_HOVER_DELAY_OPTIONS}
-            value={String(tokenHoverDelay) as TokenHoverDelayOption}
-            onChange={(v) => configStore.set('tokenHoverDelay', Number(v) as TokenHoverDelay)}
-            disabled={tokenHoverTrigger === 'off'}
-          />
-        </div>
-      </div>
-
-      <div className="border-t border-border" />
-
       {/* Font Family */}
       <div className="space-y-2">
         <div>
