@@ -1,10 +1,10 @@
 /**
- * Hypermark CLI for Claude Code, Droid, Codex, Gemini CLI, and Copilot CLI
+ * Hypermark CLI for Claude Code
  *
- * Supports thirteen modes:
+ * Supports nine modes:
  *
  * 1. Plan Review (default, no args):
- *    - Spawned by Claude/Gemini/Codex hook entrypoints
+ *    - Spawned by Claude hook entrypoints
  *    - Reads hook event from stdin, extracts plan content
  *    - Serves UI, returns approve/deny decision to stdout
  *
@@ -18,46 +18,31 @@
  *    - Opens any markdown file in the annotation UI
  *    - Outputs structured feedback to stdout
  *
- * 4. Archive (`hypermark archive`):
+ * 4. Annotate Last (`hypermark annotate-last`, `hypermark last`):
+ *    - Triggered by /hypermark-last slash command
+ *    - Annotates the most recent assistant response in the annotation UI
+ *    - Outputs structured feedback to stdout
+ *
+ * 5. Archive (`hypermark archive`):
  *    - Opens read-only browser for saved plan decisions
  *    - Lists plans from ~/.hypermark/plans/ with status badges
  *    - Done button closes the browser
  *
- * 5. Sessions (`hypermark sessions`):
+ * 6. Sessions (`hypermark sessions`):
  *    - Lists active Hypermark server sessions
  *    - `--open [N]` reopens a session in the browser
  *    - `--clean` removes stale session files
  *
- * 6. Copilot Plan (`hypermark copilot-plan`):
- *    - Spawned by preToolUse hook (Copilot CLI)
- *    - Intercepts exit_plan_mode, reads plan.md from session state
- *    - Outputs permissionDecision JSON to stdout
- *
- * 7. Copilot Last (`hypermark copilot-last`):
- *    - Annotate the last assistant message from a Copilot CLI session
- *    - Parses events.jsonl from session state
- *
- * 8. Goal Setup (`hypermark setup-goal interview|facts <bundle.json>`):
+ * 7. Goal Setup (`hypermark setup-goal interview|facts <bundle.json>`):
  *    - Opens the bundled question or facts acceptance UI
  *    - Outputs structured JSON for setup-goal workflows
  *
- * 9. OpenCode Plan (`hypermark opencode-plan`):
- *    - Internal bridge mode used by the OpenCode plugin CLI fallback
- *    - Reads `{ plan, timeoutSeconds, agents }` from stdin
- *    - Outputs structured JSON for the plugin
- *
- * 10. OpenCode Review (`hypermark opencode-review`):
- *    - Internal structured review bridge used by the OpenCode plugin CLI fallback
- *
- * 11. OpenCode Last (`hypermark opencode-annotate-last`):
- *    - Internal structured last-message annotation bridge for OpenCode
- *
- * 12. Improve Context (`hypermark improve-context`):
+ * 8. Improve Context (`hypermark improve-context`):
  *    - Spawned by PreToolUse hook on EnterPlanMode
  *    - Reads improvement hook file from ~/.hypermark/hooks/
  *    - Returns additionalContext or silently passes through
  *
- * 13. Uninstall (`hypermark uninstall`):
+ * 9. Uninstall (`hypermark uninstall`):
  *    - Removes recognized installer-owned components across supported hosts
  *    - Preserves local data by default; `--purge` removes known local data
  *
@@ -68,13 +53,7 @@
  *
  * Environment variables:
  *   HYPERMARK_PORT   - Fixed port to use (default: random)
- *
- * The former HYPERMARK_* names still work as deprecated aliases; see
- * `@hypermark/shared/env-aliases` for the precedence rule. The import below is
- * first on purpose — it must run before any module reads configuration.
  */
-
-import "@hypermark/shared/env-aliases-apply";
 
 import {
   startHypermarkServer,
@@ -116,7 +95,7 @@ import {
   BRIDGE_SCRIPT,
   LIVE_BRIDGE_BOOTSTRAP,
 } from "@hypermark/ui/components/html-viewer/bridge-script";
-import { rmSync, realpathSync, existsSync } from "fs";
+import { rmSync, realpathSync } from "fs";
 import { parseRemoteUrl } from "@hypermark/shared/repo";
 import {
   composeReviewApprovedMessage,
@@ -140,24 +119,15 @@ import { detectProjectName } from "@hypermark/server/project";
 import { hostnameOrFallback } from "@hypermark/shared/project";
 import { readImprovementHook } from "@hypermark/shared/improvement-hooks";
 import { composeImproveContext } from "@hypermark/shared/pfm-reminder";
-import {
-  waitForPlanReviewCloseDelay,
-  waitForPlanReviewDecision,
-} from "@hypermark/shared/plan-review-lifecycle";
 import { AGENT_CONFIG, type Origin } from "@hypermark/shared/agents";
 import {
-  findDroidSessionLogsByAncestorWalk,
-  findDroidSessionLogsForCwd,
   findSessionLogsByAncestorWalk,
   findSessionLogsForCwd,
   getRecentRenderedMessages,
-  resolveDroidSessionLogForCwd,
   resolveSessionLogByAncestorPids,
   resolveSessionLogByCwdScan,
   type RenderedMessage,
 } from "./session-log";
-import { findCodexRolloutByThreadId, getLatestCodexPlan, getRecentCodexMessages } from "./codex-session";
-import { findCopilotPlanContent, findCopilotSessionByAncestorPids, findCopilotSessionForCwd, getRecentCopilotMessages } from "./copilot-session";
 import {
   formatInteractiveNoArgClarification,
   formatSubcommandHelp,
@@ -235,7 +205,7 @@ if (cliNoJina) args.splice(noJinaIdx, 1);
 
 // Annotate review-gate flags: --gate adds an Approve button, --json
 // switches stdout to structured decision output, --hook emits hook-native
-// JSON that works directly with Claude Code and Codex PostToolUse/Stop
+// JSON that works directly with Claude Code PostToolUse/Stop
 // hook protocols.
 const gateIdx = args.indexOf("--gate");
 let gateFlag = gateIdx !== -1;
@@ -263,12 +233,12 @@ const staticFlagIdx = args.indexOf("--static");
 const staticFlag = staticFlagIdx !== -1;
 if (staticFlag) args.splice(staticFlagIdx, 1);
 
-// Stdout matrix for annotate / annotate-last / copilot annotate-last.
+// Stdout matrix for annotate / annotate-last.
 //
 // --hook (recommended for hooks):
 //   Approve/Close → empty stdout (hook passes, agent proceeds).
 //   Annotate → {"decision":"block","reason":"<feedback>"} (hook blocks).
-//   Works with both Claude Code and Codex hook protocols.
+//   Works with Claude Code hook protocols.
 //
 // --json (structured decisions for wrapper scripts):
 //   Emits {"decision":"approved|dismissed|annotated","feedback":"..."}.
@@ -417,111 +387,12 @@ process.on("exit", () => unregisterSession());
 process.once("SIGINT", () => process.exit(130));
 process.once("SIGTERM", () => process.exit(143));
 
-// Detect calling agent from environment variables set by agent runtimes.
-// Priority:
-//   HYPERMARK_ORIGIN (explicit override, validated against AGENT_CONFIG)
-//   > Amp plugin wrappers (HYPERMARK_ORIGIN=amp)
-//   > Droid command wrappers (HYPERMARK_ORIGIN=droid)
-//   > Codex (CODEX_THREAD_ID)
-//   > Copilot CLI (COPILOT_CLI)
-//   > OpenCode (OPENCODE)
-//   > Gemini CLI (GEMINI_CLI)
-//   > oh-my-pi harness (OMPCODE) — checked last because OMP exports OMPCODE
-//     into every shell it spawns; runtimes launched from an OMP session must
-//     still be detected as themselves. OMPCODE still wins over the terminal
-//     fallback below.
-//
-// To add a new agent, also add an entry to AGENT_CONFIG in
-// packages/shared/agents.ts (see header comment there).
+// Detect calling agent. This fork ships Claude Code only; HYPERMARK_ORIGIN is
+// still honored (validated against AGENT_CONFIG) so an archived record can be
+// replayed under its recorded origin.
 const originOverride = process.env.HYPERMARK_ORIGIN as Origin | undefined;
 const detectedOrigin: Origin =
-  (originOverride && originOverride in AGENT_CONFIG) ? originOverride :
-  process.env.CODEX_THREAD_ID ? "codex" :
-  process.env.COPILOT_CLI ? "copilot-cli" :
-  process.env.OPENCODE ? "opencode" :
-  process.env.GEMINI_CLI ? "gemini-cli" :
-  process.env.OMPCODE ? "oh-my-pi" :
-  "claude-code";
-
-type OpenCodeBridgeAgent = {
-  name: string;
-  description?: string;
-  mode: string;
-  hidden?: boolean;
-};
-
-type OpenCodeBridgeInput = {
-  agents?: unknown;
-};
-
-function parseOpenCodeBridgeInput<T extends object>(
-  mode: string,
-  inputJson: string,
-): T & OpenCodeBridgeInput {
-  try {
-    return JSON.parse(inputJson) as T & OpenCodeBridgeInput;
-  } catch (error) {
-    console.error(`Failed to parse ${mode} input: ${error instanceof Error ? error.message : String(error)}`);
-    process.exit(1);
-  }
-}
-
-function normalizeOpenCodeBridgeAgents(value: unknown): OpenCodeBridgeAgent[] | undefined {
-  if (!Array.isArray(value)) return undefined;
-
-  const agents = value
-    .map((agent): OpenCodeBridgeAgent | null => {
-      if (!agent || typeof agent !== "object") return null;
-      const record = agent as Record<string, unknown>;
-      if (typeof record.name !== "string" || !record.name) return null;
-      return {
-        name: record.name,
-        ...(typeof record.description === "string" && { description: record.description }),
-        mode: typeof record.mode === "string" ? record.mode : "primary",
-        ...(typeof record.hidden === "boolean" && { hidden: record.hidden }),
-      };
-    })
-    .filter((agent): agent is OpenCodeBridgeAgent => agent !== null);
-
-  return agents.length > 0 ? agents : undefined;
-}
-
-function makeOpenCodeBridgeClient(agents: unknown) {
-  const data = normalizeOpenCodeBridgeAgents(agents);
-  if (!data) return undefined;
-
-  return {
-    app: {
-      agents: async () => ({ data }),
-    },
-  };
-}
-
-function emitOpenCodeAnnotateOutcome(result: {
-  feedback: string;
-  exit?: boolean;
-  approved?: boolean;
-  selectedMessageId?: string;
-  feedbackScope?: "message" | "messages";
-}): void {
-  if (result.approved) {
-    console.log(JSON.stringify({
-      decision: "approved",
-      ...(result.feedback ? { feedback: result.feedback } : {}),
-    }));
-    return;
-  }
-  if (result.exit) {
-    console.log(JSON.stringify({ decision: "dismissed" }));
-    return;
-  }
-  console.log(JSON.stringify({
-    decision: "annotated",
-    feedback: result.feedback || "",
-    ...(result.selectedMessageId && { selectedMessageId: result.selectedMessageId }),
-    ...(result.feedbackScope && { feedbackScope: result.feedbackScope }),
-  }));
-}
+  (originOverride && originOverride in AGENT_CONFIG) ? originOverride : "claude-code";
 
 if (args[0] === "sessions") {
   // ============================================
@@ -1102,8 +973,8 @@ if (args[0] === "sessions") {
         agentHandoff: true,
       });
       if (jsonFlag || hookFlag) {
-        // Machine-readable stdout stays reserved for decision records; the
-        // droid wrapper forwards stderr on failure.
+        // Machine-readable stdout stays reserved for decision records;
+        // stderr is forwarded on failure.
         exitAnnotateStartupFailure(message);
       }
       // Plain mode: a non-zero exit from Claude Code's bash-substitution
@@ -1215,10 +1086,6 @@ if (args[0] === "sessions") {
   const stdinIdx = args.indexOf("--stdin");
   const stdinFlag = stdinIdx !== -1;
   if (stdinFlag) args.splice(stdinIdx, 1);
-  const codexThreadId = process.env.CODEX_THREAD_ID;
-  const isCodex = !!codexThreadId;
-  const isDroid = detectedOrigin === "droid";
-  const isCopilot = detectedOrigin === "copilot-cli";
 
   // Collect up to N recent assistant messages so the user can pick the right
   // one — defaults to the same selection as the legacy "last message"
@@ -1230,81 +1097,10 @@ if (args[0] === "sessions") {
   let lastMessage: RenderedMessage | null = null;
   let recentMessages: RenderedMessage[] = [];
 
-  // Copilot CLI sets no env fingerprint, so detection matches ancestor pids
-  // against session-state inuse locks (spawns ps). Only attempted when no
-  // earlier branch claims the invocation.
-  let copilotLockSessionDir: string | null = null;
-  let copilotSessionDir: string | null = null;
-  if (!stdinFlag && !isCodex && !isDroid) {
-    copilotLockSessionDir = findCopilotSessionByAncestorPids();
-    copilotSessionDir = copilotLockSessionDir ??
-      (isCopilot ? findCopilotSessionForCwd(projectRoot) : null);
-  }
-  const copilotDetected = isCopilot || copilotSessionDir !== null;
-
   if (stdinFlag) {
     const text = (await Bun.stdin.text()).trim();
     if (text) {
       lastMessage = { messageId: "stdin", text, lineNumbers: [] };
-    }
-  } else if (codexThreadId) {
-    // Codex path: find rollout by thread ID
-    if (process.env.HYPERMARK_DEBUG) {
-      console.error(`[DEBUG] Codex detected, thread ID: ${codexThreadId}`);
-    }
-    const rolloutPath = findCodexRolloutByThreadId(codexThreadId);
-    if (rolloutPath) {
-      if (process.env.HYPERMARK_DEBUG) {
-        console.error(`[DEBUG] Rollout: ${rolloutPath}`);
-      }
-      recentMessages = getRecentCodexMessages(rolloutPath, RECENT_MESSAGES_LIMIT, { beforeActiveTurn: true })
-        .map((m) => ({ messageId: m.messageId, text: m.text, lineNumbers: [], timestamp: m.timestamp }));
-      lastMessage = recentMessages[0] ?? null;
-    }
-  } else if (isDroid) {
-    // Droid/Factory path: resolve the current repo's session log from
-    // ~/.factory/sessions/<cwd-slug>/*.jsonl. Factory does not expose the same
-    // per-process session metadata files as Claude Code, so the best available
-    // selector is "newest current-session candidate for this cwd", with an
-    // ancestor walk fallback for users who `cd` into a subdirectory after
-    // session start.
-    if (process.env.HYPERMARK_DEBUG) {
-      console.error(`[DEBUG] Droid detected, project root: ${projectRoot}`);
-    }
-
-    const cwdLogs = findDroidSessionLogsForCwd(projectRoot);
-    const ancestorLogs = cwdLogs.length === 0
-      ? findDroidSessionLogsByAncestorWalk(projectRoot)
-      : [];
-
-    if (process.env.HYPERMARK_DEBUG) {
-      console.error(`[DEBUG] Droid CWD session logs (mtime): ${cwdLogs.length ? cwdLogs.join(", ") : "(none)"}`);
-      if (cwdLogs.length === 0) {
-        console.error(`[DEBUG] Droid ancestor walk: ${ancestorLogs.length ? ancestorLogs.join(", ") : "(none)"}`);
-      }
-    }
-
-    const droidLog = resolveDroidSessionLogForCwd(projectRoot);
-    if (process.env.HYPERMARK_DEBUG) {
-      console.error(`[DEBUG] Droid selected log: ${droidLog ?? "(none)"}`);
-    }
-    if (droidLog) {
-      recentMessages = getRecentRenderedMessages(droidLog, RECENT_MESSAGES_LIMIT);
-      lastMessage = recentMessages[0] ?? null;
-    }
-  } else if (copilotDetected) {
-    // Copilot path: prefer the session whose inuse lock an ancestor copilot
-    // process holds; with the origin override and no lock match, fall back
-    // to the cwd heuristic.
-    if (process.env.HYPERMARK_DEBUG) {
-      console.error(`[DEBUG] Copilot detected, project root: ${projectRoot}`);
-      console.error(`[DEBUG] Copilot ancestor lock session: ${copilotLockSessionDir ?? "(none)"}`);
-      console.error(`[DEBUG] Copilot selected session: ${copilotSessionDir ?? "(none)"}`);
-    }
-    if (copilotSessionDir) {
-      recentMessages = getRecentCopilotMessages(copilotSessionDir, RECENT_MESSAGES_LIMIT)
-        .map((m) => ({ messageId: m.messageId, text: m.text, lineNumbers: [], timestamp: m.timestamp }));
-      lastMessage = recentMessages[0] ?? null;
     }
   } else {
     // Claude Code path: resolve session log
@@ -1388,7 +1184,7 @@ if (args[0] === "sessions") {
   const server = await startAnnotateServer({
     markdown: annotatedMessage.text,
     filePath: "last-message",
-    origin: copilotDetected ? "copilot-cli" : detectedOrigin,
+    origin: detectedOrigin,
     mode: "annotate-last",
     gate: gateFlag,
     approvalNotesSupported: supportsAnnotateApprovalNotes({
@@ -1460,472 +1256,6 @@ if (args[0] === "sessions") {
   server.stop();
   process.exit(0);
 
-} else if (args[0] === "opencode-plan") {
-  // ============================================
-  // OPENCODE PLUGIN PLAN REVIEW MODE
-  // ============================================
-  //
-  // Internal CLI bridge used when the OpenCode plugin is running in a host
-  // that cannot import Bun-only server modules directly.
-
-  const inputJson = await Bun.stdin.text();
-  const input = parseOpenCodeBridgeInput<{ plan?: unknown; timeoutSeconds?: unknown }>(
-    "opencode-plan",
-    inputJson,
-  );
-
-  const planContent = typeof input.plan === "string" ? input.plan : "";
-  if (!planContent.trim()) {
-    console.error("No plan content in opencode-plan input");
-    process.exit(1);
-  }
-
-  const timeoutSeconds = input.timeoutSeconds === null
-    ? null
-    : typeof input.timeoutSeconds === "number" && Number.isFinite(input.timeoutSeconds) && input.timeoutSeconds > 0
-      ? input.timeoutSeconds
-      : null;
-
-  const planProject = (await detectProjectName()) ?? "_unknown";
-  const server = await startHypermarkServer({
-    plan: planContent,
-    origin: "opencode",
-    htmlContent: planHtmlContent,
-    opencodeClient: makeOpenCodeBridgeClient(input.agents),
-    onReady: async (url, port) => {
-      await handleServerReady(url, port);
-    },
-  });
-
-  registerSession({
-    pid: process.pid,
-    port: server.port,
-    url: server.url,
-    mode: "plan",
-    project: planProject,
-    startedAt: new Date().toISOString(),
-    label: `plan-${planProject}`,
-  });
-
-  let result: Awaited<ReturnType<typeof server.waitForDecision>>;
-  try {
-    result = await waitForPlanReviewDecision({
-      waitForDecision: server.waitForDecision,
-      timeoutMs: timeoutSeconds === null ? null : timeoutSeconds * 1000,
-      timeoutResult: {
-        approved: false,
-        feedback: `[Hypermark] No response within ${timeoutSeconds} seconds. Port released automatically. Please call submit_plan again.`,
-      },
-    });
-    await waitForPlanReviewCloseDelay(1500);
-  } finally {
-    await server.stop();
-  }
-
-  console.log(JSON.stringify({
-    approved: result.approved,
-    ...(result.feedback && { feedback: result.feedback }),
-    ...(result.savedPath && { savedPath: result.savedPath }),
-    ...(result.agentSwitch && { agentSwitch: result.agentSwitch }),
-  }));
-  process.exit(0);
-
-} else if (args[0] === "opencode-review") {
-  // ============================================
-  // OPENCODE PLUGIN CODE REVIEW MODE
-  // ============================================
-  //
-  // Internal structured CLI bridge used when the OpenCode plugin is running
-  // in a host that cannot import Bun-only server modules directly.
-
-  const inputJson = await Bun.stdin.text();
-  const input = parseOpenCodeBridgeInput<{ arguments?: unknown; supportsApprovalNotes?: unknown }>(
-    "opencode-review",
-    inputJson,
-  );
-  const reviewArgs = parseReviewArgs(typeof input.arguments === "string" ? input.arguments : "");
-  const urlArg = reviewArgs.prUrl;
-  const isPRMode = urlArg !== undefined;
-
-  let rawPatch: string;
-  let gitRef: string;
-  let diffError: string | undefined;
-  let initialFingerprint: string | undefined;
-  let userDiffType: DiffType | WorkspaceDiffType | undefined;
-  let gitContext: Awaited<ReturnType<typeof prepareLocalReviewDiff>>["gitContext"] | undefined;
-  let prMetadata: Awaited<ReturnType<typeof fetchPR>>["metadata"] | undefined;
-  let prPatchIncomplete = false;
-  let workspace: Awaited<ReturnType<typeof buildLocalWorkspaceReview>> | undefined;
-  let agentCwd: string | undefined;
-
-  if (isPRMode) {
-    const prRef = parsePRUrl(urlArg);
-    if (!prRef) {
-      console.error(`Invalid PR/MR URL: ${urlArg}`);
-      process.exit(1);
-    }
-
-    console.error(`Fetching ${getMRLabel(prRef)} ${getMRNumberLabel(prRef)} from ${getDisplayRepo(prRef)}...`);
-
-    try {
-      await checkPRAuth(prRef);
-    } catch (err) {
-      const cliName = getCliName(prRef);
-      console.error(err instanceof Error ? err.message : `${cliName} auth check failed`);
-      process.exit(1);
-    }
-
-    try {
-      const pr = await fetchPR(prRef);
-      rawPatch = pr.rawPatch;
-      gitRef = `${getMRLabel(prRef)} ${getMRNumberLabel(prRef)}`;
-      prMetadata = pr.metadata;
-      prPatchIncomplete = pr.patchIncomplete ?? false;
-    } catch (err) {
-      console.error(err instanceof Error ? err.message : `Failed to fetch ${getMRLabel(prRef)} ${getMRNumberLabel(prRef)}`);
-      process.exit(1);
-    }
-  } else {
-    console.error("Opening code review UI...");
-
-    const config = loadConfig();
-    const cwd = process.env.HYPERMARK_CWD || process.cwd();
-    const managedVcs = await detectManagedVcs(cwd, reviewArgs.vcsType);
-    const forcedVcs = !!reviewArgs.vcsType && reviewArgs.vcsType !== "auto";
-
-    if (managedVcs || forcedVcs) {
-      const diffResult = await prepareLocalReviewDiff({
-        cwd,
-        vcsType: reviewArgs.vcsType,
-        configuredDiffType: resolveDefaultDiffType(config),
-        hideWhitespace: config.diffOptions?.hideWhitespace ?? false,
-      });
-      gitContext = diffResult.gitContext;
-      userDiffType = diffResult.diffType;
-      rawPatch = diffResult.rawPatch;
-      gitRef = diffResult.gitRef;
-      diffError = diffResult.error;
-      initialFingerprint = diffResult.fingerprint;
-    } else {
-      workspace = await buildLocalWorkspaceReview(cwd, {
-        configuredDiffType: resolveDefaultDiffType(config),
-        hideWhitespace: config.diffOptions?.hideWhitespace ?? false,
-      });
-      if (workspace.repos.length === 0) {
-        console.error("Not in a VCS repo and no nested Git/JJ/GitButler repositories were found.");
-        process.exit(1);
-      }
-      rawPatch = workspace.rawPatch;
-      gitRef = workspace.gitRef;
-      diffError = workspace.error;
-      userDiffType = workspace.diffType;
-      agentCwd = workspace.root;
-    }
-  }
-
-  const reviewProject = (await detectProjectName()) ?? "_unknown";
-
-  const server = await startReviewServer({
-    rawPatch,
-    gitRef,
-    error: diffError,
-    origin: "opencode",
-    project: reviewProject,
-    diffType: isPRMode ? undefined : userDiffType,
-    gitContext,
-    initialFingerprint,
-    prMetadata,
-    prPatchIncomplete,
-    workspace,
-    agentCwd,
-    // Fail-closed approval-notes handshake: this branch's JSON record already
-    // carries feedback on approve, but DELIVERY to the agent lives in the
-    // independently-versioned plugin (buildReviewPromptFromBridgeOutcome,
-    // spec §6.3 #3), so the advert requires the plugin's own stdin
-    // declaration. An old plugin omits `supportsApprovalNotes`, the advert
-    // stays false, and no approve-carrying item renders — a new binary can
-    // never trick an old bridge into dropping a reviewer's note.
-    approvalNotesSupported:
-      supportsReviewApprovalNotes("opencode") && input.supportsApprovalNotes === true,
-    htmlContent: reviewHtmlContent,
-    opencodeClient: makeOpenCodeBridgeClient(input.agents),
-    onReady: (url, port) => {
-      handleReviewServerReady(url, port);
-    },
-  });
-
-  registerSession({
-    pid: process.pid,
-    port: server.port,
-    url: server.url,
-    mode: "review",
-    project: reviewProject,
-    startedAt: new Date().toISOString(),
-    label: isPRMode && prMetadata
-      ? `${getMRLabel(prMetadata).toLowerCase()}-review-${getDisplayRepo(prMetadata)}${getMRNumberLabel(prMetadata)}`
-      : `review-${reviewProject}`,
-  });
-
-  const result = await server.waitForDecision();
-  await Bun.sleep(1500);
-  server.stop();
-
-  console.log(JSON.stringify({
-    decision: result.exit
-      ? "dismissed"
-      : result.approved
-        ? "approved"
-        : "annotated",
-    approved: result.approved,
-    isPRMode,
-    ...(result.feedback && { feedback: result.feedback }),
-    ...(result.agentSwitch && { agentSwitch: result.agentSwitch }),
-  }));
-  process.exit(0);
-
-} else if (args[0] === "opencode-annotate-last") {
-  // ============================================
-  // OPENCODE PLUGIN ANNOTATE LAST MESSAGE MODE
-  // ============================================
-
-  const inputJson = await Bun.stdin.text();
-  const input = parseOpenCodeBridgeInput<{
-    gate?: unknown;
-    recentMessages?: unknown;
-  }>("opencode-annotate-last", inputJson);
-
-  const recentMessages = Array.isArray(input.recentMessages)
-    ? input.recentMessages
-        .map((message): { messageId: string; text: string; timestamp?: string } | null => {
-          if (!message || typeof message !== "object") return null;
-          const record = message as Record<string, unknown>;
-          if (typeof record.text !== "string" || !record.text.trim()) return null;
-          return {
-            messageId: typeof record.messageId === "string" && record.messageId
-              ? record.messageId
-              : crypto.randomUUID(),
-            text: record.text,
-            ...(typeof record.timestamp === "string" && { timestamp: record.timestamp }),
-          };
-        })
-        .filter((message): message is { messageId: string; text: string; timestamp?: string } => message !== null)
-    : [];
-
-  const lastMessage = recentMessages[0] ?? null;
-  if (!lastMessage) {
-    console.error("No assistant message found in opencode-annotate-last input.");
-    process.exit(1);
-  }
-
-  console.error("Opening annotation UI for last message...");
-
-  const annotateProject = (await detectProjectName()) ?? "_unknown";
-  const pickerMessages = recentMessages.length > 1 ? recentMessages : undefined;
-
-  const server = await startAnnotateServer({
-    markdown: lastMessage.text,
-    filePath: "last-message",
-    origin: "opencode",
-    mode: "annotate-last",
-    recentMessages: pickerMessages,
-    gate: input.gate === true,
-    approvalNotesSupported: input.gate === true,
-    // Same predicate as the CLI-flag branches, with this transport's inputs
-    // mapped onto it: `gate` arrives on stdin JSON (cli-bridge.ts forwards
-    // parseAnnotateArgs' `gate`); `json` is unconditionally true because
-    // emitOpenCodeAnnotateOutcome is this branch's only output path and always
-    // writes a structured decision record the bridge parses back; `hook` is
-    // false because no flags are parsed here and no hook decision protocol is
-    // emitted. Without this, `/hypermark-last --gate` under OpenCode hangs on
-    // waitForDecision() forever once every review tab is abandoned — the exact
-    // hang #1143 closed for the other three call sites.
-    clientLeaseSupported: supportsAnnotateClientLease({
-      gate: input.gate === true,
-      json: true,
-      hook: false,
-    }),
-    htmlContent: planHtmlContent,
-    onReady: (url, port) => {
-      handleAnnotateServerReady(url, port);
-    },
-  });
-
-  registerSession({
-    pid: process.pid,
-    port: server.port,
-    url: server.url,
-    mode: "annotate",
-    project: annotateProject,
-    startedAt: new Date().toISOString(),
-    label: "annotate-last",
-  });
-
-  const result = await server.waitForDecision();
-  await Bun.sleep(1500);
-  server.stop();
-
-  emitOpenCodeAnnotateOutcome(result);
-  process.exit(0);
-
-} else if (args[0] === "copilot-plan") {
-  // ============================================
-  // COPILOT CLI PLAN INTERCEPTION MODE
-  // ============================================
-  //
-  // Called by preToolUse hook on EVERY tool call in Copilot CLI.
-  // Must filter quickly and only activate for exit_plan_mode.
-  // No output = allow the tool call to proceed.
-
-  const eventJson = await Bun.stdin.text();
-  let event: { toolName: string; toolArgs: string; cwd: string; timestamp: number; sessionId?: string };
-
-  try {
-    event = JSON.parse(eventJson);
-  } catch {
-    // Can't parse input — allow the tool call
-    process.exit(0);
-  }
-
-  // FILTER: Only intercept exit_plan_mode
-  if (event.toolName !== "exit_plan_mode") {
-    process.exit(0); // No output = allow
-  }
-
-  // Find plan.md content (sessionId primary, newest plan.md fallback)
-  const planContent = findCopilotPlanContent(event.sessionId);
-
-  if (!planContent) {
-    // No plan.md found — allow exit_plan_mode to proceed normally
-    process.exit(0);
-  }
-
-  const planProject = (await detectProjectName()) ?? "_unknown";
-
-  const server = await startHypermarkServer({
-    plan: planContent,
-    origin: "copilot-cli",
-    htmlContent: planHtmlContent,
-    onReady: async (url, port) => {
-      handleServerReady(url, port);
-    },
-  });
-
-  registerSession({
-    pid: process.pid,
-    port: server.port,
-    url: server.url,
-    mode: "plan",
-    project: planProject,
-    startedAt: new Date().toISOString(),
-    label: `plan-${planProject}`,
-  });
-
-  const result = await server.waitForDecision();
-  await Bun.sleep(1500);
-  server.stop();
-
-  // Output Copilot CLI permission decision format
-  if (result.approved) {
-    console.log(JSON.stringify({
-      permissionDecision: "allow",
-    }));
-  } else {
-    const feedback = getPlanDeniedPrompt("copilot-cli", undefined, {
-      toolName: getPlanToolName("copilot-cli"),
-      planFileRule: "",
-      feedback: result.feedback || "Plan changes requested",
-    });
-    console.log(JSON.stringify({
-      permissionDecision: "deny",
-      permissionDecisionReason: feedback,
-    }));
-  }
-
-  process.exit(0);
-
-} else if (args[0] === "copilot-last") {
-  // ============================================
-  // COPILOT CLI ANNOTATE LAST MESSAGE MODE
-  // ============================================
-
-  const projectRoot = process.env.HYPERMARK_CWD || process.cwd();
-
-  if (process.env.HYPERMARK_DEBUG) {
-    console.error(`[DEBUG] Copilot CLI detected, project root: ${projectRoot}`);
-  }
-
-  // Prefer the session locked by an ancestor copilot process; the cwd
-  // heuristic can pick a stale session when several exist for one repo.
-  const lockSessionDir = findCopilotSessionByAncestorPids();
-  if (process.env.HYPERMARK_DEBUG) {
-    console.error(`[DEBUG] Ancestor lock session: ${lockSessionDir ?? "(none)"}`);
-  }
-
-  const sessionDir = lockSessionDir ?? findCopilotSessionForCwd(projectRoot);
-
-  if (!sessionDir) {
-    console.error("No Copilot CLI session found.");
-    process.exit(1);
-  }
-
-  if (process.env.HYPERMARK_DEBUG) {
-    console.error(`[DEBUG] Session dir: ${sessionDir}`);
-  }
-
-  const recent = getRecentCopilotMessages(sessionDir, 25);
-  const msg = recent[0] ?? null;
-  if (!msg) {
-    console.error("No assistant message found in Copilot CLI session.");
-    process.exit(1);
-  }
-
-  if (process.env.HYPERMARK_DEBUG) {
-    console.error(`[DEBUG] Found message (${msg.text.length} chars)`);
-  }
-
-  const annotateProject = (await detectProjectName()) ?? "_unknown";
-  const pickerMessages = recent.length > 1 ? recent : undefined;
-
-  const server = await startAnnotateServer({
-    markdown: msg.text,
-    filePath: "last-message",
-    origin: "copilot-cli",
-    mode: "annotate-last",
-    recentMessages: pickerMessages,
-    gate: gateFlag,
-    approvalNotesSupported: supportsAnnotateApprovalNotes({
-      gate: gateFlag,
-      json: jsonFlag,
-      hook: hookFlag,
-    }),
-    clientLeaseSupported: supportsAnnotateClientLease({
-      gate: gateFlag,
-      json: jsonFlag,
-      hook: hookFlag,
-    }),
-    htmlContent: planHtmlContent,
-    onReady: async (url, port) => {
-      handleAnnotateServerReady(url, port);
-    },
-  });
-
-  registerSession({
-    pid: process.pid,
-    port: server.port,
-    url: server.url,
-    mode: "annotate",
-    project: annotateProject,
-    startedAt: new Date().toISOString(),
-    label: `annotate-last`,
-  });
-
-  const result = await server.waitForDecision();
-  await Bun.sleep(1500);
-  server.stop();
-
-  emitAnnotateOutcome(result);
-  process.exit(0);
-
 } else if (args[0] === "improve-context") {
   // ============================================
   // IMPROVEMENT HOOK CONTEXT INJECTION MODE
@@ -1976,89 +1306,8 @@ if (args[0] === "sessions") {
     process.exit(1);
   }
 
-  if (event.hook_event_name === "Stop") {
-    const rolloutPath =
-      (typeof event.transcript_path === "string" && event.transcript_path) ||
-      (process.env.CODEX_THREAD_ID
-        ? findCodexRolloutByThreadId(process.env.CODEX_THREAD_ID)
-        : null);
-
-    if (!rolloutPath || !existsSync(rolloutPath)) {
-      process.exit(0);
-    }
-
-    const latestPlan = getLatestCodexPlan(rolloutPath, {
-      turnId: typeof event.turn_id === "string" ? event.turn_id : undefined,
-      stopHookActive: !!event.stop_hook_active,
-    });
-
-    if (!latestPlan?.text) {
-      process.exit(0);
-    }
-
-    const planProject = (await detectProjectName()) ?? "_unknown";
-    const server = await startHypermarkServer({
-      plan: latestPlan.text,
-      origin: "codex",
-      htmlContent: planHtmlContent,
-      onReady: async (url, port) => {
-        handleServerReady(url, port);
-      },
-    });
-
-    registerSession({
-      pid: process.pid,
-      port: server.port,
-      url: server.url,
-      mode: "plan",
-      project: planProject,
-      startedAt: new Date().toISOString(),
-      label: `plan-${planProject}`,
-    });
-
-    const result = await server.waitForDecision();
-    await Bun.sleep(1500);
-    server.stop();
-
-    if (result.approved) {
-      console.log("{}");
-    } else {
-      console.log(
-        JSON.stringify({
-          decision: "block",
-          reason: getPlanDeniedPrompt("codex", undefined, {
-            toolName: getPlanToolName("codex"),
-            planFileRule: "",
-            feedback: result.feedback || "Plan changes requested",
-          }),
-        })
-      );
-    }
-
-    process.exit(0);
-  }
-
-  let planContent = "";
-  let permissionMode = "default";
-  let isGemini = false;
-  let planFilename = "";
-
-  // Detect harness: Gemini sends plan_filename (file on disk), Claude Code sends plan (inline)
-  planFilename = event.tool_input?.plan_filename || event.tool_input?.plan_path || "";
-  isGemini = !!planFilename;
-
-  if (isGemini) {
-    // Reconstruct full plan path from transcript_path and session_id:
-    // transcript_path = <projectTempDir>/chats/session-...json
-    // plan lives at   = <projectTempDir>/<session_id>/plans/<plan_filename>
-    const projectTempDir = path.dirname(path.dirname(event.transcript_path));
-    const planFilePath = path.join(projectTempDir, event.session_id, "plans", planFilename);
-    planContent = await Bun.file(planFilePath).text();
-  } else {
-    planContent = event.tool_input?.plan || "";
-  }
-
-  permissionMode = event.permission_mode || "default";
+  const planContent = event.tool_input?.plan || "";
+  const permissionMode = event.permission_mode || "default";
 
   if (!planContent) {
     console.error("No plan content in hook event");
@@ -2070,7 +1319,7 @@ if (args[0] === "sessions") {
   // Start the plan review server
   const server = await startHypermarkServer({
     plan: planContent,
-    origin: isGemini ? "gemini-cli" : detectedOrigin,
+    origin: detectedOrigin,
     permissionMode,
     htmlContent: planHtmlContent,
     onReady: async (url, port) => {
@@ -2097,24 +1346,8 @@ if (args[0] === "sessions") {
   // Cleanup
   server.stop();
 
-  // Output decision in the appropriate format for the harness
-  if (isGemini) {
-    if (result.approved) {
-      console.log(result.feedback ? JSON.stringify({ systemMessage: result.feedback }) : "{}");
-    } else {
-      console.log(
-        JSON.stringify({
-          decision: "deny",
-          reason: getPlanDeniedPrompt("gemini-cli", undefined, {
-            toolName: getPlanToolName("gemini-cli"),
-            planFileRule: buildPlanFileRule(getPlanToolName("gemini-cli"), planFilename),
-            feedback: result.feedback || "Plan changes requested",
-          }),
-        })
-      );
-    }
-  } else {
-    // Claude Code: PermissionRequest hook decision
+  // Output decision for the Claude Code PermissionRequest hook.
+  {
     if (result.approved) {
       const updatedPermissions = [];
       if (result.permissionMode) {

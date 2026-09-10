@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-import { instance } from '@viz-js/viz';
 import { isGraphvizLanguage, isMermaidLanguage } from './diagramLanguages';
 
 describe('diagramLanguages', () => {
@@ -17,14 +16,5 @@ describe('diagramLanguages', () => {
     expect(isGraphvizLanguage('dot rankdir=LR')).toBe(true);
     expect(isGraphvizLanguage('mermaid')).toBe(false);
     expect(isGraphvizLanguage(undefined)).toBe(false);
-  });
-
-  test('renders a simple dot graph to svg', async () => {
-    const viz = await instance();
-    const svg = await viz.renderString('digraph { Plan -> Review }', { format: 'svg' });
-
-    expect(svg).toContain('<svg');
-    expect(svg).toContain('Plan');
-    expect(svg).toContain('Review');
   });
 });

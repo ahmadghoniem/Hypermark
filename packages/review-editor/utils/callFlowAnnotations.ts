@@ -39,12 +39,30 @@ export function resolveCallFlowAnnotationPlacement(
 ): CallFlowAnnotationPlacement | null {
   if (targets.length === 0) return null;
 
-  const normalizedTargets = targets.map((target) => {
+  const normalizedTargets: CallFlowAnnotationTarget[] = targets.map((target): CallFlowAnnotationTarget => {
     if (!target.filePath) return target;
     const file = files.find((candidate) => (
       candidate.path === target.filePath || candidate.oldPath === target.filePath
     ));
-    return file ? { ...target, filePath: file.path } : target;
+    if (!file || file.path === target.filePath) return target;
+    if (target.lineStart !== undefined && target.lineEnd !== undefined) {
+      return {
+        treePath: target.treePath,
+        entry: target.entry,
+        label: target.label,
+        side: target.side,
+        filePath: file.path,
+        lineStart: target.lineStart,
+        lineEnd: target.lineEnd,
+      };
+    }
+    return {
+      treePath: target.treePath,
+      entry: target.entry,
+      label: target.label,
+      side: target.side,
+      filePath: file.path,
+    };
   });
 
   for (const target of normalizedTargets) {

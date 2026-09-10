@@ -32,7 +32,6 @@
     "test-consumer/viewer-document-header.tsx",
     "components/MarkdownEditor.tsx",
     "components/MarkdownEditor/embedPicker.ts",
-    "components/MarkdownDiff.tsx",
     "components/CommentPopover.tsx",
     "components/AnnotationPanel.tsx",
     "components/HtmlSurfaceControls.tsx",

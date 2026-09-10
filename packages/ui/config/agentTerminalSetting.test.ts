@@ -61,8 +61,8 @@ describe('agentTerminalSide setting', () => {
 describe('agentTerminalDefaultAgent setting', () => {
   test('keeps the pre-registry cookie key and round-trips an agent id', () => {
     const values = installBackend();
-    values.set(AGENT_COOKIE, 'codex');
-    expect(SETTINGS.agentTerminalDefaultAgent.fromCookie()).toBe('codex');
+    values.set(AGENT_COOKIE, 'other-agent');
+    expect(SETTINGS.agentTerminalDefaultAgent.fromCookie()).toBe('other-agent');
 
     SETTINGS.agentTerminalDefaultAgent.toCookie('claude');
     expect(values.get(AGENT_COOKIE)).toBe('claude');
@@ -81,10 +81,10 @@ describe('agentTerminalDefaultAgent setting', () => {
 
   test('syncs both directions with ~/.hypermark/config.json', () => {
     expect(SETTINGS.agentTerminalDefaultAgent.serverKey).toBe('agentTerminalDefaultAgent');
-    expect(SETTINGS.agentTerminalDefaultAgent.toServer('codex')).toEqual({
-      agentTerminalDefaultAgent: 'codex',
+    expect(SETTINGS.agentTerminalDefaultAgent.toServer('other-agent')).toEqual({
+      agentTerminalDefaultAgent: 'other-agent',
     });
-    expect(SETTINGS.agentTerminalDefaultAgent.fromServer({ agentTerminalDefaultAgent: 'codex' })).toBe('codex');
+    expect(SETTINGS.agentTerminalDefaultAgent.fromServer({ agentTerminalDefaultAgent: 'other-agent' })).toBe('other-agent');
     expect(SETTINGS.agentTerminalDefaultAgent.fromServer({ agentTerminalDefaultAgent: '' })).toBeUndefined();
     expect(SETTINGS.agentTerminalDefaultAgent.fromServer({ agentTerminalDefaultAgent: 7 })).toBeUndefined();
   });

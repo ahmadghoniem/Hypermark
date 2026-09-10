@@ -331,7 +331,7 @@ export const AnnotateAgentTerminalPanel = forwardRef<
         <div className="flex flex-1 flex-col justify-center gap-2 px-4 text-center">
           <p className="text-xs font-medium text-foreground">Agent unavailable</p>
           <p className="text-[11px] leading-5 text-muted-foreground">
-            {capability.message ?? "WebTUI is not available in this session."}
+            {('message' in capability ? capability.message : undefined) ?? "WebTUI is not available in this session."}
           </p>
         </div>
       ) : startedAgentId && backend ? (

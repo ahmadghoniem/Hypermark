@@ -52,7 +52,7 @@ describe("transformReviewInput — scope-aware location requirements", () => {
 
   test("preserves PR, commit, and GitButler attribution", () => {
     const [annotation] = ok({
-      source: "codex",
+      source: "external-tool",
       scope: "general",
       text: "finding",
       prUrl: "https://github.com/acme/repo/pull/42",
@@ -85,7 +85,7 @@ describe("transformReviewInput — scope-aware location requirements", () => {
 
   test("rejects malformed PR attribution", () => {
     const badScope = transformReviewInput({
-      source: "codex",
+      source: "external-tool",
       scope: "general",
       text: "finding",
       diffScope: "all",
@@ -93,7 +93,7 @@ describe("transformReviewInput — scope-aware location requirements", () => {
     expect("error" in badScope && badScope.error).toContain("invalid diffScope");
 
     const badNumber = transformReviewInput({
-      source: "codex",
+      source: "external-tool",
       scope: "general",
       text: "finding",
       prNumber: 0,

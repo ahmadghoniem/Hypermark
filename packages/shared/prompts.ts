@@ -16,15 +16,6 @@ export function resolveTemplate(
 
 export const PLAN_TOOL_NAMES: Record<PromptRuntime, string> = {
   "claude-code": "ExitPlanMode",
-  amp: "ExitPlanMode",
-  droid: "ExitPlanMode",
-  "kiro-cli": "ExitPlanMode",
-  opencode: "submit_plan",
-  "copilot-cli": "exit_plan_mode",
-  pi: "hypermark_submit_plan",
-  codex: "ExitPlanMode",
-  "gemini-cli": "exit_plan_mode",
-  "oh-my-pi": "ExitPlanMode",
 };
 
 export function getPlanToolName(runtime?: PromptRuntime | null): string {
@@ -203,9 +194,7 @@ export function getPlanDeniedPrompt(
   return resolveTemplate(template, vars ?? {});
 }
 
-const PLAN_APPROVED_RUNTIME_DEFAULTS: Partial<Record<PromptRuntime, string>> = {
-  opencode: "Plan approved!{{doneMsg}}",
-};
+const PLAN_APPROVED_RUNTIME_DEFAULTS: Partial<Record<PromptRuntime, string>> = {};
 
 export function getPlanApprovedPrompt(
   runtime?: PromptRuntime | null,
@@ -223,9 +212,7 @@ export function getPlanApprovedPrompt(
   return resolveTemplate(template, vars ?? {});
 }
 
-const PLAN_APPROVED_WITH_NOTES_RUNTIME_DEFAULTS: Partial<Record<PromptRuntime, string>> = {
-  opencode: "Plan approved with notes!\n{{doneMsg}}\n\n## Implementation Notes\n\nThe user approved your plan but added the following notes to consider during implementation:\n\n{{feedback}}{{proceedSuffix}}",
-};
+const PLAN_APPROVED_WITH_NOTES_RUNTIME_DEFAULTS: Partial<Record<PromptRuntime, string>> = {};
 
 export function getPlanApprovedWithNotesPrompt(
   runtime?: PromptRuntime | null,

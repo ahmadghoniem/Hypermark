@@ -1,17 +1,11 @@
 import { describe, expect, it } from 'bun:test';
-import { annotateSettingsShortcutRegistry, planEditorShortcuts, planReviewSettingsShortcutRegistry } from '../editor/shortcuts';
-import { reviewSettingsShortcutRegistry } from '../review-editor/shortcuts';
 import {
   annotationModeShortcuts,
   createShortcutRegistry,
-  decisionControlShortcuts,
   defineShortcutScope,
   dispatchShortcutEvent,
   formatShortcutBindingText,
   formatShortcutBindingTokens,
-  getShortcut,
-  listRegistryShortcuts,
-  listRegistryShortcutSections,
   matchesKeyName,
   matchesShortcutBinding,
   parseDoubleTapBinding,
@@ -69,89 +63,6 @@ describe('shortcuts', () => {
     expect(() => createShortcutRegistry([duplicateScope, duplicateScope])).toThrow();
   });
 
-  it('lists plan review, annotate, and review sections from assembled registries', () => {
-    const planReviewSections = listRegistryShortcutSections(planReviewSettingsShortcutRegistry);
-    const annotateSections = listRegistryShortcutSections(annotateSettingsShortcutRegistry);
-    const reviewSections = listRegistryShortcutSections(reviewSettingsShortcutRegistry);
-
-    expect(planReviewSections.map(section => section.title)).toEqual([
-      'Actions',
-      'View',
-      'Input Method',
-      'Annotations',
-      'Image Annotator',
-      'History',
-    ]);
-
-    expect(annotateSections.map(section => section.title)).toEqual([
-      'Actions',
-      'Sidebar',
-      'View',
-      'Input Method',
-      'Annotations',
-      'Image Annotator',
-      'History',
-    ]);
-
-    expect(getShortcut(planReviewSettingsShortcutRegistry, 'plan-review-editor-settings', 'submitPlan')?.description).toBe('Approve / Send feedback');
-    expect(getShortcut(planReviewSettingsShortcutRegistry, 'plan-review-editor-settings', 'submitAnnotations')).toBeUndefined();
-    // Fact-guard, not a prose pin: the annotate registry's submit action must
-    // describe the adaptive Done/Send primary (distinct from plan review's).
-    expect(getShortcut(annotateSettingsShortcutRegistry, 'annotate-editor-settings', 'submitAnnotations')?.description).toContain('Done / Send feedback');
-    expect(getShortcut(annotateSettingsShortcutRegistry, 'annotate-editor-settings', 'submitPlan')).toBeUndefined();
-    expect(getShortcut(annotateSettingsShortcutRegistry, 'annotate-sidebar', 'toggleContents')?.description).toBe('Toggle Contents sidebar');
-
-    expect(reviewSections.map(section => section.title)).toEqual([
-      'Actions',
-      'Search',
-      'Layout',
-      'File Actions',
-      'History',
-      'File Navigation',
-      'All-Files View',
-      'Annotations',
-      'Suggestion Editor',
-      'PR Comments',
-    ]);
-  });
-
-  // The focus-mode toggle collapses both side panels at once. It has to exist
-  // on BOTH plan surfaces (they render the same panels), and its binding has to
-  // stay the only claim on `Mod+.` there — a second claimant would double-fire,
-  // since the dispatcher has no cross-scope arbitration.
-  it('binds focus mode once on every plan surface', () => {
-    for (const registry of [planReviewSettingsShortcutRegistry, annotateSettingsShortcutRegistry]) {
-      expect(getShortcut(registry, 'document-view', 'toggleFocusMode')?.bindings).toEqual(['Mod+.']);
-
-      const claimants = listRegistryShortcuts(registry)
-        .filter(entry => entry.bindings.includes('Mod+.'))
-        .map(entry => `${entry.scopeId}.${entry.actionId}`);
-      expect(claimants).toEqual(['document-view.toggleFocusMode']);
-    }
-  });
-
-  // The mode switcher renders on both plan surfaces, so the scope has to reach
-  // both registries — and each digit has to stay a single claimant, since the
-  // dispatcher has no cross-scope arbitration.
-  it('binds annotation mode once on every plan surface', () => {
-    const expected = {
-      selectMarkupMode: ['Shift+1'],
-      selectCommentMode: ['Shift+2'],
-      selectRedlineMode: ['Shift+3'],
-      selectQuickLabelMode: ['Shift+4'],
-    };
-
-    for (const registry of [planReviewSettingsShortcutRegistry, annotateSettingsShortcutRegistry]) {
-      for (const [actionId, bindings] of Object.entries(expected)) {
-        expect(getShortcut(registry, 'annotation-mode', actionId)?.bindings).toEqual(bindings);
-
-        const claimants = listRegistryShortcuts(registry)
-          .filter(entry => entry.bindings.includes(bindings[0]))
-          .map(entry => `${entry.scopeId}.${entry.actionId}`);
-        expect(claimants).toEqual([`annotation-mode.${actionId}`]);
-      }
-    }
-  });
 
   // The quick-label picker claims bare digits. Holding Shift has to steer the
   // keystroke to the mode switcher instead of firing both.
@@ -199,45 +110,33 @@ describe('shortcuts', () => {
   });
 
   it('dispatches matching registry actions', () => {
+    const testScope = defineShortcutScope({
+      id: 'test-actions',
+      title: 'Test Actions',
+      shortcuts: {
+        submitPlan: {
+          description: 'Submit',
+          bindings: ['Mod+Enter'],
+          section: 'Actions',
+        },
+        quickSave: {
+          description: 'Save',
+          bindings: ['Mod+S'],
+          section: 'Actions',
+        },
+      },
+    });
+    const registry = createShortcutRegistry([testScope]);
     const calls: string[] = [];
     const event = { key: 'Enter', ctrlKey: true, metaKey: false, shiftKey: false, altKey: false } as KeyboardEvent;
 
-    const handled = dispatchShortcutEvent(planReviewSettingsShortcutRegistry[0], {
+    const handled = dispatchShortcutEvent(registry[0], {
       submitPlan: () => calls.push('submitPlan'),
       quickSave: () => calls.push('quickSave'),
     }, event);
 
     expect(handled).toBe(true);
     expect(calls).toEqual(['submitPlan']);
-  });
-
-  it('can dispatch annotate submit after plan submit declines the same binding', () => {
-    const calls: string[] = [];
-    const event = {
-      key: 'Enter',
-      ctrlKey: true,
-      metaKey: false,
-      shiftKey: false,
-      altKey: false,
-      preventDefault: () => calls.push('preventDefault'),
-    } as unknown as KeyboardEvent;
-
-    const handled = dispatchShortcutEvent(planEditorShortcuts, {
-      submitPlan: {
-        when: () => false,
-        handle: () => calls.push('submitPlan'),
-      },
-      submitAnnotations: {
-        when: () => true,
-        handle: () => {
-          event.preventDefault();
-          calls.push('submitAnnotations');
-        },
-      },
-    }, event);
-
-    expect(handled).toBe(true);
-    expect(calls).toEqual(['preventDefault', 'submitAnnotations']);
   });
 
   it('supports guarded handlers and continues after a failed guard', () => {
@@ -346,17 +245,6 @@ describe('shortcuts', () => {
     expect(preventDefaultCalls).toBe(0);
   });
 
-  it('assigns review history, copy, and collapse chords to their real registry owners', () => {
-    const claimants = (binding: string) => listRegistryShortcuts(reviewSettingsShortcutRegistry)
-      .filter((entry) => entry.bindings.includes(binding))
-      .map((entry) => `${entry.scopeId}.${entry.actionId}`);
-
-    expect(claimants('Mod+Z')).toEqual(['history.undo']);
-    expect(claimants('Mod+Shift+Z')).toEqual(['history.redo']);
-    expect(claimants('Mod+Y')).toEqual(['history.redo']);
-    expect(claimants('Z')).toEqual(['review-all-files-diff.undoCollapse']);
-    expect(claimants('Mod+Shift+Y')).toEqual(['review-editor.copyFeedback']);
-  });
 
   it('switches annotation mode on Shift+1-4 across keyboard layouts', () => {
     const calls: string[] = [];
@@ -387,18 +275,6 @@ describe('shortcuts', () => {
     expect(preventDefaultCalls).toBe(2);
   });
 
-  // PR2/PR3 registered the decision-control scope in both adopting settings
-  // registries (the entries feed the help modal and the generated marketing
-  // shortcuts page — bindings must match shipped behavior). Guards the live
-  // registrations: a duplicate scope id or non-normalized binding token would
-  // only surface as a throw at app startup otherwise.
-  it('decision-control scope is registered for annotate and review', () => {
-    expect(decisionControlShortcuts.id).toBe('decision-control');
-    expect([...annotateSettingsShortcutRegistry].some((scope) => scope.id === 'decision-control')).toBe(true);
-    expect([...reviewSettingsShortcutRegistry].some((scope) => scope.id === 'decision-control')).toBe(true);
-    expect(validateShortcutRegistry([...annotateSettingsShortcutRegistry])).toEqual([]);
-    expect(validateShortcutRegistry([...reviewSettingsShortcutRegistry])).toEqual([]);
-  });
 
   it('leaves annotation mode alone when Alt is held', () => {
     // AltGr sends Ctrl+Alt; the binding declares no Alt, so it must not fire.

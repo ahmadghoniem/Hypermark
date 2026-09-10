@@ -5,7 +5,7 @@ import { Sun, Moon, Monitor } from '@phosphor-icons/react';
  * Shared theme-mode icons (Sun / Moon / System).
  *
  * Several components render the same theme picker (PlanHeaderMenu, ThemeTab,
- * historically MobileMenu / ModeToggle). They used to inline hand-rolled SVGs
+ * historically MobileMenu). They used to inline hand-rolled SVGs
  * independently, which meant any tweak to a glyph had to be hunted down
  * across files. Centralizing them here keeps the iconography consistent.
  * The SVG bodies were migrated to Phosphor (spec 03 step 5); the exported

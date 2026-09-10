@@ -51,7 +51,6 @@ const ENV_KEYS = [
   "HYPERMARK_ANNOTATE_HISTORY",
   "HYPERMARK_AI",
   "HYPERMARK_PORT",
-  "HYPERMARK_REMOTE",
 ] as const;
 
 const tempDirs: string[] = [];
@@ -96,7 +95,6 @@ function sidecarBody(dataDir: string, record: FeedbackRecord): string {
 beforeEach(() => {
   for (const key of ENV_KEYS) saved[key] = process.env[key];
   delete process.env.HYPERMARK_PORT;
-  process.env.HYPERMARK_REMOTE = "0";
   process.env.HYPERMARK_AI = "disabled";
   // A real ~/.hypermark/config.json must never decide these tests.
   process.env.HYPERMARK_FEEDBACK_HISTORY = "1";

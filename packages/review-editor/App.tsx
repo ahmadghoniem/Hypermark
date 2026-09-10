@@ -33,7 +33,6 @@ import { getPlatformLabel, getMRLabel, getMRNumberLabel, getDisplayRepo } from '
 import type { SemanticDiffAdvert } from '@hypermark/shared/semantic-diff-types';
 import type { CallFlowAdvert, CallFlowNode } from '@hypermark/shared/call-flow-types';
 import { configStore, useConfigValue, setReviewPanelView } from '@hypermark/ui/config';
-import { getAgentSwitchSettings, getEffectiveAgentName } from '@hypermark/ui/utils/agentSwitch';
 import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, Annotation, CommentAnnotation, type ArtifactAnnotationMeta, type CallFlowAnnotationTarget, type ImageAttachment } from '@hypermark/ui/types';
 import { useResizablePanel } from '@hypermark/ui/hooks/useResizablePanel';
 import { useCodeAnnotationDraft } from '@hypermark/ui/hooks/useCodeAnnotationDraft';
@@ -56,7 +55,6 @@ import {
   useReviewSearch,
   type ReviewSearchMatch,
 } from './hooks/useReviewSearch';
-import { useEditorAnnotations } from '@hypermark/ui/hooks/useEditorAnnotations';
 import { useExternalAnnotations } from '@hypermark/ui/hooks/useExternalAnnotations';
 import { useUndoHistory } from '@hypermark/ui/hooks/useUndoHistory';
 import { useHistoryShortcuts } from '@hypermark/ui/shortcuts';
@@ -68,7 +66,6 @@ import {
   type CollectionMutation,
   type HistoryDirection,
 } from '@hypermark/ui/utils/undoHistory';
-import { exportEditorAnnotations } from '@hypermark/ui/utils/parser';
 import { buildReviewAgentInstructions } from '@hypermark/ui/utils/reviewAgentInstructions';
 import { ResizeHandle } from '@hypermark/ui/components/ResizeHandle';
 import { IconContext, Tree } from '@phosphor-icons/react';
@@ -239,7 +236,7 @@ type ReviewHistoryAction =
       afterSelection: string | null;
     };
 
-const reviewItemId = (item: { id: string }): string => item.id;
+const reviewItemId = <T extends { id: string }>(item: T): string => item.id;
 
 interface CompactReviewOverlayProps {
   title: string;
@@ -699,7 +696,6 @@ const ReviewAppInner: React.FC = () => {
   }, []);
 
   // VS Code editor annotations (only polls when inside VS Code webview)
-  const { editorAnnotations, deleteEditorAnnotation } = useEditorAnnotations();
 
   // External annotations (SSE-based, for any external tool)
   // TODO: Replace !!origin with a dedicated isApiMode boolean (set on /api/diff success/failure).
@@ -1095,10 +1091,6 @@ const ReviewAppInner: React.FC = () => {
   }, [activeDiffBase, diffData?.gitRef, committedBase, snapshotId]);
   const canUseLiveWorkspaceActions = !activeDiffBase.startsWith('gitbutler:stack:') &&
     !activeDiffBase.startsWith('gitbutler:branch:');
-  const visibleEditorAnnotations = useMemo(
-    () => canUseLiveWorkspaceActions ? editorAnnotations : [],
-    [canUseLiveWorkspaceActions, editorAnnotations],
-  );
   // Token hover cards ride the same gate as Cmd+click code navigation, plus
   // their own setting. Off means no handler props reach the diff views, so
   // there are no listeners, no requests and no card in the tree.
@@ -2971,18 +2963,15 @@ const ReviewAppInner: React.FC = () => {
     if (allAnnotations.length > 0) {
       parts.push(exportReviewFeedback(allAnnotations, prMetadata, feedbackDiffContext, prReviewScopeLabel));
     }
-    if (visibleEditorAnnotations.length > 0) {
-      parts.push(exportEditorAnnotations(visibleEditorAnnotations).trim());
-    }
     const prose = buildProseFeedback(visibleDescriptionAnnotations, visibleCommentAnnotations, prContext?.body);
     if (prose) parts.push(prose);
     // Fall back to the standard "no feedback" message only when there's nothing.
     return parts.length > 0
       ? parts.join('\n\n')
       : exportReviewFeedback([], prMetadata, feedbackDiffContext, prReviewScopeLabel);
-  }, [allAnnotations, prMetadata, feedbackDiffContext, prReviewScopeLabel, visibleEditorAnnotations, visibleDescriptionAnnotations, prContext?.body, visibleCommentAnnotations]);
+  }, [allAnnotations, prMetadata, feedbackDiffContext, prReviewScopeLabel, visibleDescriptionAnnotations, prContext?.body, visibleCommentAnnotations]);
 
-  const totalAnnotationCount = allAnnotations.length + visibleEditorAnnotations.length + visibleDescriptionAnnotations.length + visibleCommentAnnotations.length;
+  const totalAnnotationCount = allAnnotations.length + visibleDescriptionAnnotations.length + visibleCommentAnnotations.length;
 
   // Copy the same full feedback the agent gets (code + editor + PR description +
   // PR comment notes), not just code annotations. Defined after feedbackMarkdown
@@ -3013,9 +3002,6 @@ const ReviewAppInner: React.FC = () => {
   const handleSendFeedback = useCallback(async (): Promise<boolean> => {
     setIsSendingFeedback(true);
     try {
-      const agentSwitchSettings = getAgentSwitchSettings('review');
-      const effectiveAgent = getEffectiveAgentName(agentSwitchSettings);
-
       const res = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3024,7 +3010,6 @@ const ReviewAppInner: React.FC = () => {
           approved: false,
           feedback: feedbackMarkdown,
           annotations: allAnnotations,
-          ...(effectiveAgent && { agentSwitch: effectiveAgent }),
         }),
       });
       if (res.ok) {
@@ -3324,8 +3309,6 @@ const ReviewAppInner: React.FC = () => {
         for (const url of openUrls) window.open(url, '_blank');
       }
 
-      const agentSwitchSettings = getAgentSwitchSettings('review');
-      const effectiveAgent = getEffectiveAgentName(agentSwitchSettings);
       const prLinks = openUrls.join(', ');
       const statusMessage = action === 'approve'
         ? `${mrLabel === 'MR' ? 'Merge request' : 'Pull request'} approved on ${platformLabel}${prLinks ? ': ' + prLinks : ''}`
@@ -3338,7 +3321,6 @@ const ReviewAppInner: React.FC = () => {
           approved: false,
           feedback: statusMessage,
           annotations: [],
-          ...(effectiveAgent && { agentSwitch: effectiveAgent }),
         }),
       }).catch(() => {});
     } catch (err) {
@@ -3349,13 +3331,7 @@ const ReviewAppInner: React.FC = () => {
   }, [platformOpenPR, platformLabel, mrLabel, prMetadata]);
 
   const openPlatformDialog = useCallback((action: 'approve' | 'comment') => {
-    const diffPaths = new Set(files.map(f => f.path));
-    const prMeta = prMetadata ? {
-      number: prMetadata.platform === 'github' ? prMetadata.number : prMetadata.iid,
-      title: prMetadata.title,
-      repo: getDisplayRepo(prMetadata),
-    } : undefined;
-    const plan = buildReviewSubmission(allAnnotations, visibleEditorAnnotations, prMetadata?.url, diffPaths, prMeta);
+    const plan = buildReviewSubmission(allAnnotations, prMetadata?.url);
     // PR description/comment notes aren't line-anchored, so they can't post as
     // inline review comments — seed them into the review body instead (quoted),
     // where the user can edit before submitting. Also means a review with only
@@ -3388,7 +3364,7 @@ const ReviewAppInner: React.FC = () => {
     }
     setPlatformGeneralComment(seededGeneralComment);
     setPlatformCommentDialog({ action, plan });
-  }, [allAnnotations, visibleEditorAnnotations, files, prMetadata, visibleDescriptionAnnotations, visibleCommentAnnotations, prContext?.body, platformReviewRecovery]);
+  }, [allAnnotations, files, prMetadata, visibleDescriptionAnnotations, visibleCommentAnnotations, prContext?.body, platformReviewRecovery]);
 
   // --- PR6 (§3.4): platform mode adopts the control's SHAPE ----------------
   // The same DecisionSpec, with NO composer or confirm items: every id opens
@@ -4484,8 +4460,6 @@ const ReviewAppInner: React.FC = () => {
                 onAddGeneralComment={handleAddGeneralComment}
                 feedbackMarkdown={feedbackMarkdown}
                 width={isCompactTouchLayout ? undefined : panelResize.width}
-                editorAnnotations={visibleEditorAnnotations}
-                onDeleteEditorAnnotation={deleteEditorAnnotation}
                 descriptionAnnotations={visibleDescriptionAnnotations}
                 selectedDescriptionAnnotationId={selectedDescriptionAnnotationId}
                 onSelectDescriptionAnnotation={handleSelectDescriptionAnnotation}

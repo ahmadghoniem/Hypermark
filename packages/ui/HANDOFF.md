@@ -26,7 +26,7 @@ If you read nothing else, read **"The 60-second version"**, **"Supported imports
 
 **New package: `@hypermark/core`** — a browser-safe, zero-dependency package carved out of `@hypermark/shared`. It holds the pure utilities and types `ui` depends on, so `ui` can be installed without dragging in Hypermark's Node/server code. Modules were moved with `git mv` (not copied). CI typechecks it with no `@types/node` so a `node:` import can't sneak in.
 
-Core modules: `agents`, `agent-terminal`, `browser-paths`, `code-file`, `compress`, `crypto`, `external-annotation`, `extract-code-paths`, `favicon`, `feedback-templates`, `goal-setup`, `open-in-apps`, `project`, `source-save`, plus extracted type files (`config-types`, `storage-types`, `workspace-status-types`, `ai-context`, `types`).
+Core modules: `agents`, `agent-terminal`, `browser-paths`, `code-file`, `external-annotation`, `extract-code-paths`, `favicon`, `feedback-templates`, `goal-setup`, `open-in-apps`, `project`, `source-save`, plus extracted type files (`config-types`, `storage-types`, `workspace-status-types`, `ai-context`, `types`).
 
 **`@hypermark/shared` re-exports core via one-line shims** — e.g. `packages/shared/project.ts` is just `export * from '@hypermark/core/project';`. This is why none of Hypermark's ~99 internal import sites changed: they still import from `@hypermark/shared/*` and get the moved code transparently.
 

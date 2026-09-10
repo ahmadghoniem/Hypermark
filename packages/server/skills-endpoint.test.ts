@@ -35,7 +35,6 @@ const ENV_KEYS = [
   "XDG_CONFIG_HOME",
   "HYPERMARK_DATA_DIR",
   "HYPERMARK_PORT",
-  "HYPERMARK_REMOTE",
 ] as const;
 const savedEnv: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>> = {};
 
@@ -72,7 +71,6 @@ beforeEach(() => {
   process.env.XDG_CONFIG_HOME = join(home, ".config");
   process.env.HYPERMARK_DATA_DIR = join(base, "data");
   delete process.env.HYPERMARK_PORT;
-  process.env.HYPERMARK_REMOTE = "0";
 });
 
 afterEach(() => {

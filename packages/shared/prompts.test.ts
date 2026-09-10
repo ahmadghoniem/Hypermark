@@ -90,11 +90,11 @@ describe("getPlanDeniedPrompt", () => {
   });
 
   test("runtime-specific override wins over generic", () => {
-    const result = getPlanDeniedPrompt("opencode", {
+    const result = getPlanDeniedPrompt("claude-code", {
       prompts: {
         plan: {
           denied: "Generic denial: {{feedback}}",
-          runtimes: { opencode: { denied: "OC denial: {{feedback}}" } },
+          runtimes: { "claude-code": { denied: "OC denial: {{feedback}}" } },
         },
       },
     }, { feedback: "nope" });
@@ -113,8 +113,8 @@ describe("getPlanDeniedPrompt", () => {
   });
 
   test("blank config falls through to default", () => {
-    const result = getPlanDeniedPrompt("opencode", {
-      prompts: { plan: { denied: "   ", runtimes: { opencode: { denied: "" } } } },
+    const result = getPlanDeniedPrompt("claude-code", {
+      prompts: { plan: { denied: "   ", runtimes: { "claude-code": { denied: "" } } } },
     }, { toolName: "submit_plan", planFileRule: "", feedback: "fb" });
     expect(result).toContain("YOUR PLAN WAS NOT APPROVED");
   });
@@ -144,48 +144,24 @@ describe("getPlanDeniedPrompt", () => {
     expect(result).not.toContain("saved at");
   });
 
-  test("output is identical across runtimes modulo toolName (parity)", () => {
-    const normalize = (s: string) =>
-      s.replace(/ExitPlanMode|submit_plan|exit_plan_mode|hypermark_submit_plan/g, "TOOL");
-
-    const make = (rt: PromptRuntime) => normalize(getPlanDeniedPrompt(rt, {}, {
-      toolName: getPlanToolName(rt),
-      planFileRule: "",
-      feedback: "## Fix auth",
-    }));
-
-    const cc = make("claude-code");
-    expect(make("opencode")).toBe(cc);
-    expect(make("pi")).toBe(cc);
-    expect(make("copilot-cli")).toBe(cc);
-    expect(make("gemini-cli")).toBe(cc);
-  });
 });
 
 // ─── A3. Plan approved ───────────────────────────────────────────────────────
 
 describe("getPlanApprovedPrompt", () => {
-  test("falls back to runtime built-in default (pi vs opencode differ)", () => {
-    const pi = getPlanApprovedPrompt("pi", {}, { planFilePath: "plan.md", doneMsg: "" });
-    const oc = getPlanApprovedPrompt("opencode", {}, { doneMsg: "" });
-    expect(pi).toContain("full tool access");
-    expect(oc).not.toContain("full tool access");
-    expect(oc).toContain("Plan approved!");
-  });
-
   test("uses configured prompt with variable interpolation", () => {
-    const result = getPlanApprovedPrompt("pi", {
+    const result = getPlanApprovedPrompt("claude-code", {
       prompts: { plan: { approved: "Go ahead with {{planFilePath}}." } },
     }, { planFilePath: "my-plan.md" });
     expect(result).toBe("Go ahead with my-plan.md.");
   });
 
   test("runtime config wins over generic config wins over runtime default", () => {
-    const result = getPlanApprovedPrompt("opencode", {
+    const result = getPlanApprovedPrompt("claude-code", {
       prompts: {
         plan: {
           approved: "Generic approved",
-          runtimes: { opencode: { approved: "OC approved" } },
+          runtimes: { "claude-code": { approved: "OC approved" } },
         },
       },
     });
@@ -193,7 +169,7 @@ describe("getPlanApprovedPrompt", () => {
   });
 
   test("interpolates {{planFilePath}} and {{doneMsg}}", () => {
-    const result = getPlanApprovedPrompt("pi", {}, {
+    const result = getPlanApprovedPrompt("claude-code", {}, {
       planFilePath: "plans/auth.md",
       doneMsg: "Check each step.",
     });
@@ -204,29 +180,15 @@ describe("getPlanApprovedPrompt", () => {
 
 describe("getPlanApprovedWithNotesPrompt", () => {
   test("includes Implementation Notes section in default", () => {
-    const result = getPlanApprovedWithNotesPrompt("pi", {}, {
+    const result = getPlanApprovedWithNotesPrompt("claude-code", {}, {
       planFilePath: "p.md", doneMsg: "", feedback: "Watch the edge case",
     });
     expect(result).toContain("## Implementation Notes");
     expect(result).toContain("Watch the edge case");
   });
 
-  test("opencode runtime default omits planFilePath and tool access language", () => {
-    const result = getPlanApprovedWithNotesPrompt("opencode", {}, {
-      doneMsg: "Saved to: /tmp/plan.md",
-      feedback: "Watch the edge case",
-    });
-    expect(result).toContain("Plan approved with notes!");
-    expect(result).toContain("Watch the edge case");
-    expect(result).toContain("Saved to: /tmp/plan.md");
-    expect(result).not.toContain("full tool access");
-    expect(result).not.toContain("Execute the plan in");
-    // doneMsg is on its own line after the header (matching old behavior)
-    expect(result).toContain("notes!\nSaved to:");
-  });
-
   test("uses configured override when present", () => {
-    const result = getPlanApprovedWithNotesPrompt("pi", {
+    const result = getPlanApprovedWithNotesPrompt("claude-code", {
       prompts: { plan: { approvedWithNotes: "Approved. Notes: {{feedback}}" } },
     }, { feedback: "be careful" });
     expect(result).toBe("Approved. Notes: be careful");
@@ -235,11 +197,11 @@ describe("getPlanApprovedWithNotesPrompt", () => {
 
 describe("getPlanAutoApprovedPrompt", () => {
   test("returns default auto-approved message", () => {
-    expect(getPlanAutoApprovedPrompt("pi", {})).toContain("auto-approved");
+    expect(getPlanAutoApprovedPrompt("claude-code", {})).toContain("auto-approved");
   });
 
   test("uses configured override", () => {
-    expect(getPlanAutoApprovedPrompt("pi", {
+    expect(getPlanAutoApprovedPrompt("claude-code", {
       prompts: { plan: { autoApproved: "Auto OK" } },
     })).toBe("Auto OK");
   });
@@ -249,7 +211,7 @@ describe("getPlanAutoApprovedPrompt", () => {
 
 describe("getAnnotateFileFeedbackPrompt", () => {
   test("includes file header and path in default", () => {
-    const result = getAnnotateFileFeedbackPrompt("opencode", {}, {
+    const result = getAnnotateFileFeedbackPrompt("claude-code", {}, {
       fileHeader: "File", filePath: "/src/app.ts", feedback: "Fix line 5",
     });
     expect(result).toContain("File: /src/app.ts");
@@ -258,25 +220,25 @@ describe("getAnnotateFileFeedbackPrompt", () => {
   });
 
   test("handles folder header variant", () => {
-    const result = getAnnotateFileFeedbackPrompt("pi", {}, {
+    const result = getAnnotateFileFeedbackPrompt("claude-code", {}, {
       fileHeader: "Folder", filePath: "/src/", feedback: "Check all files",
     });
     expect(result).toContain("Folder: /src/");
   });
 
   test("uses configured override", () => {
-    const result = getAnnotateFileFeedbackPrompt("opencode", {
+    const result = getAnnotateFileFeedbackPrompt("claude-code", {
       prompts: { annotate: { fileFeedback: "Review {{filePath}}: {{feedback}}" } },
     }, { filePath: "x.ts", feedback: "fix it" });
     expect(result).toBe("Review x.ts: fix it");
   });
 
   test("runtime-specific override wins over generic", () => {
-    const result = getAnnotateFileFeedbackPrompt("pi", {
+    const result = getAnnotateFileFeedbackPrompt("claude-code", {
       prompts: {
         annotate: {
           fileFeedback: "Generic: {{feedback}}",
-          runtimes: { pi: { fileFeedback: "Pi: {{feedback}}" } },
+          runtimes: { "claude-code": { fileFeedback: "Pi: {{feedback}}" } },
         },
       },
     }, { feedback: "note" });
@@ -286,13 +248,13 @@ describe("getAnnotateFileFeedbackPrompt", () => {
 
 describe("getAnnotateMessageFeedbackPrompt", () => {
   test("includes feedback in default template", () => {
-    const result = getAnnotateMessageFeedbackPrompt("pi", {}, { feedback: "Wrong output" });
+    const result = getAnnotateMessageFeedbackPrompt("claude-code", {}, { feedback: "Wrong output" });
     expect(result).toContain("Message Annotations");
     expect(result).toContain("Wrong output");
   });
 
   test("uses configured override", () => {
-    const result = getAnnotateMessageFeedbackPrompt("pi", {
+    const result = getAnnotateMessageFeedbackPrompt("claude-code", {
       prompts: { annotate: { messageFeedback: "Notes: {{feedback}}" } },
     }, { feedback: "fix" });
     expect(result).toBe("Notes: fix");
@@ -322,20 +284,20 @@ describe("getAnnotateFileFeedbackTemplate / getAnnotateMessageFeedbackTemplate",
         },
       },
     };
-    expect(getAnnotateFileFeedbackTemplate("opencode", config)).toBe(
+    expect(getAnnotateFileFeedbackTemplate("claude-code", config)).toBe(
       "Review {{filePath}}: {{feedback}}",
     );
-    expect(getAnnotateMessageFeedbackTemplate("opencode", config)).toBe(
+    expect(getAnnotateMessageFeedbackTemplate("claude-code", config)).toBe(
       "Notes: {{feedback}}",
     );
   });
 
   test("runtime-specific override wins over generic", () => {
-    const result = getAnnotateFileFeedbackTemplate("pi", {
+    const result = getAnnotateFileFeedbackTemplate("claude-code", {
       prompts: {
         annotate: {
           fileFeedback: "Generic: {{feedback}}",
-          runtimes: { pi: { fileFeedback: "Pi: {{feedback}}" } },
+          runtimes: { "claude-code": { fileFeedback: "Pi: {{feedback}}" } },
         },
       },
     });
@@ -357,7 +319,7 @@ describe("getAnnotateApprovedPrompt", () => {
 
 describe("getAnnotateApprovedWithNotesPrompt", () => {
   test("frames approved file notes as non-blocking guidance with target context", () => {
-    const result = getAnnotateApprovedWithNotesPrompt("opencode", {}, {
+    const result = getAnnotateApprovedWithNotesPrompt("claude-code", {}, {
       context: "File: /src/app.ts",
       feedback: "Keep the retry bounded.",
     });
@@ -381,7 +343,7 @@ describe("getAnnotateApprovedWithNotesPrompt", () => {
   });
 
   test("omits target context for approved message notes", () => {
-    const result = getAnnotateApprovedWithNotesPrompt("pi", {}, {
+    const result = getAnnotateApprovedWithNotesPrompt("claude-code", {}, {
       feedback: "Retain this caveat.",
     });
 
@@ -394,7 +356,7 @@ describe("getAnnotateApprovedWithNotesPrompt", () => {
     // The OpenCode CLI-bridge message path passes `context: undefined`
     // (there is no target file); the key being present must not leave a
     // literal `{{context}}` in a custom template.
-    const result = getAnnotateApprovedWithNotesPrompt("opencode", {
+    const result = getAnnotateApprovedWithNotesPrompt("claude-code", {
       prompts: {
         annotate: {
           approvedWithNotes: "APPROVED {{context}}\n\nGuidance: {{feedback}}",
@@ -410,7 +372,7 @@ describe("getAnnotateApprovedWithNotesPrompt", () => {
   });
 
   test("uses the single configurable approvedWithNotes override", () => {
-    const result = getAnnotateApprovedWithNotesPrompt("pi", {
+    const result = getAnnotateApprovedWithNotesPrompt("claude-code", {
       prompts: {
         annotate: {
           approvedWithNotes: "APPROVED {{context}}\n\nGuidance: {{feedback}}",
@@ -425,7 +387,7 @@ describe("getAnnotateApprovedWithNotesPrompt", () => {
   });
 
   test("preserves configured template whitespace", () => {
-    const result = getAnnotateApprovedWithNotesPrompt("pi", {
+    const result = getAnnotateApprovedWithNotesPrompt("claude-code", {
       prompts: {
         annotate: {
           approvedWithNotes: "Approved.\n\n\n{{feedback}}",
@@ -442,13 +404,6 @@ describe("getAnnotateApprovedWithNotesPrompt", () => {
 // ─── A4b. Review denied suffix ───────────────────────────────────────────────
 
 describe("getReviewDeniedSuffix", () => {
-  test("every runtime gets the same verification-only default", () => {
-    const runtimes = ["claude-code", "opencode", "pi", "amp", "droid", "codex", "copilot-cli", "gemini-cli", "kiro-cli"] as const;
-    for (const runtime of runtimes) {
-      expect(getReviewDeniedSuffix(runtime, {})).toBe(DEFAULT_REVIEW_DENIED_SUFFIX);
-    }
-  });
-
   test("requires verdicts backed by code evidence for every incoming finding", () => {
     expect(DEFAULT_REVIEW_DENIED_SUFFIX).toContain(
       "Inspect every finding against the actual code",
@@ -488,11 +443,11 @@ describe("getReviewDeniedSuffix", () => {
   });
 
   test("runtime-specific override wins over the generic suffix", () => {
-    expect(getReviewDeniedSuffix("pi", {
+    expect(getReviewDeniedSuffix("claude-code", {
       prompts: {
         review: {
           denied: "Generic review suffix.",
-          runtimes: { pi: { denied: "Pi review suffix." } },
+          runtimes: { "claude-code": { denied: "Pi review suffix." } },
         },
       },
     })).toBe("Pi review suffix.");
@@ -546,14 +501,6 @@ describe("mergePromptConfig (expanded)", () => {
     expect(merged?.annotate?.approvedWithNotes).toBe("N");
   });
 
-  test("deep merges runtimes within plan section", () => {
-    const merged = mergePromptConfig(
-      { plan: { runtimes: { pi: { denied: "Pi deny" } } } },
-      { plan: { runtimes: { opencode: { denied: "OC deny" } } } },
-    );
-    expect(merged?.plan?.runtimes?.pi?.denied).toBe("Pi deny");
-    expect(merged?.plan?.runtimes?.opencode?.denied).toBe("OC deny");
-  });
 });
 
 // ─── Approve-with-notes composition (PR5, spec §6.4) ─────────────────────────
@@ -563,9 +510,9 @@ describe("composeReviewApprovedMessage", () => {
   // emit approvals through. Bare approvals must stay byte-identical to the
   // pre-notes output — every consumer's approved branch depends on it.
   test("bare approvals emit the approved prompt alone", () => {
-    expect(composeReviewApprovedMessage("opencode", undefined, {})).toBe(DEFAULT_REVIEW_APPROVED_PROMPT);
-    expect(composeReviewApprovedMessage("opencode", "", {})).toBe(DEFAULT_REVIEW_APPROVED_PROMPT);
-    expect(composeReviewApprovedMessage("opencode", "  \n ", {})).toBe(DEFAULT_REVIEW_APPROVED_PROMPT);
+    expect(composeReviewApprovedMessage("claude-code", undefined, {})).toBe(DEFAULT_REVIEW_APPROVED_PROMPT);
+    expect(composeReviewApprovedMessage("claude-code", "", {})).toBe(DEFAULT_REVIEW_APPROVED_PROMPT);
+    expect(composeReviewApprovedMessage("claude-code", "  \n ", {})).toBe(DEFAULT_REVIEW_APPROVED_PROMPT);
   });
 
   // Stage-review M0: the bare prompt says "no changes requested" and the
@@ -575,7 +522,7 @@ describe("composeReviewApprovedMessage", () => {
   // approved-WITH-NOTES template, which frames them as non-blocking.
   test("approve-time feedback is delivered in the with-notes framing, not appended to the bare prompt", () => {
     const note = "Rename the flag before merging.";
-    const message = composeReviewApprovedMessage("opencode", note, {});
+    const message = composeReviewApprovedMessage("claude-code", note, {});
     expect(message).toBe(
       resolveTemplate(DEFAULT_REVIEW_APPROVED_WITH_NOTES_PROMPT, { feedback: note }),
     );
@@ -586,7 +533,7 @@ describe("composeReviewApprovedMessage", () => {
 
   test("prompts.review.approvedWithNotes overrides the framing template", () => {
     expect(
-      composeReviewApprovedMessage("opencode", "the note", {
+      composeReviewApprovedMessage("claude-code", "the note", {
         prompts: { review: { approvedWithNotes: "APPROVED. Notes: {{feedback}}" } },
       }),
     ).toBe("APPROVED. Notes: the note");
@@ -597,7 +544,7 @@ describe("composeReviewApprovedMessage", () => {
   // would add filler the reviewer never wrote to every mixed-build approval.
   test("the legacy LGTM placeholder is filtered, never framed as guidance", () => {
     expect(
-      composeReviewApprovedMessage("opencode", LEGACY_REVIEW_APPROVAL_PLACEHOLDER, {}),
+      composeReviewApprovedMessage("claude-code", LEGACY_REVIEW_APPROVAL_PLACEHOLDER, {}),
     ).toBe(DEFAULT_REVIEW_APPROVED_PROMPT);
   });
 });
@@ -606,12 +553,12 @@ describe("composeReviewApprovedMessage", () => {
 
 describe("prompts", () => {
   test("falls back to built-in default when no config is present", () => {
-    expect(getReviewApprovedPrompt("opencode", {})).toBe(DEFAULT_REVIEW_APPROVED_PROMPT);
+    expect(getReviewApprovedPrompt("claude-code", {})).toBe(DEFAULT_REVIEW_APPROVED_PROMPT);
   });
 
   test("uses generic configured review approval prompt", () => {
     expect(
-      getReviewApprovedPrompt("opencode", {
+      getReviewApprovedPrompt("claude-code", {
         prompts: { review: { approved: "Commit these changes now." } },
       }),
     ).toBe("Commit these changes now.");
@@ -619,27 +566,27 @@ describe("prompts", () => {
 
   test("runtime-specific review approval prompt wins over generic prompt", () => {
     expect(
-      getReviewApprovedPrompt("opencode", {
+      getReviewApprovedPrompt("claude-code", {
         prompts: {
           review: {
             approved: "Generic approval.",
             runtimes: {
-              opencode: { approved: "OpenCode-specific approval." },
+              "claude-code": { approved: "Claude-Code-specific approval." },
             },
           },
         },
       }),
-    ).toBe("OpenCode-specific approval.");
+    ).toBe("Claude-Code-specific approval.");
   });
 
   test("blank prompt values fall back to the next available default", () => {
     expect(
-      getReviewApprovedPrompt("opencode", {
+      getReviewApprovedPrompt("claude-code", {
         prompts: {
           review: {
             approved: "   ",
             runtimes: {
-              opencode: { approved: "" },
+              "claude-code": { approved: "" },
             },
           },
         },
@@ -652,7 +599,7 @@ describe("prompts", () => {
       getConfiguredPrompt({
         section: "review",
         key: "approved",
-        runtime: "pi",
+        runtime: "claude-code",
         fallback: "Fallback",
         config: {
           prompts: {
@@ -667,45 +614,11 @@ describe("prompts", () => {
     ).toBe("Pi prompt");
   });
 
-  test("mergePromptConfig keeps generic and sibling runtime prompts", () => {
-    const merged = mergePromptConfig(
-      {
-        review: {
-          approved: "Generic approval.",
-          runtimes: {
-            opencode: { approved: "OpenCode approval." },
-          },
-        },
-      },
-      {
-        review: {
-          runtimes: {
-            "claude-code": { approved: "Claude approval." },
-          },
-        },
-      },
-    );
-
-    expect(merged?.review?.approved).toBe("Generic approval.");
-    expect(merged?.review?.runtimes?.opencode?.approved).toBe("OpenCode approval.");
-    expect(merged?.review?.runtimes?.["claude-code"]?.approved).toBe("Claude approval.");
-  });
 });
 
 // ─── Helper tests ────────────────────────────────────────────────────────────
 
 describe("getPlanToolName", () => {
-  test("returns correct tool name per runtime", () => {
-    expect(getPlanToolName("claude-code")).toBe("ExitPlanMode");
-    expect(getPlanToolName("opencode")).toBe("submit_plan");
-    expect(getPlanToolName("copilot-cli")).toBe("exit_plan_mode");
-    expect(getPlanToolName("pi")).toBe("hypermark_submit_plan");
-    expect(getPlanToolName("gemini-cli")).toBe("exit_plan_mode");
-    // oh-my-pi has no planning integration yet; this entry only keeps the
-    // Claude Code convention as its fallback until one lands.
-    expect(getPlanToolName("oh-my-pi")).toBe("ExitPlanMode");
-  });
-
   test("defaults to ExitPlanMode for null/undefined", () => {
     expect(getPlanToolName(null)).toBe("ExitPlanMode");
     expect(getPlanToolName(undefined)).toBe("ExitPlanMode");

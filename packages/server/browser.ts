@@ -6,10 +6,7 @@ import { $ } from "bun";
 import { spawn } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
-import { getHypermarkDataDir } from "@hypermark/shared/data-dir";
 import { loadConfig, resolveUseGlimpse } from "@hypermark/shared/config";
-
-const IPC_REGISTRY = path.join(getHypermarkDataDir(), "vscode-ipc.json");
 
 /**
  * Common "no-op" values for $BROWSER used by headless/background environments
@@ -23,35 +20,6 @@ const NOOP_BROWSER_VALUES = new Set(["true", "false", "none", ":", "0", "1"]);
 export function isNoOpBrowserSentinel(value: string | undefined): boolean {
   if (!value) return false;
   return NOOP_BROWSER_VALUES.has(value.trim().toLowerCase());
-}
-
-/**
- * Try opening URL via VS Code extension IPC registry.
- * Falls back when env vars (HYPERMARK_BROWSER) aren't available to the process.
- */
-async function tryVscodeIpc(url: string): Promise<boolean> {
-  try {
-    const registry: Record<string, number> = JSON.parse(
-      fs.readFileSync(IPC_REGISTRY, "utf-8"),
-    );
-    const cwd = process.cwd();
-    // Find the best matching workspace (longest prefix match)
-    let bestMatch = "";
-    let bestPort = 0;
-    for (const [workspace, port] of Object.entries(registry)) {
-      if (cwd.startsWith(workspace) && workspace.length > bestMatch.length) {
-        bestMatch = workspace;
-        bestPort = port;
-      }
-    }
-    if (!bestPort) return false;
-    const ipcUrl = new URL("/open", `http://127.0.0.1:${bestPort}`);
-    ipcUrl.searchParams.set("url", url);
-    const resp = await fetch(ipcUrl.toString());
-    return resp.ok;
-  } catch {
-    return false;
-  }
 }
 
 /**
@@ -171,7 +139,6 @@ export async function openBrowser(
     }
     return true;
   } catch {
-    // Shell-based open failed — try VS Code IPC registry as fallback
-    return tryVscodeIpc(url);
+    return false;
   }
 }

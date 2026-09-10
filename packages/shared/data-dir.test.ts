@@ -99,33 +99,4 @@ describe("getHypermarkDataDir", () => {
 
     expect(dir).toBe(join(fakeHome, ".hypermark"));
   });
-
-  test("PLANNOTATOR_DATA_DIR is not read by the resolver itself", () => {
-    // The legacy name is honoured by the env-alias shim at process start, not
-    // here. A resolver that also read it would apply the precedence rule twice
-    // and disagree with itself on the set-but-empty case.
-    const dir = resolveDataDir({
-      PLANNOTATOR_DATA_DIR: join(fakeHome, "legacy-data"),
-    });
-
-    expect(dir).toBe(join(fakeHome, ".hypermark"));
-  });
-
-  test("the alias shim makes PLANNOTATOR_DATA_DIR work end to end", () => {
-    const script = [
-      `require(${JSON.stringify(join(import.meta.dir, "env-aliases-apply.ts"))});`,
-      `console.log(require(${JSON.stringify(MODULE_PATH)}).getHypermarkDataDir());`,
-    ].join("\n");
-    const result = Bun.spawnSync({
-      cmd: [process.execPath, "-e", script],
-      env: {
-        PATH: process.env.PATH ?? "",
-        HOME: fakeHome,
-        USERPROFILE: fakeHome,
-        PLANNOTATOR_DATA_DIR: join(fakeHome, "legacy-data"),
-      },
-    });
-
-    expect(result.stdout.toString().trim()).toBe(join(fakeHome, "legacy-data"));
-  });
 });

@@ -1,8 +1,6 @@
 import React from 'react';
 import type { Origin } from '@hypermark/shared/agents';
-import type { Agent } from '@hypermark/ui/hooks/useAgents';
 import { FeedbackButton, ApproveButton, ExitButton } from '@hypermark/ui/components/ToolbarButtons';
-import { ApproveDropdown } from '@hypermark/ui/components/ApproveDropdown';
 import { DecisionControl, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import type { DecisionActionId, DecisionSpec } from '@hypermark/ui/utils/decisionSpec';
 import { Settings } from '@hypermark/ui/components/Settings';
@@ -64,7 +62,6 @@ interface AppHeaderProps {
   annotationCount: number;
   linkedDocIsActive: boolean;
   agentName: string;
-  availableAgents: Agent[];
   showAnnotationsWarning: boolean;
   /** The unified annotate decision control (spec + handlers + close title).
    *  App owns the spec derivation and every handler; the header only mounts
@@ -140,7 +137,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   annotationCount,
   linkedDocIsActive,
   agentName,
-  availableAgents,
   showAnnotationsWarning,
   annotateDecision,
   taterMode,
@@ -260,30 +256,21 @@ export const AppHeader = React.memo<AppHeaderProps>(({
             )}
 
             {!annotateMode && (
-              origin === 'opencode' && availableAgents.length > 0 ? (
-                <ApproveDropdown
-                  onApprove={onApprove}
-                  agents={availableAgents}
+              <div className="relative group/approve">
+                <ApproveButton
+                  onClick={onApprove}
                   disabled={isSubmitting}
                   isLoading={isSubmitting}
+                  dimmed={showAnnotationsWarning}
                 />
-              ) : (
-                <div className="relative group/approve">
-                  <ApproveButton
-                    onClick={onApprove}
-                    disabled={isSubmitting}
-                    isLoading={isSubmitting}
-                    dimmed={(origin === 'claude-code' || origin === 'gemini-cli') && showAnnotationsWarning}
-                  />
-                  {(origin === 'claude-code' || origin === 'gemini-cli') && showAnnotationsWarning && (
-                    <div className="absolute top-full right-0 mt-2 px-3 py-2 bg-popover border border-border rounded-lg shadow-xl text-xs text-foreground w-56 text-center opacity-0 invisible group-hover/approve:opacity-100 group-hover/approve:visible transition-all pointer-events-none z-50">
-                      <div className="absolute bottom-full right-4 border-4 border-transparent border-b-border" />
-                      <div className="absolute bottom-full right-4 mt-px border-4 border-transparent border-b-popover" />
-                      {agentName} doesn't support feedback on approval. Your feedback won't be seen.
-                    </div>
-                  )}
-                </div>
-              )
+                {showAnnotationsWarning && (
+                  <div className="absolute top-full right-0 mt-2 px-3 py-2 bg-popover border border-border rounded-lg shadow-xl text-xs text-foreground w-56 text-center opacity-0 invisible group-hover/approve:opacity-100 group-hover/approve:visible transition-all pointer-events-none z-50">
+                    <div className="absolute bottom-full right-4 border-4 border-transparent border-b-border" />
+                    <div className="absolute bottom-full right-4 mt-px border-4 border-transparent border-b-popover" />
+                    {agentName} doesn't support feedback on approval. Your feedback won't be seen.
+                  </div>
+                )}
+              </div>
             )}
 
             <div className="w-px h-5 bg-border/50 mx-1 hidden md:block" />

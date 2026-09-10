@@ -8,20 +8,20 @@ Install the `hypermark` command so Claude Code can use it:
 
 **macOS / Linux / WSL:**
 ```bash
-curl -fsSL https://plannotator.ai/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash
 ```
 
 **Windows PowerShell:**
 ```powershell
-irm https://plannotator.ai/install.ps1 | iex
+irm https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.ps1 | iex
 ```
 
 **Windows CMD:**
 ```cmd
-curl -fsSL https://plannotator.ai/install.cmd -o install.cmd && install.cmd && del install.cmd
+curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.cmd -o install.cmd && install.cmd && del install.cmd
 ```
 
-Released binaries ship with SHA256 sidecars and [SLSA build provenance](https://slsa.dev/) attestations from v0.17.2 onwards. See the [installation docs](https://plannotator.ai/docs/getting-started/installation/) for version pinning and the [verification docs](https://plannotator.ai/docs/reference/verifying-your-install/) for verification commands.
+Released binaries ship with SHA256 sidecars and [SLSA build provenance](https://slsa.dev/) attestations from v0.17.2 onwards. Run `scripts/install.sh --help` for version pinning and `--verify-attestation`.
 
 ---
 
@@ -77,32 +77,11 @@ When Claude Code calls `ExitPlanMode`, this hook intercepts and:
 
 | Variable | Description |
 |----------|-------------|
-| `HYPERMARK_REMOTE` | Set to `1` / `true` for remote mode, `0` / `false` for local mode, or leave unset for SSH auto-detection. Uses a fixed port in remote mode; browser-opening behavior depends on the environment. |
-| `HYPERMARK_PORT` | Fixed port to use. Default: random locally, `19432` for remote sessions. |
+| `HYPERMARK_PORT` | Fixed port, or an inclusive range (`9000-9010`). Default: an OS-chosen free port. |
 | `HYPERMARK_BROWSER` | Custom browser to open plans in. macOS: app name or path. Linux/Windows: executable path. |
-| `HYPERMARK_SHARE_URL` | Custom share portal URL for self-hosting. Default: `https://share.plannotator.ai`. |
 
-## Remote / Devcontainer Usage
-
-When running Claude Code in a remote environment (SSH, devcontainer, WSL), set `HYPERMARK_REMOTE=1` (or `true`) and these environment variables:
-
-```bash
-export HYPERMARK_REMOTE=1
-export HYPERMARK_PORT=9999  # Choose a port you'll forward
-```
-
-This tells Hypermark to:
-- Use a fixed port instead of a random one (so you can set up port forwarding)
-- Use remote-friendly port/browser handling for forwarded environments
-- Print the URL to the terminal for you to access
-
-**Port forwarding in VS Code devcontainers:** The port should be automatically forwarded. Check the "Ports" tab.
-
-**SSH port forwarding:** Add to your `~/.ssh/config`:
-```
-Host your-server
-    LocalForward 9999 localhost:9999
-```
+Every session is local: the server binds loopback and advertises `localhost`.
+There is no remote/SSH mode in this fork.
 
 ## Slash Commands
 

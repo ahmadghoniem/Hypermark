@@ -22,12 +22,6 @@
  * is an explicit import — a separate assignment with copy/no-clobber/rollback
  * semantics — not a side effect of a rename.
  *
- * The deprecated PLANNOTATOR_DATA_DIR still works, but it is not read here:
- * `@hypermark/shared/env-aliases` copies every legacy PLANNOTATOR_* value onto
- * its HYPERMARK_* name once at process start, so the precedence rule (current
- * name wins whenever set, empty included) lives in one tested place instead of
- * being restated at each reader.
- *
  * The XDG fallback follows git's legacy-first pattern: an existing
  * ~/.hypermark always wins, so an install never relocates itself. Only when
  * that directory is absent AND XDG_DATA_HOME is explicitly set does the XDG

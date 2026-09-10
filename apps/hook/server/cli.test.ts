@@ -30,11 +30,10 @@ describe("CLI top-level help", () => {
     expect(output).toContain("hypermark --help");
     expect(output).toContain("hypermark --version, -v");
     expect(output).toContain("hypermark [--browser <name>]");
-    expect(output).toContain("hypermark review [--git | --gitbutler] [--tailscale] [PR_URL]");
+    expect(output).toContain("hypermark review [--git | --gitbutler] [PR_URL]");
     expect(output).toContain("hypermark annotate <file.md | file.txt | file.html | https://... | folder/>");
     expect(output).toContain("[--markdown] [--no-jina]");
     expect(output).toContain("hypermark annotate-last [--stdin]");
-    expect(output).toContain("hypermark copilot-last [--gate] [--json] [--hook]");
     expect(output).toContain("hypermark setup-goal <interview|facts>");
     expect(output).toContain("hypermark uninstall [--purge] [--yes]");
     expect(output).toContain("Run 'hypermark <command> --help' for command-specific usage.");
@@ -84,7 +83,6 @@ describe("CLI subcommand help", () => {
     // advertised "run 'hypermark <command> --help'" contract holds.
     for (const sub of [
       "annotate",
-      "copilot-last",
       "setup-goal",
       "archive",
       "sessions",

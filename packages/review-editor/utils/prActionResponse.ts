@@ -33,15 +33,16 @@ function parseFileComment(value: unknown): PRReviewFileComment | null {
     return null;
   }
 
-  const startLine = value.start_line;
-  const startSide = value.start_side;
-  if (
-    (startLine !== undefined && (
-      typeof startLine !== 'number' ||
-      !Number.isInteger(startLine)
-    )) ||
-    (startSide !== undefined && startSide !== 'LEFT' && startSide !== 'RIGHT')
-  ) {
+  const startLine = typeof value.start_line === 'number' && Number.isInteger(value.start_line)
+    ? value.start_line
+    : undefined;
+  if (value.start_line !== undefined && startLine === undefined) {
+    return null;
+  }
+  const startSide = value.start_side === 'LEFT' || value.start_side === 'RIGHT'
+    ? value.start_side
+    : undefined;
+  if (value.start_side !== undefined && startSide === undefined) {
     return null;
   }
 

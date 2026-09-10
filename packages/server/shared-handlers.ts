@@ -2,8 +2,7 @@
  * Shared route handlers used by plan, review, and annotate servers.
  *
  * Eliminates duplication of /api/image, /api/upload, /api/draft, unmatched API
- * responses, and the server-ready handler across all three server files. Also
- * shares /api/agents for plan + review.
+ * responses, and the server-ready handler across all three server files.
  */
 
 import { appendFileSync, mkdirSync } from "node:fs";
@@ -90,33 +89,6 @@ export async function handleUpload(req: Request): Promise<Response> {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upload failed";
     return Response.json({ error: message }, { status: 500 });
-  }
-}
-
-/** OpenCode agent client interface (subset of OpenCode SDK) */
-export interface OpencodeClient {
-  app: {
-    agents: (options?: object) => Promise<{
-      data?: Array<{ name: string; description?: string; mode: string; hidden?: boolean }>;
-    }>;
-  };
-}
-
-/** List available agents. Used by plan + review servers (OpenCode only). */
-export async function handleAgents(opencodeClient?: OpencodeClient): Promise<Response> {
-  if (!opencodeClient) {
-    return Response.json({ agents: [] });
-  }
-
-  try {
-    const result = await opencodeClient.app.agents({});
-    const agents = (result.data ?? [])
-      .filter((a) => a.mode === "primary" && !a.hidden)
-      .map((a) => ({ id: a.name, name: a.name, description: a.description }));
-
-    return Response.json({ agents });
-  } catch {
-    return Response.json({ agents: [], error: "Failed to fetch agents" });
   }
 }
 

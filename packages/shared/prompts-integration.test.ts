@@ -88,7 +88,7 @@ describe("prompts integration (config from disk)", () => {
         plan: {
           denied: "Generic: {{feedback}}",
           runtimes: {
-            opencode: { denied: "OpenCode: {{feedback}}" },
+            "claude-code": { denied: "Claude Code: {{feedback}}" },
           },
         },
       },
@@ -96,13 +96,13 @@ describe("prompts integration (config from disk)", () => {
 
     const oc = await runScript(`
       import { getPlanDeniedPrompt, getPlanToolName } from "./packages/shared/prompts";
-      console.log(getPlanDeniedPrompt("opencode", undefined, {
-        toolName: getPlanToolName("opencode"),
+      console.log(getPlanDeniedPrompt("claude-code", undefined, {
+        toolName: getPlanToolName("claude-code"),
         planFileRule: "",
         feedback: "Fix it",
       }));
     `);
-    expect(oc).toBe("OpenCode: Fix it");
+    expect(oc).toBe("Claude Code: Fix it");
 
     const cc = await runScript(`
       import { getPlanDeniedPrompt, getPlanToolName } from "./packages/shared/prompts";
@@ -167,30 +167,11 @@ describe("prompts integration (config from disk)", () => {
 
     const result = await runScript(`
       import { getPlanApprovedPrompt } from "./packages/shared/prompts";
-      console.log(getPlanApprovedPrompt("pi"));
+      console.log(getPlanApprovedPrompt("claude-code"));
     `);
 
     expect(result).toBe("Go build it.");
     expect(result).not.toContain("full tool access");
-  });
-
-  test("plan approved uses runtime built-in default when no config", async () => {
-    // No config — opencode should get its built-in "Plan approved!{{doneMsg}}"
-    const oc = await runScript(`
-      import { getPlanApprovedPrompt } from "./packages/shared/prompts";
-      console.log(getPlanApprovedPrompt("opencode", undefined, { doneMsg: " Done." }));
-    `);
-    expect(oc).toBe("Plan approved! Done.");
-
-    // Pi should get the verbose default
-    const pi = await runScript(`
-      import { getPlanApprovedPrompt } from "./packages/shared/prompts";
-      console.log(getPlanApprovedPrompt("pi", undefined, {
-        planFilePath: "plan.md", doneMsg: "",
-      }));
-    `);
-    expect(pi).toContain("full tool access");
-    expect(pi).toContain("plan.md");
   });
 
   // ── Plan approved with notes ─────────────────────────────────────────
@@ -206,27 +187,12 @@ describe("prompts integration (config from disk)", () => {
 
     const result = await runScript(`
       import { getPlanApprovedWithNotesPrompt } from "./packages/shared/prompts";
-      console.log(getPlanApprovedWithNotesPrompt("pi", undefined, {
+      console.log(getPlanApprovedWithNotesPrompt("claude-code", undefined, {
         feedback: "Watch the edge case",
       }));
     `);
 
     expect(result).toBe("Approved. User says: Watch the edge case");
-  });
-
-  test("plan approved with notes uses opencode runtime default when no config", async () => {
-    const result = await runScript(`
-      import { getPlanApprovedWithNotesPrompt } from "./packages/shared/prompts";
-      console.log(getPlanApprovedWithNotesPrompt("opencode", undefined, {
-        doneMsg: "",
-        feedback: "Be careful",
-      }));
-    `);
-
-    expect(result).toContain("Plan approved with notes!");
-    expect(result).toContain("Be careful");
-    expect(result).not.toContain("full tool access");
-    expect(result).not.toContain("Execute the plan in");
   });
 
   // ── Plan auto-approved ───────────────────────────────────────────────
@@ -238,7 +204,7 @@ describe("prompts integration (config from disk)", () => {
 
     const result = await runScript(`
       import { getPlanAutoApprovedPrompt } from "./packages/shared/prompts";
-      console.log(getPlanAutoApprovedPrompt("pi"));
+      console.log(getPlanAutoApprovedPrompt("claude-code"));
     `);
 
     expect(result).toBe("Auto-OK. Proceed.");
@@ -257,7 +223,7 @@ describe("prompts integration (config from disk)", () => {
 
     const result = await runScript(`
       import { getAnnotateFileFeedbackPrompt } from "./packages/shared/prompts";
-      console.log(getAnnotateFileFeedbackPrompt("opencode", undefined, {
+      console.log(getAnnotateFileFeedbackPrompt("claude-code", undefined, {
         fileHeader: "File",
         filePath: "src/app.ts",
         feedback: "Fix line 10",
@@ -273,27 +239,19 @@ describe("prompts integration (config from disk)", () => {
         annotate: {
           fileFeedback: "Generic: {{feedback}}",
           runtimes: {
-            pi: { fileFeedback: "Pi: {{filePath}} — {{feedback}}" },
+            "claude-code": { fileFeedback: "Claude Code: {{filePath}} — {{feedback}}" },
           },
         },
       },
     });
 
-    const pi = await runScript(`
+    const out = await runScript(`
       import { getAnnotateFileFeedbackPrompt } from "./packages/shared/prompts";
-      console.log(getAnnotateFileFeedbackPrompt("pi", undefined, {
+      console.log(getAnnotateFileFeedbackPrompt("claude-code", undefined, {
         fileHeader: "File", filePath: "x.ts", feedback: "fix",
       }));
     `);
-    expect(pi).toBe("Pi: x.ts — fix");
-
-    const oc = await runScript(`
-      import { getAnnotateFileFeedbackPrompt } from "./packages/shared/prompts";
-      console.log(getAnnotateFileFeedbackPrompt("opencode", undefined, {
-        fileHeader: "File", filePath: "x.ts", feedback: "fix",
-      }));
-    `);
-    expect(oc).toBe("Generic: fix");
+    expect(out).toBe("Claude Code: x.ts — fix");
   });
 
   // ── Annotate message feedback ────────────────────────────────────────
@@ -309,7 +267,7 @@ describe("prompts integration (config from disk)", () => {
 
     const result = await runScript(`
       import { getAnnotateMessageFeedbackPrompt } from "./packages/shared/prompts";
-      console.log(getAnnotateMessageFeedbackPrompt("pi", undefined, {
+      console.log(getAnnotateMessageFeedbackPrompt("claude-code", undefined, {
         feedback: "Wrong output",
       }));
     `);
@@ -343,7 +301,7 @@ describe("prompts integration (config from disk)", () => {
 
     const result = await runScript(`
       import { getAnnotateApprovedWithNotesPrompt } from "./packages/shared/prompts";
-      console.log(getAnnotateApprovedWithNotesPrompt("opencode", undefined, {
+      console.log(getAnnotateApprovedWithNotesPrompt("claude-code", undefined, {
         context: "File: src/app.ts",
         feedback: "Keep the retry bounded.",
       }));
@@ -398,7 +356,7 @@ describe("prompts integration (config from disk)", () => {
     // Plan approved should still be the default (not set in config)
     const planApproved = await runScript(`
       import { getPlanApprovedPrompt } from "./packages/shared/prompts";
-      console.log(getPlanApprovedPrompt("pi", undefined, {
+      console.log(getPlanApprovedPrompt("claude-code", undefined, {
         planFilePath: "p.md", doneMsg: "",
       }));
     `);

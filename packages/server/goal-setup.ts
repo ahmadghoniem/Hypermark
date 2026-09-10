@@ -15,7 +15,7 @@ import {
   type GoalSetupQuestionAnswer,
   type GoalSetupResult,
 } from "@hypermark/shared/goal-setup";
-import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
+import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./server-port";
 import { getRepoInfo } from "./repo";
 import {
   handleFavicon,

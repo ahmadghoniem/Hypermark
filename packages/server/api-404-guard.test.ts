@@ -107,9 +107,7 @@ async function startOnRandomLocalPort(
   start: () => Promise<RunningServer>,
 ): Promise<RunningServer> {
   const previousPort = process.env.HYPERMARK_PORT;
-  const previousRemote = process.env.HYPERMARK_REMOTE;
   delete process.env.HYPERMARK_PORT;
-  process.env.HYPERMARK_REMOTE = "0";
 
   try {
     return await start();
@@ -118,11 +116,6 @@ async function startOnRandomLocalPort(
       delete process.env.HYPERMARK_PORT;
     } else {
       process.env.HYPERMARK_PORT = previousPort;
-    }
-    if (previousRemote === undefined) {
-      delete process.env.HYPERMARK_REMOTE;
-    } else {
-      process.env.HYPERMARK_REMOTE = previousRemote;
     }
   }
 }

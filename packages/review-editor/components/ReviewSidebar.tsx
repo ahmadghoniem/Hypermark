@@ -1,11 +1,10 @@
 import React, { useRef, useState } from 'react';
-import { CodeAnnotation, type CodeAnnotationScope, type EditorAnnotation, type Annotation, type CommentAnnotation } from '@hypermark/ui/types';
+import { CodeAnnotation, type CodeAnnotationScope, type Annotation, type CommentAnnotation } from '@hypermark/ui/types';
 import { Button } from '@hypermark/ui/components/ui/button';
 import { DecisionNoteField } from '@hypermark/ui/components/DecisionControl';
 import { useDismissablePopover } from '@hypermark/ui/hooks/useDismissablePopover';
 import { submitHint } from '@hypermark/ui/utils/platform';
 import { CommentMeta } from './CommentMeta';
-import { EditorAnnotationCard } from '@hypermark/ui/components/EditorAnnotationCard';
 import { CommentActions } from './CommentActions';
 import { commentCopyText } from '../utils/annotationDisplay';
 import { HighlightedCode } from './HighlightedCode';
@@ -40,8 +39,6 @@ interface ReviewSidebarProps {
   onAddGeneralComment?: (text: string) => void;
   feedbackMarkdown?: string;
   width?: number;
-  editorAnnotations?: EditorAnnotation[];
-  onDeleteEditorAnnotation?: (id: string) => void;
   // PR description prose annotations (comment-only) — shown in their own group.
   descriptionAnnotations?: Annotation[];
   selectedDescriptionAnnotationId?: string | null;
@@ -184,8 +181,6 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
   onAddGeneralComment,
   feedbackMarkdown,
   width,
-  editorAnnotations,
-  onDeleteEditorAnnotation,
   descriptionAnnotations,
   selectedDescriptionAnnotationId,
   onSelectDescriptionAnnotation,
@@ -196,7 +191,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
   onDeleteCommentAnnotation,
   prMetadata,
 }) => {
-  const totalCount = annotations.length + (editorAnnotations?.length ?? 0) + (descriptionAnnotations?.length ?? 0) + (commentAnnotations?.length ?? 0);
+  const totalCount = annotations.length + (descriptionAnnotations?.length ?? 0) + (commentAnnotations?.length ?? 0);
   const [copied, setCopied] = useState(false);
   // General-comment composer state lives HERE, not in GeneralCommentComposer:
   // the two placements (empty state vs section header) are different branches,
@@ -558,31 +553,10 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
                 </div>
               )}
 
-              {/* Editor annotations (VS Code) */}
-              {editorAnnotations && editorAnnotations.length > 0 && (
-                <>
-                  {annotations.length > 0 && (
-                    <div className="flex items-center gap-2 pt-2 pb-1">
-                      <div className="flex-1 border-t border-border/30" />
-                      <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60">Editor</span>
-                      <div className="flex-1 border-t border-border/30" />
-                    </div>
-                  )}
-                  {editorAnnotations.map(ann => (
-                    <EditorAnnotationCard
-                      key={ann.id}
-                      annotation={ann}
-                      variant="code-review"
-                      onDelete={() => onDeleteEditorAnnotation?.(ann.id)}
-                    />
-                  ))}
-                </>
-              )}
-
               {/* PR description annotations */}
               {descriptionAnnotations && descriptionAnnotations.length > 0 && (
                 <>
-                  {(annotations.length > 0 || (editorAnnotations?.length ?? 0) > 0) && (
+                  {annotations.length > 0 && (
                     <div className="flex items-center gap-2 pt-2 pb-1">
                       <div className="flex-1 border-t border-border/30" />
                       <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60">PR description</span>
@@ -598,7 +572,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
               {/* PR comment annotations */}
               {commentAnnotations && commentAnnotations.length > 0 && (
                 <>
-                  {(annotations.length > 0 || (editorAnnotations?.length ?? 0) > 0 || (descriptionAnnotations?.length ?? 0) > 0) && (
+                  {(annotations.length > 0 || (descriptionAnnotations?.length ?? 0) > 0) && (
                     <div className="flex items-center gap-2 pt-2 pb-1">
                       <div className="flex-1 border-t border-border/30" />
                       <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60">PR comments</span>

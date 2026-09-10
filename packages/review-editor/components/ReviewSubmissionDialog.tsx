@@ -176,10 +176,7 @@ export function buildPRActionRequest(
 
 export function buildReviewSubmission(
   allAnnotations: CodeAnnotation[],
-  editorAnnotations: Array<{ filePath: string; lineStart: number; lineEnd: number; comment?: string; selectedText?: string }>,
   currentPrUrl: string | undefined,
-  currentDiffPaths: Set<string>,
-  currentPrMeta?: { number: number; title: string; repo: string },
 ): ReviewSubmission {
   const targets: SubmissionTarget[] = [];
   const orphanAnnotations: { reason: 'full-stack' | 'unmapped'; ann: CodeAnnotation }[] = [];
@@ -209,32 +206,7 @@ export function buildReviewSubmission(
     byPR.set(key, group);
   }
 
-  // Build editor file comments (always attached to the current PR)
-  const editorFileComments: SubmissionTarget['fileComments'] = [];
-  const editorFiles = new Set<string>();
-  if (editorAnnotations.length > 0) {
-    for (const ea of editorAnnotations) {
-      if (!currentDiffPaths.has(ea.filePath)) continue;
-      const body = ea.comment
-        ? `> ${ea.selectedText}\n\n${ea.comment}`
-        : `> ${ea.selectedText}`;
-      if (!body.trim()) continue;
-      const isMultiLine = ea.lineStart !== ea.lineEnd;
-      editorFileComments.push({
-        path: ea.filePath,
-        line: ea.lineEnd,
-        side: 'RIGHT' as const,
-        body,
-        ...(isMultiLine && { start_line: ea.lineStart, start_side: 'RIGHT' as const }),
-      });
-      editorFiles.add(ea.filePath);
-    }
-  }
-
   // Build targets from PR groups
-  const currentKey = currentPrUrl ?? '_current';
-  let editorCommentsAttached = false;
-
   for (const [prUrl, annotations] of byPR) {
     const sample = annotations[0];
     const fileComments = buildAnnotationFileComments(annotations);
@@ -242,12 +214,6 @@ export function buildReviewSubmission(
     // Exclude the "" sentinel path of general (review-level) comments so they
     // don't inflate the file count.
     const uniqueFiles = new Set(annotations.map(a => a.filePath).filter(p => p.length > 0));
-
-    if (prUrl === currentKey && editorFileComments.length > 0) {
-      fileComments.push(...editorFileComments);
-      for (const f of editorFiles) uniqueFiles.add(f);
-      editorCommentsAttached = true;
-    }
 
     targets.push({
       prUrl: prUrl === '_current' ? (currentPrUrl ?? '') : prUrl,
@@ -258,21 +224,6 @@ export function buildReviewSubmission(
       fileScopedBody,
       fileCount: uniqueFiles.size,
       annotationCount: annotations.length,
-      status: 'pending',
-    });
-  }
-
-  // Editor-only case: no regular annotations but has editor annotations
-  if (!editorCommentsAttached && editorFileComments.length > 0) {
-    targets.push({
-      prUrl: currentPrUrl ?? '',
-      prNumber: currentPrMeta?.number ?? 0,
-      prTitle: currentPrMeta?.title ?? '',
-      prRepo: currentPrMeta?.repo ?? '',
-      fileComments: editorFileComments,
-      fileScopedBody: '',
-      fileCount: editorFiles.size,
-      annotationCount: 0,
       status: 'pending',
     });
   }

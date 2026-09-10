@@ -99,10 +99,6 @@ export const LIVE_APP_REQUIRES_LOOPBACK_MESSAGE = "--app requires a localhost/lo
 export const LIVE_APP_REQUIRES_HTTP_MESSAGE =
   "--app requires an http:// URL (the live app proxy does not support https upstreams)";
 
-/** Live sessions are hard-off in remote mode; no override env var exists. */
-export const LIVE_APP_REMOTE_MESSAGE =
-  "Live app annotation is unavailable in remote mode (HYPERMARK_REMOTE). Run locally, or use --static to annotate a converted snapshot of the page.";
-
 /** The --app forced-live failure, keyed on what the probe found. */
 export function buildForceAppFailureMessage(
   targetUrl: string,

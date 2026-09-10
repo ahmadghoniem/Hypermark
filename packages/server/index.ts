@@ -4,17 +4,15 @@
  * Provides a consistent server implementation for both Claude Code and OpenCode plugins.
  *
  * Environment variables:
- *   HYPERMARK_REMOTE - Set to "1"/"true" for remote, "0"/"false" for local
- *   HYPERMARK_PORT   - Fixed port or inclusive range (default: random locally, 19432 for remote)
+ *   HYPERMARK_PORT   - Fixed port or inclusive range (default: random)
  *   HYPERMARK_ORIGIN - Explicit origin override; validated against AGENT_CONFIG
- *                        in packages/shared/agents.ts. Supported values:
- *                        "claude-code", "amp", "droid", "kiro-cli", "opencode",
- *                        "codex", "copilot-cli", "gemini-cli", "pi", "oh-my-pi".
+ *                        in packages/shared/agents.ts. This fork ships Claude
+ *                        Code only, so the sole supported value is "claude-code".
  */
 
 import type { Origin } from "@hypermark/shared/agents";
 import { resolve } from "path";
-import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
+import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./server-port";
 import { openEditorDiff } from "./ide";
 import {
   saveToObsidian,
@@ -46,17 +44,15 @@ import { appendFeedbackRecord, type FeedbackDecision } from "@hypermark/shared/f
 import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
 import { readImprovementHook, getImprovementHookExpectedPath } from "@hypermark/shared/improvement-hooks";
 import { composeImproveContext } from "@hypermark/shared/pfm-reminder";
-import { handleImage, handleUpload, handleAgents, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, handleReferenceSkills, handleReferenceSkillContent, handleSaveNotes, readDraftGenerationFromBody, type OpencodeClient } from "./shared-handlers";
+import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, handleReferenceSkills, handleReferenceSkillContent, handleSaveNotes, readDraftGenerationFromBody } from "./shared-handlers";
 import { contentHash, deleteDraft } from "./draft";
 import { handleDoc, handleDocExists, handleObsidianVaults, handleObsidianFiles, handleObsidianDoc, handleFileBrowserFiles } from "./reference-handlers";
 import { closeAllFileBrowserWatchers, handleFileBrowserFilesStream } from "./reference-watch";
 import { warmFileListCache } from "@hypermark/shared/resolve-file";
-import { createEditorAnnotationHandler } from "./editor-annotations";
 import { createExternalAnnotationHandler } from "./external-annotations";
 import { isArchiveDocumentMutation } from "@hypermark/shared/archive-mode";
 
 // Re-export utilities
-export { getServerPort } from "./remote";
 export { openBrowser } from "./browser";
 export * from "./integrations";
 export * from "./storage";
@@ -68,7 +64,7 @@ export { type VaultNode, buildFileTree } from "@hypermark/shared/reference-commo
 export interface ServerOptions {
   /** The plan markdown content */
   plan: string;
-  /** Origin identifier (e.g., "claude-code", "opencode") */
+  /** Origin identifier (this fork: always "claude-code") */
   origin: Origin;
   /** HTML content to serve for the UI */
   htmlContent: string;
@@ -77,7 +73,6 @@ export interface ServerOptions {
   /** Called when server starts with the URL, remote status, and port */
   onReady?: (url: string, port: number) => void | Promise<void>;
   /** OpenCode client for querying available agents (OpenCode only) */
-  opencodeClient?: OpencodeClient;
   /** When set to "archive", server runs in read-only archive browser mode */
   mode?: "archive";
   /** Custom plan save path — used by archive mode to find saved plans */
@@ -94,7 +89,6 @@ export interface ServerResult {
     approved: boolean;
     feedback?: string;
     savedPath?: string;
-    agentSwitch?: string;
     permissionMode?: string;
   }>;
   /** Wait for user to close (archive mode only) */
@@ -137,7 +131,6 @@ export async function startHypermarkServer(
 
   // --- Plan review mode setup (skip in archive mode) ---
   const draftKey = mode !== "archive" ? contentHash(plan) : "";
-  const editorAnnotations = mode !== "archive" ? createEditorAnnotationHandler() : null;
   const externalAnnotations = mode !== "archive" ? createExternalAnnotationHandler("plan") : null;
   const slug = mode !== "archive" ? generateSlug(plan) : "";
 
@@ -155,14 +148,12 @@ export async function startHypermarkServer(
     approved: boolean;
     feedback?: string;
     savedPath?: string;
-    agentSwitch?: string;
     permissionMode?: string;
   }) => void;
   let decisionPromise: Promise<{
     approved: boolean;
     feedback?: string;
     savedPath?: string;
-    agentSwitch?: string;
     permissionMode?: string;
   }>;
 
@@ -438,11 +429,6 @@ export async function startHypermarkServer(
             });
           }
 
-          // API: Get available agents (OpenCode only)
-          if (url.pathname === "/api/agents") {
-            return handleAgents(options.opencodeClient);
-          }
-
           // API: Annotation draft persistence
           if (url.pathname === "/api/draft") {
             if (req.method === "POST") return handleDraftSave(req, draftKey);
@@ -451,8 +437,6 @@ export async function startHypermarkServer(
           }
 
           // API: Editor annotations (VS Code extension)
-          const editorResponse = await editorAnnotations?.handle(req, url);
-          if (editorResponse) return editorResponse;
 
           // API: External annotations (SSE-based, for any external tool)
           const externalResponse = await externalAnnotations?.handle(req, url, {
@@ -469,7 +453,6 @@ export async function startHypermarkServer(
           if (url.pathname === "/api/approve" && req.method === "POST") {
             // Check for note integrations and optional feedback
             let feedback: string | undefined;
-            let agentSwitch: string | undefined;
             let requestedPermissionMode: string | undefined;
             let planSaveEnabled = true; // default to enabled for backwards compat
             let planSaveCustomPath: string | undefined;
@@ -480,7 +463,6 @@ export async function startHypermarkServer(
                 bear?: BearConfig;
                 octarine?: OctarineConfig;
                 feedback?: string;
-                agentSwitch?: string;
                 planSave?: { enabled: boolean; customPath?: string };
                 permissionMode?: string;
                 draftGeneration?: number;
@@ -493,9 +475,6 @@ export async function startHypermarkServer(
               }
 
               // Capture agent switch setting for OpenCode
-              if (body.agentSwitch) {
-                agentSwitch = body.agentSwitch;
-              }
 
               // Capture permission mode from client request (Claude Code)
               if (body.permissionMode) {
@@ -554,7 +533,7 @@ export async function startHypermarkServer(
 
             // Use permission mode from client request if provided, otherwise fall back to hook input
             const effectivePermissionMode = requestedPermissionMode || permissionMode;
-            resolveDecision({ approved: true, feedback, savedPath, agentSwitch, permissionMode: effectivePermissionMode });
+            resolveDecision({ approved: true, feedback, savedPath, permissionMode: effectivePermissionMode });
             return Response.json({ ok: true, savedPath });
           }
 

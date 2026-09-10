@@ -33,7 +33,7 @@ describe('parsePRActionSuccess', () => {
     const response = {
       ok: true,
       submission: {
-        status: 'partial',
+        status: 'partial' as const,
         postedFileCommentCount: 1,
         failedFileComments: [
           {
@@ -42,10 +42,10 @@ describe('parsePRActionSuccess', () => {
           },
         ],
         reviewBodyPosted: true,
-        approval: 'not-requested',
+        approval: 'not-requested' as const,
         recoveryFile: '/tmp/hypermark/failed-comments/review.json',
         retry: {
-          action: 'comment',
+          action: 'comment' as const,
           fileComments: [failedComment],
         },
       },

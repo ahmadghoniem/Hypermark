@@ -29,7 +29,7 @@ export function buildAgentLaunchPlan(options) {
     env: { SERVER_VALUE: "safe" },
     followupPrompt: null,
     promptInjectionMode: "argv",
-    preflightTrust: "codex",
+    preflightTrust: "claude",
     draftPasteReadySignal: null,
     promptDelivery: "none",
   };
@@ -99,7 +99,7 @@ export function createNodePtyWebSocketServer(options) {
         startupCommandMode: "shell-ready",
         cols: 1000,
         env: { SERVER_VALUE: "safe" },
-        preflightTrust: "codex",
+        preflightTrust: "claude",
       });
     } finally {
       proc.kill();

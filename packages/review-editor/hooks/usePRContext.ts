@@ -171,18 +171,20 @@ function parsePRContextStreamEvent(value: unknown): PRContextStreamEvent | null 
       const context = value.context === null ? null : parsePRContext(value.context);
       if (value.context !== null && !context) return null;
       if (typeof value.loading !== 'boolean') return null;
+      const error = typeof value.error === 'string' ? value.error : null;
       if (value.error !== null && typeof value.error !== 'string') return null;
       if (typeof value.stale !== 'boolean') return null;
-      if (value.retryAt !== undefined && typeof value.retryAt !== 'number') return null;
+      const retryAt = typeof value.retryAt === 'number' ? value.retryAt : undefined;
+      if (value.retryAt !== undefined && retryAt === undefined) return null;
       return {
         type: 'snapshot',
         url: value.url,
         version: value.version,
         context,
         loading: value.loading,
-        error: value.error,
+        error,
         stale: value.stale,
-        ...(value.retryAt !== undefined ? { retryAt: value.retryAt } : {}),
+        ...(retryAt !== undefined ? { retryAt } : {}),
       };
     }
     case 'updated': {
@@ -198,18 +200,21 @@ function parsePRContextStreamEvent(value: unknown): PRContextStreamEvent | null 
     }
     case 'loading':
       return { type: 'loading', url: value.url, version: value.version };
-    case 'error':
+    case 'error': {
       if (typeof value.error !== 'string') return null;
       if (typeof value.stale !== 'boolean') return null;
-      if (value.retryAt !== undefined && typeof value.retryAt !== 'number') return null;
+      const error = typeof value.error === 'string' ? value.error : '';
+      const retryAt = typeof value.retryAt === 'number' ? value.retryAt : undefined;
+      if (value.retryAt !== undefined && retryAt === undefined) return null;
       return {
         type: 'error',
         url: value.url,
         version: value.version,
-        error: value.error,
+        error,
         stale: value.stale,
-        ...(value.retryAt !== undefined ? { retryAt: value.retryAt } : {}),
+        ...(retryAt !== undefined ? { retryAt } : {}),
       };
+    }
     default:
       return null;
   }

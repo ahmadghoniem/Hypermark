@@ -12,8 +12,6 @@
     "./agent-terminal": "./agent-terminal.ts",
     "./browser-paths": "./browser-paths.ts",
     "./code-file": "./code-file.ts",
-    "./compress": "./compress.ts",
-    "./crypto": "./crypto.ts",
     "./embed-insert": "./embed-insert.ts",
     "./external-annotation": "./external-annotation.ts",
     "./extract-code-paths": "./extract-code-paths.ts",
@@ -28,8 +26,7 @@
     "./config-types": "./config-types.ts",
     "./storage-types": "./storage-types.ts",
     "./workspace-status-types": "./workspace-status-types.ts",
-    "./types": "./types.ts",
-    ".": "./index.ts"
+    "./types": "./types.ts"
   },
   "files": [
     "**/*.ts",

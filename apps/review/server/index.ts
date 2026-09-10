@@ -11,8 +11,7 @@
  *   bun apps/review/server/index.ts HEAD~5..HEAD  # Commit range
  *
  * Environment variables:
- *   HYPERMARK_REMOTE - Set to "1"/"true" for remote, "0"/"false" for local
- *   HYPERMARK_PORT   - Fixed port to use (default: random locally, 19432 for remote)
+ *   HYPERMARK_PORT   - Fixed port to use (default: random)
  */
 
 import { $ } from "bun";

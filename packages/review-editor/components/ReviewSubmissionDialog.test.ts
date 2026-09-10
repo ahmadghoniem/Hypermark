@@ -135,10 +135,7 @@ describe('Call Flow platform comments', () => {
 
     const submission = buildReviewSubmission(
       [annotation],
-      [],
       'https://github.com/acme/widgets/pull/42',
-      new Set(['src/order.ts', 'src/events.ts']),
-      { number: 42, title: 'Flow', repo: 'acme/widgets' },
     );
 
     expect(submission.targets).toHaveLength(1);
@@ -171,10 +168,7 @@ describe('Call Flow platform comments', () => {
 
     const submission = buildReviewSubmission(
       [annotation],
-      [],
       'https://github.com/acme/widgets/pull/42',
-      new Set(['src/order.ts']),
-      { number: 42, title: 'Flow', repo: 'acme/widgets' },
     );
 
     expect(submission.targets[0].fileComments).toHaveLength(0);
@@ -203,10 +197,7 @@ describe('Call Flow platform comments', () => {
 
     const submission = buildReviewSubmission(
       [annotation],
-      [],
       'https://github.com/acme/widgets/pull/42',
-      new Set(),
-      { number: 42, title: 'Flow', repo: 'acme/widgets' },
     );
 
     expect(submission.targets[0].fileComments).toHaveLength(0);

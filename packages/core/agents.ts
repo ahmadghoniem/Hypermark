@@ -1,11 +1,10 @@
 /**
  * Centralized agent configuration — single source of truth for all supported agents.
  *
- * To add a new agent:
- *   1. Add an entry to AGENT_CONFIG below (origin key, display name, badge CSS classes)
- *   2. If detection is via environment variable, add it to the detection chain
- *      in apps/hook/server/index.ts (detectedOrigin constant)
- *   3. That's it — all UI components read from this config automatically
+ * This fork ships Claude Code only. The registry keeps its shape (rather than
+ * collapsing to a constant) so `Origin` stays a real union and an archived
+ * record carrying an unrecognized origin still degrades to "Coding Agent"
+ * instead of throwing.
  */
 
 type AgentConfigEntry = {
@@ -15,15 +14,6 @@ type AgentConfigEntry = {
 
 export const AGENT_CONFIG = {
   'claude-code': { name: 'Claude Code', badge: 'bg-orange-500/15 text-orange-400' },
-  'amp':         { name: 'Amp',         badge: 'bg-lime-500/15 text-lime-400' },
-  'droid':       { name: 'Droid',       badge: 'bg-cyan-500/15 text-cyan-400' },
-  'kiro-cli':    { name: 'Kiro CLI',    badge: 'bg-amber-500/15 text-amber-400' },
-  'opencode':    { name: 'OpenCode',    badge: 'bg-emerald-500/15 text-emerald-400' },
-  'copilot-cli': { name: 'GitHub Copilot', badge: 'bg-blue-500/15 text-blue-400' },
-  'pi':          { name: 'Pi',          badge: 'bg-violet-500/15 text-violet-400' },
-  'codex':       { name: 'Codex',       badge: 'bg-purple-500/15 text-purple-400' },
-  'gemini-cli':  { name: 'Gemini CLI', badge: 'bg-sky-500/15 text-sky-400' },
-  'oh-my-pi':    { name: 'Oh My Pi',    badge: 'bg-fuchsia-500/15 text-fuchsia-400' },
 } as const satisfies Record<string, AgentConfigEntry>;
 
 /** All recognized origin values. */

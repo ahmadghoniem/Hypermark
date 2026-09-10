@@ -142,7 +142,6 @@ export function formatTopLevelHelp(): string {
     "  hypermark review [--git | --gitbutler] [PR_URL]",
     "  hypermark annotate <file.md | file.txt | file.html | https://... | folder/>  [--markdown] [--no-jina] [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]",
     "  hypermark annotate-last [--stdin] [--gate] [--json] [--hook]",
-    "  hypermark copilot-last [--gate] [--json] [--hook]",
     "  hypermark setup-goal <interview|facts> <bundle.json | -> [--json]",
     "  hypermark last",
     "  hypermark archive",
@@ -163,9 +162,7 @@ export function formatTopLevelHelp(): string {
 // These exist so an agent (or human) probing `hypermark <sub> --help` gets
 // usage on stdout instead of accidentally launching the browser UI — running
 // `review --help` used to fall through to local review mode and open a tab.
-// Exported so the hypermark knowledge skill's freshness test
-// (hypermark-skill-reference.test.ts) can diff the documented surface
-// against the real one.
+// Exported so the documented surface can be diffed against the real one.
 export const SUBCOMMAND_HELP: Record<string, string> = {
   review: [
     "Usage:",
@@ -213,19 +210,6 @@ export const SUBCOMMAND_HELP: Record<string, string> = {
     "",
     "Options:",
     "  --stdin       Read the message content from stdin instead of session logs",
-    "  --gate        Add an Approve button (review-gate UX)",
-    "  --json        Emit a structured decision JSON on stdout",
-    "  --hook        Emit hook-native JSON (block/pass) for PostToolUse/Stop hooks",
-  ].join("\n"),
-  "copilot-last": [
-    "Usage:",
-    "  hypermark copilot-last [--gate] [--json] [--hook]",
-    "",
-    "Annotate the last assistant message from the live GitHub Copilot CLI session,",
-    "read from its session-state events.jsonl. Normally invoked by the Copilot",
-    "plugin's /hypermark-last command.",
-    "",
-    "Options:",
     "  --gate        Add an Approve button (review-gate UX)",
     "  --json        Emit a structured decision JSON on stdout",
     "  --hook        Emit hook-native JSON (block/pass) for PostToolUse/Stop hooks",

@@ -15,7 +15,7 @@ describe("unknown subcommand", () => {
       [...source.matchAll(/args\[0\] === "([^"]+)"/g)].map((match) => match[1]),
     );
 
-    expect(dispatched.size).toBeGreaterThan(10);
+    expect(dispatched.size).toBe(KNOWN_SUBCOMMANDS.size);
     expect(dispatched).toEqual(KNOWN_SUBCOMMANDS);
   });
 

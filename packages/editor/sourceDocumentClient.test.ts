@@ -8,10 +8,12 @@ import {
 const originalFetch = globalThis.fetch;
 
 function mockFetch(response: Response | Error) {
-  globalThis.fetch = (async () => {
+  const stub = async () => {
     if (response instanceof Error) throw response;
     return response;
-  }) as typeof fetch;
+  };
+  stub.preconnect = () => {};
+  globalThis.fetch = stub as typeof fetch;
 }
 
 afterEach(() => {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { AnnotationType, type Annotation, type CodeAnnotation, type EditorAnnotation } from "@hypermark/ui/types";
+import { AnnotationType, type Annotation, type CodeAnnotation } from "@hypermark/ui/types";
 import { parseMarkdownToBlocks, type LinkedDocAnnotationEntry } from "@hypermark/ui/utils/parser";
 import {
   ANNOTATE_NO_FEEDBACK_SENTENCE,
@@ -106,23 +106,12 @@ describe("annotate approval submission", () => {
       text: "Cap this loop.",
       createdAt: 1,
     };
-    const editorAnnotation: EditorAnnotation = {
-      id: "e1",
-      filePath: "src/config.ts",
-      selectedText: "MAX_RETRIES",
-      lineStart: 3,
-      lineEnd: 3,
-      comment: "Make the limit configurable.",
-      createdAt: 1,
-    };
-
     const feedback = buildCompleteAnnotateFeedback({
       blocks,
       annotations: [annotation, globalImageAnnotation],
       // Always empty now — no writer populates this parallel list any more.
       globalAttachments: [],
       linkedDocuments,
-      editorAnnotations: [editorAnnotation],
       codeAnnotations: [codeAnnotation],
       title: "File Feedback",
       subject: "file",
@@ -137,7 +126,6 @@ describe("annotate approval submission", () => {
     expect(feedback).toContain("# Code File Feedback");
     expect(feedback).toContain("# Direct Edits");
     expect(feedback).toContain("# Linked Document Feedback");
-    expect(feedback).toContain("# Editor File Annotations");
     expect(feedback).toContain("# Saved File Changes");
 
     expect(buildAnnotateApprovalBody({
@@ -190,7 +178,6 @@ describe("annotate approval submission", () => {
           markdown: yaml,
         }],
       ]),
-      editorAnnotations: [],
       codeAnnotations: [],
       title: "File Feedback",
       subject: "file",
@@ -232,7 +219,6 @@ describe("annotate approval submission", () => {
           markdown,
         }],
       ]),
-      editorAnnotations: [],
       codeAnnotations: [],
       title: "File Feedback",
       subject: "file",
@@ -264,7 +250,6 @@ describe("annotate approval submission", () => {
       annotations: [note],
       globalAttachments: [],
       linkedDocuments: new Map<string, LinkedDocAnnotationEntry>(),
-      editorAnnotations: [] as EditorAnnotation[],
       codeAnnotations: [] as CodeAnnotation[],
       title: "File Feedback",
       subject: "file",

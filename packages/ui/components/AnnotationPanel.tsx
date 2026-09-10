@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { AnnotationType, type Annotation, type Block, type CodeAnnotation, type EditorAnnotation } from '../types';
+import { AnnotationType, type Annotation, type Block, type CodeAnnotation } from '../types';
 import { ImageThumbnail } from './ImageThumbnail';
-import { EditorAnnotationCard } from './EditorAnnotationCard';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { OverlayScrollArea } from './OverlayScrollArea';
 import { Button } from './ui/button';
@@ -105,8 +104,6 @@ interface PanelProps {
   onDeleteCodeAnnotation?: (id: string) => void;
   onEditCodeAnnotation?: (id: string, updates: Partial<CodeAnnotation>) => void;
   width?: number | string;
-  editorAnnotations?: EditorAnnotation[];
-  onDeleteEditorAnnotation?: (id: string) => void;
   onClose?: () => void;
   /** Copy the full feedback payload. May resolve a success boolean; resolving
     *  `false` suppresses the "Copied" flash. A void resolution (existing hosts)
@@ -152,8 +149,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
   onDeleteCodeAnnotation,
   onEditCodeAnnotation,
   width,
-  editorAnnotations,
-  onDeleteEditorAnnotation,
   onClose,
   onQuickCopy,
   onDownloadAnnotations,
@@ -188,7 +183,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
     if (a.threadTs !== b.threadTs) return a.threadTs - b.threadTs;
     return a.ts - b.ts;
   });
-  const totalCount = annotations.length + codeAnnotations.length + (editorAnnotations?.length ?? 0);
+  const totalCount = annotations.length + codeAnnotations.length;
 
   // Scroll selected annotation card into view
   useEffect(() => {
@@ -324,25 +319,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                 />
               )
             ))}
-            {editorAnnotations && editorAnnotations.length > 0 && (
-              <>
-                {timelineEntries.length > 0 && (
-                  <div className="flex items-center gap-2 pt-2 pb-1">
-                    <div className="flex-1 border-t border-border/30" />
-                    <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60">Editor</span>
-                    <div className="flex-1 border-t border-border/30" />
-                  </div>
-                )}
-                {editorAnnotations.map(ann => (
-                  <EditorAnnotationCard
-                    key={ann.id}
-                    annotation={ann}
-                    onDelete={readOnly ? undefined : () => onDeleteEditorAnnotation?.(ann.id)}
-                  />
-                ))}
-              </>
-            )}
-
           </>
         )}
         </div>

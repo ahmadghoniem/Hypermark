@@ -40,7 +40,6 @@ describe("live proxy bridge delivery", () => {
 
   test.each([
     "packages/shared/live-proxy-core.ts",
-    "packages/shared/live-proxy-node.ts",
     "packages/server/live-proxy.ts",
     "packages/server/annotate.ts",
     "apps/hook/server/index.ts",

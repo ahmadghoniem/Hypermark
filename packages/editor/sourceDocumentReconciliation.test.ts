@@ -85,7 +85,10 @@ describe('reconcileSourceDocuments', () => {
     await expect(first).resolves.toBe(false);
 
     expect(applied).toEqual(['sha256:new']);
-    expect(current.sourceSave.hash).toBe('sha256:new');
+    expect(current.sourceSave.enabled).toBe(true);
+    if (current.sourceSave.enabled) {
+      expect(current.sourceSave.hash).toBe('sha256:new');
+    }
   });
 
   test('ignores a disk read when the document changed while fetch was pending', async () => {
@@ -113,6 +116,9 @@ describe('reconcileSourceDocuments', () => {
 
     await expect(reconcile).resolves.toBe(false);
     expect(applied).toBe(false);
-    expect(current.sourceSave.hash).toBe('sha256:newer');
+    expect(current.sourceSave.enabled).toBe(true);
+    if (current.sourceSave.enabled) {
+      expect(current.sourceSave.hash).toBe('sha256:newer');
+    }
   });
 });

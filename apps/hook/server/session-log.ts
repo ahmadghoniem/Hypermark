@@ -7,7 +7,6 @@
  *
  * Currently supports:
  *   - Claude Code: ~/.claude/projects/{project-slug}/{session-id}.jsonl
- *   - Droid/Factory: ~/.factory/sessions/{project-slug}/{session-id}.jsonl
  *
  * Each line is a JSON object with a `type` field. Assistant messages may be
  * split across multiple lines sharing the same logical message id. Text
@@ -24,9 +23,6 @@ const claudeConfigDir =
   process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude");
 const DEFAULT_SESSIONS_DIR = join(claudeConfigDir, "sessions");
 const DEFAULT_PROJECTS_DIR = join(claudeConfigDir, "projects");
-const factoryConfigDir =
-  process.env.FACTORY_CONFIG_DIR || join(homedir(), ".factory");
-const DEFAULT_FACTORY_SESSIONS_DIR = join(factoryConfigDir, "sessions");
 
 /**
  * Normalize a cwd for comparison. On Windows, filesystems are case-insensitive
@@ -89,7 +85,7 @@ export function projectSlugFromCwd(cwd: string): string {
  * sorted by modification time (most recent first).
  * Returns empty array if no session logs exist.
  */
-export function findSessionLogs(projectDir: string): string[] {
+function findSessionLogs(projectDir: string): string[] {
   let files: string[];
   try {
     files = readdirSync(projectDir).filter((f) => f.endsWith(".jsonl"));
@@ -147,53 +143,6 @@ export function findSessionLogsForCwd(cwd: string, projectsDirOverride?: string)
   }
 
   return [];
-}
-
-/**
- * Find Droid/Factory session log candidates for a given working directory.
- * Returns all .jsonl paths sorted by mtime (most recent first).
- */
-export function findDroidSessionLogsForCwd(
-  cwd: string,
-  sessionsDirOverride?: string,
-): string[] {
-  return findSessionLogsForCwd(cwd, sessionsDirOverride ?? DEFAULT_FACTORY_SESSIONS_DIR);
-}
-
-/**
- * Walk up the directory tree trying each ancestor against the Droid/Factory
- * sessions directory. Useful when the user `cd`'d into a subdirectory after
- * the session started.
- */
-export function findDroidSessionLogsByAncestorWalk(
-  cwd: string,
-  sessionsDirOverride?: string,
-): string[] {
-  return findSessionLogsByAncestorWalk(
-    cwd,
-    sessionsDirOverride ?? DEFAULT_FACTORY_SESSIONS_DIR,
-  );
-}
-
-/**
- * Best-effort current Droid/Factory session log resolution for a cwd.
- *
- * Factory does not expose per-process session metadata, so the safest
- * available selector is the newest exact-cwd log, falling back to the newest
- * log from the first ancestor slug with any sessions. Callers should inspect
- * only this selected log and fail cleanly if it contains no assistant reply,
- * rather than falling through to older sibling sessions.
- */
-export function resolveDroidSessionLogForCwd(
-  cwd: string,
-  sessionsDirOverride?: string,
-): string | null {
-  const sessionsDir = sessionsDirOverride ?? DEFAULT_FACTORY_SESSIONS_DIR;
-  const exactLogs = findDroidSessionLogsForCwd(cwd, sessionsDir);
-  if (exactLogs.length > 0) return exactLogs[0];
-
-  const ancestorLogs = findDroidSessionLogsByAncestorWalk(cwd, sessionsDir);
-  return ancestorLogs[0] ?? null;
 }
 
 // --- Session Metadata Resolution ---
@@ -357,7 +306,7 @@ export function getAncestorPids(
  * in metadata) from legitimate concurrent sessions (which have their own PID's
  * metadata file).
  */
-export function isSessionRegistered(
+function isSessionRegistered(
   sessionId: string,
   sessionsDir: string
 ): boolean {
@@ -695,25 +644,6 @@ export function extractLastRenderedMessage(
   };
 }
 
-/**
- * High-level: extract the last rendered assistant message from a session log file.
- *
- * Starts from the END of the log (no anchoring). The slash command's
- * <command-message> entry isn't written until after the binary completes,
- * so we can't anchor on it. Instead, we just find the last assistant
- * text entry in the entire log.
- */
-export function getLastRenderedMessage(
-  logPath: string,
-): RenderedMessage | null {
-  try {
-    const content = readFileSync(logPath, "utf-8");
-    const entries = parseSessionLog(content);
-    return extractLastRenderedMessage(entries, entries.length);
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Resolve the entries that are actually part of the live conversation.

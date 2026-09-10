@@ -103,7 +103,7 @@ describe("annotate client-lease call sites", () => {
 
     // Sanity: the scan found the call sites at all (import-only sites like the
     // `startAnnotateServer,` import line are not `startAnnotateServer({`).
-    expect(sites.length).toBeGreaterThanOrEqual(4);
+    expect(sites.length).toBeGreaterThanOrEqual(2);
 
     for (const site of sites) {
       // Every transport that blocks on waitForDecision() must decide the lease

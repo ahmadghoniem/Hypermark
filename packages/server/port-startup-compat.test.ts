@@ -23,7 +23,7 @@ describe("Bun startup port compatibility", () => {
 
     const server = await startHypermarkServer({
       plan: "# Port compatibility",
-      origin: "codex",
+      origin: "claude-code",
       htmlContent: "<!doctype html><html><body>plan</body></html>",
       onReady: (url, port) => {
         ready = { url, port };
@@ -58,7 +58,7 @@ describe("Bun startup port compatibility", () => {
 
     const server = await startHypermarkServer({
       plan: "# Fixed port compatibility",
-      origin: "codex",
+      origin: "claude-code",
       htmlContent: "<!doctype html><html><body>plan</body></html>",
       onReady: (url, port) => {
         ready = { url, port };
@@ -84,7 +84,7 @@ describe("Bun startup port compatibility", () => {
 
     await expect(startHypermarkServer({
       plan: "# Ready failure cleanup",
-      origin: "codex",
+      origin: "claude-code",
       htmlContent: "<!doctype html><html><body>plan</body></html>",
       onReady: async () => {
         await Promise.resolve();

@@ -224,7 +224,10 @@ describe('read_document', () => {
     expect(data.outline).toBeUndefined();
     expect(data.annotations).toBeUndefined();
     const missing = await fx.call('read_document', { section: 'nope' });
-    expect(!missing.ok && missing.error.code).toBe('not_found');
+    expect(missing.ok).toBe(false);
+    if (missing.ok === false) {
+      expect(missing.error.code).toBe('not_found');
+    }
   });
 
   test('a long document is windowed at a block boundary with a truncated nudge carrying the continuation', async () => {
@@ -361,16 +364,25 @@ describe('add_comments anchoring cascade', () => {
   test('after the human decides, add_comments is refused even if still reachable', async () => {
     const fx = fake({ decision: 'approved' });
     const res = await fx.call('add_comments', { comments: [{ text: 'late' }] });
-    expect(!res.ok && res.error.code).toBe('not_available');
+    expect(res.ok).toBe(false);
+    if (res.ok === false) {
+      expect(res.error.code).toBe('not_available');
+    }
     expect(res.nudges.map((n) => n.code)).toEqual(['session_decided']);
   });
 
   test('input limits are enforced by the schema before any write', async () => {
     const fx = fake();
     const tooMany = await fx.call('add_comments', { comments: Array.from({ length: 21 }, () => ({ text: 'x' })) });
-    expect(!tooMany.ok && tooMany.error.code).toBe('invalid_input');
+    expect(tooMany.ok).toBe(false);
+    if (tooMany.ok === false) {
+      expect(tooMany.error.code).toBe('invalid_input');
+    }
     const empty = await fx.call('add_comments', { comments: [] });
-    expect(!empty.ok && empty.error.code).toBe('invalid_input');
+    expect(empty.ok).toBe(false);
+    if (empty.ok === false) {
+      expect(empty.error.code).toBe('invalid_input');
+    }
     expect(fx.annotations.length).toBe(0);
   });
 });
@@ -382,7 +394,10 @@ describe('ownership', () => {
     const mine = dataOf(await fx.call('add_comments', { comments: [{ text: 'agent note' }] })).results[0].annotation;
 
     const forbidden = await fx.call('update_comment', { id: human.id, text: 'rewritten' });
-    expect(!forbidden.ok && forbidden.error.code).toBe('forbidden');
+    expect(forbidden.ok).toBe(false);
+    if (forbidden.ok === false) {
+      expect(forbidden.error.code).toBe('forbidden');
+    }
     expect(fx.annotations.find((a) => a.id === human.id)?.text).toBe('human note');
 
     const updated = dataOf(await fx.call('update_comment', { id: mine.id, text: 'agent note v2' }));
@@ -404,7 +419,10 @@ describe('ownership', () => {
     const fx = fake();
     const mine = dataOf(await fx.call('add_comments', { comments: [{ text: 'agent note' }] })).results[0].annotation;
     const removed = await fx.call('remove_comments', { ids: [mine.id] });
-    expect(removed.ok && removed.data.removed).toBe(1);
+    expect(removed.ok).toBe(true);
+    if (removed.ok === true) {
+      expect(typeof removed.data === 'object' && removed.data !== null && 'removed' in removed.data ? removed.data.removed : undefined).toBe(1);
+    }
     expect(removed.nudges.map((n) => n.code)).not.toContain('annotations_removed');
     const next = await fx.call('read_document');
     expect(next.nudges.map((n) => n.code)).not.toContain('annotations_removed');
@@ -478,9 +496,15 @@ describe('reveal, nudge_user, list_documents', () => {
     expect(dataOf(await fx.call('reveal', { section: 'rollout' }))).toEqual({ revealed: 'section', navigated: false });
     expect(fx.revealed).toEqual([human.id, buildOutline(fx.blocks, []).find((o) => o.id === 'rollout')!.blockId]);
     const none = await fx.call('reveal', {});
-    expect(!none.ok && none.error.code).toBe('invalid_input');
+    expect(none.ok).toBe(false);
+    if (none.ok === false) {
+      expect(none.error.code).toBe('invalid_input');
+    }
     const missing = await fx.call('reveal', { annotationId: 'ghost' });
-    expect(!missing.ok && missing.error.code).toBe('not_found');
+    expect(missing.ok).toBe(false);
+    if (missing.ok === false) {
+      expect(missing.error.code).toBe('not_found');
+    }
   });
 
   test('nudge_user shows the message and is capped at 280 characters', async () => {
@@ -488,7 +512,10 @@ describe('reveal, nudge_user, list_documents', () => {
     expect(dataOf(await fx.call('nudge_user', { message: '  Ready for your approval.  ' }))).toEqual({ shown: true });
     expect(fx.banners).toEqual(['Ready for your approval.']);
     const long = await fx.call('nudge_user', { message: 'x'.repeat(281) });
-    expect(!long.ok && long.error.code).toBe('invalid_input');
+    expect(long.ok).toBe(false);
+    if (long.ok === false) {
+      expect(long.error.code).toBe('invalid_input');
+    }
     expect(fx.banners.length).toBe(1);
   });
 

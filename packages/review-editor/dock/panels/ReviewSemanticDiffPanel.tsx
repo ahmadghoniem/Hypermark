@@ -149,6 +149,10 @@ export function ReviewSemanticDiffPanel() {
     );
   }
 
+  if (loadState.status !== 'ready' && loadState.status !== 'empty') {
+    return null;
+  }
+
   return (
     <div className="semantic-diff-panel">
       <div className="semantic-diff-terminal" aria-label="Semantic diff">

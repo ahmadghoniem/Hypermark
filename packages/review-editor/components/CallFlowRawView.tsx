@@ -168,7 +168,7 @@ export function CallFlowRawView({
     const copied = await copyTextToClipboard(copyValue);
     setCopyState(copied ? 'copied' : 'error');
     if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
-    copyResetTimer.current = window.setTimeout(() => setCopyState('idle'), 1500);
+    copyResetTimer.current = setTimeout(() => setCopyState('idle'), 1500);
   };
   const selectTarget = (
     target: CallFlowRawAnnotationTarget,

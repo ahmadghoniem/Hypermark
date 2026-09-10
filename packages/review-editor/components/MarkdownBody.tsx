@@ -60,7 +60,7 @@ export function MarkdownBody({ markdown, textClassName = 'text-xs' }: { markdown
       {blocks.map((block) => {
         switch (block.type) {
           case 'heading': {
-            const Tag = `h${Math.min(block.level ?? 1, 6)}` as keyof JSX.IntrinsicElements;
+            const Tag = `h${Math.min(block.level ?? 1, 6)}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
             const sizes: Record<number, string> = {
               1: 'text-base font-bold',
               2: 'text-sm font-semibold',

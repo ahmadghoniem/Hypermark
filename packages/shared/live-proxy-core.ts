@@ -1,13 +1,12 @@
 /**
  * Runtime-agnostic core of the live local app annotation proxy.
  *
- * Every DECISION the proxy makes lives here as a pure function, so the Bun
- * transport (packages/server/live-proxy.ts) and the Node transport
- * (packages/shared/live-proxy-node.ts, vendored to Pi) share one
- * implementation instead of drifting copies: the streaming HTML injector
- * state machine, the loopback/Host/Origin validation predicates, the
- * CSP / X-Frame-Options rewrite policy, the WebSocket origin gate, the
- * redirect Location rewrite, and the bridge bootstrap assembly.
+ * Every DECISION the proxy makes lives here as a pure function, kept apart
+ * from the Bun transport (packages/server/live-proxy.ts) that carries them
+ * out: the streaming HTML injector state machine, the loopback/Host/Origin
+ * validation predicates, the CSP / X-Frame-Options rewrite policy, the
+ * WebSocket origin gate, the redirect Location rewrite, and the bridge
+ * bootstrap assembly.
  *
  * Nothing in this module may import Bun APIs or node:http — Web-platform
  * globals (URL, TextEncoder) and plain data only. Transports stay thin: they
@@ -24,8 +23,7 @@
  * - App CSP is stripped on HTML and replaced with a frame-ancestors policy
  *   listing exactly the editor origins, which simultaneously defeats app
  *   anti-framing headers and prevents hostile sites from framing the proxy.
- * - HYPERMARK_URL_HOST / buildAdvertisedUrl are never applied to the proxy
- *   origin.
+ * - buildAdvertisedUrl is never applied to the proxy origin.
  */
 
 /** The literal loopback address every transport must bind. */
@@ -519,7 +517,6 @@ export function buildLiveEditorOrigins(port: number): string[] {
  * that resolve localhost to ::1 first fall back to IPv4 on the refused
  * loopback connect. The path matters too: annotating
  * http://localhost:5173/admin must open /admin, not the app root.
- * HYPERMARK_URL_HOST is still never applied here.
  */
 export function buildLiveAppUrl(proxyPort: number, targetUrl: string): string {
   let targetPath = "/";

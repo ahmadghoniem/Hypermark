@@ -338,7 +338,6 @@ export interface VaultNode {
   children?: VaultNode[];
 }
 
-export type { EditorAnnotation } from '@hypermark/core/types';
 
 export type {
   ExternalAnnotationEvent,

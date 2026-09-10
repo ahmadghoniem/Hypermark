@@ -5,11 +5,10 @@
  * Follows the same patterns as the plan server.
  *
  * Environment variables:
- *   HYPERMARK_REMOTE - Set to "1"/"true" for remote, "0"/"false" for local
- *   HYPERMARK_PORT   - Fixed port or inclusive range (default: random locally, 19432 for remote)
+ *   HYPERMARK_PORT   - Fixed port or inclusive range (default: random)
  */
 
-import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
+import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./server-port";
 import type { Origin } from "@hypermark/shared/agents";
 import { type DiffType, type GitContext, runVcsDiff, getVcsFileContentsForDiff, getVcsDiffFingerprint, resolveVcsCwd, validateFilePath, getVcsContext, detectRemoteDefaultCompareTarget, vcsOwnsDiffType, vcsSupportsSnapshot, materializeVcsSnapshot, gitRuntime } from "./vcs";
 import { basename } from "node:path";
@@ -65,9 +64,8 @@ import {
 import { createCommitAvatarResolver } from "@hypermark/shared/commit-avatars";
 import { detectGeneratedFiles, detectGeneratedFilesByName } from "@hypermark/shared/generated-files";
 import { getRepoInfo } from "./repo";
-import { handleImage, handleUpload, handleAgents, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl, type OpencodeClient } from "./shared-handlers";
+import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
 import { contentHash, deleteDraft } from "./draft";
-import { createEditorAnnotationHandler } from "./editor-annotations";
 import { createExternalAnnotationHandler } from "./external-annotations";
 import { loadConfig, saveConfig, detectGitUser, getServerConfig, parseReviewAnalysisConfig, resolveFeedbackHistory } from "./config";
 import { appendFeedbackRecord, countChangedFiles, deriveFeedbackProject, type FeedbackDecision, type FeedbackReviewTarget } from "@hypermark/shared/feedback-archive";
@@ -89,7 +87,6 @@ import type { LocalWorkspaceReview, WorkspaceDiffType } from "./review-workspace
 import { handleCodeNavResolve, handleCodeNavHover, extractChangedFiles } from "./code-nav";
 
 // Re-export utilities
-export { getServerPort } from "./remote";
 export { openBrowser } from "./browser";
 export { type DiffType, type DiffOption, type GitContext, type WorktreeInfo } from "./vcs";
 export { type PRMetadata } from "./pr";
@@ -138,7 +135,6 @@ export interface ReviewServerOptions {
   /** Called when server starts with the URL, remote status, and port */
   onReady?: (url: string, port: number) => void | Promise<void>;
   /** OpenCode client for querying available agents (OpenCode only) */
-  opencodeClient?: OpencodeClient;
   /** PR metadata when reviewing a pull request (PR mode) */
   prMetadata?: PRMetadata;
   /** Platform review writer override used by isolated runtime tests. */
@@ -176,7 +172,6 @@ export interface ReviewServerResult {
     approved: boolean;
     feedback: string;
     annotations: unknown[];
-    agentSwitch?: string;
     exit?: boolean;
   }>;
   /** Stop the server */
@@ -210,7 +205,6 @@ export async function startReviewServer(
   const sessionVcsType = gitContext?.vcsType;
   let clientGitContext = gitContext;
   let draftKey = contentHash(options.rawPatch);
-  const editorAnnotations = createEditorAnnotationHandler();
   const externalAnnotations = createExternalAnnotationHandler("review");
 
 
@@ -1044,14 +1038,12 @@ export async function startReviewServer(
     approved: boolean;
     feedback: string;
     annotations: unknown[];
-    agentSwitch?: string;
     exit?: boolean;
   }) => void;
   const decisionPromise = new Promise<{
     approved: boolean;
     feedback: string;
     annotations: unknown[];
-    agentSwitch?: string;
     exit?: boolean;
   }>((resolve) => {
     resolveDecision = resolve;
@@ -2232,30 +2224,12 @@ export async function startReviewServer(
             return handleUpload(req);
           }
 
-          // API: Get available agents (OpenCode only)
-          if (url.pathname === "/api/agents") {
-            return handleAgents(options.opencodeClient);
-          }
-
           // API: Annotation draft persistence
           if (url.pathname === "/api/draft") {
             if (req.method === "POST") return handleDraftSave(req, draftKey);
             if (req.method === "DELETE") return handleDraftDelete(draftKey, req);
             return handleDraftLoad(draftKey);
           }
-
-          // API: Editor annotations (VS Code extension)
-          if (isGitButlerCommittedView() && url.pathname === "/api/editor-annotations" && req.method === "GET") {
-            return Response.json({ annotations: [] });
-          }
-          if (isGitButlerCommittedView() && url.pathname === "/api/editor-annotation" && req.method === "POST") {
-            return Response.json(
-              { error: "Editor annotations are unavailable for committed GitButler views" },
-              { status: 400 },
-            );
-          }
-          const editorResponse = await editorAnnotations.handle(req, url);
-          if (editorResponse) return editorResponse;
 
           // API: Live PR context stream (comments, checks, merge state)
           if (url.pathname === "/api/pr-context/stream" && req.method === "GET") {
@@ -2332,7 +2306,6 @@ export async function startReviewServer(
                 approved?: boolean;
                 feedback: string;
                 annotations: unknown[];
-                agentSwitch?: string;
                 draftGeneration?: number;
               };
 
@@ -2356,7 +2329,6 @@ export async function startReviewServer(
                 approved,
                 feedback: feedbackValue,
                 annotations: annotationsValue,
-                agentSwitch: body.agentSwitch,
               });
 
               return Response.json({ ok: true });

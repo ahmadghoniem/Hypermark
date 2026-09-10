@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <a href="#install">Install</a> · <a href="#commands">Commands</a> · <a href="#how-it-works">How it works</a> · <a href="#herdr-annotate-hypermark-in-the-terminal">Herdr Annotate</a>
+  <a href="#install">Install</a> · <a href="#commands">Commands</a> · <a href="#how-it-works">How it works</a>
 </p>
 
 <p align="center">
@@ -70,26 +70,6 @@ Review local changes or remote PRs. Comment on diffs, suggest code. Your comment
 <p align="center">
   <img src=".github/assets/html.webp" alt="Annotating a rendered HTML artifact" width="720" />
 </p>
-
-## Herdr Annotate: Hypermark in the Terminal
-
-<p align="center">
-  <a href="https://github.com/plannotator/herdr-annotate">
-    <img src=".github/assets/herdr-annotate-banner.svg" alt="Herdr Annotate" width="300" align="middle" />
-  </a>
-  &nbsp;&nbsp;
-  <img src=".github/assets/herdr-annotate.png" alt="Plannotator TUI annotating a markdown folder in the terminal" width="480" align="middle" />
-</p>
-
-[Herdr Annotate](https://github.com/plannotator/herdr-annotate) brings Hypermark-style review to the terminal: annotate terminal text, review whole Markdown documents and your coding agent's replies inside [Herdr](https://herdr.dev), and send the feedback straight back to the agent as its next message. Works with Claude Code, Codex, Pi, Copilot CLI, and Droid replies. Annotations are saved in the Hypermark data directory, so terminal reviews and app reviews compound.
-
-```
-herdr plugin install plannotator/herdr-annotate
-```
-
-Prefer it standalone? [Plannotator TUI](https://github.com/plannotator/plannotator-tui) powers the document review and runs without Herdr: `brew install plannotator/tap/plannotator-tui`.
-
----
 
 ## Commands
 
@@ -326,7 +306,7 @@ You run /hypermark-review
 
 Every released binary ships with a SHA256 sidecar. [SLSA provenance](https://slsa.dev/) attestations are available from v0.17.2. The current release workflow also attaches a CycloneDX JSON SBOM, evaluates it with a fresh Grype database before anything is attested or published, and creates a GitHub/Sigstore SBOM attestation for the shipped binaries and npm tarballs.
 
-The SBOM is intentionally labeled as a release-wide Syft inventory of the monorepo's locked build inputs and dependencies. It is not an exact per-binary runtime inventory: Bun standalone executables do not expose their bundled JavaScript package metadata to Syft. The canonical [installation and verification docs](https://docs.plannotator.ai/open-source/start/installation#pin-or-verify-a-release) cover the existing installer path; the exact new SBOM commands are included below and must be copied to that Mintlify page before the first SBOM-enabled release.
+The SBOM is intentionally labeled as a release-wide Syft inventory of the monorepo's locked build inputs and dependencies. It is not an exact per-binary runtime inventory: Bun standalone executables do not expose their bundled JavaScript package metadata to Syft. The SBOM verification commands are below.
 
 The release gate rejects scanner-side ignored matches and treats unknown applicability conservatively as runtime when evaluating CISA KEV and fixable Critical findings. Its explicit Grype configuration, complete JSON results, database status, and repository policy decision remain available as workflow evidence.
 
@@ -363,7 +343,7 @@ To verify on install:
 curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash -s -- --verify-attestation
 ```
 
-Requires the `gh` CLI, but no login: the installer fetches the attestation bundle from GitHub's public attestations API and verifies it with `gh attestation verify --bundle` (the extraction needs node, python3, or jq on PATH; gh's authenticated fetch is the fallback). Can also be set persistently in `~/.plannotator/config.json`:
+Requires the `gh` CLI, but no login: the installer fetches the attestation bundle from GitHub's public attestations API and verifies it with `gh attestation verify --bundle` (the extraction needs node, python3, or jq on PATH; gh's authenticated fetch is the fallback). Can also be set persistently in `~/.hypermark/config.json`:
 
 ```json
 { "verifyAttestation": true }
@@ -375,7 +355,7 @@ Installer verification remains opt-in and verifies SLSA build provenance; normal
 
 ## Configuration
 
-Settings are saved in cookies (not localStorage) because each hook invocation runs on a random port. You can also set options through environment variables or `~/.plannotator/config.json`.
+Settings are saved in cookies (not localStorage) because each hook invocation runs on a random port. You can also set options through environment variables or `~/.hypermark/config.json`.
 
 ### Optional Vim controls
 
@@ -409,7 +389,7 @@ implementation architecture.
 | `HYPERMARK_ORIGIN` | Override agent detection. Only `claude-code` is installed by this fork |
 | `HYPERMARK_JINA` | `0`/`false` to disable Jina Reader for URL annotation |
 | `JINA_API_KEY` | Jina Reader API key for higher rate limits |
-| `HYPERMARK_DATA_DIR` | Base directory for Hypermark-managed files (plans, history, drafts, `config.json`). Default: `~/.hypermark`; if that directory doesn't exist and `$XDG_DATA_HOME` is set to an absolute path, `$XDG_DATA_HOME/hypermark` is used instead. Every `PLANNOTATOR_*` variable still works as a deprecated alias; the `HYPERMARK_*` name wins whenever it is set, empty included |
+| `HYPERMARK_DATA_DIR` | Base directory for Hypermark-managed files (plans, history, drafts, `config.json`). Default: `~/.hypermark`; if that directory doesn't exist and `$XDG_DATA_HOME` is set to an absolute path, `$XDG_DATA_HOME/hypermark` is used instead |
 
 Hypermark-managed files live under `~/.hypermark` by default. It is a fresh
 root: an existing `~/.plannotator` is never read, copied, moved or deleted, so

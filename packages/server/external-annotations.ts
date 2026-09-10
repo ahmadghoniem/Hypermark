@@ -25,7 +25,7 @@ import {
 export type { ExternalAnnotationEvent } from "@hypermark/shared/external-annotation";
 
 // ---------------------------------------------------------------------------
-// Handler interface (matches existing EditorAnnotationHandler pattern)
+// Handler interface
 // ---------------------------------------------------------------------------
 
 export interface ExternalAnnotationHandler {

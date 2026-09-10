@@ -6,19 +6,22 @@ import {
   resolveAnnotateAgentTerminalSide,
 } from "./annotateAgentTerminal";
 
+// The terminal lists whatever agent runtimes it discovers on the machine, so
+// these ids are stand-ins for "installed but unavailable" / "installed and
+// available" — not Hypermark-supported origins (this fork ships Claude only).
 const agents: AgentTerminalAgent[] = [
   { id: "claude", name: "Claude", available: true },
-  { id: "opencode", name: "OpenCode", available: false },
-  { id: "codex", name: "Codex", available: true },
+  { id: "offline-agent", name: "Offline Agent", available: false },
+  { id: "other-agent", name: "Other Agent", available: true },
 ];
 
 describe("resolveAnnotateAgentId", () => {
   test("keeps a saved available agent", () => {
-    expect(resolveAnnotateAgentId(agents, "codex")).toBe("codex");
+    expect(resolveAnnotateAgentId(agents, "other-agent")).toBe("other-agent");
   });
 
   test("skips a saved unavailable agent", () => {
-    expect(resolveAnnotateAgentId(agents, "opencode")).toBe("claude");
+    expect(resolveAnnotateAgentId(agents, "offline-agent")).toBe("claude");
   });
 
   test("returns empty when no agents are available", () => {

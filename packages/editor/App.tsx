@@ -16,7 +16,7 @@ import { type Origin, getAgentName } from '@hypermark/shared/agents';
 import { shouldStripFrontmatter } from '@hypermark/shared/annotatable';
 import { setExtraMarkdownExtensions } from '@hypermark/ui/utils/markdownExtensions';
 import { annotateFileFeedback, annotateMessageFeedback, wrapFeedbackForClipboard, type AnnotateFeedbackTemplates } from '@hypermark/shared/feedback-templates';
-import { parseMarkdownToBlocks, exportAnnotations, exportLinkedDocAnnotations, exportEditorAnnotations, exportCodeFileAnnotations, exportMessageAnnotations, extractFrontmatter, wrapFeedbackForAgent, Frontmatter, type LinkedDocAnnotationEntry, type MessageAnnotationEntry } from '@hypermark/ui/utils/parser';
+import { parseMarkdownToBlocks, exportAnnotations, exportLinkedDocAnnotations, exportCodeFileAnnotations, exportMessageAnnotations, extractFrontmatter, wrapFeedbackForAgent, Frontmatter, type LinkedDocAnnotationEntry, type MessageAnnotationEntry } from '@hypermark/ui/utils/parser';
 import { primeSkillCatalog, primeSkillContentsForExport } from '@hypermark/ui/utils/skillCatalog';
 import { Viewer, ViewerHandle } from '@hypermark/ui/components/Viewer';
 import { HtmlViewer } from '@hypermark/ui/components/html-viewer';
@@ -29,14 +29,12 @@ import { Tooltip, TooltipProvider } from '@hypermark/ui/components/Tooltip';
 import { AnnotationToolstrip } from '@hypermark/ui/components/AnnotationToolstrip';
 import { StickyHeaderLane } from '@hypermark/ui/components/StickyHeaderLane';
 import { TaterSpriteRunning } from '@hypermark/ui/components/TaterSpriteRunning';
-import { useAgents } from '@hypermark/ui/hooks/useAgents';
 import { useActiveSection } from '@hypermark/ui/hooks/useActiveSection';
 import { storage } from '@hypermark/ui/utils/storage';
 import { getIdentity } from '@hypermark/ui/utils/identity';
 import { copyTextToClipboard } from '@hypermark/ui/utils/clipboard';
 import { configStore, useConfigValue } from '@hypermark/ui/config';
 import { CompletionOverlay } from '@hypermark/ui/components/CompletionOverlay';
-import { getAgentSwitchSettings, getEffectiveAgentName } from '@hypermark/ui/utils/agentSwitch';
 import { getPlanSaveSettings } from '@hypermark/ui/utils/planSave';
 import { getUIPreferences, type UIPreferences, type PlanWidth } from '@hypermark/ui/utils/uiPreferences';
 import { getEditorMode, saveEditorMode } from '@hypermark/ui/utils/editorMode';
@@ -66,7 +64,6 @@ import { useLinkedDoc, type LinkedDocSessionState } from '@hypermark/ui/hooks/us
 import { useCodeFilePopout } from '@hypermark/ui/hooks/useCodeFilePopout';
 import { useAnnotationDraft, type DraftEditedDocument, type DraftSavedFileChange } from '@hypermark/ui/hooks/useAnnotationDraft';
 import { useArchive } from '@hypermark/ui/hooks/useArchive';
-import { useEditorAnnotations } from '@hypermark/ui/hooks/useEditorAnnotations';
 import { useExternalAnnotations } from '@hypermark/ui/hooks/useExternalAnnotations';
 import { useExternalAnnotationHighlights } from '@hypermark/ui/hooks/useExternalAnnotationHighlights';
 import { useUndoHistory } from '@hypermark/ui/hooks/useUndoHistory';
@@ -342,7 +339,7 @@ type DocumentHistoryAction =
       afterSelection: HistorySelection;
     };
 
-const itemId = (item: { id: string }): string => item.id;
+const itemId = <T extends { id: string }>(item: T): string => item.id;
 
 function annotationOwnsHighlight(annotation: Annotation): boolean {
   return !annotation.diffContext
@@ -401,7 +398,6 @@ const AppInner: React.FC = () => {
   const [showSourceFileEditWarning, setShowSourceFileEditWarning] = useState(false);
   const [sourceFileEditWarningAction, setSourceFileEditWarningAction] = useState<SourceFileEditWarningAction>('send-feedback');
   const sourceFileEditWarningContinuationRef = useRef<(() => void | Promise<void>) | null>(null);
-  const [showAgentWarning, setShowAgentWarning] = useState(false);
   // The decision-control note flow (#1436 mechanism): the note is committed
   // into `annotations` as a GLOBAL_COMMENT and submitted one render later,
   // because the payload builders close over `allAnnotations`. The route is
@@ -428,7 +424,6 @@ const AppInner: React.FC = () => {
   // render-assigned ref (same pattern as headerHandlersRef) so keyboard and
   // header share literally one submitPrimaryDecision.
   const submitPrimaryDecisionRef = useRef<() => void>(() => {});
-  const [agentWarningMessage, setAgentWarningMessage] = useState('');
   const [isPanelOpen, setIsPanelOpen] = useState(() => window.innerWidth >= 768);
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<EditorMode>(getEditorMode);
@@ -1342,7 +1337,7 @@ const AppInner: React.FC = () => {
     if (document.querySelector('[data-hypermark-confirm-dialog="true"]')) return false;
     if (showFeedbackPrompt || showClaudeCodeWarning ||
         showSourceFileEditWarning ||
-        showExitWarning || showAgentWarning || showPermissionModeSetup) return false;
+        showExitWarning || showPermissionModeSetup) return false;
     if (submitted || isSubmitting || isExiting || isEditingMarkdown) return false;
 
     const target = event.target as HTMLElement | null;
@@ -1355,7 +1350,6 @@ const AppInner: React.FC = () => {
     showClaudeCodeWarning,
     showSourceFileEditWarning,
     showExitWarning,
-    showAgentWarning,
     showPermissionModeSetup,
     submitted,
     isSubmitting,
@@ -1702,7 +1696,7 @@ const AppInner: React.FC = () => {
 
   // Flash highlight for annotated files in the sidebar
   const [highlightedFiles, setHighlightedFiles] = useState<Set<string> | undefined>();
-  const flashTimerRef = React.useRef<ReturnType<typeof setTimeout>>();
+  const flashTimerRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const handleFlashAnnotatedFiles = React.useCallback(() => {
     const filePaths = new Set(allAnnotationCounts.keys());
     if (filePaths.size === 0) return;
@@ -1742,7 +1736,6 @@ const AppInner: React.FC = () => {
   const headingCount = useMemo(() => blocks.filter(b => b.type === 'heading').length, [blocks]);
   const activeSection = useActiveSection(planAreaRef, headingCount, scrollViewport);
 
-  const { editorAnnotations, deleteEditorAnnotation } = useEditorAnnotations();
   const { externalAnnotations, updateExternalAnnotation, deleteExternalAnnotation } = useExternalAnnotations<Annotation>({
     enabled: isApiMode && !goalSetupMode && !documentReadOnly,
   });
@@ -1784,10 +1777,9 @@ const AppInner: React.FC = () => {
   const messageMultiSelectMode = annotateSource === 'message' && recentMessages.length > 1;
   const hasAnyAnnotations = useMemo(
     () => messageMultiSelectMode
-      ? messageFeedbackAnnotationCount > 0 || editorAnnotations.length > 0
+      ? messageFeedbackAnnotationCount > 0
       : allAnnotations.length > 0
         || codeAnnotations.length > 0
-        || editorAnnotations.length > 0
         || linkedDocHook.docAnnotationCount > 0
         || globalAttachments.length > 0,
     [
@@ -1795,16 +1787,14 @@ const AppInner: React.FC = () => {
       messageFeedbackAnnotationCount,
       allAnnotations.length,
       codeAnnotations.length,
-      editorAnnotations.length,
       linkedDocHook.docAnnotationCount,
       globalAttachments.length,
     ],
   );
   const feedbackAnnotationCount = messageMultiSelectMode
-    ? messageFeedbackAnnotationCount + editorAnnotations.length
+    ? messageFeedbackAnnotationCount
     : allAnnotations.length +
       codeAnnotations.length +
-      editorAnnotations.length +
       linkedDocHook.docAnnotationCount +
       globalAttachments.length;
 
@@ -1861,10 +1851,9 @@ const AppInner: React.FC = () => {
       (d) => d.annotations.length > 0 || d.globalAttachments.length > 0
     );
     const hasPlanAnnotations = allAnnotations.length > 0 || globalAttachments.length > 0;
-    const hasEditorAnnotations = editorAnnotations.length > 0;
     const hasCodeAnnotations = codeAnnotations.length > 0;
 
-    if (!hasPlanAnnotations && !hasDocAnnotations && !hasEditorAnnotations && !hasCodeAnnotations) {
+    if (!hasPlanAnnotations && !hasDocAnnotations && !hasCodeAnnotations) {
       return 'User reviewed the document and has no feedback.';
     }
 
@@ -1896,10 +1885,6 @@ const AppInner: React.FC = () => {
       output += exportLinkedDocAnnotations(enriched);
     }
 
-    if (hasEditorAnnotations) {
-      output += exportEditorAnnotations(editorAnnotations);
-    }
-
     if (hasCodeAnnotations) {
       output += exportCodeFileAnnotations(codeAnnotations);
     }
@@ -1907,7 +1892,7 @@ const AppInner: React.FC = () => {
     return output;
     // skillContentGeneration re-runs this once lazily fetched human-only skill
     // contents land in the export registry (module state the exporters read).
-  }, [blocks, allAnnotations, globalAttachments, linkedDocHook.getDocAnnotations, editorAnnotations, codeAnnotations, sourceConverted, annotateSource, linkedDocHook.isActive, linkedDocHook.filepath, skillContentGeneration]);
+  }, [blocks, allAnnotations, globalAttachments, linkedDocHook.getDocAnnotations, codeAnnotations, sourceConverted, annotateSource, linkedDocHook.isActive, linkedDocHook.filepath, skillContentGeneration]);
 
   useEffect(() => {
     if (initialSidebarPreferenceAppliedRef.current) return;
@@ -2046,7 +2031,6 @@ const AppInner: React.FC = () => {
   });
 
   // Fetch available agents for OpenCode (for validation on approve)
-  const { agents: availableAgents, validateAgent, getAgentWarning } = useAgents(origin);
 
   // Markdown edit mode: single consolidated gate. The editor only ever opens on
   // the main plan/file markdown — never on HTML surfaces, archive/goal-setup
@@ -2582,7 +2566,6 @@ const AppInner: React.FC = () => {
       annotations: discard ? [] : allAnnotations,
       globalAttachments: discard ? [] : globalAttachments,
       linkedDocuments: discard ? new Map() : linkedDocuments,
-      editorAnnotations: discard ? [] : editorAnnotations,
       codeAnnotations: discard ? [] : codeAnnotations,
       title: annotateSource === 'message'
         ? 'Message Feedback'
@@ -2608,7 +2591,6 @@ const AppInner: React.FC = () => {
     buildMessageAnnotationEntries,
     buildSavedChangesSection,
     codeAnnotations,
-    editorAnnotations,
     globalAttachments,
     linkedDocHook.filepath,
     linkedDocHook.getDocAnnotations,
@@ -2657,8 +2639,8 @@ const AppInner: React.FC = () => {
     }
 
     const handleReconcileEvent = (event: SourceDocumentReconcileEvent) => {
-      const { result } = event;
       if (event.type === 'file-missing') {
+        const { result } = event;
         if (!result.alreadyMissing && result.record.key === editableDocuments.getActiveKey()) {
           setEditorDiffersFromBaseline(result.record.currentText !== result.record.diskBaseline);
           if (isEditingMarkdownRef.current) {
@@ -2678,6 +2660,7 @@ const AppInner: React.FC = () => {
       }
 
       if (event.type === 'clean-updated') {
+        const { result } = event;
         if (result.record.key === editableDocuments.getActiveKey()) {
           const remapped = applyEditedDocument(result.record.currentText);
           repaintHighlights(remapped);
@@ -2692,6 +2675,7 @@ const AppInner: React.FC = () => {
           });
         }
       } else if (event.type === 'conflict') {
+        const { result } = event;
         if (result.record.key === editableDocuments.getActiveKey()) {
           setEditorDirty(true);
           setEditorDiffersFromBaseline(true);
@@ -3115,18 +3099,13 @@ const AppInner: React.FC = () => {
       const planSaveSettings = getPlanSaveSettings();
 
       // Build request body - include integrations if enabled
-      const body: { draftGeneration: number; feedback?: string; agentSwitch?: string; planSave?: { enabled: boolean; customPath?: string }; permissionMode?: string } = {
+      const body: { draftGeneration: number; feedback?: string; planSave?: { enabled: boolean; customPath?: string }; permissionMode?: string } = {
         draftGeneration: getDraftGeneration(),
       };
 
       // Include permission mode for Claude Code
       if (origin === 'claude-code') {
         body.permissionMode = permissionMode;
-      }
-
-      const effectiveAgent = getEffectiveAgentName(getAgentSwitchSettings('plan'));
-      if (effectiveAgent) {
-        body.agentSwitch = effectiveAgent;
       }
 
       // Include plan save settings
@@ -3148,7 +3127,7 @@ const AppInner: React.FC = () => {
       }
       const editsSection = buildEditsSection();
       const savedChangesSection = buildSavedChangesSection(checkedSavedFileChanges);
-      if (allAnnotations.length > 0 || codeAnnotations.length > 0 || globalAttachments.length > 0 || hasDocAnnotations || editorAnnotations.length > 0 || editsSection || savedChangesSection) {
+      if (allAnnotations.length > 0 || codeAnnotations.length > 0 || globalAttachments.length > 0 || hasDocAnnotations || editsSection || savedChangesSection) {
         body.feedback = getCurrentFeedbackPayload(checkedSavedFileChanges);
       }
 
@@ -3399,7 +3378,7 @@ const AppInner: React.FC = () => {
       // Don't intercept if any modal is open
       if (showFeedbackPrompt || showClaudeCodeWarning ||
           showSourceFileEditWarning ||
-          showExitWarning || showAgentWarning || showPermissionModeSetup) return;
+          showExitWarning || showPermissionModeSetup) return;
 
       // Don't intercept if already submitted, submitting, or exiting
       if (submitted || isSubmitting || isExiting || goalSetupAction.isSubmitting) return;
@@ -3441,15 +3420,6 @@ const AppInner: React.FC = () => {
       // No feedback → Approve, otherwise → Send Feedback
       if (!hasFeedbackToSend) {
         const approve = () => {
-          // Check if agent exists for OpenCode users
-          if (origin === 'opencode') {
-            const warning = getAgentWarning();
-            if (warning) {
-              setAgentWarningMessage(warning);
-              setShowAgentWarning(true);
-              return;
-            }
-          }
           handleApprove();
         };
         if (maybeConfirmUnsavedSourceFileEdits('approve', approve)) return;
@@ -3465,11 +3435,11 @@ const AppInner: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-    showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning, showAgentWarning,
+    showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning,
     showPermissionModeSetup,
     submitted, isSubmitting, isExiting, goalSetupAction.isSubmitting, isApiMode, documentReadOnly, isEditingMarkdown, linkedDocHook.isActive, annotations.length, codeAnnotations.length, externalAnnotations.length, annotateMode,
     hasFeedbackToSend, goalSetupMode, goalSetupAction.canSubmit, isAgentTerminalReady,
-    annotateSource, origin, getAgentWarning,
+    annotateSource, origin,
     maybeConfirmUnsavedSourceFileEdits,
   ]);
 
@@ -3862,49 +3832,56 @@ const AppInner: React.FC = () => {
       const data = (await res.json()) as SourceSaveResponse;
 
       if (!res.ok || !data.ok) {
-        const message = !data.ok ? data.message : 'Save failed';
-        if (!data.ok && data.code === 'conflict') {
-          const hasConflictSnapshot = hasSourceSaveConflictSnapshot(data);
-          if (hasConflictSnapshot) {
-            const conflictSourceSave: EnabledSourceSaveCapability = {
-              ...saveBaseSource,
-              hash: data.currentHash,
-              mtimeMs: data.currentMtimeMs,
-              size: data.currentSize,
-              eol: data.currentEol,
-            };
-            const result = editableDocuments.reconcileDiskSnapshot({
-              key: activeDocument.key,
-              text: data.currentText,
-              sourceSave: conflictSourceSave,
-            });
-            if (result.type === 'conflict' && editableDocuments.getActiveKey() === activeDocument.key) {
-              setEditorDirty(true);
-              setEditorDiffersFromBaseline(true);
-              setEditStats(computeEditStats(result.record.diskBaseline, result.record.currentText));
-              scheduleDraftSave();
-              toast.error('File changed on disk', {
-                description: 'Choose whether to overwrite disk or reload the file.',
+        if (data.ok === false) {
+          const message = data.message;
+          if (data.code === 'conflict') {
+            const hasConflictSnapshot = hasSourceSaveConflictSnapshot(data);
+            if (hasConflictSnapshot) {
+              const conflictSourceSave: EnabledSourceSaveCapability = {
+                ...saveBaseSource,
+                hash: data.currentHash,
+                mtimeMs: data.currentMtimeMs,
+                size: data.currentSize,
+                eol: data.currentEol,
+              };
+              const result = editableDocuments.reconcileDiskSnapshot({
+                key: activeDocument.key,
+                text: data.currentText,
+                sourceSave: conflictSourceSave,
               });
-            } else if (result.type === 'conflict') {
-              scheduleDraftSave();
-              toast.error('File changed on disk', {
-                description: 'Choose whether to overwrite disk or reload the file.',
-              });
-            } else if (result.type === 'clean-updated') {
-              if (editableDocuments.getActiveKey() === activeDocument.key) {
-                const remapped = applyEditedDocument(result.record.currentText);
-                repaintHighlights(remapped);
-                editSessionBaseRef.current = result.record.currentText;
-                setEditorDirty(false);
-                setEditorDiffersFromBaseline(false);
-                setEditStats(null);
+              if (result.type === 'conflict' && editableDocuments.getActiveKey() === activeDocument.key) {
+                setEditorDirty(true);
+                setEditorDiffersFromBaseline(true);
+                setEditStats(computeEditStats(result.record.diskBaseline, result.record.currentText));
+                scheduleDraftSave();
+                toast.error('File changed on disk', {
+                  description: 'Choose whether to overwrite disk or reload the file.',
+                });
+              } else if (result.type === 'conflict') {
+                scheduleDraftSave();
+                toast.error('File changed on disk', {
+                  description: 'Choose whether to overwrite disk or reload the file.',
+                });
+              } else if (result.type === 'clean-updated') {
+                if (editableDocuments.getActiveKey() === activeDocument.key) {
+                  const remapped = applyEditedDocument(result.record.currentText);
+                  repaintHighlights(remapped);
+                  editSessionBaseRef.current = result.record.currentText;
+                  setEditorDirty(false);
+                  setEditorDiffersFromBaseline(false);
+                  setEditStats(null);
+                }
+                scheduleDraftSave();
+                toast('File updated from disk', {
+                  description: `${result.record.basename} changed outside Hypermark, so it was reloaded instead of saved.`,
+                });
+              } else if (!editableDocuments.getDocument(activeDocument.key)?.diskConflict) {
+                editableDocuments.markError(activeDocument.key, message);
+                toast.error('File changed on disk', {
+                  description: 'Hypermark could not load the latest disk version. Try saving again.',
+                });
               }
-              scheduleDraftSave();
-              toast('File updated from disk', {
-                description: `${result.record.basename} changed outside Hypermark, so it was reloaded instead of saved.`,
-              });
-            } else if (!editableDocuments.getDocument(activeDocument.key)?.diskConflict) {
+            } else {
               editableDocuments.markError(activeDocument.key, message);
               toast.error('File changed on disk', {
                 description: 'Hypermark could not load the latest disk version. Try saving again.',
@@ -3912,11 +3889,10 @@ const AppInner: React.FC = () => {
             }
           } else {
             editableDocuments.markError(activeDocument.key, message);
-            toast.error('File changed on disk', {
-              description: 'Hypermark could not load the latest disk version. Try saving again.',
-            });
+            toast.error(message);
           }
         } else {
+          const message = 'Save failed';
           editableDocuments.markError(activeDocument.key, message);
           toast.error(message);
         }
@@ -4013,7 +3989,7 @@ const AppInner: React.FC = () => {
 
       if (showFeedbackPrompt || showClaudeCodeWarning ||
           showSourceFileEditWarning ||
-          showExitWarning || showAgentWarning || showPermissionModeSetup) return;
+          showExitWarning || showPermissionModeSetup) return;
 
       if (submitted || !isApiMode) return;
 
@@ -4030,7 +4006,7 @@ const AppInner: React.FC = () => {
     window.addEventListener('keydown', handleSaveShortcut);
     return () => window.removeEventListener('keydown', handleSaveShortcut);
   }, [
-    showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning, showAgentWarning,
+    showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning,
     showPermissionModeSetup,
     submitted, isApiMode, documentReadOnly, isEditingMarkdown, handleSaveEditedSourceFile, displayedMarkdown, annotationsOutput,
   ]);
@@ -4048,7 +4024,6 @@ const AppInner: React.FC = () => {
     handleAnnotateExit,
     handleDownloadAnnotations,
     handleCopyAgentInstructions,
-    getAgentWarning,
     getDocAnnotations: linkedDocHook.getDocAnnotations,
   });
   headerHandlersRef.current = {
@@ -4059,7 +4034,6 @@ const AppInner: React.FC = () => {
     handleAnnotateExit,
     handleDownloadAnnotations,
     handleCopyAgentInstructions,
-    getAgentWarning,
     getDocAnnotations: linkedDocHook.getDocAnnotations,
   };
 
@@ -4084,14 +4058,6 @@ const AppInner: React.FC = () => {
       if (origin === 'claude-code' && hasFeedbackToSend) {
         setShowClaudeCodeWarning(true);
         return;
-      }
-      if (origin === 'opencode') {
-        const warning = h.getAgentWarning();
-        if (warning) {
-          setAgentWarningMessage(warning);
-          setShowAgentWarning(true);
-          return;
-        }
       }
       h.handleApprove();
     };
@@ -4144,12 +4110,12 @@ const AppInner: React.FC = () => {
       return;
     }
     if (gate && !hasFeedbackToSend) {
-      const approve = () => headerHandlersRef.current.handleAnnotateApprove();
+      const approve = () => { void headerHandlersRef.current.handleAnnotateApprove(); };
       if (maybeConfirmUnsavedSourceFileEdits('approve', approve)) return;
       approve();
       return;
     }
-    const sendFeedback = () => headerHandlersRef.current.handleAnnotateFeedback();
+    const sendFeedback = () => { void headerHandlersRef.current.handleAnnotateFeedback(); };
     if (maybeConfirmUnsavedSourceFileEdits('send-feedback', sendFeedback)) return;
     sendFeedback();
   }, [
@@ -4228,7 +4194,7 @@ const AppInner: React.FC = () => {
         queueNoteDecision(note, action.route, action.approvalFraming);
         return;
       case 'approve-with-notes': {
-        const approve = () => headerHandlersRef.current.handleAnnotateApprove();
+        const approve = () => { void headerHandlersRef.current.handleAnnotateApprove(); };
         if (maybeConfirmUnsavedSourceFileEdits('approve', approve)) return;
         approve();
         return;
@@ -4710,8 +4676,6 @@ const AppInner: React.FC = () => {
       onDeleteCodeAnnotation={handleDeleteCodeAnnotation}
       onEditCodeAnnotation={handleEditCodeAnnotation}
       width={presentation === 'panel' ? `var(--rpanel-w, ${panelResize.width}px)` : undefined}
-      editorAnnotations={editorAnnotations}
-      onDeleteEditorAnnotation={deleteEditorAnnotation}
       unanchoredIds={isHtmlSurface && htmlUnanchoredIds.size > 0 ? htmlUnanchoredIds : undefined}
       onClose={presentation === 'panel' ? () => setIsPanelOpen(false) : closeCompactPlanSurface}
       onQuickCopy={async () => {
@@ -4790,7 +4754,6 @@ const AppInner: React.FC = () => {
           annotationCount={feedbackAnnotationCount}
           linkedDocIsActive={linkedDocHook.isActive}
           agentName={agentName}
-          availableAgents={availableAgents}
           showAnnotationsWarning={hasFeedbackToSend}
           annotateDecision={annotateMode ? annotateDecision : undefined}
           taterMode={taterMode}
@@ -5458,27 +5421,6 @@ const AppInner: React.FC = () => {
             showCancel
           />
         )}
-
-        {/* OpenCode agent not found warning dialog */}
-        <ConfirmDialog
-          isOpen={showAgentWarning}
-          onClose={() => setShowAgentWarning(false)}
-          onConfirm={() => {
-            setShowAgentWarning(false);
-            handleApprove();
-          }}
-          title="Agent Not Found"
-          message={agentWarningMessage}
-          subMessage={
-            <>
-              You can change the agent in <strong>Settings</strong>, or approve anyway and OpenCode will use the default agent.
-            </>
-          }
-          confirmText="Approve Anyway"
-          cancelText="Cancel"
-          variant="warning"
-          showCancel
-        />
 
         <Toaster
           position="top-right"

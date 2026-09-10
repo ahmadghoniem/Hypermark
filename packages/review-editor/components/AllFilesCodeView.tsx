@@ -80,7 +80,7 @@ import {
  *    `annotations` prop changes we rebuild ONLY the affected items' annotation
  *    arrays, bump `item.version`, and call `viewer.updateItem(item)` — so a
  *    single annotation add/edit/delete re-renders just its owning file.
- *  - `renderAnnotation` renders the existing `InlineAnnotation` from
+ *  - `renderAnnotation` renders the annotation comment from
  *    `annotation.metadata`, routing onSelect/onEdit/onDelete by the OWNING item
  *    (no active-file side channel). Edit routes through the ToolbarHost handle.
  *  - Selecting an annotation in the sidebar expands its owning file
@@ -774,7 +774,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   // positions itself by last-known mouse position, so it works regardless of
   // which file the clicked annotation belongs to.
   // useStableCallback + ref read: this handler is baked into slot-portal
-  // elements (InlineAnnotation onEdit) that only republish on version bumps,
+  // elements (annotation onEdit) that only republish on version bumps,
   // so it must resolve the annotation at CALL time, never from a captured
   // closure.
   const handleEditAnnotation = useStableCallback((id: string) => {

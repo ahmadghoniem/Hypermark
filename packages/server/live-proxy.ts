@@ -8,9 +8,8 @@
  *
  * Every DECISION here (Host/Origin validation, injector state machine,
  * CSP/X-Frame-Options policy, redirect rewrite, WS origin gate) lives in
- * @hypermark/shared/live-proxy-core, shared byte-for-byte with the Node
- * transport the Pi extension runs (packages/shared/live-proxy-node.ts).
- * This file is only the Bun.serve plumbing around those decisions.
+ * @hypermark/shared/live-proxy-core. This file is only the Bun.serve
+ * plumbing around those decisions.
  *
  * Security posture (binding is the contract, not a default):
  * - Binds 127.0.0.1 UNCONDITIONALLY. Never the shared env-dependent hostname
@@ -21,8 +20,7 @@
  * - Strips app CSP on HTML and replaces it with a frame-ancestors policy
  *   listing exactly the editor origins, which simultaneously defeats app
  *   anti-framing headers and prevents hostile sites from framing the proxy.
- * - HYPERMARK_URL_HOST / buildAdvertisedUrl are never applied to the proxy
- *   origin.
+ * - buildAdvertisedUrl is never applied to the proxy origin.
  */
 
 import {
@@ -349,8 +347,8 @@ export function startLiveAppProxy(opts: LiveAppProxyOptions): LiveAppProxy {
   const port = server.port!;
   return {
     port,
-    // Always the literal loopback origin: HYPERMARK_URL_HOST and
-    // buildAdvertisedUrl are never applied here.
+    // Always the literal loopback origin: buildAdvertisedUrl is never
+    // applied here.
     origin: `http://${LOOPBACK_HOST}:${port}`,
     stop() {
       for (const upstream of wsUpstreams) upstream.close();

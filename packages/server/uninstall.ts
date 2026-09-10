@@ -80,7 +80,6 @@ const PURGE_OWNED_TOP_LEVEL = [
   "config.json",
   "install-prefs",
   "review-skills.json",
-  "vscode-ipc.json",
 ] as const;
 
 /**

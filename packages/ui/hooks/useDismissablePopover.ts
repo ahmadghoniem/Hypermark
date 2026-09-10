@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 
 /**
  * Outside-`pointerdown` + Escape dismissal for anchored popovers — the one
- * shared effect behind DecisionControl, ActionMenu, and ApproveDropdown.
+ * shared effect behind DecisionControl and ActionMenu.
  * (FloatingQuickLabelPicker deliberately keeps its own dismissal: it needs
  * deferred capture-phase registration so the click that opens it cannot
  * dismiss it, and its Escape shares a listener with the digit-select keys.)

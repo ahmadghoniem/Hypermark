@@ -7,11 +7,10 @@
  * render it without separate app bundles.
  *
  * Environment variables:
- *   HYPERMARK_REMOTE - Set to "1"/"true" for remote, "0"/"false" for local
- *   HYPERMARK_PORT   - Fixed port or inclusive range (default: random locally, 19432 for remote)
+ *   HYPERMARK_PORT   - Fixed port or inclusive range (default: random)
  */
 
-import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./remote";
+import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./server-port";
 import { getRepoInfo } from "./repo";
 import type { Origin } from "@hypermark/shared/agents";
 import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, handleReferenceSkills, handleReferenceSkillContent, handleSaveNotes, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
@@ -63,7 +62,6 @@ import { randomBytes } from "node:crypto";
 import { isAgentTerminalWsRoute, supportsAnnotateAgentTerminalMode } from "@hypermark/shared/agent-terminal";
 
 // Re-export utilities
-export { getServerPort } from "./remote";
 export { openBrowser } from "./browser";
 export { handleServerReady as handleAnnotateServerReady } from "./shared-handlers";
 
@@ -1222,8 +1220,7 @@ export async function startAnnotateServer(
     });
     // Advertise the proxy under the LOCALHOST spelling, carrying the target
     // URL's own path and query (see buildLiveAppUrl in live-proxy-core for
-    // the same-site/cookie rationale). HYPERMARK_URL_HOST is still never
-    // applied here.
+    // the same-site/cookie rationale).
     liveAppUrl = buildLiveAppUrl(liveProxy.port, liveApp.targetUrl);
   }
 

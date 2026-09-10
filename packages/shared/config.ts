@@ -29,17 +29,7 @@ export type { DefaultDiffType, DiffLineBgIntensity, DiffOptions, ThemeConfig, Fa
 
 export type PromptSectionOverrides = Record<string, string | undefined>;
 
-export type PromptRuntime =
-  | "claude-code"
-  | "amp"
-  | "droid"
-  | "kiro-cli"
-  | "opencode"
-  | "copilot-cli"
-  | "pi"
-  | "codex"
-  | "gemini-cli"
-  | "oh-my-pi";
+export type PromptRuntime = "claude-code";
 
 interface PromptSectionConfig {
   [key: string]: string | Partial<Record<PromptRuntime, PromptSectionOverrides>> | undefined;

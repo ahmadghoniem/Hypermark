@@ -105,14 +105,6 @@ Opens the latest rendered assistant message from the current agent session in th
 
 Do not print a commentary or status message immediately before running it: the command targets the latest rendered assistant message, so a preamble becomes the thing being annotated.
 
-## hypermark copilot-last
-
-```bash
-hypermark copilot-last [--gate] [--json] [--hook]
-```
-
-The annotate-last variant for live GitHub Copilot CLI sessions (reads Copilot's session-state events). Normally invoked by the Copilot plugin's /hypermark-last command; use it only inside a Copilot CLI session.
-
 ## hypermark archive
 
 ```bash
@@ -140,16 +132,13 @@ hypermark improve-context
 - `setup-goal` opens the interview or facts-acceptance UI for /goal workflows; it is driven by the `hypermark-setup-goal` skill and takes a bundle JSON (`-` reads stdin). Do not hand-build bundles.
 - `uninstall` removes Hypermark-installed components (`--purge` also deletes local data; `--yes` is required without a TTY; `--dry-run` previews).
 - `improve-context` and `install-runtime` are internal integration commands (hook plumbing and managed runtime install). Never run `improve-context` directly; `hypermark install-runtime agent-terminal` exists for reinstalling the optional annotate-terminal runtime and is normally run by the installer.
-- Additional host-internal subcommands (the `opencode-*` and `copilot-plan` family) are invoked by their plugins, not by you.
 
 ## Environment variables that change behavior
 
 | Variable | Use |
 | --- | --- |
 | `HYPERMARK_PORT` | Fix the port instead of a random one. |
-| `HYPERMARK_ORIGIN` | Override agent-origin detection (`claude-code`, `codex`, `opencode`, `pi`, `oh-my-pi`, `amp`, `droid`, `copilot-cli`, `gemini-cli`, `kiro-cli`). Set it when launching Hypermark from a wrapper the detection cannot see through. |
-| `HYPERMARK_AI=disabled` | Disable Ask AI and agent-launched review surfaces in the UI. |
-| `HYPERMARK_SHARE=disabled` | Disable URL sharing. |
+| `HYPERMARK_ORIGIN` | Override agent-origin detection. This fork installs only `claude-code`; the other ids are still recognized so older saved records keep a readable origin tag. |
 | `HYPERMARK_DATA_DIR` | Move the data directory (default `~/.hypermark`): plans, history, drafts, config. |
 | `HYPERMARK_BROWSER` | Open sessions in a specific browser. |
 

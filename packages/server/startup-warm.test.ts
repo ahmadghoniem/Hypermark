@@ -30,7 +30,6 @@ async function expectReadyBeforeWarm(
 	const dataRoot = mkdtempSync(join(tmpdir(), "hypermark-startup-data-"));
 	const previousCwd = process.cwd();
 	const previousPort = process.env.HYPERMARK_PORT;
-	const previousRemote = process.env.HYPERMARK_REMOTE;
 	const previousDataDir = process.env.HYPERMARK_DATA_DIR;
 	const previousLimit = process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
 	let server: StartedServer | null = null;
@@ -41,7 +40,6 @@ async function expectReadyBeforeWarm(
 		writeFileSync(join(projectRoot, "source.ts"), "export {};\n");
 		process.chdir(projectRoot);
 		delete process.env.HYPERMARK_PORT;
-		process.env.HYPERMARK_REMOTE = "0";
 		process.env.HYPERMARK_DATA_DIR = dataRoot;
 		process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = "1";
 
@@ -66,8 +64,6 @@ async function expectReadyBeforeWarm(
 		process.chdir(previousCwd);
 		if (previousPort === undefined) delete process.env.HYPERMARK_PORT;
 		else process.env.HYPERMARK_PORT = previousPort;
-		if (previousRemote === undefined) delete process.env.HYPERMARK_REMOTE;
-		else process.env.HYPERMARK_REMOTE = previousRemote;
 		if (previousDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
 		else process.env.HYPERMARK_DATA_DIR = previousDataDir;
 		if (previousLimit === undefined) {
@@ -85,7 +81,7 @@ describe("startup file-cache warm", () => {
 		await expectReadyBeforeWarm((onReady) =>
 			startHypermarkServer({
 				plan: "# Test plan",
-				origin: "codex",
+				origin: "claude-code",
 				htmlContent: MINIMAL_HTML,
 				onReady,
 			}),

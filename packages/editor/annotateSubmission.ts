@@ -2,13 +2,11 @@ import type {
   Annotation,
   Block,
   CodeAnnotation,
-  EditorAnnotation,
   ImageAttachment,
 } from "@hypermark/ui/types";
 import {
   exportAnnotations,
   exportCodeFileAnnotations,
-  exportEditorAnnotations,
   exportLinkedDocAnnotations,
   exportMessageAnnotations,
   parseMarkdownToBlocks,
@@ -72,7 +70,6 @@ export interface CompleteAnnotateFeedbackInput {
       caller that hasn't gone through the restore-time normalizer. */
   globalAttachments: ImageAttachment[];
   linkedDocuments: Map<string, LinkedDocAnnotationEntry>;
-  editorAnnotations: EditorAnnotation[];
   codeAnnotations: CodeAnnotation[];
   title: string;
   subject: string;
@@ -99,22 +96,17 @@ export function buildCompleteAnnotateFeedback(
 
   if (input.messageEntries) {
     annotationsText = exportMessageAnnotations(input.messageEntries);
-    if (input.editorAnnotations.length > 0) {
-      annotationsText += `\n\n${exportEditorAnnotations(input.editorAnnotations)}`;
-    }
   } else {
     const hasLinkedAnnotations = Array.from(input.linkedDocuments.values()).some(
       (entry) => entry.annotations.length > 0 || entry.globalAttachments.length > 0,
     );
     const hasDocumentAnnotations =
       input.annotations.length > 0 || input.globalAttachments.length > 0;
-    const hasEditorAnnotations = input.editorAnnotations.length > 0;
     const hasCodeAnnotations = input.codeAnnotations.length > 0;
 
     if (
       !hasDocumentAnnotations &&
       !hasLinkedAnnotations &&
-      !hasEditorAnnotations &&
       !hasCodeAnnotations
     ) {
       annotationsText = ANNOTATE_NO_FEEDBACK_SENTENCE;
@@ -147,9 +139,6 @@ export function buildCompleteAnnotateFeedback(
             : entry);
         }
         annotationsText += exportLinkedDocAnnotations(enriched);
-      }
-      if (hasEditorAnnotations) {
-        annotationsText += exportEditorAnnotations(input.editorAnnotations);
       }
       if (hasCodeAnnotations) {
         annotationsText += exportCodeFileAnnotations(input.codeAnnotations);

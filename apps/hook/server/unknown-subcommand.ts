@@ -2,10 +2,6 @@ import { SUBCOMMAND_HELP, SUBCOMMAND_HELP_ALIASES } from "./cli";
 
 const INTERNAL_SUBCOMMANDS = [
   "install-runtime",
-  "opencode-plan",
-  "opencode-review",
-  "opencode-annotate-last",
-  "copilot-plan",
 ] as const;
 
 const SUGGESTABLE_SUBCOMMANDS = [

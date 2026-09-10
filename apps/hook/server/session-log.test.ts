@@ -16,8 +16,6 @@ import {
   extractRecentRenderedMessages,
   getRecentRenderedMessages,
   resolveActiveBranchIndices,
-  findDroidSessionLogsForCwd,
-  resolveDroidSessionLogForCwd,
   projectSlugFromCwd,
   findSessionLogsByAncestorWalk,
   findSessionLogsForCwd,
@@ -1042,80 +1040,6 @@ describe("findSessionLogsByAncestorWalk", () => {
 
       const result = findSessionLogsByAncestorWalk(testDir, projectsDir);
       expect(result.every((p) => !p.includes(slugDir))).toBe(true);
-    } finally {
-      cleanup();
-    }
-  });
-});
-
-describe("findDroidSessionLogsForCwd", () => {
-  test("finds session logs under the Factory sessions directory layout", () => {
-    const { projectsDir: sessionsDir, cleanup } = makeTempDirs("droid-cwd");
-    try {
-      const cwd = "/Users/example/project";
-      const logPath = writeSessionLog(sessionsDir, cwd, "droid-session-1");
-      const result = findDroidSessionLogsForCwd(cwd, sessionsDir);
-      expect(result[0]).toBe(logPath);
-    } finally {
-      cleanup();
-    }
-  });
-});
-
-describe("resolveDroidSessionLogForCwd", () => {
-  test("returns the newest exact-cwd session candidate", () => {
-    const { projectsDir: sessionsDir, cleanup } = makeTempDirs("droid-current");
-    try {
-      const cwd = "/Users/example/project";
-      const older = writeSessionLog(
-        sessionsDir,
-        cwd,
-        "older-session",
-        buildLog(
-          droidMessage("u1", "user", "old prompt"),
-          droidMessage("a1", "assistant", "old reply"),
-        ),
-      );
-      const newer = writeSessionLog(
-        sessionsDir,
-        cwd,
-        "newer-session",
-        '{"type":"session_start","id":"newer-session"}\n',
-      );
-
-      const now = Date.now() / 1000;
-      utimesSync(older, now - 10, now - 10);
-      utimesSync(newer, now, now);
-
-      expect(resolveDroidSessionLogForCwd(cwd, sessionsDir)).toBe(newer);
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("falls back to the newest ancestor session candidate when exact cwd has no logs", () => {
-    const { projectsDir: sessionsDir, cleanup } = makeTempDirs("droid-ancestor");
-    try {
-      const sessionRoot = "/Users/example/project";
-      const subdir = `${sessionRoot}/src/nested`;
-      const older = writeSessionLog(
-        sessionsDir,
-        sessionRoot,
-        "older-session",
-        buildLog(droidMessage("a1", "assistant", "old reply")),
-      );
-      const newer = writeSessionLog(
-        sessionsDir,
-        sessionRoot,
-        "newer-session",
-        '{"type":"session_start","id":"newer-session"}\n',
-      );
-
-      const now = Date.now() / 1000;
-      utimesSync(older, now - 10, now - 10);
-      utimesSync(newer, now, now);
-
-      expect(resolveDroidSessionLogForCwd(subdir, sessionsDir)).toBe(newer);
     } finally {
       cleanup();
     }

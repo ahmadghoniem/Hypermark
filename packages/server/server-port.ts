@@ -1,12 +1,12 @@
 /**
- * Port configuration and server startup.
+ * Port selection and server startup.
  *
  * Environment variables:
  *   HYPERMARK_PORT - Fixed port or inclusive range (default: random)
  *
  * Every session is local: the server binds loopback and advertises
  * localhost. Remote (SSH/devcontainer) and tailnet publication are not
- * supported.
+ * supported, so nothing here consults a remote-mode switch.
  */
 
 import { parsePortSelection } from "@hypermark/shared/port-range";
@@ -16,18 +16,11 @@ const MAX_FIXED_PORT_RETRIES = 5;
 const PORT_RETRY_DELAY_MS = 500;
 
 /** Return whether a runtime listen failure represents an occupied address. */
-export function isAddressInUseError(err: unknown): boolean {
+function isAddressInUseError(err: unknown): boolean {
   return err instanceof Error && (
     (err as NodeJS.ErrnoException).code === "EADDRINUSE" ||
     err.message.includes("EADDRINUSE")
   );
-}
-
-/**
- * Get the server ports to try, in order.
- */
-export function getServerPorts(): number[] {
-  return getServerPortConfiguration().ports;
 }
 
 function getServerPortConfiguration(): {
@@ -47,13 +40,6 @@ function getServerPortConfiguration(): {
 
   // No env override: let the OS pick a free port.
   return { ports: [0], isRange: false };
-}
-
-/**
- * Get the first configured server port.
- */
-export function getServerPort(): number {
-  return getServerPorts()[0];
 }
 
 /**

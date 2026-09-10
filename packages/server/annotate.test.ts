@@ -29,20 +29,15 @@ const MINIMAL_HTML = "<html><body>Hypermark</body></html>";
 describe("annotate server: /api/save-notes wiring", () => {
   // Bind a random local port regardless of env left behind by sibling suites.
   let savedPort: string | undefined;
-  let savedRemote: string | undefined;
 
   beforeEach(() => {
     savedPort = process.env.HYPERMARK_PORT;
-    savedRemote = process.env.HYPERMARK_REMOTE;
     delete process.env.HYPERMARK_PORT;
-    process.env.HYPERMARK_REMOTE = "0";
   });
 
   afterEach(() => {
     if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
     else process.env.HYPERMARK_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
-    else process.env.HYPERMARK_REMOTE = savedRemote;
   });
 
   test("POST is served as JSON by the route, not the SPA HTML catch-all", async () => {
@@ -92,16 +87,13 @@ describe("annotate server: /api/save-notes wiring", () => {
 
 describe("annotate server: /api/config favicon persistence", () => {
   let savedPort: string | undefined;
-  let savedRemote: string | undefined;
   let savedDataDir: string | undefined;
   let tempDir: string;
 
   beforeEach(() => {
     savedPort = process.env.HYPERMARK_PORT;
-    savedRemote = process.env.HYPERMARK_REMOTE;
     savedDataDir = process.env.HYPERMARK_DATA_DIR;
     delete process.env.HYPERMARK_PORT;
-    delete process.env.HYPERMARK_REMOTE;
     tempDir = mkdtempSync(join(tmpdir(), "hypermark-annotate-config-test-"));
     process.env.HYPERMARK_DATA_DIR = tempDir;
   });
@@ -109,8 +101,6 @@ describe("annotate server: /api/config favicon persistence", () => {
   afterEach(() => {
     if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
     else process.env.HYPERMARK_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
-    else process.env.HYPERMARK_REMOTE = savedRemote;
     if (savedDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
     else process.env.HYPERMARK_DATA_DIR = savedDataDir;
     rmSync(tempDir, { recursive: true, force: true });
@@ -150,20 +140,15 @@ describe("annotate server: /api/config favicon persistence", () => {
 
 describe("annotate server: /api/share-html symlink containment", () => {
   let savedPort: string | undefined;
-  let savedRemote: string | undefined;
 
   beforeEach(() => {
     savedPort = process.env.HYPERMARK_PORT;
-    savedRemote = process.env.HYPERMARK_REMOTE;
     delete process.env.HYPERMARK_PORT;
-    process.env.HYPERMARK_REMOTE = "0";
   });
 
   afterEach(() => {
     if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
     else process.env.HYPERMARK_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
-    else process.env.HYPERMARK_REMOTE = savedRemote;
   });
 
   // Regression: /api/share-html read the requested file through a lexical-only
@@ -207,23 +192,18 @@ describe("annotate server: /api/share-html symlink containment", () => {
 // own project namespace, removed in afterAll.
 describe("annotate server: local rendered-HTML root freshness", () => {
   let savedPort: string | undefined;
-  let savedRemote: string | undefined;
   let savedHistoryFlag: string | undefined;
 
   beforeEach(() => {
     savedPort = process.env.HYPERMARK_PORT;
-    savedRemote = process.env.HYPERMARK_REMOTE;
     savedHistoryFlag = process.env.HYPERMARK_ANNOTATE_HISTORY;
     delete process.env.HYPERMARK_PORT;
-    process.env.HYPERMARK_REMOTE = "0";
     process.env.HYPERMARK_ANNOTATE_HISTORY = "1";
   });
 
   afterEach(() => {
     if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
     else process.env.HYPERMARK_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
-    else process.env.HYPERMARK_REMOTE = savedRemote;
     if (savedHistoryFlag === undefined) delete process.env.HYPERMARK_ANNOTATE_HISTORY;
     else process.env.HYPERMARK_ANNOTATE_HISTORY = savedHistoryFlag;
   });
@@ -467,20 +447,15 @@ describe("annotate server: local rendered-HTML root freshness", () => {
 
 describe("annotate server: source save", () => {
   let savedPort: string | undefined;
-  let savedRemote: string | undefined;
 
   beforeEach(() => {
     savedPort = process.env.HYPERMARK_PORT;
-    savedRemote = process.env.HYPERMARK_REMOTE;
     delete process.env.HYPERMARK_PORT;
-    process.env.HYPERMARK_REMOTE = "0";
   });
 
   afterEach(() => {
     if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
     else process.env.HYPERMARK_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
-    else process.env.HYPERMARK_REMOTE = savedRemote;
   });
 
   test("recreates a deleted single-file source on save", async () => {
@@ -834,15 +809,12 @@ describe("annotate server: source save", () => {
 
 describe("annotate server: folder annotate history", () => {
   let savedPort: string | undefined;
-  let savedRemote: string | undefined;
   let savedHistoryFlag: string | undefined;
 
   beforeEach(() => {
     savedPort = process.env.HYPERMARK_PORT;
-    savedRemote = process.env.HYPERMARK_REMOTE;
     savedHistoryFlag = process.env.HYPERMARK_ANNOTATE_HISTORY;
     delete process.env.HYPERMARK_PORT;
-    process.env.HYPERMARK_REMOTE = "0";
     // Force the toggle on for every test but the one that explicitly flips it
     // off — a real ~/.hypermark/config.json on the machine running these
     // tests must never change the outcome.
@@ -852,8 +824,6 @@ describe("annotate server: folder annotate history", () => {
   afterEach(() => {
     if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
     else process.env.HYPERMARK_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
-    else process.env.HYPERMARK_REMOTE = savedRemote;
     if (savedHistoryFlag === undefined) delete process.env.HYPERMARK_ANNOTATE_HISTORY;
     else process.env.HYPERMARK_ANNOTATE_HISTORY = savedHistoryFlag;
   });
@@ -1311,20 +1281,15 @@ describe("annotate server: folder annotate history", () => {
 
 describe("annotate server: approval notes", () => {
   let savedPort: string | undefined;
-  let savedRemote: string | undefined;
 
   beforeEach(() => {
     savedPort = process.env.HYPERMARK_PORT;
-    savedRemote = process.env.HYPERMARK_REMOTE;
     delete process.env.HYPERMARK_PORT;
-    process.env.HYPERMARK_REMOTE = "0";
   });
 
   afterEach(() => {
     if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
     else process.env.HYPERMARK_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
-    else process.env.HYPERMARK_REMOTE = savedRemote;
   });
 
   test("returns the explicit approval-notes capability", async () => {
@@ -1467,20 +1432,15 @@ describe("annotate server: approval notes", () => {
 
 describe("annotate server: client lease", () => {
   let savedPort: string | undefined;
-  let savedRemote: string | undefined;
 
   beforeEach(() => {
     savedPort = process.env.HYPERMARK_PORT;
-    savedRemote = process.env.HYPERMARK_REMOTE;
     delete process.env.HYPERMARK_PORT;
-    process.env.HYPERMARK_REMOTE = "0";
   });
 
   afterEach(() => {
     if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
     else process.env.HYPERMARK_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
-    else process.env.HYPERMARK_REMOTE = savedRemote;
   });
 
   /**
@@ -1757,15 +1717,12 @@ describe("annotate server: durable submit records (#678)", () => {
   // legacy behavior), and a failed durable write keeps the draft behind as
   // the recovery copy.
   let savedPort: string | undefined;
-  let savedRemote: string | undefined;
   let savedHistoryFlag: string | undefined;
 
   beforeEach(() => {
     savedPort = process.env.HYPERMARK_PORT;
-    savedRemote = process.env.HYPERMARK_REMOTE;
     savedHistoryFlag = process.env.HYPERMARK_ANNOTATE_HISTORY;
     delete process.env.HYPERMARK_PORT;
-    process.env.HYPERMARK_REMOTE = "0";
     // Force the toggle on unless a test explicitly flips it off — a real
     // ~/.hypermark/config.json must never change the outcome.
     process.env.HYPERMARK_ANNOTATE_HISTORY = "1";
@@ -1774,8 +1731,6 @@ describe("annotate server: durable submit records (#678)", () => {
   afterEach(() => {
     if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
     else process.env.HYPERMARK_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
-    else process.env.HYPERMARK_REMOTE = savedRemote;
     if (savedHistoryFlag === undefined) delete process.env.HYPERMARK_ANNOTATE_HISTORY;
     else process.env.HYPERMARK_ANNOTATE_HISTORY = savedHistoryFlag;
   });
@@ -2059,20 +2014,15 @@ describe("annotate server: durable submit records (#678)", () => {
 
 describe("annotate server: live app mode (annotate-app)", () => {
   let savedPort: string | undefined;
-  let savedRemote: string | undefined;
 
   beforeEach(() => {
     savedPort = process.env.HYPERMARK_PORT;
-    savedRemote = process.env.HYPERMARK_REMOTE;
     delete process.env.HYPERMARK_PORT;
-    process.env.HYPERMARK_REMOTE = "0";
   });
 
   afterEach(() => {
     if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
     else process.env.HYPERMARK_PORT = savedPort;
-    if (savedRemote === undefined) delete process.env.HYPERMARK_REMOTE;
-    else process.env.HYPERMARK_REMOTE = savedRemote;
   });
 
   function startFakeApp() {
@@ -2326,7 +2276,6 @@ describe("annotate server: live app mode (annotate-app)", () => {
   });
 
   test("remote mode rejects live app sessions outright", async () => {
-    process.env.HYPERMARK_REMOTE = "1";
     await expect(startLiveServer("http://127.0.0.1:65500")).rejects.toThrow(
       "Live app annotation is unavailable in remote mode",
     );
