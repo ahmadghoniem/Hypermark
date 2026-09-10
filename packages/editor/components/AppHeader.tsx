@@ -8,7 +8,7 @@ import type { DecisionActionId, DecisionSpec } from '@hypermark/ui/utils/decisio
 import { Settings } from '@hypermark/ui/components/Settings';
 import { PlanHeaderMenu } from '@hypermark/ui/components/PlanHeaderMenu';
 import { ThemeModeButton } from '@hypermark/ui/components/ThemeModeButton';
-import { DownloadIcon, SettingsIcon } from '@hypermark/ui/components/icons/headerIcons';
+import { SettingsIcon } from '@hypermark/ui/components/icons/headerIcons';
 import type { UIPreferences } from '@hypermark/ui/utils/uiPreferences';
 import type { CompactPlanAction } from '@hypermark/ui/components/PlanHeaderMenu';
 import { HtmlSurfaceControls } from '@hypermark/ui/components/HtmlSurfaceControls';
@@ -91,7 +91,6 @@ interface AppHeaderProps {
   agentConnected?: boolean;
 
   // Handlers — App owns all decision logic, header just calls these
-  onAnnotateExit: () => void;
   onGoalSetupExit: () => void;
   onGoalSetupSubmit: () => void;
   onFeedback: () => void;
@@ -149,7 +148,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   agentTerminalAvailable,
   webmcpAvailable = false,
   agentConnected = false,
-  onAnnotateExit,
   onGoalSetupExit,
   onGoalSetupSubmit,
   onFeedback,
@@ -242,24 +240,15 @@ export const AppHeader = React.memo<AppHeaderProps>(({
         {!compactTouchLayout && isApiMode && (!linkedDocIsActive || annotateMode) && !archiveMode && !goalSetupMode && (
           <>
             {annotateMode ? (
-              <>
-                <ExitButton
-                  appearance="ghost"
-                  onClick={onAnnotateExit}
-                  disabled={isSubmitting || isExiting}
-                  isLoading={isExiting}
-                  title={annotateDecision?.closeTitle}
+              annotateDecision && (
+                <DecisionControl
+                  spec={annotateDecision.spec}
+                  handlers={annotateDecision.handlers}
+                  busy={isSubmitting || isExiting}
+                  isLoading={isSubmitting}
+                  dismissOnIframeFocus={annotateDecision.dismissOnIframeFocus}
                 />
-                {annotateDecision && (
-                  <DecisionControl
-                    spec={annotateDecision.spec}
-                    handlers={annotateDecision.handlers}
-                    busy={isSubmitting || isExiting}
-                    isLoading={isSubmitting}
-                    dismissOnIframeFocus={annotateDecision.dismissOnIframeFocus}
-                  />
-                )}
-              </>
+              )
             ) : (
               <FeedbackButton
                 onClick={onFeedback}
@@ -366,18 +355,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
             rows in the Options menu (see PlanHeaderMenu). */}
         {!compactTouchLayout && (
           <>
-            {!goalSetupMode && (
-              <button
-                type="button"
-                onClick={onDownloadAnnotations}
-                className="flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                title="Download annotations"
-                aria-label="Download annotations"
-              >
-                <DownloadIcon className="w-4 h-4" />
-              </button>
-            )}
-
             <ThemeModeButton />
 
             <button

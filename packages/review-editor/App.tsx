@@ -12,7 +12,6 @@ import { ThemeProvider, useTheme } from '@hypermark/ui/components/ThemeProvider'
 import { TooltipProvider } from '@hypermark/ui/components/Tooltip';
 import { ConfirmDialog } from '@hypermark/ui/components/ConfirmDialog';
 import { Settings } from '@hypermark/ui/components/Settings';
-import { ExitButton } from '@hypermark/ui/components/ToolbarButtons';
 import { buildDecisionSpec, type DecisionActionId, type DecisionMenuItem } from '@hypermark/ui/utils/decisionSpec';
 import { DecisionControl, DecisionNoteDialog, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import {
@@ -551,7 +550,6 @@ const ReviewAppInner: React.FC = () => {
   const [isApproving, setIsApproving] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [submitted, setSubmitted] = useState<'approved' | 'feedback' | 'exited' | false>(false);
-  const [showExitWarning, setShowExitWarning] = useState(false);
   // A committed review-level note waiting for its one-render deferred submit
   // (the payload builders close over `allAnnotations`, so the send has to wait
   // for the render that carries the note). L3: cleared only on submission
@@ -3197,13 +3195,14 @@ const ReviewAppInner: React.FC = () => {
         setPendingNoteSubmit({ noteId, dispatched: false });
         return;
       }
-      case 'discard':
-        // The DecisionControl / compact ConfirmDialog has already confirmed;
-        // the bare approve posts `feedback: '', annotations: []`. Same
-        // in-flight guard as the sibling routes: a confirm left open across
-        // an in-flight decision POST must not produce a second decision.
+      case 'close':
+        // The DecisionControl / compact ConfirmDialog has already confirmed
+        // when there was something to lose, so the exit warning is NOT raised
+        // again here. Same in-flight guard as the sibling routes: a confirm
+        // left open across an in-flight decision POST must not produce a
+        // second decision.
         if (submitted || busyWithDecision) return;
-        void handleApprove();
+        void handleExit();
         return;
       case 'approve-with-notes':
         // PR5 delivery (spec §6.4): reachable only when the server advertised
@@ -3233,7 +3232,7 @@ const ReviewAppInner: React.FC = () => {
     'request-changes': (note) => runReviewDecisionAction('request-changes', note),
     'note-with-feedback': (note) => runReviewDecisionAction('note-with-feedback', note),
     'approve-with-notes': () => runReviewDecisionAction('approve-with-notes'),
-    'discard-and-finish': () => runReviewDecisionAction('discard-and-finish'),
+    'close-session': () => runReviewDecisionAction('close-session'),
   }), [runReviewDecisionAction]);
 
   // L2: the compact dialogs render from the LIVE spec; if the item behind an
@@ -3431,7 +3430,12 @@ const ReviewAppInner: React.FC = () => {
     'request-changes': () => runPlatformDecisionAction('request-changes'),
     'note-with-feedback': () => runPlatformDecisionAction('note-with-feedback'),
     'approve-with-notes': () => runPlatformDecisionAction('approve-with-notes'),
-    'discard-and-finish': () => {}, // the platform arm never emits it
+    'close-session': () => {
+      // The one platform item that never opens the submission dialog: it is
+      // the shared exit, and the spec's own confirm already ran.
+      if (submitted || busyWithPlatformDecision) return;
+      void handleExit();
+    },
   }), [runPlatformDecisionAction]);
 
   // Double-tap Option/Alt to toggle review destination (PR mode only)
@@ -3478,7 +3482,7 @@ const ReviewAppInner: React.FC = () => {
   const canHandleReviewHistoryShortcut = useCallback((event: KeyboardEvent): boolean => {
     if (event.defaultPrevented || isNativeHistoryOwner(event)) return false;
     if (submitted || isSendingFeedback || isApproving || isExiting || isPlatformActioning || isLoadingDiff) return false;
-    if (openSettingsMenu || showDestinationMenu || platformCommentDialog || showExportModal || showWorktreeDialog || showNoAnnotationsDialog || showExitWarning) return false;
+    if (openSettingsMenu || showDestinationMenu || platformCommentDialog || showExportModal || showWorktreeDialog || showNoAnnotationsDialog) return false;
     if (showReviewSetup || tokenHoverIntroVisible) return false;
     return !hasActiveHistoryOverlay(document);
   }, [
@@ -3491,7 +3495,6 @@ const ReviewAppInner: React.FC = () => {
     openSettingsMenu,
     platformCommentDialog,
     showDestinationMenu,
-    showExitWarning,
     showExportModal,
     showNoAnnotationsDialog,
     showWorktreeDialog,
@@ -3540,7 +3543,7 @@ const ReviewAppInner: React.FC = () => {
 
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      if (showExportModal || showNoAnnotationsDialog || showExitWarning) return;
+      if (showExportModal || showNoAnnotationsDialog) return;
       if (submitted || isSendingFeedback || isApproving || isExiting || isPlatformActioning) return;
       if (!origin) return; // Demo mode
 
@@ -3561,7 +3564,7 @@ const ReviewAppInner: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-    showExportModal, showNoAnnotationsDialog, showExitWarning,
+    showExportModal, showNoAnnotationsDialog,
     platformCommentDialog, platformGeneralComment,
     submitted, isSendingFeedback, isApproving, isExiting, isPlatformActioning,
     origin, platformMode, runPlatformDecisionAction,
@@ -3574,7 +3577,7 @@ const ReviewAppInner: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey) || !e.shiftKey || e.altKey || e.key.toLowerCase() !== 'y' || isTypingTarget(e.target)) return;
 
-      if (platformCommentDialog || showExportModal || showNoAnnotationsDialog || showExitWarning) return;
+      if (platformCommentDialog || showExportModal || showNoAnnotationsDialog) return;
 
       e.preventDefault();
       handleCopyFeedback();
@@ -3583,7 +3586,7 @@ const ReviewAppInner: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-    platformCommentDialog, showExportModal, showNoAnnotationsDialog, showExitWarning,
+    platformCommentDialog, showExportModal, showNoAnnotationsDialog,
     handleCopyFeedback
   ]);
 
@@ -3649,12 +3652,6 @@ const ReviewAppInner: React.FC = () => {
             // submission dialog); muted approve rows disable with the
             // self-approval reason as their subtitle.
             {
-              id: 'exit',
-              label: 'Exit review',
-              onSelect: () => totalAnnotationCount > 0 ? setShowExitWarning(true) : handleExit(),
-              disabled: compactActionBusy,
-            },
-            {
               id: compactPrimaryIdForReviewDecision(platformDecisionSpec.primary),
               label: platformDecisionSpec.primary.mobileLabel ?? platformDecisionSpec.primary.label,
               subtitle: platformDecisionSpec.primary.muted
@@ -3677,12 +3674,6 @@ const ReviewAppInner: React.FC = () => {
             // Agent mode: spec-driven decision rows — a visible positive
             // decision exists in EVERY compact state (touch has no Mod+Enter;
             // spec §3.2 / E16-review).
-            {
-              id: 'exit',
-              label: 'Exit review',
-              onSelect: () => totalAnnotationCount > 0 ? setShowExitWarning(true) : handleExit(),
-              disabled: compactActionBusy,
-            },
             {
               id: compactPrimaryIdForReviewDecision(reviewDecisionSpec.primary),
               label: reviewDecisionSpec.primary.mobileLabel ?? reviewDecisionSpec.primary.label,
@@ -4023,40 +4014,22 @@ const ReviewAppInner: React.FC = () => {
                     (Approve at zero, Send Feedback · n otherwise; the caret
                     carries the alternates and the note composer). */}
                 {!platformMode ? (
-                  <>
-                    <ExitButton
-                      appearance="ghost"
-                      labelBreakpoint="lg"
-                      onClick={() => totalAnnotationCount > 0 ? setShowExitWarning(true) : handleExit()}
-                      disabled={busyWithDecision}
-                      isLoading={isExiting}
-                      title="Close review without feedback"
-                    />
-                    <DecisionControl
-                      spec={reviewDecisionSpec}
-                      handlers={reviewDecisionHandlers}
-                      busy={busyWithDecision}
-                      isLoading={isSendingFeedback || isApproving}
-                      labelBreakpoint="lg"
-                    />
-                  </>
+                  <DecisionControl
+                    spec={reviewDecisionSpec}
+                    handlers={reviewDecisionHandlers}
+                    busy={busyWithDecision}
+                    isLoading={isSendingFeedback || isApproving}
+                    labelBreakpoint="lg"
+                  />
                 ) : (
                   <>
-                    {/* Platform mode (PR6, §3.4): the same ghost-X + decision
-                        control shape. No composer on this side, ever — every
-                        action opens the existing ReviewSubmissionDialog, whose
+                    {/* Platform mode (PR6, §3.4): the same decision-control
+                        shape. No composer on this side, ever — every action
+                        opens the existing ReviewSubmissionDialog, whose
                         general-comment field is the only note field here. The
                         muted primary carries the self-approval reason via the
                         shared Tooltip + aria-describedby (native title dropped
                         when muted, pinned by test). */}
-                    <ExitButton
-                      appearance="ghost"
-                      labelBreakpoint="lg"
-                      onClick={() => totalAnnotationCount > 0 ? setShowExitWarning(true) : handleExit()}
-                      disabled={busyWithPlatformDecision}
-                      isLoading={isExiting}
-                      title="Close review without feedback"
-                    />
                     <DecisionControl
                       spec={platformDecisionSpec}
                       handlers={platformDecisionHandlers}
@@ -4658,22 +4631,6 @@ const ReviewAppInner: React.FC = () => {
             showCancel
           />
         )}
-
-        <ConfirmDialog
-          isOpen={showExitWarning}
-          onClose={() => setShowExitWarning(false)}
-          onConfirm={() => {
-            setShowExitWarning(false);
-            handleExit();
-          }}
-          title="Annotations Won't Be Sent"
-          message={<>You have {totalAnnotationCount} annotation{totalAnnotationCount !== 1 ? 's' : ''} that will be lost if you close.</>}
-          subMessage="To send your feedback, use Send Feedback instead."
-          confirmText="Close Anyway"
-          cancelText="Cancel"
-          variant="warning"
-          showCancel
-        />
 
         {/* First-run review-view chooser (panel view + tree default diff).
             First in the dialog chain (review setup → edit mode) so the chain

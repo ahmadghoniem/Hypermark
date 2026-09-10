@@ -3,7 +3,7 @@ import type { CompactPlanAction } from '@hypermark/ui/components/PlanHeaderMenu'
 
 type CompactPlanDecisionActionId = Extract<
   CompactPlanAction['id'],
-  'exit' | 'feedback' | 'approve' | 'copy' | 'done' | 'note' | 'discard-finish'
+  'exit' | 'feedback' | 'approve' | 'copy' | 'done' | 'note'
 >;
 
 /** An incumbent session decision that may be presented by compact Review. */
@@ -151,7 +151,7 @@ const SparklesIcon = () => (
 );
 
 const ActionIcon = ({ kind }: { kind: CompactPlanReviewAction['id'] }) => {
-  if (kind === 'approve' || kind === 'done' || kind === 'discard-finish') {
+  if (kind === 'approve' || kind === 'done') {
     return (
       <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />

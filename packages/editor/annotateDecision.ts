@@ -23,8 +23,8 @@ export type AnnotateDecisionRoute =
   | { kind: "note"; route: "feedback" | "approve"; approvalFraming: boolean }
   /** Direct approve with the live feedback riding along (gate + capability). */
   | { kind: "approve-with-notes" }
-  /** Post-confirm discard: annotations dropped, positive finish recorded. */
-  | { kind: "discard"; route: "feedback" | "approve" };
+  /** Leave without sending: POST /api/exit, the session is dismissed. */
+  | { kind: "close" };
 
 export function resolveAnnotateDecisionAction(
   id: DecisionActionId,
@@ -50,10 +50,8 @@ export function resolveAnnotateDecisionAction(
       return { kind: "note", route: "feedback", approvalFraming: false };
     case "approve-with-notes":
       return { kind: "approve-with-notes" };
-    case "discard-and-finish":
-      return ctx.gate
-        ? { kind: "discard", route: "approve" }
-        : { kind: "discard", route: "feedback" };
+    case "close-session":
+      return { kind: "close" };
   }
 }
 
@@ -62,11 +60,11 @@ export function resolveAnnotateDecisionAction(
  * React keys and the primary-row sort key, so they must be unique within any
  * one spec: the positive-finish composer is `note`, the change-request
  * composer is `feedback` (it IS the change-request send), approve-with-notes
- * is `approve`, and the confirm item is `discard-finish`.
+ * is `approve`, and the exit item is `close`.
  */
 export function compactRowIdForDecisionItem(
   id: DecisionMenuItem["id"],
-): Extract<CompactPlanAction["id"], "note" | "feedback" | "approve" | "discard-finish"> {
+): Extract<CompactPlanAction["id"], "note" | "feedback" | "approve" | "exit"> {
   switch (id) {
     case "note-with-approval":
     case "note-with-feedback":
@@ -75,8 +73,8 @@ export function compactRowIdForDecisionItem(
       return "feedback";
     case "approve-with-notes":
       return "approve";
-    case "discard-and-finish":
-      return "discard-finish";
+    case "close-session":
+      return "exit";
   }
 }
 

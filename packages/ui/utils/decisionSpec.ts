@@ -23,7 +23,7 @@ export type DecisionActionId =
   | 'request-changes'      // "Request changes…"
   | 'note-with-feedback'   // "Send with a note…"
   | 'approve-with-notes'   // review + gate-annotate; capability-gated
-  | 'discard-and-finish';  // "Done/Approve, discard n annotations…"
+  | 'close-session';       // "Close session" — dismisses, sends nothing
 
 export type DecisionTone = 'success' | 'primary' | 'neutral' | 'destructive';
 
@@ -227,7 +227,10 @@ function buildEmptySpec(input: DecisionSpecInput, approvalFlow: boolean): Decisi
           // can never be mistaken for the gate/review Approve.
           tone: 'neutral',
         },
-    items: positive ? [positive, requestChanges] : [requestChanges],
+    items: [
+      ...(positive ? [positive, requestChanges] : [requestChanges]),
+      buildCloseItem(input.count, true),
+    ],
   };
 }
 
@@ -283,39 +286,7 @@ function buildFeedbackSpec(input: DecisionSpecInput, approvalFlow: boolean): Dec
     dividerPending = false;
   }
 
-  // Destructive by definition — it throws the annotations away — so it always
-  // carries the one confirm the new model keeps. With count 0 there is nothing
-  // to discard and the item is omitted.
-  if (count > 0) {
-    items.push({
-      id: 'discard-and-finish',
-      label: approvalFlow
-        ? `Approve, discard ${count} ${noun}…`
-        : `Done, discard ${count} ${noun}…`,
-      subtitle: 'Asks to confirm: the annotations are not sent',
-      tone: 'destructive',
-      icon: 'check',
-      dividerBefore: dividerPending,
-      // L5: neutral wording — the count can include findings from other
-      // tools, and the non-gate record still carries any direct edits.
-      // Free prose, NOT frozen.
-      confirm: approvalFlow
-        ? {
-            title: `Discard ${count} ${noun} and approve?`,
-            message:
-              'These annotations are change requests, including any from other tools. Approving without them tells the agent no changes are needed.',
-            // Frozen copy (maintainer-approved): 'Discard & approve'.
-            confirmText: 'Discard & approve',
-          }
-        : {
-            title: `Discard ${count} ${noun} and finish?`,
-            message:
-              'These annotations are change requests, including any from other tools. Finishing without them sends a positive review record; any direct edits still ride along.',
-            // Frozen copy (maintainer-approved): 'Discard & finish'.
-            confirmText: 'Discard & finish',
-          },
-    });
-  }
+  items.push(buildCloseItem(count, dividerPending));
 
   return {
     primary: {
@@ -334,11 +305,45 @@ function buildFeedbackSpec(input: DecisionSpecInput, approvalFlow: boolean): Dec
 }
 
 /**
+ * The one way out that sends nothing. Present in every arm and at every
+ * count: it replaces the header's standalone Close button, so it must be
+ * reachable when there is nothing to lose as well as when there is.
+ *
+ * With annotations pending it keeps the confirm the old discard item carried,
+ * because that is the only case where leaving costs the reviewer something.
+ * The outcome is a dismissal either way — the agent is told the human left,
+ * never that the work was approved.
+ */
+function buildCloseItem(count: number, dividerBefore: boolean): DecisionMenuItem {
+  const noun = annotationNoun(count);
+  return {
+    id: 'close-session',
+    label: count > 0 ? `Close, discard ${count} ${noun}…` : 'Close session',
+    subtitle:
+      count > 0
+        ? 'Leaves without sending; the agent is told you dismissed the session'
+        : 'Leaves without sending anything',
+    tone: count > 0 ? 'destructive' : 'neutral',
+    dividerBefore,
+    ...(count > 0
+      ? {
+          confirm: {
+            title: `Discard ${count} ${noun} and close?`,
+            message:
+              'These annotations are not sent, and the agent is told you dismissed the session rather than approving it.',
+            confirmText: 'Close anyway',
+          },
+        }
+      : {}),
+  };
+}
+
+/**
  * The platform (PR) arm — PR6, §3.4, per the approved DESIGN_header-pr-mode
  * mock. Reuses the agent ids so the handler Record stays closed, but every
- * item is composer-less and confirm-less: labels tell the reviewer which mode
- * the ReviewSubmissionDialog opens in, nothing more. `discard-and-finish` is
- * never emitted — the dialog owns what happens to unsent annotations.
+ * item is composer-less: labels tell the reviewer which mode the
+ * ReviewSubmissionDialog opens in, nothing more. `close-session` is the one
+ * exception — it is the shared exit and never opens the dialog.
  */
 function buildPlatformSpec(input: DecisionSpecInput, platform: DecisionPlatformInput): DecisionSpec {
   const { count } = input;
@@ -381,6 +386,7 @@ function buildPlatformSpec(input: DecisionSpecInput, platform: DecisionPlatformI
           icon: 'send',
           dividerBefore: true,
         },
+        buildCloseItem(count, true),
       ],
     };
   }
@@ -414,6 +420,7 @@ function buildPlatformSpec(input: DecisionSpecInput, platform: DecisionPlatformI
         icon: 'send',
         dividerBefore: true,
       },
+      buildCloseItem(count, true),
     ],
   };
 }

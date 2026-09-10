@@ -4063,18 +4063,6 @@ const AppInner: React.FC = () => {
     getDocAnnotations: linkedDocHook.getDocAnnotations,
   };
 
-  const handleHeaderAnnotateExit = useCallback(() => {
-    const close = () => {
-      if (hasFeedbackToSend) {
-        setShowExitWarning(true);
-      } else {
-        headerHandlersRef.current.handleAnnotateExit();
-      }
-    };
-    if (maybeConfirmUnsavedSourceFileEdits('close', close)) return;
-    close();
-  }, [hasFeedbackToSend, maybeConfirmUnsavedSourceFileEdits]);
-
   const handleHeaderFeedback = useCallback(() => {
     const sendFeedback = () => {
       const h = headerHandlersRef.current;
@@ -4245,27 +4233,27 @@ const AppInner: React.FC = () => {
         approve();
         return;
       }
-      case 'discard': {
-        // The DecisionControl / compact ConfirmDialog has already confirmed.
-        // Same in-flight guard as the primary path: a confirm left open
-        // across an in-flight decision POST must not produce a second one.
+      case 'close': {
+        // Same in-flight guard as the primary path: a confirm left open across
+        // an in-flight decision POST must not produce a second one.
         if (submitted || isSubmitting || isExiting) return;
-        if (action.route === 'approve') {
-          const approve = () =>
-            headerHandlersRef.current.handleAnnotateApprove({ discardAnnotations: true });
-          if (maybeConfirmUnsavedSourceFileEdits('approve', approve)) return;
-          approve();
-          return;
-        }
-        const send = () => headerHandlersRef.current.handleAnnotateFeedback({
-          discardAnnotations: true,
-          approvalFraming: true,
-        });
-        if (maybeConfirmUnsavedSourceFileEdits('send-feedback', send)) return;
-        send();
+        // The spec's own confirm already ran when annotations would be lost.
+        // Direct edits and saved-file changes are feedback the spec cannot
+        // count, so that case still routes through the richer exit warning —
+        // and the two never both fire, because the spec confirms only at
+        // count > 0.
+        const close = () => {
+          if (feedbackAnnotationCount === 0 && hasFeedbackToSend) {
+            setShowExitWarning(true);
+            return;
+          }
+          void headerHandlersRef.current.handleAnnotateExit();
+        };
+        if (maybeConfirmUnsavedSourceFileEdits('close', close)) return;
+        close();
       }
     }
-  }, [gate, isExiting, isSubmitting, maybeConfirmUnsavedSourceFileEdits, queueNoteDecision, submitPrimaryDecision, submitted]);
+  }, [feedbackAnnotationCount, gate, hasFeedbackToSend, isExiting, isSubmitting, maybeConfirmUnsavedSourceFileEdits, queueNoteDecision, submitPrimaryDecision, submitted]);
 
   const annotateDecisionSpec = useMemo(() => buildDecisionSpec({
     app: 'annotate',
@@ -4290,7 +4278,7 @@ const AppInner: React.FC = () => {
     'request-changes': (note) => runAnnotateDecisionAction('request-changes', note),
     'note-with-feedback': (note) => runAnnotateDecisionAction('note-with-feedback', note),
     'approve-with-notes': () => runAnnotateDecisionAction('approve-with-notes'),
-    'discard-and-finish': () => runAnnotateDecisionAction('discard-and-finish'),
+    'close-session': () => runAnnotateDecisionAction('close-session'),
   }), [runAnnotateDecisionAction]);
 
   // Per-surface Close titles (spec §3.1 / prototype :521-522).
@@ -4349,13 +4337,9 @@ const AppInner: React.FC = () => {
             ? [
                 // Spec-driven decision rows: a visible send action exists in
                 // EVERY compact state (touch has no Mod+Enter — spec §3.1;
-                // the missing positive outcome at zero was the defect).
-                {
-                  id: 'exit' as const,
-                  label: 'Close session',
-                  onSelect: handleHeaderAnnotateExit,
-                  disabled: compactActionBusy,
-                },
+                // the missing positive outcome at zero was the defect). The
+                // exit row comes from the spec too, so it is not duplicated
+                // here.
                 {
                   id: annotateCompactPrimaryId,
                   label: annotateDecisionSpec.primary.mobileLabel ?? annotateDecisionSpec.primary.label,
@@ -4734,6 +4718,7 @@ const AppInner: React.FC = () => {
         const output = getCurrentFeedbackPayload();
         return copyTextToClipboard(wrapCopiedFeedback(output));
       }}
+      onDownloadAnnotations={handleHeaderDownloadAnnotations}
       otherFileAnnotations={otherFileAnnotations}
       directEdits={directEditsPanelInfo?.map((item) => ({
         ...item,
@@ -4813,7 +4798,6 @@ const AppInner: React.FC = () => {
           agentTerminalAvailable={showAgentTerminalControls}
           webmcpAvailable={webmcp.available}
           agentConnected={webmcpActivity.calls > 0}
-          onAnnotateExit={handleHeaderAnnotateExit}
           onGoalSetupExit={handleGoalSetupExit}
           onGoalSetupSubmit={handleGoalSetupSubmit}
           onFeedback={handleHeaderFeedback}
@@ -5416,10 +5400,9 @@ const AppInner: React.FC = () => {
           showCancel
         />
 
-        {/* Unsent feedback warning dialog — the ghost X still warns when
-            content would be lost. The approve flavour is gone: approving away
-            feedback is now the explicit discard menu item with its own
-            confirm inside the decision control. */}
+        {/* Unsent feedback warning dialog — raised by the Close menu item for
+            the feedback the decision spec cannot count (direct edits, saved
+            file changes). Annotations get the spec's own confirm instead. */}
         <ConfirmDialog
           isOpen={showExitWarning}
           onClose={() => setShowExitWarning(false)}

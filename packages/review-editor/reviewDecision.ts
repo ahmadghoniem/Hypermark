@@ -36,8 +36,8 @@ export type ReviewDecisionRoute =
   /** Commit the note as a scope:'general' CodeAnnotation, then submit on the
    *  next render (the payload builders close over `allAnnotations`). */
   | { kind: 'note' }
-  /** Post-confirm discard: the bare approve (annotations dropped). */
-  | { kind: 'discard' }
+  /** Leave without sending: POST /api/exit, the session is dismissed. */
+  | { kind: 'close' }
   /** Approve with content riding along (PR5 delivery, spec §6.4). The spec
    *  emits these ids only when the server advertises `approvalNotesSupported`
    *  — i.e. when this session's decision consumer prints/sends approve-time
@@ -58,8 +58,8 @@ export function resolveReviewDecisionAction(id: DecisionActionId): ReviewDecisio
       return { kind: 'approve-with-notes', withAnnotations: false };
     case 'approve-with-notes':
       return { kind: 'approve-with-notes', withAnnotations: true };
-    case 'discard-and-finish':
-      return { kind: 'discard' };
+    case 'close-session':
+      return { kind: 'close' };
   }
 }
 
@@ -75,8 +75,8 @@ export function resolveReviewDecisionAction(id: DecisionActionId): ReviewDecisio
  *   note-with-feedback → "Post comments, then…"    (comment mode)
  *   request-changes    → "Request changes…"        (comment mode)
  *
- * Returns null for `discard-and-finish`, which the platform spec arm never
- * emits — the dialog owns what happens to unsent annotations.
+ * Returns null for `close-session`: it is the shared exit and never opens
+ * the dialog, so the caller routes it before asking for a dialog mode.
  */
 export function resolvePlatformDecisionAction(
   id: DecisionActionId,
@@ -91,7 +91,7 @@ export function resolvePlatformDecisionAction(
     case 'request-changes':
     case 'note-with-feedback':
       return 'comment';
-    case 'discard-and-finish':
+    case 'close-session':
       return null;
   }
 }
@@ -150,11 +150,11 @@ export function buildReviewApprovalBody(input: ReviewApprovalBodyInput): {
  * Compact/touch row ids for the spec-driven decision rows. Ids double as
  * React keys, so they must be unique within any one spec: the composers are
  * `note`, the change-request composer is `feedback` (it IS the change-request
- * send), approve-with-notes is `approve`, the confirm item `discard-finish`.
+ * send), approve-with-notes is `approve`, the exit item `exit`.
  */
 export function compactRowIdForReviewDecisionItem(
   id: DecisionMenuItem['id'],
-): Extract<CompactReviewAction['id'], 'note' | 'feedback' | 'approve' | 'discard-finish'> {
+): Extract<CompactReviewAction['id'], 'note' | 'feedback' | 'approve' | 'exit'> {
   switch (id) {
     case 'note-with-approval':
     case 'note-with-feedback':
@@ -163,8 +163,8 @@ export function compactRowIdForReviewDecisionItem(
       return 'feedback';
     case 'approve-with-notes':
       return 'approve';
-    case 'discard-and-finish':
-      return 'discard-finish';
+    case 'close-session':
+      return 'exit';
   }
 }
 

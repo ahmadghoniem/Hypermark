@@ -68,26 +68,26 @@ describe("review decision handler exhaustiveness", () => {
         const route = resolveReviewDecisionAction(item.id);
         expect(route).toBeDefined();
         // A composer item routed anywhere but a note-carrying flow would drop
-        // the typed note on the floor; a confirm item must be the discard
-        // flow (the one remaining guard dialog).
+        // the typed note on the floor; a confirm item must be the close flow
+        // (the one remaining guard dialog).
         if (item.composer) {
           expect(["note", "approve-with-notes"]).toContain(route.kind);
         }
-        if (item.confirm) expect(route.kind).toBe("discard");
+        if (item.confirm) expect(route.kind).toBe("close");
       }
     }
   });
 
   // Guards the single-transport matrix (spec §3.2/§6.1): request-changes and
   // note-with-feedback differ only by state, never by route; the confirm item
-  // is the discard flow; both approve-carrying ids land on the PR5 delivery
+  // is the close flow; both approve-carrying ids land on the PR5 delivery
   // path — routing one to the plain-note flow would misdeliver an approval as
   // a change request — and fork only on WHAT rides the approval.
   test("the routes fork only on approved, never on which menu state emitted them", () => {
     expect(resolveReviewDecisionAction("note-with-feedback"))
       .toEqual(resolveReviewDecisionAction("request-changes"));
     expect(resolveReviewDecisionAction("request-changes").kind).toBe("note");
-    expect(resolveReviewDecisionAction("discard-and-finish").kind).toBe("discard");
+    expect(resolveReviewDecisionAction("close-session").kind).toBe("close");
     expect(resolveReviewDecisionAction("note-with-approval"))
       .toEqual({ kind: "approve-with-notes", withAnnotations: false });
     expect(resolveReviewDecisionAction("approve-with-notes"))

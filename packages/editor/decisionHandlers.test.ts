@@ -40,9 +40,9 @@ describe("annotate decision handler exhaustiveness", () => {
         const route = resolveAnnotateDecisionAction(item.id, { gate: input.gate });
         expect(route).toBeDefined();
         // A composer item routed anywhere but the note flow would drop the
-        // typed note on the floor; a confirm item must be the discard flow.
+        // typed note on the floor; a confirm item must be the close flow.
         if (item.composer) expect(route.kind).toBe("note");
-        if (item.confirm) expect(route.kind).toBe("discard");
+        if (item.confirm) expect(route.kind).toBe("close");
       }
     }
   });
@@ -50,7 +50,7 @@ describe("annotate decision handler exhaustiveness", () => {
   // Guards the endpoint matrix (spec §3.1/§6.1): Done and every note stay on
   // /api/feedback so formatAnnotateOutcome shapes and strict-gate exit codes
   // are untouched; only gate-mode approvals reach /api/approve.
-  test("note and discard routes follow the gate's transport; no menu note ever carries approval framing", () => {
+  test("note routes follow the gate's transport; no menu note ever carries approval framing", () => {
     const gated = { gate: true };
     const ungated = { gate: false };
 
@@ -76,10 +76,10 @@ describe("annotate decision handler exhaustiveness", () => {
         .toEqual(resolveAnnotateDecisionAction("request-changes", ctx));
     }
 
-    expect(resolveAnnotateDecisionAction("discard-and-finish", gated))
-      .toEqual({ kind: "discard", route: "approve" });
-    expect(resolveAnnotateDecisionAction("discard-and-finish", ungated))
-      .toEqual({ kind: "discard", route: "feedback" });
+    // Close never varies by gate: it dismisses, it never approves.
+    for (const ctx of [gated, ungated]) {
+      expect(resolveAnnotateDecisionAction("close-session", ctx)).toEqual({ kind: "close" });
+    }
   });
 
   // Guards the compact surface: row ids double as React keys and the
