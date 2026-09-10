@@ -12,9 +12,6 @@ Read `spec/01-foundation-and-scope.md` first. It is the shared authority for
 approvals, baseline recording, safety rules, and test discipline. Verify these
 existing paths before editing:
 
-- `adr/specs/hypermark-fork-spec-20260905.md` (§2, §6.3, §9, and §12)
-- `adr/specs/hypermark-design-decisions-20260905.md` (PR/worktree clarification)
-- `adr/specs/hypermark-fork-review-20260905.md` (virtualization/tree-adapter risk)
 - `packages/review-editor/components/FileTree.tsx` and `FileTreeNode.tsx`
 - `packages/review-editor/utils/buildFileTree.ts`, `utils/reviewSearch.ts`, and
   `hooks/useReviewSearch.ts`

@@ -16,13 +16,7 @@ Make a code comment live at its code location: hover a gutter marker to preview 
 or keyboard-activate it to pin a focusable popover; choose **Edit** to turn that *same*
 popover into the complete comment composer. Images belong at the bottom of that composer as
 compact visual thumbnails, not as filename-and-size attachment cards.
-This is the approved D8 direction in
-[`adr/specs/hypermark-fork-spec-20260905.md`](../adr/specs/hypermark-fork-spec-20260905.md)
-and [`adr/specs/hypermark-design-decisions-20260905.md`](../adr/specs/hypermark-design-decisions-20260905.md).
-The interaction reference is the synthetic-only
-[`adr/prototypes/hypermark-design`](../adr/prototypes/hypermark-design/README.md) fixture.
-It demonstrates layout and draft semantics only; it is not the product renderer, upload
-transport, persistence proof, or a root-cause fix.
+This is the approved D8 direction.
 
 Before changing product code, reproduce the reported "selected image does not appear in the
 composer" flow against the current product. Record the exact surface, action, network result,

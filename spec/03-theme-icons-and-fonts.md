@@ -1,6 +1,6 @@
 # 03 — Theme, icons, and fonts
 
-**Status:** IMPLEMENTED (steps 1-6). `localFontPickerPolicy` remains an open user decision; see `adr/notes/spec-04-handoff.md`.
+**Status:** IMPLEMENTED (steps 1-6). `localFontPickerPolicy` remains an open user decision.
 
 **Objective:** Give Hypermark a coherent, recoverable visual system without
 changing retained review behavior or treating deferred visual choices as approval.
@@ -11,10 +11,6 @@ Read `spec/01-foundation-and-scope.md` first: its approval register, safety
 rules, baseline recording, and test rule govern this slice. Then read these
 verified paths before editing:
 
-- `adr/specs/hypermark-fork-spec-20260905.md` (§6 and §12)
-- `adr/specs/hypermark-design-decisions-20260905.md` (palette, icon, and font
-  clarifications)
-- `adr/specs/hypermark-fork-review-20260905.md` (Pierre upgrade/bridge risks)
 - `packages/ui/utils/themeRegistry.ts`, `packages/ui/utils/syntaxTheme.ts`,
   `packages/ui/theme.css`, and `packages/ui/themes/`
 - `packages/review-editor/hooks/usePierreTheme.ts`,
@@ -26,7 +22,7 @@ This slice owns palette metadata/tokens, the synchronous Pierre theme bridge,
 icon migration for Hypermark-owned controls, UI/code-font policy, and favicon
 selection. It does **not** redesign comments or attachments (spec 05), remove
 features/apps (spec 02), rename/release/install/storage (spec 06), or edit the
-prototype under `adr/prototypes/hypermark-design`.
+the fork prototype.
 
 **After every numbered implementation step:** run `bun test`; record unrelated
 baseline failures rather than weakening, deleting, or skipping their tests.

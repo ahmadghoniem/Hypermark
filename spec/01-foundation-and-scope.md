@@ -4,8 +4,6 @@ Status: **Planned; product implementation has not started.** Updated 2026-09-05.
 
 This directory is the six-spec implementation handoff for Hypermark. Read this file before any other spec. It consolidates the earlier [fork specification](../adr/specs/hypermark-fork-spec-20260905.md), [review](../adr/specs/hypermark-fork-review-20260905.md), and [design decisions](../adr/specs/hypermark-design-decisions-20260905.md). Those documents remain rationale/history; these six files own task boundaries and the latest requirements. Repository safety instructions and subsequent explicit user decisions still take precedence. Reorganizing the plan does not approve its open decisions.
 
-The [interactive prototype](../adr/prototypes/hypermark-design/README.md) is synthetic design evidence, **not** a working product implementation, renderer adapter, upload fix, persistence layer, or Claude integration. The managed Preview currently opens that prototype, not the application.
-
 ## Six work packages
 
 | Spec | Responsibility | Dependency |

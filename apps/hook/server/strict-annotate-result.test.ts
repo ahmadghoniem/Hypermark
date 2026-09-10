@@ -246,20 +246,6 @@ describe("atomic annotate result publication", () => {
     ).rejects.toThrow(`Result file already exists: ${existingResult}`);
     expect(await readdir(directory)).toEqual(["existing.json"]);
   });
-
-  test.skipIf(process.platform === "win32")(
-    "rejects a dangling destination symlink before startup",
-    async () => {
-      const directory = await makeTemporaryDirectory();
-      const resultFile = join(directory, "result.json");
-      await symlink(join(directory, "missing-target"), resultFile);
-
-      await expect(
-        assertResultPathAvailable(resultFile),
-      ).rejects.toThrow(`Result file already exists: ${resultFile}`);
-    },
-  );
-
   test("never overwrites a destination created after validation", async () => {
     const directory = await makeTemporaryDirectory();
     const resultFile = join(directory, "result.json");

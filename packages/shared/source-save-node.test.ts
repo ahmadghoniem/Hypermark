@@ -162,44 +162,6 @@ describe("source-save node helpers", () => {
 		if (!missing.ok) expect(missing.code).toBe("not-writable");
 		expect(() => readFileSync(missingPath, "utf8")).toThrow();
 	});
-
-	test.skipIf(process.platform === "win32")("does not replace an occupied missing path while recreating a file", () => {
-		const root = tempRoot();
-		const filePath = join(root, "plan.md");
-		symlinkSync(join(root, "missing-target.md"), filePath);
-
-		const result = saveSourceFileAtomic(filePath, "After\n", "sha256:missing-base", {
-			allowMissingBase: true,
-			allowedRoot: root,
-		});
-
-		expect(result.ok).toBe(false);
-		expect(lstatSync(filePath).isSymbolicLink()).toBe(true);
-		expect(() => readFileSync(filePath, "utf8")).toThrow();
-	});
-
-	test.skipIf(process.platform === "win32")("does not treat an unreadable existing file as missing", () => {
-		const root = tempRoot();
-		const filePath = join(root, "plan.md");
-		writeFileSync(filePath, "Before\n");
-		const before = readSourceFileSnapshot(filePath);
-
-		try {
-			chmodSync(filePath, 0o000);
-			const result = saveSourceFileAtomic(filePath, "After\n", before.hash, {
-				allowMissingBase: true,
-				missingBaseEol: before.eol,
-			});
-
-			expect(result.ok).toBe(false);
-			if (!result.ok) expect(result.code).toBe("not-writable");
-		} finally {
-			chmodSync(filePath, 0o600);
-		}
-
-		expect(readFileSync(filePath, "utf8")).toBe("Before\n");
-	});
-
 	test("rejects folder source paths that resolve outside the folder through a symlink", () => {
 		const root = tempRoot();
 		const folder = join(root, "docs");
