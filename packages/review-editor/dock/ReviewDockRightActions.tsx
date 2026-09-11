@@ -20,13 +20,6 @@ export const ReviewDockRightActions: React.FC<IDockviewHeaderActionsProps> = (pr
   const storedDiffStyle = useConfigValue('diffStyle');
   const state = useReviewStateOptional();
 
-  // Dockview's tab strip is intentionally only 33px tall. Compact-touch
-  // controls need a 44px target, so placing them here makes their focus and
-  // hit geometry overlap the first file header below. Keep this dense control
-  // cluster on fine-pointer layouts; compact review exposes display settings
-  // through the ordinary Settings surface instead.
-  if (state?.isCompactTouchLayout) return null;
-
   const diffStyle = state?.diffStyle ?? storedDiffStyle;
   const setDiffStyle = state?.onDiffStyleChange ?? ((style: 'split' | 'unified') => {
     configStore.set('diffStyle', style);

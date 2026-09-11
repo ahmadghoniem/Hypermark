@@ -6,7 +6,6 @@ import { Tooltip } from './Tooltip';
 import { ActionMenuDivider, ActionMenuItem } from './ActionMenu';
 import { ConfirmDialog, type ConfirmDialogProps } from './ConfirmDialog';
 import { useDismissablePopover } from '../hooks/useDismissablePopover';
-import { useCompactTouchLayout } from '../hooks/useIsMobile';
 import { submitHint } from '../utils/platform';
 import { cn } from '../lib/utils';
 import type {
@@ -177,7 +176,6 @@ export const DecisionNoteDialog: React.FC<{
   /** Free prose under the title, e.g. what the note rides along with. */
   subtitle?: string;
 }> = ({ isOpen, onClose, composer, onSubmit, disabled = false, subtitle }) => {
-  const isCompactTouchLayout = useCompactTouchLayout();
   const [text, setText] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -209,8 +207,6 @@ export const DecisionNoteDialog: React.FC<{
       <DialogContent
         ref={contentRef}
         data-decision-note-composer="dialog"
-        // Opening the sheet must not raise the touch keyboard on its own.
-        initialFocus={isCompactTouchLayout ? false : undefined}
         className="max-w-md rounded-xl bg-card p-4 text-foreground"
       >
         <DialogTitle className="font-semibold mb-1">{composer.title}</DialogTitle>
@@ -226,7 +222,7 @@ export const DecisionNoteDialog: React.FC<{
           onCancel={onClose}
           placeholder={composer.placeholder}
           disabled={disabled}
-          autoFocus={!isCompactTouchLayout}
+          autoFocus
         />
         <div className="mt-3 flex items-center justify-between gap-2">
           <span className="text-[11px] leading-snug text-muted-foreground">{submitHint}</span>

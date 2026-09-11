@@ -1,7 +1,6 @@
 import { generateId } from '@hypermark/ui/utils/generateId';
 import type { DecisionActionId, DecisionMenuItem, DecisionPrimary } from '@hypermark/ui/utils/decisionSpec';
 import type { CodeAnnotation } from '@hypermark/ui/types';
-import type { CompactReviewAction } from './components/ReviewHeaderMenu';
 
 /**
  * Pure transport routing for the review (agent-mode) decision control.
@@ -144,36 +143,6 @@ export function buildReviewApprovalBody(input: ReviewApprovalBodyInput): {
     feedback: note,
     annotations: [],
   };
-}
-
-/**
- * Compact/touch row ids for the spec-driven decision rows. Ids double as
- * React keys, so they must be unique within any one spec: the composers are
- * `note`, the change-request composer is `feedback` (it IS the change-request
- * send), approve-with-notes is `approve`, the exit item `exit`.
- */
-export function compactRowIdForReviewDecisionItem(
-  id: DecisionMenuItem['id'],
-): Extract<CompactReviewAction['id'], 'note' | 'feedback' | 'approve' | 'exit'> {
-  switch (id) {
-    case 'note-with-approval':
-    case 'note-with-feedback':
-      return 'note';
-    case 'request-changes':
-      return 'feedback';
-    case 'approve-with-notes':
-      return 'approve';
-    case 'close-session':
-      return 'exit';
-  }
-}
-
-/** The compact primary row id for the spec's primary (data, not copy: the
- *  send icon marks the Send Feedback state; check marks Approve). */
-export function compactPrimaryIdForReviewDecision(
-  primary: Pick<DecisionPrimary, 'icon'>,
-): Extract<CompactReviewAction['id'], 'feedback' | 'approve'> {
-  return primary.icon === 'send' ? 'feedback' : 'approve';
 }
 
 /**

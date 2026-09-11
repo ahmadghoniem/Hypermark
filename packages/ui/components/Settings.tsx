@@ -40,10 +40,6 @@ interface SettingsProps {
    *  (base ref unresolvable) — the Git tab shows a note that the Git-status
    *  preference can't take effect in THIS repo. */
   sinceBaseUnavailable?: boolean;
-  /** The host is rendering its compact touch shell (review only). Display
-   *  settings that the compact shell overrides for the session are hidden
-   *  there instead of silently editing the desktop preference. */
-  isCompactTouchLayout?: boolean;
   /** This annotate session actually offers the Agent TUI, so its Position
    *  setting is worth showing. Default false: the setting is the only way back
    *  from a Hidden position, but offering it where no terminal can ever run
@@ -329,7 +325,7 @@ const GitTab: React.FC<{ sinceBaseUnavailable?: boolean }> = ({ sinceBaseUnavail
   );
 };
 
-const ReviewDisplayTab: React.FC<{ isCompactTouchLayout?: boolean }> = ({ isCompactTouchLayout = false }) => {
+const ReviewDisplayTab: React.FC = () => {
   const diffStyle = useConfigValue('diffStyle');
   const diffOverflow = useConfigValue('diffOverflow');
   const diffIndicators = useConfigValue('diffIndicators');
@@ -405,23 +401,13 @@ const ReviewDisplayTab: React.FC<{ isCompactTouchLayout?: boolean }> = ({ isComp
 
       <div className="border-t border-border" />
 
-      {/* Diff Style. The compact touch shell renders a session-only unified
-          diff, so the control there would look dead while quietly rewriting
-          the DESKTOP preference. Say what the phone is doing instead. */}
+      {/* Diff Style */}
       <div className="space-y-2">
         <div>
           <div className="text-sm font-medium">Diff Style</div>
           <div className="text-xs text-muted-foreground">Side-by-side or inline diff view</div>
-          {isCompactTouchLayout && (
-            <div className="text-xs text-muted-foreground mt-1">
-              This layout shows unified diffs for the session; your desktop
-              preference is unchanged.
-            </div>
-          )}
         </div>
-        {!isCompactTouchLayout && (
-          <SegmentedControl options={DIFF_STYLE_OPTIONS} value={diffStyle} onChange={(v) => configStore.set('diffStyle', v)} />
-        )}
+        <SegmentedControl options={DIFF_STYLE_OPTIONS} value={diffStyle} onChange={(v) => configStore.set('diffStyle', v)} />
       </div>
 
       <div className="border-t border-border" />
@@ -515,7 +501,7 @@ const ReviewDisplayTab: React.FC<{ isCompactTouchLayout?: boolean }> = ({ isComp
 };
 
 
-export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange, origin, mode = 'plan', onUIPreferencesChange, externalOpen, onExternalClose, sinceBaseUnavailable, isCompactTouchLayout = false, agentTerminalAvailable = false }) => {
+export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange, origin, mode = 'plan', onUIPreferencesChange, externalOpen, onExternalClose, sinceBaseUnavailable, agentTerminalAvailable = false }) => {
   const [showDialog, setShowDialog] = useState(false);
   const [themePreview, setThemePreview] = useState(false);
 
@@ -735,7 +721,7 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
 
                 {/* === DISPLAY TAB === */}
                 {activeTab === 'display' && mode === 'review' && (
-                  <ReviewDisplayTab isCompactTouchLayout={isCompactTouchLayout} />
+                  <ReviewDisplayTab />
                 )}
 
                 {activeTab === 'analysis' && mode === 'review' && (

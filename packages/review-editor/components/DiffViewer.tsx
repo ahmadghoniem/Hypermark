@@ -36,10 +36,7 @@ import {
   retryScrollToSearchMatch,
   swapActiveSearchHighlight,
 } from '../utils/reviewSearchHighlight';
-import {
-  resolveLineSelectionBehavior,
-  type LineSelectionSource,
-} from '../utils/lineSelectionBehavior';
+import type { LineSelectionSource } from '../utils/lineSelectionBehavior';
 
 interface PierreDiffContentProps {
   filePath: string;
@@ -183,8 +180,6 @@ interface DiffViewerProps {
   selectedAnnotationId: string | null;
   scrollTargetAnnotation: AnnotationScrollTarget | null;
   pendingSelection: SelectedLineRange | null;
-  /** Compact coarse-pointer shell. Keeps range selection separate from writing. */
-  compactTouchLayout?: boolean;
   onLineSelection: (range: SelectedLineRange | null) => void;
   onAddAnnotation: (type: CodeAnnotationType, text?: string, tokenMeta?: TokenAnnotationMeta, images?: ImageAttachment[]) => void;
   onAddFileComment: (text: string) => void;
@@ -214,8 +209,7 @@ interface DiffViewerProps {
    * the caller decides what a hoverable symbol is. Stitching a fragmented
    * identifier is app-only work, and this component is also compiled into the
    * read-only portable guide viewer, which passes neither handler.
-   */
-}
+   */}
 
 export const DiffViewer: React.FC<DiffViewerProps> = ({
   patch,
@@ -240,7 +234,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
   selectedAnnotationId,
   scrollTargetAnnotation,
   pendingSelection,
-  compactTouchLayout = false,
   onLineSelection,
   onAddAnnotation,
   onAddFileComment,
@@ -259,7 +252,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
   activeSearchMatch = null,
   onCodeNavRequest,
 }) => {
-  const pierreTheme = usePierreTheme({ fontFamily, fontSize, compactTouchLayout });
+  const pierreTheme = usePierreTheme({ fontFamily, fontSize });
   // Worker-pool highlighting: keep the pool's theme pair in step with the UI
   // theme. (No mount gating here — the single-file panel renders one diff;
   // a main-thread fallback frame at startup is invisible.)
@@ -633,12 +626,8 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
       toolbarHostRef.current?.handleLineSelectionEnd(null);
       return;
     }
-    if (resolveLineSelectionBehavior({ source, compactTouchLayout }) === 'preserve-selection') {
-      onLineSelection(range);
-      return;
-    }
     toolbarHostRef.current?.handleLineSelectionEnd(range);
-  }, [compactTouchLayout, onLineSelection]);
+  }, []);
 
   // Compact touch keeps a dragged range on screen instead of opening the
   // composer, so `pendingSelection` is non-null for the whole time the reviewer
@@ -811,7 +800,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
               mergedAnnotations={mergedAnnotations}
               pendingSelection={pendingSelection ?? selectedAnnotationRange}
               onLineSelectionEnd={handlePierreLineSelectionEnd}
-              onLineSelectionChange={compactTouchLayout ? handlePierreLineSelectionChange : undefined}
               onGutterUtilityClick={handleGutterUtilityClick}
               renderAnnotation={renderAnnotation}
               onTokenClick={handleTokenClick}

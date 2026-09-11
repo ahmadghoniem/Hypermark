@@ -29,7 +29,7 @@ export type DecisionTone = 'success' | 'primary' | 'neutral' | 'destructive';
 
 export interface DecisionPrimary {
   id: 'primary';
-  label: string;            // 'No notes' | 'Approve' | 'Send Feedback' | 'Post Comments'
+  label: string;            // 'All good' | 'Approve' | 'Send Feedback' | 'Post Comments'
   shortLabel?: string;      // 'Send' — the lg-breakpoint label
   mobileLabel?: string;     // compact/touch row label
   title: string;            // tooltip / aria description
@@ -100,7 +100,7 @@ export interface DecisionSpecInput {
   /**
    * M1 ruling: the session's feedback was already delivered through the
    * annotate agent terminal, which is why `hasFeedback` reads false. The
-   * empty-flip state keeps its `No notes` primary AND its transport (the outer
+   * empty-flip state keeps its `All good` primary AND its transport (the outer
    * agent's stdout consumer may never have seen the terminal delivery, so
    * the full payload still posts) — only the copy changes, because "reviewed
    * with no feedback" would be a lie in that state. Copy is free prose,
@@ -138,7 +138,7 @@ function annotationNoun(count: number): string {
 /**
  * The empty state: no feedback to send, the primary is the positive finish.
  * `approvalFlow` (gate annotate, or review) makes it `Approve`; plain annotate
- * gets `No notes`.
+ * gets `All good`.
  */
 function buildEmptySpec(input: DecisionSpecInput, approvalFlow: boolean): DecisionSpec {
   // "Approve with a note…" carries a note on the approve channel, which four
@@ -213,8 +213,8 @@ function buildEmptySpec(input: DecisionSpecInput, approvalFlow: boolean): Decisi
         }
       : {
           id: 'primary',
-          // Frozen copy (maintainer-approved): 'No notes'.
-          label: 'No notes',
+          // Frozen copy (maintainer-approved): 'All good'.
+          label: 'All good',
           // M1 ruling: in the agent-terminal delivered state the transport is
           // unchanged (the full payload still posts, because the outer agent
           // on stdout may never have seen the terminal delivery), so the
@@ -222,7 +222,7 @@ function buildEmptySpec(input: DecisionSpecInput, approvalFlow: boolean): Decisi
           title: input.feedbackDelivered
             ? 'Finish: sends the session record (feedback already shared in the terminal)'
             : 'Finish: records that you reviewed with no feedback',
-          // Maintainer ruling (post-demo): No notes without a gate is a positive
+          // Maintainer ruling (post-demo): All good without a gate is a positive
           // finish, NOT an approval — no success tone, no check icon, so it
           // can never be mistaken for the gate/review Approve.
           tone: 'neutral',

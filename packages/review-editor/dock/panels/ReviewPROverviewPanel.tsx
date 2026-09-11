@@ -91,7 +91,6 @@ export const ReviewPROverviewPanel: React.FC<IDockviewPanelProps> = () => {
     prContextError,
     fetchPRContext,
     platformUser,
-    isCompactTouchLayout,
   } = useReviewState();
   const [compactSection, setCompactSection] = useState<'summary' | 'comments'>('summary');
 
@@ -146,11 +145,11 @@ export const ReviewPROverviewPanel: React.FC<IDockviewPanelProps> = () => {
           </a>
         }
       >
-        {isCompactTouchLayout ? 'PR details' : 'Summary'}
+        {'Summary'}
       </RegionHeader>
       <OverlayScrollArea className="flex-1 min-h-0 scroll-fade">
-        <PRSummaryTab context={prContext} metadata={prMetadata} compact={isCompactTouchLayout} />
-        <div className={`${isCompactTouchLayout ? 'px-4' : 'px-8'} pb-4 max-w-2xl`}>
+        <PRSummaryTab context={prContext} metadata={prMetadata} />
+        <div className={`${'px-8'} pb-4 max-w-2xl`}>
           <ChecksDisclosure context={prContext} />
         </div>
       </OverlayScrollArea>
@@ -159,7 +158,7 @@ export const ReviewPROverviewPanel: React.FC<IDockviewPanelProps> = () => {
 
   const commentsRegion = discussionCount > 0 ? (
     <section className="flex-1 min-w-0 min-h-0 flex flex-col rounded-lg border border-border/30 bg-surface-0 shadow-[0_1px_3px_rgba(0,0,0,0.06)] overflow-hidden">
-      {!isCompactTouchLayout && <RegionHeader>Comments</RegionHeader>}
+      {<RegionHeader>Comments</RegionHeader>}
       <div className="flex-1 min-h-0">
         <PRCommentsTab context={prContext} platformUser={platformUser} />
       </div>
@@ -167,41 +166,13 @@ export const ReviewPROverviewPanel: React.FC<IDockviewPanelProps> = () => {
   ) : null;
 
   return (
-    <div className={`h-full flex flex-col gap-2 ${isCompactTouchLayout ? 'p-2' : 'p-3'} bg-background`}>
+    <div className={`h-full flex flex-col gap-2 ${'p-3'} bg-background`}>
       {prContextError && (
         <div className="shrink-0 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning-foreground">
           PR context may be stale: {prContextError}
         </div>
       )}
-      {isCompactTouchLayout ? (
-        <>
-          {commentsRegion && (
-            <div className="shrink-0 grid grid-cols-2 rounded-lg bg-muted p-0.5" aria-label="PR overview section">
-              <button
-                data-pn-touch-target
-                type="button"
-                onClick={() => setCompactSection('summary')}
-                aria-pressed={compactSection === 'summary'}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium ${compactSection === 'summary' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}
-              >
-                Summary
-              </button>
-              <button
-                data-pn-touch-target
-                type="button"
-                onClick={() => setCompactSection('comments')}
-                aria-pressed={compactSection === 'comments'}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium ${compactSection === 'comments' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}
-              >
-                Comments · {discussionCount}
-              </button>
-            </div>
-          )}
-          <div className="flex-1 min-h-0 flex">
-            {compactSection === 'comments' && commentsRegion ? commentsRegion : summaryRegion}
-          </div>
-        </>
-      ) : (
+      {(
         <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-3">
           {summaryRegion}
           {commentsRegion}

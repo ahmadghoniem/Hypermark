@@ -19,7 +19,6 @@
     "./feedback-templates": "./feedback-templates.ts",
     "./goal-setup": "./goal-setup.ts",
     "./html-anchor": "./html-anchor.ts",
-    "./open-in-apps": "./open-in-apps.ts",
     "./project": "./project.ts",
     "./source-save": "./source-save.ts",
     "./token-hover": "./token-hover.ts",

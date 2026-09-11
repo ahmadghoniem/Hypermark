@@ -82,7 +82,6 @@ import {
   fetchPRArtifactDocument,
   PRArtifactDocumentError,
 } from "@hypermark/shared/pr-artifact-document";
-import { handleOpenInApps, handleOpenIn } from "./open-in";
 import type { LocalWorkspaceReview, WorkspaceDiffType } from "./review-workspace";
 import { handleCodeNavResolve, extractChangedFiles } from "./code-nav";
 
@@ -673,16 +672,6 @@ export async function startReviewServer(
     }
     return options.agentCwd ?? resolveVcsCwd(currentDiffType as DiffType, gitContext?.cwd) ?? process.cwd();
   };
-  // Strict launch root for /api/open-in: in PR pool mode only the PR's own
-  // checkout is acceptable — never the launch-repo fallback resolveAgentCwd
-  // uses, which would open a file from the wrong tree. Returns [] until the
-  // checkout is ready so resolveOpenInTarget rejects (the button is gated off
-  // then anyway); non-PR resolves to the working tree as usual.
-  const resolveOpenInRoot = (): string | string[] => {
-    if (workspace) return workspace.root;
-    if (options.worktreePool && prMetadata) return resolvePRLocalCwd() ?? [];
-    return options.agentCwd ?? resolveVcsCwd(currentDiffType as DiffType, gitContext?.cwd) ?? process.cwd();
-  };
   // Async sibling of resolveAgentCwd: waits for the current PR's checkout
   // warmup instead of falling back while it is still being created.
   const resolveAgentCwdReady = async (): Promise<string> => {
@@ -1129,26 +1118,6 @@ export async function startReviewServer(
               callFlow: await getCallFlowAdvert(servedDiffType as DiffType),
               serverConfig: getServerConfig(gitUser),
             });
-          }
-
-          // API: List apps the host can open a file in (Open in App control).
-          if (url.pathname === "/api/open-in/apps" && req.method === "GET") {
-            return handleOpenInApps();
-          }
-
-          // API: Open a file in an app. Resolves the repo-relative `git diff`
-          // path against the VCS root server-side (resolveAgentCwd folds in
-          // workspace.root, the PR local checkout, resolveVcsCwd(gitContext.cwd),
-          // and process.cwd()) — not the client `base`, which is wrong when
-          // review runs from a subdirectory — then containment-checks it.
-          if (url.pathname === "/api/open-in" && req.method === "POST") {
-            if (isGitButlerCommittedView()) {
-              return Response.json(
-                { error: "Open in app is unavailable for committed GitButler views" },
-                { status: 400 },
-              );
-            }
-            return handleOpenIn(req, { resolveRoot: resolveOpenInRoot });
           }
 
           // API: cheap staleness probe — has the underlying VCS state changed

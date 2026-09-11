@@ -14,8 +14,6 @@ import {
 } from "@hypermark/ui/utils/decisionSpec";
 import {
   buildReviewApprovalBody,
-  compactPrimaryIdForReviewDecision,
-  compactRowIdForReviewDecisionItem,
   createGeneralReviewComment,
   readApprovalNotesAdvert,
   resolvePlatformDecisionAction,
@@ -189,21 +187,6 @@ describe("review decision handler exhaustiveness", () => {
     });
     expect(body.feedback).toBe("ship it\n\n# Code Review Feedback\n");
     expect(body.annotations).toHaveLength(1);
-  });
-
-  // Guards the compact surface: row ids double as React keys, so a collision
-  // hides a decision row on touch — the silent-data-loss class the #1436
-  // review flagged (E16-review).
-  test("compact row ids are unique per spec and never collide with the primary row", () => {
-    for (const input of [...reviewInputs(), ...platformInputs()]) {
-      const spec = buildDecisionSpec(input);
-      const ids = [
-        compactPrimaryIdForReviewDecision(spec.primary),
-        ...spec.items.map((item) => compactRowIdForReviewDecisionItem(item.id)),
-      ];
-      for (const id of ids) expect(id).toBeDefined();
-      expect(new Set(ids).size).toBe(ids.length);
-    }
   });
 
   // PR6 (§3.4) exhaustiveness, same failure class as the agent sweep: an id

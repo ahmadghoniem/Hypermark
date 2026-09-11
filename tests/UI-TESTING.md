@@ -338,12 +338,12 @@ Build failed with X errors
 ## Decision Control Manual Checklist
 
 Not CI. Every annotate surface and the review header share one adaptive split control
-(`DecisionControl`): a positive primary (`No notes` / `Approve` / `Send Feedback · n`) plus a caret
+(`DecisionControl`): a positive primary (`All good` / `Approve` / `Send Feedback · n`) plus a caret
 menu with the alternate decisions and the in-place note composer. Run each flow in both states —
 zero annotations and n annotations — on desktop AND on a real phone (touch has no `Mod+Enter`,
 which is the regression class this control exists to fix).
 
-1. **Annotate, single file** (`hypermark annotate notes.md`). At zero the primary reads `No notes`;
+1. **Annotate, single file** (`hypermark annotate notes.md`). At zero the primary reads `All good`;
    clicking it submits the "no feedback" record and the terminal prints it. Caret →
    `Done with a note…` opens the composer in place: `Enter` inserts a newline, `Mod+Enter`
    submits, `Escape` steps back to the menu keeping the draft. Add an annotation: the primary

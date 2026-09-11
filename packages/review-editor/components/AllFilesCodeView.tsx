@@ -28,10 +28,7 @@ import { buildCodeNavRequest } from '../utils/buildCodeNavRequest';
 import { getDiffSelection, getLineNumberFromNode, getSideFromNode } from '../utils/diffSelection';
 import { isContentConsistentWithPatch } from '../utils/patchConsistency';
 import { hashString } from '../utils/hashString';
-import {
-  resolveLineSelectionBehavior,
-  type LineSelectionSource,
-} from '../utils/lineSelectionBehavior';
+import type { LineSelectionSource } from '../utils/lineSelectionBehavior';
 import { isContentlessBinaryPatch, isOversizedReviewStubPatch } from '@hypermark/shared/diff-paths';
 import { OversizedFileNotice } from './OversizedFileNotice';
 import { ToolbarHost, type ToolbarHostHandle } from './ToolbarHost';
@@ -174,9 +171,6 @@ export interface AllFilesCodeViewProps {
   pendingSelection: SelectedLineRange | null;
   reviewBase?: string;
   reviewSnapshotId?: string;
-  /** Compact coarse-pointer shell. Adjusts custom-header chrome and Pierre's
-   * matching virtualization metric without changing desktop geometry. */
-  compactTouchLayout?: boolean;
   // Annotation / toolbar wiring (P2). Mirrors AllFilesDiffView's surface so the
   // toolbar opens against the file CodeView reports for a selection.
   onLineSelection: (range: SelectedLineRange | null) => void;
@@ -278,7 +272,7 @@ export interface AllFilesCodeViewProps {
   /**
    * Portable / read-only host: no line or
    * gutter selection, no annotation toolbar or comment popovers, no global
-   * keyboard shortcuts, no /api/file-content augmentation, no open-in
+   * keyboard shortcuts, no /api/file-content augmentation, no file-actions
    * affordance. Everything the diff LOOKS like is unchanged — this only turns
    * off surfaces that require the review server or mutate review state.
    */
@@ -441,7 +435,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   pendingSelection,
   reviewBase,
   reviewSnapshotId,
-  compactTouchLayout,
   onLineSelection,
   onAddAnnotationForFile,
   onEditAnnotation,
@@ -489,7 +482,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     fontFamily,
     fontSize,
     showFileHeader: true,
-    compactTouchLayout,
   });
   // Worker-pool highlighting: wait for the pool so the first tokenization
   // wave runs in workers (not a main-thread fallback), and keep the pool's
@@ -1677,16 +1669,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       if (range == null || item.type !== 'diff') return;
       const filePath = itemIdToFilePath.get(item.id);
       if (filePath == null) return;
-      if (resolveLineSelectionBehavior({
-        source,
-        compactTouchLayout: compactTouchLayout === true,
-      }) === 'preserve-selection') {
-        pendingToolbarRange.current = null;
-        setActiveFilePath(filePath);
-        setSelectedLines({ id: item.id, range });
-        onLineSelection(range);
-        return;
-      }
       routeSelectionToToolbar(range, filePath);
     },
   );
@@ -2068,7 +2050,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     return (
       <div className="flex flex-col">
         <FileHeader
-        compactTouchLayout={compactTouchLayout}
         readOnly={readOnly}
         filePath={filePath}
         patch={file.patch}
@@ -2097,8 +2078,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
               e.stopPropagation();
               toggleItemCollapsed(item.id);
             }}
-            data-pn-touch-target={compactTouchLayout || undefined}
-            data-pn-touch-target-icon={compactTouchLayout || undefined}
             className="flex items-center justify-center w-6 h-6 rounded hover:bg-foreground/10 transition-colors flex-shrink-0"
             title={collapsed ? 'Expand diff' : 'Collapse diff'}
           >
@@ -2199,10 +2178,9 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       // description card) so items start below it and it scrolls with them.
       layout: { gap: 0, paddingTop: 8 + leadingHeight, paddingBottom: 8 },
       itemMetrics: {
-        diffHeaderHeight: compactTouchLayout ? COMPACT_PANEL_HEADER_HEIGHT : PANEL_HEADER_HEIGHT,
+        diffHeaderHeight: PANEL_HEADER_HEIGHT,
         hunkSeparatorHeight: HUNK_SEPARATOR_HEIGHT,
-        ...(customLineHeight != null && { lineHeight: customLineHeight }),
-      },
+        ...(customLineHeight != null && { lineHeight: customLineHeight }),},
       // Opt-in safety net for the hand-maintained itemMetrics above: Pierre
       // compares its virtualization estimates against measured DOM heights and
       // warns on drift. Explicit env opt-in (VITE_PIERRE_VALIDATE_HEIGHTS=1)
@@ -2260,7 +2238,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       expandUnchanged,
       readOnly,
       customLineHeight,
-      compactTouchLayout,
       leadingHeight,
       handleLineSelectionEnd,
       handleGutterUtilityClick,

@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { SemanticFileBadge } from './SemanticFileBadge';
 import { CallFlowFileBadge } from './CallFlowFileBadge';
-import { OpenInAppButton } from '@hypermark/ui/components/OpenInAppButton';
+import { FileActionsButton } from '@hypermark/ui/components/FileActionsButton';
 import { useReviewStateOptional } from '../dock/ReviewStateContext';
 import type { DiffFileStatus } from '../types';
 
 interface FileHeaderProps {
-  /** Read-only host: no open-in affordance (it probes the review server). */
+  /** Read-only host: no file-actions affordance. */
   readOnly?: boolean;
   filePath: string;
   patch: string;
@@ -29,8 +29,6 @@ interface FileHeaderProps {
   fileCommentButtonRef?: (el: HTMLButtonElement | null) => void;
   collapseToggle?: React.ReactNode;
   onCollapseToggle?: () => void;
-  /** Compact coarse-pointer treatment. Defaults to the enclosing review state. */
-  compactTouchLayout?: boolean;
   /** Marked `linguist-generated` in `.gitattributes` (#1317) — renders a
    * "generated" tag next to the +/- counts. Collapse seeding is the owner's
    * concern; this prop is display-only. */
@@ -107,13 +105,11 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
   fileCommentButtonRef,
   collapseToggle,
   onCollapseToggle,
-  compactTouchLayout,
   readOnly = false,
   isGenerated = false,
 }) => {
   const [headerWidth, setHeaderWidth] = useState<number>(0);
   const state = useReviewStateOptional();
-  const isCompactTouchLayout = compactTouchLayout ?? state?.isCompactTouchLayout ?? false;
   const headerRef = useRef<HTMLDivElement>(null);
   const fileCommentRef = useRef<HTMLButtonElement>(null);
   const { directory, name } = splitFilePath(filePath);
@@ -146,18 +142,18 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
   return (
     <div
       ref={headerRef}
-      className={`flex-shrink-0 border-b border-border/50 flex items-center justify-between gap-2 transition-colors duration-150 hover:bg-muted/30 ${isCompactTouchLayout ? 'pr-3' : 'px-3'}`}
-      style={{ height: isCompactTouchLayout ? '44px' : 'var(--panel-header-h)' }}
+      className={`flex-shrink-0 border-b border-border/50 flex items-center justify-between gap-2 transition-colors duration-150 hover:bg-muted/30 ${'px-3'}`}
+      style={{ height: 'var(--panel-header-h)'}}
     >
       <div className="min-w-0 flex flex-1 items-center" onClick={onCollapseToggle} style={onCollapseToggle ? { cursor: 'pointer' } : undefined}>
         {collapseToggle}
         <span
-          className={`min-w-0 flex items-center text-xs font-semibold leading-normal whitespace-nowrap ${isCompactTouchLayout ? 'flex-1' : ''}`}
+          className={`min-w-0 flex items-center text-xs font-semibold leading-normal whitespace-nowrap ${''}`}
           title={status === 'renamed' && oldPath ? `${oldPath} → ${filePath}` : filePath}
         >
           {/* Rename: dimmed old path → new path (diffshub treatment). Dropped
               under tight widths — the icon + tooltip still carry it. */}
-          {status === 'renamed' && oldPath && !showFilenameOnly && !isCompactTouchLayout && (
+          {status === 'renamed' && oldPath && !showFilenameOnly && (
             <>
               <span className="min-w-0 overflow-hidden text-ellipsis text-muted-foreground/60">
                 {oldPath}
@@ -173,17 +169,7 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
               </svg>
             </>
           )}
-          {isCompactTouchLayout ? (
-            /* Match Diffshub's filename treatment: retain the complete path in
-             * the accessible DOM and place the ellipsis at the leading edge so
-             * the basename/extension receive the available phone width. */
-            <span
-              data-pn-compact-file-path
-              className="block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-foreground [direction:rtl]"
-            >
-              <bdi>{filePath}</bdi>
-            </span>
-          ) : (
+          {(
             <>
               {!showFilenameOnly && directory && (
                 <span className="min-w-0 overflow-hidden text-ellipsis text-muted-foreground/70">
@@ -215,7 +201,7 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
           </span>
         )}
       </div>
-      {!isCompactTouchLayout && <div className={`flex flex-shrink-0 items-center pl-2 ${isCompact ? 'gap-1' : 'gap-2'}`}>
+      {<div className={`flex flex-shrink-0 items-center pl-2 ${isCompact ? 'gap-1' : 'gap-2'}`}>
         {showViewedControl && onToggleViewed && (
           <button
             onClick={onToggleViewed}
@@ -256,21 +242,8 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
         )}
         <CallFlowFileBadge filePath={filePath} oldPath={oldPath} />
         <SemanticFileBadge filePath={filePath} />
-        {/* File actions: open in app (when the live checkout matches this
-            snapshot), copy path, copy file diff. Copy actions remain when a
-            PR has no checkout or a committed GitButler layer is selected. */}
-        {/* Icon-only in the header (the picked app's name shows in the dropdown),
-            matching the plan/annotate side. */}
-        {!readOnly && <OpenInAppButton
-          filePath={filePath}
-          base={state?.agentCwd ?? null}
-          diffText={patch}
-          canOpen={
-            state?.canUseLiveWorkspaceActions !== false &&
-            !(state?.prMetadata && !state?.agentCwd) &&
-            status !== 'deleted'
-          }
-        />}
+        {/* File actions: copy path, copy file diff. */}
+        {!readOnly && <FileActionsButton filePath={filePath} diffText={patch} />}
       </div>}
     </div>
   );

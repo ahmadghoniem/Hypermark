@@ -6,7 +6,6 @@ import {
   exportReviewFeedback,
   formatCallFlowAnnotationTargets,
 } from '../utils/exportFeedback';
-import { useCompactTouchLayout } from '@hypermark/ui/hooks/useIsMobile';
 import {
   Dialog,
   DialogContent,
@@ -270,7 +269,6 @@ export function ReviewSubmissionDialog({
   mrLabel,
   platformLabel,
 }: ReviewSubmissionDialogProps) {
-  const isCompactTouchLayout = useCompactTouchLayout();
   const generalCommentRef = useRef<HTMLTextAreaElement>(null);
   if (!isOpen) return null;
 
@@ -293,7 +291,7 @@ export function ReviewSubmissionDialog({
     >
       <DialogContent
         hideClose
-        initialFocus={isCompactTouchLayout || bodyLocked ? false : () => generalCommentRef.current}
+        initialFocus={bodyLocked ? false : () => generalCommentRef.current}
         backdropClassName="bg-background/80 backdrop-blur-sm"
         className="!max-h-full max-w-md rounded-xl bg-card p-0 text-foreground shadow-2xl transition-none"
       >

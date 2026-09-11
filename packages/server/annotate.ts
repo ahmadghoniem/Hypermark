@@ -48,7 +48,6 @@ import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
 import { existsSync } from "fs";
 import { dirname, resolve as resolvePath } from "path";
 import { isWithinDirectory } from "@hypermark/shared/html-assets-node";
-import { handleOpenInApps, handleOpenIn } from "./open-in";
 import { createHtmlAssetRegistry } from "./html-assets";
 import { createBunAgentTerminalBridge } from "./agent-terminal";
 import { startLiveAppProxy, type LiveAppProxy } from "./live-proxy";
@@ -819,30 +818,6 @@ export async function startAnnotateServer(
 
           if (url.pathname === "/api/share-html" && req.method === "GET") {
             return loadShareHtml(url.searchParams.get("path"));
-          }
-
-          // API: List apps the host can open a file in (Open in App control).
-          if (url.pathname === "/api/open-in/apps" && req.method === "GET") {
-            // A URL annotation source has no local file to open — mirror Pi and
-            // report unavailable so the UI hides the control entirely.
-            if (/^https?:\/\//i.test(filePath)) {
-              return Response.json({ available: false, apps: [] });
-            }
-            return handleOpenInApps();
-          }
-
-          // API: Open the annotated file in an app. A URL source has no local
-          // file; any other open is confined to the same reference roots
-          // /api/doc serves from, so any linked doc the user can view can also
-          // be opened — and nothing outside the session can.
-          if (url.pathname === "/api/open-in" && req.method === "POST") {
-            if (/^https?:\/\//i.test(filePath)) {
-              return Response.json(
-                { ok: false, error: "Open in app is unavailable for this source" },
-                { status: 400 },
-              );
-            }
-            return handleOpenIn(req, { resolveRoot: getReferenceRootPaths });
           }
 
           // API: Update user config (write-back to ~/.hypermark/config.json)

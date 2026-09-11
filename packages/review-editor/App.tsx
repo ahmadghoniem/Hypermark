@@ -16,8 +16,6 @@ import { buildDecisionSpec, type DecisionActionId, type DecisionMenuItem } from 
 import { DecisionControl, DecisionNoteDialog, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import {
   buildReviewApprovalBody,
-  compactPrimaryIdForReviewDecision,
-  compactRowIdForReviewDecisionItem,
   createGeneralReviewComment,
   readApprovalNotesAdvert,
   resolvePlatformDecisionAction,
@@ -83,12 +81,7 @@ import { buildReviewAgentInstructions } from '@hypermark/ui/utils/reviewAgentIns
 import { ResizeHandle } from '@hypermark/ui/components/ResizeHandle';
 import { IconContext, Tree } from '@phosphor-icons/react';
 import { DockviewReact, type DockviewReadyEvent, type DockviewApi } from 'dockview-react';
-import {
-  ExportIcon,
-  ReviewHeaderMenu,
-  type CompactReviewAction,
-  type CompactReviewDestination,
-} from './components/ReviewHeaderMenu';
+import { ExportIcon, ReviewHeaderMenu } from './components/ReviewHeaderMenu';
 import { ThemeModeButton } from '@hypermark/ui/components/ThemeModeButton';
 import { SettingsIcon } from '@hypermark/ui/components/icons/headerIcons';
 import { ReviewSidebar } from './components/ReviewSidebar';
@@ -244,48 +237,7 @@ type ReviewHistoryAction =
 
 const reviewItemId = <T extends { id: string }>(item: T): string => item.id;
 
-interface CompactReviewOverlayProps {
-  title: string;
-  onClose: () => void;
-  context?: React.ReactNode;
-  children: React.ReactNode;
-}
-
-/** Full-stage transient surface used for review navigation on touch layouts. */
-function CompactReviewOverlay({ title, onClose, context, children }: CompactReviewOverlayProps) {
-  return (
-    <section
-      data-pn-review-transient-overlay
-      role="dialog"
-      aria-label={title}
-      className="absolute inset-0 z-40 flex min-w-0 flex-col bg-background"
-    >
-      <div className="flex min-h-[52px] shrink-0 items-center gap-2 border-b border-border/50 px-3">
-        <h2 className="shrink-0 text-sm font-semibold text-foreground">{title}</h2>
-        {context && <div className="min-w-0 flex-1 overflow-hidden">{context}</div>}
-        <button
-          data-pn-touch-target
-          data-pn-touch-target-icon
-          autoFocus
-          type="button"
-          onClick={onClose}
-          className="ml-auto inline-flex shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-          aria-label={`Close ${title.toLowerCase()}`}
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div className="flex min-h-0 flex-1 [&>aside]:!w-full [&>aside]:!border-r-0">
-        {children}
-      </div>
-    </section>
-  );
-}
-
 interface ReviewNavigatorContainerProps {
-  isCompactTouchLayout: boolean;
   onClose: () => void;
   context?: React.ReactNode;
   resizeHandle: React.ReactNode;
@@ -293,20 +245,11 @@ interface ReviewNavigatorContainerProps {
 }
 
 function ReviewNavigatorContainer({
-  isCompactTouchLayout,
   onClose,
   context,
   resizeHandle,
   children,
 }: ReviewNavigatorContainerProps) {
-  if (isCompactTouchLayout) {
-    return (
-      <CompactReviewOverlay title="Review navigation" onClose={onClose} context={context}>
-        {children}
-      </CompactReviewOverlay>
-    );
-  }
-
   return (
     <div className="contents group/sidebar">
       {children}
@@ -317,7 +260,6 @@ function ReviewNavigatorContainer({
 
 const ReviewAppInner: React.FC = () => {
   useViewportEnvironment();
-  const isCompactTouchLayout = useCompactTouchLayout();
   const { resolvedMode } = useTheme();
   const [diffData, setDiffData] = useState<DiffData | null>(null);
   const [files, setFiles] = useState<DiffFile[]>([]);
@@ -391,15 +333,10 @@ const ReviewAppInner: React.FC = () => {
   const [showNoAnnotationsDialog, setShowNoAnnotationsDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const diffStyle = useConfigValue('diffStyle');
-  const [compactDiffStyle, setCompactDiffStyle] = useState<'split' | 'unified'>('unified');
-  const effectiveDiffStyle = isCompactTouchLayout ? compactDiffStyle : diffStyle;
+  const effectiveDiffStyle = diffStyle;
   const handleDiffStyleChange = useCallback((style: 'split' | 'unified') => {
-    if (isCompactTouchLayout) {
-      setCompactDiffStyle(style);
-      return;
-    }
     configStore.set('diffStyle', style);
-  }, [isCompactTouchLayout]);
+  }, []);
   const diffOverflow = useConfigValue('diffOverflow');
   const diffIndicators = useConfigValue('diffIndicators');
   const diffLineDiffType = useConfigValue('diffLineDiffType');
@@ -434,27 +371,10 @@ const ReviewAppInner: React.FC = () => {
 
   const reviewSidebar = useSidebar<ReviewSidebarTab>(false, 'annotations');
   const [isFileTreeOpen, setIsFileTreeOpen] = useState(true);
-  const [isCompactNavigatorOpen, setIsCompactNavigatorOpen] = useState(false);
-  const isNavigatorOpen = isCompactTouchLayout ? isCompactNavigatorOpen : isFileTreeOpen;
-  const isCompactTransientSurfaceOpen = isCompactTouchLayout && (isCompactNavigatorOpen || reviewSidebar.isOpen);
+  const isNavigatorOpen = isFileTreeOpen;
   const toggleNavigator = useCallback(() => {
-    if (isCompactTouchLayout) {
-      setIsCompactNavigatorOpen((isOpen) => {
-        if (!isOpen) reviewSidebar.close();
-        return !isOpen;
-      });
-      return;
-    }
     setIsFileTreeOpen((isOpen) => !isOpen);
-  }, [isCompactTouchLayout, reviewSidebar.close]);
-
-  useEffect(() => {
-    if (isCompactTouchLayout && reviewSidebar.isOpen) {
-      setIsCompactNavigatorOpen(false);
-    } else if (!isCompactTouchLayout) {
-      setIsCompactNavigatorOpen(false);
-    }
-  }, [isCompactTouchLayout, reviewSidebar.isOpen]);
+  }, []);
   // Guided Review screen takeover — file tree + center dock hidden (dock stays
   // mounted, just CSS-hidden; see the dock wrapper below), right sidebar untouched.
 
@@ -1278,12 +1198,10 @@ const ReviewAppInner: React.FC = () => {
   useEffect(() => {
     if (!dockApi || !needsInitialDiffPanel.current || files.length === 0) return;
     needsInitialDiffPanel.current = false;
-    // Wide PR reviews keep the combined overview landing. Compact-touch
-    // sessions arrive directly in the review artifact; PR context remains one
-    // tap away in the transient navigator.
-    if (prMetadata && !isCompactTouchLayout) openPROverviewPanel();
+    // PR reviews land on the combined overview; everything else on all files.
+    if (prMetadata) openPROverviewPanel();
     else openAllFilesPanel();
-  }, [dockApi, files, isCompactTouchLayout, openAllFilesPanel, openPROverviewPanel, prMetadata]);
+  }, [dockApi, files, openAllFilesPanel, openPROverviewPanel, prMetadata]);
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -1299,8 +1217,7 @@ const ReviewAppInner: React.FC = () => {
       ) {
         if (hasSearchableFiles && !showCommitsPanel) {
           e.preventDefault();
-          if (isCompactTouchLayout) setIsCompactNavigatorOpen(true);
-          else setIsFileTreeOpen(true);
+          setIsFileTreeOpen(true);
           openSearch();
         }
         return;
@@ -1324,10 +1241,6 @@ const ReviewAppInner: React.FC = () => {
           setShowDestinationMenu(false);
         } else if (showExportModal) {
           setShowExportModal(false);
-        } else if (isCompactTouchLayout && isCompactNavigatorOpen) {
-          setIsCompactNavigatorOpen(false);
-        } else if (isCompactTouchLayout && reviewSidebar.isOpen) {
-          reviewSidebar.close();
         } else if (isSearchOpen) {
           if (searchQuery) {
             clearSearch();
@@ -1354,7 +1267,7 @@ const ReviewAppInner: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showExportModal, showDestinationMenu, isSearchOpen, searchQuery, searchMatches, isSearchPending, openSearch, stepSearchMatch, clearSearch, closeSearch, hasSearchableFiles, showCommitsPanel, reviewSidebar.isOpen, reviewSidebar.open, reviewSidebar.close, isFileTreeOpen, isCompactTouchLayout, isCompactNavigatorOpen, toggleNavigator]);
+  }, [showExportModal, showDestinationMenu, isSearchOpen, searchQuery, searchMatches, isSearchPending, openSearch, stepSearchMatch, clearSearch, closeSearch, hasSearchableFiles, showCommitsPanel, reviewSidebar.isOpen, reviewSidebar.open, reviewSidebar.close, isFileTreeOpen, toggleNavigator]);
 
 
   // Load diff content - try API first, fall back to demo
@@ -2677,7 +2590,6 @@ const ReviewAppInner: React.FC = () => {
     focusedFilePath: files[activeFileIndex]?.path ?? null,
     diffStyle: effectiveDiffStyle,
     onDiffStyleChange: handleDiffStyleChange,
-    isCompactTouchLayout,
     diffOverflow,
     diffIndicators,
     lineDiffType: diffLineDiffType,
@@ -2779,7 +2691,7 @@ const ReviewAppInner: React.FC = () => {
     codeNavIsLoading: codeNav.isLoading,
     codeNavActiveSymbol: codeNav.activeSymbol,
   }), [
-    files, diffData?.rawPatch, activeFileIndex, effectiveDiffStyle, handleDiffStyleChange, isCompactTouchLayout, diffOverflow, diffIndicators,
+    files, diffData?.rawPatch, activeFileIndex, effectiveDiffStyle, handleDiffStyleChange, diffOverflow, diffIndicators,
     diffLineDiffType, diffShowLineNumbers, diffShowBackground,
     diffExpandUnchanged, diffFontFamily, diffFontSize, activeDiffBase, committedBase, feedbackDiffContext, prReviewScopeLabel, prDiffScope, agentCwd, canUseLiveWorkspaceActions,
     allAnnotations, externalAnnotations,
@@ -3437,25 +3349,6 @@ const ReviewAppInner: React.FC = () => {
     handleCopyFeedback
   ]);
 
-  const completeNavigatorSelection = (action: () => unknown): void => {
-    action();
-    if (isCompactTouchLayout) setIsCompactNavigatorOpen(false);
-  };
-
-  const compactNavigatorContext = isCompactTouchLayout && prMetadata ? (
-    <StackedPRLabel
-      metadata={prMetadata}
-      mrNumberLabel={mrNumberLabel}
-      stackInfo={prStackInfo}
-      stackTree={prStackTree}
-      scope={prDiffScope}
-      scopeOptions={prDiffScopeOptions}
-      isSwitchingScope={isSwitchingPRScope}
-      onSelectScope={(scope) => completeNavigatorSelection(() => handlePRDiffScopeSelect(scope))}
-      onNavigatePR={(url) => completeNavigatorSelection(() => handlePRSwitch(url))}
-    />
-  ) : undefined;
-
   const fileTreeResizeHandle = (
     <ResizeHandle
       {...fileTreeResize.handleProps}
@@ -3467,87 +3360,7 @@ const ReviewAppInner: React.FC = () => {
     />
   );
 
-  const compactReviewDestination: CompactReviewDestination | undefined =
-    isCompactTouchLayout && origin && prMetadata
-      ? {
-          value: reviewDestination,
-          platform: prMetadata.platform,
-          platformLabel,
-          onChange: (destination) => {
-            if (showDestSpotlight) dismissDestSpotlight();
-            setReviewDestination(destination);
-            storage.setItem('hypermark-review-dest', destination);
-            setPlatformActionError(null);
-          },
-        }
-      : undefined;
-
-  const compactActionBusy = isSendingFeedback || isApproving || isExiting || isPlatformActioning;
   const showsLocalVsRemoteEmptyState = activeDiffBase === 'local-vs-remote';
-  const compactReviewActions: CompactReviewAction[] = !isCompactTouchLayout
-    ? []
-    : !origin
-      ? [{
-          id: 'copy',
-          label: copyFeedback === 'Feedback copied!' ? 'Feedback copied' : 'Copy feedback',
-          onSelect: handleCopyFeedback,
-        }]
-      : platformMode
-        ? [
-            // Platform mode (PR6): spec-driven rows, same generation as agent
-            // mode below — never a composer or confirm (every row opens the
-            // submission dialog); muted approve rows disable with the
-            // self-approval reason as their subtitle.
-            {
-              id: compactPrimaryIdForReviewDecision(platformDecisionSpec.primary),
-              label: platformDecisionSpec.primary.mobileLabel ?? platformDecisionSpec.primary.label,
-              subtitle: platformDecisionSpec.primary.muted
-                ? platformDecisionSpec.primary.title
-                : totalAnnotationCount > 0
-                  ? `${totalAnnotationCount} annotation${totalAnnotationCount === 1 ? '' : 's'}`
-                  : undefined,
-              onSelect: () => runPlatformDecisionAction('primary'),
-              disabled: compactActionBusy || !!platformDecisionSpec.primary.muted,
-            },
-            ...platformDecisionSpec.items.map((item) => ({
-              id: compactRowIdForReviewDecisionItem(item.id),
-              label: item.label,
-              subtitle: item.subtitle,
-              onSelect: () => runPlatformDecisionAction(item.id),
-              disabled: compactActionBusy || !!item.muted,
-            })),
-          ]
-        : [
-            // Agent mode: spec-driven decision rows — a visible positive
-            // decision exists in EVERY compact state (touch has no Mod+Enter;
-            // spec §3.2 / E16-review).
-            {
-              id: compactPrimaryIdForReviewDecision(reviewDecisionSpec.primary),
-              label: reviewDecisionSpec.primary.mobileLabel ?? reviewDecisionSpec.primary.label,
-              subtitle: totalAnnotationCount > 0
-                ? `${totalAnnotationCount} annotation${totalAnnotationCount === 1 ? '' : 's'}`
-                : undefined,
-              onSelect: submitPrimaryDecision,
-              disabled: compactActionBusy,
-            },
-            ...reviewDecisionSpec.items.map((item) => ({
-              id: compactRowIdForReviewDecisionItem(item.id),
-              label: item.label,
-              subtitle: item.subtitle,
-              onSelect: () => {
-                if (item.composer) {
-                  setCompactDecisionComposer(item.id);
-                  return;
-                }
-                if (item.confirm) {
-                  setCompactDecisionConfirm(item.id);
-                  return;
-                }
-                runReviewDecisionAction(item.id);
-              },
-              disabled: compactActionBusy,
-            })),
-          ];
 
   if (isLoading) {
     return (
@@ -3566,24 +3379,14 @@ const ReviewAppInner: React.FC = () => {
       {isSwitchingPRScope && <PRSwitchOverlay />}
       <div
         className="pn-app-viewport flex flex-col bg-background overflow-hidden"
-        data-pn-compact-touch-layout={isCompactTouchLayout ? 'true' : undefined}
-        data-pn-compact-review-shell={isCompactTouchLayout || undefined}
         data-pn-browser-canvas="background"
       >
         {/* Header */}
-        <header className={isCompactTouchLayout
-          ? 'min-h-[52px] grid grid-cols-[44px_minmax(0,1fr)_44px] items-center border-b border-border/50 bg-card/50 backdrop-blur-xl z-50'
-          : 'py-1 flex flex-col min-[480px]:flex-row items-stretch min-[480px]:items-center min-[480px]:justify-between gap-1 min-[480px]:gap-0 px-2 lg:px-4 border-b border-border/50 bg-card/50 backdrop-blur-xl z-50'
-        }>
-          <div className={isCompactTouchLayout
-            ? 'contents'
-            : 'min-w-0 flex flex-1 items-center gap-2 lg:gap-3'
-          }>
+        <header className={'py-1 flex flex-col min-[480px]:flex-row items-stretch min-[480px]:items-center min-[480px]:justify-between gap-1 min-[480px]:gap-0 px-2 lg:px-4 border-b border-border/50 bg-card/50 backdrop-blur-xl z-50'}>
+          <div className={'min-w-0 flex flex-1 items-center gap-2 lg:gap-3'}>
             {shouldShowFileTree && (
               <>
                 <button
-                  data-pn-touch-target={isCompactTouchLayout || undefined}
-                  data-pn-touch-target-icon={isCompactTouchLayout || undefined}
                   onClick={toggleNavigator}
                   className={`h-7 w-7 flex shrink-0 items-center justify-center rounded-md transition-all focus-visible:outline-none ${
                     isNavigatorOpen
@@ -3599,12 +3402,8 @@ const ReviewAppInner: React.FC = () => {
                 <div className="w-px h-5 bg-border/50 mx-1 hidden lg:block" />
               </>
             )}
-            {isCompactTouchLayout && !shouldShowFileTree && <span aria-hidden />}
             {prMetadata ? (
-              <div className={isCompactTouchLayout
-                ? 'min-w-0 flex items-center justify-center overflow-hidden px-1'
-                : 'min-w-0 flex flex-1 items-center gap-2 lg:gap-3 overflow-hidden'
-              }>
+              <div className={'min-w-0 flex flex-1 items-center gap-2 lg:gap-3 overflow-hidden'}>
                 <span
                   className="min-w-0 max-w-[160px] xl:max-w-[240px] text-xs text-muted-foreground/60 hidden sm:inline-flex items-center gap-1"
                   title={displayRepo}
@@ -3619,8 +3418,7 @@ const ReviewAppInner: React.FC = () => {
                   onSelect={handlePRSwitch}
                   disabled={isSwitchingPRScope}
                 />
-                {!isCompactTouchLayout && (
-                  <StackedPRLabel
+                                  <StackedPRLabel
                     metadata={prMetadata}
                     mrNumberLabel={mrNumberLabel}
                     stackInfo={prStackInfo}
@@ -3631,13 +3429,10 @@ const ReviewAppInner: React.FC = () => {
                     onSelectScope={handlePRDiffScopeSelect}
                     onNavigatePR={handlePRSwitch}
                   />
-                )}
+                
               </div>
             ) : repoInfo ? (
-              <div className={isCompactTouchLayout
-                ? 'min-w-0 flex items-center justify-center overflow-hidden px-1'
-                : 'min-w-0 flex flex-1 items-center gap-2 lg:gap-3 overflow-hidden'
-              }>
+              <div className={'min-w-0 flex flex-1 items-center gap-2 lg:gap-3 overflow-hidden'}>
                 {repoInfo.branch && (
                   <span
                     className="text-xs font-mono text-foreground truncate"
@@ -3655,27 +3450,19 @@ const ReviewAppInner: React.FC = () => {
                 </span>
               </div>
             ) : (
-              <span className={isCompactTouchLayout
-                ? 'min-w-0 text-center text-xs text-muted-foreground/70'
-                : 'text-xs text-muted-foreground/70'
-              }>Review</span>
+              <span className={'text-xs text-muted-foreground/70'}>Review</span>
             )}
           </div>
 
-          <div className={isCompactTouchLayout
-            ? 'contents'
-            : 'min-w-0 w-full min-[480px]:w-auto flex flex-wrap min-[480px]:flex-nowrap shrink-0 items-center justify-end gap-1 lg:gap-2'
-          }>
+          <div className={'min-w-0 w-full min-[480px]:w-auto flex flex-wrap min-[480px]:flex-nowrap shrink-0 items-center justify-end gap-1 lg:gap-2'}>
             {/* Split/Unified toggle + diff options moved to the dock tab strip
                 (rightHeaderActionsComponent → ReviewDockRightActions). */}
-            {!isCompactTouchLayout && (origin ? (
+            origin ? (
               <>
                 {/* Destination dropdown (PR mode only) */}
                 {prMetadata && (
                   <div className="relative">
                     <button
-                      data-pn-touch-target={isCompactTouchLayout || undefined}
-                      data-pn-touch-target-icon={isCompactTouchLayout || undefined}
                       ref={destToggleRef}
                       onClick={() => {
                         // Opening the menu is discovery — the spotlight has
@@ -3701,7 +3488,6 @@ const ReviewAppInner: React.FC = () => {
                         <div className="fixed inset-0 z-40" onClick={() => setShowDestinationMenu(false)} />
                         <div className="absolute right-0 top-full mt-1 py-1 bg-popover border border-border rounded-lg shadow-xl z-50 min-w-[160px]">
                           <button
-                            data-pn-touch-target={isCompactTouchLayout || undefined}
                             onClick={() => {
                               setReviewDestination('platform');
                               storage.setItem('hypermark-review-dest', 'platform');
@@ -3718,7 +3504,6 @@ const ReviewAppInner: React.FC = () => {
                             <div className="text-muted-foreground/60">Post to {mrLabel}</div>
                           </button>
                           <button
-                            data-pn-touch-target={isCompactTouchLayout || undefined}
                             onClick={() => {
                               setReviewDestination('agent');
                               storage.setItem('hypermark-review-dest', 'agent');
@@ -3734,7 +3519,7 @@ const ReviewAppInner: React.FC = () => {
                             <div className="font-medium">Agent</div>
                             <div className="text-muted-foreground/60">Send to session</div>
                           </button>
-                          {!isCompactTouchLayout && <div className="border-t border-border/50 mt-1 pt-1 px-3 py-1">
+                          {<div className="border-t border-border/50 mt-1 pt-1 px-3 py-1">
                             <span className="text-[10px] text-muted-foreground/40">
                               <kbd className="inline-flex items-center justify-center min-w-[18px] h-[16px] px-1 rounded bg-muted border border-border/60 border-b-[2px] text-[9px] font-mono leading-none text-foreground/60 shadow-sm">{altKey}</kbd>
                               <kbd className="inline-flex items-center justify-center min-w-[18px] h-[16px] px-1 rounded bg-muted border border-border/60 border-b-[2px] text-[9px] font-mono leading-none text-foreground/60 shadow-sm ml-0.5">{altKey}</kbd>
@@ -3748,7 +3533,7 @@ const ReviewAppInner: React.FC = () => {
                 )}
 
                 {/* GitHub error message */}
-                {!isCompactTouchLayout && platformActionError && (
+                {platformActionError && (
                   <div
                     className="text-xs text-destructive px-2 py-1 bg-destructive/10 rounded border border-destructive/20 max-w-[200px] truncate"
                     title={platformActionError}
@@ -3757,7 +3542,7 @@ const ReviewAppInner: React.FC = () => {
                   </div>
                 )}
 
-                {!isCompactTouchLayout && reviewMode === 'workspace' && diffError && (
+                {reviewMode === 'workspace' && diffError && (
                   <div
                     className="text-xs text-amber-700 dark:text-amber-300 px-2 py-1 bg-amber-500/10 rounded border border-amber-500/25 max-w-[240px] truncate"
                     title={diffError}
@@ -3773,7 +3558,7 @@ const ReviewAppInner: React.FC = () => {
                     request is non-blocking on purpose: it can park for
                     minutes behind a cold clone, and the reviewer keeps
                     working with the partial diff meanwhile. */}
-                {!isCompactTouchLayout && prPatchIncomplete && prDiffScope === 'layer' && !isSwitchingPRScope && (
+                {prPatchIncomplete && prDiffScope === 'layer' && !isSwitchingPRScope && (
                   <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300 px-2 py-1 bg-amber-500/10 rounded border border-amber-500/25">
                     <span className="hidden md:inline" title={`${prMetadata?.platform === 'gitlab' ? 'GitLab' : 'GitHub'} omitted diff content for some files because this PR is too large`}>
                       Partial diff
@@ -3810,7 +3595,7 @@ const ReviewAppInner: React.FC = () => {
                 {/* Diff staleness notice — files changed since this snapshot
                     was computed (agent editing mid-review). Non-blocking; the
                     user refreshes when ready. */}
-                {!isCompactTouchLayout && diffFreshness.isStale && !isLoadingDiff && (
+                {diffFreshness.isStale && !isLoadingDiff && (
                   <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300 px-2 py-1 bg-amber-500/10 rounded border border-amber-500/25">
                     <span className="hidden md:inline">Diff out of date</span>
                     <span className="md:hidden">Stale</span>
@@ -3836,7 +3621,7 @@ const ReviewAppInner: React.FC = () => {
                     remote, so the "since main" comparison is against stale
                     GitHub state. Fetch catches the tracking ref up and
                     recomputes the diff in place. */}
-                {!isCompactTouchLayout && baseBehindRemote && !prMetadata && !isLoadingDiff && (
+                {baseBehindRemote && !prMetadata && !isLoadingDiff && (
                   <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300 px-2 py-1 bg-amber-500/10 rounded border border-amber-500/25">
                     <span className="hidden md:inline">Baseline is behind GitHub</span>
                     <span className="md:hidden">Base behind</span>
@@ -3889,8 +3674,6 @@ const ReviewAppInner: React.FC = () => {
               </>
             ) : (
               <button
-                data-pn-touch-target={isCompactTouchLayout || undefined}
-                data-pn-touch-target-icon={isCompactTouchLayout || undefined}
                 onClick={handleCopyFeedback}
                 className="px-2 py-1 md:px-2.5 rounded-md text-xs font-medium bg-muted hover:bg-muted/80 transition-colors flex items-center gap-1.5"
                 title="Copy feedback for LLM"
@@ -3911,15 +3694,12 @@ const ReviewAppInner: React.FC = () => {
                   </>
                 )}
               </button>
-            ))}
+            )
 
             <div className="w-px h-5 bg-border/50 mx-1 hidden lg:block" />
 
             {/* Sidebar tab toggles */}
-            {!isCompactTouchLayout && (
-              <button
-                data-pn-touch-target={isCompactTouchLayout || undefined}
-                data-pn-touch-target-icon={isCompactTouchLayout || undefined}
+                          <button
                 onClick={() => reviewSidebar.toggleTab('annotations')}
                 className={`relative p-1.5 rounded-md transition-all ${
                   reviewSidebar.isOpen && reviewSidebar.activeTab === 'annotations'
@@ -3937,7 +3717,7 @@ const ReviewAppInner: React.FC = () => {
                   </span>
                 )}
               </button>
-            )}
+            
             <div className="w-px h-5 bg-border/50 mx-1 hidden lg:block" />
 
             {/* Export, theme and Settings are header buttons rather than
@@ -3945,8 +3725,7 @@ const ReviewAppInner: React.FC = () => {
                 most, and a menu hop for each was the only reason to open
                 Options at all. Compact touch keeps them in the menu — its
                 header's trailing region is one 44px target wide. */}
-            {!isCompactTouchLayout && (
-              <>
+                          <>
                 <button
                   type="button"
                   onClick={() => setShowExportModal(true)}
@@ -3969,7 +3748,7 @@ const ReviewAppInner: React.FC = () => {
                   <SettingsIcon className="w-4 h-4" />
                 </button>
               </>
-            )}
+            
 
             <ReviewHeaderMenu
               onOpenSettings={() => setOpenSettingsMenu(true)}
@@ -3978,63 +3757,19 @@ const ReviewAppInner: React.FC = () => {
               onCopyAgentInstructions={handleCopyAgentInstructions}
               onToggleFileTree={toggleNavigator}
               onToggleSidebar={() => reviewSidebar.isOpen ? reviewSidebar.close() : reviewSidebar.open()}
-              onOpenAnnotations={isCompactTouchLayout ? () => reviewSidebar.open('annotations') : undefined}
-              compactDestination={compactReviewDestination}
-              compactActions={compactReviewActions}
               isFileTreeOpen={isNavigatorOpen}
               isSidebarOpen={reviewSidebar.isOpen}
-              compactTouchLayout={isCompactTouchLayout}
               agentInstructionsEnabled={!!origin}
             />
           </div>
         </header>
 
-        {isCompactTouchLayout && (
-          platformActionError ? (
-            <div className="shrink-0 border-b border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              {platformActionError}
-            </div>
-          ) : reviewMode === 'workspace' && diffError ? (
-            <div className="shrink-0 border-b border-warning/20 bg-warning/10 px-3 py-2 text-xs text-warning">
-              {files.length > 0 ? 'Some workspace changes could not be loaded.' : 'Workspace changes could not be loaded.'}
-            </div>
-          ) : prPatchIncomplete && prDiffScope === 'layer' && !isSwitchingPRScope ? (
-            <div className="shrink-0 flex items-center justify-between gap-3 border-b border-warning/20 bg-warning/10 px-3 py-1.5 text-xs text-warning">
-              <span className="min-w-0 truncate">The platform omitted part of this diff.</span>
-              {prPatchUpgradeAvailable && (
-                <button
-                  data-pn-touch-target
-                  type="button"
-                  onClick={handleLoadFullDiff}
-                  disabled={isLoadingFullDiff}
-                  className="shrink-0 font-medium underline underline-offset-2 disabled:opacity-60"
-                >
-                  {isLoadingFullDiff ? 'Loading…' : 'Load full diff'}
-                </button>
-              )}
-            </div>
-          ) : diffFreshness.isStale && !isLoadingDiff ? (
-            <div className="shrink-0 flex items-center justify-between gap-3 border-b border-warning/20 bg-warning/10 px-3 py-1.5 text-xs text-warning">
-              <span>Diff out of date</span>
-              <button data-pn-touch-target type="button" onClick={handleRefreshStaleDiff} className="font-medium underline underline-offset-2">Refresh</button>
-            </div>
-          ) : baseBehindRemote && !prMetadata && !isLoadingDiff ? (
-            <div className="shrink-0 flex items-center justify-between gap-3 border-b border-warning/20 bg-warning/10 px-3 py-1.5 text-xs text-warning">
-              <span>Baseline is behind the remote.</span>
-              <button data-pn-touch-target type="button" onClick={handleFetchBase} disabled={isFetchingBase} className="font-medium underline underline-offset-2 disabled:opacity-60">
-                {isFetchingBase ? 'Fetching…' : 'Fetch'}
-              </button>
-            </div>
-          ) : null
-        )}
 
         {/* Main content */}
         <div className={`relative flex-1 flex overflow-hidden ${isResizing ? 'select-none' : ''}`}>
           {shouldShowFileTree && isNavigatorOpen && sectionsAvailable && panelView === 'sections' && (
             <ReviewNavigatorContainer
-              isCompactTouchLayout={isCompactTouchLayout}
-              onClose={() => setIsCompactNavigatorOpen(false)}
-              context={compactNavigatorContext}
+              onClose={() => setIsFileTreeOpen(false)}
               resizeHandle={fileTreeResizeHandle}
             >
               <SectionsPanel
@@ -4043,8 +3778,8 @@ const ReviewAppInner: React.FC = () => {
                 width={fileTreeResize.width}
                 activeFileIndex={isAllFilesActive || isSemanticDiffActive || isCallFlowActive || isPROverviewActive ? -1 : activeFileIndex}
                 scrollHighlightIndex={isAllFilesActive && allFilesVisibleFile ? files.findIndex(f => f.path === allFilesVisibleFile) : undefined}
-                onSelectFile={(index) => completeNavigatorSelection(() => handleFilePreview(index))}
-                onDoubleClickFile={(index) => completeNavigatorSelection(() => handleFilePinned(index))}
+                onSelectFile={(index) => handleFilePreview(index)}
+                onDoubleClickFile={(index) => handleFilePinned(index)}
                 enableKeyboardNav={!showExportModal && hasSearchableFiles}
                 annotations={allAnnotations}
                 viewedFiles={viewedFiles}
@@ -4060,17 +3795,17 @@ const ReviewAppInner: React.FC = () => {
                 availableBranches={gitContext?.availableBranches}
                 selectedBase={selectedBase ?? undefined}
                 detectedBase={gitContext?.defaultBranch || gitContext?.compareTarget?.fallback}
-                onSelectBase={(base) => completeNavigatorSelection(() => handleBaseSelect(base))}
+                onSelectBase={(base) => handleBaseSelect(base)}
                 compareTarget={gitContext?.compareTarget}
                 recentCommits={gitContext?.recentCommits}
                 onSelectPanelView={handlePanelViewSelect}
                 showCommitsOption={commitsCapable}
-                onSelectAllFiles={() => completeNavigatorSelection(openAllFilesPanel)}
+                onSelectAllFiles={() => openAllFilesPanel()}
                 isAllFilesActive={isAllFilesActive}
-                onSelectSemanticDiff={() => completeNavigatorSelection(openSemanticDiffPanel)}
+                onSelectSemanticDiff={() => openSemanticDiffPanel()}
                 isSemanticDiffActive={isSemanticDiffActive}
                 semanticDiffAvailable={semanticDiffUsable}
-                onSelectCallFlow={() => completeNavigatorSelection(openCallFlowPanel)}
+                onSelectCallFlow={() => openCallFlowPanel()}
                 isCallFlowActive={isCallFlowActive}
                 callFlowEnabled={callFlowEnabled}
                 callFlowCount={callFlowAnalysis.status === 'ready' ? callFlowAnalysis.data.summary.changedNodes : undefined}
@@ -4090,15 +3825,14 @@ const ReviewAppInner: React.FC = () => {
                 searchGroups={hasSearchableFiles ? searchGroups : []}
                 searchMatches={hasSearchableFiles ? searchMatches : []}
                 activeSearchMatchId={hasSearchableFiles ? activeSearchMatchId : null}
-                onSelectSearchMatch={hasSearchableFiles ? (match) => completeNavigatorSelection(() => handleSelectSearchMatch(match)) : undefined}
+                onSelectSearchMatch={hasSearchableFiles ? (match) => handleSelectSearchMatch(match) : undefined}
                 onStepSearchMatch={hasSearchableFiles ? stepSearchMatch : undefined}
               />
             </ReviewNavigatorContainer>
           )}
           {shouldShowFileTree && isNavigatorOpen && showCommitsPanel && (
             <ReviewNavigatorContainer
-              isCompactTouchLayout={isCompactTouchLayout}
-              onClose={() => setIsCompactNavigatorOpen(false)}
+              onClose={() => setIsFileTreeOpen(false)}
               resizeHandle={fileTreeResizeHandle}
             >
               <CommitsPanel
@@ -4110,7 +3844,7 @@ const ReviewAppInner: React.FC = () => {
                 isLoadingMore={commitsView.isLoadingMore}
                 error={commitsView.error}
                 activeCommitSha={activeCommitSha}
-                onSelectCommit={(sha) => completeNavigatorSelection(() => handleSelectCommit(sha))}
+                onSelectCommit={(sha) => handleSelectCommit(sha)}
                 onShowMore={commitsView.showMore}
                 onRetry={commitsView.refresh}
                 onSelectPanelView={handlePanelViewSelect}
@@ -4120,35 +3854,33 @@ const ReviewAppInner: React.FC = () => {
           )}
           {shouldShowFileTree && isNavigatorOpen && !(sectionsAvailable && panelView === 'sections') && !showCommitsPanel && (
             <ReviewNavigatorContainer
-              isCompactTouchLayout={isCompactTouchLayout}
-              onClose={() => setIsCompactNavigatorOpen(false)}
-              context={compactNavigatorContext}
+              onClose={() => setIsFileTreeOpen(false)}
               resizeHandle={fileTreeResizeHandle}
             >
               <FileTree
                 files={files}
                 activeFileIndex={activeFileIndex}
-                onSelectPROverview={() => completeNavigatorSelection(openPROverviewPanel)}
+                onSelectPROverview={() => openPROverviewPanel()}
                 isPROverviewActive={isPROverviewActive}
                 prOverviewNumber={prMetadata ? mrNumberLabel : undefined}
                 prOverviewTitle={prMetadata?.title}
-                onSelectPRArtifacts={prMetadata ? () => completeNavigatorSelection(openPRArtifactsPanel) : undefined}
+                onSelectPRArtifacts={prMetadata ? () => openPRArtifactsPanel() : undefined}
                 isPRArtifactsActive={isPRArtifactsActive}
                 prArtifactCount={prMetadata ? prArtifacts.length : undefined}
-                onSelectSemanticDiff={() => completeNavigatorSelection(openSemanticDiffPanel)}
+                onSelectSemanticDiff={() => openSemanticDiffPanel()}
                 isSemanticDiffActive={isSemanticDiffActive}
                 semanticDiffAvailable={semanticDiffUsable}
-                onSelectCallFlow={() => completeNavigatorSelection(openCallFlowPanel)}
+                onSelectCallFlow={() => openCallFlowPanel()}
                 isCallFlowActive={isCallFlowActive}
                 callFlowEnabled={callFlowEnabled}
                 callFlowCount={callFlowAnalysis.status === 'ready' ? callFlowAnalysis.data.summary.changedNodes : undefined}
                 callFlowLoading={callFlowNavLoading}
                 callFlowError={callFlowNavError}
-                onSelectAllFiles={() => completeNavigatorSelection(openAllFilesPanel)}
+                onSelectAllFiles={() => openAllFilesPanel()}
                 isAllFilesActive={isAllFilesActive}
                 scrollHighlightIndex={isAllFilesActive && allFilesVisibleFile ? files.findIndex(f => f.path === allFilesVisibleFile) : undefined}
-                onSelectFile={(index) => completeNavigatorSelection(() => handleFilePreview(index))}
-                onDoubleClickFile={(index) => completeNavigatorSelection(() => handleFilePinned(index))}
+                onSelectFile={(index) => handleFilePreview(index)}
+                onDoubleClickFile={(index) => handleFilePinned(index)}
                 annotations={allAnnotations}
                 viewedFiles={viewedFiles}
                 onToggleViewed={handleToggleViewed}
@@ -4159,17 +3891,17 @@ const ReviewAppInner: React.FC = () => {
                 enableKeyboardNav={!showExportModal && hasSearchableFiles}
                 diffOptions={reviewMode === 'workspace' ? (workspaceDiffOptions ?? undefined) : gitContext?.diffOptions}
                 activeDiffType={activeDiffBase}
-                onSelectDiff={(diffType) => completeNavigatorSelection(() => handleDiffSwitch(diffType))}
+                onSelectDiff={(diffType) => handleDiffSwitch(diffType)}
                 isLoadingDiff={isLoadingDiff}
                 width={fileTreeResize.width}
                 worktrees={gitContext?.worktrees}
                 activeWorktreePath={activeWorktreePath}
-                onSelectWorktree={(path) => completeNavigatorSelection(() => handleWorktreeSwitch(path))}
+                onSelectWorktree={(path) => handleWorktreeSwitch(path)}
                 currentBranch={gitContext?.currentBranch}
                 availableBranches={prMetadata ? undefined : gitContext?.availableBranches}
                 selectedBase={prMetadata ? undefined : selectedBase ?? undefined}
                 detectedBase={prMetadata ? undefined : gitContext?.defaultBranch || gitContext?.compareTarget?.fallback}
-                onSelectBase={prMetadata ? undefined : (base) => completeNavigatorSelection(() => handleBaseSelect(base))}
+                onSelectBase={prMetadata ? undefined : (base) => handleBaseSelect(base)}
                 compareTarget={gitContext?.compareTarget}
                 recentCommits={prMetadata ? undefined : gitContext?.recentCommits}
                 jjEvologs={prMetadata ? undefined : gitContext?.jjEvologs}
@@ -4191,7 +3923,7 @@ const ReviewAppInner: React.FC = () => {
                 searchGroups={hasSearchableFiles ? searchGroups : []}
                 searchMatches={hasSearchableFiles ? searchMatches : []}
                 activeSearchMatchId={hasSearchableFiles ? activeSearchMatchId : null}
-                onSelectSearchMatch={hasSearchableFiles ? (match) => completeNavigatorSelection(() => handleSelectSearchMatch(match)) : undefined}
+                onSelectSearchMatch={hasSearchableFiles ? (match) => handleSelectSearchMatch(match) : undefined}
                 onStepSearchMatch={hasSearchableFiles ? stepSearchMatch : undefined}
                 repoRoot={prMetadata ? null : (activeWorktreePath ?? agentCwd ?? gitContext?.cwd ?? null)}
                 panelView={effectivePanelView}
@@ -4207,8 +3939,6 @@ const ReviewAppInner: React.FC = () => {
           {/* Center dock area */}
           <div
             className="flex-1 min-w-0 overflow-hidden relative"
-            inert={isCompactTransientSurfaceOpen || undefined}
-            aria-hidden={isCompactTransientSurfaceOpen || undefined}
           >
             {/* Commit navigation veil: while a commit switch is in flight (or
                 the view was just entered and HEAD auto-select hasn't landed),
@@ -4314,13 +4044,12 @@ const ReviewAppInner: React.FC = () => {
           {/* Resize Handle + Sidebar */}
           {reviewSidebar.isOpen && (
             <div className="contents group/sidebar">
-              {!isCompactTouchLayout && (
-                <ResizeHandle {...panelResize.handleProps} className="z-10" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => reviewSidebar.close()} />
-              )}
+                              <ResizeHandle {...panelResize.handleProps} className="z-10" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => reviewSidebar.close()} />
+              
               <ReviewSidebar
                 isOpen
                 onClose={reviewSidebar.close}
-                presentation={isCompactTouchLayout ? 'overlay' : 'panel'}
+                presentation={'panel'}
                 activeTab={reviewSidebar.activeTab}
                 annotations={allAnnotations}
                 files={files}
@@ -4330,7 +4059,7 @@ const ReviewAppInner: React.FC = () => {
                 onDeleteAnnotation={handleDeleteAnnotation}
                 onAddGeneralComment={handleAddGeneralComment}
                 feedbackMarkdown={feedbackMarkdown}
-                width={isCompactTouchLayout ? undefined : panelResize.width}
+                width={panelResize.width}
                 descriptionAnnotations={visibleDescriptionAnnotations}
                 selectedDescriptionAnnotationId={selectedDescriptionAnnotationId}
                 onSelectDescriptionAnnotation={handleSelectDescriptionAnnotation}
@@ -4401,7 +4130,6 @@ const ReviewAppInner: React.FC = () => {
             // The compact shell renders a session-only unified diff, so the
             // Display tab hides the Split/Unified control rather than writing
             // the desktop preference from a phone.
-            isCompactTouchLayout={isCompactTouchLayout}
           />
         </div>
 
@@ -4504,12 +4232,11 @@ const ReviewAppInner: React.FC = () => {
             first-run review setup: it only mounts once that is not showing,
             so it never stacks with it. PR mode only — the switcher it points
             at doesn't render otherwise. */}
-        {showDestSpotlight && !isCompactTouchLayout && !!prMetadata && !isLoading && !showReviewSetup && (
+        {showDestSpotlight && !!prMetadata && !isLoading && !showReviewSetup && (
           <DestinationSpotlight
             targetRef={destToggleRef}
             platformLabel={platformLabel}
             mrLabel={mrLabel}
-            compactTouchLayout={isCompactTouchLayout}
             onDismiss={dismissDestSpotlight}
           />
         )}
@@ -4588,8 +4315,7 @@ const ReviewAppInner: React.FC = () => {
     </ReviewStateProvider>
     </TooltipProvider>
     </ThemeProvider>
-  );
-};
+  );};
 
 // Spec 03 step 5: Phosphor's default weight ("regular") is the app-wide
 // default for every icon rendered under this root. Set once here instead of

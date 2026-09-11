@@ -13,30 +13,11 @@ import { GitHubIcon } from '@hypermark/ui/components/GitHubIcon';
 import { GitLabIcon } from '@hypermark/ui/components/GitLabIcon';
 import { modKey } from '@hypermark/ui/utils/platform';
 
-export interface CompactReviewDestination {
-  value: 'agent' | 'platform';
-  platform: 'github' | 'gitlab';
-  platformLabel: string;
-  onChange: (value: 'agent' | 'platform') => void;
-}
-
-export interface CompactReviewAction {
-  id: 'exit' | 'feedback' | 'approve' | 'copy' | 'note';
-  label: string;
-  subtitle?: string;
-  onSelect: () => void;
-  disabled?: boolean;
-}
-
 /**
  * On the wide header, Settings, the theme picker and Export are buttons beside
  * this trigger rather than rows inside it; what is left here is the
  * review-shaped rest — layout toggles and the agent-instructions copy. The
  * version / release-notes block is gone with the update check.
- *
- * The compact touch shell is the exception: its header is a three-region grid
- * whose trailing region is one 44px target wide, so those three stay rows
- * there, alongside its stand-ins for the wide header's review actions.
  */
 interface ReviewHeaderMenuProps {
   onOpenSettings: () => void;
@@ -46,11 +27,8 @@ interface ReviewHeaderMenuProps {
   onToggleFileTree: () => void;
   onToggleSidebar: () => void;
   onOpenAnnotations?: () => void;
-  compactDestination?: CompactReviewDestination;
-  compactActions?: CompactReviewAction[];
   isFileTreeOpen: boolean;
   isSidebarOpen: boolean;
-  compactTouchLayout?: boolean;
   agentInstructionsEnabled: boolean;
 }
 
@@ -62,11 +40,8 @@ export const ReviewHeaderMenu: React.FC<ReviewHeaderMenuProps> = ({
   onToggleFileTree,
   onToggleSidebar,
   onOpenAnnotations,
-  compactDestination,
-  compactActions = [],
   isFileTreeOpen,
   isSidebarOpen,
-  compactTouchLayout = false,
   agentInstructionsEnabled,
 }) => {
   const { mode, setMode } = useTheme();
@@ -74,10 +49,7 @@ export const ReviewHeaderMenu: React.FC<ReviewHeaderMenuProps> = ({
   return (
     <ActionMenu
       panelWidth="wide"
-      panelClassName={compactTouchLayout
-        ? 'absolute top-full right-0 mt-1 w-[min(18rem,calc(100vw-1rem))] max-h-[calc(var(--pn-viewport-height,100vh)-4.5rem-var(--pn-safe-top)-var(--pn-safe-bottom))] overflow-y-auto rounded-lg border border-border bg-popover py-1 shadow-xl z-[70]'
-        : undefined
-      }
+      panelClassName={undefined}
       renderTrigger={({ isOpen, toggleMenu }) => (
         <button
           data-pn-touch-target
@@ -99,104 +71,7 @@ export const ReviewHeaderMenu: React.FC<ReviewHeaderMenuProps> = ({
     >
       {({ closeMenu }) => (
         <>
-          {compactTouchLayout && (compactDestination || compactActions.length > 0) && (
-            <>
-              <div className="px-3 py-2 space-y-2">
-                <ActionMenuSectionLabel>Review</ActionMenuSectionLabel>
-                {compactDestination && (
-                  <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted/50 p-0.5" aria-label="Review destination">
-                    {(['agent', 'platform'] as const).map((destination) => {
-                      const selected = compactDestination.value === destination;
-                      const label = destination === 'agent' ? 'Agent' : compactDestination.platformLabel;
-                      return (
-                        <button
-                          data-pn-touch-target
-                          type="button"
-                          key={destination}
-                          aria-pressed={selected}
-                          onClick={() => compactDestination.onChange(destination)}
-                          className={`flex min-w-0 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
-                            selected
-                              ? 'bg-background text-foreground shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          {destination === 'platform'
-                            ? compactDestination.platform === 'gitlab'
-                              ? <GitLabIcon className="w-3.5 h-3.5" />
-                              : <GitHubIcon className="w-3.5 h-3.5" />
-                            : <AgentDestinationIcon />
-                          }
-                          <span className="truncate">{label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-              {compactActions.map((action) => (
-                <ActionMenuItem
-                  key={action.id}
-                  onClick={() => {
-                    closeMenu();
-                    action.onSelect();
-                  }}
-                  disabled={action.disabled}
-                  icon={<CompactReviewActionIcon kind={action.id} />}
-                  label={action.label}
-                  subtitle={action.subtitle}
-                />
-              ))}
-              <ActionMenuDivider />
-            </>
-          )}
 
-          {compactTouchLayout && (
-            <>
-              <div className="px-3 py-2 space-y-1.5">
-                <ActionMenuSectionLabel>Theme</ActionMenuSectionLabel>
-                <div className="flex items-center gap-1 rounded-lg bg-muted/50 p-0.5">
-                  {THEME_MODES.map(({ id, label, Icon }) => (
-                    <button
-                      data-pn-touch-target
-                      key={id}
-                      onClick={() => {
-                        closeMenu();
-                        setMode(id);
-                      }}
-                      className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
-                        mode === id
-                          ? 'bg-background text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      <Icon />
-                      <span>{label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <ActionMenuDivider />
-
-              <ActionMenuItem
-                onClick={() => {
-                  closeMenu();
-                  onOpenSettings();
-                }}
-                icon={<SettingsIcon />}
-                label="Settings"
-              />
-              <ActionMenuItem
-                onClick={() => {
-                  closeMenu();
-                  onOpenExport();
-                }}
-                icon={<ExportIcon />}
-                label="Export"
-              />
-            </>
-          )}
 
           {onOpenReviewSetup && (
             <ActionMenuItem
@@ -248,14 +123,10 @@ export const ReviewHeaderMenu: React.FC<ReviewHeaderMenuProps> = ({
               onToggleFileTree();
             }}
             icon={<FileTreeMenuIcon />}
-            label={compactTouchLayout
-              ? (isFileTreeOpen ? 'Close review navigation' : 'Open review navigation')
-              : (isFileTreeOpen ? 'Hide File Tree' : 'Show File Tree')
-            }
-            badge={compactTouchLayout ? undefined : <KbdHint keys={[modKey, 'B']} />}
+            label={(isFileTreeOpen ? 'Hide File Tree' : 'Show File Tree')}
+            badge={<KbdHint keys={[modKey, 'B']} />}
           />
-          {!compactTouchLayout && (
-            <ActionMenuItem
+                      <ActionMenuItem
               onClick={() => {
                 closeMenu();
                 onToggleSidebar();
@@ -264,7 +135,7 @@ export const ReviewHeaderMenu: React.FC<ReviewHeaderMenuProps> = ({
               label={isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar'}
               badge={<KbdHint keys={[modKey, '.']} />}
             />
-          )}
+          
         </>
       )}
     </ActionMenu>
@@ -320,21 +191,3 @@ const AgentDestinationIcon = () => (
   </svg>
 );
 
-const CompactReviewActionIcon: React.FC<{ kind: CompactReviewAction['id'] }> = ({ kind }) => {
-  if (kind === 'approve') {
-    return (
-      <svg className="w-3.5 h-3.5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-      </svg>
-    );
-  }
-  if (kind === 'feedback' || kind === 'note') {
-    return (
-      <svg className="w-3.5 h-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-4 4v-4z" />
-      </svg>
-    );
-  }
-  if (kind === 'copy') return <ExportIcon />;
-  return <CloseIcon />;
-};

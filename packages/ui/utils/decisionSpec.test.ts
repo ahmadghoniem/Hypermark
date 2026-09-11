@@ -24,12 +24,12 @@ function itemIds(spec: DecisionSpec): string[] {
 describe('buildDecisionSpec state matrix', () => {
   // Guards the model itself: each row of the spec's state table produces the
   // expected primary and the expected ordered menu.
-  it('annotate, no feedback, no gate → No notes + the single Send a note composer', () => {
+  it('annotate, no feedback, no gate → All good + the single Send a note composer', () => {
     const spec = buildDecisionSpec({
       app: 'annotate', gate: false, count: 0, hasFeedback: false, approvalNotesSupported: false,
     });
-    expect(spec.primary.label).toBe('No notes'); // frozen copy, maintainer-approved
-    // Maintainer ruling (post-demo): No notes without a gate is NOT an approval —
+    expect(spec.primary.label).toBe('All good'); // frozen copy, maintainer-approved
+    // Maintainer ruling (post-demo): All good without a gate is NOT an approval —
     // it must never wear the success tone or check icon Approve wears.
     expect(spec.primary.tone).toBe('neutral');
     expect(spec.primary.icon).toBeUndefined();
@@ -89,10 +89,10 @@ describe('buildDecisionSpec state matrix', () => {
     expect(itemIds(gateNoCap)).toEqual(['note-with-feedback', 'close-session']);
   });
 
-  // M1 ruling fact-guard: in the agent-terminal delivered state the No notes
+  // M1 ruling fact-guard: in the agent-terminal delivered state the All good
   // transport still posts the FULL payload, so the copy must never claim
-  // "no feedback" — while the primary label itself stays the frozen 'No notes'.
-  it('feedbackDelivered keeps the No notes primary but drops the "no feedback" claim', () => {
+  // "no feedback" — while the primary label itself stays the frozen 'All good'.
+  it('feedbackDelivered keeps the All good primary but drops the "no feedback" claim', () => {
     const base = {
       app: 'annotate' as const, gate: false, count: 0,
       hasFeedback: false, approvalNotesSupported: false,
@@ -100,7 +100,7 @@ describe('buildDecisionSpec state matrix', () => {
     const plain = buildDecisionSpec(base);
     const delivered = buildDecisionSpec({ ...base, feedbackDelivered: true });
 
-    expect(delivered.primary.label).toBe('No notes'); // frozen copy, maintainer-approved
+    expect(delivered.primary.label).toBe('All good'); // frozen copy, maintainer-approved
     expect(delivered.primary.title).not.toContain('no feedback');
     // The two states must actually differ — a regression that ignores the
     // flag would silently restore the lying tooltip.
@@ -148,7 +148,7 @@ describe('buildDecisionSpec invariants', () => {
       expect(spec.primary.id).toBe('primary');
       expect(itemIds(spec)).not.toContain('primary');
       // The header shows Send Feedback XOR a positive finish, never both.
-      const positiveLabels = ['No notes', 'Approve'];
+      const positiveLabels = ['All good', 'Approve'];
       if (spec.primary.label === 'Send Feedback') {
         expect(positiveLabels).not.toContain(spec.primary.label);
       } else {

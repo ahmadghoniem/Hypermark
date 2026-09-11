@@ -19,7 +19,6 @@ import React from 'react';
 import { PlanDiffBadge } from './plan-diff/PlanDiffBadge';
 import type { PlanDiffStats } from '../utils/planDiffEngine';
 import { hostnameOrFallback } from '@hypermark/core/project';
-import { OpenInAppButton } from './OpenInAppButton';
 import { fileName as pathFileName } from '../utils/displayPath';
 
 export interface LinkedDocBadgeInfo {
@@ -47,11 +46,6 @@ export interface DocBadgesProps {
   linkedDocInfo?: LinkedDocBadgeInfo | null;
   /** Source attribution for HTML/URL annotations (e.g. "https://..." or "index.html") */
   sourceInfo?: string;
-  /**
-   * Absolute on-disk path of the annotated source file, used by the
-   * Open-in-app control. Omitted (or an https:// URL) -> no control rendered.
-   */
-  openInAppPath?: string | null;
 }
 
 export const DocBadges: React.FC<DocBadgesProps> = ({
@@ -67,16 +61,9 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
   archiveInfo,
   linkedDocInfo,
   sourceInfo,
-  openInAppPath,
 }) => {
   const isRow = layout === 'row';
   const isHorizontal = layout !== 'column';
-  const canOpenInApp =
-    !!openInAppPath && !/^https?:\/\//i.test(openInAppPath);
-  const openInButton = canOpenInApp ? (
-    <OpenInAppButton filePath={openInAppPath} base={null} />
-  ) : null;
-
   // In row layout, only PlanDiffBadge (when it has stats to show) and
   // archiveInfo (outside linked-doc mode) actually render — everything else
   // is hidden. Check what will truly produce visible output to avoid an
@@ -84,7 +71,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
   // header comment.
   const anything = isRow
     ? (hasPreviousVersion && planDiffStats) || (archiveInfo && !linkedDocInfo)
-    : repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo || archiveInfo || sourceInfo || canOpenInApp;
+    : repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo || archiveInfo || sourceInfo;
   if (!anything) return null;
 
   // Row layout: single horizontal line. Column layout: stacked rows.
@@ -117,15 +104,8 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
               <span className="truncate">{repoInfo.branch}</span>
             </span>
           )}
-          {/* Markdown/text annotate sessions have no separate source badge, so
-              keep the open-in control attached to the repository context. */}
-          {canOpenInApp && !sourceInfo && openInButton}
         </div>
       )}
-
-      {/* Non-repository files still need an open-in entry when there is no
-          source or linked-document row to attach it to. */}
-      {!isRow && canOpenInApp && !repoInfo && !sourceInfo && !linkedDocInfo && openInButton}
 
       {sourceInfo && !linkedDocInfo && !isRow && (
         <div className="flex items-center gap-1">
@@ -137,7 +117,6 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
               ? hostnameOrFallback(sourceInfo)
               : sourceInfo}
           </span>
-          {openInButton}
         </div>
       )}
 
@@ -212,8 +191,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
             >
               {pathFileName(linkedDocInfo.filepath)}
             </span>
-            {openInButton}
-          </div>
+            </div>
         ) : (
           <div className="flex items-center gap-1.5">
             <button
@@ -244,8 +222,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
             >
               {pathFileName(linkedDocInfo.filepath)}
             </span>
-            {openInButton}
-          </div>
+            </div>
         )
       )}
     </div>

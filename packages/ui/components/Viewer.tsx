@@ -129,8 +129,6 @@ export interface ViewerProps {
   archiveInfo?: { status: 'approved' | 'denied' | 'unknown'; timestamp: string; title: string } | null;
   /** Source attribution for HTML/URL annotations (e.g. URL or filename) */
   sourceInfo?: string;
-  /** Absolute path of the annotated source file for the Open-in-app control. */
-  openInAppPath?: string | null;
   /**
    * Message picker affordance — annotate-last mode only. Shown as a button in
    * the sticky-top action bar so the user can switch to a different recent
@@ -343,7 +341,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   actionsLabelMode = 'full',
   archiveInfo,
   sourceInfo,
-  openInAppPath,
   messagePickerInfo,
   onToggleCheckbox,
   checkboxOverrides,
@@ -398,7 +395,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     ro.observe(el);
     window.addEventListener('resize', measure);
     return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
-  }, [hasViewerAnnotationHeader, repoInfo, hasPreviousVersion, showDemoBadge, linkedDocInfo, archiveInfo, sourceInfo, planDiffStats, openInAppPath]);
+  }, [hasViewerAnnotationHeader, repoInfo, hasPreviousVersion, showDemoBadge, linkedDocInfo, archiveInfo, sourceInfo, planDiffStats]);
 
   // Per-doc heading slug map with dedup — computed once per blocks array so
   // anchor ids stay stable across re-renders and duplicate heading texts get
@@ -895,7 +892,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
         } as React.CSSProperties}
       >
         {/* Legacy badge placement remains byte-for-byte opt-out behavior. */}
-        {!viewerAnnotationHeader && (repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo || archiveInfo || sourceInfo || openInAppPath) && (
+        {!viewerAnnotationHeader && (repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo || archiveInfo || sourceInfo) && (
           <div ref={docBadgesRef} className="absolute top-3 md:top-4 left-0">
             <DocBadges
               layout="column"
@@ -910,7 +907,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               archiveInfo={archiveInfo}
               linkedDocInfo={linkedDocInfo}
               sourceInfo={sourceInfo}
-              openInAppPath={openInAppPath}
             />
           </div>
         )}
@@ -935,7 +931,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               archiveInfo,
               linkedDocInfo,
               sourceInfo,
-              openInAppPath,
             }}
             actions={documentActions}
           />

@@ -131,23 +131,7 @@ import {
 } from './hooks/usePlanDiffViewAutoExit';
 import { AppHeader } from './components/AppHeader';
 import { useHtmlRefresh, type HtmlRefreshedDocument } from './hooks/useHtmlRefresh';
-import type { CompactPlanAction } from '@hypermark/ui/components/PlanHeaderMenu';
 import { FolderAnnotationEmptyState } from './components/FolderAnnotationEmptyState';
-import { CompactAnnotationControls } from './components/CompactAnnotationControls';
-import { CompactEditControls } from './components/CompactEditControls';
-import { CompactPlanStage } from './components/CompactPlanStage';
-import {
-  CompactPlanCompletion,
-  CompactPlanReview,
-  type CompactPlanReviewAction,
-} from './components/CompactPlanReview';
-import {
-  COMPACT_PLAN_ARTIFACT,
-  openCompactPlanNavigator,
-  shouldPresentDesktopPlanPanel,
-  toggleCompactPlanNavigator,
-  type CompactPlanSurface,
-} from './compactPlanSurface';
 import {
   AnnotateAgentTerminalPanel,
   type AnnotateAgentTerminalPanelHandle,
@@ -182,7 +166,6 @@ import {
 import { buildDecisionSpec, type DecisionActionId, type DecisionMenuItem } from '@hypermark/ui/utils/decisionSpec';
 import { DecisionNoteDialog, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import {
-  compactPrimaryIdForDecision,
   compactRowIdForDecisionItem,
   resolveAnnotateDecisionAction,
 } from './annotateDecision';
@@ -302,10 +285,6 @@ const feedbackLossDescription = (annotationCount: number, hasDirectEdits: boolea
 };
 
 type SourceFileEditWarningAction = 'send-feedback' | 'approve' | 'close';
-type CompactPlanTransientSurface = Extract<
-  CompactPlanSurface,
-  { readonly type: 'annotations' | 'review' }
->['type'];
 
 interface HistorySelection {
   annotationId: string | null;
@@ -411,8 +390,6 @@ const AppInner: React.FC = () => {
   // DecisionControl; compact has no popover to morph). L2: only the item ID
   // is state — the dialog contents resolve from the LIVE spec at render, so
   // a spec update while a dialog is up can never show or confirm stale copy.
-  const [compactDecisionComposer, setCompactDecisionComposer] = useState<DecisionMenuItem['id'] | null>(null);
-  const [compactDecisionConfirm, setCompactDecisionConfirm] = useState<DecisionMenuItem['id'] | null>(null);
   // The keydown effects mount above the decision callbacks; call through a
   // render-assigned ref (same pattern as headerHandlersRef) so keyboard and
   // header share literally one submitPrimaryDecision.
@@ -421,7 +398,6 @@ const AppInner: React.FC = () => {
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<EditorMode>(getEditorMode);
   const [inputMethod, setInputMethod] = useState<InputMethod>(getInputMethod);
-  const [compactInputMethod, setCompactInputMethod] = useState<InputMethod>(getInputMethod);
   const [taterMode, setTaterMode] = useState(() => {
     const stored = storage.getItem('hypermark-tater-mode');
     return stored === 'true';
@@ -575,23 +551,9 @@ const AppInner: React.FC = () => {
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const isMobile = useIsMobile();
   const isBelowAgentTerminalBreakpoint = useIsMobile(AGENT_TERMINAL_LG_BREAKPOINT);
-  const isCompactTouchLayout = useCompactTouchLayout();
-  const usesDocumentScroll = isCompactTouchLayout;
-  const effectiveEditorMode: EditorMode = isCompactTouchLayout ? 'selection' : editorMode;
-  const effectiveInputMethod = isCompactTouchLayout ? compactInputMethod : inputMethod;
-  const [compactPlanSurface, setCompactPlanSurface] = useState<CompactPlanSurface>(COMPACT_PLAN_ARTIFACT);
-  const compactPlanSurfaceTriggerRef = useRef<HTMLElement | null>(null);
-  const [compactNavigatorTab, setCompactNavigatorTab] = useState<SidebarTab>('toc');
-  const [compactPendingFilePath, setCompactPendingFilePath] = useState<string | null>(null);
-  const compactPendingFileRef = useRef<string | null>(null);
-  const isCompactNavigatorOpen = isCompactTouchLayout && compactPlanSurface.type === 'navigator';
-  const isCompactFilesSurfaceOpen =
-    isCompactNavigatorOpen && compactPlanSurface.type === 'navigator' && compactPlanSurface.tab === 'files';
-  const isCompactContentsSurfaceOpen =
-    isCompactNavigatorOpen && compactPlanSurface.type === 'navigator' && compactPlanSurface.tab === 'toc';
-  const isCompactAnnotationsOpen = isCompactTouchLayout && compactPlanSurface.type === 'annotations';
-  const isCompactReviewOpen = isCompactTouchLayout && compactPlanSurface.type === 'review';
-  const effectivePanelOpen = shouldPresentDesktopPlanPanel(isCompactTouchLayout, isPanelOpen);
+  const effectiveEditorMode: EditorMode = editorMode;
+  const effectiveInputMethod = inputMethod;
+  const effectivePanelOpen = isPanelOpen;
 
   // Resolved high, not at render time, because `isRightPanelVisible` is what
   // decides whether the right-hand annotations surface is actually on screen,
@@ -622,19 +584,6 @@ const AppInner: React.FC = () => {
     isRightPanelOpen: effectivePanelOpen,
   });
 
-  // Compact interactions never write into the remembered desktop rail/panel
-  // state. Crossing back to a fine-pointer workspace simply removes the
-  // transient foreground surface and reveals the incumbent desktop layout.
-  useEffect(() => {
-    if (isCompactTouchLayout) return;
-    setCompactPlanSurface(COMPACT_PLAN_ARTIFACT);
-    compactPlanSurfaceTriggerRef.current = null;
-    compactPendingFileRef.current = null;
-    setCompactPendingFilePath(null);
-    // Keep the session-only compact method ready to inherit the latest
-    // explicit desktop choice without letting compact changes write it back.
-    setCompactInputMethod(inputMethod);
-  }, [inputMethod, isCompactTouchLayout]);
   const viewerRef = useRef<ViewerHandle>(null);
   const historyContext = [
     annotateSource ?? 'plan',
@@ -720,17 +669,13 @@ const AppInner: React.FC = () => {
   const mainViewportRef = useRef<HTMLElement | null>(null);
   const handleDocumentViewportReady = useCallback((next: HTMLElement | null) => {
     mainViewportRef.current = next;
-    handleViewportReady(next && usesDocumentScroll
-      ? getDocumentScrollViewport()
-      : next);
-  }, [handleViewportReady, usesDocumentScroll]);
+    handleViewportReady(next);
+  }, [handleViewportReady]);
 
   useEffect(() => {
     if (!mainViewportRef.current) return;
-    handleViewportReady(usesDocumentScroll
-      ? getDocumentScrollViewport()
-      : mainViewportRef.current);
-  }, [handleViewportReady, usesDocumentScroll]);
+    handleViewportReady(mainViewportRef.current);
+  }, [handleViewportReady]);
 
   usePrintMode();
 
@@ -811,62 +756,21 @@ const AppInner: React.FC = () => {
   }, [wideModeType, sidebar.close, sidebar.open]);
 
   const openSidebarTab = useCallback((tab: SidebarTab) => {
-    if (isCompactTouchLayout) {
-      setCompactNavigatorTab(tab);
-      setCompactPlanSurface(openCompactPlanNavigator(tab));
-      return;
-    }
     if (wideModeType !== null) {
       exitWideMode({ restore: false, sidebarTab: tab, panelOpen: false });
       return;
     }
     sidebar.open(tab);
-  }, [exitWideMode, isCompactTouchLayout, wideModeType, sidebar.open]);
+  }, [exitWideMode, wideModeType, sidebar.open]);
 
   const toggleSidebarTab = useCallback((tab: SidebarTab) => {
-    if (isCompactTouchLayout) {
-      setCompactNavigatorTab(tab);
-      setCompactPlanSurface((surface) => toggleCompactPlanNavigator(surface, tab));
-      return;
-    }
     if (wideModeType !== null) {
       exitWideMode({ restore: false, sidebarTab: tab, panelOpen: false });
       return;
     }
     sidebar.toggleTab(tab);
-  }, [exitWideMode, isCompactTouchLayout, wideModeType, sidebar.toggleTab]);
+  }, [exitWideMode, wideModeType, sidebar.toggleTab]);
 
-  const closeCompactNavigator = useCallback((restoreFocus = true) => {
-    setCompactPlanSurface(COMPACT_PLAN_ARTIFACT);
-    if (!restoreFocus) return;
-    window.setTimeout(() => {
-      document
-        .getElementById('pn-compact-plan-navigator-trigger')
-        ?.focus({ preventScroll: true });
-    }, 0);
-  }, []);
-
-  const openCompactPlanSurface = useCallback((type: CompactPlanTransientSurface) => {
-    const activeElement = document.activeElement;
-    compactPlanSurfaceTriggerRef.current = activeElement instanceof HTMLElement ? activeElement : null;
-    setCompactPlanSurface({ type });
-  }, []);
-
-  const switchCompactPlanSurface = useCallback((type: CompactPlanTransientSurface) => {
-    setCompactPlanSurface({ type });
-  }, []);
-
-  const closeCompactPlanSurface = useCallback((restoreFocus = true) => {
-    const trigger = compactPlanSurfaceTriggerRef.current;
-    compactPlanSurfaceTriggerRef.current = null;
-    setCompactPlanSurface(COMPACT_PLAN_ARTIFACT);
-    if (!restoreFocus) return;
-    window.setTimeout(() => {
-      const fallback = document.getElementById('pn-compact-plan-options-trigger');
-      const focusTarget = trigger?.isConnected ? trigger : fallback;
-      focusTarget?.focus({ preventScroll: true });
-    }, 0);
-  }, []);
 
   const hideAgentTerminal = useCallback(() => {
     setIsAgentTerminalOpen(false);
@@ -900,10 +804,6 @@ const AppInner: React.FC = () => {
   }, [hideAgentTerminal]);
 
   const handleAnnotationPanelToggle = useCallback(() => {
-    if (isCompactTouchLayout) {
-      openCompactPlanSurface('annotations');
-      return;
-    }
     if (wideModeType !== null) {
       exitWideMode({ restore: false, panelOpen: true });
       return;
@@ -915,7 +815,7 @@ const AppInner: React.FC = () => {
       return;
     }
     setIsPanelOpen(prev => !prev);
-  }, [agentTerminalPlacement, exitWideMode, isAgentTerminalVisible, isCompactTouchLayout, openCompactPlanSurface, replaceRightAgentTerminalWithPanel, wideModeType]);
+  }, [agentTerminalPlacement, exitWideMode, isAgentTerminalVisible, replaceRightAgentTerminalWithPanel, wideModeType]);
 
   /**
    * Record the durable placement. Writing through ConfigStore is the whole
@@ -1033,15 +933,11 @@ const AppInner: React.FC = () => {
   const linkedDocSidebar = useMemo(() => ({
     ...sidebar,
     // useLinkedDoc opens the relevant desktop rail after activating a file.
-    // Compact navigation is a foreground task instead: selecting a destination
-    // closes it, and the later async document activation must not resurrect it.
     open: (tab?: SidebarTab) => {
-      if (isCompactTouchLayout) return;
       openSidebarTab(tab ?? 'toc');
     },
     toggleTab: toggleSidebarTab,
   }), [
-    isCompactTouchLayout,
     openSidebarTab,
     sidebar.activeTab,
     sidebar.close,
@@ -1098,14 +994,7 @@ const AppInner: React.FC = () => {
     return currentText;
   }, [activeEditableDocument, annotateSource, editableDocuments, isEditingMarkdown]);
 
-  const handleLinkedDocumentActivated = useCallback(() => {
-    if (!compactPendingFileRef.current) return;
-    compactPendingFileRef.current = null;
-    setCompactPendingFilePath(null);
-    setCompactPlanSurface((surface) =>
-      surface.type === 'navigator' ? COMPACT_PLAN_ARTIFACT : surface,
-    );
-  }, []);
+  const handleLinkedDocumentActivated = useCallback(() => {}, []);
 
   const handleBeforeDocumentNavigation = useCallback(() => {
     annotationHistory.clear();
@@ -1183,7 +1072,7 @@ const AppInner: React.FC = () => {
     exitPlanDiffView,
   );
   usePlanDiffNavigationAutoExit(
-    sidebar.activeTab === 'toc' || isCompactContentsSurfaceOpen,
+    sidebar.activeTab === 'toc',
     exitPlanDiffView,
   );
   const warnFinishEditingFirst = useCallback((target: 'versions' | 'diff') => {
@@ -1434,7 +1323,7 @@ const AppInner: React.FC = () => {
   }, [showFilesTab]);
 
   useEffect(() => {
-    if ((sidebar.activeTab === 'files' || isCompactFilesSurfaceOpen) && showFilesTab) {
+    if (sidebar.activeTab === 'files' && showFilesTab) {
       if (fileBrowserDirs.length > 0) {
         const loaded = fileBrowser.dirs.map(d => d.path);
         const needsReload = fileBrowserDirs.some(d => !loaded.includes(d))
@@ -1442,7 +1331,7 @@ const AppInner: React.FC = () => {
         if (needsReload) fileBrowser.fetchAll(fileBrowserDirs);
       }
     }
-  }, [fileBrowserDirs, isCompactFilesSurfaceOpen, showFilesTab, sidebar.activeTab]);
+  }, [fileBrowserDirs, showFilesTab, sidebar.activeTab]);
 
   const buildCurrentMessageState = React.useCallback((): MessageAnnotationState | null => {
     if (annotateSource !== 'message' || !selectedMessageId) return null;
@@ -1691,9 +1580,7 @@ const AppInner: React.FC = () => {
     const filePaths = new Set(allAnnotationCounts.keys());
     if (filePaths.size === 0) return;
     // Open sidebar to the files tab so the flash is visible
-    if (isCompactTouchLayout
-      ? !isCompactFilesSurfaceOpen
-      : (!sidebar.isOpen || sidebar.activeTab !== 'files')) {
+    if (!sidebar.isOpen || sidebar.activeTab !== 'files') {
       openSidebarTab('files');
     }
     // Cancel any pending clear from a previous flash
@@ -1704,7 +1591,7 @@ const AppInner: React.FC = () => {
       setHighlightedFiles(filePaths);
       flashTimerRef.current = setTimeout(() => setHighlightedFiles(undefined), 1200);
     });
-  }, [allAnnotationCounts, isCompactFilesSurfaceOpen, isCompactTouchLayout, openSidebarTab, sidebar]);
+  }, [allAnnotationCounts, openSidebarTab, sidebar]);
 
   // Context-aware back label for linked doc navigation
   const backLabel = annotateSource === 'folder' ? 'file list'
@@ -2753,10 +2640,6 @@ const AppInner: React.FC = () => {
     // switch): the toolstrip is not rendered and the Alt shortcut must not
     // flip state the surface ignores or write the html cookie.
     if (liveApp || isHtmlSurface) return;
-    if (isCompactTouchLayout) {
-      setCompactInputMethod(method);
-      return;
-    }
     setInputMethod(method);
     // Surface-scoped persistence: an explicit choice made on the HTML surface
     // sticks for HTML sessions only; markdown keeps its own preference.
@@ -2773,7 +2656,6 @@ const AppInner: React.FC = () => {
     prevSurfaceRef.current = isHtmlSurface;
     const method = getInputMethod(isHtmlSurface ? 'html' : 'markdown');
     setInputMethod(method);
-    setCompactInputMethod(method);
   }, [isHtmlSurface]);
 
   // Alt/Option key: hold to temporarily switch, double-tap to toggle
@@ -2785,18 +2667,13 @@ const AppInner: React.FC = () => {
   // so there is no input method or annotation mode left to switch.
   const toolstripVisible = useMemo(
     () =>
-      !goalSetupMode && !isPlanDiffActive && !archive.archiveMode && !isEditingMarkdown && !isHtmlSurface
-      && (!isCompactTouchLayout || !(annotateSource === 'folder' && !markdown && !linkedDocHook.isActive)),
+      !goalSetupMode && !isPlanDiffActive && !archive.archiveMode && !isEditingMarkdown && !isHtmlSurface,
     [
-      annotateSource,
       archive.archiveMode,
       goalSetupMode,
       isHtmlSurface,
-      isCompactTouchLayout,
       isEditingMarkdown,
       isPlanDiffActive,
-      linkedDocHook.isActive,
-      markdown,
     ],
   );
 
@@ -3465,8 +3342,8 @@ const AppInner: React.FC = () => {
       annotationId: id,
       codeAnnotationId: id ? null : selectionRef.current.codeAnnotationId,
     };
-    if (id && isMobile && !isCompactTouchLayout && wideModeType === null) setIsPanelOpen(true);
-  }, [isCompactTouchLayout, isMobile, wideModeType]);
+    if (id && isMobile && wideModeType === null) setIsPanelOpen(true);
+  }, [isMobile, wideModeType]);
 
   const handleAddCodeAnnotation = React.useCallback((input: CodeFileAnnotationInput) => {
     if (documentReadOnly) return;
@@ -3508,8 +3385,8 @@ const AppInner: React.FC = () => {
     setSelectedCodeAnnotationId(id);
     selectionRef.current = { annotationId: null, codeAnnotationId: id };
     codeFilePopout.open(annotation.filePath);
-    if (isMobile && !isCompactTouchLayout && wideModeType === null) setIsPanelOpen(true);
-  }, [codeAnnotations, codeFilePopout.open, isCompactTouchLayout, isMobile, wideModeType]);
+    if (isMobile && wideModeType === null) setIsPanelOpen(true);
+  }, [codeAnnotations, codeFilePopout.open, isMobile, wideModeType]);
 
   const handleDeleteCodeAnnotation = React.useCallback((id: string) => {
     if (documentReadOnly) return;
@@ -4161,224 +4038,11 @@ const AppInner: React.FC = () => {
     dismissOnIframeFocus: isHtmlSurface,
   }), [annotateCloseTitle, annotateDecisionHandlers, annotateDecisionSpec, isHtmlSurface]);
 
-  const annotateCompactPrimaryId = compactPrimaryIdForDecision(annotateDecisionSpec.primary);
-
-  // L2: the compact dialogs render from the LIVE spec; if the item behind an
-  // open dialog left the spec (annotation deleted, state flipped), the dialog
-  // closes instead of acting on a stale capture.
-  const compactComposerItem = compactDecisionComposer !== null
-    ? annotateDecisionSpec.items.find(
-        (item) => item.id === compactDecisionComposer && item.composer,
-      ) ?? null
-    : null;
-  const compactConfirmItem = compactDecisionConfirm !== null
-    ? annotateDecisionSpec.items.find(
-        (item) => item.id === compactDecisionConfirm && item.confirm,
-      ) ?? null
-    : null;
-  useEffect(() => {
-    if (compactDecisionComposer !== null && !compactComposerItem) setCompactDecisionComposer(null);
-    if (compactDecisionConfirm !== null && !compactConfirmItem) setCompactDecisionConfirm(null);
-  }, [compactComposerItem, compactConfirmItem, compactDecisionComposer, compactDecisionConfirm]);
   const handleHeaderCopyAgentInstructions = useCallback(() => headerHandlersRef.current.handleCopyAgentInstructions(), []);
   const handleOpenSettings = useCallback(() => setMobileSettingsOpen(true), []);
   const handleCloseSettings = useCallback(() => setMobileSettingsOpen(false), []);
 
-  const compactDocumentTitle = useMemo(() => {
-    const path = linkedDocHook.filepath ?? sourceFilePath ?? fileBrowser.activeFile;
-    if (path) return pathFileName(path);
-    if (archive.currentInfo?.title) return archive.currentInfo.title;
-    if (annotateSource === 'message') return 'Message';
-    if (annotateSource === 'folder') return 'Choose a file';
-    return 'Plan';
-  }, [annotateSource, archive.currentInfo?.title, fileBrowser.activeFile, linkedDocHook.filepath, sourceFilePath]);
-
-  const compactActionBusy = isSubmitting || isExiting || goalSetupAction.isSubmitting;
-  const compactReviewActions: CompactPlanReviewAction[] = !isCompactTouchLayout
-    ? []
-    : isApiMode && (!linkedDocHook.isActive || annotateMode) && !archive.archiveMode && !goalSetupMode
-      ? [
-          ...(annotateMode
-            ? [
-                // Spec-driven decision rows: a visible send action exists in
-                // EVERY compact state (touch has no Mod+Enter — spec §3.1;
-                // the missing positive outcome at zero was the defect). The
-                // exit row comes from the spec too, so it is not duplicated
-                // here.
-                {
-                  id: annotateCompactPrimaryId,
-                  label: annotateDecisionSpec.primary.mobileLabel ?? annotateDecisionSpec.primary.label,
-                  subtitle: feedbackAnnotationCount > 0
-                    ? `${feedbackAnnotationCount} annotation${feedbackAnnotationCount === 1 ? '' : 's'}`
-                    : hasFeedbackToSend
-                      ? 'Edited document'
-                      : undefined,
-                  onSelect: submitPrimaryDecision,
-                  disabled: compactActionBusy,
-                },
-                ...annotateDecisionSpec.items.map((item) => ({
-                  id: compactRowIdForDecisionItem(item.id),
-                  label: item.label,
-                  subtitle: item.subtitle,
-                  onSelect: () => {
-                    if (item.composer) {
-                      setCompactDecisionComposer(item.id);
-                      return;
-                    }
-                    if (item.confirm) {
-                      setCompactDecisionConfirm(item.id);
-                      return;
-                    }
-                    runAnnotateDecisionAction(item.id);
-                  },
-                  disabled: compactActionBusy,
-                })),
-              ]
-            : [{
-                id: 'feedback' as const,
-                label: 'Send feedback',
-                subtitle: hasFeedbackToSend
-                  ? `${feedbackAnnotationCount} annotation${feedbackAnnotationCount === 1 ? '' : 's'}`
-                  : 'Add general feedback',
-                onSelect: handleHeaderFeedback,
-                disabled: compactActionBusy,
-              }]),
-          ...(!annotateMode
-            ? [{
-                id: 'approve' as const,
-                label: 'Approve',
-                subtitle: hasFeedbackToSend ? 'Feedback remains unsent' : undefined,
-                onSelect: handleHeaderApprove,
-                disabled: compactActionBusy,
-              }]
-            : []),
-        ]
-      : [];
-  const compactModeActions: CompactPlanAction[] = !isCompactTouchLayout
-    ? []
-    : isApiMode && !linkedDocHook.isActive && archive.archiveMode
-      ? [
-          { id: 'copy', label: 'Copy plan', onSelect: archive.copy },
-          { id: 'done', label: 'Done', onSelect: archive.done },
-        ]
-      : isApiMode && !linkedDocHook.isActive && goalSetupMode
-        ? [
-            {
-              id: 'exit',
-              label: 'Close goal setup',
-              onSelect: handleGoalSetupExit,
-              disabled: compactActionBusy,
-            },
-            {
-              id: 'approve',
-              label: goalSetupAction.submitLabel,
-              onSelect: handleGoalSetupSubmit,
-              disabled: !goalSetupAction.canSubmit || compactActionBusy,
-            },
-          ]
-        : [];
   const hasReviewDocumentChanges = hasDirectEdits || hasSavedFileChanges;
-  const compactCanApprove = compactReviewActions.some((action) => action.id === 'approve');
-  const compactFeedbackSummary = showAgentTerminalDeliveryStatus
-    ? 'Feedback was sent to the agent. You can keep reviewing or close the session.'
-    : feedbackAnnotationCount > 0 && hasReviewDocumentChanges
-      ? `${feedbackAnnotationCount} annotation${feedbackAnnotationCount === 1 ? '' : 's'} and document edits are ready.`
-      : feedbackAnnotationCount > 0
-        ? `${feedbackAnnotationCount} annotation${feedbackAnnotationCount === 1 ? '' : 's'} ${feedbackAnnotationCount === 1 ? 'is' : 'are'} ready.`
-        : hasReviewDocumentChanges
-          ? 'Document edits are ready to send with your review.'
-          : compactCanApprove
-            ? annotateMode && !gate
-              ? 'No feedback added. You can finish or keep reviewing.'
-              : 'No feedback added. You can approve or keep reviewing.'
-            : 'No feedback added. You can keep reviewing or close the session.';
-  const compactPrimaryReviewActionId: CompactPlanReviewAction['id'] | undefined =
-    annotateMode && compactReviewActions.length > 0
-      // The compact primary row IS the header primary (spec §3.1).
-      ? annotateCompactPrimaryId
-      : compactReviewActions.some((action) => action.id === 'feedback') &&
-        (hasFeedbackToSend || !compactCanApprove)
-        ? 'feedback'
-        : compactReviewActions.find((action) => action.id === 'approve')?.id
-          ?? compactReviewActions.find((action) => action.id !== 'exit')?.id
-          ?? compactReviewActions[0]?.id;
-  const compactSessionActions: CompactPlanAction[] = !isCompactTouchLayout
-    ? []
-    : [
-        ...(!goalSetupMode
-          ? [{
-              id: 'annotations' as const,
-              label: 'Annotations',
-              subtitle: feedbackAnnotationCount > 0
-                ? `${feedbackAnnotationCount} item${feedbackAnnotationCount === 1 ? '' : 's'}`
-                : undefined,
-              onSelect: () => openCompactPlanSurface('annotations'),
-            }]
-          : []),
-        ...(compactReviewActions.length > 0
-          ? [{
-              id: 'review' as const,
-              label: 'Review and finish',
-              subtitle: hasFeedbackToSend
-                ? 'Feedback ready'
-                : compactCanApprove
-                  ? 'Approve or send feedback'
-                  : 'Close when finished',
-              onSelect: () => openCompactPlanSurface('review'),
-            }]
-          : compactModeActions),
-      ];
-  const compactDocumentActions: CompactPlanAction[] = !isCompactTouchLayout
-    ? []
-    : [
-        ...(canEditMarkdown && !isEditingMarkdown && !isPlanDiffActive && !archive.archiveMode && !isHtmlSurface
-          ? [{
-              id: 'edit' as const,
-              label: 'Edit document',
-              subtitle: activeSourceSave ? `Edit ${activeSourceSave.basename}` : 'Edit the plan text directly',
-              onSelect: handleEditExitClick,
-            }]
-          : []),
-        // HTML/live surfaces on the compact touch shell: the desktop pen and
-        // eye toggles are header-only and hidden here, and Mod+Shift+A is
-        // keyboard-only, so without these menu actions a touch user has NO
-        // way to disarm annotate mode (every tap annotates, the page beneath
-        // is unreachable) or to bring hidden tools back.
-        ...(isHtmlSurface && !documentReadOnly
-          ? [{
-              id: 'annotate' as const,
-              label: htmlAnnotateArmed ? 'Interact with page' : 'Annotate page',
-              subtitle: htmlAnnotateArmed
-                ? 'Taps annotate. Switch to use the page itself.'
-                : 'Taps use the page. Switch to add annotations.',
-              onSelect: handleHtmlAnnotateToggle,
-            }]
-          : []),
-        ...(isHtmlSurface
-          ? [{
-              id: 'tools' as const,
-              label: htmlToolsHidden ? 'Show tools' : 'Hide tools',
-              subtitle: htmlToolsHidden
-                ? 'Bring the annotation chrome back over the page'
-                : 'Remove all floating chrome from over the page',
-              onSelect: () => setHtmlToolsHidden((v) => !v),
-            }]
-          : []),
-        // The desktop header's Refresh is header-only too; local HTML files
-        // (never URL or live-app sessions) get the same action here.
-        ...(isHtmlSurface && htmlRefresh.canRefresh
-          ? [{
-              id: 'refresh' as const,
-              label: 'Refresh from disk',
-              subtitle: htmlRefresh.isRefreshing
-                ? 'Refreshing the HTML file'
-                : 'Reload the HTML file and keep the annotations that still match',
-              onSelect: () => { void htmlRefresh.refresh(); },
-              disabled: htmlRefresh.isRefreshing,
-            }]
-          : []),
-      ];
-
   const planMaxWidth = useMemo(() => {
     const widths: Record<PlanWidth, number> = { compact: 832, default: 1040, wide: 1280 };
     return widths[uiPrefs.planWidth] ?? 832;
@@ -4414,29 +4078,8 @@ const AppInner: React.FC = () => {
       )}
     </div>
   ) : null;
-  const compactNavigatorTabs: SidebarTab[] = [
-    ...(hasTocEntries ? ['toc' as const] : []),
-    ...(!isHtmlSurface && activeDiffVersionInfo !== null && activeDiffVersionInfo.totalVersions > 1
-      ? ['versions' as const]
-      : []),
-    ...(annotateSource === 'message' && recentMessages.length > 1 ? ['messages' as const] : []),
-    ...(showFilesTab && !archive.archiveMode ? ['files' as const] : []),
-    ...(isApiMode && !annotateMode && !goalSetupMode ? ['archive' as const] : []),
-  ];
-  const compactNavigatorAvailable = !goalSetupMode && compactNavigatorTabs.length > 0;
-  const effectiveCompactNavigatorTab = compactNavigatorTabs.includes(compactNavigatorTab)
-    ? compactNavigatorTab
-    : (compactNavigatorTabs[0] ?? 'toc');
-
-  useEffect(() => {
-    if (isCompactNavigatorOpen && !compactNavigatorAvailable) {
-      closeCompactNavigator(false);
-    }
-  }, [closeCompactNavigator, compactNavigatorAvailable, isCompactNavigatorOpen]);
-
   const handleNavigatorTabChange = (tab: SidebarTab) => {
-    if (isCompactTouchLayout) openSidebarTab(tab);
-    else toggleSidebarTab(tab);
+    toggleSidebarTab(tab);
     if (tab === 'archive' && !archive.archiveMode) archive.fetchPlans();
   };
 
@@ -4453,26 +4096,7 @@ const AppInner: React.FC = () => {
       toast('Finish editing first', { description: 'Use "Done editing" before opening non-editable files.' });
       return;
     }
-    if (!isCompactTouchLayout) {
-      void handleFileBrowserSelect(...args);
-      return;
-    }
-    if (compactPendingFileRef.current) return;
-
-    const destination = args[0];
-    compactPendingFileRef.current = destination;
-    setCompactPendingFilePath(destination);
-    try {
-      await handleFileBrowserSelect(...args);
-    } catch {
-      // The shared fetch path reports expected failures through its error
-      // state. Treat an unexpected exception as the same retryable outcome.
-    }
-    if (compactPendingFileRef.current === destination) {
-      compactPendingFileRef.current = null;
-      setCompactPendingFilePath(null);
-      toast('Couldn’t open file', { description: 'The file navigator is still open so you can try again.' });
-    }
+    void handleFileBrowserSelect(...args);
   };
 
   const handleNavigatorArchiveSelect = (...args: Parameters<typeof archive.select>) => {
@@ -4481,47 +4105,35 @@ const AppInner: React.FC = () => {
       return;
     }
     archive.select(...args);
-    if (isCompactTouchLayout) closeCompactNavigator();
   };
 
   const handleNavigatorMessageSelect = (messageId: string) => {
     handleSelectMessage(messageId);
-    if (isCompactTouchLayout) closeCompactNavigator();
   };
 
   const handleNavigatorDiffActivate = () => {
     handleActivatePlanDiff();
-    if (isCompactTouchLayout && !isEditingMarkdown) closeCompactNavigator();
   };
 
-  const renderPlanSidebar = (presentation: 'desktop' | 'overlay') => {
-    const compact = presentation === 'overlay';
+  const renderPlanSidebar = (presentation: 'desktop') => {
     return (
       <SidebarContainer
         presentation={presentation}
-        activeTab={compact ? effectiveCompactNavigatorTab : sidebar.activeTab}
+        activeTab={sidebar.activeTab}
         onTabChange={handleNavigatorTabChange}
-        onClose={compact ? closeCompactNavigator : sidebar.close}
-        width={compact ? '100%' : `var(--toc-w, ${tocResize.width}px)`}
-        showAgentTerminalButton={!compact && showAgentTerminalControls}
+        onClose={sidebar.close}
+        width={`var(--toc-w, ${tocResize.width}px)`}
+        showAgentTerminalButton={showAgentTerminalControls}
         isAgentTerminalOpen={isAgentTerminalOpen}
         isAgentTerminalRunning={isAgentTerminalRunning}
         onToggleAgentTerminal={toggleAgentTerminal}
-        showContentsTab={!compact || hasTocEntries}
+        showContentsTab
         blocks={blocks}
         annotations={annotations}
         activeSection={activeSection}
-        onTocNavigate={(blockId) => {
-          handleTocNavigate(blockId);
-          if (compact) closeCompactNavigator();
-        }}
+        onTocNavigate={handleTocNavigate}
         linkedDocFilepath={linkedDocHook.filepath}
-        onLinkedDocBack={linkedDocHook.isActive
-          ? () => {
-              handleLinkedDocBack();
-              if (compact) closeCompactNavigator();
-            }
-          : undefined}
+        onLinkedDocBack={linkedDocHook.isActive ? handleLinkedDocBack : undefined}
         backLabel={backLabel}
         showFilesTab={showFilesTab && !archive.archiveMode}
         fileAnnotationCounts={fileAnnotationCounts}
@@ -4530,9 +4142,7 @@ const AppInner: React.FC = () => {
         fileBrowser={fileBrowser}
         onFilesSelectFile={handleNavigatorFileSelect}
         onFilesFetchAll={() => fileBrowser.fetchAll(fileBrowserDirs)}
-        pendingFileLabel={compact && compactPendingFilePath
-          ? pathFileName(compactPendingFilePath)
-          : null}
+        pendingFileLabel={null}
         hasFileAnnotations={hasFileAnnotations}
         showVersionsTab={!isHtmlSurface && activeDiffVersionInfo !== null && activeDiffVersionInfo.totalVersions > 1}
         versionInfo={activeDiffVersionInfo}
@@ -4576,7 +4186,7 @@ const AppInner: React.FC = () => {
       onEditCodeAnnotation={handleEditCodeAnnotation}
       width={presentation === 'panel' ? `var(--rpanel-w, ${panelResize.width}px)` : undefined}
       unanchoredIds={isHtmlSurface && htmlUnanchoredIds.size > 0 ? htmlUnanchoredIds : undefined}
-      onClose={presentation === 'panel' ? () => setIsPanelOpen(false) : closeCompactPlanSurface}
+      onClose={presentation === 'panel' ? () => setIsPanelOpen(false) : undefined}
       onQuickCopy={async () => {
         const output = getCurrentFeedbackPayload();
         return copyTextToClipboard(wrapCopiedFeedback(output));
@@ -4591,15 +4201,6 @@ const AppInner: React.FC = () => {
     />
   );
 
-  const showCompactPlanCompletion =
-    isCompactTouchLayout &&
-    compactPlanSurface.type === 'artifact' &&
-    compactReviewActions.length > 0 &&
-    !isEditingMarkdown &&
-    !isPlanDiffActive &&
-    !goalSetupMode &&
-    !isHtmlSurface &&
-    !(annotateSource === 'folder' && !markdown && !linkedDocHook.isActive);
   // Mobile Safari paints the browser-controls backdrop from the document/app
   // canvas, not from the nested document scroller. Keep that canvas continuous
   // with the active surface so a card-backed plan does not end in a dark band.
@@ -4617,12 +4218,10 @@ const AppInner: React.FC = () => {
       <TooltipProvider delayDuration={900} skipDelayDuration={200} disableHoverableContent>
       <div
         data-pn-browser-canvas={browserCanvas}
-        data-pn-compact-touch-layout={usesDocumentScroll ? 'true' : undefined}
-        data-pn-document-scroll={usesDocumentScroll ? 'true' : undefined}
-        className={`pn-app-viewport flex flex-col ${usesDocumentScroll ? 'overflow-visible' : 'overflow-hidden'} ${browserCanvas === 'card' ? 'bg-card' : 'bg-background'}`}
+        className={`pn-app-viewport flex flex-col overflow-hidden ${browserCanvas === 'card' ? 'bg-card' : 'bg-background'}`}
       >
         <AppHeader
-          sticky={!usesDocumentScroll}
+          sticky
           htmlSurface={isHtmlSurface}
           htmlAnnotateArmed={htmlAnnotateArmed}
           onToggleHtmlAnnotate={isHtmlSurface && !documentReadOnly ? handleHtmlAnnotateToggle : undefined}
@@ -4631,13 +4230,6 @@ const AppInner: React.FC = () => {
           canRefreshHtml={htmlRefresh.canRefresh}
           isRefreshingHtml={htmlRefresh.isRefreshing}
           onRefreshHtml={htmlRefresh.refresh}
-          compactTouchLayout={isCompactTouchLayout}
-          compactNavigatorAvailable={compactNavigatorAvailable}
-          compactNavigatorOpen={isCompactNavigatorOpen}
-          onCompactNavigatorToggle={() => toggleSidebarTab(effectiveCompactNavigatorTab)}
-          compactDocumentTitle={compactDocumentTitle}
-          compactSessionActions={compactSessionActions}
-          compactDocumentActions={compactDocumentActions}
           isApiMode={isApiMode}
           annotateMode={annotateMode}
           archiveMode={archive.archiveMode}
@@ -4679,39 +4271,8 @@ const AppInner: React.FC = () => {
             viewport, which makes every "jump to heading" tap a silent no-op. */}
         <ScrollViewportProvider viewport={scrollViewport}>
 
-        {isCompactNavigatorOpen && compactNavigatorAvailable && renderPlanSidebar('overlay')}
 
-        {isCompactAnnotationsOpen && (
-          <CompactPlanStage
-            id="pn-compact-plan-annotations"
-            title="Annotations"
-            subtitle={compactDocumentTitle}
-            count={feedbackAnnotationCount}
-            onClose={closeCompactPlanSurface}
-          >
-            <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1">
-              {renderAnnotationPanel('embedded')}
-            </div>
-          </CompactPlanStage>
-        )}
 
-        {isCompactReviewOpen && compactReviewActions.length > 0 && (
-          <CompactPlanStage
-            id="pn-compact-plan-review"
-            title="Review"
-            subtitle={compactDocumentTitle}
-            onClose={closeCompactPlanSurface}
-          >
-            <CompactPlanReview
-              feedbackSummary={compactFeedbackSummary}
-              actions={compactReviewActions}
-              primaryActionId={compactPrimaryReviewActionId}
-              onOpenAnnotations={() => switchCompactPlanSurface('annotations')}
-            />
-          </CompactPlanStage>
-        )}
-
-        {/* Linked document error banner */}
         {linkedDocHook.error && (
           <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 flex items-center gap-2 flex-shrink-0">
             <span className="text-xs text-destructive">{linkedDocHook.error}</span>
@@ -4771,12 +4332,12 @@ const AppInner: React.FC = () => {
         )}
 
         {/* Main Content */}
-        <div className={`flex-1 flex ${usesDocumentScroll ? 'overflow-visible' : 'overflow-hidden'} relative z-0 ${isResizing ? 'select-none' : ''}`}>
+        <div className={`flex-1 flex overflow-hidden relative z-0 ${isResizing ? 'select-none' : ''}`}>
           {/* Tater sprites — inside content wrapper so z-0 stacking context applies */}
           {taterMode && <TaterSpriteRunning />}
           {showAgentTerminalOnLeft && agentTerminalPanel}
           {/* Left Sidebar: collapsed tab flags (when sidebar is closed) */}
-          {!isCompactTouchLayout && wideModeType === null && !sidebar.isOpen && !goalSetupMode && !isLeftAgentTerminalVisible && !(isHtmlSurface && htmlToolsHidden) && (
+          {wideModeType === null && !sidebar.isOpen && !goalSetupMode && !isLeftAgentTerminalVisible && !(isHtmlSurface && htmlToolsHidden) && (
             <SidebarTabs
               activeTab={sidebar.activeTab}
               onToggleTab={toggleSidebarTab}
@@ -4795,7 +4356,7 @@ const AppInner: React.FC = () => {
           )}
 
           {/* Left Sidebar: open state (TOC or Version Browser) */}
-          {!isCompactTouchLayout && sidebar.isOpen && !goalSetupMode && (
+          {sidebar.isOpen && !goalSetupMode && (
             <div className="contents group/sidebar">
               {renderPlanSidebar('desktop')}
               <ResizeHandle {...tocResize.handleProps} className="hidden lg:block z-[55]" side="left" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={sidebar.close} />
@@ -4806,8 +4367,8 @@ const AppInner: React.FC = () => {
           <OverlayScrollArea
             element="main"
             className={`flex-1 min-w-0 ${isHtmlSurface ? 'bg-background' : `bg-card ${!goalSetupMode && !sidebar.isOpen && !isLeftAgentTerminalVisible && wideModeType === null ? 'lg:pl-[30px]' : ''}`}`}
-            overflowX={usesDocumentScroll ? 'visible' : 'hidden'}
-            overflowY={usesDocumentScroll ? 'visible' : 'auto'}
+            overflowX="hidden"
+            overflowY="auto"
             onViewportReady={handleDocumentViewportReady}
           >
             <ConfirmDialog
@@ -4828,7 +4389,7 @@ const AppInner: React.FC = () => {
                   sticky actions are disabled. remountToken re-anchors the
                   ResizeObserver when Viewer swaps content (linked docs or
                   message switches). */}
-              {!usesDocumentScroll && !goalSetupMode && !isPlanDiffActive && !isHtmlSurface && !archive.archiveMode && !isEditingMarkdown && uiPrefs.stickyActionsEnabled && (
+              {!goalSetupMode && !isPlanDiffActive && !isHtmlSurface && !archive.archiveMode && !isEditingMarkdown && uiPrefs.stickyActionsEnabled && (
                 <StickyHeaderLane
                   inputMethod={inputMethod}
                   onInputMethodChange={handleInputMethodChange}
@@ -4857,19 +4418,12 @@ const AppInner: React.FC = () => {
                   className="w-full mb-3 md:mb-4 flex items-center justify-start"
                   style={annotateReaderMaxWidth == null ? undefined : { maxWidth: annotateReaderMaxWidth }}
                 >
-                  {isCompactTouchLayout ? (
-                    <CompactAnnotationControls
-                      inputMethod={effectiveInputMethod}
-                      onInputMethodChange={handleInputMethodChange}
-                    />
-                  ) : (
-                    <AnnotationToolstrip
-                      inputMethod={inputMethod}
-                      onInputMethodChange={handleInputMethodChange}
-                      mode={editorMode}
-                      onModeChange={handleEditorModeChange}
-                    />
-                  )}
+                  <AnnotationToolstrip
+                    inputMethod={inputMethod}
+                    onInputMethodChange={handleInputMethodChange}
+                    mode={editorMode}
+                    onModeChange={handleEditorModeChange}
+                  />
                 </div>
               )}
 
@@ -4908,137 +4462,11 @@ const AppInner: React.FC = () => {
               )}
               {/* Folder annotation empty state — shown before user picks a file */}
               {annotateSource === 'folder' && !markdown && !linkedDocHook.isActive && !goalSetupMode && (
-                <FolderAnnotationEmptyState
-                  compactTouchLayout={isCompactTouchLayout}
-                  onChooseFile={() => openSidebarTab('files')}
-                />
+                <FolderAnnotationEmptyState />
               )}
               {/* Normal Plan View — always mounted, hidden during diff mode */}
-              <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : `${isCompactTouchLayout && isEditingMarkdown ? 'flex flex-col items-center' : 'flex justify-center'}${isEditingMarkdown ? ' flex-1 min-h-0' : ''}`}`} style={{ display: goalSetupMode || (isPlanDiffActive && planDiff.diffBlocks) || (annotateSource === 'folder' && !markdown && !linkedDocHook.isActive) ? 'none' : undefined }}>
-                {!isCompactTouchLayout && (canUseWideMode || canEditMarkdown) && !isPlanDiffActive && !archive.archiveMode && !isHtmlSurface && (
-                  <div
-                    className="absolute -top-5 left-0 right-0 mx-auto w-full flex justify-end pointer-events-none"
-                    style={annotateReaderMaxWidth === null ? undefined : { maxWidth: annotateReaderMaxWidth ?? 832 }}
-                  >
-                    <div className={`pointer-events-auto flex items-center gap-1.5 text-[11px] tracking-wide ${taterMode ? 'mr-[60px]' : 'mr-[4px]'}`}>
-                      {canUseWideMode && (['wide', 'focus'] as const).map((type, i) => (
-                        <React.Fragment key={type}>
-                          {i > 0 && <span aria-hidden className="text-muted-foreground/30 select-none">|</span>}
-                          <Tooltip
-                            side="top"
-                            align="end"
-                            content={type === 'wide' ? 'Hide panels and expand document width' : `Hide panels, keep document width (${modKey}+.)`}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => toggleViewMode(type)}
-                              aria-pressed={wideModeType === type}
-                              className={`cursor-pointer rounded-sm transition-colors duration-150 outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:opacity-80 ${
-                                wideModeType === type
-                                  ? 'text-foreground'
-                                  : 'text-muted-foreground/50 hover:text-muted-foreground'
-                              }`}
-                            >
-                              {type.charAt(0).toUpperCase() + type.slice(1)}
-                            </button>
-                          </Tooltip>
-                        </React.Fragment>
-                      ))}
-                      {canEditMarkdown && (
-                        <>
-                          {canUseWideMode && <span aria-hidden className="text-muted-foreground/30 select-none">|</span>}
-                          {isEditingMarkdown && activeSourceSave && (
-                            <>
-                              <Tooltip
-                                side="top"
-                                align="end"
-                                content={`Save changes to ${activeSourceSave.basename}`}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => { void handleSaveEditedSourceFile(); }}
-                                  disabled={activeSaveStatus === 'saving'}
-                                  className={`flex items-center gap-1 cursor-pointer rounded-sm transition-colors duration-150 outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:opacity-80 disabled:cursor-not-allowed disabled:opacity-50 ${
-                                    saveFailed
-                                      ? 'text-destructive'
-                                      : emphasizeSave
-                                        ? 'text-primary'
-                                        : 'text-muted-foreground/50 hover:text-muted-foreground'
-                                  }`}
-                                >
-                                  {/* Invisible widest label reserves the width so Save/Saving/Saved
-                                      swap without nudging neighbors (font-agnostic, no fixed px). */}
-                                  <span className="grid justify-items-start">
-                                    <span aria-hidden className="invisible col-start-1 row-start-1">Saving</span>
-                                    <span className="col-start-1 row-start-1">
-                                      {activeSaveStatus === 'saving'
-                                        ? 'Saving'
-                                        : hasUnsavedDiskChanges
-                                          ? 'Save'
-                                          : 'Saved'}
-                                    </span>
-                                  </span>
-                                  {/* Dot slot is always present — only its color changes — so the
-                                      button never reflows when edits appear/clear. */}
-                                  <span
-                                    aria-hidden
-                                    className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors duration-150 ${
-                                      saveFailed ? 'bg-destructive' : emphasizeSave ? 'bg-primary' : 'bg-transparent'
-                                    }`}
-                                  />
-                                </button>
-                              </Tooltip>
-                              <span aria-hidden className="text-muted-foreground/30 select-none">|</span>
-                            </>
-                          )}
-                          <Tooltip
-                            side="top"
-                            align="end"
-                            content={
-                              !isEditingMarkdown
-                                ? 'Edit the document text directly'
-                                : cancelMode
-                                  ? 'Discard your edits and stop editing'
-                                  : 'Commit your edits and return to annotating'
-                            }
-                          >
-                            <button
-                              type="button"
-                              onClick={handleEditExitClick}
-                              aria-pressed={isEditingMarkdown}
-                              className={`cursor-pointer rounded-sm transition-colors duration-150 outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:opacity-80 ${
-                                cancelMode
-                                  ? (confirmCancelEdits
-                                      ? 'text-destructive'
-                                      : 'text-muted-foreground/70 hover:text-foreground')
-                                  : isEditingMarkdown
-                                    ? 'text-primary'
-                                    : 'text-muted-foreground/50 hover:text-muted-foreground'
-                              }`}
-                            >
-                              {!isEditingMarkdown
-                                ? 'Edit'
-                                : cancelMode
-                                  ? (confirmCancelEdits ? 'Discard?' : 'Cancel')
-                                  : 'Done'}
-                            </button>
-                          </Tooltip>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {isCompactTouchLayout && isEditingMarkdown && !isHtmlSurface && (
-                  <CompactEditControls
-                    documentTitle={compactDocumentTitle}
-                    sourceBacked={!!activeSourceSave}
-                    saveStatus={activeSaveStatus}
-                    cancelMode={cancelMode}
-                    confirmDiscard={confirmCancelEdits}
-                    onSave={() => { void handleSaveEditedSourceFile(); }}
-                    onExit={handleEditExitClick}
-                  />
-                )}
+              <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : `$${isEditingMarkdown ? ' flex-1 min-h-0' : ''}`}`} style={{ display: goalSetupMode || (isPlanDiffActive && planDiff.diffBlocks) || (annotateSource === 'folder' && !markdown && !linkedDocHook.isActive) ? 'none' : undefined }}>
+                canUseWideMode || canEditMarkdown
                 {renderAs === 'html' ? (
                   <HtmlViewer
                     key={`${liveApp ? 'live-app' : linkedDocHook.isActive ? `doc:${linkedDocHook.filepath}` : 'plan'}${isPlanDiffActive && htmlDiffHtml ? ':diff' : ''}:reload-${htmlRefresh.reloadGeneration}`}
@@ -5097,7 +4525,7 @@ const AppInner: React.FC = () => {
                     inputMethod={effectiveInputMethod}
                     taterMode={taterMode}
                     repoInfo={repoInfo}
-                    stickyActions={uiPrefs.stickyActionsEnabled && !usesDocumentScroll}
+                    stickyActions={uiPrefs.stickyActionsEnabled}
                     planDiffStats={planDiff.diffStats}
                     isPlanDiffActive={isPlanDiffActive}
                     onPlanDiffToggle={() => setIsPlanDiffActive(!isPlanDiffActive)}
@@ -5126,7 +4554,6 @@ const AppInner: React.FC = () => {
                     copyLabel={annotateSource === 'message' ? 'Copy message' : annotateSource === 'file' || annotateSource === 'folder' ? 'Copy file' : undefined}
                     archiveInfo={archive.currentInfo}
                     sourceInfo={sourceInfo}
-                    openInAppPath={annotateMode ? (linkedDocHook.isActive ? (linkedDocHook.filepath ?? null) : sourceFilePath) : null}
                     messagePickerInfo={
                       annotateSource === 'message' && recentMessages.length > 1
                         ? {
@@ -5145,13 +4572,6 @@ const AppInner: React.FC = () => {
                   />
                 )}
               </div>
-              {showCompactPlanCompletion && (
-                <CompactPlanCompletion
-                  feedbackSummary={compactFeedbackSummary}
-                  maxWidth={planMaxWidth}
-                  onOpenReview={() => openCompactPlanSurface('review')}
-                />
-              )}
             </div>
           </OverlayScrollArea>
 
@@ -5280,42 +4700,6 @@ const AppInner: React.FC = () => {
           variant="warning"
           showCancel
         />
-
-        {/* Compact/touch decision surfaces: the note composer is a dialog
-            (never a textarea inside the scrolling header menu popup), the
-            discard confirm is the same ConfirmDialog the desktop control
-            raises. Desktop popover state lives inside DecisionControl. */}
-        {compactComposerItem?.composer && (
-          <DecisionNoteDialog
-            isOpen
-            onClose={() => setCompactDecisionComposer(null)}
-            composer={compactComposerItem.composer}
-            subtitle={compactComposerItem.subtitle}
-            disabled={isSubmitting || isExiting}
-            onSubmit={(note) => {
-              const item = compactComposerItem;
-              setCompactDecisionComposer(null);
-              runAnnotateDecisionAction(item.id, note);
-            }}
-          />
-        )}
-        {compactConfirmItem?.confirm && (
-          <ConfirmDialog
-            isOpen
-            onClose={() => setCompactDecisionConfirm(null)}
-            onConfirm={() => {
-              const item = compactConfirmItem;
-              setCompactDecisionConfirm(null);
-              runAnnotateDecisionAction(item.id);
-            }}
-            title={compactConfirmItem.confirm.title}
-            message={compactConfirmItem.confirm.message}
-            confirmText={compactConfirmItem.confirm.confirmText}
-            cancelText="Cancel"
-            variant="warning"
-            showCancel
-          />
-        )}
 
         <Toaster
           position="top-right"

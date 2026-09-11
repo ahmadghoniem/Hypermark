@@ -64,7 +64,6 @@
     "./source-save-node": "./source-save-node.ts",
     "./browser-paths": "./browser-paths.ts",
     "./workspace-status": "./workspace-status.ts",
-    "./open-in-apps": "./open-in-apps.ts",
     "./port-range": "./port-range.ts",
     "./plan-review-lifecycle": "./plan-review-lifecycle.ts",
     "./commit-avatars": "./commit-avatars.ts",
