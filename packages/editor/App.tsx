@@ -51,13 +51,9 @@ import {
 } from '@hypermark/ui/hooks/useScrollViewport';
 import { useOverlayViewport } from '@hypermark/ui/hooks/useOverlayViewport';
 import { useCompactTouchLayout, useIsMobile } from '@hypermark/ui/hooks/useIsMobile';
+import { fileName as pathFileName } from '@hypermark/ui/utils/displayPath';
 import { useViewportEnvironment } from '@hypermark/ui/hooks/useViewportEnvironment';
-import {
-  getPermissionModeSettings,
-  needsPermissionModeSetup,
-  type PermissionMode,
-} from '@hypermark/ui/utils/permissionMode';
-import { PermissionModeSetup } from '@hypermark/ui/components/PermissionModeSetup';
+import { PLAN_APPROVAL_PERMISSION_MODE } from '@hypermark/ui/utils/permissionMode';
 import { useSidebar, type SidebarTab } from '@hypermark/ui/hooks/useSidebar';
 import { usePlanDiff, type VersionInfo, type VersionEntry, type PlanDiffFetchers } from '@hypermark/ui/hooks/usePlanDiff';
 import { useLinkedDoc, type LinkedDocSessionState } from '@hypermark/ui/hooks/useLinkedDoc';
@@ -551,8 +547,6 @@ const AppInner: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [submitted, setSubmitted] = useState<'approved' | 'denied' | 'exited' | null>(null);
-  const [showPermissionModeSetup, setShowPermissionModeSetup] = useState(false);
-  const [permissionMode, setPermissionMode] = useState<PermissionMode>('bypassPermissions');
   const [repoInfo, setRepoInfo] = useState<{ display: string; branch?: string; host?: string } | null>(null);
   const [projectRoot, setProjectRoot] = useState<string | null>(null);
   const [agentTerminalCapability, setAgentTerminalCapability] = useState<AgentTerminalCapability | null>(null);
@@ -1337,7 +1331,7 @@ const AppInner: React.FC = () => {
     if (document.querySelector('[data-hypermark-confirm-dialog="true"]')) return false;
     if (showFeedbackPrompt || showClaudeCodeWarning ||
         showSourceFileEditWarning ||
-        showExitWarning || showPermissionModeSetup) return false;
+        showExitWarning) return false;
     if (submitted || isSubmitting || isExiting || isEditingMarkdown) return false;
 
     const target = event.target as HTMLElement | null;
@@ -1350,7 +1344,6 @@ const AppInner: React.FC = () => {
     showClaudeCodeWarning,
     showSourceFileEditWarning,
     showExitWarning,
-    showPermissionModeSetup,
     submitted,
     isSubmitting,
     isExiting,
@@ -2944,16 +2937,6 @@ const AppInner: React.FC = () => {
         if (data.origin) {
           setOrigin(data.origin);
           // For Claude Code, check if user needs to configure permission mode.
-          // Plan review only: the setting decides what happens after a plan is
-          // APPROVED, which is meaningless in annotate / annotate-last /
-          // annotate-folder / archive / goal-setup sessions. Plan review is the
-          // absence of a mode field (the plan server sends `mode` only for
-          // archive; annotate and goal-setup always name themselves).
-          if (data.origin === 'claude-code' && data.mode === undefined && needsPermissionModeSetup()) {
-            setShowPermissionModeSetup(true);
-          }
-          // Load saved permission mode preference
-          setPermissionMode(getPermissionModeSettings().mode);
         }
       })
       .catch(() => {
@@ -3105,7 +3088,7 @@ const AppInner: React.FC = () => {
 
       // Include permission mode for Claude Code
       if (origin === 'claude-code') {
-        body.permissionMode = permissionMode;
+        body.permissionMode = PLAN_APPROVAL_PERMISSION_MODE;
       }
 
       // Include plan save settings
@@ -3378,7 +3361,7 @@ const AppInner: React.FC = () => {
       // Don't intercept if any modal is open
       if (showFeedbackPrompt || showClaudeCodeWarning ||
           showSourceFileEditWarning ||
-          showExitWarning || showPermissionModeSetup) return;
+          showExitWarning) return;
 
       // Don't intercept if already submitted, submitting, or exiting
       if (submitted || isSubmitting || isExiting || goalSetupAction.isSubmitting) return;
@@ -3436,7 +3419,6 @@ const AppInner: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning,
-    showPermissionModeSetup,
     submitted, isSubmitting, isExiting, goalSetupAction.isSubmitting, isApiMode, documentReadOnly, isEditingMarkdown, linkedDocHook.isActive, annotations.length, codeAnnotations.length, externalAnnotations.length, annotateMode,
     hasFeedbackToSend, goalSetupMode, goalSetupAction.canSubmit, isAgentTerminalReady,
     annotateSource, origin,
@@ -3975,7 +3957,7 @@ const AppInner: React.FC = () => {
 
       if (showFeedbackPrompt || showClaudeCodeWarning ||
           showSourceFileEditWarning ||
-          showExitWarning || showPermissionModeSetup) return;
+          showExitWarning) return;
 
       if (submitted || !isApiMode) return;
 
@@ -3989,7 +3971,6 @@ const AppInner: React.FC = () => {
     return () => window.removeEventListener('keydown', handleSaveShortcut);
   }, [
     showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning,
-    showPermissionModeSetup,
     submitted, isApiMode, documentReadOnly, isEditingMarkdown, handleSaveEditedSourceFile, displayedMarkdown, annotationsOutput,
   ]);
 
@@ -4266,7 +4247,7 @@ const AppInner: React.FC = () => {
 
   const compactDocumentTitle = useMemo(() => {
     const path = linkedDocHook.filepath ?? sourceFilePath ?? fileBrowser.activeFile;
-    if (path) return path.replace(/\\/g, '/').split('/').pop() || path;
+    if (path) return pathFileName(path);
     if (archive.currentInfo?.title) return archive.currentInfo.title;
     if (annotateSource === 'message') return 'Message';
     if (annotateSource === 'folder') return 'Choose a file';
@@ -4611,7 +4592,7 @@ const AppInner: React.FC = () => {
         onFilesSelectFile={handleNavigatorFileSelect}
         onFilesFetchAll={() => fileBrowser.fetchAll(fileBrowserDirs)}
         pendingFileLabel={compact && compactPendingFilePath
-          ? compactPendingFilePath.replace(/\\/g, '/').split('/').pop() || compactPendingFilePath
+          ? pathFileName(compactPendingFilePath)
           : null}
         hasFileAnnotations={hasFileAnnotations}
         showVersionsTab={!isHtmlSurface && activeDiffVersionInfo !== null && activeDiffVersionInfo.totalVersions > 1}
@@ -5456,15 +5437,6 @@ const AppInner: React.FC = () => {
                     : `${agentName} will revise the plan based on your feedback.`
           }
           agentLabel={agentName}
-        />
-
-        {/* Permission Mode Setup (Claude Code first-time) */}
-        <PermissionModeSetup
-          isOpen={showPermissionModeSetup}
-          onComplete={(mode) => {
-            setPermissionMode(mode);
-            setShowPermissionModeSetup(false);
-          }}
         />
       </div>
       </TooltipProvider>

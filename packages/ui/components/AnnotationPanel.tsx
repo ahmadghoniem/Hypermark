@@ -7,6 +7,7 @@ import { Button } from './ui/button';
 import { cn } from '../lib/utils';
 import { resolveReplyParents, resolveThreadRootTimestamps } from '@hypermark/core/annotation-threads';
 import { isCurrentUser } from '../utils/identity';
+import { fileName as pathFileName } from '../utils/displayPath';
 
 // Card type-word colors. Deletion uses `destructive` (reliably red on every
 // theme, matching the in-document .deletion highlight). Comment uses the
@@ -738,7 +739,7 @@ const CodeAnnotationCard: React.FC<{
   const lineRange = annotation.lineStart === annotation.lineEnd
     ? `line ${annotation.lineStart}`
     : `lines ${annotation.lineStart}-${annotation.lineEnd}`;
-  const fileName = annotation.filePath.split('/').pop() || annotation.filePath;
+  const fileName = pathFileName(annotation.filePath);
 
   const handleCancelEdit = () => {
     setIsEditing(false);

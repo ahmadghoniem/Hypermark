@@ -2,20 +2,12 @@ import React, { useCallback, useRef } from 'react';
 import type { ImageAttachment } from '../types';
 import { getImageSrc } from './ImageThumbnail';
 
-/**
- * An attachment whose bytes are still in flight (or whose upload failed).
- *
- * Spec 05 §3.2.4: a selected image is never silently dropped. It occupies a
- * slot in the strip from the moment it is chosen, showing explicit status and
- * retry/removal controls until it either becomes an `ImageAttachment` with a
- * stored path or the user removes it.
- */
+/** An attachment that has been chosen but has not finished uploading. */
 export interface PendingAttachment {
-  /** Client-side identity; not a stored reference. */
+  /** Stable id for the pending entry; not a path. */
   id: string;
-  /** Derived display name, already deduplicated against the saved images. */
   name: string;
-  /** Object URL for the local preview, so the user sees the real image. */
+  /** Object URL for the local preview. */
   previewUrl: string;
   status: 'uploading' | 'error';
   /** Short failure reason, shown in the strip when `status === 'error'`. */
@@ -29,7 +21,7 @@ interface AttachmentStripProps {
   onRemovePending?: (id: string) => void;
   onRetryPending?: (id: string) => void;
   /**
-   * Focus fallback once the removed thumbnail had no neighbor — normally the
+   * Focus fallback once the removed chip had no neighbor — normally the
    * composer's attach action (spec 05 §3.2.3).
    */
   onFocusAfterLastRemoved?: () => void;
@@ -37,22 +29,29 @@ interface AttachmentStripProps {
   className?: string;
 }
 
-/** Compact remove glyph. Sized for the 14×14 thumbnail corner. */
+/** Compact remove glyph, sized for the chip's trailing button. */
 const RemoveIcon: React.FC = () => (
   <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
   </svg>
 );
 
-const THUMB = 'w-14 h-14';
+/** The image standing in for itself, at favicon size. */
+const PREVIEW = 'w-4 h-4 rounded-sm object-cover flex-shrink-0';
+
+const CHIP =
+  'group inline-flex items-center gap-1.5 h-6 pl-1 pr-0.5 rounded-md border border-border bg-muted/40 text-[11px] leading-none text-muted-foreground max-w-[12rem]';
 
 /**
- * Image-only attachment strip that lives *inside* the comment composer,
- * between the textarea and the action row (spec 05 §3.2).
+ * Image attachments as chips, inside the comment composer and below the
+ * textarea (spec 05 §3.2).
  *
- * Renders the actual image, contained in a compact square. Never a file card,
- * generic icon, filename line, or byte-size label: the filename is carried by
- * the accessible name and the hover/focus tooltip only.
+ * Chips rather than thumbnail tiles: an attachment is a thing you have
+ * ATTACHED, not a thing you are looking at. A 56px grid pushed the send row
+ * down and took more of a small popover than the text did, for a preview too
+ * small to read anyway. The chip keeps the image — at 16px, enough to tell two
+ * screenshots apart — and spends the rest of its width on the filename, which
+ * is what actually identifies the file.
  */
 export const AttachmentStrip: React.FC<AttachmentStripProps> = ({
   images,
@@ -100,10 +99,10 @@ export const AttachmentStrip: React.FC<AttachmentStripProps> = ({
       data-attachment-strip="true"
       role="list"
       aria-label="Comment attachments"
-      className={`flex flex-wrap items-center gap-2 ${className}`}
+      className={`flex flex-wrap items-center gap-1.5 ${className}`}
     >
       {images.map((image) => (
-        <SavedThumbnail
+        <SavedChip
           key={image.path}
           image={image}
           registerRemoveButton={registerRemoveButton}
@@ -115,7 +114,7 @@ export const AttachmentStrip: React.FC<AttachmentStripProps> = ({
       ))}
 
       {pending.map((item) => (
-        <PendingThumbnail
+        <PendingChip
           key={item.id}
           item={item}
           registerRemoveButton={registerRemoveButton}
@@ -134,23 +133,6 @@ export const AttachmentStrip: React.FC<AttachmentStripProps> = ({
   );
 };
 
-interface ThumbnailFrameProps {
-  name: string;
-  children: React.ReactNode;
-  /** Extra ring/border for the failed state. */
-  frameClassName?: string;
-}
-
-const ThumbnailFrame: React.FC<ThumbnailFrameProps> = ({ name, children, frameClassName = '' }) => (
-  <div
-    role="listitem"
-    title={name}
-    className={`group relative ${THUMB} rounded-md overflow-hidden border border-border bg-muted ${frameClassName}`}
-  >
-    {children}
-  </div>
-);
-
 interface RemoveButtonProps {
   name: string;
   onRemove: () => void;
@@ -159,8 +141,9 @@ interface RemoveButtonProps {
 }
 
 /**
- * Overlaid remove control. Kept mounted (not conditionally rendered) so it is
- * reachable by keyboard; it reveals itself on hover and on focus.
+ * The chip's trailing remove control. Always rendered and always visible: in a
+ * chip it costs 16px it already has, and a hover-only affordance on something
+ * this small is a target most people never find.
  */
 const RemoveButton: React.FC<RemoveButtonProps> = ({ name, onRemove, registerRemoveButton, buttonKey }) => (
   <button
@@ -172,87 +155,95 @@ const RemoveButton: React.FC<RemoveButtonProps> = ({ name, onRemove, registerRem
     }}
     aria-label={`Remove ${name}`}
     title={`Remove ${name}`}
-    className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-opacity"
+    className="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center text-muted-foreground/70 hover:text-foreground hover:bg-muted-foreground/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
   >
     <RemoveIcon />
   </button>
 );
 
-interface SavedThumbnailProps {
+interface SavedChipProps {
   image: ImageAttachment;
   onRemove: () => void;
   registerRemoveButton: (key: string, el: HTMLButtonElement | null) => void;
 }
 
-const SavedThumbnail: React.FC<SavedThumbnailProps> = ({ image, onRemove, registerRemoveButton }) => {
+const SavedChip: React.FC<SavedChipProps> = ({ image, onRemove, registerRemoveButton }) => {
   const [unavailable, setUnavailable] = React.useState(false);
 
   return (
-    <ThumbnailFrame name={image.name}>
+    <div role="listitem" title={image.name} className={CHIP}>
       {unavailable ? (
         // Spec 05 §3.2.6: a stored reference can outlive its temporary file.
         // Say so explicitly and keep the attachment; never drop it silently.
-        <div
+        <span
           data-attachment-unavailable="true"
-          className="absolute inset-0 flex items-center justify-center text-center px-1 text-[9px] leading-tight text-muted-foreground"
+          className="flex-shrink-0 w-4 h-4 rounded-sm bg-muted flex items-center justify-center text-[8px] text-muted-foreground"
+          aria-label="Image unavailable"
         >
-          Image unavailable
-        </div>
+          ?
+        </span>
       ) : (
         <img
           src={getImageSrc(image.path)}
-          alt={image.name}
+          alt=""
           loading="lazy"
           onError={() => setUnavailable(true)}
-          className={`${THUMB} object-cover`}
+          className={PREVIEW}
         />
       )}
+      <span className="truncate">{image.name}</span>
       <RemoveButton
         name={image.name}
         buttonKey={image.path}
         onRemove={onRemove}
         registerRemoveButton={registerRemoveButton}
       />
-    </ThumbnailFrame>
+    </div>
   );
 };
 
-interface PendingThumbnailProps {
+interface PendingChipProps {
   item: PendingAttachment;
   onRemove?: () => void;
   onRetry?: () => void;
   registerRemoveButton: (key: string, el: HTMLButtonElement | null) => void;
 }
 
-const PendingThumbnail: React.FC<PendingThumbnailProps> = ({ item, onRemove, onRetry, registerRemoveButton }) => {
+const PendingChip: React.FC<PendingChipProps> = ({ item, onRemove, onRetry, registerRemoveButton }) => {
   const failed = item.status === 'error';
 
   return (
-    <ThumbnailFrame name={item.name} frameClassName={failed ? 'border-destructive' : ''}>
-      <img src={item.previewUrl} alt={item.name} className={`${THUMB} object-cover opacity-50`} />
-      <div
-        data-attachment-status={item.status}
-        className="absolute inset-x-0 bottom-0 bg-background/85 text-[9px] leading-tight text-center py-0.5 text-muted-foreground"
-      >
-        {failed ? (
-          <span className="text-destructive">Failed</span>
-        ) : (
-          <span role="status">Uploading…</span>
-        )}
-      </div>
-      {failed && onRetry && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRetry();
-          }}
-          aria-label={`Retry upload of ${item.name}`}
-          title={item.error ? `${item.error} — retry` : 'Retry upload'}
-          className="absolute inset-0 top-auto bottom-4 mx-auto mb-0.5 px-1 py-0.5 w-fit text-[9px] rounded bg-popover border border-border text-foreground hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          Retry
-        </button>
+    <div
+      role="listitem"
+      title={failed && item.error ? `${item.name} — ${item.error}` : item.name}
+      data-attachment-status={item.status}
+      className={`${CHIP} ${failed ? 'border-destructive text-destructive' : ''}`}
+    >
+      <img src={item.previewUrl} alt="" className={`${PREVIEW} ${failed ? '' : 'opacity-50'}`} />
+      {failed ? (
+        <>
+          <span className="truncate">{item.name}</span>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRetry();
+              }}
+              aria-label={`Retry upload of ${item.name}`}
+              title={item.error ? `${item.error} — retry` : 'Retry upload'}
+              className="flex-shrink-0 px-1 rounded text-[10px] underline underline-offset-2 hover:bg-destructive/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Retry
+            </button>
+          )}
+        </>
+      ) : (
+        // The name is already in the title; while it is uploading the status is
+        // the more useful thing to spend the chip's width on.
+        <span role="status" className="truncate animate-pulse">
+          Uploading…
+        </span>
       )}
       {onRemove && (
         <RemoveButton
@@ -262,6 +253,6 @@ const PendingThumbnail: React.FC<PendingThumbnailProps> = ({ item, onRemove, onR
           registerRemoveButton={registerRemoveButton}
         />
       )}
-    </ThumbnailFrame>
+    </div>
   );
 };

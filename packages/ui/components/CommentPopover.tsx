@@ -241,7 +241,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       onRemovePending={uploads.removePending}
       onRetryPending={uploads.retry}
       onFocusAfterLastRemoved={focusAttachAction}
-      className={mode === 'dialog' ? 'px-4 pb-3' : 'px-3 pb-2'}
+      className="mt-2"
     />
   ) : null;
   const hasUnsavedContent = hasUnsavedCommentContent(text, allowImages ? images : []);
@@ -662,9 +662,8 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
               activeOptionId={activeSkillOptionId}
             />
             <HumanOnlySkillNotice skills={skillAc.humanOnlyReferences} />
+            {attachmentStrip}
           </div>
-
-          {attachmentStrip}
 
           {/* Footer — DOM order sets tab order (Save first); row-reverse keeps the visual layout unchanged */}
           <div className="flex flex-row-reverse flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-border/50">
@@ -803,9 +802,8 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           activeOptionId={activeSkillOptionId}
         />
         <HumanOnlySkillNotice skills={skillAc.humanOnlyReferences} />
+        {attachmentStrip}
       </div>
-
-      {attachmentStrip}
 
       {/* Footer — same DOM-order/row-reverse pattern as the dialog footer above */}
       <div className="flex flex-row-reverse items-center justify-between px-3 py-2 border-t border-border/50">

@@ -20,6 +20,7 @@ import { PlanDiffBadge } from './plan-diff/PlanDiffBadge';
 import type { PlanDiffStats } from '../utils/planDiffEngine';
 import { hostnameOrFallback } from '@hypermark/core/project';
 import { OpenInAppButton } from './OpenInAppButton';
+import { fileName as pathFileName } from '../utils/displayPath';
 
 export interface LinkedDocBadgeInfo {
   filepath: string;
@@ -209,7 +210,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
               className="truncate rounded bg-muted/50 px-1.5 py-0.5 text-[9px] text-muted-foreground max-w-[220px]"
               title={linkedDocInfo.filepath}
             >
-              {linkedDocInfo.filepath.split('/').pop()}
+              {pathFileName(linkedDocInfo.filepath)}
             </span>
             {openInButton}
           </div>
@@ -241,7 +242,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
               className="px-1.5 py-0.5 bg-muted/50 text-muted-foreground rounded truncate max-w-[200px]"
               title={linkedDocInfo.filepath}
             >
-              {linkedDocInfo.filepath.split('/').pop()}
+              {pathFileName(linkedDocInfo.filepath)}
             </span>
             {openInButton}
           </div>

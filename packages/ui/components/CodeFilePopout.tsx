@@ -7,6 +7,7 @@ import { CommentPopover } from './CommentPopover';
 import { ImageThumbnail } from './ImageThumbnail';
 import type { CodeAnnotation, ImageAttachment } from '../types';
 import { copyTextToClipboard } from '../utils/clipboard';
+import { fileName as pathFileName, shortPath } from '../utils/displayPath';
 
 export interface CodeFileAnnotationInput {
   filePath: string;
@@ -324,8 +325,8 @@ export const CodeFilePopout: React.FC<CodeFilePopoutProps> = ({
     setPendingComment(null);
   }, [filepath]);
 
-  const displayName = filepath.split('/').pop() || filepath;
-  const relativePath = filepath.replace(/.*\/(?=.*\/)/, '');
+  const displayName = pathFileName(filepath);
+  const relativePath = shortPath(filepath);
   const lineCount = useMemo(() => contents.split('\n').length, [contents]);
   const selectedCodeAnnotation = useMemo(
     () => annotations.find((ann) => ann.id === selectedAnnotationId),

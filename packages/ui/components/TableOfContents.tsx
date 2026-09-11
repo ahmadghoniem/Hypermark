@@ -5,6 +5,7 @@ import {
   getAnnotationCountBySection,
   type TocItem,
 } from '../utils/annotationHelpers';
+import { fileName as pathFileName } from '../utils/displayPath';
 import {
   getScrollViewportRect,
   getScrollViewportTop,
@@ -128,7 +129,7 @@ export function TableOfContents({
               )}
             </div>
             <p className="text-[11px] text-foreground/70 truncate mt-0.5" title={linkedDocFilepath}>
-              {linkedDocFilepath.split('/').pop()}
+              {pathFileName(linkedDocFilepath)}
             </p>
           </div>
         )}

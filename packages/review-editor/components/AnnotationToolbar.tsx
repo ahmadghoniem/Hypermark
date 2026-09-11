@@ -188,19 +188,19 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
                 }
               }}
             />
+            {/* Spec 05 §3.2.1: attachments live inside the composer, directly
+                under the text and above the action row — never a floating card
+                or footer-only preview. */}
+            <AttachmentStrip
+              images={images}
+              pending={pendingAttachments}
+              onRemove={onRemoveImage}
+              onRemovePending={onRemovePendingAttachment}
+              onRetryPending={onRetryPendingAttachment}
+              onFocusAfterLastRemoved={focusAttachAction}
+              className="mt-2"
+            />
           </div>
-
-          {/* Spec 05 §3.2.1: strip lives inside the composer, between the
-              textarea and the action row — never a floating card or footer-only preview. */}
-          <AttachmentStrip
-            images={images}
-            pending={pendingAttachments}
-            onRemove={onRemoveImage}
-            onRemovePending={onRemovePendingAttachment}
-            onRetryPending={onRetryPendingAttachment}
-            onFocusAfterLastRemoved={focusAttachAction}
-            className="mt-2"
-          />
 
           <div className="flex items-center gap-2 mt-3">
             <AttachmentsButton

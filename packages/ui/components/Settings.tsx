@@ -18,12 +18,6 @@ import {
   type UIPreferences,
   type PlanWidth,
 } from '../utils/uiPreferences';
-import {
-  getPermissionModeSettings,
-  savePermissionModeSettings,
-  PERMISSION_MODE_OPTIONS,
-  type PermissionMode,
-} from '../utils/permissionMode';
 import { KeyboardShortcuts } from './KeyboardShortcuts';
 import { type QuickLabel, getQuickLabels, saveQuickLabels, resetQuickLabels, DEFAULT_QUICK_LABELS, getLabelColors, LABEL_COLOR_MAP } from '../utils/quickLabels';
 import { ThemeTab } from './ThemeTab';
@@ -543,7 +537,6 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
   const agentTerminalSide = useConfigValue('agentTerminalSide');
   const [planSave, setPlanSave] = useState<PlanSaveSettings>({ enabled: true, customPath: null });
   const [uiPrefs, setUiPrefs] = useState<UIPreferences>({ tocEnabled: true, stickyActionsEnabled: true, planWidth: 'compact' });
-  const [permissionMode, setPermissionMode] = useState<PermissionMode>('bypassPermissions');
   const [quickLabelsState, setQuickLabelsState] = useState<QuickLabel[]>([]);
   const [editingTipIndex, setEditingTipIndex] = useState<number | null>(null);
   const [editingTipValue, setEditingTipValue] = useState('');
@@ -580,7 +573,6 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
     if (showDialog) {
       setPlanSave(getPlanSaveSettings());
       setUiPrefs(getUIPreferences());
-      setPermissionMode(getPermissionModeSettings().mode);
       setQuickLabelsState(getQuickLabels());
     }
   }, [showDialog]);
@@ -597,11 +589,6 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
     setUiPrefs(newPrefs);
     saveUIPreferences(newPrefs);
     onUIPreferencesChange?.(newPrefs);
-  };
-
-  const handlePermissionModeChange = (mode: PermissionMode) => {
-    setPermissionMode(mode);
-    savePermissionModeSettings(mode);
   };
 
   // Server write-back is handled automatically by configStore.set() (debounced POST /api/config)
@@ -725,35 +712,6 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
                               }`}
                             />
                           </button>
-                        </div>
-                      </>
-                    )}
-
-                    {/* Permission Mode (Claude Code only) */}
-                    {origin === 'claude-code' && mode === 'plan' && (
-                      <>
-                        <div className="border-t border-border" />
-                        <div className="space-y-2">
-                          <div>
-                            <div className="text-sm font-medium">Permission Mode</div>
-                            <div className="text-xs text-muted-foreground">
-                              Automation level after plan approval
-                            </div>
-                          </div>
-                          <select
-                            value={permissionMode}
-                            onChange={(e) => handlePermissionModeChange(e.target.value as PermissionMode)}
-                            className="w-full max-w-[16rem] px-3 py-2 bg-muted rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer"
-                          >
-                            {PERMISSION_MODE_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="text-[10px] text-muted-foreground/70">
-                            {PERMISSION_MODE_OPTIONS.find(o => o.value === permissionMode)?.description}
-                          </div>
                         </div>
                       </>
                     )}

@@ -10,6 +10,7 @@ import { useCodePathValidation, type CodePathValidationContextValue } from "./Co
 import type { ValidationEntry } from "../hooks/useValidatedCodePaths";
 import { CodeFilePicker } from "./CodeFilePicker";
 import { normalizeMathTex, renderMathToHtml } from "../utils/math";
+import { fileName as pathFileName } from "../utils/displayPath";
 import { useMathRenderer } from "../hooks/useMathRenderer";
 
 export interface DocPreviewResult {
@@ -145,7 +146,7 @@ const CodeSnippetPreview: React.FC<{
       onMouseLeave={onMouseLeave}
     >
       <div className="px-3 py-1.5 border-b border-border/50 text-[10px] text-muted-foreground font-mono flex items-center justify-between gap-4 flex-shrink-0">
-        <span>{filepath.split('/').pop()}</span>
+        <span>{pathFileName(filepath)}</span>
         <span className="opacity-60">{lineEnd && lineEnd !== line ? `lines ${line}–${lineEnd}` : `line ${line}`}</span>
       </div>
       <div className="code-snippet-preview overflow-auto text-[12px] leading-5 min-h-0" style={{ padding: 0, background: 'var(--code-bg, #1e293b)' }}>
