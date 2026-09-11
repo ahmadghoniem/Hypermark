@@ -20,8 +20,8 @@ export default defineConfig({
     alias: {
       // Drop the dead Oniguruma WASM (~622 KB base64). The plan editor reaches
       // Pierre's shared highlighter through CodeFilePopout and the fence
-      // highlighter. See build/shiki-wasm-stub.ts.
-      'shiki/wasm': path.resolve(__dirname, '../../build/shiki-wasm-stub.ts'),
+      // highlighter. See scripts/shiki-wasm-stub.ts.
+      'shiki/wasm': path.resolve(__dirname, '../../scripts/shiki-wasm-stub.ts'),
       '@': path.resolve(__dirname, '.'),
       '@hypermark/shared': path.resolve(__dirname, '../../packages/shared'),
       '@hypermark/ui': path.resolve(__dirname, '../../packages/ui'),

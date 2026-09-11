@@ -5,9 +5,6 @@
   "description": "Interactive Plan Review for Claude Code - annotate plans visually, share with team, automatically send feedback",
   "author": "ahmadghoniem",
   "license": "MIT OR Apache-2.0",
-  "bin": {
-    "hypermark": "bin/hypermark.js"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ahmadghoniem/Hypermark.git"

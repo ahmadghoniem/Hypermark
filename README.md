@@ -379,9 +379,6 @@ reticle remains active; `?` still opens the complete key map on demand. The
 panel shows recent handled keys, the current block/line/word/Visual phase, and
 the command meaning without capturing text typed into comments or other
 controls.
-See [Vim controls](docs/vim-controls.md) for the interaction contract and
-implementation architecture.
-
 | Variable | Description |
 |---|---|
 | `HYPERMARK_PORT` | Fixed port (default: random) |

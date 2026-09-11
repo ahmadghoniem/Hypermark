@@ -34,9 +34,9 @@ export default defineConfig({
   resolve: {
     alias: {
       // Drop the dead Oniguruma WASM (~622 KB base64, inlined twice here: main
-      // thread + worker). See build/shiki-wasm-stub.ts. `resolve.alias` is
+      // thread + worker). See scripts/shiki-wasm-stub.ts. `resolve.alias` is
       // shared with the worker build below; `plugins` would not be.
-      'shiki/wasm': path.resolve(__dirname, '../../build/shiki-wasm-stub.ts'),
+      'shiki/wasm': path.resolve(__dirname, '../../scripts/shiki-wasm-stub.ts'),
       '@': path.resolve(__dirname, '.'),
       '@hypermark/shared': path.resolve(__dirname, '../../packages/shared'),
       '@hypermark/ui': path.resolve(__dirname, '../../packages/ui'),

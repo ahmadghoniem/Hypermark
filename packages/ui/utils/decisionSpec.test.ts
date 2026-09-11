@@ -24,19 +24,19 @@ function itemIds(spec: DecisionSpec): string[] {
 describe('buildDecisionSpec state matrix', () => {
   // Guards the model itself: each row of the spec's state table produces the
   // expected primary and the expected ordered menu.
-  it('annotate, no feedback, no gate → Done + the single Send a note composer', () => {
+  it('annotate, no feedback, no gate → No notes + the single Send a note composer', () => {
     const spec = buildDecisionSpec({
       app: 'annotate', gate: false, count: 0, hasFeedback: false, approvalNotesSupported: false,
     });
-    expect(spec.primary.label).toBe('Done'); // frozen copy, maintainer-approved
-    // Maintainer ruling (post-demo): Done without a gate is NOT an approval —
+    expect(spec.primary.label).toBe('No notes'); // frozen copy, maintainer-approved
+    // Maintainer ruling (post-demo): No notes without a gate is NOT an approval —
     // it must never wear the success tone or check icon Approve wears.
     expect(spec.primary.tone).toBe('neutral');
     expect(spec.primary.icon).toBeUndefined();
     // Maintainer ruling (empty-menu collapse): ONE composer item — the old
     // "Done with a note…" / "Request changes…" pair differed only by framing
     // on the same transport and must not come back. Label is free prose.
-    expect(itemIds(spec)).toEqual(['request-changes']);
+    expect(itemIds(spec)).toEqual(['request-changes', 'close-session']);
     expect(spec.items[0].composer).toBeDefined();
     expect(spec.items[0].composer?.tone).toBe('primary');
     expect(spec.items[0].dividerBefore).toBe(false);
@@ -48,7 +48,7 @@ describe('buildDecisionSpec state matrix', () => {
     });
     expect(withCap.primary.label).toBe('Approve'); // frozen copy, maintainer-approved
     expect(withCap.primary.tone).toBe('success');
-    expect(itemIds(withCap)).toEqual(['note-with-approval', 'request-changes']);
+    expect(itemIds(withCap)).toEqual(['note-with-approval', 'request-changes', 'close-session']);
     // Free prose except the verb: the gate's positive-note item must speak of
     // approving, not finishing.
     expect(withCap.items[0].label).toContain('Approve');
@@ -56,7 +56,7 @@ describe('buildDecisionSpec state matrix', () => {
     const withoutCap = buildDecisionSpec({
       app: 'annotate', gate: true, count: 0, hasFeedback: false, approvalNotesSupported: false,
     });
-    expect(itemIds(withoutCap)).toEqual(['request-changes']);
+    expect(itemIds(withoutCap)).toEqual(['request-changes', 'close-session']);
     expect(withoutCap.items[0].dividerBefore).toBe(false);
   });
 
@@ -70,18 +70,18 @@ describe('buildDecisionSpec state matrix', () => {
     // No gate ⇒ no approve channel ⇒ no Approve-with-notes, capability or not.
     expect(itemIds(nonGate)).toEqual(['note-with-feedback', 'close-session']);
     // Label is free prose; the data is the flow verb and the live count.
-    expect(nonGate.items[1].label).toContain('Done,');
+    expect(nonGate.items[1].label).toContain('Close,');
     expect(nonGate.items[1].label).toContain('3');
-    expect(nonGate.items[1].confirm?.confirmText).toBe('Discard & finish'); // frozen copy
+    expect(nonGate.items[1].confirm?.confirmText).toBe('Close anyway'); // frozen copy
 
     const gate = buildDecisionSpec({
       app: 'annotate', gate: true, count: 3, hasFeedback: true, approvalNotesSupported: true,
     });
     expect(itemIds(gate)).toEqual(['note-with-feedback', 'approve-with-notes', 'close-session']);
     expect(gate.items[1].label).toBe('Approve with notes'); // frozen copy, maintainer-approved
-    expect(gate.items[2].label).toContain('Approve,');
+    expect(gate.items[2].label).toContain('Close,');
     expect(gate.items[2].label).toContain('3');
-    expect(gate.items[2].confirm?.confirmText).toBe('Discard & approve'); // frozen copy
+    expect(gate.items[2].confirm?.confirmText).toBe('Close anyway'); // frozen copy
 
     const gateNoCap = buildDecisionSpec({
       app: 'annotate', gate: true, count: 3, hasFeedback: true, approvalNotesSupported: false,
@@ -89,10 +89,10 @@ describe('buildDecisionSpec state matrix', () => {
     expect(itemIds(gateNoCap)).toEqual(['note-with-feedback', 'close-session']);
   });
 
-  // M1 ruling fact-guard: in the agent-terminal delivered state the Done
+  // M1 ruling fact-guard: in the agent-terminal delivered state the No notes
   // transport still posts the FULL payload, so the copy must never claim
-  // "no feedback" — while the primary label itself stays the frozen 'Done'.
-  it('feedbackDelivered keeps the Done primary but drops the "no feedback" claim', () => {
+  // "no feedback" — while the primary label itself stays the frozen 'No notes'.
+  it('feedbackDelivered keeps the No notes primary but drops the "no feedback" claim', () => {
     const base = {
       app: 'annotate' as const, gate: false, count: 0,
       hasFeedback: false, approvalNotesSupported: false,
@@ -100,7 +100,7 @@ describe('buildDecisionSpec state matrix', () => {
     const plain = buildDecisionSpec(base);
     const delivered = buildDecisionSpec({ ...base, feedbackDelivered: true });
 
-    expect(delivered.primary.label).toBe('Done'); // frozen copy, maintainer-approved
+    expect(delivered.primary.label).toBe('No notes'); // frozen copy, maintainer-approved
     expect(delivered.primary.title).not.toContain('no feedback');
     // The two states must actually differ — a regression that ignores the
     // flag would silently restore the lying tooltip.
@@ -113,12 +113,12 @@ describe('buildDecisionSpec state matrix', () => {
       app: 'review', gate: true, count: 0, hasFeedback: false, approvalNotesSupported: false,
     });
     expect(phase1.primary.label).toBe('Approve');
-    expect(itemIds(phase1)).toEqual(['request-changes']);
+    expect(itemIds(phase1)).toEqual(['request-changes', 'close-session']);
 
     const phase2 = buildDecisionSpec({
       app: 'review', gate: true, count: 0, hasFeedback: false, approvalNotesSupported: true,
     });
-    expect(itemIds(phase2)).toEqual(['note-with-approval', 'request-changes']);
+    expect(itemIds(phase2)).toEqual(['note-with-approval', 'request-changes', 'close-session']);
     expect(phase2.items[0].label).toContain('Approve');
   });
 
@@ -148,7 +148,7 @@ describe('buildDecisionSpec invariants', () => {
       expect(spec.primary.id).toBe('primary');
       expect(itemIds(spec)).not.toContain('primary');
       // The header shows Send Feedback XOR a positive finish, never both.
-      const positiveLabels = ['Done', 'Approve'];
+      const positiveLabels = ['No notes', 'Approve'];
       if (spec.primary.label === 'Send Feedback') {
         expect(positiveLabels).not.toContain(spec.primary.label);
       } else {

@@ -11,7 +11,7 @@
  * Trust model (v1): global, user-owned roots only (`~/.claude/skills`,
  * `~/.codex/skills`, `~/.config/agents/skills`), honoring the standard env
  * overrides (`CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `XDG_CONFIG_HOME`). Project/repo
- * skills are NOT discovered (the fork-trust problem). See docs/custom-reviews.md.
+ * skills are NOT discovered (the fork-trust problem).
  *
  * Skip-and-log discipline: an unreadable dir / file is skipped with one log
  * line and never throws. Read on each request — no file watching, no cache.
