@@ -26,7 +26,6 @@ configureHypermarkUI({
   skillCatalogTransport,       // skill-reference catalog for comment composers
   skillContentTransport,       // human-only skill contents for feedback injection
   serverSync,
-  webmcp,                      // browser-agent (WebMCP) provider policy: { enabled, namePrefix }
   mathRendererLoader,          // how KaTeX loads when no renderer is registered before first math render
   identityGenerator,           // sync generator behind the default "tater" name (no identityProvider)
 });
@@ -214,43 +213,6 @@ exactly. The standalone `StickyHeaderLane` remains supported for Hypermark's
 hidden-at-rest ghost lane, but its always-visible mode is an overlay and is not
 the in-flow host integration.
 
-### WebMCP provider (`@hypermark/ui/webmcp`; 0.32.0)
+### Threaded replies (`Annotation.inReplyTo`)
 
-The engine that lets a browser-integrated agent (Chrome/Edge WebMCP, `document.modelContext`) call in-page tools on a document surface. Feature-detected once; a browser without the API sees no registration, no DOM, no network, no timers. Seam: `configureHypermarkUI({ webmcp: { enabled, namePrefix } })`, default enabled with the `hypermark.` prefix; pass `enabled: false` to keep a host page tool-free, or your own prefix to namespace the tools beside your own. There is deliberately no confirmation seam: the catalog is read-and-comment only (no approve / submit / close tools), and the agent may only edit or remove comments stamped `source: "browser-agent"`.
-
-- `modelContext.ts` is the only file that spells the spec surface (local structural types, no `webmcp-types` dependency). A spec rename is a one-file change.
-- `useToolset({ id, active, build, deps, hooks })` attaches a named tool set to the document registry; handlers read through refs, so re-renders never re-register, and `active: false` aborts every registration (what Hypermark's Settings opt-out drives).
-- `AnnotationChangeTracker` / `buildNudges` are pure (no DOM): per-annotation `seq`, tombstones, a per-tab watermark with `since` override, and the nudge vocabulary every response carries.
-- A host with its own document state builds the same adapter-driven catalog Hypermark uses (`packages/editor/webmcp/documentTools.ts`, `buildDocumentTools(adapter, state, options)`) over its own getters and actions; multi-document pages should register one set whose tools take `path` (the folder-session shape) rather than one set per viewer (duplicate names across sets are skipped with a warning, never replaced).
-- Never register tools inside an untrusted iframe: the raw-HTML viewer's `sandbox="allow-scripts"` frame and the live-app frame carry no `allow="tools"`, and that is what keeps a framed page from impersonating the host's tools.
-
-The one additive data-model change that rides with it: `Annotation.inReplyTo` (threaded replies; the panel indents them under the parent, the export nests them, share links drop them).
-
-## Consuming it (e.g. from Workspaces)
-
-```bash
-npm install @hypermark/ui @hypermark/core
-```
-
-1. Call `configureHypermarkUI({ ... })` once at startup with your backend.
-2. Import the stylesheet: `import "@hypermark/ui/styles.css";` (precompiled — no Tailwind wiring needed; if you'd rather run your own Tailwind over the package source, add `@source` globs for `@hypermark/ui`'s `components/`, `hooks/`, and `utils/` dirs in your own CSS — the package doesn't ship its build entry).
-3. **Load the fonts in your app entry** — the stylesheet references `--font-sans` / `--font-mono` but does not ship font binaries (standard for a shared UI package; your app owns font loading). Hypermark uses Inter + Geist Mono:
-   ```ts
-   import "@fontsource-variable/inter";
-   import "@fontsource-variable/geist-mono";
-   ```
-   Or provide your own fonts and set `--font-sans` / `--font-mono` to match.
-   The same policy covers math: KaTeX's stylesheet + fonts are deliberately not in `styles.css` — if you render math, load `katex/dist/katex.min.css` yourself (import, CDN tag, or self-hosted copy; see HANDOFF.md "Math rendering").
-4. Import components: `import { Viewer } from "@hypermark/ui/components/Viewer";`
-5. Build with a bundler that compiles TS/TSX (Vite + React 19 + Tailwind v4). The packages ship **source**, so your bundler compiles them — set `moduleResolution: "bundler"`, `allowImportingTsExtensions`, `jsx: "react-jsx"`.
-
-## Packages & publishing
-
-- `@hypermark/core` — pure utils + types, zero deps, browser-safe (CI enforces no `node:` imports). Published.
-- `@hypermark/ui` — React components/hooks + theme + `configure()`. Depends on an exact published `@hypermark/core` version. Published.
-- `@hypermark/shared` — stays private to the monorepo; it re-exports `core`'s modules via shims so Hypermark's internals are untouched.
-- Currently `@hypermark/ui` 0.38.0 depends exactly on `@hypermark/core` 0.25.1. `core` is bumped only when something under `packages/core` changes, so `ui` can advance alone. Keep the published core version exact in `packages/ui/package.json`; do not use a `workspace:` protocol there, because a directly published manifest must remain installable outside this monorepo. Bun still links the matching local workspace during development. When both packages change, publish `core` first, then build and publish the UI tarball. See HANDOFF.md "Publishing & versioning" for the verification command.
-
-## The one rule
-
-**Do not reimplement the document UI from scratch.** A prior from-scratch rewrite broke the app and was reverted. The supported path is always: keep these components as-is and add a seam where a host needs different backend behavior. Never delete working Hypermark code until a human has confirmed parity in the browser.
+One additive field on `Annotation`: the panel indents a reply under its parent, the export nests it, and share links drop it (a reply shares as a plain comment on the same quote). An annotation without the field renders and exports exactly as before.

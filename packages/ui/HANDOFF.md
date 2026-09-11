@@ -675,7 +675,7 @@ Behavior is pinned by `../core/html-anchor.test.ts`, `components/html-viewer/una
 
 Additive only, but required: `@hypermark/ui` 0.32.0 imports the new `@hypermark/core/html-anchor` subpath (`projectHostThreads`, `buildPersistedHtmlAnchor`), absent from published core 0.24.0, so core 0.25.0 must be installed/published first. Also carries the regenerated `guide-viewer-manifest` that pins the guides.show stylesheet with the `HtmlSurfaceControls` rules (see "Publishing & versioning").
 
-0.32.0 also ships the WebMCP provider engine (`@hypermark/ui/webmcp`, the `webmcp` seam on `configureHypermarkUI`, and the additive `Annotation.inReplyTo` field); see README.md "WebMCP provider".
+0.32.0 also ships the additive `Annotation.inReplyTo` field; see README.md "Threaded replies".
 
 ---
 

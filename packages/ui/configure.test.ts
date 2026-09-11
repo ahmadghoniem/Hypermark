@@ -8,7 +8,6 @@ import * as identity from './utils/identity';
 import * as useFileBrowser from './hooks/useFileBrowser';
 import * as useAnnotationDraft from './hooks/useAnnotationDraft';
 import * as useExternalAnnotations from './hooks/useExternalAnnotations';
-import * as webmcpPolicy from './webmcp/policy';
 import { configStore } from './config';
 
 import type { ImageSrcResolver } from './components/ImageThumbnail';
@@ -40,9 +39,6 @@ const realSetDraftTransport = useAnnotationDraft.setDraftTransport;
 const realResetDraftTransport = useAnnotationDraft.resetDraftTransport;
 const realSetExternalAnnotationTransport = useExternalAnnotations.setExternalAnnotationTransport;
 const realResetExternalAnnotationTransport = useExternalAnnotations.resetExternalAnnotationTransport;
-const realSetWebMcpPolicy = webmcpPolicy.setWebMcpPolicy;
-const realResetWebMcpPolicy = webmcpPolicy.resetWebMcpPolicy;
-const realGetWebMcpPolicy = webmcpPolicy.getWebMcpPolicy;
 
 // Spy mocks — will be installed into the module registry in beforeAll.
 const setImageSrcResolver = mock((_: ImageSrcResolver) => {});
@@ -53,7 +49,6 @@ const setIdentityProvider = mock((_: IdentityProvider) => {});
 const setFileTreeBackend = mock((_: FileTreeBackend) => {});
 const setDraftTransport = mock((_: DraftTransport) => {});
 const setExternalAnnotationTransport = mock((_: ExternalAnnotationTransport<{ id: string; source?: string }>) => {});
-const setWebMcpPolicy = mock((_: webmcpPolicy.WebMcpPolicy) => {});
 
 // configStore is shared with sibling suites — spy on the real instance methods
 // instead of replacing the ./config module.
@@ -138,12 +133,6 @@ describe('configureHypermarkUI routing', () => {
       setExternalAnnotationTransport,
       resetExternalAnnotationTransport: realResetExternalAnnotationTransport,
     }));
-    mock.module('./webmcp/policy', () => ({
-      ...webmcpPolicy,
-      setWebMcpPolicy,
-      resetWebMcpPolicy: realResetWebMcpPolicy,
-      getWebMcpPolicy: realGetWebMcpPolicy,
-    }));
   });
 
   afterAll(() => {
@@ -190,12 +179,6 @@ describe('configureHypermarkUI routing', () => {
       setExternalAnnotationTransport: realSetExternalAnnotationTransport,
       resetExternalAnnotationTransport: realResetExternalAnnotationTransport,
     }));
-    mock.module('./webmcp/policy', () => ({
-      ...webmcpPolicy,
-      setWebMcpPolicy: realSetWebMcpPolicy,
-      resetWebMcpPolicy: realResetWebMcpPolicy,
-      getWebMcpPolicy: realGetWebMcpPolicy,
-    }));
   });
 
   it('routes each provided seam to its underlying setter', async () => {
@@ -211,11 +194,9 @@ describe('configureHypermarkUI routing', () => {
       draftTransport,
       externalAnnotationTransport,
       serverSync,
-      webmcp: { enabled: false, namePrefix: 'host.' },
       loadSettingsFromBackend: true,
     });
 
-    expect(setWebMcpPolicy).toHaveBeenCalledWith({ enabled: false, namePrefix: 'host.' });
     expect(setImageSrcResolver).toHaveBeenCalledWith(imageSrcResolver);
     expect(setDocPreviewFetcher).toHaveBeenCalledWith(docPreviewFetcher);
     expect(setStorageBackend).toHaveBeenCalledWith(storageBackend);
@@ -239,13 +220,12 @@ describe('configureHypermarkUI routing', () => {
     [
       setImageSrcResolver, setDocPreviewFetcher, setStorageBackend, setUploadTransport,
       setIdentityProvider, setFileTreeBackend, setDraftTransport, setExternalAnnotationTransport,
-      setServerSync, loadFromBackend, setWebMcpPolicy,
+      setServerSync, loadFromBackend,
     ].forEach((m) => m.mockClear());
 
     configureHypermarkUI({ storageBackend });
 
     expect(setStorageBackend).toHaveBeenCalledTimes(1);
-    expect(setWebMcpPolicy).not.toHaveBeenCalled();
     expect(setImageSrcResolver).not.toHaveBeenCalled();
     expect(loadFromBackend).not.toHaveBeenCalled();
   });

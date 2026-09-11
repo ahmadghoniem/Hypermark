@@ -7,7 +7,6 @@ import { setFileTreeBackend, type FileTreeBackend } from './hooks/useFileBrowser
 import { setDraftTransport, type DraftTransport } from './hooks/useAnnotationDraft';
 import { setExternalAnnotationTransport, type ExternalAnnotationTransport } from './hooks/useExternalAnnotations';
 import { setSkillCatalogTransport, setSkillContentTransport, type SkillCatalogTransport, type SkillContentTransport } from './utils/skillCatalog';
-import { setWebMcpPolicy, type WebMcpPolicy } from './webmcp/policy';
 import { setMathRendererLoader, type MathRenderer, type MathRendererLoader } from './utils/math';
 import { setIdentityGenerator, type IdentityGenerator } from './utils/generateIdentity';
 import { configStore } from './config';
@@ -32,7 +31,6 @@ export type {
   SkillCatalogTransport,
   SkillContentTransport,
   ServerSyncFn,
-  WebMcpPolicy,
   MathRenderer,
   MathRendererLoader,
   IdentityGenerator,
@@ -60,13 +58,6 @@ export interface HypermarkUIConfig {
   /** Human-only skill contents request for feedback injection. Default: `GET /api/skills/content?name=` on the page origin. */
   skillContentTransport?: SkillContentTransport;
   serverSync?: ServerSyncFn;
-  /**
-   * WebMCP provider policy: `{ enabled, namePrefix }`. Default: enabled
-   * whenever the browser exposes `document.modelContext`, with the
-   * `hypermark.` prefix. There is no confirmation seam because the catalog
-   * exposes nothing consequential: no tool decides, submits or closes.
-   */
-  webmcp?: WebMcpPolicy;
   /**
    * How the math renderer is loaded when no renderer is registered before the
    * first math node renders. Default: `import('katex')` (JS only; the
@@ -98,7 +89,6 @@ export function configureHypermarkUI(config: HypermarkUIConfig): void {
   if (config.skillCatalogTransport) setSkillCatalogTransport(config.skillCatalogTransport);
   if (config.skillContentTransport) setSkillContentTransport(config.skillContentTransport);
   if (config.serverSync) configStore.setServerSync(config.serverSync);
-  if (config.webmcp) setWebMcpPolicy(config.webmcp);
   if (config.mathRendererLoader) setMathRendererLoader(config.mathRendererLoader);
   if (config.identityGenerator) setIdentityGenerator(config.identityGenerator);
   // Re-hydrate AFTER storageBackend is installed (load-bearing order — gated last).

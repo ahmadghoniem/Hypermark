@@ -4,7 +4,6 @@ import type { AnnotateAgentTerminalSide } from '@hypermark/core/agent-terminal';
 import type { Origin } from '@hypermark/core/agents';
 import type { DiffLineBgIntensity } from '@hypermark/core/config-types';
 import { configStore, useConfigValue, setReviewPanelView, setReviewDefaultDiffType, setReviewAutoViewed } from '../config';
-import { setWebMcpToolsEnabled, useWebMcpToolsEnabled } from '../webmcp/preference';
 import { TaterSpritePullup } from './TaterSpritePullup';
 import {
   getPlanSaveSettings,
@@ -50,10 +49,6 @@ interface SettingsProps {
    *  from a Hidden position, but offering it where no terminal can ever run
    *  would just be a dead control. */
   agentTerminalAvailable?: boolean;
-  /** The browser exposes WebMCP (`document.modelContext`), so the "Agent
-   *  tools" opt-out is worth showing. Default false: a browser without the
-   *  API gets no row at all (the provider registers nothing there). */
-  webmcpAvailable?: boolean;
 }
 
 // --- Review-mode Display tab (diff display options) ---
@@ -520,8 +515,7 @@ const ReviewDisplayTab: React.FC<{ isCompactTouchLayout?: boolean }> = ({ isComp
 };
 
 
-export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange, origin, mode = 'plan', onUIPreferencesChange, externalOpen, onExternalClose, sinceBaseUnavailable, isCompactTouchLayout = false, agentTerminalAvailable = false, webmcpAvailable = false }) => {
-  const webmcpTools = useWebMcpToolsEnabled();
+export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange, origin, mode = 'plan', onUIPreferencesChange, externalOpen, onExternalClose, sinceBaseUnavailable, isCompactTouchLayout = false, agentTerminalAvailable = false }) => {
   const [showDialog, setShowDialog] = useState(false);
   const [themePreview, setThemePreview] = useState(false);
 
@@ -541,10 +535,10 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
   const [editingTipIndex, setEditingTipIndex] = useState<number | null>(null);
   const [editingTipValue, setEditingTipValue] = useState('');
 
-  // General holds two situational controls and nothing else, so in review
-  // — and in an annotate session with no agent terminal — the tab opened on a
+  // General holds one situational control and nothing else, so in review —
+  // and in an annotate session with no agent terminal — the tab opened on a
   // blank pane. It now appears only when it has something in it.
-  const hasGeneralSettings = webmcpAvailable || (mode === 'annotate' && agentTerminalAvailable);
+  const hasGeneralSettings = mode === 'annotate' && agentTerminalAvailable;
 
   const mainTabs = useMemo(() => {
     const t: { id: SettingsTab; label: string }[] = [];
@@ -698,39 +692,6 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
                 {/* === GENERAL TAB === */}
                 {activeTab === 'general' && (
                   <>
-                    {/* Agent tools (WebMCP). Shown only when the browser
-                        exposes document.modelContext; off unregisters the
-                        tools for this browser. Cookie-only and idle at its
-                        default: no cookie exists until the user opts out. */}
-                    {webmcpAvailable && (
-                      <>
-                        <div className="border-t border-border" />
-                        <div className="flex items-center justify-between" data-webmcp-setting="true">
-                          <div>
-                            <div className="text-sm font-medium">Agent tools</div>
-                            <div className="text-xs text-muted-foreground">
-                              Let your browser's agent read this document and leave comments. Approving and sending feedback stay yours.
-                            </div>
-                          </div>
-                          <button
-                            role="switch"
-                            aria-checked={webmcpTools}
-                            aria-label="Agent tools"
-                            onClick={() => setWebMcpToolsEnabled(!webmcpTools)}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                              webmcpTools ? 'bg-primary' : 'bg-muted'
-                            }`}
-                          >
-                            <span
-                              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-                                webmcpTools ? 'translate-x-6' : 'translate-x-1'
-                              }`}
-                            />
-                          </button>
-                        </div>
-                      </>
-                    )}
-
                     {/* Agent TUI position. The same control lives in the
                         terminal's own Display popover, but that one is
                         unreachable once the position is Hidden — this is the

@@ -10,7 +10,7 @@
  * (`contentRefresh`) from the caller, which means the guarantee lives in
  * which call sites pass it, and only source can assert that.
  *
- * Same idiom as webmcp/iframeIsolation.test.ts: assert on the source text.
+ * Assert on the source text rather than on behavior.
  */
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';

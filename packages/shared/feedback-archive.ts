@@ -262,7 +262,7 @@ function asNumber(value: unknown): number | undefined {
  * Markdown annotations (plan/annotate) and code annotations (review) are
  * different shapes; both are read leniently and the union of their known
  * fields is recorded. Provenance (`source`, `author`) is always preserved:
- * external, WebMCP, and agent-sourced annotations belong in the record —
+ * external and agent-sourced annotations belong in the record —
  * the submitted feedback text already embeds them — but must stay
  * distinguishable from what the human wrote.
  */

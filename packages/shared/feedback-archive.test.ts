@@ -112,7 +112,7 @@ describe("feedback archive: record shape", () => {
   });
 
   test("provenance is preserved so `source == null` filters the reviewer's own comments", () => {
-    // Regression: external/WebMCP/agent findings are archived (the submitted
+    // Regression: external/agent findings are archived (the submitted
     // text already embeds them) but must stay distinguishable, or "analyze my
     // own feedback" silently counts a linter's output as the user's.
     const dataDir = useTempDataDir();
