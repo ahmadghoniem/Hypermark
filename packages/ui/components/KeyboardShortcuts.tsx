@@ -1,9 +1,11 @@
 import React from 'react';
 import {
   formatShortcutBindingTokens,
-  listScopeShortcuts,
+  getShortcutRegistryForMode,
+  listRegistryShortcutSections,
+  type ShortcutEntry,
+  type ShortcutSurfaceMode,
 } from '../shortcuts';
-import { modKey, altKey } from '../utils/platform';
 
 /* ─── Key cap component ─── */
 
@@ -27,22 +29,39 @@ const Keys: React.FC<{ keys: string[] }> = ({ keys }) => (
   </span>
 );
 
+/**
+ * Every binding for one action, alternatives separated by "or".
+ *
+ * The registry allows several bindings per action (`J` or `ArrowDown`), which
+ * the old hand-typed table had no way to express and so silently dropped.
+ */
+const Bindings: React.FC<{ bindings: string[] }> = ({ bindings }) => (
+  <span className="inline-flex items-center gap-1.5">
+    {bindings.map((binding, i) => (
+      <React.Fragment key={binding}>
+        {i > 0 && <span className="text-[10px] text-muted-foreground/50">or</span>}
+        <Keys keys={formatShortcutBindingTokens(binding)} />
+      </React.Fragment>
+    ))}
+  </span>
+);
+
 /* ─── Shortcut row ─── */
 
-const ShortcutRow: React.FC<{ keys: string[]; desc: string; hint?: string }> = ({ keys, desc, hint }) => (
-  <div className="flex items-center justify-between py-1">
+const ShortcutRow: React.FC<{ shortcut: ShortcutEntry }> = ({ shortcut }) => (
+  <div className="flex items-center justify-between gap-3 py-1">
     <span className="text-xs text-muted-foreground">
-      {desc}
-      {hint && (
+      {shortcut.description}
+      {shortcut.hint && (
         <span className="relative group ml-1 inline-flex">
           <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] font-medium bg-muted-foreground/15 text-muted-foreground/60 cursor-default">?</span>
           <span className="absolute bottom-full left-0 mb-1.5 px-2.5 py-1.5 rounded bg-foreground text-background text-[11px] leading-snug w-[320px] opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg z-50">
-            {hint}
+            {shortcut.hint}
           </span>
         </span>
       )}
     </span>
-    <Keys keys={keys} />
+    <Bindings bindings={shortcut.bindings} />
   </div>
 );
 
@@ -57,153 +76,32 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
   </div>
 );
 
-/* ─── Key names ─── */
-
-const enter = '↵';
-const shiftKey = 'Shift';
-
-/* ─── Shortcut data ─── */
-
-interface Shortcut {
-  keys: string[];
-  desc: string;
-  hint?: string;
-}
-
-interface ShortcutSection {
-  title: string;
-  shortcuts: Shortcut[];
-}
-
-const inputMethodShortcuts: ShortcutSection = {
-  title: 'Input Method',
-  shortcuts: [
-    { keys: [altKey, 'hold'], desc: 'Temporarily switch mode', hint: 'Hold to switch between Select and Pinpoint, release to revert' },
-    { keys: [altKey, altKey], desc: 'Toggle mode', hint: 'Double-tap to permanently switch between Select and Pinpoint' },
-  ],
-};
-
-const documentViewShortcuts: ShortcutSection = {
-  title: 'View',
-  shortcuts: [
-    { keys: [modKey, '.'], desc: 'Toggle focus mode', hint: 'Collapses the Contents sidebar and the right-hand panel together; press again to restore whatever was open before. Markdown documents only; HTML pages keep their own layout.' },
-  ],
-};
-
-const annotationShortcuts: ShortcutSection = {
-  title: 'Annotations',
-  shortcuts: [
-    { keys: [shiftKey, '1-4'], desc: 'Switch annotation mode', hint: '1 Markup, 2 Comment, 3 Redline, 4 Label — matches the toolstrip order' },
-    { keys: ['a-z'], desc: 'Start typing comment', hint: 'When the annotation toolbar is open, any letter key opens the comment editor with that character' },
-    { keys: [altKey, '1-0'], desc: 'Apply quick label', hint: 'Instantly applies the Nth preset label (0 = 10th). When the label picker is open, bare digits also work.' },
-    { keys: [modKey, enter], desc: 'Submit comment' },
-    { keys: [modKey, 'C'], desc: 'Copy selected text' },
-    { keys: ['Esc'], desc: 'Close toolbar / Cancel' },
-  ],
-};
-
-const sharedPlanEditorShortcuts: ShortcutSection[] = [
-  documentViewShortcuts,
-  inputMethodShortcuts,
-  annotationShortcuts,
-];
-
-const planActionShortcuts: ShortcutSection = {
-  title: 'Actions',
-  shortcuts: [
-    { keys: [modKey, enter], desc: 'Submit / Approve' },
-    { keys: ['Esc'], desc: 'Close dialog' },
-  ],
-};
-
-const annotateActionShortcuts: ShortcutSection = {
-  title: 'Actions',
-  shortcuts: [
-    { keys: [modKey, enter], desc: 'Send annotations' },
-  ],
-};
-
-const annotateSidebarShortcuts: ShortcutSection = {
-  title: 'Sidebar',
-  shortcuts: [
-    { keys: [modKey, 'B'], desc: 'Toggle Contents sidebar' },
-    { keys: [modKey, shiftKey, 'B'], desc: 'Toggle Files sidebar', hint: 'Available when the Files tab is shown.' },
-    { keys: [shiftKey, shiftKey], desc: 'Toggle Agent TUI sidebar', hint: 'Available when the Agent control is shown.' },
-  ],
-};
-
-const planShortcuts: ShortcutSection[] = [
-  planActionShortcuts,
-  ...sharedPlanEditorShortcuts,
-];
-
-const annotateShortcuts: ShortcutSection[] = [
-  annotateActionShortcuts,
-  annotateSidebarShortcuts,
-  ...sharedPlanEditorShortcuts,
-];
-
-const reviewShortcuts: ShortcutSection[] = [
-  {
-    title: 'Actions',
-    shortcuts: [
-      { keys: [modKey, enter], desc: 'Approve / Send feedback' },
-      { keys: [modKey, shiftKey, 'Y'], desc: 'Copy feedback', hint: 'Copies the same feedback that gets submitted' },
-      { keys: [altKey, altKey], desc: 'Toggle destination', hint: 'Double-tap to switch between GitHub and Agent in PR review mode' },
-      { keys: [modKey, 'B'], desc: 'Toggle file tree' },
-      { keys: [modKey, '.'], desc: 'Toggle sidebar' },
-      { keys: ['Esc'], desc: 'Collapse sidebar' },
-    ],
-  },
-  {
-    title: 'File Navigation',
-    shortcuts: [
-      { keys: ['J'], desc: 'Next file' },
-      { keys: ['K'], desc: 'Previous file' },
-      { keys: ['['], desc: 'Scroll to previous file', hint: 'In all-files view, scrolls the viewport to the previous file' },
-      { keys: [']'], desc: 'Scroll to next file', hint: 'In all-files view, scrolls the viewport to the next file' },
-      { keys: ['Home'], desc: 'First file' },
-      { keys: ['End'], desc: 'Last file' },
-    ],
-  },
-  {
-    title: 'File Actions',
-    shortcuts: [
-      { keys: ['V'], desc: 'Toggle viewed', hint: 'In all-files view, also collapses the file' },
-      { keys: ['A'], desc: 'Toggle git add / stage' },
-      { keys: ['C'], desc: 'File comment', hint: 'In all-files view, opens the comment popover for the focused file' },
-      { keys: ['X'], desc: 'Collapse / expand file', hint: 'In all-files view, toggles the focused file' },
-      { keys: ['Z'], desc: 'Undo collapse', hint: 'Reopens the last collapsed file and scrolls to it' },
-    ],
-  },
-  {
-    title: 'Annotations',
-    shortcuts: [
-      { keys: [modKey, enter], desc: 'Submit comment' },
-      { keys: ['Tab'], desc: 'Indent in editor' },
-      { keys: ['Esc'], desc: 'Close toolbar / Cancel' },
-    ],
-  },
-];
-
 /* ─── Exported panel ─── */
 
-/** Render the surface shortcut reference. */
+/**
+ * The surface shortcut reference, rendered from the shortcut registry.
+ *
+ * It used to be a second, hand-maintained list of the same keys the registry
+ * already described — and it had drifted: it documented `A` to stage a file
+ * and `Alt Alt` to switch feedback destination, neither of which still exists,
+ * while never mentioning annotation undo and redo, which do. Reading the
+ * registry is what makes that class of bug impossible rather than merely
+ * fixed. See `shortcuts/surfaces.ts` for which scopes each mode shows.
+ */
 export const KeyboardShortcuts: React.FC<{
-  mode: 'plan' | 'annotate' | 'review';
+  mode: ShortcutSurfaceMode;
 }> = ({ mode }) => {
-  const sections = mode === 'review'
-    ? reviewShortcuts
-    : mode === 'annotate'
-      ? annotateShortcuts
-      : planShortcuts;
+  const sections = React.useMemo(
+    () => listRegistryShortcutSections(getShortcutRegistryForMode(mode)),
+    [mode],
+  );
 
   return (
     <div className="space-y-4">
       {sections.map((section) => (
         <Section key={section.title} title={section.title}>
-          {section.shortcuts.map((s, i) => (
-            <ShortcutRow key={i} keys={s.keys} desc={s.desc} hint={s.hint} />
+          {section.shortcuts.map((shortcut) => (
+            <ShortcutRow key={`${shortcut.scopeId}:${shortcut.actionId}`} shortcut={shortcut} />
           ))}
         </Section>
       ))}

@@ -188,17 +188,6 @@ export const SETTINGS = {
     serverKey: undefined, fromServer: undefined, toServer: undefined,
   },
 
-  reviewShowStageControls: {
-    defaultValue: true as boolean,
-    fromCookie: () => {
-      const value = storage.getItem('hypermark-review-show-stage-controls');
-      return value === 'true' ? true : value === 'false' ? false : undefined;
-    },
-    toCookie: (value: boolean) =>
-      storage.setItem('hypermark-review-show-stage-controls', String(value)),
-    serverKey: undefined, fromServer: undefined, toServer: undefined,
-  },
-
   defaultDiffType: {
     defaultValue: 'since-base' as 'since-base' | 'local-vs-remote' | 'uncommitted' | 'unstaged' | 'staged' | 'merge-base' | 'all',
     fromCookie: () => {

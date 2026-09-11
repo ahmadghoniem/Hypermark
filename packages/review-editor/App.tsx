@@ -54,7 +54,23 @@ import {
 } from './hooks/useReviewSearch';
 import { useExternalAnnotations } from '@hypermark/ui/hooks/useExternalAnnotations';
 import { useUndoHistory } from '@hypermark/ui/hooks/useUndoHistory';
-import { useHistoryShortcuts } from '@hypermark/ui/shortcuts';
+import {
+  getMatchingShortcutBindingIndex,
+  matchesShortcutBinding,
+  reviewChromeShortcuts,
+  useHistoryShortcuts,
+} from '@hypermark/ui/shortcuts';
+
+/**
+ * These handlers keep their own `keydown` effects — their guards (search
+ * focus, compact navigator state, an Escape ladder) are too situational for a
+ * scope `when` — but the KEY each one answers to is read from the registry, so
+ * `reviewChrome.shortcuts.ts` is the single place a review chrome binding is
+ * written down, for the help panel and the handler alike.
+ */
+const CHROME = reviewChromeShortcuts.shortcuts;
+const matchesChrome = (event: KeyboardEvent, bindings: string[]): boolean =>
+  getMatchingShortcutBindingIndex(event, bindings) !== -1;
 import {
   applyCollectionMutations,
   hasActiveHistoryOverlay,
@@ -1278,8 +1294,7 @@ const ReviewAppInner: React.FC = () => {
       // Let the same shortcut reselect the current query when search already
       // has focus, while preserving native shortcuts in every other input.
       if (
-        (e.metaKey || e.ctrlKey)
-        && e.key.toLowerCase() === 'f'
+        matchesChrome(e, CHROME.searchFiles.bindings)
         && shouldHandleReviewSearchShortcut(e.target, searchInputRef.current)
       ) {
         if (hasSearchableFiles && !showCommitsPanel) {
@@ -1292,14 +1307,19 @@ const ReviewAppInner: React.FC = () => {
       }
 
       // Enter/F3 to step through search matches
-      if ((e.key === 'Enter' || e.key === 'F3') && searchMatches.length > 0 && !isSearchPending && !isTypingTarget(e.target)) {
+      // Shift is the direction, not part of the binding, so it is normalized
+      // away before matching and read separately below.
+      if (
+        matchesChrome({ ...e, shiftKey: false } as KeyboardEvent, CHROME.nextSearchMatch.bindings)
+        && searchMatches.length > 0 && !isSearchPending && !isTypingTarget(e.target)
+      ) {
         e.preventDefault();
         stepSearchMatch(e.shiftKey ? -1 : 1);
         return;
       }
 
       // Escape closes modals or clears search
-      if (e.key === 'Escape') {
+      if (matchesShortcutBinding(e, CHROME.dismiss.bindings[0]!)) {
         if (showDestinationMenu) {
           setShowDestinationMenu(false);
         } else if (showExportModal) {
@@ -1319,12 +1339,12 @@ const ReviewAppInner: React.FC = () => {
         }
       }
       // Cmd/Ctrl+B to toggle file tree
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'b' && !isTypingTarget(e.target)) {
+      if (matchesChrome(e, CHROME.toggleFileTree.bindings) && !isTypingTarget(e.target)) {
         e.preventDefault();
         toggleNavigator();
       }
       // Cmd/Ctrl+. to toggle sidebar
-      if ((e.metaKey || e.ctrlKey) && e.key === '.' && !isTypingTarget(e.target)) {
+      if (matchesChrome(e, CHROME.toggleSidebar.bindings) && !isTypingTarget(e.target)) {
         e.preventDefault();
         if (reviewSidebar.isOpen) reviewSidebar.close();
         else reviewSidebar.open();
@@ -1857,12 +1877,12 @@ const ReviewAppInner: React.FC = () => {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.shiftKey || isTypingTarget(e.target)) return;
+      if (isTypingTarget(e.target)) return;
       if (!isDiffPanelActive) return;
       const filePath = files[activeFileIndex]?.path;
       if (!filePath) return;
 
-      if (e.key === 'v') {
+      if (matchesChrome(e, CHROME.toggleViewed.bindings)) {
         e.preventDefault();
         handleToggleViewed(filePath);
       }
@@ -3402,7 +3422,7 @@ const ReviewAppInner: React.FC = () => {
   // Copy Feedback button in the header.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || !e.shiftKey || e.altKey || e.key.toLowerCase() !== 'y' || isTypingTarget(e.target)) return;
+      if (!matchesChrome(e, CHROME.copyFeedback.bindings) || isTypingTarget(e.target)) return;
 
       if (platformCommentDialog || showExportModal || showNoAnnotationsDialog) return;
 
