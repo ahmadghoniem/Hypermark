@@ -4465,8 +4465,120 @@ const AppInner: React.FC = () => {
                 <FolderAnnotationEmptyState />
               )}
               {/* Normal Plan View — always mounted, hidden during diff mode */}
-              <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : `$${isEditingMarkdown ? ' flex-1 min-h-0' : ''}`}`} style={{ display: goalSetupMode || (isPlanDiffActive && planDiff.diffBlocks) || (annotateSource === 'folder' && !markdown && !linkedDocHook.isActive) ? 'none' : undefined }}>
-                canUseWideMode || canEditMarkdown
+              <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : `flex justify-center${isEditingMarkdown ? ' flex-1 min-h-0' : ''}`}`} style={{ display: goalSetupMode || (isPlanDiffActive && planDiff.diffBlocks) || (annotateSource === 'folder' && !markdown && !linkedDocHook.isActive) ? 'none' : undefined }}>
+                {(canUseWideMode || canEditMarkdown) && !isPlanDiffActive && !archive.archiveMode && !isHtmlSurface && (
+                  <div
+                    className="absolute -top-5 left-0 right-0 mx-auto w-full flex justify-end pointer-events-none"
+                    style={annotateReaderMaxWidth === null ? undefined : { maxWidth: annotateReaderMaxWidth ?? 832 }}
+                  >
+                    <div className={`pointer-events-auto flex items-center gap-1.5 text-[11px] tracking-wide ${taterMode ? 'mr-[60px]' : 'mr-[4px]'}`}>
+                      {canUseWideMode && (['wide', 'focus'] as const).map((type, i) => (
+                        <React.Fragment key={type}>
+                          {i > 0 && <span aria-hidden className="text-muted-foreground/30 select-none">|</span>}
+                          <Tooltip
+                            side="top"
+                            align="end"
+                            content={type === 'wide' ? 'Hide panels and expand document width' : `Hide panels, keep document width (${modKey}+.)`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => toggleViewMode(type)}
+                              aria-pressed={wideModeType === type}
+                              className={`cursor-pointer rounded-sm transition-colors duration-150 outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:opacity-80 ${
+                                wideModeType === type
+                                  ? 'text-foreground'
+                                  : 'text-muted-foreground/50 hover:text-muted-foreground'
+                              }`}
+                            >
+                              {type.charAt(0).toUpperCase() + type.slice(1)}
+                            </button>
+                          </Tooltip>
+                        </React.Fragment>
+                      ))}
+                      {canEditMarkdown && (
+                        <>
+                          {canUseWideMode && <span aria-hidden className="text-muted-foreground/30 select-none">|</span>}
+                          {isEditingMarkdown && activeSourceSave && (
+                            <>
+                              <Tooltip
+                                side="top"
+                                align="end"
+                                content={`Save changes to ${activeSourceSave.basename}`}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => { void handleSaveEditedSourceFile(); }}
+                                  disabled={activeSaveStatus === 'saving'}
+                                  className={`flex items-center gap-1 cursor-pointer rounded-sm transition-colors duration-150 outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:opacity-80 disabled:cursor-not-allowed disabled:opacity-50 ${
+                                    saveFailed
+                                      ? 'text-destructive'
+                                      : emphasizeSave
+                                        ? 'text-primary'
+                                        : 'text-muted-foreground/50 hover:text-muted-foreground'
+                                  }`}
+                                >
+                                  {/* Invisible widest label reserves the width so Save/Saving/Saved
+                                      swap without nudging neighbors (font-agnostic, no fixed px). */}
+                                  <span className="grid justify-items-start">
+                                    <span aria-hidden className="invisible col-start-1 row-start-1">Saving</span>
+                                    <span className="col-start-1 row-start-1">
+                                      {activeSaveStatus === 'saving'
+                                        ? 'Saving'
+                                        : hasUnsavedDiskChanges
+                                          ? 'Save'
+                                          : 'Saved'}
+                                    </span>
+                                  </span>
+                                  {/* Dot slot is always present — only its color changes — so the
+                                      button never reflows when edits appear/clear. */}
+                                  <span
+                                    aria-hidden
+                                    className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors duration-150 ${
+                                      saveFailed ? 'bg-destructive' : emphasizeSave ? 'bg-primary' : 'bg-transparent'
+                                    }`}
+                                  />
+                                </button>
+                              </Tooltip>
+                              <span aria-hidden className="text-muted-foreground/30 select-none">|</span>
+                            </>
+                          )}
+                          <Tooltip
+                            side="top"
+                            align="end"
+                            content={
+                              !isEditingMarkdown
+                                ? 'Edit the document text directly'
+                                : cancelMode
+                                  ? 'Discard your edits and stop editing'
+                                  : 'Commit your edits and return to annotating'
+                            }
+                          >
+                            <button
+                              type="button"
+                              onClick={handleEditExitClick}
+                              aria-pressed={isEditingMarkdown}
+                              className={`cursor-pointer rounded-sm transition-colors duration-150 outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:opacity-80 ${
+                                cancelMode
+                                  ? (confirmCancelEdits
+                                      ? 'text-destructive'
+                                      : 'text-muted-foreground/70 hover:text-foreground')
+                                  : isEditingMarkdown
+                                    ? 'text-primary'
+                                    : 'text-muted-foreground/50 hover:text-muted-foreground'
+                              }`}
+                            >
+                              {!isEditingMarkdown
+                                ? 'Edit'
+                                : cancelMode
+                                  ? (confirmCancelEdits ? 'Discard?' : 'Cancel')
+                                  : 'Done'}
+                            </button>
+                          </Tooltip>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {renderAs === 'html' ? (
                   <HtmlViewer
                     key={`${liveApp ? 'live-app' : linkedDocHook.isActive ? `doc:${linkedDocHook.filepath}` : 'plan'}${isPlanDiffActive && htmlDiffHtml ? ':diff' : ''}:reload-${htmlRefresh.reloadGeneration}`}
