@@ -102,23 +102,10 @@ const annotationShortcuts: ShortcutSection = {
   ],
 };
 
-const imageAnnotatorShortcuts: ShortcutSection = {
-  title: 'Image Annotator',
-  shortcuts: [
-    { keys: ['1'], desc: 'Pen tool' },
-    { keys: ['2'], desc: 'Arrow tool' },
-    { keys: ['3'], desc: 'Circle tool' },
-    { keys: [modKey, 'Z'], desc: 'Undo' },
-    { keys: [enter], desc: 'Finish' },
-    { keys: ['Esc'], desc: 'Cancel' },
-  ],
-};
-
 const sharedPlanEditorShortcuts: ShortcutSection[] = [
   documentViewShortcuts,
   inputMethodShortcuts,
   annotationShortcuts,
-  imageAnnotatorShortcuts,
 ];
 
 const planActionShortcuts: ShortcutSection = {

@@ -1,7 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { getImageSrc } from './ImageThumbnail';
-import { ImageAnnotator } from './ImageAnnotator';
 import type { ImageAttachment } from '../types';
 import { getUploadTransport } from '../utils/upload';
 import { deriveImageName } from '../utils/imageNames';
@@ -37,44 +35,23 @@ export const AttachmentsButton: React.FC<AttachmentsButtonProps> = ({
 }) => {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [annotatorImage, setAnnotatorImage] = useState<{ file: File; blobUrl: string; initialName: string } | null>(null);
 
-  const handleFileSelect = (file: File) => {
-    // Derive name before opening annotator so user sees it immediately
-    const initialName = deriveImageName(file.name, images.map(i => i.name));
-    const blobUrl = URL.createObjectURL(file);
-    setAnnotatorImage({ file, blobUrl, initialName });
-  };
-
-  const handleAnnotatorAccept = async (blob: Blob, hasDrawings: boolean, name: string) => {
-    if (!annotatorImage) return;
+  const handleFileSelect = async (file: File) => {
+    const name = deriveImageName(file.name, images.map(i => i.name));
     setUploading(true);
     try {
-      // Use annotated blob if drawings exist, otherwise the original file
-      const fileToUpload = hasDrawings
-        ? new File([blob], 'annotated.png', { type: 'image/png' })
-        : annotatorImage.file;
-      const data = await getUploadTransport().upload(fileToUpload);
-      // Use the name from the annotator (user may have edited it)
+      const data = await getUploadTransport().upload(file);
       if (data.path) onAdd({ path: data.path, name });
     } catch (err) {
       console.error('Upload failed:', err);
     } finally {
       setUploading(false);
-      URL.revokeObjectURL(annotatorImage.blobUrl);
-      setAnnotatorImage(null);
     }
-  };
-
-  const handleAnnotatorClose = () => {
-    if (!annotatorImage) return;
-    URL.revokeObjectURL(annotatorImage.blobUrl);
-    setAnnotatorImage(null);
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) handleFileSelect(file);
+    if (file) void handleFileSelect(file);
     e.target.value = ''; // Reset for re-selection
   };
 
@@ -154,18 +131,6 @@ export const AttachmentsButton: React.FC<AttachmentsButtonProps> = ({
         onChange={handleFileInputChange}
         className="hidden"
       />
-
-      {/* Image Annotator Dialog - portaled to body for correct positioning */}
-      {annotatorImage && createPortal(
-        <ImageAnnotator
-          isOpen
-          imageSrc={annotatorImage.blobUrl}
-          initialName={annotatorImage.initialName}
-          onAccept={handleAnnotatorAccept}
-          onClose={handleAnnotatorClose}
-        />,
-        document.body
-      )}
     </>
   );
 };

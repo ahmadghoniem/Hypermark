@@ -381,7 +381,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       const target = e.target as Node | null;
       if (!target) return;
       if (popoverRef.current?.contains(target)) return;
-      // Don't close if clicking inside a child portal (AttachmentsButton, ImageAnnotator, etc.)
+      // Don't close if clicking inside a child portal
       const el = target as HTMLElement;
       if (el.closest?.('[data-popover-layer]')) return;
       if (hasUnsavedContentRef.current) return;
