@@ -533,7 +533,7 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [themePreview]);
-  const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('theme');
   const agentTerminalSide = useConfigValue('agentTerminalSide');
   const [planSave, setPlanSave] = useState<PlanSaveSettings>({ enabled: true, customPath: null });
   const [uiPrefs, setUiPrefs] = useState<UIPreferences>({ tocEnabled: true, stickyActionsEnabled: true, planWidth: 'compact' });
@@ -541,8 +541,14 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
   const [editingTipIndex, setEditingTipIndex] = useState<number | null>(null);
   const [editingTipValue, setEditingTipValue] = useState('');
 
+  // General holds two situational controls and nothing else, so in review
+  // — and in an annotate session with no agent terminal — the tab opened on a
+  // blank pane. It now appears only when it has something in it.
+  const hasGeneralSettings = webmcpAvailable || (mode === 'annotate' && agentTerminalAvailable);
+
   const mainTabs = useMemo(() => {
-    const t: { id: SettingsTab; label: string }[] = [{ id: 'general', label: 'General' }];
+    const t: { id: SettingsTab; label: string }[] = [];
+    if (hasGeneralSettings) t.push({ id: 'general', label: 'General' });
     t.push({ id: 'theme', label: 'Theme' });
     if (mode === 'plan') {
       t.push({ id: 'display', label: 'Display' });
@@ -559,7 +565,16 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
       t.push({ id: 'hooks', label: 'Hooks' });
     }
     return t;
-  }, [mode]);
+  }, [mode, hasGeneralSettings]);
+
+  // A tab can stop existing mid-session (an agent terminal that never became
+  // available, a mode switch), which would otherwise leave the dialog showing
+  // a pane no tab is highlighting.
+  useEffect(() => {
+    if (mainTabs.some((tab) => tab.id === activeTab)) return;
+    const first = mainTabs[0];
+    if (first) setActiveTab(first.id);
+  }, [mainTabs, activeTab]);
 
   // Sync external open state
   useEffect(() => {
