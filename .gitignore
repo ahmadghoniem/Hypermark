@@ -25,7 +25,16 @@ dist-ssr
 
 # Claude Code session-local runtime state (lock files, scheduled-task state).
 # Machine-specific; never belongs in the repo.
-.claude/
+# ...except the skills, which are the opposite: checked in so a session that
+# has none of this machine's plugins installed — a cloud run, a fresh clone —
+# still gets them. Plugin skills reach a session through the local plugin
+# cache; a repo skill reaches it through the repo.
+#
+# Written as `.claude/*` and not `.claude/`: git does not descend into an
+# excluded DIRECTORY, so a `!` re-include underneath one never gets a chance
+# to match. Excluding the contents leaves the directory itself readable.
+.claude/*
+!.claude/skills/
 .playwright-cli/
 .serena/
 *.ntvs*
