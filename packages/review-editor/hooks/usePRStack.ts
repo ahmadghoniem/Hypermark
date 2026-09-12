@@ -1,6 +1,5 @@
 import { useState, useCallback, type RefObject } from 'react';
 import type { PRDiffScope } from '@hypermark/shared/pr-stack';
-import type { SemanticDiffAdvert } from '@hypermark/shared/semantic-diff-types';
 
 export interface PRSwitchResponse {
   rawPatch: string;
@@ -16,7 +15,6 @@ export interface PRSwitchResponse {
   repoInfo?: unknown;
   viewedFiles?: string[];
   error?: string;
-  semanticDiff?: SemanticDiffAdvert;
   approvalNotesSupported?: boolean;
 }
 

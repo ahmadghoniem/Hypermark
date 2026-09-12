@@ -11,7 +11,6 @@ import { type Origin, getAgentName } from '@hypermark/shared/agents';
 import { ThemeProvider, useTheme } from '@hypermark/ui/components/ThemeProvider';
 import { TooltipProvider } from '@hypermark/ui/components/Tooltip';
 import { ConfirmDialog } from '@hypermark/ui/components/ConfirmDialog';
-import { Settings } from '@hypermark/ui/components/Settings';
 import { buildDecisionSpec, type DecisionActionId, type DecisionMenuItem } from '@hypermark/ui/utils/decisionSpec';
 import { DecisionControl, DecisionNoteDialog, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import {
@@ -28,10 +27,8 @@ import { GitLabIcon } from '@hypermark/ui/components/GitLabIcon';
 import { RepoIcon } from '@hypermark/ui/components/RepoIcon';
 import { PullRequestIcon } from '@hypermark/ui/components/PullRequestIcon';
 import { getPlatformLabel, getMRLabel, getMRNumberLabel, getDisplayRepo } from '@hypermark/shared/pr-types';
-import type { SemanticDiffAdvert } from '@hypermark/shared/semantic-diff-types';
-import type { CallFlowAdvert, CallFlowNode } from '@hypermark/shared/call-flow-types';
 import { configStore, useConfigValue, setReviewPanelView } from '@hypermark/ui/config';
-import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, Annotation, CommentAnnotation, type ArtifactAnnotationMeta, type CallFlowAnnotationTarget, type ImageAttachment } from '@hypermark/ui/types';
+import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, Annotation, CommentAnnotation, type ArtifactAnnotationMeta, type ImageAttachment } from '@hypermark/ui/types';
 import { useResizablePanel } from '@hypermark/ui/hooks/useResizablePanel';
 import { useCodeAnnotationDraft } from '@hypermark/ui/hooks/useCodeAnnotationDraft';
 import { generateId } from './utils/generateId';
@@ -39,11 +36,7 @@ import { toast, Toaster } from 'sonner';
 import { useCodeNav, type CodeNavRequest } from './hooks/useCodeNav';
 import { detectLanguage } from './utils/detectLanguage';
 import type { DiffTokenEventBaseProps } from '@pierre/diffs';
-import { useCallFlowAnalysis } from './hooks/useCallFlowAnalysis';
-import { useCallFlowInstall } from './hooks/useCallFlowInstall';
-import { useCallFlowAutoInstall } from './hooks/useCallFlowAutoInstall';
-import { extractLinesFromPatch, isLineRangeInPatch } from './utils/patchParser';
-import { resolveCallFlowAnnotationPlacement } from './utils/callFlowAnnotations';
+import { extractLinesFromPatch } from './utils/patchParser';
 import {
   shouldHandleReviewSearchShortcut,
   isTypingTarget,
@@ -83,7 +76,7 @@ import { IconContext, Tree } from '@phosphor-icons/react';
 import { DockviewReact, type DockviewReadyEvent, type DockviewApi } from 'dockview-react';
 import { ExportIcon, ReviewHeaderMenu } from './components/ReviewHeaderMenu';
 import { ThemeModeButton } from '@hypermark/ui/components/ThemeModeButton';
-import { SettingsIcon } from '@hypermark/ui/components/icons/headerIcons';
+import { KeyboardShortcutsButton } from '@hypermark/ui/components/KeyboardShortcutsDialog';
 import { ReviewSidebar } from './components/ReviewSidebar';
 import type { ReviewSidebarTab } from './components/ReviewSidebar';
 import { useSidebar } from '@hypermark/ui/hooks/useSidebar';
@@ -125,8 +118,6 @@ import {
   isReviewDiffPanelId,
   REVIEW_PR_OVERVIEW_PANEL_ID,
   REVIEW_PR_ARTIFACTS_PANEL_ID,
-  REVIEW_SEMANTIC_DIFF_PANEL_ID,
-  REVIEW_CALL_FLOW_PANEL_ID,
   REVIEW_ALL_FILES_PANEL_ID,
   REVIEW_CODE_NAV_PANEL_ID,
 } from './dock/reviewPanelTypes';
@@ -179,8 +170,6 @@ interface DiffData {
   prStackInfo?: PRStackInfo | null;
   prDiffScope?: PRDiffScope;
   prDiffScopeOptions?: PRDiffScopeOption[];
-  semanticDiff?: SemanticDiffAdvert;
-  callFlow?: CallFlowAdvert;
 }
 
 function getFileTabTitle(filePath: string): string {
@@ -307,19 +296,9 @@ const ReviewAppInner: React.FC = () => {
   // at call time instead of a stale closure capture.
   const isAllFilesActiveRef = useRef(isAllFilesActive);
   isAllFilesActiveRef.current = isAllFilesActive;
-  const [isSemanticDiffActive, setIsSemanticDiffActive] = useState(false);
-  const [isCallFlowActive, setIsCallFlowActive] = useState(false);
   const [isPROverviewActive, setIsPROverviewActive] = useState(false);
   const [isPRArtifactsActive, setIsPRArtifactsActive] = useState(false);
-  const [semanticDiffAvailable, setSemanticDiffAvailable] = useState(false);
-  const [callFlowAdvert, setCallFlowAdvert] = useState<CallFlowAdvert>({
-    enabled: false,
-    available: false,
-    state: 'disabled',
-    provider: 'calldiff',
-  });
   const apiModeRef = useRef(false);
-  const analysisSettingsInitialized = useRef(false);
   const [isDiffPanelActive, setIsDiffPanelActive] = useState(false);
   const [allFilesVisibleFile, setAllFilesVisibleFile] = useState<string | null>(null);
   const [pendingSelection, setPendingSelection] = useState<SelectedLineRange | null>(null);
@@ -328,7 +307,6 @@ const ReviewAppInner: React.FC = () => {
   const nextLineAnnotationComposeRequestId = useRef(0);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showWorktreeDialog, setShowWorktreeDialog] = useState(false);
-  const [openSettingsMenu, setOpenSettingsMenu] = useState(false);
   const [showNoAnnotationsDialog, setShowNoAnnotationsDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const diffStyle = useConfigValue('diffStyle');
@@ -347,9 +325,6 @@ const ReviewAppInner: React.FC = () => {
   const diffFontSize = useConfigValue('diffFontSize');
   const diffTabSize = useConfigValue('diffTabSize');
   const reviewShowViewedControls = useConfigValue('reviewShowViewedControls');
-  const semanticDiffEnabled = useConfigValue('semanticDiffEnabled');
-  const callFlowEnabled = useConfigValue('callFlowEnabled');
-  const confirmedAnalysisSettings = useRef({ semanticDiff: semanticDiffEnabled, callFlow: callFlowEnabled });
   // Global plan-look preference. Code review can resolve this shared first-use
   // choice even though the visual result applies to plan/document surfaces.
 
@@ -436,9 +411,6 @@ const ReviewAppInner: React.FC = () => {
   // Echoed on every freshness probe so the server can answer per-client:
   // "your snapshot moved" is independent of whether the VCS changed.
   const [snapshotId, setSnapshotId] = useState<string | undefined>(undefined);
-  const semanticDiffUsable = semanticDiffEnabled && semanticDiffAvailable;
-  const callFlowAvailable = callFlowEnabled && callFlowAdvert.available;
-  const { state: callFlowAnalysis, retry: retryCallFlowAnalysis } = useCallFlowAnalysis(snapshotId, callFlowAvailable);
   const [isFetchingBase, setIsFetchingBase] = useState(false);
   // Which left panel is showing. The persisted value (Settings / first-run
   // dialog, written through the coupled setters in config/reviewView)
@@ -634,7 +606,6 @@ const ReviewAppInner: React.FC = () => {
   const filesRef = useRef(files);
   filesRef.current = files;
   const needsInitialDiffPanel = useRef(true);
-  const semanticDiffAutoFallbackPending = useRef(false);
 
   // PR context (lifted from sidebar so center dock PR panels can access it)
   const { prContext, isLoading: isPRContextLoading, error: prContextError, fetchContext: fetchPRContext } = usePRContext(prMetadata ?? null);
@@ -649,7 +620,6 @@ const ReviewAppInner: React.FC = () => {
     const file = files.find(candidate => candidate.path === filePath || candidate.oldPath === filePath);
     if (!file) return;
     const resolvedFilePath = file.path;
-    semanticDiffAutoFallbackPending.current = false;
 
     if (!dockApi) {
       const fileIndex = files.findIndex(candidate => candidate.path === resolvedFilePath);
@@ -691,14 +661,6 @@ const ReviewAppInner: React.FC = () => {
     setActiveFileIndex(files.findIndex(candidate => candidate.path === resolvedFilePath));
     needsInitialDiffPanel.current = false;
   }, [dockApi, files, clearPendingSelection]);
-
-  const isCallFlowNodeInPatch = useCallback((node: CallFlowNode): boolean => {
-    if (!node.file || !node.line) return false;
-    const file = files.find((candidate) => candidate.path === node.file || candidate.oldPath === node.file);
-    if (!file) return false;
-    const end = node.endLine && node.endLine >= node.line ? node.endLine : node.line;
-    return isLineRangeInPatch(file.patch, node.line, end, node.status === 'removed' ? 'old' : 'new');
-  }, [files]);
 
   const handleRequestLineAnnotation = useCallback((filePath: string, range: SelectedLineRange) => {
     const file = files.find(candidate => candidate.path === filePath || candidate.oldPath === filePath);
@@ -830,11 +792,7 @@ const ReviewAppInner: React.FC = () => {
       existing.api.setTitle(`References: ${request.symbol}`);
       existing.api.setActive();
     } else {
-      const refPanel = isCallFlowActive
-        ? REVIEW_CALL_FLOW_PANEL_ID
-        : isSemanticDiffActive
-        ? REVIEW_SEMANTIC_DIFF_PANEL_ID
-        : isAllFilesActive
+      const refPanel = isAllFilesActive
         ? REVIEW_ALL_FILES_PANEL_ID
         : REVIEW_DIFF_PANEL_ID;
       dockApi.addPanel({
@@ -848,7 +806,7 @@ const ReviewAppInner: React.FC = () => {
         initialWidth: 420,
       });
     }
-  }, [codeNav.resolve, dockApi, isAllFilesActive, isCallFlowActive, isSemanticDiffActive, gitContext, agentCwd]);
+  }, [codeNav.resolve, dockApi, isAllFilesActive, gitContext, agentCwd]);
 
   // Resizable panels
   const panelResize = useResizablePanel({
@@ -875,16 +833,12 @@ const ReviewAppInner: React.FC = () => {
     event.api.onDidActivePanelChange((panel) => {
       if (!panel) {
         setIsAllFilesActive(false);
-        setIsSemanticDiffActive(false);
-        setIsCallFlowActive(false);
         setIsPROverviewActive(false);
         setIsPRArtifactsActive(false);
         setIsDiffPanelActive(false);
         return;
       }
       setIsAllFilesActive(panel.id === REVIEW_ALL_FILES_PANEL_ID);
-      setIsSemanticDiffActive(panel.id === REVIEW_SEMANTIC_DIFF_PANEL_ID);
-      setIsCallFlowActive(panel.id === REVIEW_CALL_FLOW_PANEL_ID);
       setIsPROverviewActive(panel.id === REVIEW_PR_OVERVIEW_PANEL_ID);
       setIsPRArtifactsActive(panel.id === REVIEW_PR_ARTIFACTS_PANEL_ID);
       setIsDiffPanelActive(isReviewDiffPanelId(panel.id));
@@ -1006,7 +960,6 @@ const ReviewAppInner: React.FC = () => {
 
   const openAllFilesPanel = useCallback(() => {
     if (!dockApi) return;
-    semanticDiffAutoFallbackPending.current = false;
     const existing = dockApi.getPanel(REVIEW_ALL_FILES_PANEL_ID);
     if (existing) { existing.api.setActive(); return; }
     dockApi.addPanel({
@@ -1016,184 +969,7 @@ const ReviewAppInner: React.FC = () => {
     });
   }, [dockApi]);
 
-  const openSemanticDiffPanel = useCallback((options?: { autoFallbackOnError?: boolean }) => {
-    if (!dockApi) return;
-    semanticDiffAutoFallbackPending.current = options?.autoFallbackOnError === true;
-    if (!semanticDiffUsable) {
-      openAllFilesPanel();
-      return;
-    }
-    const existing = dockApi.getPanel(REVIEW_SEMANTIC_DIFF_PANEL_ID);
-    if (existing) { existing.api.setActive(); return; }
-    dockApi.addPanel({
-      id: REVIEW_SEMANTIC_DIFF_PANEL_ID,
-      component: REVIEW_PANEL_TYPES.SEMANTIC_DIFF,
-      title: 'Semantic diff',
-    });
-  }, [dockApi, openAllFilesPanel, semanticDiffUsable]);
-
-  const openCallFlowPanel = useCallback(() => {
-    if (!dockApi || !callFlowEnabled) return;
-    const existing = dockApi.getPanel(REVIEW_CALL_FLOW_PANEL_ID);
-    if (existing) {
-      existing.api.setActive();
-      return;
-    }
-    dockApi.addPanel({
-      id: REVIEW_CALL_FLOW_PANEL_ID,
-      component: REVIEW_PANEL_TYPES.CALL_FLOW,
-      title: 'Call flow',
-    });
-  }, [callFlowEnabled, dockApi]);
-
-  const handleSemanticDiffUnavailable = useCallback(() => {
-    semanticDiffAutoFallbackPending.current = false;
-    setSemanticDiffAvailable(false);
-    dockApi?.getPanel(REVIEW_SEMANTIC_DIFF_PANEL_ID)?.api.close();
-    openAllFilesPanel();
-  }, [dockApi, openAllFilesPanel]);
-
-  const handleSemanticDiffLoadSuccess = useCallback(() => {
-    semanticDiffAutoFallbackPending.current = false;
-  }, []);
-
-  const handleSemanticDiffLoadError = useCallback(() => {
-    if (!semanticDiffAutoFallbackPending.current) return false;
-    if (dockApi?.activePanel?.id !== REVIEW_SEMANTIC_DIFF_PANEL_ID) {
-      // The user has already moved on; don't steal focus by auto-opening All files.
-      semanticDiffAutoFallbackPending.current = false;
-      return false;
-    }
-    semanticDiffAutoFallbackPending.current = false;
-    dockApi?.getPanel(REVIEW_SEMANTIC_DIFF_PANEL_ID)?.api.close();
-    openAllFilesPanel();
-    return true;
-  }, [dockApi, openAllFilesPanel]);
-
-  const applySemanticDiffAdvert = useCallback((semanticDiff?: SemanticDiffAdvert) => {
-    if (!semanticDiff) return;
-    const available = semanticDiff.available === true;
-    setSemanticDiffAvailable(available);
-    if (!available) {
-      semanticDiffAutoFallbackPending.current = false;
-      dockApi?.getPanel(REVIEW_SEMANTIC_DIFF_PANEL_ID)?.api.close();
-      if (isSemanticDiffActive) openAllFilesPanel();
-    }
-  }, [dockApi, isSemanticDiffActive, openAllFilesPanel]);
-
-  const applyCallFlowAdvert = useCallback((callFlow?: CallFlowAdvert) => {
-    if (!callFlow) return;
-    setCallFlowAdvert(callFlow);
-  }, []);
-
-  // Re-advertise both capabilities through the read-only endpoint. Keeping
-  // this separate from the settings mutation prevents install completion
-  // from superseding a concurrent toggle write.
-  const refreshAnalysisAdverts = useCallback(async (): Promise<void> => {
-    const response = await fetch('/api/review-analysis', { method: 'GET' });
-    if (!response.ok) throw new Error('Analysis capabilities could not be refreshed.');
-    const data = await response.json() as {
-      semanticDiff?: SemanticDiffAdvert;
-      callFlow?: CallFlowAdvert;
-      superseded?: boolean;
-    };
-    if (data.superseded) throw new Error('The review changed while capabilities were refreshed.');
-    if (data.callFlow?.state === 'unavailable' && data.callFlow.installable) {
-      throw new Error(data.callFlow.message ?? 'The Call flow install is not visible yet.');
-    }
-    applySemanticDiffAdvert(data.semanticDiff);
-    applyCallFlowAdvert(data.callFlow);
-    retryCallFlowAnalysis();
-  }, [applyCallFlowAdvert, applySemanticDiffAdvert, retryCallFlowAnalysis]);
-
-  const callFlowInstall = useCallFlowInstall(refreshAnalysisAdverts);
-  // Call flow is off by default. Enabling it in Settings is the explicit
-  // consent gesture for its server-authored managed install; an enabled saved
-  // preference keeps that consent across review sessions without another
-  // startup dialog.
-  useCallFlowAutoInstall(callFlowEnabled, true, callFlowAdvert, callFlowInstall);
-  const callFlowSetupPending = callFlowEnabled
-    && callFlowAdvert.installable === true
-    && callFlowAdvert.installPlan !== undefined
-    && callFlowInstall.status.state !== 'error';
-  const callFlowNavLoading = callFlowAnalysis.status !== 'ready' && (
-    callFlowAnalysis.status === 'loading'
-    || callFlowInstall.status.state === 'running'
-    || callFlowSetupPending
-  );
-  const callFlowNavError = callFlowInstall.status.state === 'error';
-
-  useEffect(() => {
-    if (!semanticDiffEnabled) {
-      dockApi?.getPanel(REVIEW_SEMANTIC_DIFF_PANEL_ID)?.api.close();
-      if (isSemanticDiffActive) openAllFilesPanel();
-    }
-    if (!callFlowEnabled) {
-      dockApi?.getPanel(REVIEW_CALL_FLOW_PANEL_ID)?.api.close();
-      if (isCallFlowActive) openAllFilesPanel();
-    }
-  }, [callFlowEnabled, dockApi, isCallFlowActive, isSemanticDiffActive, openAllFilesPanel, semanticDiffEnabled]);
-
-  // Turning Call flow on opens its panel. Without this the only sign anything
-  // happened is a new sidebar row, so a user who just opted in (intro dialog
-  // or Settings) sees nothing and cannot find the install they were promised.
-  // Only on the off -> on transition, so it never fights a user who closed it.
-  const callFlowWasEnabled = useRef(callFlowEnabled);
-  useEffect(() => {
-    const turnedOn = callFlowEnabled && !callFlowWasEnabled.current;
-    callFlowWasEnabled.current = callFlowEnabled;
-    if (turnedOn) openCallFlowPanel();
-  }, [callFlowEnabled, openCallFlowPanel]);
-
-  // The shared config store persists both toggles for future sessions. This
-  // review-specific handshake also re-advertises capabilities immediately so
-  // enabling either layer can take effect without reloading the current review.
-  useEffect(() => {
-    if (isLoading || !apiModeRef.current) return;
-    if (!analysisSettingsInitialized.current) {
-      analysisSettingsInitialized.current = true;
-      confirmedAnalysisSettings.current = { semanticDiff: semanticDiffEnabled, callFlow: callFlowEnabled };
-      return;
-    }
-    const previous = confirmedAnalysisSettings.current;
-    const requested = { semanticDiff: semanticDiffEnabled, callFlow: callFlowEnabled };
-    const controller = new AbortController();
-    fetch('/api/review-analysis', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ semanticDiff: semanticDiffEnabled, callFlow: callFlowEnabled }),
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        if (!response.ok) throw new Error('Analysis settings could not be applied.');
-        return response.json() as Promise<{
-          semanticDiff?: SemanticDiffAdvert;
-          callFlow?: CallFlowAdvert;
-          superseded?: boolean;
-        }>;
-      })
-      .then((data) => {
-        if (controller.signal.aborted) return;
-        if (data.superseded) return;
-        confirmedAnalysisSettings.current = requested;
-        applySemanticDiffAdvert(data.semanticDiff);
-        applyCallFlowAdvert(data.callFlow);
-      })
-      .catch((error) => {
-        if (controller.signal.aborted) return;
-        if (configStore.get('semanticDiffEnabled') !== previous.semanticDiff) {
-          configStore.set('semanticDiffEnabled', previous.semanticDiff);
-        }
-        if (configStore.get('callFlowEnabled') !== previous.callFlow) {
-          configStore.set('callFlowEnabled', previous.callFlow);
-        }
-        toast.error(error instanceof Error ? error.message : 'Analysis settings could not be applied.');
-      });
-    return () => controller.abort();
-  }, [applyCallFlowAdvert, applySemanticDiffAdvert, callFlowEnabled, isLoading, semanticDiffEnabled]);
-
-  // Open the All files overview on first load. Semantic diff stays available via
-  // the file-tree nav entry, but it's no longer the default landing view.
+  // Open the All files overview on first load.
   useEffect(() => {
     if (!dockApi || !needsInitialDiffPanel.current || files.length === 0) return;
     needsInitialDiffPanel.current = false;
@@ -1299,8 +1075,6 @@ const ReviewAppInner: React.FC = () => {
         viewedFiles?: string[];
         error?: string;
        
-        semanticDiff?: SemanticDiffAdvert;
-        callFlow?: CallFlowAdvert;
         sections?: SinceBaseSections;
         commitInfo?: CommitDiffInfo;
         generatedFiles?: string[];
@@ -1323,8 +1097,6 @@ const ReviewAppInner: React.FC = () => {
           diffType: data.diffType,
           gitContext: data.gitContext,
           diffOptions: data.diffOptions,
-          semanticDiff: data.semanticDiff,
-          callFlow: data.callFlow,
         });
         setFiles(apiFiles);
         setReviewMode(data.mode ?? null);
@@ -1360,8 +1132,6 @@ const ReviewAppInner: React.FC = () => {
           setViewedFiles(new Set(data.viewedFiles));
         }
         if (data.error) setDiffError(data.error);
-        setSemanticDiffAvailable(data.semanticDiff?.available === true);
-        if (data.callFlow) setCallFlowAdvert(data.callFlow);
         setSections(data.sections ?? null);
         setCommitInfo(data.commitInfo ?? null);
         setGeneratedFiles(new Set(data.generatedFiles ?? []));
@@ -1400,15 +1170,6 @@ const ReviewAppInner: React.FC = () => {
         });
         setFiles(demoFiles);
         setWorkspaceDiffOptions(null);
-        setSemanticDiffAvailable(false);
-        setCallFlowAdvert({
-          enabled: configStore.get('callFlowEnabled'),
-          available: false,
-          state: 'unsupported',
-          provider: 'calldiff',
-          reason: 'demo-mode',
-          message: 'Call flow requires a live Git review session.',
-        });
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -1463,36 +1224,6 @@ const ReviewAppInner: React.FC = () => {
     addCodeAnnotationsWithHistory([withPRContext(newAnnotation)]);
     clearPendingSelection();
   }, [pendingSelection, identity, withPRContext, clearPendingSelection, addCodeAnnotationsWithHistory]);
-
-  const handleAddCallFlowAnnotation = useCallback((
-    targets: readonly CallFlowAnnotationTarget[],
-    text: string,
-  ): boolean => {
-    const trimmed = text.trim();
-    if (!trimmed) return false;
-
-    // The review can refresh while a composer is open. Resolve the strongest
-    // native anchor against the current patch, but retain every selected Call
-    // Flow step: out-of-hunk and source-less rows become file/review feedback
-    // instead of disappearing or masquerading as postable inline comments.
-    const placement = resolveCallFlowAnnotationPlacement(targets, files);
-    if (!placement) return false;
-    const annotation: CodeAnnotation = {
-      id: generateId(),
-      type: 'comment',
-      scope: placement.scope,
-      filePath: placement.filePath,
-      lineStart: placement.lineStart,
-      lineEnd: placement.lineEnd,
-      side: placement.side,
-      text: trimmed,
-      callFlowTargets: [...placement.targets],
-      createdAt: Date.now(),
-      author: identity,
-    };
-    addCodeAnnotationsWithHistory([withPRContext(annotation)]);
-    return true;
-  }, [files, identity, withPRContext, addCodeAnnotationsWithHistory]);
 
   const handleAddAnnotation = useCallback((
     type: CodeAnnotationType,
@@ -1706,7 +1437,7 @@ const ReviewAppInner: React.FC = () => {
     if (showReviewSetup) return;
     markAutoViewedNoticeSeen();
     toast('Files are marked viewed as you scroll', {
-      description: "Scroll past a file or move on to the next and it's checked off. Turn this off in Settings → Git, or from the gear above the file list.",
+      description: "Scroll past a file or move on to the next and it's checked off. Turn this off from the gear above the file list.",
       duration: 10000,
       position: 'top-right',
       classNames: { toast: '!w-auto', description: '!text-foreground/70' },
@@ -1715,7 +1446,7 @@ const ReviewAppInner: React.FC = () => {
         onClick: () => {
           turnOffAutoViewed();
           toast('Auto-mark viewed is off', {
-            description: 'Re-enable it in Settings → Git.',
+            description: 'Re-enable it from the gear above the file list.',
             duration: 5000,
             position: 'top-right',
             classNames: { toast: '!w-auto', description: '!text-foreground/70' },
@@ -1809,8 +1540,6 @@ const ReviewAppInner: React.FC = () => {
     snapshotId?: string;
     repoInfo?: { display: string; branch?: string };
     viewedFiles?: string[]; error?: string;
-    semanticDiff?: SemanticDiffAdvert;
-    callFlow?: CallFlowAdvert;
     agentCwd?: string | null;
     approvalNotesSupported?: boolean;
   }) {
@@ -1850,8 +1579,6 @@ const ReviewAppInner: React.FC = () => {
       setViewedFiles(data.viewedFiles ? new Set(data.viewedFiles) : new Set());
     }
     setDiffError(data.error || null);
-    applySemanticDiffAdvert(data.semanticDiff);
-    applyCallFlowAdvert(data.callFlow);
     // The PR's local checkout changes on switch (and warms in later). Use the
     // server's value when present; otherwise clear it on a switch so the Open-in
     // button can't keep pointing at the previous PR's checkout (the 5s freshness
@@ -1918,8 +1645,6 @@ const ReviewAppInner: React.FC = () => {
         gitContext?: GitContext;
         diffOptions?: DiffOption[];
         error?: string;
-        semanticDiff?: SemanticDiffAdvert;
-        callFlow?: CallFlowAdvert;
         sections?: SinceBaseSections;
         commitInfo?: CommitDiffInfo;
         generatedFiles?: string[];
@@ -1977,8 +1702,6 @@ const ReviewAppInner: React.FC = () => {
           return next;
         });
       }
-      applySemanticDiffAdvert(data.semanticDiff);
-      applyCallFlowAdvert(data.callFlow);
       setSections(data.sections ?? null);
       setCommitInfo(data.commitInfo ?? null);
       setGeneratedFiles(new Set(data.generatedFiles ?? []));
@@ -2055,7 +1778,7 @@ const ReviewAppInner: React.FC = () => {
     } finally {
       setIsLoadingDiff(false);
     }
-  }, [dockApi, selectedBase, diffHideWhitespace, files, activeFileIndex, openDiffFile, applySemanticDiffAdvert, applyCallFlowAdvert, clearPendingSelection, autoViewedEnabled, diffType]);
+  }, [dockApi, selectedBase, diffHideWhitespace, files, activeFileIndex, openDiffFile, clearPendingSelection, autoViewedEnabled, diffType]);
 
   // Switch the base branch the current diff compares against.
   // Only triggers a refetch when the active mode actually uses a base.
@@ -2535,21 +2258,13 @@ const ReviewAppInner: React.FC = () => {
       setSelectedAnnotationId(null);
       return;
     }
-    // Call-Flow-native feedback has no honest inline diff destination. Return
-    // it to the analysis surface instead of opening an unrelated file row and
-    // issuing a scroll request that cannot resolve.
-    if (annotation.callFlowTargets?.length && (annotation.scope ?? 'line') !== 'line') {
-      openCallFlowPanel();
-      setSelectedAnnotationId(id);
-      return;
-    }
     if (!isAllFilesActiveRef.current) {
       const fileIndex = files.findIndex(f => f.path === annotation.filePath);
       if (fileIndex !== -1) handleFileSwitch(fileIndex);
     }
     setSelectedAnnotationId(id);
     setScrollTargetAnnotation(prev => ({ id, token: (prev?.token ?? 0) + 1 }));
-  }, [files, handleFileSwitch, prMetadata, prDiffScope, openCallFlowPanel]);
+  }, [files, handleFileSwitch, prMetadata, prDiffScope]);
 
   // Diff context bundled into local-mode feedback headers so the receiving
   // agent knows which diff the annotations are anchored to. Uses committedBase
@@ -2619,7 +2334,6 @@ const ReviewAppInner: React.FC = () => {
     pendingSelection,
     onLineSelection: handleLineSelection,
     onRequestLineAnnotation: handleRequestLineAnnotation,
-    onAddCallFlowAnnotation: handleAddCallFlowAnnotation,
     onAddAnnotation: handleAddAnnotation,
     onAddAnnotationForFile: handleAddAnnotationForFile,
     onAddFileComment: handleAddFileComment,
@@ -2672,19 +2386,6 @@ const ReviewAppInner: React.FC = () => {
     registerAllFilesCollapseToggle,
     onAllFilesCollapsedChange: setAllFilesAllCollapsed,
     commitInfo,
-    isSemanticDiffActive,
-    semanticDiffAvailable: semanticDiffUsable,
-    onSemanticDiffUnavailable: handleSemanticDiffUnavailable,
-    onSemanticDiffLoadError: handleSemanticDiffLoadError,
-    onSemanticDiffLoadSuccess: handleSemanticDiffLoadSuccess,
-    callFlowAvailable,
-    callFlowAdvert,
-    callFlowAnalysis,
-    retryCallFlowAnalysis,
-    isCallFlowNodeInPatch,
-    isCallFlowActive,
-    openCallFlowPanel,
-    callFlowInstall,
     onCodeNavRequest: canUseLiveWorkspaceActions ? handleCodeNavRequest : undefined,
     codeNavResult: codeNav.result,
     codeNavIsLoading: codeNav.isLoading,
@@ -2699,7 +2400,7 @@ const ReviewAppInner: React.FC = () => {
     visibleCommentAnnotations, selectedCommentAnnotationId, handleAddCommentAnnotation,
     handleSelectCommentAnnotation, handleDeleteCommentAnnotation, commentScrollTarget,
     selectedAnnotationId, scrollTargetAnnotation, pendingSelection, handleLineSelection,
-    handleRequestLineAnnotation, handleAddCallFlowAnnotation,
+    handleRequestLineAnnotation,
     handleAddAnnotation, handleAddFileComment, handleAddFileCommentForFile, handleEditAnnotation,
     handleSelectAnnotation, handleNavigateToAnnotation, handleDeleteAnnotation, viewedFiles,
     generatedFiles, expandedGeneratedFiles, handleGeneratedFileCollapsedChange,
@@ -2709,9 +2410,7 @@ const ReviewAppInner: React.FC = () => {
     prMetadata, prContext, prArtifacts,
     isPRContextLoading, prContextError, fetchPRContext, platformUser, openDiffFile,
     handleAllFilesVisibleFileChange, handleFileScrolledPast,
-    isAllFilesActive, allFilesOrder, allFilesAllCollapsed, onToggleAllFilesCollapsed, registerAllFilesCollapseToggle, commitInfo, isSemanticDiffActive, semanticDiffUsable,
-    handleSemanticDiffUnavailable, handleSemanticDiffLoadError, handleSemanticDiffLoadSuccess, handleAddAnnotationForFile,
-    callFlowAvailable, callFlowAdvert, callFlowAnalysis, retryCallFlowAnalysis, isCallFlowNodeInPatch, isCallFlowActive, openCallFlowPanel, callFlowInstall,
+    isAllFilesActive, allFilesOrder, allFilesAllCollapsed, onToggleAllFilesCollapsed, registerAllFilesCollapseToggle, commitInfo, handleAddAnnotationForFile,
     handleCodeNavRequest, codeNav.result, codeNav.isLoading, codeNav.activeSymbol,
   ]);
 
@@ -3241,7 +2940,7 @@ const ReviewAppInner: React.FC = () => {
   const canHandleReviewHistoryShortcut = useCallback((event: KeyboardEvent): boolean => {
     if (event.defaultPrevented || isNativeHistoryOwner(event)) return false;
     if (submitted || isSendingFeedback || isApproving || isExiting || isPlatformActioning || isLoadingDiff) return false;
-    if (openSettingsMenu || showDestinationMenu || platformCommentDialog || showExportModal || showWorktreeDialog || showNoAnnotationsDialog) return false;
+    if (showDestinationMenu || platformCommentDialog || showExportModal || showWorktreeDialog || showNoAnnotationsDialog) return false;
     if (showReviewSetup) return false;
     return !hasActiveHistoryOverlay(document);
   }, [
@@ -3250,7 +2949,6 @@ const ReviewAppInner: React.FC = () => {
     isLoadingDiff,
     isPlatformActioning,
     isSendingFeedback,
-    openSettingsMenu,
     platformCommentDialog,
     showDestinationMenu,
     showExportModal,
@@ -3737,20 +3435,11 @@ const ReviewAppInner: React.FC = () => {
 
                 <ThemeModeButton />
 
-                <button
-                  type="button"
-                  onClick={() => setOpenSettingsMenu(true)}
-                  className="flex h-7 items-center justify-center rounded-md px-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  title="Settings"
-                  aria-label="Settings"
-                >
-                  <SettingsIcon className="w-4 h-4" />
-                </button>
+                <KeyboardShortcutsButton mode="review" />
               </>
             
 
             <ReviewHeaderMenu
-              onOpenSettings={() => setOpenSettingsMenu(true)}
               onOpenExport={() => setShowExportModal(true)}
               onOpenReviewSetup={sectionsCapable ? () => { reviewSetupIsFirstRun.current = false; setShowReviewSetup(true); } : undefined}
               onCopyAgentInstructions={handleCopyAgentInstructions}
@@ -3775,7 +3464,7 @@ const ReviewAppInner: React.FC = () => {
                 files={files}
                 sections={sections!}
                 width={fileTreeResize.width}
-                activeFileIndex={isAllFilesActive || isSemanticDiffActive || isCallFlowActive || isPROverviewActive ? -1 : activeFileIndex}
+                activeFileIndex={isAllFilesActive || isPROverviewActive ? -1 : activeFileIndex}
                 scrollHighlightIndex={isAllFilesActive && allFilesVisibleFile ? files.findIndex(f => f.path === allFilesVisibleFile) : undefined}
                 onSelectFile={(index) => handleFilePreview(index)}
                 onDoubleClickFile={(index) => handleFilePinned(index)}
@@ -3801,15 +3490,6 @@ const ReviewAppInner: React.FC = () => {
                 showCommitsOption={commitsCapable}
                 onSelectAllFiles={() => openAllFilesPanel()}
                 isAllFilesActive={isAllFilesActive}
-                onSelectSemanticDiff={() => openSemanticDiffPanel()}
-                isSemanticDiffActive={isSemanticDiffActive}
-                semanticDiffAvailable={semanticDiffUsable}
-                onSelectCallFlow={() => openCallFlowPanel()}
-                isCallFlowActive={isCallFlowActive}
-                callFlowEnabled={callFlowEnabled}
-                callFlowCount={callFlowAnalysis.status === 'ready' ? callFlowAnalysis.data.summary.changedNodes : undefined}
-                callFlowLoading={callFlowNavLoading}
-                callFlowError={callFlowNavError}
                 onCopyRawDiff={handleCopyDiff}
                 canCopyRawDiff={!!diffData?.rawPatch}
                 copyRawDiffStatus={copyRawDiffStatus}
@@ -3866,15 +3546,6 @@ const ReviewAppInner: React.FC = () => {
                 onSelectPRArtifacts={prMetadata ? () => openPRArtifactsPanel() : undefined}
                 isPRArtifactsActive={isPRArtifactsActive}
                 prArtifactCount={prMetadata ? prArtifacts.length : undefined}
-                onSelectSemanticDiff={() => openSemanticDiffPanel()}
-                isSemanticDiffActive={isSemanticDiffActive}
-                semanticDiffAvailable={semanticDiffUsable}
-                onSelectCallFlow={() => openCallFlowPanel()}
-                isCallFlowActive={isCallFlowActive}
-                callFlowEnabled={callFlowEnabled}
-                callFlowCount={callFlowAnalysis.status === 'ready' ? callFlowAnalysis.data.summary.changedNodes : undefined}
-                callFlowLoading={callFlowNavLoading}
-                callFlowError={callFlowNavError}
                 onSelectAllFiles={() => openAllFilesPanel()}
                 isAllFilesActive={isAllFilesActive}
                 scrollHighlightIndex={isAllFilesActive && allFilesVisibleFile ? files.findIndex(f => f.path === allFilesVisibleFile) : undefined}
@@ -4109,28 +3780,6 @@ const ReviewAppInner: React.FC = () => {
             </div>
           </div>
         )}
-
-        <div className="hidden" aria-hidden="true">
-          <Settings
-            taterMode={false}
-            onTaterModeChange={() => {}}
-            origin={origin}
-            mode="review"
-            externalOpen={openSettingsMenu}
-            onExternalClose={() => setOpenSettingsMenu(false)}
-            // Local git session where since-base isn't offered (base ref
-            // unresolvable): the Git tab notes that the Git-status preference
-            // can't take effect in THIS repo. PR/workspace/jj sessions say
-            // nothing — the preference isn't about them.
-            sinceBaseUnavailable={
-              !!gitContext && gitContext.vcsType === 'git' && !prMetadata &&
-              reviewMode !== 'workspace' && !sectionsCapable
-            }
-            // The compact shell renders a session-only unified diff, so the
-            // Display tab hides the Split/Unified control rather than writing
-            // the desktop preference from a phone.
-          />
-        </div>
 
         {/* Worktree info dialog */}
         {(gitContext?.cwd || agentCwd) && prMetadata && (

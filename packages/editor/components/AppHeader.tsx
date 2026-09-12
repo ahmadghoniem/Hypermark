@@ -3,10 +3,9 @@ import type { Origin } from '@hypermark/shared/agents';
 import { FeedbackButton, ApproveButton, ExitButton } from '@hypermark/ui/components/ToolbarButtons';
 import { DecisionControl, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import type { DecisionActionId, DecisionSpec } from '@hypermark/ui/utils/decisionSpec';
-import { Settings } from '@hypermark/ui/components/Settings';
 import { PlanHeaderMenu } from '@hypermark/ui/components/PlanHeaderMenu';
 import { ThemeModeButton } from '@hypermark/ui/components/ThemeModeButton';
-import { SettingsIcon } from '@hypermark/ui/components/icons/headerIcons';
+import { KeyboardShortcutsButton } from '@hypermark/ui/components/KeyboardShortcutsDialog';
 import type { UIPreferences } from '@hypermark/ui/utils/uiPreferences';
 import { HtmlSurfaceControls } from '@hypermark/ui/components/HtmlSurfaceControls';
 
@@ -65,12 +64,6 @@ interface AppHeaderProps {
     dismissOnIframeFocus?: boolean;
   };
 
-  // Settings props
-  taterMode: boolean;
-  mobileSettingsOpen: boolean;
-  /** This session offers the Agent TUI, so Settings shows its Position row. */
-  agentTerminalAvailable: boolean;
-
   // Handlers — App owns all decision logic, header just calls these
   onGoalSetupExit: () => void;
   onGoalSetupSubmit: () => void;
@@ -79,10 +72,6 @@ interface AppHeaderProps {
   onAnnotationPanelToggle: () => void;
   onArchiveCopy: () => void;
   onArchiveDone: () => void;
-  onTaterModeChange: (enabled: boolean) => void;
-  onUIPreferencesChange: (prefs: UIPreferences) => void;
-  onOpenSettings: () => void;
-  onCloseSettings: () => void;
   onCopyAgentInstructions: () => void;
 
   // PlanHeaderMenu config
@@ -115,9 +104,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   agentName,
   showAnnotationsWarning,
   annotateDecision,
-  taterMode,
-  mobileSettingsOpen,
-  agentTerminalAvailable,
   onGoalSetupExit,
   onGoalSetupSubmit,
   onFeedback,
@@ -125,10 +111,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   onAnnotationPanelToggle,
   onArchiveCopy,
   onArchiveDone,
-  onTaterModeChange,
-  onUIPreferencesChange,
-  onOpenSettings,
-  onCloseSettings,
   onCopyAgentInstructions,
   agentInstructionsEnabled,
 }) => {
@@ -267,37 +249,11 @@ export const AppHeader = React.memo<AppHeaderProps>(({
           </button>
         )}
 
-        {/* Theme and Settings sit in the header rather than under Options:
-            they are the controls reached most often, and a two-click menu hop
-            for each was the whole reason Options existed. */}
         <ThemeModeButton />
 
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          className="flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          title="Settings"
-          aria-label="Settings"
-        >
-          <SettingsIcon className="w-4 h-4" />
-        </button>
-
-        {/* Settings dialog (controlled, button hidden — opened by the gear above) */}
-        <div className="hidden">
-          <Settings
-            taterMode={taterMode}
-            onTaterModeChange={onTaterModeChange}
-            origin={origin}
-            mode={annotateMode ? 'annotate' : 'plan'}
-            onUIPreferencesChange={onUIPreferencesChange}
-            externalOpen={mobileSettingsOpen}
-            onExternalClose={onCloseSettings}
-            agentTerminalAvailable={agentTerminalAvailable}
-          />
-        </div>
+        <KeyboardShortcutsButton mode={annotateMode ? 'annotate' : 'plan'} />
 
         <PlanHeaderMenu
-          onOpenSettings={onOpenSettings}
           onCopyAgentInstructions={onCopyAgentInstructions}
           agentInstructionsEnabled={agentInstructionsEnabled}
         />

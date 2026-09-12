@@ -277,30 +277,16 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
       >
         <CommentMeta
           leading={
-            isGeneralScope && annotation.callFlowTargets?.length ? (
-              <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                flow · {annotation.callFlowTargets.length} {annotation.callFlowTargets.length === 1 ? 'step' : 'steps'}
-              </span>
-            ) : isGeneralScope ? (
+            isGeneralScope ? (
               <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                 general
               </span>
             ) : isFileScope ? (
               <span className="inline-flex items-center gap-1.5">
                 <FileNameChip path={annotation.filePath} />
-                {annotation.callFlowTargets?.length ? (
-                  <span className="text-[9px] text-primary/80">
-                    flow · {annotation.callFlowTargets.length} {annotation.callFlowTargets.length === 1 ? 'step' : 'steps'}
-                  </span>
-                ) : null}
               </span>
             ) : (
               <span className="text-[10px] font-mono text-muted-foreground">
-                {annotation.callFlowTargets?.length ? (
-                  <span className="mr-1 text-primary/80">
-                    flow · {annotation.callFlowTargets.length} {annotation.callFlowTargets.length === 1 ? 'step' : 'steps'} ·
-                  </span>
-                ) : null}
                 {annotation.lineStart === annotation.lineEnd
                   ? `L${annotation.lineStart}`
                   : `L${annotation.lineStart}-${annotation.lineEnd}`}

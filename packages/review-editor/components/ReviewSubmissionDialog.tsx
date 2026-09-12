@@ -4,7 +4,6 @@ import type { PRReviewSubmissionPartial } from '@hypermark/shared/pr-types';
 import { CopyButton } from './CopyButton';
 import {
   exportReviewFeedback,
-  formatCallFlowAnnotationTargets,
 } from '../utils/exportFeedback';
 import {
   Dialog,
@@ -85,8 +84,7 @@ function buildAnnotationFileComments(
   return annotations
     .filter(a => (a.scope ?? 'line') === 'line')
     .map(ann => {
-      let body = ann.text ?? '';
-      body += formatCallFlowAnnotationTargets(ann);
+      const body = ann.text ?? '';
       const side = (ann.side === 'old' ? 'LEFT' : 'RIGHT') as 'LEFT' | 'RIGHT';
       const isMultiLine = ann.lineStart != null && ann.lineEnd != null && ann.lineStart !== ann.lineEnd;
       return {
@@ -107,11 +105,10 @@ function buildFileScopedBody(annotations: CodeAnnotation[]): string {
   const parts: string[] = [];
   for (const a of annotations) {
     const scope = a.scope ?? 'line';
-    const callFlowContext = formatCallFlowAnnotationTargets(a);
-    if (scope === 'file' && (a.text || callFlowContext)) {
-      parts.push(`**${a.filePath}:** ${a.text ?? ''}${callFlowContext}`.trim());
-    } else if (scope === 'general' && (a.text || callFlowContext)) {
-      parts.push(`${a.text ?? ''}${callFlowContext}`.trim());
+    if (scope === 'file' && a.text) {
+      parts.push(`**${a.filePath}:** ${a.text}`.trim());
+    } else if (scope === 'general' && a.text) {
+      parts.push(`${a.text}`.trim());
     }
   }
   return parts.join('\n\n');

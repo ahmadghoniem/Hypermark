@@ -377,37 +377,6 @@ export const SETTINGS = {
       return isDiffLineBgIntensity(v) ? v : undefined;
     },
     toServer: (v: DiffLineBgIntensity) => ({ diffOptions: { lineBgIntensity: v } }),
-  },
-  semanticDiffEnabled: {
-    defaultValue: true as boolean,
-    fromCookie: () => {
-      const value = storage.getItem('hypermark-semantic-diff-enabled');
-      return value === 'true' ? true : value === 'false' ? false : undefined;
-    },
-    toCookie: (value: boolean) =>
-      storage.setItem('hypermark-semantic-diff-enabled', String(value)),
-    serverKey: 'reviewAnalysis',
-    fromServer: (serverConfig: Record<string, unknown>) => {
-      const value = (serverConfig.reviewAnalysis as Record<string, unknown> | undefined)?.semanticDiff;
-      return typeof value === 'boolean' ? value : undefined;
-    },
-    toServer: (value: boolean) => ({ reviewAnalysis: { semanticDiff: value } }),
-  },
-  callFlowEnabled: {
-    defaultValue: false as boolean,
-    fromCookie: () => {
-      const value = storage.getItem('hypermark-call-flow-enabled');
-      return value === 'true' ? true : value === 'false' ? false : undefined;
-    },
-    toCookie: (value: boolean) =>
-      storage.setItem('hypermark-call-flow-enabled', String(value)),
-    serverKey: 'reviewAnalysis',
-    fromServer: (serverConfig: Record<string, unknown>) => {
-      const value = (serverConfig.reviewAnalysis as Record<string, unknown> | undefined)?.callFlow;
-      return typeof value === 'boolean' ? value : undefined;
-    },
-    toServer: (value: boolean) => ({ reviewAnalysis: { callFlow: value } }),
-  },
   /**
    * Where the annotate-mode Agent TUI docks: 'left' (where it always docked),
    * 'right', or 'hidden' (no slot until the user opens it for the session).

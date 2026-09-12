@@ -34,7 +34,7 @@ import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';
 import { GitHubIcon } from '@hypermark/ui/components/GitHubIcon';
 import { Paperclip } from '@phosphor-icons/react';
 
-import { SidebarActionRow, SemanticDiffRow, CallFlowRow, AllFilesRow } from './PanelNavRows';
+import { SidebarActionRow, AllFilesRow } from './PanelNavRows';
 import { PanelControlsRow, PanelSearchField } from './PanelChrome';
 
 interface FileTreeProps {
@@ -101,15 +101,6 @@ interface FileTreeProps {
   onSelectPRArtifacts?: () => void;
   isPRArtifactsActive?: boolean;
   prArtifactCount?: number;
-  onSelectSemanticDiff?: () => void;
-  isSemanticDiffActive?: boolean;
-  semanticDiffAvailable?: boolean;
-  onSelectCallFlow?: () => void;
-  isCallFlowActive?: boolean;
-  callFlowEnabled?: boolean;
-  callFlowCount?: number;
-  callFlowLoading?: boolean;
-  callFlowError?: boolean;
   onSelectAllFiles?: () => void;
   isAllFilesActive?: boolean;
   scrollHighlightIndex?: number;
@@ -186,15 +177,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
   onSelectPRArtifacts,
   isPRArtifactsActive = false,
   prArtifactCount,
-  onSelectSemanticDiff,
-  isSemanticDiffActive = false,
-  semanticDiffAvailable = false,
-  onSelectCallFlow,
-  isCallFlowActive = false,
-  callFlowEnabled = false,
-  callFlowCount,
-  callFlowLoading,
-  callFlowError,
   onSelectAllFiles,
   isAllFilesActive = false,
   scrollHighlightIndex,
@@ -208,10 +190,10 @@ export const FileTree: React.FC<FileTreeProps> = ({
   const isSearchVisible = !!onSearchChange && (isSearchOpen || !!searchQuery.trim());
 
   // The active-file/overlay-panel forcing rule the tree has always applied:
-  // All files/Semantic/Call flow/PR overview/PR artifacts own the "active"
-  // slot while they're open, so the tree shows no selection of its own.
+  // All files/PR overview/PR artifacts own the "active" slot while they're
+  // open, so the tree shows no selection of its own.
   const effectiveActiveFileIndex =
-    isAllFilesActive || isSemanticDiffActive || isCallFlowActive || isPROverviewActive || isPRArtifactsActive
+    isAllFilesActive || isPROverviewActive || isPRArtifactsActive
       ? -1
       : activeFileIndex;
 
@@ -638,18 +620,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
               {prArtifactCount}
             </span>
           </SidebarActionRow>
-        )}
-        {callFlowEnabled && onSelectCallFlow && (
-          <CallFlowRow
-            active={isCallFlowActive}
-            onClick={onSelectCallFlow}
-            count={callFlowCount}
-            loading={callFlowLoading}
-            error={callFlowError}
-          />
-        )}
-        {semanticDiffAvailable && onSelectSemanticDiff && (
-          <SemanticDiffRow active={isSemanticDiffActive} onClick={onSelectSemanticDiff} />
         )}
         {onSelectAllFiles && (
           <AllFilesRow

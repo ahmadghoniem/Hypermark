@@ -86,13 +86,6 @@ export function mergePromptConfig(
 export interface HypermarkConfig {
   displayName?: string;
   diffOptions?: DiffOptions;
-  /** Optional analysis layers used by code review. */
-  reviewAnalysis?: {
-    /** Named-entity semantic diff. Enabled by default for backwards compatibility. */
-    semanticDiff?: boolean;
-    /** Call-stack impact analysis powered by the optional CallDiff runtime. */
-    callFlow?: boolean;
-  };
   /**
    * Appearance: which mode, plus the palette assigned to each half of the
    * light/dark pair. Written by the UI through POST /api/config, so a choice
@@ -211,22 +204,6 @@ export interface HypermarkConfig {
    * 'classic' (historical dark-navy P tile).
    */
   favicon?: FaviconStyle;
-}
-
-/** Parse the only server-writable call-review analysis flags. */
-export function parseReviewAnalysisConfig(value: unknown): HypermarkConfig["reviewAnalysis"] | undefined {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return undefined;
-  const input = value as Record<string, unknown>;
-  const result: NonNullable<HypermarkConfig["reviewAnalysis"]> = {};
-  if (input.semanticDiff !== undefined) {
-    if (typeof input.semanticDiff !== "boolean") return undefined;
-    result.semanticDiff = input.semanticDiff;
-  }
-  if (input.callFlow !== undefined) {
-    if (typeof input.callFlow !== "boolean") return undefined;
-    result.callFlow = input.callFlow;
-  }
-  return result;
 }
 
 // Resolved per call, not at module scope: tests sandbox the data dir by
@@ -439,16 +416,12 @@ export function saveConfig(partial: Partial<HypermarkConfig>): void {
     const mergedTheme = (current.theme || partial.theme)
       ? { ...current.theme, ...partial.theme }
       : undefined;
-    const mergedReviewAnalysis = (current.reviewAnalysis || partial.reviewAnalysis)
-      ? { ...current.reviewAnalysis, ...partial.reviewAnalysis }
-      : undefined;
     const mergedPrompts = mergePromptConfig(current.prompts, partial.prompts);
     const merged = {
       ...current,
       ...partial,
       diffOptions: mergedDiffOptions,
       theme: mergedTheme,
-      reviewAnalysis: mergedReviewAnalysis,
       prompts: mergedPrompts,
     };
     writeConfigAtomic(getConfigPath(), JSON.stringify(merged, null, 2) + "\n");
@@ -481,7 +454,6 @@ export function getServerConfig(gitUser: string | null): {
   diffOptions?: DiffOptions;
   theme?: ThemeConfig;
   favicon?: FaviconStyle;
-  reviewAnalysis: NonNullable<HypermarkConfig["reviewAnalysis"]>;
   gitUser?: string;
   agentTerminalSide?: HypermarkConfig["agentTerminalSide"];
   agentTerminalDefaultAgent?: string;
@@ -492,13 +464,6 @@ export function getServerConfig(gitUser: string | null): {
     diffOptions: cfg.diffOptions,
     ...(cfg.theme !== undefined && { theme: cfg.theme }),
     ...(isFaviconStyle(cfg.favicon) && { favicon: cfg.favicon }),
-    // These values gate server-side work, so always make the resolved defaults
-    // explicit. The client must not revive a stale cookie that disagrees with
-    // the server when the config leaves either optional leaf unset.
-    reviewAnalysis: {
-      semanticDiff: cfg.reviewAnalysis?.semanticDiff !== false,
-      callFlow: cfg.reviewAnalysis?.callFlow === true,
-    },
     gitUser: gitUser ?? undefined,
     ...(isAgentTerminalSide(cfg.agentTerminalSide) && { agentTerminalSide: cfg.agentTerminalSide }),
     ...(typeof cfg.agentTerminalDefaultAgent === "string" &&

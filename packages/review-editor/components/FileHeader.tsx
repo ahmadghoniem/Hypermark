@@ -1,6 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { SemanticFileBadge } from './SemanticFileBadge';
-import { CallFlowFileBadge } from './CallFlowFileBadge';
 import { FileActionsButton } from '@hypermark/ui/components/FileActionsButton';
 import { useReviewStateOptional } from '../dock/ReviewStateContext';
 import type { DiffFileStatus } from '../types';
@@ -240,8 +238,6 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
             {commentLabel && <span>{commentLabel}</span>}
           </button>
         )}
-        <CallFlowFileBadge filePath={filePath} oldPath={oldPath} />
-        <SemanticFileBadge filePath={filePath} />
         {/* File actions: copy path, copy file diff. */}
         {!readOnly && <FileActionsButton filePath={filePath} diffText={patch} />}
       </div>}

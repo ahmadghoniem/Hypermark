@@ -8,7 +8,7 @@ import type {
 } from '@hypermark/shared/types';
 import { BaseBranchPicker } from './BaseBranchPicker';
 import { PanelViewToggle } from './PanelViewToggle';
-import { SemanticDiffRow, CallFlowRow, AllFilesRow } from './PanelNavRows';
+import { AllFilesRow } from './PanelNavRows';
 import { PanelControlsRow, PanelSearchField } from './PanelChrome';
 import {
   ViewedControl,
@@ -82,16 +82,6 @@ interface SectionsPanelProps {
   /** All files nav row — the review's landing view, listed first. */
   onSelectAllFiles?: () => void;
   isAllFilesActive?: boolean;
-  /** Semantic diff nav row (same as tree view). */
-  onSelectSemanticDiff?: () => void;
-  isSemanticDiffActive?: boolean;
-  semanticDiffAvailable?: boolean;
-  onSelectCallFlow?: () => void;
-  isCallFlowActive?: boolean;
-  callFlowEnabled?: boolean;
-  callFlowCount?: number;
-  callFlowLoading?: boolean;
-  callFlowError?: boolean;
   /** Footer copy-diffs. */
   onCopyRawDiff?: () => void;
   canCopyRawDiff?: boolean;
@@ -213,15 +203,6 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
   showCommitsOption,
   onSelectAllFiles,
   isAllFilesActive,
-  onSelectSemanticDiff,
-  isSemanticDiffActive,
-  semanticDiffAvailable,
-  onSelectCallFlow,
-  isCallFlowActive,
-  callFlowEnabled,
-  callFlowCount,
-  callFlowLoading,
-  callFlowError,
   onCopyRawDiff,
   canCopyRawDiff,
   copyRawDiffStatus = 'idle',
@@ -531,18 +512,6 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
         <OverlayScrollArea className="h-full">
           <div ref={contentRef} className="px-1 py-1">
             {/* Nav rows — shared with the tree view, same order. */}
-            {callFlowEnabled && onSelectCallFlow && (
-              <CallFlowRow
-                active={isCallFlowActive ?? false}
-                onClick={onSelectCallFlow}
-                count={callFlowCount}
-                loading={callFlowLoading}
-                error={callFlowError}
-              />
-            )}
-            {semanticDiffAvailable && onSelectSemanticDiff && (
-              <SemanticDiffRow active={isSemanticDiffActive ?? false} onClick={onSelectSemanticDiff} />
-            )}
             {onSelectAllFiles && (
               <AllFilesRow
                 active={isAllFilesActive ?? false}

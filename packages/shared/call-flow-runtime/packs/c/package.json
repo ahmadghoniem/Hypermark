@@ -1,1 +1,0 @@
-{"name":"hypermark-call-flow-pack-c","version":"1.0.0","private":true,"dependencies":{"tree-sitter":"0.25.1","tree-sitter-c":"0.24.1"}}
