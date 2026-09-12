@@ -5,7 +5,6 @@ import { getIdentity } from "../../utils/identity";
 import type {
   ToolbarState,
   CommentPopoverState,
-  QuickLabelPickerState,
   UseAnnotationHighlighterReturn,
 } from "../../hooks/useAnnotationHighlighter";
 import { BRIDGE_PROTOCOL_VERSION } from "./bridge-script";
@@ -213,7 +212,6 @@ function parseEditorMode(value: unknown): EditorMode | undefined {
   return value === "selection"
     || value === "comment"
     || value === "redline"
-    || value === "quickLabel"
     ? value
     : undefined;
 }
@@ -447,7 +445,6 @@ export function useHtmlAnnotation({
 } {
   const [toolbarState, setToolbarState] = useState<ToolbarState | null>(null);
   const [commentPopover, setCommentPopover] = useState<CommentPopoverState | null>(null);
-  const [quickLabelPicker, setQuickLabelPicker] = useState<QuickLabelPickerState | null>(null);
   const [draftTargets, setDraftTargets] = useState<HtmlDraftTarget[]>([]);
   const [composerFocusToken, setComposerFocusToken] = useState(0);
 
@@ -476,12 +473,10 @@ export function useHtmlAnnotation({
   // type-to-comment on "the markup toolbar is showing", like AnnotationToolbar does.
   const toolbarStateRef = useRef(toolbarState);
   toolbarStateRef.current = toolbarState;
-  // Mirror the open comment/quick-label state so the selection-clear handler can
+  // Mirror the open comment state so the selection-clear handler can
   // tell whether the user is mid-compose and must keep the captured text alive.
   const commentPopoverRef = useRef(commentPopover);
   commentPopoverRef.current = commentPopover;
-  const quickLabelPickerRef = useRef(quickLabelPicker);
-  quickLabelPickerRef.current = quickLabelPicker;
 
   const onAddRef = useRef(onAddAnnotation);
   onAddRef.current = onAddAnnotation;
@@ -623,7 +618,7 @@ export function useHtmlAnnotation({
         // is comment-only.
         const requestedMode = message.modeOverride ?? modeRef.current;
         const currentMode =
-          requestedMode === "redline" || requestedMode === "quickLabel"
+          requestedMode === "redline"
             ? "selection"
             : requestedMode;
 
@@ -705,10 +700,10 @@ export function useHtmlAnnotation({
 
       if (type === `${PREFIX}selection-clear`) {
         setToolbarState(null);
-        // Keep the captured text alive while a comment/quick-label is open: the user
+        // Keep the captured text alive while a comment is open: the user
         // is composing, and the selection collapsing or scrolling out of view must
         // not drop the annotation on submit. It's overwritten on the next selection.
-        if (!commentPopoverRef.current && !quickLabelPickerRef.current) {
+        if (!commentPopoverRef.current) {
           pendingTextRef.current = "";
           pendingAnchorRef.current = null;
         }
@@ -781,7 +776,6 @@ export function useHtmlAnnotation({
     if (enabled) return;
     setToolbarState(null);
     setCommentPopover(null);
-    setQuickLabelPicker(null);
     setDraftTargets([]);
     pendingTextRef.current = "";
     pendingAnchorRef.current = null;
@@ -1007,18 +1001,6 @@ export function useHtmlAnnotation({
     [applyQuickLabel],
   );
 
-  const handleFloatingQuickLabel = useCallback(
-    (label: QuickLabel) => applyQuickLabel(label, () => setQuickLabelPicker(null)),
-    [applyQuickLabel],
-  );
-
-  const handleQuickLabelPickerDismiss = useCallback(() => {
-    post({ type: `${PREFIX}cancel-selection` });
-    setQuickLabelPicker(null);
-    pendingTextRef.current = "";
-    pendingAnchorRef.current = null;
-  }, [post]);
-
   const removeHighlight = useCallback(
     (id: string) => {
       post({ type: `${PREFIX}remove-mark`, id });
@@ -1059,7 +1041,6 @@ export function useHtmlAnnotation({
   return {
     toolbarState,
     commentPopover,
-    quickLabelPicker,
     handleAnnotate,
     handleQuickLabel,
     handleToolbarClose,
@@ -1067,8 +1048,6 @@ export function useHtmlAnnotation({
     handleCommentSubmit,
     handleCommentAgree,
     handleCommentClose,
-    handleFloatingQuickLabel,
-    handleQuickLabelPickerDismiss,
     removeHighlight,
     clearAllHighlights,
     applyAnnotations,

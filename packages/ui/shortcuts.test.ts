@@ -64,23 +64,10 @@ describe('shortcuts', () => {
   });
 
 
-  // The quick-label picker claims bare digits. Holding Shift has to steer the
-  // keystroke to the mode switcher instead of firing both.
-  it('does not fire the bare-digit label picker while Shift is held', () => {
-    const shiftedDigit = {
-      key: '!', code: 'Digit1', ctrlKey: false, metaKey: false, shiftKey: true, altKey: false,
-    } as KeyboardEvent;
-
-    expect(matchesShortcutBinding(shiftedDigit, '1-0')).toBe(false);
-    expect(matchesShortcutBinding(shiftedDigit, 'Shift+1')).toBe(true);
-  });
-
   it('matches normalized runtime bindings', () => {
     const submitEvent = { key: 'Enter', ctrlKey: true, metaKey: false, shiftKey: false, altKey: false, code: 'Enter' } as KeyboardEvent;
     const reverseSearchEvent = { key: 'F3', ctrlKey: false, metaKey: false, shiftKey: true, altKey: false, code: 'F3' } as KeyboardEvent;
     const typeEvent = { key: 'A', ctrlKey: false, metaKey: false, shiftKey: true, altKey: false, code: 'KeyA' } as KeyboardEvent;
-    const quickLabelEvent = { key: '3', ctrlKey: false, metaKey: false, shiftKey: false, altKey: true, code: 'Digit3' } as KeyboardEvent;
-    const macOptionQuickLabelEvent = { key: '£', ctrlKey: false, metaKey: false, shiftKey: false, altKey: true, code: 'Digit3' } as KeyboardEvent;
     const wrongEvent = { key: 'Enter', ctrlKey: false, metaKey: false, shiftKey: false, altKey: true, code: 'Enter' } as KeyboardEvent;
     const spaceEvent = {
       key: ' ',
@@ -102,8 +89,6 @@ describe('shortcuts', () => {
     expect(matchesShortcutBinding(submitEvent, 'Mod+Enter')).toBe(true);
     expect(matchesShortcutBinding(reverseSearchEvent, 'Shift+F3')).toBe(true);
     expect(matchesShortcutBinding(typeEvent, 'A-Z')).toBe(true);
-    expect(matchesShortcutBinding(quickLabelEvent, 'Alt+1-0')).toBe(true);
-    expect(matchesShortcutBinding(macOptionQuickLabelEvent, 'Alt+1-0')).toBe(true);
     expect(matchesShortcutBinding(spaceEvent, 'Space')).toBe(true);
     expect(matchesShortcutBinding(questionEvent, '?')).toBe(true);
     expect(matchesShortcutBinding(wrongEvent, 'Mod+Enter')).toBe(false);
@@ -246,13 +231,12 @@ describe('shortcuts', () => {
   });
 
 
-  it('switches annotation mode on Shift+1-4 across keyboard layouts', () => {
+  it('switches annotation mode on Shift+1-3 across keyboard layouts', () => {
     const calls: string[] = [];
     const handlers = {
       selectMarkupMode: () => calls.push('selection'),
       selectCommentMode: () => calls.push('comment'),
       selectRedlineMode: () => calls.push('redline'),
-      selectQuickLabelMode: () => calls.push('quickLabel'),
     };
 
     let preventDefaultCalls = 0;

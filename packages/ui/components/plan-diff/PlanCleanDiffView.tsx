@@ -21,7 +21,6 @@ import type {
 import { formatQuickLabel, type QuickLabel } from "../../utils/quickLabels";
 import { AnnotationToolbar } from "../AnnotationToolbar";
 import { CommentPopover } from "../CommentPopover";
-import { FloatingQuickLabelPicker } from "../FloatingQuickLabelPicker";
 import { getIdentity } from "../../utils/identity";
 
 interface PlanCleanDiffViewProps {
@@ -66,13 +65,6 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
     anchorEl: HTMLElement;
     contextText: string;
     initialText?: string;
-    block: PlanDiffBlock;
-    index: number;
-    diffContext: Annotation['diffContext'];
-  } | null>(null);
-
-  const [quickLabelPicker, setQuickLabelPicker] = useState<{
-    anchorEl: HTMLElement;
     block: PlanDiffBlock;
     index: number;
     diffContext: Annotation['diffContext'];
@@ -184,10 +176,10 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
       hoverTimeoutRef.current = null;
     }
     setIsExiting(false);
-    if (!commentPopover && !quickLabelPicker) {
+    if (!commentPopover) {
       setHoveredBlock({ element, block, index, diffContext });
     }
-  }, [commentPopover, quickLabelPicker]);
+  }, [commentPopover]);
 
   const handleLeave = useCallback(() => {
     hoverTimeoutRef.current = setTimeout(() => {
@@ -250,25 +242,10 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
     setCommentPopover(null);
   }, []);
 
-  const handleFloatingQuickLabel = useCallback((label: QuickLabel) => {
-    if (!quickLabelPicker) return;
-    createDiffAnnotation(
-      quickLabelPicker.block, quickLabelPicker.index, quickLabelPicker.diffContext,
-      AnnotationType.COMMENT, formatQuickLabel(label), undefined, true, label.tip
-    );
-    setQuickLabelPicker(null);
-  }, [quickLabelPicker, createDiffAnnotation]);
-
-  const handleQuickLabelPickerDismiss = useCallback(() => {
-    setQuickLabelPicker(null);
-  }, []);
-
   // Mode-aware click on hovered block
   const handleBlockClick = useCallback((block: PlanDiffBlock, index: number, element: HTMLElement, diffContext: Annotation['diffContext']) => {
     if (modeRef.current === 'redline') {
       createDiffAnnotation(block, index, diffContext, AnnotationType.DELETION);
-    } else if (modeRef.current === 'quickLabel') {
-      setQuickLabelPicker({ anchorEl: element, block, index, diffContext });
     } else {
       // selection or comment → open the comment popover directly on click
       const content = getBlockContent(block, diffContext);
@@ -303,7 +280,7 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
       ))}
 
       {/* Block hover toolbar (selection mode) */}
-      {hoveredBlock && !commentPopover && !quickLabelPicker && (
+      {hoveredBlock && !commentPopover && (
         <AnnotationToolbar
           element={hoveredBlock.element}
           positionMode="top-right"
@@ -334,15 +311,6 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
           onSubmit={handleCommentSubmit}
           onClose={handleCommentClose}
           skillReferences
-        />
-      )}
-
-      {/* Quick label picker */}
-      {quickLabelPicker && (
-        <FloatingQuickLabelPicker
-          anchorEl={quickLabelPicker.anchorEl}
-          onSelect={handleFloatingQuickLabel}
-          onDismiss={handleQuickLabelPickerDismiss}
         />
       )}
     </div>

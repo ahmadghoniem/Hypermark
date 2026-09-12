@@ -30,12 +30,6 @@ export interface CommentPopoverState {
   draftKey: string;
 }
 
-export interface QuickLabelPickerState {
-  anchorEl: HTMLElement;
-  cursorHint?: { x: number; y: number };
-  source?: any;
-}
-
 type MathAnnotationSource = {
   kind: 'math';
   element: HTMLElement;
@@ -272,7 +266,6 @@ export interface UseAnnotationHighlighterReturn {
 
   toolbarState: ToolbarState | null;
   commentPopover: CommentPopoverState | null;
-  quickLabelPicker: QuickLabelPickerState | null;
 
   handleAnnotate: (type: AnnotationType) => void;
   handleQuickLabel: (label: QuickLabel) => void;
@@ -280,8 +273,6 @@ export interface UseAnnotationHighlighterReturn {
   handleRequestComment: (initialChar?: string) => void;
   handleCommentSubmit: (text: string, images?: ImageAttachment[]) => void;
   handleCommentClose: () => void;
-  handleFloatingQuickLabel: (label: QuickLabel) => void;
-  handleQuickLabelPickerDismiss: () => void;
   /** Paint a caller-created DOM range through the same pipeline as pointer selection. */
   highlightRange: (range: Range, modeOverride?: EditorMode) => void;
   /** Annotate one rendered formula through the same path as a pointer click. */
@@ -323,7 +314,6 @@ export function useAnnotationHighlighter({
 
   const [toolbarState, setToolbarState] = useState<ToolbarState | null>(null);
   const [commentPopover, setCommentPopover] = useState<CommentPopoverState | null>(null);
-  const [quickLabelPicker, setQuickLabelPicker] = useState<QuickLabelPickerState | null>(null);
 
   // Keep refs in sync
   useEffect(() => { modeRef.current = mode; }, [mode]);
@@ -872,7 +862,6 @@ export function useAnnotationHighlighter({
           clearPendingSelection();
           pendingMathTargetsRef.current = mathTargetsFromSelection(window.getSelection(), containerRef.current);
           setCommentPopover(null);
-          setQuickLabelPicker(null);
 
           const effectiveMode = pendingModeOverrideRef.current ?? modeRef.current;
           pendingModeOverrideRef.current = null;
@@ -888,13 +877,6 @@ export function useAnnotationHighlighter({
               selectedText: source.text,
               source,
               draftKey: commentDraftTargetKey(source, source.text),
-            });
-          } else if (effectiveMode === 'quickLabel') {
-            pendingSourceRef.current = source;
-            setQuickLabelPicker({
-              anchorEl: doms[0] as HTMLElement,
-              cursorHint: lastMousePosRef.current,
-              source,
             });
           } else {
             // Selection mode — show toolbar
@@ -957,7 +939,6 @@ export function useAnnotationHighlighter({
       clearPendingSelection();
       setToolbarState(null);
       setCommentPopover(null);
-      setQuickLabelPicker(null);
 
       if (modeRef.current === 'redline') {
         createAnnotationFromMathSource(source, AnnotationType.DELETION);
@@ -974,17 +955,6 @@ export function useAnnotationHighlighter({
           selectedText: source.text,
           source,
           draftKey: commentDraftTargetKey(source, source.text),
-        });
-        return;
-      }
-
-      if (modeRef.current === 'quickLabel') {
-        pendingSourceRef.current = source;
-        showPendingMathPreview(source);
-        setQuickLabelPicker({
-          anchorEl: source.element,
-          cursorHint: lastMousePosRef.current,
-          source,
         });
         return;
       }
@@ -1075,7 +1045,6 @@ export function useAnnotationHighlighter({
     clearPendingSelection();
     setToolbarState(null);
     setCommentPopover(null);
-    setQuickLabelPicker(null);
 
     if (effectiveMode === 'redline') {
       createAnnotationFromMathSource(source, AnnotationType.DELETION);
@@ -1092,15 +1061,6 @@ export function useAnnotationHighlighter({
         selectedText: source.text,
         source,
         draftKey: commentDraftTargetKey(source, source.text),
-      });
-      return;
-    }
-
-    if (effectiveMode === 'quickLabel') {
-      setQuickLabelPicker({
-        anchorEl: source.element,
-        cursorHint: lastMousePosRef.current,
-        source,
       });
       return;
     }
@@ -1276,58 +1236,16 @@ export function useAnnotationHighlighter({
     window.getSelection()?.removeAllRanges();
   }, [clearPendingSelection]);
 
-  const handleFloatingQuickLabel = useCallback((label: QuickLabel) => {
-    if (!quickLabelPicker?.source) return;
-    if (isMathAnnotationSource(quickLabelPicker.source)) {
-      createAnnotationFromMathSource(
-        quickLabelPicker.source,
-        AnnotationType.COMMENT,
-        formatQuickLabel(label),
-        undefined,
-        true,
-        label.tip,
-      );
-      clearPendingSelection();
-      setQuickLabelPicker(null);
-      window.getSelection()?.removeAllRanges();
-      return;
-    }
-    if (!highlighterRef.current) return;
-    createAnnotationFromSource(
-      highlighterRef.current, quickLabelPicker.source, AnnotationType.COMMENT,
-      formatQuickLabel(label), undefined, true, label.tip
-    );
-    clearPendingSelection();
-    setQuickLabelPicker(null);
-    window.getSelection()?.removeAllRanges();
-  }, [clearPendingSelection, quickLabelPicker]);
-
-  const handleQuickLabelPickerDismiss = useCallback(() => {
-    if (
-      quickLabelPicker?.source &&
-      highlighterRef.current &&
-      !isMathAnnotationSource(quickLabelPicker.source)
-    ) {
-      highlighterRef.current.remove(quickLabelPicker.source.id);
-    }
-    clearPendingSelection();
-    setQuickLabelPicker(null);
-    window.getSelection()?.removeAllRanges();
-  }, [clearPendingSelection, quickLabelPicker]);
-
   return {
     highlighterRef,
     toolbarState,
     commentPopover,
-    quickLabelPicker,
     handleAnnotate,
     handleQuickLabel,
     handleToolbarClose,
     handleRequestComment,
     handleCommentSubmit,
     handleCommentClose,
-    handleFloatingQuickLabel,
-    handleQuickLabelPickerDismiss,
     highlightRange,
     highlightMathElement,
     removeHighlight,

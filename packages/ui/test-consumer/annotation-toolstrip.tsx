@@ -3,9 +3,9 @@ import {
   type AnnotationToolstripProps,
 } from '@hypermark/ui/components/AnnotationToolstrip';
 
-/** Compile-only proof that the published subpath exposes the additive opt-out. */
+/** Compile-only proof of the published AnnotationToolstrip subpath. */
 export function PublishedAnnotationToolstripConsumer(
-  props: Omit<AnnotationToolstripProps, 'hideQuickLabel'>,
+  props: AnnotationToolstripProps,
 ) {
-  return <AnnotationToolstrip {...props} hideQuickLabel />;
+  return <AnnotationToolstrip {...props} />;
 }

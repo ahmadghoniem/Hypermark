@@ -689,7 +689,7 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
     useEffect(() => {
       if (readOnly || !annotateModeActive || !onAnnotateModeExit) return;
       const overlayOpen =
-        !!hook.toolbarState || !!hook.commentPopover || !!hook.quickLabelPicker || !!globalCommentPopover;
+        !!hook.toolbarState || !!hook.commentPopover || !!globalCommentPopover;
       const onKeyDown = (e: KeyboardEvent) => {
         if (e.key !== 'Escape' || e.defaultPrevented) return;
         if (overlayOpen) return;
@@ -707,7 +707,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       onAnnotateModeExit,
       hook.toolbarState,
       hook.commentPopover,
-      hook.quickLabelPicker,
       globalCommentPopover,
     ]);
 

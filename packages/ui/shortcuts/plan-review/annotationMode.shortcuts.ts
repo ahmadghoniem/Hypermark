@@ -37,19 +37,11 @@ export const annotationModeShortcuts = defineShortcutScope({
       preventDefault: true,
       displayOrder: 3,
     },
-    selectQuickLabelMode: {
-      description: 'Label mode',
-      bindings: ['Shift+4'],
-      section: 'Annotations',
-      hint: 'Selecting text opens the quick label picker.',
-      preventDefault: true,
-      displayOrder: 4,
-    },
   },
 });
 
 // --- Type-to-comment capture guard (#1244 follow-up) ---
-// Shift+1..4 produce printable characters (! @ # $). While a surface's
+// Shift+1..3 produce printable characters (! @ #). While a surface's
 // type-to-comment listener owns printable keys (a selection exists and the
 // annotation toolbar is open), those characters belong to the comment being
 // started: a mode shortcut firing there both eats the character and silently

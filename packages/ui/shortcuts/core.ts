@@ -55,7 +55,6 @@ const NAMED_TOKENS = new Set([
   'Home',
   'End',
   'A-Z',
-  '1-0',
   'hold',
   // Punctuation keys used as shortcut targets. Add new ones as needed; we
   // whitelist explicitly so typos like `Cmd` instead of `Mod` keep failing
@@ -360,10 +359,6 @@ function matchesKeyToken(event: ShortcutKeyEvent, token: string): boolean {
 
   if (token === 'A-Z') {
     return /^[A-Z]$/.test(key);
-  }
-
-  if (token === '1-0') {
-    return /^[0-9]$/.test(key) || shortcutDigit !== null;
   }
 
   if (isSingleLetter(token)) {

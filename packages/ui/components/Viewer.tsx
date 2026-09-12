@@ -16,7 +16,6 @@ import { TablePopout } from './blocks/TablePopout';
 import { CodePathValidationContext } from './CodePathValidationContext';
 import { useValidatedCodePaths } from '../hooks/useValidatedCodePaths';
 import { AnnotationToolbar } from './AnnotationToolbar';
-import { FloatingQuickLabelPicker } from './FloatingQuickLabelPicker';
 
 // Debug error boundary to catch silent toolbar crashes
 class ToolbarErrorBoundary extends React.Component<
@@ -67,8 +66,6 @@ export interface ViewerAnnotationHeaderConfig {
   readonly onInputMethodChange: (method: InputMethod) => void;
   /** Persist and apply an annotation-mode change. */
   readonly onModeChange: (mode: EditorMode) => void;
-  /** Omit Quick Label without changing or coercing the current mode. */
-  readonly hideQuickLabel?: boolean;
 }
 
 /** Public properties for the Markdown document Viewer. */
@@ -278,7 +275,6 @@ const ViewerDocumentHeader: React.FC<ViewerDocumentHeaderProps> = ({
                 onInputMethodChange={config.onInputMethodChange}
                 mode={mode}
                 onModeChange={config.onModeChange}
-                hideQuickLabel={config.hideQuickLabel}
                 compact
                 iconOnly={iconOnly}
               />
@@ -413,11 +409,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     isGlobal: boolean;
     codeBlock?: { block: Block; element: HTMLElement };
   } | null>(null);
-  // Viewer-specific quick label state (code blocks)
-  const [codeBlockQuickLabelPicker, setCodeBlockQuickLabelPicker] = useState<{
-    anchorEl: HTMLElement;
-    codeBlock: { block: Block; element: HTMLElement };
-  } | null>(null);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const readOnlyRef = useRef(readOnly);
   readOnlyRef.current = readOnly;
@@ -429,15 +420,12 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   const {
     toolbarState,
     commentPopover: hookCommentPopover,
-    quickLabelPicker: hookQuickLabelPicker,
     handleAnnotate,
     handleQuickLabel,
     handleToolbarClose,
     handleRequestComment,
     handleCommentSubmit: hookCommentSubmit,
     handleCommentClose: hookCommentClose,
-    handleFloatingQuickLabel: hookFloatingQuickLabel,
-    handleQuickLabelPickerDismiss: hookQuickLabelPickerDismiss,
     highlightRange,
     removeHighlight: hookRemoveHighlight,
     clearAllHighlights,
@@ -560,11 +548,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     // In pinpoint mode, apply code block annotation based on current editor mode
     if (modeRef.current === 'redline') {
       applyCodeBlockAnnotation(blockId, codeEl, AnnotationType.DELETION);
-    } else if (modeRef.current === 'quickLabel') {
-      setCodeBlockQuickLabelPicker({
-        anchorEl: element,
-        codeBlock: { block, element },
-      });
     } else {
       // Show comment popover anchored to the code block
       setViewerCommentPopover({
@@ -581,7 +564,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   const { hoverTarget } = usePinpoint({
     containerRef,
     inputMethod,
-    enabled: !readOnly && !toolbarState && !hookCommentPopover && !viewerCommentPopover && !hookQuickLabelPicker && !codeBlockQuickLabelPicker && !(isPlanDiffActive ?? false),
+    enabled: !readOnly && !toolbarState && !hookCommentPopover && !viewerCommentPopover && !(isPlanDiffActive ?? false),
     onSelectRange: highlightRange,
     onCodeBlockClick: handlePinpointCodeBlockClick,
   });
@@ -596,7 +579,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     setCodeBlockToolbar(null);
     setIsCodeBlockToolbarExiting(false);
     setViewerCommentPopover(null);
-    setCodeBlockQuickLabelPicker(null);
   }, [readOnly]);
 
   // Suppress native context menu on touch devices (prevents cut/copy/paste overlay on mobile)
@@ -1186,35 +1168,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
           />
         )}
 
-        {/* Quick Label floating picker — hook handles text selection, Viewer handles code blocks */}
-        {!readOnly && hookQuickLabelPicker && (
-          <FloatingQuickLabelPicker
-            anchorEl={hookQuickLabelPicker.anchorEl}
-            cursorHint={hookQuickLabelPicker.cursorHint}
-            onSelect={hookFloatingQuickLabel}
-            onDismiss={hookQuickLabelPickerDismiss}
-          />
-        )}
-        {!readOnly && codeBlockQuickLabelPicker && (
-          <FloatingQuickLabelPicker
-            anchorEl={codeBlockQuickLabelPicker.anchorEl}
-            onSelect={(label: QuickLabel) => {
-              const codeEl = codeBlockQuickLabelPicker.codeBlock.element.querySelector('code');
-              if (codeEl) {
-                applyCodeBlockAnnotation(
-                  codeBlockQuickLabelPicker.codeBlock.block.id, codeEl, AnnotationType.COMMENT,
-                  formatQuickLabel(label), undefined, true, label.tip
-                );
-              }
-              setCodeBlockQuickLabelPicker(null);
-              window.getSelection()?.removeAllRanges();
-            }}
-            onDismiss={() => {
-              setCodeBlockQuickLabelPicker(null);
-              window.getSelection()?.removeAllRanges();
-            }}
-          />
-        )}
       </article>
 
       {/* Image lightbox */}

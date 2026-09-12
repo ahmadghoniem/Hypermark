@@ -253,7 +253,7 @@ try {
       'import * as parser from "@hypermark/ui/utils/parser";',
       "",
       'const laneProps: Pick<StickyHeaderLaneProps, "visibility" | "sticky"> = { visibility: "always", sticky: false };',
-      'const annotationHeader: ViewerAnnotationHeaderConfig = { onInputMethodChange: () => {}, onModeChange: () => {}, hideQuickLabel: true };',
+      'const annotationHeader: ViewerAnnotationHeaderConfig = { onInputMethodChange: () => {}, onModeChange: () => {} };',
       "void StickyHeaderLane;",
       "void laneProps;",
       "void Viewer;",

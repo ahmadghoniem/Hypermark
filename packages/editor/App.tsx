@@ -2662,7 +2662,6 @@ const AppInner: React.FC = () => {
       selectMarkupMode: { when: canHandleAnnotationModeShortcut, handle: () => handleEditorModeChange('selection') },
       selectCommentMode: { when: canHandleAnnotationModeShortcut, handle: () => handleEditorModeChange('comment') },
       selectRedlineMode: { when: canHandleAnnotationModeShortcut, handle: () => handleEditorModeChange('redline') },
-      selectQuickLabelMode: { when: canHandleAnnotationModeShortcut, handle: () => handleEditorModeChange('quickLabel') },
     },
   });
 

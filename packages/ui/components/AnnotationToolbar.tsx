@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { AnnotationType } from "../types";
 import { createPortal } from "react-dom";
 import { useDismissOnOutsideAndEscape } from "../hooks/useDismissOnOutsideAndEscape";
-import { type QuickLabel, getQuickLabels, AGREED_LABEL } from "../utils/quickLabels";
+import { type QuickLabel, AGREED_LABEL } from "../utils/quickLabels";
 import { copyTextToClipboard } from "../utils/clipboard";
 import { acquireTypeToCommentCapture } from "../shortcuts/plan-review/annotationMode.shortcuts";
-import { FloatingQuickLabelPicker } from "./FloatingQuickLabelPicker";
 
 type PositionMode = 'center-above' | 'top-right';
 
@@ -27,11 +26,9 @@ interface AnnotationToolbarProps {
   onQuickLabel?: (label: QuickLabel) => void;
   /** Text to copy when the button is clicked */
   copyText?: string;
-  /** Comment-only surfaces (HTML / live-app viewer): hide the Delete action,
-   *  the quick-label picker, and the Alt+digit label shortcuts. A provided
-   *  onQuickLabel then renders ONLY the hardcoded "Agreed" button —
-   *  the one label affordance restored to these surfaces. Markdown surfaces
-   *  keep the full toolbar. */
+  /** Comment-only surfaces (HTML / live-app viewer): hide the Delete action.
+   *  A provided onQuickLabel renders the hardcoded "Agreed" button.
+   *  Markdown surfaces keep the full toolbar. */
   commentOnly?: boolean;
   /** Hide the copy button (set when a keyboard copy handler exists) */
   hideCopyButton?: boolean;
@@ -61,10 +58,7 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
 }) => {
   const [position, setPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
   const [copied, setCopied] = useState(false);
-  const [showQuickLabels, setShowQuickLabels] = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
-  const zapButtonRef = useRef<HTMLButtonElement>(null);
-  const quickLabels = useMemo(() => getQuickLabels(), []);
 
   useEffect(() => { setCopied(false); }, [element]);
 
@@ -113,32 +107,14 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
     };
   }, [element, positionMode, closeOnScrollOut, onClose]);
 
-  // Type-to-comment + Alt+N / bare digit quick label shortcuts
+  // Type-to-comment shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing) return;
       if (isEditableElement(e.target) || isEditableElement(document.activeElement)) return;
 
-      // When picker is open, let FloatingQuickLabelPicker own all keyboard input
-      if (showQuickLabels) return;
-
       if (e.key === "Escape") {
         onClose();
-        return;
-      }
-
-      // Alt+N applies quick label (picker closed). Comment-only surfaces
-      // suppress this path: their only label affordance is the 👍 button.
-      const isDigit = (e.code >= 'Digit1' && e.code <= 'Digit9') || e.code === 'Digit0';
-      if (isDigit && !e.ctrlKey && !e.metaKey && e.altKey) {
-        e.preventDefault();
-        if (!commentOnly) {
-          const digit = parseInt(e.code.slice(5), 10);
-          const index = digit === 0 ? 9 : digit - 1;
-          if (index < quickLabels.length) {
-            onQuickLabel?.(quickLabels[index]);
-          }
-        }
         return;
       }
 
@@ -150,7 +126,7 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    // While this listener owns printable keys, the Shift+1..4 annotation-mode
+    // While this listener owns printable keys, the Shift+1..3 annotation-mode
     // shortcuts must not fire: Shift+3 is "#", and a user typing "#" into a
     // starting comment must not silently arm Redline (#1244 follow-up).
     const releaseCapture = acquireTypeToCommentCapture();
@@ -158,10 +134,10 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
       window.removeEventListener("keydown", handleKeyDown);
       releaseCapture();
     };
-  }, [onClose, onRequestComment, onQuickLabel, quickLabels, showQuickLabels, commentOnly]);
+  }, [onClose, onRequestComment]);
 
   useDismissOnOutsideAndEscape({
-    enabled: !showQuickLabels,
+    enabled: true,
     ref: toolbarRef,
     onDismiss: onClose,
   });
@@ -235,33 +211,12 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
           className="text-annotation-comment hover:bg-annotation-comment/10"
         />
         {onQuickLabel && (
-          <>
-            {!commentOnly && (
-              <ToolbarButton
-                ref={zapButtonRef}
-                onClick={() => setShowQuickLabels(prev => !prev)}
-                icon={<ZapIcon />}
-                label="Quick label"
-                className={showQuickLabels ? "text-amber-500 bg-amber-500/10" : "text-amber-500 hover:bg-amber-500/10"}
-              />
-            )}
-            <ToolbarButton
-              onClick={() => onQuickLabel(AGREED_LABEL)}
-              icon={<AgreedIcon />}
-              label="Agreed"
-              className="text-green-500 hover:bg-green-500/10"
-            />
-            {!commentOnly && showQuickLabels && zapButtonRef.current && (
-              <FloatingQuickLabelPicker
-                anchorEl={zapButtonRef.current}
-                onSelect={(label) => {
-                  setShowQuickLabels(false);
-                  onQuickLabel(label);
-                }}
-                onDismiss={() => setShowQuickLabels(false)}
-              />
-            )}
-          </>
+          <ToolbarButton
+            onClick={() => onQuickLabel(AGREED_LABEL)}
+            icon={<AgreedIcon />}
+            label="Agreed"
+            className="text-green-500 hover:bg-green-500/10"
+          />
         )}
         <div className="w-px h-5 bg-border mx-0.5" />
         <ToolbarButton
@@ -298,12 +253,6 @@ const TrashIcon = () => (
 const CommentIcon = () => (
   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-  </svg>
-);
-
-const ZapIcon = () => (
-  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
   </svg>
 );
 

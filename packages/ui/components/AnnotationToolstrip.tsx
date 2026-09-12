@@ -23,11 +23,6 @@ export interface AnnotationToolstripProps {
    * pinpoint-only, so the switch would be a dead control there.
    */
   hideInputMethodSwitch?: boolean;
-  /**
-   * Omit only the Quick Label action. Defaults to false so existing consumers
-   * retain the complete action-mode group.
-   */
-  hideQuickLabel?: boolean;
 }
 
 /** Render the shared input-method and annotation-mode controls. */
@@ -39,7 +34,6 @@ export const AnnotationToolstrip: React.FC<AnnotationToolstripProps> = ({
   compact = false,
   iconOnly = false,
   hideInputMethodSwitch = false,
-  hideQuickLabel = false,
 }) => {
   const [mounted, setMounted] = useState(false);
 
@@ -137,22 +131,6 @@ export const AnnotationToolstrip: React.FC<AnnotationToolstripProps> = ({
               </svg>
             }
           />
-          {!hideQuickLabel && (
-            <ToolstripButton
-              active={mode === 'quickLabel'}
-              onClick={() => onModeChange('quickLabel')}
-              label="Label"
-              color="warning"
-              mounted={mounted}
-              compact={compact}
-              iconOnly={iconOnly}
-              icon={
-                <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              }
-            />
-          )}
         </div>
     </div>
   );

@@ -53,8 +53,6 @@ export interface StickyHeaderLaneProps {
   onInputMethodChange: (method: InputMethod) => void;
   mode: EditorMode;
   onModeChange: (mode: EditorMode) => void;
-  /** Omit the Quick Label tool in the compact toolstrip (mirrors AnnotationToolstripProps.hideQuickLabel). */
-  hideQuickLabel?: boolean;
 
   /**
    * Show the lane only after it sticks, or keep it visible at rest too.
@@ -99,7 +97,6 @@ export const StickyHeaderLane: React.FC<StickyHeaderLaneProps> = ({
   onInputMethodChange,
   mode,
   onModeChange,
-  hideQuickLabel,
   visibility = 'stuck',
   sticky = true,
   repoInfo,
@@ -262,7 +259,6 @@ export const StickyHeaderLane: React.FC<StickyHeaderLaneProps> = ({
               onInputMethodChange={onInputMethodChange}
               mode={mode}
               onModeChange={onModeChange}
-              hideQuickLabel={hideQuickLabel}
               compact
               iconOnly={isNarrow || isToolstripIconOnly}
             />

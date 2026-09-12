@@ -5,10 +5,6 @@
  * so they persist across different port-based sessions.
  */
 
-import { storage } from './storage';
-
-const STORAGE_KEY = 'hypermark-quick-labels';
-
 export interface QuickLabel {
   id: string;     // kebab-case identifier e.g. "needs-tests"
   emoji: string;  // single emoji e.g. "🧪", or '' for a label that carries none
@@ -21,8 +17,7 @@ export interface QuickLabel {
  * The text a quick label writes into an annotation: "🧪 Needs tests", or just
  * "Agreed" for a label with no emoji. Every call site that used to inline
  * `${emoji} ${text}` goes through here so an empty emoji cannot leave a
- * leading space in the stored annotation text (which would then fail to match
- * in findLabelByText).
+ * leading space in the stored annotation text.
  */
 export function formatQuickLabel(label: QuickLabel): string {
   return label.emoji ? `${label.emoji} ${label.text}` : label.text;
@@ -58,35 +53,6 @@ export const AGREED_LABEL: QuickLabel = {
   color: 'green',
 };
 
-export const DEFAULT_QUICK_LABELS: QuickLabel[] = [
-  { id: 'clarify-this',            emoji: '❓', text: 'Clarify this',            color: 'yellow' },
-  { id: 'missing-overview',        emoji: '🗺️', text: 'Missing overview',        color: 'purple', tip: 'Provide a narrative overview of what is being built, why it is being built, and how it will be built. Add this before the implementation details.' },
-  { id: 'verify-this',             emoji: '🔍', text: 'Verify this',             color: 'orange', tip: 'This seems like an assumption. Verify by reading the actual code before proceeding.' },
-  { id: 'give-me-an-example',      emoji: '🔬', text: 'Give me an example',      color: 'cyan', tip: 'This is too abstract. Show a before/after, a sample input/output, or a specific scenario so I can see how this actually works.' },
-  { id: 'match-existing-patterns',  emoji: '🧬', text: 'Match existing patterns',  color: 'teal', tip: 'Search the codebase for existing patterns, components, or utilities that already solve this. Reuse what exists rather than introducing a new approach.' },
-  { id: 'consider-alternatives',    emoji: '🔄', text: 'Consider alternatives',    color: 'pink', tip: 'Propose 2-3 alternative approaches with trade-offs based on the actual codebase. Also check the Hypermark plans directory (HYPERMARK_DATA_DIR or ~/.hypermark/plans/) for prior plan versions that may have already explored or rejected similar approaches.' },
-  { id: 'ensure-no-regression',     emoji: '📉', text: 'Ensure no regression',     color: 'amber', tip: 'Verify that this change will not break existing behavior. Identify what could regress and how to protect against it.' },
-  { id: 'out-of-scope',            emoji: '🚫', text: 'Out of scope',            color: 'red', tip: 'This is not part of the current task. Remove it and stay focused on what was actually requested.' },
-  { id: 'needs-tests',             emoji: '🧪', text: 'Needs tests',             color: 'blue' },
-  { id: 'nice-approach',           emoji: '👍', text: 'Nice approach',           color: 'green' },
-];
-
-export function getQuickLabels(): QuickLabel[] {
-  const raw = storage.getItem(STORAGE_KEY);
-  if (!raw) return DEFAULT_QUICK_LABELS;
-  try {
-    const parsed = JSON.parse(raw) as QuickLabel[];
-    return parsed.length > 0 ? parsed : DEFAULT_QUICK_LABELS;
-  } catch {
-    return DEFAULT_QUICK_LABELS;
-  }
-}
-
-/** Find a configured label whose formatted text matches an annotation's text field */
-export function findLabelByText(annotationText: string): QuickLabel | undefined {
-  return getQuickLabels().find(l => formatQuickLabel(l) === annotationText);
-}
-
 /** Get color styles for a label, respecting dark mode */
 export function getLabelColors(color: string): { bg: string; text: string } {
   const colors = LABEL_COLOR_MAP[color];
@@ -94,3 +60,4 @@ export function getLabelColors(color: string): { bg: string; text: string } {
   const isDark = document.documentElement.classList.contains('dark');
   return { bg: colors.bg, text: isDark ? colors.darkText : colors.text };
 }
+

@@ -12,20 +12,6 @@ export const annotationToolbarShortcuts = defineShortcutScope({
       hint: 'Typing a letter opens the comment editor with that character.',
       displayOrder: 10,
     },
-    applyQuickLabel: {
-      description: 'Apply toolbar label',
-      bindings: ['Alt+1-0'],
-      section: 'Annotations',
-      hint: 'Applies the matching preset label while the annotation toolbar is open.',
-      displayOrder: 20,
-    },
-    applyQuickLabelFromPicker: {
-      description: 'Apply picker label',
-      bindings: ['1-0'],
-      section: 'Annotations',
-      hint: 'Available while the quick label picker is open.',
-      displayOrder: 30,
-    },
     close: {
       description: 'Close toolbar',
       bindings: ['Escape'],

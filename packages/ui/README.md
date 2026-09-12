@@ -131,7 +131,6 @@ The srcdoc then carries one classic `<script src>` in the exact place the inline
 
 `components/AnnotationToolstrip` is supported host surface: the annotation mode toolstrip with per-tool opt-outs, all defaulting to today's rendering.
 
-- **`hideQuickLabel`** omits the Quick Label tool. `StickyHeaderLane` forwards it, so the pinned scroll header stays consistent. It hides the button only — it does not clamp the mode, so keep host mode state out of `'quickLabel'` (including preferences restored through `utils/editorMode`).
 - **`showHelpLink={false}`** for hosts: the default help modal embeds Hypermark's own video walkthroughs.
 - **`hideInputMethodSwitch`** omits the pinpoint/drag input-method switch.
 
@@ -155,8 +154,7 @@ behavior: hidden and inert at rest, then visible with card chrome once stuck.
   measured Viewer-actions width is still reserved because both clusters share
   the lane at rest before they scroll away together.
 - Wide, tight icon-only, and narrow stacked layouts continue to derive from the
-  wrapper width and the measured action-cluster width. `hideQuickLabel` is still
-  forwarded to the compact toolstrip.
+  wrapper width and the measured action-cluster width.
 
 #### Viewer-owned document header
 
@@ -172,7 +170,6 @@ on the left and its existing Global comment / Copy actions on the right:
   annotationHeader={{
     onInputMethodChange: setInputMethod,
     onModeChange: setMode,
-    hideQuickLabel: true,
   }}
   // ...the existing Viewer props
 />
@@ -205,10 +202,8 @@ its row. Scope such rules away from the header, e.g.
 
 The config is intentionally typed rather than a React-node slot. Viewer reuses
 its existing `mode` and `inputMethod`; the config supplies only
-the state-change callbacks and optional `hideQuickLabel`. Compact toolstrips
-never render the Hypermark help modal. Hiding Quick Label does not clamp the
-mode, so hosts must still prevent stored `'quickLabel'` state from reaching
-Viewer. Omit `annotationHeader` to preserve the legacy floating action bar
+the state-change callbacks. Compact toolstrips
+never render the Hypermark help modal. Omit `annotationHeader` to preserve the legacy floating action bar
 exactly. The standalone `StickyHeaderLane` remains supported for Hypermark's
 hidden-at-rest ghost lane, but its always-visible mode is an overlay and is not
 the in-flow host integration.
