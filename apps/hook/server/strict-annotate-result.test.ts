@@ -12,7 +12,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import {
   annotateOutcomeExitCode,
@@ -205,10 +205,10 @@ describe("atomic annotate result publication", () => {
   test("resolves relative result paths from the invocation directory", () => {
     expect(
       resolveResultFilePath("results/review.json", "/workspace/project"),
-    ).toBe("/workspace/project/results/review.json");
+    ).toBe(resolve("/workspace/project", "results/review.json"));
     expect(
       resolveResultFilePath("/var/tmp/review.json", "/workspace/project"),
-    ).toBe("/var/tmp/review.json");
+    ).toBe(resolve("/workspace/project", "/var/tmp/review.json"));
   });
 
   test("publishes one complete private newline-terminated record", async () => {

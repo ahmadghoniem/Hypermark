@@ -52,6 +52,10 @@ describe("extractRepoName", () => {
     expect(extractRepoName("/Users/dev/projects/my-app")).toBe("my-app");
   });
 
+  test("extracts name from Windows path", () => {
+    expect(extractRepoName("C:\\src\\hypermark")).toBe("hypermark");
+  });
+
   test("handles trailing slash", () => {
     expect(extractRepoName("/Users/dev/my-app/")).toBe("my-app");
   });
@@ -74,19 +78,27 @@ describe("extractDirName", () => {
     expect(extractDirName("/home/user/workspace")).toBe("workspace");
   });
 
+  test("extracts directory name from Windows path", () => {
+    expect(extractDirName("C:\\Users\\me\\workspace")).toBe("workspace");
+  });
+
   test("skips generic names", () => {
     expect(extractDirName("/home")).toBeNull();
     expect(extractDirName("/Users")).toBeNull();
     expect(extractDirName("/root")).toBeNull();
     expect(extractDirName("/tmp")).toBeNull();
+    expect(extractDirName("C:\\Users")).toBeNull();
   });
 
   test("returns null for root path", () => {
     expect(extractDirName("/")).toBeNull();
+    expect(extractDirName("C:\\")).toBeNull();
+    expect(extractDirName("C:/")).toBeNull();
   });
 
   test("sanitizes the result", () => {
     expect(extractDirName("/home/user/My Project")).toBe("my-project");
+    expect(extractDirName("C:\\Users\\me\\My Project")).toBe("my-project");
   });
 });
 

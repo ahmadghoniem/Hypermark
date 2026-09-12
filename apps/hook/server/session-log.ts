@@ -114,35 +114,37 @@ function findSessionLogs(projectDir: string): string[] {
  * Find session log candidates for a given working directory.
  * Returns all .jsonl paths sorted by mtime (most recent first).
  *
- * Tries the exact slug first, then a case-insensitive match. On Windows,
- * Claude Code lowercases the entire slug (e.g. `C-Users-...` → `c-users-...`)
- * while our cwd may have mixed case. The fallback scans the projects directory
- * for a case-insensitive match.
+ * Scans the projects directory for the on-disk directory name matching the cwd
+ * slug (preferring an exact match, falling back to a case-insensitive match
+ * to handle Windows drive-letter casing differences) so returned paths reflect
+ * the actual on-disk casing rather than the caller's.
+ * Falls back to `join(projectsDir, slug)` directly if reading `projectsDir` fails.
  */
 export function findSessionLogsForCwd(cwd: string, projectsDirOverride?: string): string[] {
   const slug = projectSlugFromCwd(cwd);
   const projectsDir = projectsDirOverride ?? DEFAULT_PROJECTS_DIR;
-  const projectDir = join(projectsDir, slug);
 
-  // Try exact match first
-  const logs = findSessionLogs(projectDir);
-  if (logs.length > 0) return logs;
-
-  // Fallback: case-insensitive directory scan (handles Windows drive letter casing)
-  const slugLower = slug.toLowerCase();
+  let matchedDirName: string | null = null;
   try {
-    const dirs = readdirSync(projectsDir);
-    for (const dir of dirs) {
-      if (dir.toLowerCase() === slugLower) {
-        const fallbackLogs = findSessionLogs(join(projectsDir, dir));
-        if (fallbackLogs.length > 0) return fallbackLogs;
+    const entries = readdirSync(projectsDir);
+    const slugLower = slug.toLowerCase();
+    let caseInsensitiveMatch: string | null = null;
+    for (const entry of entries) {
+      if (entry === slug) {
+        matchedDirName = entry;
+        break;
+      }
+      if (caseInsensitiveMatch === null && entry.toLowerCase() === slugLower) {
+        caseInsensitiveMatch = entry;
       }
     }
+    matchedDirName = matchedDirName ?? caseInsensitiveMatch;
   } catch {
-    // projectsDir doesn't exist
+    // If readdirSync(projectsDir) throws (directory absent), fall back to slug directly
   }
 
-  return [];
+  const projectDir = join(projectsDir, matchedDirName ?? slug);
+  return findSessionLogs(projectDir);
 }
 
 // --- Session Metadata Resolution ---

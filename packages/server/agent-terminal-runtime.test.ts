@@ -47,6 +47,7 @@ describe("agent terminal runtime", () => {
 
   test("does not hand Node a Bun virtual sidecar path", () => {
     expect(resolveBundledAgentTerminalSidecarPath("file:///$bunfs/embedded.js")).toBeNull();
+    expect(resolveBundledAgentTerminalSidecarPath("file:///$bunfs/root/embedded.js")).toBeNull();
     expect(resolveBundledAgentTerminalSidecarPath("file:///B:/~BUN/embedded.js")).toBeNull();
     expect(resolveBundledAgentTerminalSidecarPath("file:///B:/$bunfs/embedded.js")).toBeNull();
   });

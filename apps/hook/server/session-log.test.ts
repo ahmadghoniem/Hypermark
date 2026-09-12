@@ -1543,3 +1543,20 @@ describe("resolveSessionLogByCwdScan (cross-platform cwd matching)", () => {
     }
   });
 });
+
+describe("findSessionLogsForCwd", () => {
+  test("returns on-disk directory casing when cwd casing differs", () => {
+    const { projectsDir, cleanup } = makeTempDirs("disk-casing");
+    try {
+      const storedCwd = "C:\\Users\\Admin\\proj";
+      const queryCwd = "c:\\users\\admin\\proj";
+      const log = writeSessionLog(projectsDir, storedCwd, "s1");
+
+      const logs = findSessionLogsForCwd(queryCwd, projectsDir);
+      expect(logs).toEqual([log]);
+    } finally {
+      cleanup();
+    }
+  });
+});
+

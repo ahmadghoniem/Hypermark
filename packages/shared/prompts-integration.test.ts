@@ -34,7 +34,7 @@ function cleanTestHome() {
 
 async function runScript(script: string): Promise<string> {
   const proc = Bun.spawn(["bun", "-e", script], {
-    env: { ...process.env, HOME: TEST_HOME },
+    env: { ...process.env, HOME: TEST_HOME, USERPROFILE: TEST_HOME },
     cwd: PROJECT_ROOT,
     stdout: "pipe",
     stderr: "pipe",

@@ -114,9 +114,15 @@ export async function resolveAgentTerminalRuntime(): Promise<ResolvedAgentTermin
 }
 
 export function resolveBundledAgentTerminalSidecarPath(moduleUrl = import.meta.url): string | null {
-  const bundledSidecarPath = fileURLToPath(new URL("./agent-terminal-node-sidecar.mjs", moduleUrl));
-  if (isBunVirtualPath(bundledSidecarPath)) return null;
-  return existsSync(bundledSidecarPath) ? bundledSidecarPath : null;
+  try {
+    const url = new URL("./agent-terminal-node-sidecar.mjs", moduleUrl);
+    if (isBunVirtualPath(decodeURIComponent(url.pathname))) return null;
+    const bundledSidecarPath = fileURLToPath(url);
+    if (isBunVirtualPath(bundledSidecarPath)) return null;
+    return existsSync(bundledSidecarPath) ? bundledSidecarPath : null;
+  } catch {
+    return null;
+  }
 }
 
 async function resolveBundledAgentTerminalRuntime(

@@ -60,7 +60,7 @@ async function runScenario(setup: {
     `,
     ],
     {
-      env: { ...process.env, HOME: TEST_HOME },
+      env: { ...process.env, HOME: TEST_HOME, USERPROFILE: TEST_HOME },
       cwd: join(import.meta.dir, "../.."),
       stdout: "pipe",
       stderr: "pipe",

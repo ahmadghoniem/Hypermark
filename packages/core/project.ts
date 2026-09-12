@@ -33,8 +33,9 @@ export function sanitizeTag(name: string): string | null {
 export function extractRepoName(gitRootPath: string): string | null {
   if (!gitRootPath || typeof gitRootPath !== "string") return null;
 
-  const trimmed = gitRootPath.trim().replace(/\/+$/, ""); // remove trailing slashes
-  const parts = trimmed.split("/");
+  const trimmed = gitRootPath.trim().replace(/[\\/]+$/, ""); // remove trailing slashes
+  if (trimmed === "" || trimmed === "/" || /^[a-zA-Z]:$/.test(trimmed)) return null;
+  const parts = trimmed.split(/[\\/]/);
   const name = parts[parts.length - 1];
 
   return sanitizeTag(name);
@@ -46,10 +47,10 @@ export function extractRepoName(gitRootPath: string): string | null {
 export function extractDirName(path: string): string | null {
   if (!path || typeof path !== "string") return null;
 
-  const trimmed = path.trim().replace(/\/+$/, "");
-  if (trimmed === "" || trimmed === "/") return null;
+  const trimmed = path.trim().replace(/[\\/]+$/, "");
+  if (trimmed === "" || trimmed === "/" || /^[a-zA-Z]:$/.test(trimmed)) return null;
 
-  const parts = trimmed.split("/");
+  const parts = trimmed.split(/[\\/]/);
   const name = parts[parts.length - 1];
 
   // Skip generic names
