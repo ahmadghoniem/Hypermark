@@ -5,8 +5,6 @@ interface CommentMetaProps {
   /** Surface-specific leading element(s): severity dot, scope/file/line badge,
    *  collapse toggle, etc. Rendered first in the left cluster. */
   leading?: React.ReactNode;
-  reviewProfileLabel?: string;
-  source?: string;
   author?: string;
   createdAt?: number;
 }
@@ -14,10 +12,9 @@ interface CommentMetaProps {
 /**
  * The single identity row shared by every comment surface — the inline diff
  * card, the sidebar list, and the file-comment banner. Left cluster: leading
- * badge(s) → review-profile/source badge → author. Right:
- * relative time, then any surface-specific actions. Centralizing it keeps author
- * + timestamp + badge styling identical everywhere (they used to be hand-rolled
- * three different ways).
+ * badge(s) → author. Right: relative time, then any surface-specific actions.
+ * Centralizing it keeps author + timestamp styling identical everywhere (they
+ * used to be hand-rolled three different ways).
  *
  * Every author renders the same. The row used to dim the current user's name
  * and append "(me)" — a distinction that only meant something when several
@@ -25,23 +22,12 @@ interface CommentMetaProps {
  */
 export const CommentMeta: React.FC<CommentMetaProps> = ({
   leading,
-  reviewProfileLabel,
-  source,
   author,
   createdAt,
 }) => (
   <div className="review-comment-header">
     <div className="flex min-w-0 items-center gap-1.5">
       {leading}
-      {reviewProfileLabel ? (
-        <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent/10 text-accent/90 truncate max-w-[140px]">
-          {reviewProfileLabel}
-        </span>
-      ) : source ? (
-        <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground/80 truncate max-w-[140px]">
-          {source}
-        </span>
-      ) : null}
       {author && (
         <span className="text-[10px] truncate max-w-[120px] text-muted-foreground/70">
           {author}

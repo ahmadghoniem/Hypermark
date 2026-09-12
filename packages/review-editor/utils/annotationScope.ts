@@ -4,8 +4,7 @@ import type { CodeAnnotation, SelectedLineRange } from '@hypermark/ui/types';
  * True when an annotation belongs to the active PR + diff-scope (or carries no
  * PR scope of its own). Centralizes the predicate that the diff surfaces use to
  * keep annotations from one PR/diff-scope out of another after an in-place
- * switch — previously duplicated inline across ReviewDiffPanel,
- * projectFileAnnotations, and the file-comment projections.
+ * switch — used across projectFileAnnotations and the file-comment projections.
  */
 export function annotationMatchesPrScope(
   a: CodeAnnotation,

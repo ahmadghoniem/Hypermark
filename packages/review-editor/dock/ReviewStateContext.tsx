@@ -136,11 +136,10 @@ export interface ReviewState {
   searchQuery: string;
   isSearchPending: boolean;
   debouncedSearchQuery: string;
-  activeFileSearchMatches: ReviewSearchMatch[];
   activeSearchMatchId: string | null;
   activeSearchMatch: ReviewSearchMatch | null;
   // All-files (CodeView) search surface: the full match set + the unfiltered
-  // active match (activeSearchMatch above is filtered to the single-file panel).
+  // active match.
   searchMatches: ReviewSearchMatch[];
   allFilesActiveSearchMatch: ReviewSearchMatch | null;
 
@@ -156,6 +155,7 @@ export interface ReviewState {
 
   // Diff navigation
   openDiffFile: (filePath: string) => void;
+  fileScrollTarget: { filePath: string; token: number } | null;
   onAllFilesVisibleFileChange: (filePath: string | null, info?: { collapsed: boolean }) => void;
   /** Auto-mark-viewed: the reader moved on from this file (see useAutoViewed). */
   onAllFilesFileScrolledPast: (filePath: string) => void;

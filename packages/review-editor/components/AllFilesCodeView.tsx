@@ -1472,17 +1472,17 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
         if (scope !== 'line' && scope !== 'file') continue;
         if (!annotationMatchesPrScope(a, prUrl, prDiffScope)) continue;
         // File comments carry different render-affecting fields than line notes
-        // (no line/side/suggestion; they DO surface source + profile badges).
+        // (no line/side/suggestion).
         const sig = scope === 'file'
           ? JSON.stringify([
               'F', a.id, a.text ?? '', a.source ?? '', a.author ?? '',
-              a.reviewProfileLabel ?? '', a.createdAt ?? 0, a.reasoning ?? '',
+              a.createdAt ?? 0, a.reasoning ?? '',
             ])
           : JSON.stringify([
               a.id, a.lineEnd, a.side, a.type,
               a.text ?? '',
               a.severity ?? '', a.reasoning ?? '', a.author ?? '',
-              a.reviewProfileLabel ?? '', a.source ?? '', a.createdAt ?? 0,
+              a.source ?? '', a.createdAt ?? 0,
             ]);
         map.set(a.filePath, `${map.get(a.filePath) ?? ''}${sig}\n`);
       }

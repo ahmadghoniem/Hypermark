@@ -310,8 +310,6 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
               </span>
             )
           }
-          reviewProfileLabel={annotation.reviewProfileLabel}
-          source={annotation.source}
           author={annotation.author}
           createdAt={annotation.createdAt}
         />
@@ -361,7 +359,6 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
               {label}
             </span>
           }
-          source={source}
           author={author}
           createdAt={createdAt}
         />

@@ -77,11 +77,9 @@ import {
   type CollectionMutation,
   type HistoryDirection,
 } from '@hypermark/ui/utils/undoHistory';
-import { buildReviewAgentInstructions } from '@hypermark/ui/utils/reviewAgentInstructions';
 import { ResizeHandle } from '@hypermark/ui/components/ResizeHandle';
 import { IconContext, Tree } from '@phosphor-icons/react';
 import { DockviewReact, type DockviewReadyEvent, type DockviewApi } from 'dockview-react';
-import { ExportIcon, ReviewHeaderMenu } from './components/ReviewHeaderMenu';
 import { ThemeModeButton } from '@hypermark/ui/components/ThemeModeButton';
 import { SettingsIcon } from '@hypermark/ui/components/icons/headerIcons';
 import { ReviewSidebar } from './components/ReviewSidebar';
@@ -120,9 +118,6 @@ import { ReviewDockRightActions } from './dock/ReviewDockRightActions';
 import { usePRContext } from './hooks/usePRContext';
 import {
   REVIEW_PANEL_TYPES,
-  REVIEW_DIFF_PANEL_ID,
-  getReviewDiffPanelFilePath,
-  isReviewDiffPanelId,
   REVIEW_PR_OVERVIEW_PANEL_ID,
   REVIEW_PR_ARTIFACTS_PANEL_ID,
   REVIEW_SEMANTIC_DIFF_PANEL_ID,
@@ -136,8 +131,7 @@ import type { DiffOption, WorktreeInfo, GitContext, SinceBaseSections, CommitDif
 import { SectionsPanel } from './components/SectionsPanel';
 import { CommitsPanel } from './components/CommitsPanel';
 import { useCommitsView } from './hooks/useCommitsView';
-import { ReviewSetupDialog } from './components/ReviewSetupDialog';
-import { initializeReviewSetup, markReviewSetupSeen } from './utils/reviewSetup';
+import { initializeReviewSetup } from './utils/reviewSetup';
 import { resolvePanelView } from './utils/resolvePanelView';
 import { isCommitDiffType, resolveCommitExitDiff, type CommitViewRestoreTarget } from './utils/commitViewRestore';
 import { ExternalLineAnnotationComposer } from './components/ExternalLineAnnotationComposer';
@@ -181,10 +175,6 @@ interface DiffData {
   prDiffScopeOptions?: PRDiffScopeOption[];
   semanticDiff?: SemanticDiffAdvert;
   callFlow?: CallFlowAdvert;
-}
-
-function getFileTabTitle(filePath: string): string {
-  return filePath.split('/').pop() ?? filePath;
 }
 
 // When the since-base sections sidecar is present, order the master file list
@@ -320,13 +310,13 @@ const ReviewAppInner: React.FC = () => {
   });
   const apiModeRef = useRef(false);
   const analysisSettingsInitialized = useRef(false);
-  const [isDiffPanelActive, setIsDiffPanelActive] = useState(false);
+  const [fileScrollTarget, setFileScrollTarget] = useState<{ filePath: string; token: number } | null>(null);
+  const fileScrollTokenRef = useRef(0);
   const [allFilesVisibleFile, setAllFilesVisibleFile] = useState<string | null>(null);
   const [pendingSelection, setPendingSelection] = useState<SelectedLineRange | null>(null);
   const [lineAnnotationComposeRequest, setLineAnnotationComposeRequest] =
     useState<LineAnnotationComposeRequest | null>(null);
   const nextLineAnnotationComposeRequestId = useRef(0);
-  const [showExportModal, setShowExportModal] = useState(false);
   const [showWorktreeDialog, setShowWorktreeDialog] = useState(false);
   const [openSettingsMenu, setOpenSettingsMenu] = useState(false);
   const [showNoAnnotationsDialog, setShowNoAnnotationsDialog] = useState(false);
@@ -457,12 +447,6 @@ const ReviewAppInner: React.FC = () => {
     // never recorded — picking it leaves last-used at its previous value.
     if (view !== 'commits') configStore.set('reviewPanelViewLastUsed', view);
   }, []);
-  // First-run review-setup chooser (panel view + tree default diff).
-  const [showReviewSetup, setShowReviewSetup] = useState(false);
-  // True only for the first-run showing (where dismissing applies the recommended
-  // default). A reopen from the header menu must NOT snap the user's mid-session
-  // diff back to the default.
-  const reviewSetupIsFirstRun = useRef(false);
   const [agentCwd, setAgentCwd] = useState<string | null>(null);
   const [isLoadingDiff, setIsLoadingDiff] = useState(false);
   const [diffError, setDiffError] = useState<string | null>(null);
@@ -629,10 +613,7 @@ const ReviewAppInner: React.FC = () => {
   const { externalAnnotations, updateExternalAnnotation, deleteExternalAnnotation } = useExternalAnnotations<CodeAnnotation>({ enabled: !!origin });
 
 
-  // Dockview center panel API for the review workspace.
   const [dockApi, setDockApi] = useState<DockviewApi | null>(null);
-  const filesRef = useRef(files);
-  filesRef.current = files;
   const needsInitialDiffPanel = useRef(true);
   const semanticDiffAutoFallbackPending = useRef(false);
 
@@ -643,54 +624,32 @@ const ReviewAppInner: React.FC = () => {
     [prMetadata, prContext],
   );
 
-  // Sync activeFileIndex from dockview's active panel (wired in handleDockReady)
+  const openAllFilesPanel = useCallback(() => {
+    if (!dockApi) return;
+    semanticDiffAutoFallbackPending.current = false;
+    const existing = dockApi.getPanel(REVIEW_ALL_FILES_PANEL_ID);
+    if (existing) { existing.api.setActive(); return; }
+    dockApi.addPanel({
+      id: REVIEW_ALL_FILES_PANEL_ID,
+      component: REVIEW_PANEL_TYPES.ALL_FILES,
+      title: 'All files',
+    });
+  }, [dockApi]);
 
   const openDiffFile = useCallback((filePath: string) => {
     const file = files.find(candidate => candidate.path === filePath || candidate.oldPath === filePath);
     if (!file) return;
     const resolvedFilePath = file.path;
     semanticDiffAutoFallbackPending.current = false;
-
-    if (!dockApi) {
-      const fileIndex = files.findIndex(candidate => candidate.path === resolvedFilePath);
-      if (fileIndex !== -1) {
-        setActiveFileIndex(fileIndex);
-      }
-      return;
+    clearPendingSelection();
+    openAllFilesPanel();
+    fileScrollTokenRef.current += 1;
+    setFileScrollTarget({ filePath: resolvedFilePath, token: fileScrollTokenRef.current });
+    const fileIndex = files.findIndex(candidate => candidate.path === resolvedFilePath);
+    if (fileIndex !== -1) {
+      setActiveFileIndex(fileIndex);
     }
-
-    const existing = dockApi.getPanel(REVIEW_DIFF_PANEL_ID);
-    if (existing) {
-      const existingFilePath = getReviewDiffPanelFilePath(existing.params);
-      if (existingFilePath === resolvedFilePath) {
-        if (dockApi.activePanel?.id !== REVIEW_DIFF_PANEL_ID) {
-          existing.api.setActive();
-        }
-        const fileIndex = files.findIndex(candidate => candidate.path === resolvedFilePath);
-        if (fileIndex !== -1) {
-          setActiveFileIndex(fileIndex);
-        }
-        needsInitialDiffPanel.current = false;
-        return;
-      }
-
-      clearPendingSelection();
-      existing.api.updateParameters({ filePath: resolvedFilePath });
-      existing.api.setTitle(getFileTabTitle(file.path));
-      existing.api.setActive();
-    } else {
-      clearPendingSelection();
-      dockApi.addPanel({
-        id: REVIEW_DIFF_PANEL_ID,
-        component: REVIEW_PANEL_TYPES.DIFF,
-        title: getFileTabTitle(file.path),
-        params: { filePath: resolvedFilePath },
-      });
-    }
-
-    setActiveFileIndex(files.findIndex(candidate => candidate.path === resolvedFilePath));
-    needsInitialDiffPanel.current = false;
-  }, [dockApi, files, clearPendingSelection]);
+  }, [clearPendingSelection, files, openAllFilesPanel]);
 
   const isCallFlowNodeInPatch = useCallback((node: CallFlowNode): boolean => {
     if (!node.file || !node.line) return false;
@@ -734,7 +693,6 @@ const ReviewAppInner: React.FC = () => {
     isSearchOpen,
     activeSearchMatchId,
     activeSearchMatch,
-    activeFileSearchMatches,
     searchMatches,
     searchGroups,
     searchInputRef,
@@ -802,18 +760,6 @@ const ReviewAppInner: React.FC = () => {
     if (restored.autoViewSuppressed.length > 0) setAutoViewSuppressed(new Set(restored.autoViewSuppressed));
   }, [restoreDraft, reviewHistory]);
 
-  // Agent Instructions — copy a clipboard payload teaching external agents
-  // (Claude Code, Codex, etc.) how to POST review comments into this session
-  // via /api/external-annotations. The instruction body lives in a separate
-  // module (utils/reviewAgentInstructions.ts) so it's easy to edit independently.
-  const handleCopyAgentInstructions = useCallback(async () => {
-    const payload = buildReviewAgentInstructions(window.location.origin);
-    if (await copyTextToClipboard(payload)) {
-      toast.success('Agent instructions copied');
-    } else {
-      toast.error('Failed to copy');
-    }
-  }, []);
   const codeNav = useCodeNav();
   const handleCodeNavRequest = useCallback((request: CodeNavRequest) => {
     if (!gitContext && !agentCwd) {
@@ -834,9 +780,7 @@ const ReviewAppInner: React.FC = () => {
         ? REVIEW_CALL_FLOW_PANEL_ID
         : isSemanticDiffActive
         ? REVIEW_SEMANTIC_DIFF_PANEL_ID
-        : isAllFilesActive
-        ? REVIEW_ALL_FILES_PANEL_ID
-        : REVIEW_DIFF_PANEL_ID;
+        : REVIEW_ALL_FILES_PANEL_ID;
       dockApi.addPanel({
         id: REVIEW_CODE_NAV_PANEL_ID,
         component: REVIEW_PANEL_TYPES.CODE_NAV,
@@ -848,7 +792,7 @@ const ReviewAppInner: React.FC = () => {
         initialWidth: 420,
       });
     }
-  }, [codeNav.resolve, dockApi, isAllFilesActive, isCallFlowActive, isSemanticDiffActive, gitContext, agentCwd]);
+  }, [codeNav.resolve, dockApi, isCallFlowActive, isSemanticDiffActive, gitContext, agentCwd]);
 
   // Resizable panels
   const panelResize = useResizablePanel({
@@ -871,7 +815,7 @@ const ReviewAppInner: React.FC = () => {
   const handleDockReady = useCallback((event: DockviewReadyEvent) => {
     setDockApi(event.api);
 
-    // Sync activeFileIndex when user switches between dock tabs
+    // Sync active state when user switches between dock tabs
     event.api.onDidActivePanelChange((panel) => {
       if (!panel) {
         setIsAllFilesActive(false);
@@ -879,7 +823,6 @@ const ReviewAppInner: React.FC = () => {
         setIsCallFlowActive(false);
         setIsPROverviewActive(false);
         setIsPRArtifactsActive(false);
-        setIsDiffPanelActive(false);
         return;
       }
       setIsAllFilesActive(panel.id === REVIEW_ALL_FILES_PANEL_ID);
@@ -887,14 +830,6 @@ const ReviewAppInner: React.FC = () => {
       setIsCallFlowActive(panel.id === REVIEW_CALL_FLOW_PANEL_ID);
       setIsPROverviewActive(panel.id === REVIEW_PR_OVERVIEW_PANEL_ID);
       setIsPRArtifactsActive(panel.id === REVIEW_PR_ARTIFACTS_PANEL_ID);
-      setIsDiffPanelActive(isReviewDiffPanelId(panel.id));
-      if (!isReviewDiffPanelId(panel.id)) return;
-      const filePath = getReviewDiffPanelFilePath(panel.params);
-      if (!filePath) return;
-      const fileIndex = filesRef.current.findIndex(file => file.path === filePath);
-      if (fileIndex !== -1) {
-        setActiveFileIndex(fileIndex);
-      }
     });
 
     // Note: we intentionally no longer hide the tab header for a lone diff /
@@ -1004,17 +939,6 @@ const ReviewAppInner: React.FC = () => {
     dockApi?.getPanel(REVIEW_PR_ARTIFACTS_PANEL_ID)?.api.close();
   }, [dockApi, prMetadata]);
 
-  const openAllFilesPanel = useCallback(() => {
-    if (!dockApi) return;
-    semanticDiffAutoFallbackPending.current = false;
-    const existing = dockApi.getPanel(REVIEW_ALL_FILES_PANEL_ID);
-    if (existing) { existing.api.setActive(); return; }
-    dockApi.addPanel({
-      id: REVIEW_ALL_FILES_PANEL_ID,
-      component: REVIEW_PANEL_TYPES.ALL_FILES,
-      title: 'All files',
-    });
-  }, [dockApi]);
 
   const openSemanticDiffPanel = useCallback((options?: { autoFallbackOnError?: boolean }) => {
     if (!dockApi) return;
@@ -1238,8 +1162,6 @@ const ReviewAppInner: React.FC = () => {
       if (matchesShortcutBinding(e, CHROME.dismiss.bindings[0]!)) {
         if (showDestinationMenu) {
           setShowDestinationMenu(false);
-        } else if (showExportModal) {
-          setShowExportModal(false);
         } else if (isSearchOpen) {
           if (searchQuery) {
             clearSearch();
@@ -1266,7 +1188,7 @@ const ReviewAppInner: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showExportModal, showDestinationMenu, isSearchOpen, searchQuery, searchMatches, isSearchPending, openSearch, stepSearchMatch, clearSearch, closeSearch, hasSearchableFiles, showCommitsPanel, reviewSidebar.isOpen, reviewSidebar.open, reviewSidebar.close, isFileTreeOpen, toggleNavigator]);
+  }, [showDestinationMenu, isSearchOpen, searchQuery, searchMatches, isSearchPending, openSearch, stepSearchMatch, clearSearch, closeSearch, hasSearchableFiles, showCommitsPanel, reviewSidebar.isOpen, reviewSidebar.open, reviewSidebar.close, isFileTreeOpen, toggleNavigator]);
 
 
   // Load diff content - try API first, fall back to demo
@@ -1384,10 +1306,9 @@ const ReviewAppInner: React.FC = () => {
         );
         if (
           data.gitContext && data.mode !== 'workspace' && !data.prMetadata &&
-          data.gitContext.vcsType === 'git' && sinceBaseAvailable && initializeReviewSetup()
+          data.gitContext.vcsType === 'git' && sinceBaseAvailable
         ) {
-          reviewSetupIsFirstRun.current = true;
-          setShowReviewSetup(true);
+          initializeReviewSetup();
         }
       })
       .catch(() => {
@@ -1703,7 +1624,6 @@ const ReviewAppInner: React.FC = () => {
     // (not lost) behind a first-run dialog — the file still marks and the
     // next auto-view retries the toast.
     if (!needsAutoViewedNotice()) return;
-    if (showReviewSetup) return;
     markAutoViewedNoticeSeen();
     toast('Files are marked viewed as you scroll', {
       description: "Scroll past a file or move on to the next and it's checked off. Turn this off in Settings → Git, or from the gear above the file list.",
@@ -1723,7 +1643,7 @@ const ReviewAppInner: React.FC = () => {
         },
       },
     });
-  }, [showReviewSetup]);
+  }, []);
   const { handleReadingFileChange: handleAutoViewReadingFile, handleFileScrolledPast } = useAutoViewed({
     enabled: autoViewedEnabled,
     // Rule 4 — only the review target. A commit diff is a documented
@@ -1736,7 +1656,7 @@ const ReviewAppInner: React.FC = () => {
       ? (paths) => syncPlatformViewed(paths, true)
       : undefined,
     onAutoView: handleAutoView,
-    singleFileReadingFile: isDiffPanelActive ? files[activeFileIndex]?.path ?? null : null,
+    singleFileReadingFile: null,
     snapshotKey: `${snapshotId ?? ''}:${activeDiffBase}`,
   });
   const handleAllFilesVisibleFileChange = useCallback(
@@ -1787,22 +1707,6 @@ const ReviewAppInner: React.FC = () => {
     return staged;
   }, [sections, files]);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (isTypingTarget(e.target)) return;
-      if (!isDiffPanelActive) return;
-      const filePath = files[activeFileIndex]?.path;
-      if (!filePath) return;
-
-      if (matchesChrome(e, CHROME.toggleViewed.bindings)) {
-        e.preventDefault();
-        handleToggleViewed(filePath);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [files, activeFileIndex, isDiffPanelActive, handleToggleViewed]);
-
   // Shared function: apply a PR response (used by both initial load and PR switch)
   function applyPRResponse(data: PRSessionUpdate & {
     rawPatch: string; gitRef: string;
@@ -1822,7 +1726,6 @@ const ReviewAppInner: React.FC = () => {
       setApprovalNotesSupported(readApprovalNotesAdvert(data.approvalNotesSupported));
     }
     const nextFiles = parseDiffToFiles(data.rawPatch);
-    dockApi?.getPanel(REVIEW_DIFF_PANEL_ID)?.api.close();
     needsInitialDiffPanel.current = true;
     setDiffData(prev => prev ? { ...prev, rawPatch: data.rawPatch, gitRef: data.gitRef } : prev);
     setFiles(nextFiles);
@@ -2013,7 +1916,6 @@ const ReviewAppInner: React.FC = () => {
         // non-preserve branch below already does).
         clearPendingSelection();
       } else {
-        dockApi?.getPanel(REVIEW_DIFF_PANEL_ID)?.api.close();
         needsInitialDiffPanel.current = true;
         setDiffData(prev => prev ? { ...prev, rawPatch: data.rawPatch, gitRef: data.gitRef, diffType: data.diffType } : prev);
         setFiles(nextFiles);
@@ -2650,7 +2552,7 @@ const ReviewAppInner: React.FC = () => {
     searchQuery: isSearchPending ? '' : debouncedSearchQuery,
     isSearchPending,
     debouncedSearchQuery,
-    activeFileSearchMatches,
+    fileScrollTarget,
     activeSearchMatchId,
     activeSearchMatch: activeSearchMatch?.filePath === files[activeFileIndex]?.path ? activeSearchMatch : null,
     searchMatches,
@@ -2705,7 +2607,7 @@ const ReviewAppInner: React.FC = () => {
     generatedFiles, expandedGeneratedFiles, handleGeneratedFileCollapsedChange,
     handleToggleViewed, reviewShowViewedControls, stagedFiles,
     activeWorktreePath, isSearchPending, debouncedSearchQuery,
-    activeFileSearchMatches, activeSearchMatchId, activeSearchMatch, searchMatches,
+    fileScrollTarget, activeSearchMatchId, activeSearchMatch, searchMatches,
     prMetadata, prContext, prArtifacts,
     isPRContextLoading, prContextError, fetchPRContext, platformUser, openDiffFile,
     handleAllFilesVisibleFileChange, handleFileScrolledPast,
@@ -3241,8 +3143,7 @@ const ReviewAppInner: React.FC = () => {
   const canHandleReviewHistoryShortcut = useCallback((event: KeyboardEvent): boolean => {
     if (event.defaultPrevented || isNativeHistoryOwner(event)) return false;
     if (submitted || isSendingFeedback || isApproving || isExiting || isPlatformActioning || isLoadingDiff) return false;
-    if (openSettingsMenu || showDestinationMenu || platformCommentDialog || showExportModal || showWorktreeDialog || showNoAnnotationsDialog) return false;
-    if (showReviewSetup) return false;
+    if (openSettingsMenu || showDestinationMenu || platformCommentDialog || showWorktreeDialog || showNoAnnotationsDialog) return false;
     return !hasActiveHistoryOverlay(document);
   }, [
     isApproving,
@@ -3253,10 +3154,8 @@ const ReviewAppInner: React.FC = () => {
     openSettingsMenu,
     platformCommentDialog,
     showDestinationMenu,
-    showExportModal,
     showNoAnnotationsDialog,
     showWorktreeDialog,
-    showReviewSetup,
     submitted,
   ]);
 
@@ -3301,7 +3200,7 @@ const ReviewAppInner: React.FC = () => {
 
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      if (showExportModal || showNoAnnotationsDialog) return;
+      if (showNoAnnotationsDialog) return;
       if (submitted || isSendingFeedback || isApproving || isExiting || isPlatformActioning) return;
       if (!origin) return; // Demo mode
 
@@ -3322,7 +3221,7 @@ const ReviewAppInner: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-    showExportModal, showNoAnnotationsDialog,
+    showNoAnnotationsDialog,
     platformCommentDialog, platformGeneralComment,
     submitted, isSendingFeedback, isApproving, isExiting, isPlatformActioning,
     origin, platformMode, runPlatformDecisionAction,
@@ -3335,7 +3234,7 @@ const ReviewAppInner: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!matchesChrome(e, CHROME.copyFeedback.bindings) || isTypingTarget(e.target)) return;
 
-      if (platformCommentDialog || showExportModal || showNoAnnotationsDialog) return;
+      if (platformCommentDialog || showNoAnnotationsDialog) return;
 
       e.preventDefault();
       handleCopyFeedback();
@@ -3344,7 +3243,7 @@ const ReviewAppInner: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-    platformCommentDialog, showExportModal, showNoAnnotationsDialog,
+    platformCommentDialog, showNoAnnotationsDialog,
     handleCopyFeedback
   ]);
 
@@ -3718,48 +3617,37 @@ const ReviewAppInner: React.FC = () => {
               </button>
             
             <div className="w-px h-5 bg-border/50 mx-1 hidden lg:block" />
+            <button
+              type="button"
+              onClick={() => configStore.set('diffStyle', (diffStyle ?? 'split') === 'split' ? 'unified' : 'split')}
+              className="flex h-7 items-center justify-center rounded-md px-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title={(diffStyle ?? 'split') === 'split' ? 'Split diff (switch to unified)' : 'Unified diff (switch to split)'}
+              aria-label={(diffStyle ?? 'split') === 'split' ? 'Split diff (switch to unified)' : 'Unified diff (switch to split)'}
+            >
+              {(diffStyle ?? 'split') === 'split' ? (
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M12 4v16" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M7 9h10M7 15h10" strokeLinecap="round" />
+                </svg>
+              )}
+            </button>
 
-            {/* Export, theme and Settings are header buttons rather than
-                Options rows: they are the three the reviewer reaches for
-                most, and a menu hop for each was the only reason to open
-                Options at all. Compact touch keeps them in the menu — its
-                header's trailing region is one 44px target wide. */}
-                          <>
-                <button
-                  type="button"
-                  onClick={() => setShowExportModal(true)}
-                  className="flex h-7 items-center justify-center rounded-md px-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  title="Export review"
-                  aria-label="Export review"
-                >
-                  <ExportIcon className="w-4 h-4" />
-                </button>
+            <ThemeModeButton />
 
-                <ThemeModeButton />
-
-                <button
-                  type="button"
-                  onClick={() => setOpenSettingsMenu(true)}
-                  className="flex h-7 items-center justify-center rounded-md px-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  title="Settings"
-                  aria-label="Settings"
-                >
-                  <SettingsIcon className="w-4 h-4" />
-                </button>
-              </>
-            
-
-            <ReviewHeaderMenu
-              onOpenSettings={() => setOpenSettingsMenu(true)}
-              onOpenExport={() => setShowExportModal(true)}
-              onOpenReviewSetup={sectionsCapable ? () => { reviewSetupIsFirstRun.current = false; setShowReviewSetup(true); } : undefined}
-              onCopyAgentInstructions={handleCopyAgentInstructions}
-              onToggleFileTree={toggleNavigator}
-              onToggleSidebar={() => reviewSidebar.isOpen ? reviewSidebar.close() : reviewSidebar.open()}
-              isFileTreeOpen={isNavigatorOpen}
-              isSidebarOpen={reviewSidebar.isOpen}
-              agentInstructionsEnabled={!!origin}
-            />
+            <button
+              type="button"
+              onClick={() => setOpenSettingsMenu(true)}
+              className="flex h-7 items-center justify-center rounded-md px-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title="Settings"
+              aria-label="Settings"
+            >
+              <SettingsIcon className="w-4 h-4" />
+            </button>
           </div>
         </header>
 
@@ -3779,7 +3667,7 @@ const ReviewAppInner: React.FC = () => {
                 scrollHighlightIndex={isAllFilesActive && allFilesVisibleFile ? files.findIndex(f => f.path === allFilesVisibleFile) : undefined}
                 onSelectFile={(index) => handleFilePreview(index)}
                 onDoubleClickFile={(index) => handleFilePinned(index)}
-                enableKeyboardNav={!showExportModal && hasSearchableFiles}
+                enableKeyboardNav={hasSearchableFiles}
                 annotations={allAnnotations}
                 viewedFiles={viewedFiles}
                 onToggleViewed={handleToggleViewed}
@@ -3887,7 +3775,7 @@ const ReviewAppInner: React.FC = () => {
                 onToggleHideViewed={() => setHideViewedFiles(prev => !prev)}
                 showViewedControls={reviewShowViewedControls}
                 onToggleShowViewedControls={handleToggleReviewViewedControls}
-                enableKeyboardNav={!showExportModal && hasSearchableFiles}
+                enableKeyboardNav={hasSearchableFiles}
                 diffOptions={reviewMode === 'workspace' ? (workspaceDiffOptions ?? undefined) : gitContext?.diffOptions}
                 activeDiffType={activeDiffBase}
                 onSelectDiff={(diffType) => handleDiffSwitch(diffType)}
@@ -4073,42 +3961,6 @@ const ReviewAppInner: React.FC = () => {
           )}
         </div>
 
-        {/* Export Modal */}
-        {showExportModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-            <div className="bg-card border border-border rounded-xl w-full max-w-2xl flex flex-col max-h-[80vh] shadow-2xl">
-              <div className="p-4 border-b border-border flex justify-between items-center">
-                <h3 className="font-semibold text-sm">Export Review Feedback</h3>
-                <button
-                  onClick={() => setShowExportModal(false)}
-                  className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <div className="flex-1 overflow-auto p-4">
-                <div className="text-xs text-muted-foreground mb-2">
-                  {allAnnotations.length} annotation{allAnnotations.length !== 1 ? 's' : ''}
-                </div>
-                <pre className="export-code-block whitespace-pre-wrap">
-                  {feedbackMarkdown}
-                </pre>
-              </div>
-              <div className="p-4 border-t border-border flex justify-end gap-2">
-                <button
-                  onClick={() => {
-                    void copyTextToClipboard(feedbackMarkdown);
-                  }}
-                  className="px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:opacity-90 transition-colors"
-                >
-                  Copy to Clipboard
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="hidden" aria-hidden="true">
           <Settings
@@ -4203,35 +4055,9 @@ const ReviewAppInner: React.FC = () => {
             showCancel
           />
         )}
-
-        {/* First-run review-view chooser (panel view + tree default diff).
-            First in the dialog chain (review setup → edit mode) so the chain
-            dialogs never stack. On dismiss, apply the chosen default to the
-            current session. */}
-        {showReviewSetup && (
-          <ReviewSetupDialog
-            isOpen
-            onDismiss={() => {
-              markReviewSetupSeen();
-              setShowReviewSetup(false);
-              // Apply the chosen default to the live session ONLY on first run.
-              // A reopen from the header menu is a glance — it must not yank the
-              // user's mid-session diff selection back to the default.
-              if (!reviewSetupIsFirstRun.current) return;
-              reviewSetupIsFirstRun.current = false;
-              const chosen = configStore.get('defaultDiffType');
-              if (chosen && chosen !== activeDiffBase && !prMetadata && reviewMode !== 'workspace') {
-                void handleDiffSwitch(chosen);
-              }
-            }}
-          />
-        )}
-
-        {/* One-time PR feedback-destination spotlight. Strictly AFTER the
-            first-run review setup: it only mounts once that is not showing,
-            so it never stacks with it. PR mode only — the switcher it points
-            at doesn't render otherwise. */}
-        {showDestSpotlight && !!prMetadata && !isLoading && !showReviewSetup && (
+        {/* One-time PR feedback-destination spotlight. PR mode only — the switcher
+            it points at doesn't render otherwise. */}
+        {showDestSpotlight && !!prMetadata && !isLoading && (
           <DestinationSpotlight
             targetRef={destToggleRef}
             platformLabel={platformLabel}
