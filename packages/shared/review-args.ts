@@ -2,9 +2,7 @@ import type { VcsSelection } from "./vcs-core";
 import { stripWrappingQuotes } from "./resolve-file";
 
 export interface ParsedReviewArgs {
-  prUrl?: string;
   vcsType?: VcsSelection;
-  useLocal: boolean;
 }
 
 export function parseReviewArgs(input: string | string[]): ParsedReviewArgs {
@@ -13,8 +11,6 @@ export function parseReviewArgs(input: string | string[]): ParsedReviewArgs {
     : tokenizeReviewArgs(input ?? "");
 
   let vcsType: VcsSelection | undefined;
-  let useLocal = true;
-  const positional: string[] = [];
 
   for (const token of tokens) {
     switch (token) {
@@ -24,28 +20,14 @@ export function parseReviewArgs(input: string | string[]): ParsedReviewArgs {
       case "--gitbutler":
         vcsType = "gitbutler";
         break;
-      case "--local":
-        useLocal = true;
-        break;
-      case "--no-local":
-        useLocal = false;
-        break;
       default:
-        positional.push(token);
         break;
     }
   }
 
-  const target = positional[0];
   return {
-    prUrl: target && isReviewUrl(target) ? target : undefined,
     vcsType,
-    useLocal,
   };
-}
-
-function isReviewUrl(value: string): boolean {
-  return value.startsWith("http://") || value.startsWith("https://");
 }
 
 function tokenizeReviewArgs(input: string): string[] {

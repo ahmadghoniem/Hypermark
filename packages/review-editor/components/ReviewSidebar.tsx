@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { CodeAnnotation, type CodeAnnotationScope, type Annotation, type CommentAnnotation } from '@hypermark/ui/types';
+import { CodeAnnotation, type CodeAnnotationScope } from '@hypermark/ui/types';
 import { Button } from '@hypermark/ui/components/ui/button';
 import { DecisionNoteField } from '@hypermark/ui/components/DecisionControl';
 import { useDismissablePopover } from '@hypermark/ui/hooks/useDismissablePopover';
@@ -11,11 +11,9 @@ import { HighlightedCode } from './HighlightedCode';
 import { detectLanguage } from '../utils/detectLanguage';
 import { renderInlineMarkdown } from '../utils/renderInlineMarkdown';
 import { FileNameChip } from './FileNameChip';
-import type { PRMetadata } from '@hypermark/shared/pr-types';
 import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';
 import type { DiffFile } from '../types';
 import { copyTextToClipboard } from '@hypermark/ui/utils/clipboard';
-import { artifactAnchorLabel, artifactAnnotationQuote } from '../utils/artifactAnnotations';
 
 export type ReviewSidebarTab = 'annotations';
 
@@ -39,17 +37,6 @@ interface ReviewSidebarProps {
   onAddGeneralComment?: (text: string) => void;
   feedbackMarkdown?: string;
   width?: number;
-  // PR description prose annotations (comment-only) — shown in their own group.
-  descriptionAnnotations?: Annotation[];
-  selectedDescriptionAnnotationId?: string | null;
-  onSelectDescriptionAnnotation?: (id: string | null) => void;
-  onDeleteDescriptionAnnotation?: (id: string) => void;
-  // PR comment annotations (notes on a whole comment) — own group.
-  commentAnnotations?: CommentAnnotation[];
-  selectedCommentAnnotationId?: string | null;
-  onSelectCommentAnnotation?: (id: string | null) => void;
-  onDeleteCommentAnnotation?: (id: string) => void;
-  prMetadata?: PRMetadata | null;
 }
 
 /**
@@ -164,7 +151,6 @@ function compareCodeAnnotations(a: CodeAnnotation, b: CodeAnnotation): number {
     : b.createdAt - a.createdAt;
 }
 
-
 export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
   isOpen,
   onClose,
@@ -179,17 +165,8 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
   onAddGeneralComment,
   feedbackMarkdown,
   width,
-  descriptionAnnotations,
-  selectedDescriptionAnnotationId,
-  onSelectDescriptionAnnotation,
-  onDeleteDescriptionAnnotation,
-  commentAnnotations,
-  selectedCommentAnnotationId,
-  onSelectCommentAnnotation,
-  onDeleteCommentAnnotation,
-  prMetadata,
 }) => {
-  const totalCount = annotations.length + (descriptionAnnotations?.length ?? 0) + (commentAnnotations?.length ?? 0);
+  const totalCount = annotations.length;
   const [copied, setCopied] = useState(false);
   // General-comment composer state lives HERE, not in GeneralCommentComposer:
   // the two placements (empty state vs section header) are different branches,
@@ -214,8 +191,8 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
   };
 
   // Split out general (review-level) comments — they belong to no file — then
-  // group the rest by file, optionally by PR first.
-  const { generalAnnotations, groupedAnnotations, prGroups, isMultiPR } = React.useMemo(() => {
+  // group the rest by file.
+  const { generalAnnotations, groupedAnnotations } = React.useMemo(() => {
     const general: CodeAnnotation[] = [];
     const placed: CodeAnnotation[] = [];
     for (const ann of annotations) {
@@ -223,9 +200,6 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
       else placed.push(ann);
     }
     general.sort((a, b) => b.createdAt - a.createdAt);
-
-    const prUrls = new Set(placed.map(a => a.prUrl).filter(Boolean));
-    const multiPR = prUrls.size > 1;
 
     const grouped = new Map<string, CodeAnnotation[]>();
     for (const ann of placed) {
@@ -237,25 +211,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
       anns.sort(compareCodeAnnotations);
     }
 
-    let prs: Map<string, Map<string, CodeAnnotation[]>> | null = null;
-    if (multiPR) {
-      prs = new Map();
-      for (const ann of placed) {
-        const prKey = ann.prUrl ?? '_none';
-        if (!prs.has(prKey)) prs.set(prKey, new Map());
-        const fileMap = prs.get(prKey)!;
-        const existing = fileMap.get(ann.filePath) || [];
-        existing.push(ann);
-        fileMap.set(ann.filePath, existing);
-      }
-      for (const fileMap of prs.values()) {
-        for (const anns of fileMap.values()) {
-          anns.sort(compareCodeAnnotations);
-        }
-      }
-    }
-
-    return { generalAnnotations: general, groupedAnnotations: grouped, prGroups: prs, isMultiPR: multiPR };
+    return { generalAnnotations: general, groupedAnnotations: grouped };
   }, [annotations]);
 
   if (!isOpen) return null;
@@ -327,88 +283,6 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
       </div>
     );
   }
-
-  // Prose annotations on the PR description — comment-only, anchored to selected
-  // text (no file/line). Mirrors renderAnnotationCard for visual consistency.
-  // Shared card shell for prose annotations (PR description + PR comment): a
-  // scope label, the quoted source text, the reviewer's note, select + delete.
-  // Thin per-type call sites below map their fields onto it.
-  function renderProseAnnotationCard(opts: {
-    id: string;
-    label: string;
-    quote?: string;
-    quoteClamp?: string;
-    note?: string;
-    author?: string;
-    createdAt: number;
-    source?: string;
-    isSelected: boolean;
-    onSelect: () => void;
-    onDelete: () => void;
-  }) {
-    const { id, label, quote, quoteClamp = 'line-clamp-2', note, author, createdAt, source, isSelected, onSelect, onDelete } = opts;
-    return (
-      <div
-        key={id}
-        onClick={onSelect}
-        className={`group relative p-2.5 rounded border cursor-pointer transition-colors duration-150 ${
-          isSelected ? 'bg-primary/5 border-primary/30' : 'border-transparent hover:bg-muted/30'
-        }`}
-      >
-        <CommentMeta
-          leading={
-            <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-              {label}
-            </span>
-          }
-          source={source}
-          author={author}
-          createdAt={createdAt}
-        />
-        {quote && (
-          <div className={`mt-1 mb-1 border-l-2 border-border/40 pl-1.5 text-[11px] italic text-muted-foreground/80 ${quoteClamp}`}>
-            {quote}
-          </div>
-        )}
-        {note && (
-          <div className="text-xs text-foreground/80 line-clamp-2 review-comment-markdown">
-            {renderInlineMarkdown(note)}
-          </div>
-        )}
-        <CommentActions copyText={note || undefined} onDelete={onDelete} />
-      </div>
-    );
-  }
-
-  const renderDescriptionAnnotationCard = (annotation: Annotation) => renderProseAnnotationCard({
-    id: annotation.id,
-    label: annotation.artifact
-      ? `${annotation.artifact.artifactKind} · ${artifactAnchorLabel(annotation.artifact.anchor)}`
-      : 'PR description',
-    quote: annotation.artifact ? artifactAnnotationQuote(annotation.artifact) : annotation.originalText,
-    quoteClamp: 'line-clamp-1',
-    note: annotation.text,
-    author: annotation.author,
-    createdAt: annotation.createdA,
-    source: annotation.source,
-    isSelected: selectedDescriptionAnnotationId === annotation.id,
-    onSelect: () => onSelectDescriptionAnnotation?.(annotation.id),
-    onDelete: () => onDeleteDescriptionAnnotation?.(annotation.id),
-  });
-
-  const renderCommentAnnotationCard = (annotation: CommentAnnotation) => renderProseAnnotationCard({
-    id: annotation.id,
-    label: annotation.artifact
-      ? `${annotation.artifact.artifactKind} · ${artifactAnchorLabel(annotation.artifact.anchor)}`
-      : 'PR comment',
-    quote: annotation.artifact ? artifactAnnotationQuote(annotation.artifact) : annotation.commentBody,
-    note: annotation.text,
-    author: annotation.commentAuthor,
-    createdAt: annotation.createdAt,
-    isSelected: selectedCommentAnnotationId === annotation.id,
-    onSelect: () => onSelectCommentAnnotation?.(annotation.id),
-    onDelete: () => onDeleteCommentAnnotation?.(annotation.id),
-  });
 
   return (
     <aside
@@ -507,76 +381,17 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
                       )}
                     </div>
                   )}
-                  {isMultiPR && prGroups ? (
-                    Array.from(prGroups.entries()).map(([prUrl, fileMap]) => {
-                      const sample = fileMap.values().next().value?.[0];
-                      const prLabel = prUrl === '_none' ? 'Local Changes' :
-                        `${sample?.prRepo ? `${sample.prRepo}` : ''}#${sample?.prNumber ?? '?'} ${sample?.prTitle ?? ''}`;
-                      return (
-                        <div key={prUrl}>
-                          <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm px-2 py-1.5 text-[10px] font-medium text-accent/80 border-b border-border/30 mb-1">
-                            {prLabel}
-                          </div>
-                          <div className="space-y-4">
-                            {Array.from(fileMap.entries()).map(([filePath, fileAnnotations]) => (
-                              <div key={filePath}>
-                                <div className="sticky top-7 z-10 bg-background/95 backdrop-blur-sm px-2 py-1 text-xs font-mono text-muted-foreground truncate">
-                                  {filePath.split('/').pop()}
-                                </div>
-                                <div className="space-y-1">
-                                  {fileAnnotations.map((annotation) => renderAnnotationCard(annotation))}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    Array.from(groupedAnnotations.entries()).map(([filePath, fileAnnotations]) => (
-                      <div key={filePath}>
-                        <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-2 py-1 text-xs font-mono text-muted-foreground truncate">
-                          {filePath.split('/').pop()}
-                        </div>
-                        <div className="space-y-1">
-                          {fileAnnotations.map((annotation) => renderAnnotationCard(annotation))}
-                        </div>
+                  {Array.from(groupedAnnotations.entries()).map(([filePath, fileAnnotations]) => (
+                    <div key={filePath}>
+                      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-2 py-1 text-xs font-mono text-muted-foreground truncate">
+                        {filePath.split('/').pop()}
                       </div>
-                    ))
-                  )}
+                      <div className="space-y-1">
+                        {fileAnnotations.map((annotation) => renderAnnotationCard(annotation))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )}
-
-              {/* PR description annotations */}
-              {descriptionAnnotations && descriptionAnnotations.length > 0 && (
-                <>
-                  {annotations.length > 0 && (
-                    <div className="flex items-center gap-2 pt-2 pb-1">
-                      <div className="flex-1 border-t border-border/30" />
-                      <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60">PR description</span>
-                      <div className="flex-1 border-t border-border/30" />
-                    </div>
-                  )}
-                  <div className="space-y-1">
-                    {descriptionAnnotations.map(renderDescriptionAnnotationCard)}
-                  </div>
-                </>
-              )}
-
-              {/* PR comment annotations */}
-              {commentAnnotations && commentAnnotations.length > 0 && (
-                <>
-                  {(annotations.length > 0 || (descriptionAnnotations?.length ?? 0) > 0) && (
-                    <div className="flex items-center gap-2 pt-2 pb-1">
-                      <div className="flex-1 border-t border-border/30" />
-                      <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60">PR comments</span>
-                      <div className="flex-1 border-t border-border/30" />
-                    </div>
-                  )}
-                  <div className="space-y-1">
-                    {commentAnnotations.map(renderCommentAnnotationCard)}
-                  </div>
-                </>
               )}
 
             </div>

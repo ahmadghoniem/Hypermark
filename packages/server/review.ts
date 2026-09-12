@@ -35,7 +35,6 @@ import {
   listCommitHistory,
   type CommitDiffInfo,
 } from "@hypermark/shared/commit-history";
-import { resolvePoolCwd } from "@hypermark/shared/worktree-pool";
 import {
   createDefaultSemanticDiffRuntime,
   getSemanticDiffAvailability,
@@ -50,18 +49,7 @@ import { CallFlowService } from "@hypermark/shared/call-flow";
 import { CallFlowInstallCoordinator, callFlowInstallOriginAllowed } from "@hypermark/shared/call-flow-install";
 import { parseCallFlowInstallRequest, resolveCallFlowInstallTargets } from "@hypermark/shared/call-flow-languages";
 import type { CallFlowResponse } from "@hypermark/shared/call-flow-types";
-import {
-  getPRDiffScopeOptions,
-  getPRFullStackFingerprint,
-  getPRStackInfo,
-  resolveStackInfo,
-  resolvePRFullStackBaseRef,
-  runPRFullStackDiff,
-  runPRLayerLocalDiff,
-  checkoutPRHead,
-  type PRDiffScope,
-} from "@hypermark/shared/pr-stack";
-import { createCommitAvatarResolver } from "@hypermark/shared/commit-avatars";
+import { createCommitAvatarResolver, type CommandRunner } from "@hypermark/shared/commit-avatars";
 import { detectGeneratedFiles, detectGeneratedFilesByName } from "@hypermark/shared/generated-files";
 import { getRepoInfo } from "./repo";
 import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
@@ -70,25 +58,12 @@ import { createExternalAnnotationHandler } from "./external-annotations";
 import { loadConfig, saveConfig, detectGitUser, getServerConfig, parseReviewAnalysisConfig, resolveFeedbackHistory } from "./config";
 import { appendFeedbackRecord, countChangedFiles, deriveFeedbackProject, type FeedbackDecision, type FeedbackReviewTarget } from "@hypermark/shared/feedback-archive";
 import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
-import { type PRMetadata, type PRRef, type PRReviewFileComment, type PRStackTree, type PRListItem, fetchPR, fetchPRFileContent, fetchPRContext, submitPRReview, fetchPRViewedFiles, markPRFilesViewed, fetchPRStack, fetchPRList, getPRUser, parsePRUrl, prRefFromMetadata, isSameProject, getDisplayRepo, getMRLabel, getMRNumberLabel, prCommandRuntime } from "./pr";
-import {
-  PR_CONTEXT_HEARTBEAT_COMMENT,
-  PR_CONTEXT_HEARTBEAT_INTERVAL_MS,
-  createPRContextLiveCache,
-  serializePRContextSSEEvent,
-} from "@hypermark/shared/pr-context-live";
-import {
-  fetchPRArtifactContent,
-  fetchPRArtifactDocument,
-  PRArtifactDocumentError,
-} from "@hypermark/shared/pr-artifact-document";
 import type { LocalWorkspaceReview, WorkspaceDiffType } from "./review-workspace";
 import { handleCodeNavResolve, extractChangedFiles } from "./code-nav";
 
 // Re-export utilities
 export { openBrowser } from "./browser";
 export { type DiffType, type DiffOption, type GitContext, type WorktreeInfo } from "./vcs";
-export { type PRMetadata } from "./pr";
 export { handleServerReady as handleReviewServerReady } from "./shared-handlers";
 
 // --- Types ---
@@ -123,40 +98,24 @@ export interface ReviewServerOptions {
   /**
    * Whether this session's decision consumer delivers approve-time feedback
    * (decision-control spec §6.4). Echoed as `approvalNotesSupported` on every
-   * diff payload (`/api/diff`, `/api/diff/switch`, `/api/pr-diff-scope`,
-   * `/api/pr-switch`) so the advert survives a diff switch; the client gates
-   * its approve-carrying menu items on it. Default false — a caller that does
-   * not pass it (an older consumer whose approved branch still discards
+   * diff payload (`/api/diff`, `/api/diff/switch`) so the advert survives a diff
+   * switch; the client gates its approve-carrying menu items on it. Default false — a caller
+   * that does not pass it (an older consumer whose approved branch still discards
    * `result.feedback`) advertises "not capable" and the client renders no
    * approve-carrying items, exactly the pre-PR5 behavior.
    */
   approvalNotesSupported?: boolean;
   /** Called when server starts with the URL, remote status, and port */
   onReady?: (url: string, port: number) => void | Promise<void>;
-  /** OpenCode client for querying available agents (OpenCode only) */
-  /** PR metadata when reviewing a pull request (PR mode) */
-  prMetadata?: PRMetadata;
-  /** Platform review writer override used by isolated runtime tests. */
-  prReviewSubmitter?: typeof submitPRReview;
-  /**
-   * The initial layer patch is missing per-file content (platform APIs
-   * withhold patches on very large PRs). Enables the local recompute upgrade
-   * once a pool checkout is ready.
-   */
-  prPatchIncomplete?: boolean;
   /**
    * Detected project name, used to key the durable feedback archive
    * (`feedback/{project}/`). Mirrors the annotate server's `project` option.
    * Callers should pass `detectProjectName()`; without it the server falls
-   * back to deriving a name from the review's working directory, which is
-   * wrong in PR mode (no `gitContext`, and `--local` points `agentCwd` at a
-   * `pool/pr-<n>` checkout, so records would bucket under `pr-123`).
+   * back to deriving a name from the review's working directory.
    */
   project?: string;
-  /** Working directory for agent processes (e.g., --local worktree). Independent of diff pipeline. */
+  /** Working directory for agent processes. Independent of diff pipeline. */
   agentCwd?: string;
-  /** Per-PR worktree pool. When set, pr-switch creates worktrees instead of checking out. */
-  worktreePool?: import("@hypermark/shared/worktree-pool").WorktreePool;
   /** Cleanup callback invoked when server stops (e.g., remove temp worktree) */
   onCleanup?: () => void | Promise<void>;
 }
@@ -194,10 +153,7 @@ export async function startReviewServer(
   // Session-constant capability advert; rides every diff payload (see the
   // option's doc). Absent option = false, so old callers advertise honestly.
   const approvalNotesSupported = options.approvalNotesSupported === true;
-  const submitPlatformReview = options.prReviewSubmitter ?? submitPRReview;
 
-  let prMetadata = options.prMetadata;
-  const isPRMode = !!prMetadata;
   const workspace = options.workspace;
   const isWorkspaceMode = !!workspace;
   const hasLocalAccess = !!gitContext;
@@ -206,22 +162,12 @@ export async function startReviewServer(
   let draftKey = contentHash(options.rawPatch);
   const externalAnnotations = createExternalAnnotationHandler("review");
 
-
-
   // Mutable state for diff switching
   let currentPatch = options.rawPatch;
   let currentGitRef = options.gitRef;
   let currentDiffType: DiffType | WorkspaceDiffType = options.diffType || workspace?.diffType || "uncommitted";
   let currentError = options.error;
   let currentHideWhitespace = loadConfig().diffOptions?.hideWhitespace ?? false;
-  let originalPRPatch = options.rawPatch;
-  let originalPRGitRef = options.gitRef;
-  let originalPRError = options.error;
-  let currentPRDiffScope: PRDiffScope = "layer";
-  // Monotonic guard for PR scope/switch state writes. Scope requests now park
-  // on long awaits (checkout warmup, full recompute) — a request that resumed
-  // after a NEWER scope select or pr-switch must not overwrite their state.
-  let prScopeEpoch = 0;
   // Monotonic guard for /api/diff/switch: concurrent switches mutate shared
   // state across awaits, so a slower earlier request could overwrite a newer
   // one's snapshot and hand the client a self-consistent-but-wrong diff. A
@@ -231,31 +177,6 @@ export async function startReviewServer(
   // responses must never re-advertise capabilities for a superseded view.
   let reviewAnalysisEpoch = 0;
   let reviewAnalysisMutationEpoch: number | null = null;
-  // Platform APIs withhold per-file patches on very large PRs. When the layer
-  // patch is incomplete, a local recompute (exact merge-base diff, no size
-  // limits) becomes available once the checkout warmup finishes — the layer
-  // fingerprint flips to drive the refresh notice, and the pr-diff-scope
-  // "layer" branch performs the upgrade. Tracked per-PR across pr-switch.
-  // Partiality is INFORMATION (the platform withheld content) and is always
-  // reported; whether a local recompute can be OFFERED is a separate
-  // capability, gated on the pool below (layerUpgradeAvailable).
-  let layerPatchIncomplete = (options.prPatchIncomplete ?? false) && isPRMode;
-  const layerUpgradeAvailable = !!options.worktreePool;
-  let prListCache: PRListItem[] | null = null;
-  let prListCacheTime = 0;
-  const prSwitchCache = new Map<string, { metadata: PRMetadata; rawPatch: string; patchIncomplete?: boolean }>();
-  if (isPRMode && prMetadata) {
-    prSwitchCache.set(prMetadata.url, {
-      metadata: prMetadata,
-      rawPatch: options.rawPatch,
-      patchIncomplete: layerPatchIncomplete,
-    });
-  }
-  const prStackTreeCache = new Map<string, PRStackTree | null>();
-  const prContextLive = createPRContextLiveCache({ fetchContext: fetchPRContext });
-  const warmPRContext = (url: string, ref: PRRef): void => {
-    prContextLive.warm(url, ref);
-  };
   // Tracks the base branch the user picked from the UI. Agent review prompts
   // read this (not gitContext.defaultBranch) so they analyze the same diff
   // the reviewer is currently looking at. Honors an explicit initialBase from
@@ -272,66 +193,6 @@ export async function startReviewServer(
   // different commits.
   let baseExplicitlyChosen = false;
 
-  // --- PR local checkout resolution -----------------------------------------
-  // The pool's initial entry may still be warming up: the checkout is built in
-  // the background so the server can start on the platform diff alone. Three
-  // states matter:
-  //   ready entry      → use its path
-  //   entry, not ready → the path does not exist on disk yet (or warmup
-  //                      failed) — never hand it out; options.agentCwd points
-  //                      at the same not-yet-created path
-  //   no entry         → PR not in the pool (e.g. cross-repo pr-switch) —
-  //                      legacy fallback to the initial checkout (agentCwd)
-  // The initial checkout path is only trustworthy once it actually exists —
-  // the warmup may not have created it yet, or may have failed and removed it.
-  const agentCwdIfExists = (): string | undefined =>
-    options.agentCwd && existsSync(options.agentCwd) ? options.agentCwd : undefined;
-  const resolvePRLocalCwd = (meta: PRMetadata | undefined = prMetadata): string | undefined => {
-    const pool = options.worktreePool;
-    if (pool && meta) {
-      const r = resolvePoolCwd(pool, meta.url);
-      if (r.kind === "ready") return r.path;
-      if (r.kind === "pending") return undefined; // warming up — don't fall back
-    }
-    return agentCwdIfExists();
-  };
-  // Failure memo: a persistently-failing checkout (network down, ref denied)
-  // must not turn every code-nav hover / agent launch into a multi-second
-  // re-fetch against origin. Failed URLs are skipped for a cooldown window.
-  const prLocalFailureMemo = new Map<string, number>();
-  const PR_LOCAL_RETRY_COOLDOWN_MS = 30_000;
-  // Await the current PR's checkout: blocks on the in-flight warmup, retries
-  // failed same-repo creations, returns undefined when no checkout can exist.
-  const ensurePRLocalCwd = async (meta: PRMetadata | undefined = prMetadata): Promise<string | undefined> => {
-    const pool = options.worktreePool;
-    if (pool && meta) {
-      const hadEntry = pool.has(meta.url);
-      const failedAt = prLocalFailureMemo.get(meta.url);
-      if (failedAt && Date.now() - failedAt < PR_LOCAL_RETRY_COOLDOWN_MS) {
-        return hadEntry ? undefined : agentCwdIfExists();
-      }
-      try {
-        const entry = await pool.ensure(gitRuntime, meta);
-        prLocalFailureMemo.delete(meta.url);
-        return entry.path;
-      } catch {
-        prLocalFailureMemo.set(meta.url, Date.now());
-        return hadEntry ? undefined : agentCwdIfExists();
-      }
-    }
-    return options.agentCwd;
-  };
-  const ensurePRCallFlowCwd = async (meta: PRMetadata | undefined = prMetadata): Promise<string | undefined> => {
-    if (options.worktreePool && meta) {
-      try {
-        return (await options.worktreePool.ensure(gitRuntime, meta)).path;
-      } catch {
-        return undefined;
-      }
-    }
-    return resolvePRLocalCwd(meta);
-  };
-
   // --- Diff staleness fingerprint -------------------------------------------
   // Captured beside every patch snapshot (startup + every switch endpoint);
   // GET /api/diff/fresh recomputes and compares so the client can show a
@@ -346,22 +207,6 @@ export async function startReviewServer(
   const computeDiffFingerprint = async (): Promise<string | null> => {
     try {
       if (workspace) return await workspace.getFingerprint();
-      if (isPRMode) {
-        if (currentPRDiffScope === "layer") {
-          // Platform-computed diff — immutable locally. The :incomplete
-          // suffix keeps the baseline honest across the local-recompute
-          // upgrade (the upgrade recaptures without it); the upgrade notice
-          // itself is client-driven via prPatchIncomplete, not this probe.
-          // Recaptured on pr-switch; remote-side PR updates are out of scope.
-          const suffix = layerPatchIncomplete ? ":incomplete" : "";
-          return `pr-layer:${prMetadata?.url ?? ""}${suffix}`;
-        }
-        // Full-stack: three-dot diff against the local checkout — fingerprint
-        // (merge-base, HEAD), which changes exactly when the patch can.
-        const fullStackCwd = resolvePRLocalCwd();
-        if (!prMetadata) return null;
-        return await getPRFullStackFingerprint(gitRuntime, prMetadata, fullStackCwd);
-      }
       if (!hasLocalAccess) return null;
       return await getVcsDiffFingerprint(currentDiffType as DiffType, currentBase, gitContext?.cwd, {
         hideWhitespace: currentHideWhitespace,
@@ -460,7 +305,7 @@ export async function startReviewServer(
   let lastRemoteBaseCheck = 0;
   const REMOTE_BASE_CHECK_INTERVAL_MS = 60_000;
   const remoteBaseCheckApplies = (): boolean =>
-    !!gitContext && !isPRMode && (!sessionVcsType || sessionVcsType === "git");
+    !!gitContext && (!sessionVcsType || sessionVcsType === "git");
 
   // The "behind GitHub" check is only meaningful for diff types that actually
   // compare against a base (since-base / branch / merge-base). Under
@@ -542,7 +387,7 @@ export async function startReviewServer(
   //     banner un-clearable, since Fetch advances origin/main, not local main.
   //     Canonicalizing "main" -> "origin/main" is safe; it never overrides a
   //     deliberately-chosen different base (a feature branch is left as-is).
-  if (gitContext && !isPRMode) {
+  if (gitContext) {
     detectRemoteDefaultCompareTarget(gitContext.cwd, sessionVcsType).then(
       async (remote) => {
         if (remote && !baseEverSwitched && currentBase !== remote) {
@@ -590,14 +435,28 @@ export async function startReviewServer(
 
   // Commit-author avatar resolution for /api/commits — session-scoped so the
   // forge lookups (gh/glab) and their failures are paid at most once.
-  const commitAvatars = createCommitAvatarResolver(prCommandRuntime);
+  const bunCommandRunner: CommandRunner = {
+    async runCommand(cmd, args) {
+      const proc = Bun.spawn([cmd, ...args], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      const [stdout, stderr, exitCode] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+        proc.exited,
+      ]);
+      return { stdout, stderr, exitCode };
+    },
+  };
+  const commitAvatars = createCommitAvatarResolver(bunCommandRunner);
 
   // --- Since-base sections sidecar ------------------------------------------
   // Groups the composite since-base patch's files by lifecycle state
   // (committed / changes / untracked) for the three-stack panel. Only
   // computed when the since-base mode (or its worktree variant) is active.
   const isSinceBaseActive = (diffType: string = currentDiffType as string): boolean => {
-    if (isPRMode || workspace || !gitContext) return false;
+    if (workspace || !gitContext) return false;
     const effective = parseWorktreeDiffType(diffType)?.subType ?? diffType;
     return effective === "since-base";
   };
@@ -620,7 +479,7 @@ export async function startReviewServer(
   // diffType parameterized for the same pin-before-await discipline as
   // buildSectionsSidecar.
   const buildCommitInfoSidecar = async (diffType: string = currentDiffType as string): Promise<CommitDiffInfo | undefined> => {
-    if (isPRMode || workspace || !gitContext) return undefined;
+    if (workspace || !gitContext) return undefined;
     const effective = parseWorktreeDiffType(diffType)?.subType ?? diffType;
     const sha = parseCommitDiffType(effective as string)?.sha;
     if (!sha) return undefined;
@@ -640,7 +499,7 @@ export async function startReviewServer(
   // un-marks even a built-in name, unspecified keeps the default).
   // Presentation-layer only: the patch is never filtered and snapshot/
   // fingerprint semantics are untouched. Attribute refinement runs for plain
-  // local Git sessions only — PR worktrees, workspace multi-repo, jj,
+  // local Git sessions only — workspace multi-repo, jj,
   // GitButler, and P4 get the name-based defaults alone rather than guessing
   // attributes for a tree git can't authoritatively resolve here. Patch and
   // diff type are parameterized for the same pin-before-await discipline as
@@ -651,7 +510,7 @@ export async function startReviewServer(
   ): Promise<string[] | undefined> => {
     const paths = listPatchFiles(patch).map((f) => f.path);
     const plainLocalGit =
-      !isPRMode && !workspace && gitContext && (sessionVcsType ?? "git") === "git";
+      !workspace && gitContext && (sessionVcsType ?? "git") === "git";
     const generated = plainLocalGit
       ? await detectGeneratedFiles(
           gitRuntime,
@@ -665,20 +524,9 @@ export async function startReviewServer(
   let serverUrl = "";
   const resolveAgentCwd = (): string => {
     if (workspace) return workspace.root;
-    if (options.worktreePool && prMetadata) {
-      return resolvePRLocalCwd()
-        ?? resolveVcsCwd(currentDiffType as DiffType, gitContext?.cwd)
-        ?? process.cwd();
-    }
     return options.agentCwd ?? resolveVcsCwd(currentDiffType as DiffType, gitContext?.cwd) ?? process.cwd();
   };
-  // Async sibling of resolveAgentCwd: waits for the current PR's checkout
-  // warmup instead of falling back while it is still being created.
   const resolveAgentCwdReady = async (): Promise<string> => {
-    if (options.worktreePool && prMetadata) {
-      const poolPath = await ensurePRLocalCwd();
-      if (poolPath) return poolPath;
-    }
     return resolveAgentCwd();
   };
   // GitButler's picker topology is live session state: stacks and branches can
@@ -693,20 +541,19 @@ export async function startReviewServer(
   // contextOnly=true so it carries only the changeset/how-to-inspect-it text, no
   // "provide findings" framing. Returned in the diff payloads so the chat can
   // latch it onto the user's messages; recomputed wherever the view changes so a
-  // mid-session switch (diff type, base, whitespace, PR, scope) stays accurate.
+  // mid-session switch (diff type, base, whitespace) stays accurate.
   // Parameterized so response handlers that SNAPSHOT the served state before
   // an await can build the AI context from that same snapshot — reading the
   // live globals here would let the startup base upgrade hand Ask AI a
   // context for a different changeset than the rendered patch.
   // Snapshot identity clients echo on freshness probes: the content hash
   // PLUS the view mode. Mode is included so a cross-tab mode switch with a
-  // byte-identical patch (layer vs full-stack on a single-PR stack) still
-  // flags old tabs; the BASE is deliberately excluded so a same-commit base
-  // canonicalization (main -> origin/main) stays banner-silent. draftKey
-  // itself stays a pure content hash — drafts survive content-identical
-  // mode round-trips.
+  // byte-identical patch still flags old tabs; the BASE is deliberately
+  // excluded so a same-commit base canonicalization (main -> origin/main) stays
+  // banner-silent. draftKey itself stays a pure content hash — drafts survive
+  // content-identical mode round-trips.
   const currentSnapshotId = (): string =>
-    `${draftKey}:${currentDiffType}${isPRMode ? `:${currentPRDiffScope}` : ""}${currentContextRevision ? `:${currentContextRevision}` : ""}`;
+    `${draftKey}:${currentDiffType}${currentContextRevision ? `:${currentContextRevision}` : ""}`;
 
   // --- Durable feedback archive --------------------------------------------
   //
@@ -717,14 +564,7 @@ export async function startReviewServer(
   // feedback/{project}/index.jsonl (plus a markdown sidecar when it carries
   // content) BEFORE the draft is deleted.
   //
-  // Project bucketing: prefer the caller's detected project name. The cwd
-  // fallback is only right for a plain local review — PR mode has no
-  // gitContext, and `--local` sets agentCwd to a `pool/pr-<n>` checkout, so
-  // deriving from cwd there would file every PR review under `pr-123`.
-  //
-  // Known limitation, deliberately not chased here: a caller that passes no
-  // project AND reviews a moved/renamed working directory buckets under the
-  // new directory name, exactly like the rest of the data dir does.
+  // Project bucketing: prefer the caller's detected project name.
   const feedbackProject = (): string =>
     options.project?.trim()
       ? options.project
@@ -746,16 +586,6 @@ export async function startReviewServer(
     else if (workspace) target.vcsType = "workspace";
     const cwd = gitContext?.cwd ?? options.agentCwd;
     if (cwd) target.cwd = cwd;
-    if (prMetadata) {
-      target.pr = {
-        provider: prMetadata.platform,
-        repo:
-          prMetadata.platform === "github"
-            ? `${prMetadata.owner}/${prMetadata.repo}`
-            : prMetadata.projectPath,
-        number: prMetadata.platform === "github" ? prMetadata.number : prMetadata.iid,
-      };
-    }
     return target;
   };
 
@@ -793,13 +623,6 @@ export async function startReviewServer(
   const semanticDiffScratchCwd = getSemanticDiffScratchCwd();
   const resolveSemanticDiffCwd = (diffType: DiffType = currentDiffType as DiffType): string => {
     if (workspace) return workspace.root;
-    if (options.worktreePool && prMetadata) {
-      const poolPath = resolvePRLocalCwd();
-      if (poolPath) return poolPath;
-      // Checkout warming up — probe sem availability in the scratch dir; the
-      // real run below awaits the checkout before resolving its cwd.
-      if (options.worktreePool.has(prMetadata.url)) return semanticDiffScratchCwd;
-    }
     if (options.agentCwd) return options.agentCwd;
     if (gitContext) {
       const vcsCwd = resolveVcsCwd(diffType, gitContext.cwd);
@@ -857,8 +680,6 @@ export async function startReviewServer(
         message: "Semantic diff is unavailable for committed GitButler views because the live workspace may contain other layers.",
       };
     }
-    // Semantic diff reads real files — wait out the checkout warmup in PR mode.
-    if (isPRMode && options.worktreePool) await ensurePRLocalCwd();
     const cwd = resolveSemanticDiffCwd();
     const fileExts = semanticDiffFileExtsFromSearchParams(url.searchParams);
     const cacheKey = semanticDiffCacheKey({ rawPatch: currentPatch, cwd, fileExts });
@@ -884,7 +705,7 @@ export async function startReviewServer(
     enabled = callFlowEnabled(),
   ) =>
     callFlowService.getAdvert(enabled, {
-      snapshotSupported: !workspace && (isPRMode || vcsSupportsSnapshot(sessionVcsType ?? "git", diffType)),
+      snapshotSupported: !workspace && vcsSupportsSnapshot(sessionVcsType ?? "git", diffType),
       rawPatch: currentPatch,
     });
 
@@ -908,32 +729,10 @@ export async function startReviewServer(
       };
     }
 
-    let analysisCwd: string | undefined;
-    let analysisDiffType = currentDiffType as string;
-    let analysisBase = currentBase;
-    let prCommitPair: { from: string; to: string } | undefined;
-    if (isPRMode && prMetadata) {
-      if (currentPRDiffScope === "layer" && layerPatchIncomplete) {
-        return { status: "unsupported", reason: "incomplete-patch", message: "Call flow is unavailable until the complete PR layer diff is available locally." };
-      }
-      analysisCwd = await ensurePRCallFlowCwd();
-      if (!analysisCwd) {
-        return { status: "unavailable", reason: "checkout-unavailable", message: "Call flow needs a local PR checkout, which is not ready." };
-      }
-      if (currentPRDiffScope === "full-stack" && prMetadata.defaultBranch) {
-        const baseRef = await resolvePRFullStackBaseRef(gitRuntime, prMetadata.defaultBranch, analysisCwd);
-        if (!baseRef) return { status: "unavailable", reason: "base-unavailable", message: "The full-stack base commit is unavailable locally." };
-        analysisDiffType = "merge-base";
-        analysisBase = baseRef;
-      } else {
-        prCommitPair = { from: prMetadata.mergeBaseSha ?? prMetadata.baseSha, to: prMetadata.headSha };
-      }
-    } else {
-      analysisCwd = resolveVcsCwd(currentDiffType as DiffType, gitContext?.cwd)
-        ?? gitContext?.cwd
-        ?? options.agentCwd
-        ?? process.cwd();
-    }
+    const analysisCwd = resolveVcsCwd(currentDiffType as DiffType, gitContext?.cwd)
+      ?? gitContext?.cwd
+      ?? options.agentCwd
+      ?? process.cwd();
     if (!analysisCwd) {
       return { status: "unavailable", reason: "checkout-unavailable", message: "Call flow requires a local Git checkout." };
     }
@@ -943,18 +742,17 @@ export async function startReviewServer(
     if (requestedSnapshot !== currentSnapshotId() || (baseline && before && baseline !== before)) {
       return { status: "stale", reason: "snapshot-stale", message: "The files changed before call flow could start. Refresh the review first." };
     }
-    const analysisVcsType = isPRMode ? "git" : sessionVcsType ?? "git";
+    const analysisVcsType = sessionVcsType ?? "git";
     return callFlowService.analyze({
       snapshotId: requestedSnapshot,
       rawPatch: currentPatch,
       snapshot: {
         materialize: ({ includedExtensions, signal }) => materializeVcsSnapshot(analysisVcsType, {
           cwd: analysisCwd,
-          diffType: analysisDiffType as DiffType,
-          base: analysisBase,
+          diffType: currentDiffType as DiffType,
+          base: currentBase,
           rawPatch: currentPatch,
           includedExtensions,
-          ...(prCommitPair && { prCommitPair }),
           signal,
         }),
       },
@@ -968,58 +766,14 @@ export async function startReviewServer(
   const gitUser = detectGitUser();
 
   // Detect repo info (cached for this session)
-  // In PR mode, derive from metadata instead of local git
-  let repoInfo = isPRMode && prMetadata
-    ? { display: getDisplayRepo(prMetadata), branch: `${getMRLabel(prMetadata)} ${getMRNumberLabel(prMetadata)}` }
-    : workspace
-      ? { display: basename(workspace.root), branch: "Workspace" }
+  let repoInfo = workspace
+    ? { display: basename(workspace.root), branch: "Workspace" }
     : await getRepoInfo();
   if (gitContext?.repository?.displayFallback) {
     repoInfo = {
       ...repoInfo,
       display: repoInfo?.display || gitContext.repository.displayFallback,
     };
-  }
-
-  // Fetch current platform user (for own-PR/MR detection)
-  let prRef = isPRMode && prMetadata ? prRefFromMetadata(prMetadata) : null;
-  if (prRef && prMetadata) {
-    warmPRContext(prMetadata.url, prRef);
-  }
-  const platformUser = prRef ? await getPRUser(prRef) : null;
-  let prStackInfo = prMetadata ? getPRStackInfo(prMetadata) : null;
-  let prDiffScopeOptions = prMetadata
-    ? getPRDiffScopeOptions(prMetadata, !!(options.worktreePool || options.agentCwd))
-    : [];
-
-  // Fetch full stack tree (best-effort — always try in PR mode so root PRs
-  // that target the default branch can still discover descendant PRs)
-  let prStackTree: PRStackTree | null = null;
-  if (prRef && prMetadata) {
-    try {
-      prStackTree = await fetchPRStack(prRef, prMetadata);
-    } catch {
-      // Non-fatal: client falls back to buildMinimalStackTree()
-    }
-    prStackTreeCache.set(prMetadata.url, prStackTree);
-    const resolved = resolveStackInfo(prMetadata, prStackTree, prStackInfo);
-    if (resolved && !prStackInfo) {
-      prStackInfo = resolved;
-      prDiffScopeOptions = getPRDiffScopeOptions(prMetadata, !!(options.worktreePool || options.agentCwd));
-    }
-  }
-
-  // Fetch GitHub viewed file state (non-blocking — errors are silently ignored)
-  let initialViewedFiles: string[] = [];
-  if (isPRMode && prRef) {
-    try {
-      const viewedMap = await fetchPRViewedFiles(prRef);
-      initialViewedFiles = Object.entries(viewedMap)
-        .filter(([, isViewed]) => isViewed)
-        .map(([path]) => path);
-    } catch {
-      // Non-fatal: viewed state is best-effort
-    }
   }
 
   // Decision promise
@@ -1042,14 +796,10 @@ export async function startReviewServer(
     Bun.serve({
         hostname: getServerHostname(),
         port,
-        // Bun's default 10s idleTimeout kills requests that legitimately park:
-        // PR-mode endpoints await the background checkout warmup (a clone that
-        // can take minutes) and the SSE streams stall between events.
         idleTimeout: 0,
 
         async fetch(req, server) {
           const url = new URL(req.url);
-
 
           // API: Get diff content
           if (url.pathname === "/api/diff" && req.method === "GET") {
@@ -1067,7 +817,6 @@ export async function startReviewServer(
             const servedError = currentError;
             const servedDiffType = currentDiffType;
             const servedHideWhitespace = currentHideWhitespace;
-            const servedPRDiffScope = currentPRDiffScope;
             const servedSnapshotId = currentSnapshotId();
             const servedGitContext = clientGitContext;
             const sections = await buildSectionsSidecar(servedBase, servedDiffType as string);
@@ -1089,26 +838,11 @@ export async function startReviewServer(
               gitContext: hasLocalAccess ? servedGitContext : undefined,
               approvalNotesSupported,
               repoInfo,
-              // PR mode advertises the ready PR checkout (null while warming), so
-              // the Open-in button gates correctly from the initial load — not
-              // the launch repo. Non-PR keeps the workspace/local cwd.
-              ...(isPRMode
-                ? { agentCwd: resolvePRLocalCwd() ?? null }
-                : workspace
-                  ? { agentCwd: workspace.root }
-                  : options.agentCwd
-                    ? { agentCwd: options.agentCwd }
-                    : {}),
-              ...(isPRMode && {
-                prMetadata,
-                platformUser,
-                prStackInfo,
-                prStackTree,
-                prDiffScope: servedPRDiffScope,
-                prDiffScopeOptions,
-              }),
-              ...(isPRMode && layerPatchIncomplete && { prPatchIncomplete: true, prPatchUpgradeAvailable: layerUpgradeAvailable }),
-              ...(isPRMode && initialViewedFiles.length > 0 && { viewedFiles: initialViewedFiles }),
+              ...(workspace
+                ? { agentCwd: workspace.root }
+                : options.agentCwd
+                  ? { agentCwd: options.agentCwd }
+                  : {}),
               ...(sections && { sections }),
               ...(commitInfo && { commitInfo }),
               ...(generatedFiles && { generatedFiles }),
@@ -1124,12 +858,6 @@ export async function startReviewServer(
           // since the current diff snapshot was computed? Best-effort: anything
           // that cannot be fingerprinted reports fresh (no banner).
           if (url.pathname === "/api/diff/fresh" && req.method === "GET") {
-            // In PR review the local checkout can appear (pool warmup) or change
-            // (in-place PR switch) after the initial /api/diff, so re-advertise it
-            // on every probe — the Open-in control tracks the current checkout
-            // without a page reload. resolvePRLocalCwd() is null until a usable
-            // checkout exists. Non-PR sessions never carry this field.
-            const prCwdAdvert = isPRMode ? { agentCwd: resolvePRLocalCwd() ?? null } : {};
             const baseline = currentFingerprint;
             // Carry baseBehindRemote on EVERY response — the client sets the flag
             // unconditionally on each probe, so omitting it here clears the
@@ -1137,11 +865,11 @@ export async function startReviewServer(
             const behind = baseBehindRemote ? { baseBehindRemote: true } : {};
             // Per-CLIENT staleness: the client echoes the snapshotId it is
             // rendering; a mismatch means the SERVER's snapshot moved under it
-            // (startup base upgrade, a switch from another tab, an in-place PR
-            // switch) regardless of what the VCS fingerprint says. This is what
-            // lets one server serve multiple tabs holding different snapshots
-            // without lying to any of them. The "snapshot:" fingerprint keys
-            // the client's dismissal to the server snapshot that made it stale.
+            // (startup base upgrade, a switch from another tab) regardless of
+            // what the VCS fingerprint says. This is what lets one server serve
+            // multiple tabs holding different snapshots without lying to any
+            // of them. The "snapshot:" fingerprint keys the client's dismissal
+            // to the server snapshot that made it stale.
             const clientSnapshot = url.searchParams.get("snapshot");
             const serverSnapshot = currentSnapshotId();
             if (clientSnapshot && clientSnapshot !== serverSnapshot) {
@@ -1149,15 +877,14 @@ export async function startReviewServer(
                 fresh: false,
                 fingerprint: `snapshot:${serverSnapshot}`,
                 ...behind,
-                ...prCwdAdvert,
               });
             }
-            if (baseline == null) return Response.json({ fresh: true, ...behind, ...prCwdAdvert });
+            if (baseline == null) return Response.json({ fresh: true, ...behind });
             const probe = await computeDiffFingerprint();
             // A diff switch landing mid-probe replaces the snapshot (and its
             // fingerprint); report fresh and let the next poll compare
             // against the new baseline.
-            if (currentFingerprint !== baseline) return Response.json({ fresh: true, ...behind, ...prCwdAdvert });
+            if (currentFingerprint !== baseline) return Response.json({ fresh: true, ...behind });
             const fresh = probe == null || probe === baseline;
             maybeRefreshRemoteBaseInfo();
             // The probe fingerprint lets the client distinguish "still the
@@ -1166,7 +893,6 @@ export async function startReviewServer(
               fresh,
               ...(fresh ? {} : { fingerprint: probe }),
               ...(baseBehindRemote && { baseBehindRemote: true }),
-              ...prCwdAdvert,
             });
           }
 
@@ -1272,7 +998,6 @@ export async function startReviewServer(
             }
             const analysisEpoch = reviewAnalysisEpoch;
             const viewEpoch = diffSwitchEpoch;
-            const scopeEpoch = prScopeEpoch;
             const [semanticDiff, callFlow] = await Promise.all([
               getSemanticDiffAdvert(),
               getCallFlowAdvert(),
@@ -1281,7 +1006,6 @@ export async function startReviewServer(
               analysisEpoch !== reviewAnalysisEpoch
               || reviewAnalysisMutationEpoch !== null
               || viewEpoch !== diffSwitchEpoch
-              || scopeEpoch !== prScopeEpoch
             ) {
               return Response.json({ superseded: true });
             }
@@ -1295,7 +1019,6 @@ export async function startReviewServer(
             const analysisEpoch = ++reviewAnalysisEpoch;
             reviewAnalysisMutationEpoch = analysisEpoch;
             const viewEpoch = diffSwitchEpoch;
-            const scopeEpoch = prScopeEpoch;
             try {
               const reviewAnalysis = parseReviewAnalysisConfig(await req.json());
               if (!reviewAnalysis) {
@@ -1313,7 +1036,6 @@ export async function startReviewServer(
               if (
                 analysisEpoch !== reviewAnalysisEpoch
                 || viewEpoch !== diffSwitchEpoch
-                || scopeEpoch !== prScopeEpoch
               ) {
                 return Response.json({ superseded: true });
               }
@@ -1333,13 +1055,13 @@ export async function startReviewServer(
           }
 
           // API: Linear commit history for the Commits panel. Git-local
-          // sessions only — PR/workspace/jj/p4 don't offer the view (same
+          // sessions only — workspace/jj/p4 don't offer the view (same
           // gate the client's commitsCapable applies). Computed against the
           // same cwd as the active diff so worktree sessions list the
           // worktree's history, and against the active base so the divider
           // matches the review baseline.
           if (url.pathname === "/api/commits" && req.method === "GET") {
-            if (!gitContext || isPRMode || workspace || (sessionVcsType && sessionVcsType !== "git")) {
+            if (!gitContext || workspace || (sessionVcsType && sessionVcsType !== "git")) {
               return Response.json(
                 { error: "Commit history is only available for local git reviews" },
                 { status: 400 },
@@ -1573,377 +1295,7 @@ export async function startReviewServer(
             }
           }
 
-          // API: Switch PR diff scope between the platform layer diff and a local full-stack diff.
-          if (url.pathname === "/api/pr-diff-scope" && req.method === "POST") {
-            if (!isPRMode || !prMetadata) {
-              return Response.json({ error: "Not in PR mode" }, { status: 400 });
-            }
 
-            try {
-              const body = (await req.json()) as { scope?: PRDiffScope };
-              if (body.scope !== "layer" && body.scope !== "full-stack") {
-                return Response.json({ error: "Invalid PR diff scope" }, { status: 400 });
-              }
-
-              const scopeEpoch = ++prScopeEpoch;
-              // A newer scope select or pr-switch landed while this request
-              // was parked on an await: drop this request's writes and return
-              // the newest state so the client converges on it.
-              const supersededResponse = async () => {
-                const [semanticDiff, callFlow] = await Promise.all([
-                  getSemanticDiffAdvert(),
-                  getCallFlowAdvert(),
-                ]);
-                return Response.json({
-                  rawPatch: currentPatch,
-                  gitRef: currentGitRef,
-                  snapshotId: currentSnapshotId(),
-                  approvalNotesSupported,
-                  prDiffScope: currentPRDiffScope,
-                  ...(layerPatchIncomplete && { prPatchIncomplete: true, prPatchUpgradeAvailable: layerUpgradeAvailable }),
-                  ...(currentError && { error: currentError }),
-                  semanticDiff,
-                  callFlow,
-                });
-              };
-
-              if (body.scope === "layer") {
-                // Upgrade path: the platform withheld per-file content for
-                // this PR (too large). Once the local checkout is ready,
-                // recompute the exact layer diff locally and replace the
-                // truncated API reconstruction. Snapshot the PR before the
-                // await — a pr-switch landing mid-recompute must not have its
-                // patch overwritten with the previous PR's diff.
-                const upgradeMetadata = prMetadata;
-                let upgradeError: string | undefined;
-                if (layerPatchIncomplete && options.worktreePool && upgradeMetadata) {
-                  const upgradeCwd = await ensurePRLocalCwd(upgradeMetadata);
-                  if (upgradeCwd && prMetadata === upgradeMetadata) {
-                    const result = await runPRLayerLocalDiff(gitRuntime, upgradeMetadata, upgradeCwd);
-                    if (prMetadata === upgradeMetadata) {
-                      if (!result.error) {
-                        originalPRPatch = result.patch;
-                        originalPRError = undefined;
-                        layerPatchIncomplete = false;
-                        prSwitchCache.set(upgradeMetadata.url, {
-                          metadata: upgradeMetadata,
-                          rawPatch: result.patch,
-                          patchIncomplete: false,
-                        });
-                      } else {
-                        upgradeError = `Could not recompute the full diff locally: ${result.error}`;
-                        console.error(`Local PR diff recompute failed: ${result.error}`);
-                      }
-                    }
-                  }
-                }
-                if (scopeEpoch !== prScopeEpoch) return supersededResponse();
-                currentPatch = originalPRPatch;
-                currentGitRef = originalPRGitRef;
-                currentError = originalPRError;
-                currentPRDiffScope = "layer";
-                // INVARIANT: every commit point re-keys — draftKey doubles as
-                // the snapshotId clients echo on freshness probes AND the
-                // draft-storage key, so it must always identify currentPatch.
-                // (This was previously conditional on !layerPatchIncomplete,
-                // which only stayed consistent because the full-stack branch
-                // never re-keyed at all.)
-                draftKey = contentHash(currentPatch);
-                captureDiffFingerprint();
-                return Response.json({
-                  rawPatch: currentPatch,
-                  gitRef: currentGitRef,
-                  snapshotId: currentSnapshotId(),
-                  approvalNotesSupported,
-                  prDiffScope: currentPRDiffScope,
-                  ...(layerPatchIncomplete && { prPatchIncomplete: true, prPatchUpgradeAvailable: layerUpgradeAvailable }),
-                  ...((currentError ?? upgradeError) && { error: currentError ?? upgradeError }),
-                  semanticDiff: await getSemanticDiffAdvert(),
-                  callFlow: await getCallFlowAdvert(),
-                });
-              }
-
-              const fullStackOption = prDiffScopeOptions.find((option) => option.id === "full-stack");
-              if (!fullStackOption?.enabled || !(options.worktreePool || options.agentCwd)) {
-                return Response.json(
-                  { error: "Full stack diff requires a stacked PR and a local checkout" },
-                  { status: 400 },
-                );
-              }
-
-              // Blocks on the background checkout warmup if it's still running.
-              const fullStackCwd = await ensurePRLocalCwd();
-              if (!fullStackCwd) {
-                return Response.json(
-                  { error: "Local checkout is unavailable — full stack diff cannot run" },
-                  { status: 400 },
-                );
-              }
-              const result = await runPRFullStackDiff(gitRuntime, prMetadata, fullStackCwd);
-
-              if (result.error) {
-                return Response.json({ error: result.error }, { status: 400 });
-              }
-
-              if (scopeEpoch !== prScopeEpoch) return supersededResponse();
-              currentPatch = result.patch;
-              currentGitRef = result.label;
-              currentError = undefined;
-              currentPRDiffScope = "full-stack";
-              // INVARIANT: every commit point re-keys (see the layer branch).
-              // Skipping this advertised the LAYER snapshot id for the
-              // full-stack patch — stale layer tabs never got the banner and
-              // full-stack drafts collided with layer drafts.
-              draftKey = contentHash(currentPatch);
-              captureDiffFingerprint();
-
-              return Response.json({
-                rawPatch: currentPatch,
-                gitRef: currentGitRef,
-                snapshotId: currentSnapshotId(),
-                approvalNotesSupported,
-                prDiffScope: currentPRDiffScope,
-                semanticDiff: await getSemanticDiffAdvert(),
-                callFlow: await getCallFlowAdvert(),
-              });
-            } catch (err) {
-              const message =
-                err instanceof Error ? err.message : "Failed to switch PR diff scope";
-              return Response.json({ error: message }, { status: 500 });
-            }
-          }
-
-          // API: List PRs for the current repo (cached for 30s)
-          if (url.pathname === "/api/pr-list" && req.method === "GET") {
-            if (!isPRMode || !prRef) {
-              return Response.json({ error: "Not in PR mode" }, { status: 400 });
-            }
-            try {
-              const now = Date.now();
-              if (prListCache && now - prListCacheTime < 30_000) {
-                return Response.json({ prs: prListCache });
-              }
-              const prs = await fetchPRList(prRef);
-              prListCache = prs;
-              prListCacheTime = now;
-              return Response.json({ prs });
-            } catch (err) {
-              return Response.json({ error: "Failed to fetch PR list" }, { status: 500 });
-            }
-          }
-
-          // API: Switch to a different PR in the stack (in-place navigation)
-          if (url.pathname === "/api/pr-switch" && req.method === "POST") {
-            if (!isPRMode || !prRef) {
-              return Response.json({ error: "Not in PR mode" }, { status: 400 });
-            }
-
-            try {
-              const body = (await req.json()) as { url?: string };
-              if (!body.url) {
-                return Response.json({ error: "Missing PR URL" }, { status: 400 });
-              }
-
-              const newRef = parsePRUrl(body.url);
-              if (!newRef) {
-                return Response.json({ error: "Invalid PR URL" }, { status: 400 });
-              }
-              if (!isSameProject(newRef, prRef!)) {
-                return Response.json({ error: "Cannot switch to a PR in a different repository" }, { status: 400 });
-              }
-
-              const cached = prSwitchCache.get(body.url);
-              const pr = cached ?? await fetchPR(newRef);
-              if (!cached) prSwitchCache.set(body.url, pr);
-
-              // Update mutable server state. Bump the scope epoch so a scope
-              // request parked on a long await cannot overwrite this switch.
-              prScopeEpoch++;
-              prMetadata = pr.metadata;
-              prRef = prRefFromMetadata(pr.metadata);
-              warmPRContext(pr.metadata.url, prRef);
-              currentPatch = pr.rawPatch;
-              currentGitRef = `${getMRLabel(pr.metadata)} ${getMRNumberLabel(pr.metadata)}`;
-              currentError = undefined;
-              originalPRPatch = pr.rawPatch;
-              originalPRGitRef = currentGitRef;
-              originalPRError = undefined;
-              currentPRDiffScope = "layer";
-              layerPatchIncomplete = pr.patchIncomplete ?? false;
-              draftKey = contentHash(pr.rawPatch);
-              prListCache = null;
-              captureDiffFingerprint();
-
-              // Recompute stack info
-              prStackInfo = getPRStackInfo(pr.metadata);
-
-              // Fetch stack tree (cached per PR for the session)
-              if (prStackTreeCache.has(body.url)) {
-                prStackTree = prStackTreeCache.get(body.url) ?? null;
-              } else {
-                try {
-                  prStackTree = await fetchPRStack(prRef, pr.metadata);
-                } catch {
-                  prStackTree = null;
-                }
-                prStackTreeCache.set(body.url, prStackTree);
-              }
-
-              // Ensure worktree for the new PR (pool creates a fresh one, no shared-state mutation)
-              let hasLocalForNewPR = false;
-              if (options.worktreePool) {
-                try {
-                  await options.worktreePool.ensure(gitRuntime, pr.metadata);
-                  hasLocalForNewPR = true;
-                } catch {
-                  // Pool creation failed — full-stack will be disabled
-                }
-              } else if (options.agentCwd) {
-                hasLocalForNewPR = await checkoutPRHead(gitRuntime, pr.metadata, options.agentCwd);
-              }
-
-              prStackInfo = resolveStackInfo(pr.metadata, prStackTree, prStackInfo);
-
-              prDiffScopeOptions = prStackInfo
-                ? getPRDiffScopeOptions(pr.metadata, hasLocalForNewPR)
-                : [];
-
-              // Fetch viewed files for the new PR
-              let switchedViewedFiles: string[] = [];
-              try {
-                const viewedMap = await fetchPRViewedFiles(prRef);
-                switchedViewedFiles = Object.entries(viewedMap)
-                  .filter(([, isViewed]) => isViewed)
-                  .map(([path]) => path);
-              } catch {
-                // Non-fatal
-              }
-              initialViewedFiles = switchedViewedFiles;
-
-              repoInfo = {
-                display: getDisplayRepo(pr.metadata),
-                branch: `${getMRLabel(pr.metadata)} ${getMRNumberLabel(pr.metadata)}`,
-              };
-
-              return Response.json({
-                rawPatch: currentPatch,
-                gitRef: currentGitRef,
-                snapshotId: currentSnapshotId(),
-                approvalNotesSupported,
-                prMetadata: pr.metadata,
-                // The new PR's checkout (null while warming) so Open-in re-roots
-                // immediately on switch instead of waiting for the 5s probe.
-                agentCwd: resolvePRLocalCwd(pr.metadata) ?? null,
-                prStackInfo,
-                prStackTree,
-                prDiffScope: currentPRDiffScope,
-                prDiffScopeOptions,
-                ...(layerPatchIncomplete && { prPatchIncomplete: true, prPatchUpgradeAvailable: layerUpgradeAvailable }),
-                repoInfo,
-                ...(switchedViewedFiles.length > 0 && { viewedFiles: switchedViewedFiles }),
-                ...(currentError ? { error: currentError } : {}),
-                semanticDiff: await getSemanticDiffAdvert(),
-                callFlow: await getCallFlowAdvert(),
-              });
-            } catch (err) {
-              const message = err instanceof Error ? err.message : "Failed to switch PR";
-              return Response.json({ error: message }, { status: 500 });
-            }
-          }
-
-          // API: Fetch PR context (comments, checks, merge status) — PR mode only
-          if (url.pathname === "/api/pr-context" && req.method === "GET") {
-            if (!isPRMode || !prRef || !prMetadata) {
-              return Response.json(
-                { error: "Not in PR mode" },
-                { status: 400 },
-              );
-            }
-            try {
-              const context = await prContextLive.getContext(prMetadata.url, prRef);
-              return Response.json(context);
-            } catch (err) {
-              const message =
-                err instanceof Error ? err.message : "Failed to fetch PR context";
-              return Response.json({ error: message }, { status: 500 });
-            }
-          }
-
-          // API: Fetch a context-referenced HTML/Markdown artifact through the
-          // authenticated provider session. The shared helper owns URL and
-          // redirect validation so this never becomes an open proxy.
-          if (url.pathname === "/api/pr-artifact-document" && req.method === "GET") {
-            if (!isPRMode || !prRef || !prMetadata) {
-              return Response.json({ error: "Not in PR mode" }, { status: 400 });
-            }
-            const artifactUrl = url.searchParams.get("url");
-            if (!artifactUrl) {
-              return Response.json({ error: "Missing artifact URL" }, { status: 400 });
-            }
-            try {
-              const context = await prContextLive.getContext(prMetadata.url, prRef);
-              const document = await fetchPRArtifactDocument(
-                prCommandRuntime,
-                prMetadata,
-                context,
-                artifactUrl,
-              );
-              return new Response(document.content, {
-                headers: {
-                  "Content-Type": "text/plain; charset=utf-8",
-                  "Cache-Control": "private, max-age=300",
-                  "Content-Security-Policy": "sandbox; default-src 'none'",
-                  "X-Content-Type-Options": "nosniff",
-                },
-              });
-            } catch (error) {
-              const status = error instanceof PRArtifactDocumentError ? error.status : 500;
-              const message = error instanceof Error ? error.message : "Failed to fetch artifact document";
-              return Response.json({ error: message }, { status });
-            }
-          }
-
-          // API: Serve provider media and resources derived from a referenced
-          // artifact document. The helper validates both the source document
-          // and target URL before forwarding provider credentials.
-          if (url.pathname === "/api/pr-artifact-content" && req.method === "GET") {
-            if (!isPRMode || !prRef || !prMetadata) {
-              return Response.json({ error: "Not in PR mode" }, { status: 400 });
-            }
-            const artifactUrl = url.searchParams.get("url");
-            if (!artifactUrl) {
-              return Response.json({ error: "Missing artifact URL" }, { status: 400 });
-            }
-            try {
-              const context = await prContextLive.getContext(prMetadata.url, prRef);
-              const content = await fetchPRArtifactContent(
-                prCommandRuntime,
-                prMetadata,
-                context,
-                artifactUrl,
-                {
-                  sourceUrl: url.searchParams.get("source") ?? undefined,
-                  range: req.headers.get("range") ?? undefined,
-                },
-              );
-              return new Response(Uint8Array.from(content.content).buffer, {
-                status: content.status,
-                headers: {
-                  "Content-Type": content.contentType,
-                  "Cache-Control": "private, max-age=300",
-                  "Content-Security-Policy": "sandbox",
-                  "X-Content-Type-Options": "nosniff",
-                  "Content-Length": String(content.content.byteLength),
-                  ...(content.contentRange ? { "Content-Range": content.contentRange } : {}),
-                  ...(content.acceptRanges ? { "Accept-Ranges": content.acceptRanges } : {}),
-                },
-              });
-            } catch (error) {
-              const status = error instanceof PRArtifactDocumentError ? error.status : 500;
-              const message = error instanceof Error ? error.message : "Failed to fetch artifact content";
-              return Response.json({ error: message }, { status });
-            }
-          }
 
           // API: Get file content for expandable diff context
           if (url.pathname === "/api/file-content" && req.method === "GET") {
@@ -2012,35 +1364,6 @@ export async function startReviewServer(
               }
             }
 
-            // Full-stack PR mode uses local git for file expansion because
-            // the patch is no longer the platform's layer diff.
-            const fileContentCwd = resolvePRLocalCwd();
-            if (
-              isPRMode &&
-              currentPRDiffScope === "full-stack" &&
-              fileContentCwd &&
-              prMetadata?.defaultBranch
-            ) {
-              const baseRef = await resolvePRFullStackBaseRef(
-                gitRuntime,
-                prMetadata!.defaultBranch,
-                fileContentCwd,
-              );
-              if (!baseRef) {
-                return Response.json(
-                  { oldContent: null, newContent: null },
-                );
-              }
-              const result = await getVcsFileContentsForDiff(
-                "merge-base",
-                baseRef,
-                filePath,
-                oldPath,
-                fileContentCwd,
-              );
-              return Response.json(result);
-            }
-
             // Local review: read file contents from local git
             if (hasLocalAccess) {
               const requestedBase = url.searchParams.get("base") ?? undefined;
@@ -2056,18 +1379,6 @@ export async function startReviewServer(
               return Response.json(result);
             }
 
-            // PR mode: fetch from platform API using merge-base/head SHAs.
-            // The diff is computed against the merge-base (common ancestor), not the
-            // base branch tip. File contents must match the diff for hunk expansion.
-            if (isPRMode && prMetadata) {
-              const oldSha = prMetadata.mergeBaseSha ?? prMetadata.baseSha;
-              const [oldContent, newContent] = await Promise.all([
-                fetchPRFileContent(prRef!, oldSha, oldPath || filePath),
-                fetchPRFileContent(prRef!, prMetadata.headSha, filePath),
-              ]);
-              return Response.json({ oldContent, newContent });
-            }
-
             return Response.json({ error: "No file access available" }, { status: 400 });
           }
 
@@ -2079,18 +1390,14 @@ export async function startReviewServer(
                 { status: 400 },
               );
             }
-            const hasCodeNavAccess = !!workspace || !!gitContext || !!options.agentCwd || !!options.worktreePool;
+            const hasCodeNavAccess = !!workspace || !!gitContext || !!options.agentCwd;
             if (!hasCodeNavAccess) {
               return Response.json(
                 { error: "Code navigation requires local access" },
                 { status: 400 },
               );
             }
-            // PR mode: the checkout must actually exist — ripgrep over a
-            // fallback directory returns confidently-wrong results.
-            const navCwd = options.worktreePool && prMetadata
-              ? await ensurePRLocalCwd()
-              : await resolveAgentCwdReady();
+            const navCwd = await resolveAgentCwdReady();
             if (!navCwd) {
               return Response.json({ error: "Local checkout unavailable" }, { status: 400 });
             }
@@ -2106,7 +1413,7 @@ export async function startReviewServer(
                 { status: 400 },
               );
             }
-            const hasCodeNavAccess = !!workspace || !!gitContext || !!options.agentCwd || !!options.worktreePool;
+            const hasCodeNavAccess = !!workspace || !!gitContext || !!options.agentCwd;
             if (!hasCodeNavAccess) {
               return Response.json({ error: "Code navigation requires local access" }, { status: 400 });
             }
@@ -2118,9 +1425,7 @@ export async function startReviewServer(
               return Response.json({ error: "Invalid path" }, { status: 400 });
             }
             try {
-              const navCwd = options.worktreePool && prMetadata
-                ? await ensurePRLocalCwd()
-                : await resolveAgentCwdReady();
+              const navCwd = await resolveAgentCwdReady();
               if (!navCwd) {
                 return Response.json({ error: "Local checkout unavailable" }, { status: 400 });
               }
@@ -2172,56 +1477,7 @@ export async function startReviewServer(
             return handleDraftLoad(draftKey);
           }
 
-          // API: Live PR context stream (comments, checks, merge state)
-          if (url.pathname === "/api/pr-context/stream" && req.method === "GET") {
-            if (!isPRMode || !prRef || !prMetadata) {
-              return Response.json(
-                { error: "Not in PR mode" },
-                { status: 400 },
-              );
-            }
 
-            server.timeout(req, 0);
-
-            const encoder = new TextEncoder();
-            const activeRef = prRef;
-            const activeUrl = prMetadata.url;
-            let unsubscribe: (() => void) | null = null;
-            let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
-
-            const stream = new ReadableStream({
-              start(controller) {
-                unsubscribe = prContextLive.watch(activeUrl, activeRef, (event) => {
-                  controller.enqueue(encoder.encode(serializePRContextSSEEvent(event)));
-                });
-
-                heartbeatTimer = setInterval(() => {
-                  try {
-                    controller.enqueue(encoder.encode(PR_CONTEXT_HEARTBEAT_COMMENT));
-                  } catch {
-                    if (heartbeatTimer) clearInterval(heartbeatTimer);
-                    heartbeatTimer = null;
-                    unsubscribe?.();
-                    unsubscribe = null;
-                  }
-                }, PR_CONTEXT_HEARTBEAT_INTERVAL_MS);
-              },
-              cancel() {
-                if (heartbeatTimer) clearInterval(heartbeatTimer);
-                heartbeatTimer = null;
-                unsubscribe?.();
-                unsubscribe = null;
-              },
-            });
-
-            return new Response(stream, {
-              headers: {
-                "Content-Type": "text/event-stream",
-                "Cache-Control": "no-cache",
-                Connection: "keep-alive",
-              },
-            });
-          }
 
           // API: External annotations (SSE-based, for any external tool)
           const externalResponse = await externalAnnotations.handle(req, url, {
@@ -2280,88 +1536,7 @@ export async function startReviewServer(
             }
           }
 
-          // API: Submit PR review directly to GitHub (PR mode only)
-          if (url.pathname === "/api/pr-action" && req.method === "POST") {
-            if (!isPRMode || !prMetadata) {
-              return Response.json({ error: "Not in PR mode" }, { status: 400 });
-            }
-            try {
-              const body = (await req.json()) as {
-                action: "approve" | "comment";
-                body: string;
-                fileComments: PRReviewFileComment[];
-                targetPrUrl?: string;
-              };
 
-              // Resolve target PR — either explicit target or current.
-              // When targetPrUrl is provided, the client has already filtered
-              // annotations by diffScope, so we skip the server-side scope guard.
-              let targetRef = prRef!;
-              let targetHeadSha = prMetadata.headSha;
-              let targetUrl = prMetadata.url;
-
-              if (body.targetPrUrl) {
-                const cached = prSwitchCache.get(body.targetPrUrl);
-                if (!cached) {
-                  return Response.json({ error: "Target PR not found in session" }, { status: 400 });
-                }
-                targetRef = prRefFromMetadata(cached.metadata);
-                targetHeadSha = cached.metadata.headSha;
-                targetUrl = cached.metadata.url;
-              } else if (currentPRDiffScope !== "layer") {
-                return Response.json(
-                  { error: "Switch to Layer diff before posting a platform review" },
-                  { status: 400 },
-                );
-              }
-
-              console.error(`[pr-action] ${body.action} with ${body.fileComments.length} file comment(s), target=${targetUrl}, headSha=${targetHeadSha}`);
-
-              const submission = await submitPlatformReview(
-                targetRef,
-                targetHeadSha,
-                body.action,
-                body.body,
-                body.fileComments,
-              );
-
-              console.error(`[pr-action] ${submission.status === "complete" ? "Success" : "Partial success"}`);
-              prContextLive.refreshAfterWrite(targetUrl, targetRef);
-              return Response.json({ ok: true, prUrl: targetUrl, submission });
-            } catch (err) {
-              const message =
-                err instanceof Error ? err.message : "Failed to submit PR review";
-              console.error(`[pr-action] Failed: ${message}`);
-              return Response.json({ error: message }, { status: 500 });
-            }
-          }
-
-          // API: Mark/unmark PR files as viewed on GitHub (PR mode, GitHub only)
-          if (url.pathname === "/api/pr-viewed" && req.method === "POST") {
-            if (!isPRMode || !prMetadata) {
-              return Response.json({ error: "Not in PR mode" }, { status: 400 });
-            }
-            if (prMetadata.platform !== "github") {
-              return Response.json({ error: "Viewed sync only supported for GitHub" }, { status: 400 });
-            }
-            const prNodeId = prMetadata.prNodeId;
-            if (!prNodeId) {
-              return Response.json({ error: "PR node ID not available" }, { status: 400 });
-            }
-            try {
-              const body = (await req.json()) as {
-                filePaths: string[];
-                viewed: boolean;
-              };
-              await markPRFilesViewed(prRef!, prNodeId, body.filePaths, body.viewed);
-              return Response.json({ ok: true });
-            } catch (err) {
-              const message =
-                err instanceof Error ? err.message : "Failed to update viewed state";
-              console.error("[hypermark] /api/pr-viewed error:", message);
-              return Response.json({ error: message }, { status: 500 });
-            }
-          }
 
           // Favicon
           if (url.pathname === "/favicon.png") return handleFavicon();

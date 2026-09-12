@@ -1,16 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import {
-  AutoViewedTracker,
-  createViewedSyncBatcher,
-  type ViewedSyncBatcher,
-} from '../utils/autoViewed';
+import { AutoViewedTracker } from '../utils/autoViewed';
 
 /**
  * Binds the pure auto-mark-viewed core to the review app.
  *
  * Owns: the dwell clock, the suppression set (which rides the draft), the
- * scope gates, the retry that lets a file parked at the bottom of the diff
- * mature its dwell, and the batching of platform (GitHub) viewed sync.
+ * scope gates, and the retry that lets a file parked at the bottom of the diff
+ * mature its dwell.
  *
  * Applies nothing itself — marking is `onMark`, which the App turns into
  * add-only viewed state.
@@ -34,11 +30,6 @@ export interface UseAutoViewedOptions {
   /** Apply the marks (add-only). */
   onMark: (paths: string[]) => void;
   /**
-   * Optional platform sync for PR sessions. Called with a BATCH of paths, so
-   * a read-through of a 40-file PR is a handful of requests, not 40.
-   */
-  onSyncPlatformViewed?: (paths: string[]) => void;
-  /**
    * Called after every auto-mark. The first-time notice rides this: the marker
    * always marks, and the owner decides whether the toast can be shown right
    * now (deferred behind a takeover or a first-run dialog, retried on the next
@@ -53,8 +44,6 @@ export interface UseAutoViewedOptions {
    * instant it is passed in the new one. Suppression survives.
    */
   snapshotKey: string;
-  /** Override the batch window (tests). */
-  syncBatchMs?: number;
   /** Override the dwell floor (tests). */
   dwellMs?: number;
 }
@@ -72,11 +61,9 @@ export function useAutoViewed({
   viewedFiles,
   suppressedFiles,
   onMark,
-  onSyncPlatformViewed,
   onAutoView,
   singleFileReadingFile,
   snapshotKey,
-  syncBatchMs,
   dwellMs,
 }: UseAutoViewedOptions): UseAutoViewedResult {
   const trackerRef = useRef<AutoViewedTracker | null>(null);
@@ -97,17 +84,6 @@ export function useAutoViewed({
   /** Collapsed flag of the file the all-files surface last reported. */
   const readingCollapsedRef = useRef(false);
 
-  const syncRef = useRef(onSyncPlatformViewed);
-  syncRef.current = onSyncPlatformViewed;
-  const batcherRef = useRef<ViewedSyncBatcher | null>(null);
-  if (batcherRef.current === null) {
-    batcherRef.current = createViewedSyncBatcher(
-      (paths) => syncRef.current?.(paths),
-      syncBatchMs === undefined ? {} : { windowMs: syncBatchMs },
-    );
-  }
-  useEffect(() => () => batcherRef.current?.dispose(), []);
-
   // A file parked at the bottom of the diff is still accruing dwell, but
   // reportVisibleFile only runs on scroll — without this the last file would
   // never mature. Retries the pass once the remaining dwell has elapsed.
@@ -122,7 +98,6 @@ export function useAutoViewed({
 
   const applyMark = useCallback((filePath: string) => {
     onMarkRef.current([filePath]);
-    if (syncRef.current) batcherRef.current?.add([filePath]);
     onAutoViewRef.current?.();
   }, []);
 

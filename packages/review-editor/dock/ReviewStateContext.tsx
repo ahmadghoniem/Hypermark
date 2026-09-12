@@ -1,10 +1,7 @@
 import React, { createContext, useContext } from 'react';
-import type { CallFlowAnnotationTarget, CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, Annotation, CommentAnnotation, ArtifactAnnotationMeta, ImageAttachment } from '@hypermark/ui/types';
+import type { CallFlowAnnotationTarget, CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ImageAttachment } from '@hypermark/ui/types';
 import type { DiffFile, AnnotationScrollTarget } from '../types';
 import type { ReviewSearchMatch } from '../utils/reviewSearch';
-import type { PRMetadata, PRContext } from '@hypermark/shared/pr-types';
-import type { PRArtifact } from '../utils/prArtifacts';
-import type { PRDiffScope } from '@hypermark/shared/pr-stack';
 import type { FeedbackDiffContext } from '../utils/exportFeedback';
 import type { CallFlowAnalysisState } from '../hooks/useCallFlowAnalysis';
 import type { CallFlowInstallController } from '../hooks/useCallFlowInstall';
@@ -49,9 +46,6 @@ export interface ReviewState {
   /** Diff context baked into exported feedback so downstream consumers
    * produce the same markdown the main feedback path sends. */
   feedbackDiffContext?: FeedbackDiffContext;
-  /** PR/MR review scope label, e.g. "Layer diff" or "Full stack diff". */
-  prReviewScope?: string;
-  prDiffScope?: PRDiffScope;
   /** Agent working directory — base for resolving repo-relative diff paths to
    *  absolute (e.g. for the Open-in-app control). */
   agentCwd?: string | null;
@@ -84,29 +78,6 @@ export interface ReviewState {
   /** Select AND scroll the diff to a comment (sidebar / findings-list click). */
   onNavigateToAnnotation: (id: string | null) => void;
   onDeleteAnnotation: (id: string) => void;
-
-  // PR description prose annotations (comment-only; text-anchored Annotation[],
-  // kept separate from the diff CodeAnnotation[] above).
-  descriptionAnnotations: Annotation[];
-  selectedDescriptionAnnotationId: string | null;
-  onAddDescriptionAnnotation: (ann: Annotation) => void;
-  onSelectDescriptionAnnotation: (id: string | null) => void;
-  onDeleteDescriptionAnnotation: (id: string) => void;
-
-  // PR comment annotations (notes attached to a whole comment/review/thread).
-  commentAnnotations: CommentAnnotation[];
-  selectedCommentAnnotationId: string | null;
-  onAddCommentAnnotation: (
-    commentId: string,
-    commentAuthor: string,
-    commentBody: string,
-    text: string,
-    options?: { id?: string; artifact?: ArtifactAnnotationMeta },
-  ) => void;
-  onSelectCommentAnnotation: (id: string | null) => void;
-  onDeleteCommentAnnotation: (id: string) => void;
-  /** Sidebar-initiated "reveal this comment" signal (token bumps per click). */
-  commentScrollTarget: { commentId: string; token: number } | null;
 
   // Viewed / staged
   viewedFiles: Set<string>;
@@ -143,16 +114,6 @@ export interface ReviewState {
   // active match (activeSearchMatch above is filtered to the single-file panel).
   searchMatches: ReviewSearchMatch[];
   allFilesActiveSearchMatch: ReviewSearchMatch | null;
-
-  // PR
-  prMetadata: PRMetadata | null;
-  prContext: PRContext | null;
-  /** Viewable attachments harvested from the current hosted PR/MR context. */
-  prArtifacts: readonly PRArtifact[];
-  isPRContextLoading: boolean;
-  prContextError: string | null;
-  fetchPRContext: () => void;
-  platformUser: string | null;
 
   // Diff navigation
   openDiffFile: (filePath: string) => void;

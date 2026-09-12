@@ -1,13 +1,9 @@
 import { useMemo, useCallback } from 'react';
-import { getDisplayRepo } from '@hypermark/shared/pr-types';
-import type { PRMetadata } from '@hypermark/shared/pr-types';
-import type { PRDiffScope } from '@hypermark/shared/pr-stack';
 import type { CodeAnnotation } from '@hypermark/ui/types';
 
 /** The active commit diff, if any — stamped onto annotations created while a
- *  commit:<sha> diff is on screen. Mirrors the PR fields: both exist so an
- *  in-place context switch (PR switch / diff-type switch) can't silently
- *  re-anchor old annotations to a diff they weren't made on. */
+ *  commit:<sha> diff is on screen. An in-place context switch (diff-type switch)
+ *  can't silently re-anchor old annotations to a diff they weren't made on. */
 export interface CommitAnnotationContext {
   sha: string;
   subject?: string;
@@ -21,19 +17,10 @@ export interface GitButlerAnnotationContext {
 }
 
 export function useAnnotationFactory(
-  prMetadata: PRMetadata | null,
-  diffScope?: PRDiffScope,
   commitContext?: CommitAnnotationContext | null,
   gitButlerContext?: GitButlerAnnotationContext | null,
 ) {
-  const prContext = useMemo(() => ({
-    ...(prMetadata ? {
-      prUrl: prMetadata.url,
-      prNumber: prMetadata.platform === 'github' ? prMetadata.number : prMetadata.iid,
-      prTitle: prMetadata.title,
-      prRepo: getDisplayRepo(prMetadata),
-      ...(diffScope ? { diffScope } : {}),
-    } : {}),
+  const diffContext = useMemo(() => ({
     ...(commitContext ? {
       commitSha: commitContext.sha,
       ...(commitContext.subject ? { commitSubject: commitContext.subject } : {}),
@@ -44,12 +31,12 @@ export function useAnnotationFactory(
       ...(gitButlerContext.base ? { gitButlerBase: gitButlerContext.base } : {}),
       ...(gitButlerContext.snapshotId ? { gitButlerSnapshotId: gitButlerContext.snapshotId } : {}),
     } : {}),
-  }), [prMetadata, diffScope, commitContext, gitButlerContext]);
+  }), [commitContext, gitButlerContext]);
 
   const withPRContext = useCallback(
-    (annotation: CodeAnnotation): CodeAnnotation => ({ ...annotation, ...prContext }),
-    [prContext],
+    (annotation: CodeAnnotation): CodeAnnotation => ({ ...annotation, ...diffContext }),
+    [diffContext],
   );
 
-  return { withPRContext };
+  return { withPRContext, withContext: withPRContext };
 }

@@ -31,8 +31,7 @@ import { PanelViewToggle, type ReviewPanelView } from './PanelViewToggle';
 import { getReviewSearchSideLabel, type ReviewSearchFileGroup, type ReviewSearchMatch } from '../utils/reviewSearch';
 import type { DiffFile } from '../types';
 import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';
-import { GitHubIcon } from '@hypermark/ui/components/GitHubIcon';
-import { Paperclip } from '@phosphor-icons/react';
+import { CaretRight, CaretDown } from '@phosphor-icons/react';
 
 import { SidebarActionRow, SemanticDiffRow, CallFlowRow, AllFilesRow } from './PanelNavRows';
 import { PanelControlsRow, PanelSearchField } from './PanelChrome';
@@ -91,16 +90,6 @@ interface FileTreeProps {
   activeSearchMatchId?: string | null;
   onSelectSearchMatch?: (matchId: string) => void;
   onStepSearchMatch?: (direction: 1 | -1) => void;
-  onSelectPROverview?: () => void;
-  isPROverviewActive?: boolean;
-  /** PR number label (e.g. "#123") for the PR overview row; omit in non-PR reviews. */
-  prOverviewNumber?: string;
-  /** PR title for the PR overview row. */
-  prOverviewTitle?: string;
-  /** Opens the hosted PR/MR attachment gallery; omitted for local reviews. */
-  onSelectPRArtifacts?: () => void;
-  isPRArtifactsActive?: boolean;
-  prArtifactCount?: number;
   onSelectSemanticDiff?: () => void;
   isSemanticDiffActive?: boolean;
   semanticDiffAvailable?: boolean;
@@ -179,13 +168,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
   activeSearchMatchId,
   onSelectSearchMatch,
   onStepSearchMatch,
-  onSelectPROverview,
-  isPROverviewActive = false,
-  prOverviewNumber,
-  prOverviewTitle,
-  onSelectPRArtifacts,
-  isPRArtifactsActive = false,
-  prArtifactCount,
   onSelectSemanticDiff,
   isSemanticDiffActive = false,
   semanticDiffAvailable = false,
@@ -615,30 +597,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
           file tree's own scroll/virtualization region, which it owns itself
           once mounted (see below). */}
       <div className="px-1 py-1 flex-shrink-0">
-        {prOverviewNumber && prOverviewTitle && onSelectPROverview && (
-          <SidebarActionRow
-            active={isPROverviewActive}
-            onClick={onSelectPROverview}
-            title={`${prOverviewNumber} · ${prOverviewTitle}`}
-          >
-            <GitHubIcon className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="font-mono flex-shrink-0">{prOverviewNumber}</span>
-            <span className="truncate text-muted-foreground/80">{prOverviewTitle}</span>
-          </SidebarActionRow>
-        )}
-        {onSelectPRArtifacts && prArtifactCount !== undefined && (
-          <SidebarActionRow
-            active={isPRArtifactsActive}
-            onClick={onSelectPRArtifacts}
-            title="View attachments shared in this pull request or merge request"
-          >
-            <Paperclip className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>Artifacts</span>
-            <span className="ml-auto rounded bg-muted px-1.5 py-0.5 font-mono text-[9px] tabular-nums text-muted-foreground">
-              {prArtifactCount}
-            </span>
-          </SidebarActionRow>
-        )}
         {callFlowEnabled && onSelectCallFlow && (
           <CallFlowRow
             active={isCallFlowActive}

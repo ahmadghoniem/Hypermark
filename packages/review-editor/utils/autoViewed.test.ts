@@ -12,7 +12,6 @@ import { describe, expect, test } from 'bun:test';
 import {
   AUTO_VIEW_DWELL_MS,
   AutoViewedTracker,
-  createViewedSyncBatcher,
   resolveContentChangedUnviews,
   resolveDiffSwitchUnviews,
 } from './autoViewed';
@@ -163,32 +162,6 @@ describe('AutoViewedTracker', () => {
     tracker.readingFileChanged('a.ts', 400);
     tracker.readingFileChanged('b.ts', 400 + AUTO_VIEW_DWELL_MS);
     expect(tracker.fileNavigatedAway('a.ts', 400 + AUTO_VIEW_DWELL_MS)).toBe('marked');
-  });
-});
-
-describe('createViewedSyncBatcher', () => {
-  test('marks inside the window go out as ONE call carrying every path', async () => {
-    // Guards a regression to request-per-file spam: a read-through of a
-    // 40-file PR must not be 40 POSTs to /api/pr-viewed, whose body already
-    // takes an array.
-    const sent: string[][] = [];
-    const batcher = createViewedSyncBatcher((paths) => sent.push(paths), { windowMs: 20 });
-    batcher.add(['a.ts']);
-    batcher.add(['b.ts']);
-    batcher.add(['c.ts']);
-    expect(sent).toEqual([]);
-    await new Promise((resolve) => setTimeout(resolve, 60));
-    expect(sent).toEqual([['a.ts', 'b.ts', 'c.ts']]);
-    batcher.dispose();
-  });
-
-  test('dispose drops a pending batch instead of firing after teardown', () => {
-    const sent: string[][] = [];
-    const batcher = createViewedSyncBatcher((paths) => sent.push(paths), { windowMs: 20 });
-    batcher.add(['a.ts']);
-    batcher.dispose();
-    batcher.flush();
-    expect(sent).toEqual([]);
   });
 });
 

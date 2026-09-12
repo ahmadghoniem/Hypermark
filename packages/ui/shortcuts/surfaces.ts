@@ -16,7 +16,6 @@ import { reviewAllFilesDiffShortcuts } from './code-review/allFilesDiff.shortcut
 import { reviewAnnotationToolbarShortcuts } from './code-review/annotationToolbar.shortcuts';
 import { reviewChromeShortcuts } from './code-review/reviewChrome.shortcuts';
 import { reviewFileTreeShortcuts } from './code-review/fileTree.shortcuts';
-import { reviewPrCommentsShortcuts } from './code-review/prComments.shortcuts';
 
 /**
  * Which scopes make up each app, so one place can answer "what are the
@@ -63,7 +62,6 @@ export const reviewShortcutRegistry: ShortcutRegistry = createShortcutRegistry([
   reviewFileTreeShortcuts,
   reviewAllFilesDiffShortcuts,
   reviewAnnotationToolbarShortcuts,
-  reviewPrCommentsShortcuts,
 ]);
 
 export type ShortcutSurfaceMode = 'plan' | 'annotate' | 'review';

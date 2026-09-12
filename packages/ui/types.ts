@@ -32,31 +32,6 @@ export interface AnnotationTextMeta {
   textOffset: number;
 }
 
-/** Durable, media-specific location for a note created in the PR artifact viewer. */
-export type ArtifactAnnotationAnchor =
-  | {
-      kind: 'document';
-      originalText: string;
-      blockId: string;
-      startOffset: number;
-      endOffset: number;
-      startMeta?: AnnotationTextMeta;
-      endMeta?: AnnotationTextMeta;
-    }
-  | { kind: 'image'; x: number; y: number }
-  | { kind: 'video'; timestamp: number }
-  | { kind: 'page' };
-
-/** Context shared by description and comment annotations created on a PR artifact. */
-export interface ArtifactAnnotationMeta {
-  artifactId: string;
-  artifactName: string;
-  artifactUrl: string;
-  artifactKind: 'image' | 'gif' | 'video' | 'html' | 'markdown';
-  sourceUrl: string;
-  anchor: ArtifactAnnotationAnchor;
-}
-
 export interface Annotation {
   id: string;
   blockId: string; // Legacy - not used with web-highlighter
@@ -72,13 +47,11 @@ export interface Annotation {
   isQuickLabel?: boolean; // true if created via quick label chip
   quickLabelTip?: string; // optional instruction tip from the label definition
   diffContext?: 'added' | 'removed' | 'modified'; // set when annotation created in plan diff view
-  artifact?: ArtifactAnnotationMeta; // code-review artifact viewer anchor + source context
   mathTargets?: Array<{
     blockId: string;
     tex: string;
     displayMode: boolean;
   }>; // math elements covered by a mixed text+formula selection
-  prUrl?: string; // code-review PR mode: the PR this note belongs to, so it isn't shown/exported against another PR after an in-place switch
   pageUrl?: string; // set only by live app annotate sessions: the page (pathname + search) the annotation was made on; restore filters to the current page and export groups by page
   inReplyTo?: string; // id of the annotation this one replies to; a reply inherits its parent's anchor, renders indented under it in the panel, and exports grouped under it. Additive: annotations without it render and export exactly as before.
   htmlAnchor?: HtmlElementAnchor; // raw-HTML pinpoint: serialized element anchor for reliable restoration
@@ -183,23 +156,6 @@ export type CallFlowAnnotationTarget = CallFlowAnnotationTargetBase & (
   | { rawLine?: undefined; filePath?: undefined; lineStart?: undefined; lineEnd?: undefined }
 );
 
-/**
- * A note attached to a whole PR comment/review/thread (code-review Phase 2).
- * Button-driven (not text-anchored): the reviewer clicks "Annotate" on a card
- * and leaves a note. The comment body travels with it so the agent — which
- * can't see PR discussion — receives the full context on export.
- */
-export interface CommentAnnotation {
-  id: string;
-  commentId: string;      // the timeline entry id (matches data-comment-id on the card)
-  commentAuthor: string;
-  commentBody: string;
-  text: string;           // the reviewer's note
-  createdAt: number;
-  prUrl?: string;         // the PR this note belongs to (see Annotation.prUrl)
-  artifact?: ArtifactAnnotationMeta; // optional artifact anchor within this source comment
-}
-
 export interface CodeAnnotation {
   id: string;
   type: CodeAnnotationType;
@@ -231,11 +187,6 @@ export interface CodeAnnotation {
   severity?: 'important' | 'nit' | 'pre_existing'; // Agent review severity (Claude)
   reasoning?: string; // Validation chain — how the issue was confirmed (Claude)
   reviewProfileLabel?: string; // Custom review that produced this finding — shown as a tag
-  prUrl?: string;
-  prNumber?: number;
-  prTitle?: string;
-  prRepo?: string;
-  diffScope?: 'layer' | 'full-stack';
   /** Set when the annotation was created on a commit:<sha> diff (Commits
    *  panel). Line numbers anchor to THAT commit's diff-vs-parent — the export
    *  labels the annotation with its commit when sent from any other diff, so
