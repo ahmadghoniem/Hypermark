@@ -186,12 +186,6 @@ describe('buildDecisionSpec invariants', () => {
   it('no user-facing string contains an em dash', () => {
     const inputs: DecisionSpecInput[] = [
       ...allInputs(),
-      ...([0, 1, 3] as const).flatMap((count) =>
-        [false, true].map((selfAuthored): DecisionSpecInput => ({
-          app: 'review', gate: true, count, hasFeedback: count > 0,
-          approvalNotesSupported: false,
-          platform: { label: 'GitHub', mrLabel: 'PR', selfAuthored },
-        }))),
       ...allInputs().map((input) => ({ ...input, feedbackDelivered: true })),
     ];
     for (const input of inputs) {

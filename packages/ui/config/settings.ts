@@ -377,6 +377,7 @@ export const SETTINGS = {
       return isDiffLineBgIntensity(v) ? v : undefined;
     },
     toServer: (v: DiffLineBgIntensity) => ({ diffOptions: { lineBgIntensity: v } }),
+  },
   /**
    * Where the annotate-mode Agent TUI docks: 'left' (where it always docked),
    * 'right', or 'hidden' (no slot until the user opens it for the session).

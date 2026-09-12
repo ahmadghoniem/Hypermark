@@ -432,7 +432,6 @@ const ReviewAppInner: React.FC = () => {
 
   const openAllFilesPanel = useCallback(() => {
     if (!dockApi) return;
-    semanticDiffAutoFallbackPending.current = false;
     const existing = dockApi.getPanel(REVIEW_ALL_FILES_PANEL_ID);
     if (existing) { existing.api.setActive(); return; }
     dockApi.addPanel({
@@ -446,7 +445,6 @@ const ReviewAppInner: React.FC = () => {
     const file = files.find(candidate => candidate.path === filePath || candidate.oldPath === filePath);
     if (!file) return;
     const resolvedFilePath = file.path;
-    semanticDiffAutoFallbackPending.current = false;
     clearPendingSelection();
     openAllFilesPanel();
     fileScrollTokenRef.current += 1;
@@ -680,11 +678,6 @@ const ReviewAppInner: React.FC = () => {
     activeGitButlerContext,
   );
 
-
-    if (existing) {
-      existing.api.setActive();
-      return;
-    }
   useEffect(() => {
     if (!dockApi || !needsInitialDiffPanel.current || files.length === 0) return;
     needsInitialDiffPanel.current = false;
@@ -725,9 +718,7 @@ const ReviewAppInner: React.FC = () => {
 
       // Escape closes modals or clears search
       if (matchesShortcutBinding(e, CHROME.dismiss.bindings[0]!)) {
-        if (showDestinationMenu) {
-          setShowDestinationMenu(false);
-        } else if (isSearchOpen) {
+        if (isSearchOpen) {
           if (searchQuery) {
             clearSearch();
           } else {
@@ -753,7 +744,7 @@ const ReviewAppInner: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showDestinationMenu, isSearchOpen, searchQuery, searchMatches, isSearchPending, openSearch, stepSearchMatch, clearSearch, closeSearch, hasSearchableFiles, showCommitsPanel, reviewSidebar.isOpen, reviewSidebar.open, reviewSidebar.close, isFileTreeOpen, toggleNavigator]);
+  }, [isSearchOpen, searchQuery, searchMatches, isSearchPending, openSearch, stepSearchMatch, clearSearch, closeSearch, hasSearchableFiles, showCommitsPanel, reviewSidebar.isOpen, reviewSidebar.open, reviewSidebar.close, isFileTreeOpen, toggleNavigator]);
 
 
   // Load diff content - try API first, fall back to demo
@@ -1573,8 +1564,7 @@ const ReviewAppInner: React.FC = () => {
   const healedPanelPairOnLoad = useRef(false);
   useEffect(() => {
     if (healedPanelPairOnLoad.current || isLoading || !diffData) return;
-    // First-run resets + applies the pair itself (on dialog dismiss).
-    if (!sectionsCapable || reviewSetupIsFirstRun.current) return;
+    if (!sectionsCapable) return;
     if (persistedPanelView !== 'sections') return;
     healedPanelPairOnLoad.current = true;
     if (configStore.get('defaultDiffType') !== 'since-base') {
@@ -1767,8 +1757,6 @@ const ReviewAppInner: React.FC = () => {
         : undefined,
     activeDiffBase,
     feedbackDiffContext,
-    prReviewScope: prReviewScopeLabel,
-    prDiffScope,
     agentCwd,
     canUseLiveWorkspaceActions,
     allAnnotations,
@@ -1786,17 +1774,6 @@ const ReviewAppInner: React.FC = () => {
     onSelectAnnotation: handleSelectAnnotation,
     onNavigateToAnnotation: handleNavigateToAnnotation,
     onDeleteAnnotation: handleDeleteAnnotation,
-    descriptionAnnotations: visibleDescriptionAnnotations,
-    selectedDescriptionAnnotationId,
-    onAddDescriptionAnnotation: handleAddDescriptionAnnotation,
-    onSelectDescriptionAnnotation: handleSelectDescriptionAnnotation,
-    onDeleteDescriptionAnnotation: handleDeleteDescriptionAnnotation,
-    commentAnnotations: visibleCommentAnnotations,
-    selectedCommentAnnotationId,
-    onAddCommentAnnotation: handleAddCommentAnnotation,
-    onSelectCommentAnnotation: handleSelectCommentAnnotation,
-    onDeleteCommentAnnotation: handleDeleteCommentAnnotation,
-    commentScrollTarget,
     viewedFiles,
     onToggleViewed: handleToggleViewed,
     generatedFiles,
@@ -1813,13 +1790,6 @@ const ReviewAppInner: React.FC = () => {
     activeSearchMatch: activeSearchMatch?.filePath === files[activeFileIndex]?.path ? activeSearchMatch : null,
     searchMatches,
     allFilesActiveSearchMatch: activeSearchMatch,
-    prMetadata,
-    prContext,
-    prArtifacts,
-    isPRContextLoading,
-    prContextError,
-    fetchPRContext,
-    platformUser,
     openDiffFile,
     onAllFilesVisibleFileChange: handleAllFilesVisibleFileChange,
     onAllFilesFileScrolledPast: handleFileScrolledPast,
@@ -1837,12 +1807,8 @@ const ReviewAppInner: React.FC = () => {
   }), [
     files, diffData?.rawPatch, activeFileIndex, effectiveDiffStyle, handleDiffStyleChange, diffOverflow, diffIndicators,
     diffLineDiffType, diffShowLineNumbers, diffShowBackground,
-    diffExpandUnchanged, diffFontFamily, diffFontSize, activeDiffBase, committedBase, feedbackDiffContext, prReviewScopeLabel, prDiffScope, agentCwd, canUseLiveWorkspaceActions,
+    diffExpandUnchanged, diffFontFamily, diffFontSize, activeDiffBase, committedBase, feedbackDiffContext, agentCwd, canUseLiveWorkspaceActions,
     allAnnotations, externalAnnotations,
-    visibleDescriptionAnnotations, selectedDescriptionAnnotationId, handleAddDescriptionAnnotation,
-    handleSelectDescriptionAnnotation, handleDeleteDescriptionAnnotation,
-    visibleCommentAnnotations, selectedCommentAnnotationId, handleAddCommentAnnotation,
-    handleSelectCommentAnnotation, handleDeleteCommentAnnotation, commentScrollTarget,
     selectedAnnotationId, scrollTargetAnnotation, pendingSelection, handleLineSelection,
     handleRequestLineAnnotation,
     handleAddAnnotation, handleAddFileComment, handleAddFileCommentForFile, handleEditAnnotation,
@@ -1851,8 +1817,7 @@ const ReviewAppInner: React.FC = () => {
     handleToggleViewed, reviewShowViewedControls, stagedFiles,
     activeWorktreePath, isSearchPending, debouncedSearchQuery,
     fileScrollTarget, activeSearchMatchId, activeSearchMatch, searchMatches,
-    prMetadata, prContext, prArtifacts,
-    isPRContextLoading, prContextError, fetchPRContext, platformUser, openDiffFile,
+    openDiffFile,
     handleAllFilesVisibleFileChange, handleFileScrolledPast,
     isAllFilesActive, allFilesOrder, allFilesAllCollapsed, onToggleAllFilesCollapsed, registerAllFilesCollapseToggle, commitInfo, handleAddAnnotationForFile,
     handleCodeNavRequest, codeNav.result, codeNav.isLoading, codeNav.activeSymbol,
@@ -1881,23 +1846,12 @@ const ReviewAppInner: React.FC = () => {
     toggleAutoViewed(!autoViewedEnabled);
   }, [autoViewedEnabled]);
 
-  const feedbackMarkdown = useMemo(() => {
-    // Only include the code-review section when there ARE code annotations —
-    // otherwise exportReviewFeedback([]) prepends "No feedback provided." ahead
-    // of the description/comment notes, which contradicts them.
-    const parts: string[] = [];
-    if (allAnnotations.length > 0) {
-      parts.push(exportReviewFeedback(allAnnotations, prMetadata, feedbackDiffContext, prReviewScopeLabel));
-    }
-    const prose = buildProseFeedback(visibleDescriptionAnnotations, visibleCommentAnnotations, prContext?.body);
-    if (prose) parts.push(prose);
-    // Fall back to the standard "no feedback" message only when there's nothing.
-    return parts.length > 0
-      ? parts.join('\n\n')
-      : exportReviewFeedback([], prMetadata, feedbackDiffContext, prReviewScopeLabel);
-  }, [allAnnotations, prMetadata, feedbackDiffContext, prReviewScopeLabel, visibleDescriptionAnnotations, prContext?.body, visibleCommentAnnotations]);
+  const feedbackMarkdown = useMemo(
+    () => exportReviewFeedback(allAnnotations, feedbackDiffContext),
+    [allAnnotations, feedbackDiffContext],
+  );
 
-  const totalAnnotationCount = allAnnotations.length + visibleDescriptionAnnotations.length + visibleCommentAnnotations.length;
+  const totalAnnotationCount = allAnnotations.length;
 
   // Copy the same full feedback the agent gets (code + editor + PR description +
   // PR comment notes), not just code annotations. Defined after feedbackMarkdown
@@ -2023,7 +1977,7 @@ const ReviewAppInner: React.FC = () => {
   }, [handleSendFeedback]);
 
   const submitPrimaryDecision = useCallback(() => {
-    if (submitted || busyWithDecision || isPlatformActioning) return;
+    if (submitted || busyWithDecision) return;
     if (pendingNoteSubmit) {
       // A failed note submit stays armed; the next primary invocation retries
       // that send (the note is already in `allAnnotations`, so the body is
@@ -2038,7 +1992,6 @@ const ReviewAppInner: React.FC = () => {
     dispatchPendingNote,
     handleApprove,
     handleSendFeedback,
-    isPlatformActioning,
     pendingNoteSubmit,
     submitted,
     totalAnnotationCount,
@@ -2164,236 +2117,17 @@ const ReviewAppInner: React.FC = () => {
     if (compactDecisionConfirm !== null && !compactConfirmItem) setCompactDecisionConfirm(null);
   }, [compactComposerItem, compactConfirmItem, compactDecisionComposer, compactDecisionConfirm]);
 
-  // Submit reviews to one or more PRs via /api/pr-action
-  const handlePlatformAction = useCallback(async (action: 'approve' | 'comment', plan: ReviewSubmission, generalComment?: string) => {
-    setIsPlatformActioning(true);
-    setPlatformActionError(null);
-
-    try {
-      if (!prMetadata) throw new Error('PR metadata unavailable');
-      if (plan.targets.some(target => target.status === 'blocked')) {
-        throw new Error(`Automatic retry is blocked until the ${mrLabel} is inspected.`);
-      }
-
-      const bodyForTarget = (target: SubmissionTarget) => buildPlatformReviewBody(
-        action,
-        prMetadata.platform,
-        generalComment,
-        target,
-      );
-
-      // For approve, only post to the currently viewed PR.
-      // For comment with no targets but a general comment, create a minimal target.
-      let targets = plan.targets;
-      if (action === 'approve' || (targets.length === 0 && generalComment?.trim())) {
-        const currentTarget = plan.targets.find(t => t.prUrl === prMetadata?.url);
-        targets = currentTarget ? [currentTarget] : [{
-          prUrl: prMetadata?.url ?? '',
-          prNumber: prMetadata ? (prMetadata.platform === 'github' ? prMetadata.number : prMetadata.iid) : 0,
-          prTitle: prMetadata?.title ?? '',
-          prRepo: prMetadata ? getDisplayRepo(prMetadata) : '',
-          fileComments: [], fileScopedBody: '',
-          fileCount: 0, annotationCount: 0, status: 'pending' as const,
-        }];
-      }
-
-      const attempt = await submitPlatformReviewTargets({
-        targets,
-        action,
-        generalComment: generalComment ?? '',
-        bodyForTarget,
-      });
-      const updatedTargets = attempt.targets;
-      const allOk = attempt.allComplete;
-      const recovery = attempt.recovery;
-      const openUrls = attempt.openUrls;
-      setPlatformReviewRecovery(recovery
-        ? { rootPrUrl: prMetadata.url, recovery }
-        : null);
-      const recoveryStorage = getReviewRecoveryStorage();
-      const persistsRefresh = recoveryStorage
-        ? saveReviewSubmissionRecovery(
-          recoveryStorage,
-          prMetadata.url,
-          recovery,
-        )
-        : false;
-      setPlatformRecoveryPersistsRefresh(recovery !== null && persistsRefresh);
-
-      if (!allOk) {
-        setPlatformCommentDialog(prev => prev ? {
-          ...prev,
-          plan: { ...plan, targets: updatedTargets },
-        } : null);
-        return;
-      }
-
-      setPlatformCommentDialog(null);
-      setSubmitted(action === 'approve' ? 'approved' : 'feedback');
-
-      if (platformOpenPR) {
-        for (const url of openUrls) window.open(url, '_blank');
-      }
-
-      const prLinks = openUrls.join(', ');
-      const statusMessage = action === 'approve'
-        ? `${mrLabel === 'MR' ? 'Merge request' : 'Pull request'} approved on ${platformLabel}${prLinks ? ': ' + prLinks : ''}`
-        : `${mrLabel === 'MR' ? 'Merge request' : 'Pull request'} reviewed on ${platformLabel}${prLinks ? ': ' + prLinks : ''}`;
-      fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        keepalive: true,
-        body: JSON.stringify({
-          approved: false,
-          feedback: statusMessage,
-          annotations: [],
-        }),
-      }).catch(() => {});
-    } catch (err) {
-      setPlatformActionError(err instanceof Error ? err.message : 'Failed to submit review');
-    } finally {
-      setIsPlatformActioning(false);
-    }
-  }, [platformOpenPR, platformLabel, mrLabel, prMetadata]);
-
-  const openPlatformDialog = useCallback((action: 'approve' | 'comment') => {
-    const plan = buildReviewSubmission(allAnnotations, prMetadata?.url);
-    // PR description/comment notes aren't line-anchored, so they can't post as
-    // inline review comments — seed them into the review body instead (quoted),
-    // where the user can edit before submitting. Also means a review with only
-    // prose notes still has something to post.
-    const seededGeneralComment = buildProseFeedback(
-      visibleDescriptionAnnotations,
-      visibleCommentAnnotations,
-      prContext?.body,
-    );
-    const rootPrUrl = prMetadata?.url;
-    const inMemoryRecovery = rootPrUrl && platformReviewRecovery?.rootPrUrl === rootPrUrl
-      ? platformReviewRecovery.recovery
-      : null;
-    const recoveryStorage = getReviewRecoveryStorage();
-    const storedRecovery = rootPrUrl && recoveryStorage
-      ? loadReviewSubmissionRecovery(recoveryStorage, rootPrUrl)
-      : null;
-    const recovery = inMemoryRecovery ?? storedRecovery;
-    if (recovery) {
-      setPlatformReviewRecovery({ rootPrUrl: rootPrUrl ?? '', recovery });
-      if (storedRecovery) {
-        setPlatformRecoveryPersistsRefresh(true);
-      }
-      setPlatformGeneralComment(recovery.generalComment);
-      setPlatformCommentDialog({
-        action: recovery.action,
-        plan: restoreReviewSubmission(plan, recovery),
-      });
-      return;
-    }
-    setPlatformGeneralComment(seededGeneralComment);
-    setPlatformCommentDialog({ action, plan });
-  }, [allAnnotations, files, prMetadata, visibleDescriptionAnnotations, visibleCommentAnnotations, prContext?.body, platformReviewRecovery]);
-
-  // --- PR6 (§3.4): platform mode adopts the control's SHAPE ----------------
-  // The same DecisionSpec, with NO composer or confirm items: every id opens
-  // the existing ReviewSubmissionDialog (per-target state, retry, "leave PR
-  // open" toggle — untouched), whose general-comment textarea stays the only
-  // note field on this side. `approvalNotesSupported` is irrelevant here —
-  // the platform posts to the forge API natively — so approve items gate
-  // only on self-authorship, muted rather than removed (Request changes… /
-  // Post comments, then… stay live; no state is a dead end).
-  const busyWithPlatformDecision = busyWithDecision || isPlatformActioning;
-
-  const platformDecisionSpec = useMemo(() => buildDecisionSpec({
-    app: 'review',
-    gate: true,
-    count: totalAnnotationCount,
-    hasFeedback: totalAnnotationCount > 0,
-    approvalNotesSupported: false, // ignored by the platform arm
-    platform: { label: platformLabel, mrLabel, selfAuthored: isOwnPR },
-  }), [totalAnnotationCount, platformLabel, mrLabel, isOwnPR]);
-
-  const runPlatformDecisionAction = useCallback((id: DecisionActionId) => {
-    if (submitted || busyWithPlatformDecision) return;
-    // Muted primary (self-authored, empty state): click, Mod+Enter, and the
-    // compact row are all no-ops — the spec records the mute; the menu's
-    // Request changes… remains the live path.
-    if (id === 'primary' && platformDecisionSpec.primary.muted) return;
-    // Structural defense for the muted approve items: the DOM disables them,
-    // but a handler invocation must be inert on its own too (compact rows and
-    // any future caller included) — resolve the mute from the live spec, not
-    // from whichever surface fired.
-    if (platformDecisionSpec.items.some((item) => item.id === id && item.muted)) return;
-    const mode = resolvePlatformDecisionAction(id, totalAnnotationCount > 0);
-    if (mode) openPlatformDialog(mode);
-  }, [busyWithPlatformDecision, openPlatformDialog, platformDecisionSpec, submitted, totalAnnotationCount]);
-
-  const platformDecisionHandlers = useMemo<Record<DecisionActionId, DecisionHandler>>(() => ({
-    'primary': () => runPlatformDecisionAction('primary'),
-    'note-with-approval': () => runPlatformDecisionAction('note-with-approval'),
-    'request-changes': () => runPlatformDecisionAction('request-changes'),
-    'note-with-feedback': () => runPlatformDecisionAction('note-with-feedback'),
-    'approve-with-notes': () => runPlatformDecisionAction('approve-with-notes'),
-    'close-session': () => {
-      // The one platform item that never opens the submission dialog: it is
-      // the shared exit, and the spec's own confirm already ran.
-      if (submitted || busyWithPlatformDecision) return;
-      void handleExit();
-    },
-  }), [runPlatformDecisionAction]);
-
-  // Double-tap Option/Alt to toggle review destination (PR mode only)
-  useEffect(() => {
-    if (!prMetadata) return;
-    let lastAltUp = 0;
-    const DOUBLE_TAP_WINDOW = 300;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Alt' || e.repeat) return;
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-    };
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key !== 'Alt') return;
-      const now = Date.now();
-      if (now - lastAltUp < DOUBLE_TAP_WINDOW) {
-        setReviewDestination(prev => {
-          const next = prev === 'platform' ? 'agent' : 'platform';
-          storage.setItem('hypermark-review-dest', next);
-          setPlatformActionError(null);
-          return next;
-        });
-        // The spotlight coachmark advertises this exact gesture ("double-tap
-        // Alt to switch") — performing it must dismiss the coachmark. Its own
-        // keydown handler deliberately ignores modifier keys, so this keyup
-        // path is the only place that can see the gesture complete.
-        if (showDestSpotlight) dismissDestSpotlight();
-        lastAltUp = 0;
-      } else {
-        lastAltUp = now;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, [prMetadata, showDestSpotlight, dismissDestSpotlight]);
 
   const canHandleReviewHistoryShortcut = useCallback((event: KeyboardEvent): boolean => {
     if (event.defaultPrevented || isNativeHistoryOwner(event)) return false;
-    if (submitted || isSendingFeedback || isApproving || isExiting || isPlatformActioning || isLoadingDiff) return false;
-    if (showDestinationMenu || platformCommentDialog || showWorktreeDialog || showNoAnnotationsDialog) return false;
+    if (submitted || isSendingFeedback || isApproving || isExiting || isLoadingDiff) return false;
+    if (showWorktreeDialog || showNoAnnotationsDialog) return false;
     return !hasActiveHistoryOverlay(document);
   }, [
     isApproving,
     isExiting,
     isLoadingDiff,
-    isPlatformActioning,
     isSendingFeedback,
-    platformCommentDialog,
-    showDestinationMenu,
     showNoAnnotationsDialog,
     showWorktreeDialog,
     submitted,
@@ -2425,47 +2159,25 @@ const ReviewAppInner: React.FC = () => {
       // (this effect's Send Feedback plus the confirm's LGTM approve).
       if (document.querySelector('[data-hypermark-confirm-dialog="true"]')) return;
 
-      // If the platform post dialog is open, Cmd+Enter submits it
-      if (platformCommentDialog) {
-        if (submitted || isPlatformActioning) return;
-        const isApproveAction = platformCommentDialog.action === 'approve';
-        const hasTargets = platformCommentDialog.plan.targets.length > 0;
-        const retryBlocked = platformCommentDialog.plan.targets.some(target => target.status === 'blocked');
-        const canSubmit = isApproveAction || hasTargets || platformGeneralComment.trim();
-        if (!canSubmit || retryBlocked) return;
-        e.preventDefault();
-        handlePlatformAction(platformCommentDialog.action, platformCommentDialog.plan, platformGeneralComment);
-        return;
-      }
-
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       if (showNoAnnotationsDialog) return;
-      if (submitted || isSendingFeedback || isApproving || isExiting || isPlatformActioning) return;
+      if (submitted || isSendingFeedback || isApproving || isExiting) return;
       if (!origin) return; // Demo mode
 
       e.preventDefault();
 
-      if (platformMode) {
-        // Platform mode (PR6): Mod+Enter is the header's visible primary,
-        // always — including the muted self-approval no-op. Same
-        // runPlatformDecisionAction the header and compact rows call.
-        runPlatformDecisionAction('primary');
-      } else {
-        // Agent mode: Mod+Enter is the header's visible primary, always —
-        // the same submitPrimaryDecision the button and compact row call.
-        submitPrimaryDecision();
-      }
+      // Mod+Enter is the header's visible primary, always — the same
+      // submitPrimaryDecision the button and compact row call.
+      submitPrimaryDecision();
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     showNoAnnotationsDialog,
-    platformCommentDialog, platformGeneralComment,
-    submitted, isSendingFeedback, isApproving, isExiting, isPlatformActioning,
-    origin, platformMode, runPlatformDecisionAction,
-    submitPrimaryDecision, handlePlatformAction
+    submitted, isSendingFeedback, isApproving, isExiting,
+    origin, submitPrimaryDecision,
   ]);
 
   // Cmd/Ctrl+Shift+Y keyboard shortcut to copy feedback, mirroring the
@@ -2474,7 +2186,7 @@ const ReviewAppInner: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!matchesChrome(e, CHROME.copyFeedback.bindings) || isTypingTarget(e.target)) return;
 
-      if (platformCommentDialog || showNoAnnotationsDialog) return;
+      if (showNoAnnotationsDialog) return;
 
       e.preventDefault();
       handleCopyFeedback();
@@ -2483,7 +2195,7 @@ const ReviewAppInner: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-    platformCommentDialog, showNoAnnotationsDialog,
+    showNoAnnotationsDialog,
     handleCopyFeedback
   ]);
 
@@ -2514,7 +2226,6 @@ const ReviewAppInner: React.FC = () => {
     <ThemeProvider defaultTheme="dark" manageFavicon>
       <TooltipProvider delayDuration={200} skipDelayDuration={100}>
       <ReviewStateProvider value={reviewStateValue}>
-      {isSwitchingPRScope && <PRSwitchOverlay />}
       <div
         className="pn-app-viewport flex flex-col bg-background overflow-hidden"
         data-pn-browser-canvas="background"
@@ -2540,36 +2251,7 @@ const ReviewAppInner: React.FC = () => {
                 <div className="w-px h-5 bg-border/50 mx-1 hidden lg:block" />
               </>
             )}
-            {prMetadata ? (
-              <div className={'min-w-0 flex flex-1 items-center gap-2 lg:gap-3 overflow-hidden'}>
-                <span
-                  className="min-w-0 max-w-[160px] xl:max-w-[240px] text-xs text-muted-foreground/60 hidden sm:inline-flex items-center gap-1"
-                  title={displayRepo}
-                >
-                  <RepoIcon className="w-3 h-3 flex-shrink-0" />
-                  <span className="truncate">{displayRepo}</span>
-                </span>
-                <PRSelector
-                  mrNumberLabel={mrNumberLabel}
-                  prTitle={prMetadata.title}
-                  currentNumber={prMetadata.platform === 'github' ? prMetadata.number : prMetadata.iid}
-                  onSelect={handlePRSwitch}
-                  disabled={isSwitchingPRScope}
-                />
-                                  <StackedPRLabel
-                    metadata={prMetadata}
-                    mrNumberLabel={mrNumberLabel}
-                    stackInfo={prStackInfo}
-                    stackTree={prStackTree}
-                    scope={prDiffScope}
-                    scopeOptions={prDiffScopeOptions}
-                    isSwitchingScope={isSwitchingPRScope}
-                    onSelectScope={handlePRDiffScopeSelect}
-                    onNavigatePR={handlePRSwitch}
-                  />
-                
-              </div>
-            ) : repoInfo ? (
+            {repoInfo ? (
               <div className={'min-w-0 flex flex-1 items-center gap-2 lg:gap-3 overflow-hidden'}>
                 {repoInfo.branch && (
                   <span
@@ -2595,138 +2277,14 @@ const ReviewAppInner: React.FC = () => {
           <div className={'min-w-0 w-full min-[480px]:w-auto flex flex-wrap min-[480px]:flex-nowrap shrink-0 items-center justify-end gap-1 lg:gap-2'}>
             {/* Split/Unified toggle + diff options moved to the dock tab strip
                 (rightHeaderActionsComponent → ReviewDockRightActions). */}
-            origin ? (
+            {origin ? (
               <>
-                {/* Destination dropdown (PR mode only) */}
-                {prMetadata && (
-                  <div className="relative">
-                    <button
-                      ref={destToggleRef}
-                      onClick={() => {
-                        // Opening the menu is discovery — the spotlight has
-                        // nothing left to teach.
-                        if (showDestSpotlight) dismissDestSpotlight();
-                        setShowDestinationMenu(prev => !prev);
-                      }}
-                      className="flex h-7 items-center gap-1 px-2 rounded-md text-xs font-medium bg-muted hover:bg-muted/80 transition-colors"
-                      title={reviewDestination === 'platform' ? `Posting to ${platformLabel} ${mrLabel}` : 'Sending to agent session'}
-                    >
-                      {reviewDestination === 'platform' ? (
-                        <>
-                          {prMetadata?.platform === 'gitlab' ? <GitLabIcon className="w-3.5 h-3.5" /> : <GitHubIcon className="w-3.5 h-3.5" />}
-                          <span className="hidden lg:inline">{platformLabel}</span>
-                        </>
-                      ) : 'Agent'}
-                      <svg className="w-3 h-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    {showDestinationMenu && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setShowDestinationMenu(false)} />
-                        <div className="absolute right-0 top-full mt-1 py-1 bg-popover border border-border rounded-lg shadow-xl z-50 min-w-[160px]">
-                          <button
-                            onClick={() => {
-                              setReviewDestination('platform');
-                              storage.setItem('hypermark-review-dest', 'platform');
-                              setShowDestinationMenu(false);
-                              setPlatformActionError(null);
-                            }}
-                            className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${
-                              reviewDestination === 'platform'
-                                ? 'text-foreground bg-muted/50'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                            }`}
-                          >
-                            <div className="font-medium">{platformLabel}</div>
-                            <div className="text-muted-foreground/60">Post to {mrLabel}</div>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setReviewDestination('agent');
-                              storage.setItem('hypermark-review-dest', 'agent');
-                              setShowDestinationMenu(false);
-                              setPlatformActionError(null);
-                            }}
-                            className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${
-                              reviewDestination === 'agent'
-                                ? 'text-foreground bg-muted/50'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
-                            }`}
-                          >
-                            <div className="font-medium">Agent</div>
-                            <div className="text-muted-foreground/60">Send to session</div>
-                          </button>
-                          {<div className="border-t border-border/50 mt-1 pt-1 px-3 py-1">
-                            <span className="text-[10px] text-muted-foreground/40">
-                              <kbd className="inline-flex items-center justify-center min-w-[18px] h-[16px] px-1 rounded bg-muted border border-border/60 border-b-[2px] text-[9px] font-mono leading-none text-foreground/60 shadow-sm">{altKey}</kbd>
-                              <kbd className="inline-flex items-center justify-center min-w-[18px] h-[16px] px-1 rounded bg-muted border border-border/60 border-b-[2px] text-[9px] font-mono leading-none text-foreground/60 shadow-sm ml-0.5">{altKey}</kbd>
-                              <span className="ml-1.5">to toggle</span>
-                            </span>
-                          </div>}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* GitHub error message */}
-                {platformActionError && (
-                  <div
-                    className="text-xs text-destructive px-2 py-1 bg-destructive/10 rounded border border-destructive/20 max-w-[200px] truncate"
-                    title={platformActionError}
-                  >
-                    {platformActionError}
-                  </div>
-                )}
-
                 {reviewMode === 'workspace' && diffError && (
                   <div
                     className="text-xs text-amber-700 dark:text-amber-300 px-2 py-1 bg-amber-500/10 rounded border border-amber-500/25 max-w-[240px] truncate"
                     title={diffError}
                   >
                     {files.length > 0 ? 'Some workspace changes could not be loaded' : 'Workspace changes could not be loaded'}
-                  </div>
-                )}
-
-                {/* Partial PR diff notice — the platform withheld per-file
-                    content (PR too large). "Load full diff" re-requests the
-                    layer scope; the server recomputes the exact diff from the
-                    local checkout (waiting out the warmup if needed). The
-                    request is non-blocking on purpose: it can park for
-                    minutes behind a cold clone, and the reviewer keeps
-                    working with the partial diff meanwhile. */}
-                {prPatchIncomplete && prDiffScope === 'layer' && !isSwitchingPRScope && (
-                  <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300 px-2 py-1 bg-amber-500/10 rounded border border-amber-500/25">
-                    <span className="hidden md:inline" title={`${prMetadata?.platform === 'gitlab' ? 'GitLab' : 'GitHub'} omitted diff content for some files because this PR is too large`}>
-                      Partial diff
-                    </span>
-                    <span className="md:hidden">Partial</span>
-                    {!prPatchUpgradeAvailable ? (
-                      // Partiality without a local checkout: informational
-                      // only — never offer a button that cannot work. The
-                      // visible text stays runtime-neutral (--local is a CLI
-                      // remedy that not every runtime supports).
-                      <span
-                        className="hidden sm:inline text-amber-700/70 dark:text-amber-300/70"
-                        title="The platform omitted diff content for some files and this session has no local checkout to recompute from. CLI sessions can re-run the review with --local."
-                      >
-                        (no local checkout — full diff unavailable)
-                      </span>
-                    ) : isLoadingFullDiff ? (
-                      <span className="flex items-center gap-1.5 font-medium" title="Recomputing the full diff from the local checkout — waiting for the background clone if it's still running. You can keep reviewing.">
-                        <span className="inline-block w-3 h-3 border-[1.5px] border-current border-t-transparent rounded-full animate-spin" aria-hidden />
-                        Loading full diff…
-                      </span>
-                    ) : (
-                      <button
-                        onClick={handleLoadFullDiff}
-                        className="font-medium underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-100 transition-colors"
-                        title="Recompute the full diff from the local checkout (may wait for the background clone to finish — you can keep reviewing meanwhile)"
-                      >
-                        Load full diff
-                      </button>
-                    )}
                   </div>
                 )}
 
@@ -2759,7 +2317,7 @@ const ReviewAppInner: React.FC = () => {
                     remote, so the "since main" comparison is against stale
                     GitHub state. Fetch catches the tracking ref up and
                     recomputes the diff in place. */}
-                {baseBehindRemote && !prMetadata && !isLoadingDiff && (
+                {baseBehindRemote && !isLoadingDiff && (
                   <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300 px-2 py-1 bg-amber-500/10 rounded border border-amber-500/25">
                     <span className="hidden md:inline">Baseline is behind GitHub</span>
                     <span className="md:hidden">Base behind</span>
@@ -2780,10 +2338,6 @@ const ReviewAppInner: React.FC = () => {
                   </div>
                 )}
 
-                {/* Agent mode: ghost-X Close + the adaptive decision control
-                    (Approve at zero, Send Feedback · n otherwise; the caret
-                    carries the alternates and the note composer). */}
-                {!platformMode ? (
                   <DecisionControl
                     spec={reviewDecisionSpec}
                     handlers={reviewDecisionHandlers}
@@ -2791,24 +2345,6 @@ const ReviewAppInner: React.FC = () => {
                     isLoading={isSendingFeedback || isApproving}
                     labelBreakpoint="lg"
                   />
-                ) : (
-                  <>
-                    {/* Platform mode (PR6, §3.4): the same decision-control
-                        shape. No composer on this side, ever — every action
-                        opens the existing ReviewSubmissionDialog, whose
-                        general-comment field is the only note field here. The
-                        muted primary carries the self-approval reason via the
-                        shared Tooltip + aria-describedby (native title dropped
-                        when muted, pinned by test). */}
-                    <DecisionControl
-                      spec={platformDecisionSpec}
-                      handlers={platformDecisionHandlers}
-                      busy={busyWithPlatformDecision}
-                      isLoading={isPlatformActioning}
-                      labelBreakpoint="lg"
-                    />
-                  </>
-                )}
               </>
             ) : (
               <button
@@ -2832,7 +2368,7 @@ const ReviewAppInner: React.FC = () => {
                   </>
                 )}
               </button>
-            )
+            )}
 
             <div className="w-px h-5 bg-border/50 mx-1 hidden lg:block" />
 
@@ -2897,7 +2433,7 @@ const ReviewAppInner: React.FC = () => {
                 files={files}
                 sections={sections!}
                 width={fileTreeResize.width}
-                activeFileIndex={isAllFilesActive || isPROverviewActive ? -1 : activeFileIndex}
+                activeFileIndex={isAllFilesActive ? -1 : activeFileIndex}
                 scrollHighlightIndex={isAllFilesActive && allFilesVisibleFile ? files.findIndex(f => f.path === allFilesVisibleFile) : undefined}
                 onSelectFile={(index) => handleFilePreview(index)}
                 onDoubleClickFile={(index) => handleFilePinned(index)}
@@ -2972,13 +2508,6 @@ const ReviewAppInner: React.FC = () => {
               <FileTree
                 files={files}
                 activeFileIndex={activeFileIndex}
-                onSelectPROverview={() => openPROverviewPanel()}
-                isPROverviewActive={isPROverviewActive}
-                prOverviewNumber={prMetadata ? mrNumberLabel : undefined}
-                prOverviewTitle={prMetadata?.title}
-                onSelectPRArtifacts={prMetadata ? () => openPRArtifactsPanel() : undefined}
-                isPRArtifactsActive={isPRArtifactsActive}
-                prArtifactCount={prMetadata ? prArtifacts.length : undefined}
                 onSelectAllFiles={() => openAllFilesPanel()}
                 isAllFilesActive={isAllFilesActive}
                 scrollHighlightIndex={isAllFilesActive && allFilesVisibleFile ? files.findIndex(f => f.path === allFilesVisibleFile) : undefined}
@@ -3001,14 +2530,14 @@ const ReviewAppInner: React.FC = () => {
                 activeWorktreePath={activeWorktreePath}
                 onSelectWorktree={(path) => handleWorktreeSwitch(path)}
                 currentBranch={gitContext?.currentBranch}
-                availableBranches={prMetadata ? undefined : gitContext?.availableBranches}
-                selectedBase={prMetadata ? undefined : selectedBase ?? undefined}
-                detectedBase={prMetadata ? undefined : gitContext?.defaultBranch || gitContext?.compareTarget?.fallback}
-                onSelectBase={prMetadata ? undefined : (base) => handleBaseSelect(base)}
+                availableBranches={gitContext?.availableBranches}
+                selectedBase={selectedBase ?? undefined}
+                detectedBase={gitContext?.defaultBranch || gitContext?.compareTarget?.fallback}
+                onSelectBase={(base) => handleBaseSelect(base)}
                 compareTarget={gitContext?.compareTarget}
-                recentCommits={prMetadata ? undefined : gitContext?.recentCommits}
-                jjEvologs={prMetadata ? undefined : gitContext?.jjEvologs}
-                detectedEvoBase={prMetadata ? undefined : gitContext?.jjEvologs?.[1]?.commitId}
+                recentCommits={gitContext?.recentCommits}
+                jjEvologs={gitContext?.jjEvologs}
+                detectedEvoBase={gitContext?.jjEvologs?.[1]?.commitId}
                 stagedFiles={stagedFiles}
                 autoViewed={autoViewedEnabled}
                 onToggleAutoViewed={handleToggleAutoViewed}
@@ -3028,7 +2557,7 @@ const ReviewAppInner: React.FC = () => {
                 activeSearchMatchId={hasSearchableFiles ? activeSearchMatchId : null}
                 onSelectSearchMatch={hasSearchableFiles ? (match) => handleSelectSearchMatch(match) : undefined}
                 onStepSearchMatch={hasSearchableFiles ? stepSearchMatch : undefined}
-                repoRoot={prMetadata ? null : (activeWorktreePath ?? agentCwd ?? gitContext?.cwd ?? null)}
+                repoRoot={(activeWorktreePath ?? agentCwd ?? gitContext?.cwd ?? null)}
                 panelView={effectivePanelView}
                 onSwitchToSections={sectionsCapable ? handleSwitchToSections : undefined}
                 onSwitchToCommits={commitsCapable ? () => handlePanelViewSelect('commits') : undefined}
@@ -3163,47 +2692,11 @@ const ReviewAppInner: React.FC = () => {
                 onAddGeneralComment={handleAddGeneralComment}
                 feedbackMarkdown={feedbackMarkdown}
                 width={panelResize.width}
-                descriptionAnnotations={visibleDescriptionAnnotations}
-                selectedDescriptionAnnotationId={selectedDescriptionAnnotationId}
-                onSelectDescriptionAnnotation={handleSelectDescriptionAnnotation}
-                onDeleteDescriptionAnnotation={handleDeleteDescriptionAnnotation}
-                commentAnnotations={visibleCommentAnnotations}
-                selectedCommentAnnotationId={selectedCommentAnnotationId}
-                onSelectCommentAnnotation={handleSelectCommentAnnotation}
-                onDeleteCommentAnnotation={handleDeleteCommentAnnotation}
-                prMetadata={prMetadata}
               />
             </div>
           )}
         </div>
 
-
-        {/* Worktree info dialog */}
-        {(gitContext?.cwd || agentCwd) && prMetadata && (
-          <ConfirmDialog
-            isOpen={showWorktreeDialog}
-            onClose={() => setShowWorktreeDialog(false)}
-            title="Local Worktree"
-            wide
-            message={
-              <div className="space-y-3">
-                <p>This PR is checked out locally so review agents have full file access.</p>
-                <div>
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold">Path</span>
-                  <button
-                    onClick={() => { void copyTextToClipboard((agentCwd || gitContext?.cwd)!); }}
-                    className="mt-1 w-full text-left font-mono text-xs bg-muted/50 border border-border/50 rounded-md px-3 py-2 text-foreground hover:bg-muted transition-colors cursor-pointer break-all"
-                    title="Click to copy"
-                  >
-                    {agentCwd || gitContext?.cwd}
-                  </button>
-                </div>
-                <p className="text-xs text-muted-foreground/60">Automatically removed when this review session ends.</p>
-              </div>
-            }
-            variant="info"
-          />
-        )}
 
         {/* No annotations dialog */}
         <ConfirmDialog
@@ -3249,17 +2742,6 @@ const ReviewAppInner: React.FC = () => {
             showCancel
           />
         )}
-        {/* One-time PR feedback-destination spotlight. PR mode only — the switcher
-            it points at doesn't render otherwise. */}
-        {showDestSpotlight && !!prMetadata && !isLoading && (
-          <DestinationSpotlight
-            targetRef={destToggleRef}
-            platformLabel={platformLabel}
-            mrLabel={mrLabel}
-            onDismiss={dismissDestSpotlight}
-          />
-        )}
-
         {/* Completion overlay - shown after approve/feedback/exit */}
         <CompletionOverlay
           submitted={submitted}
@@ -3271,39 +2753,13 @@ const ReviewAppInner: React.FC = () => {
           subtitle={
             submitted === 'exited'
               ? 'Review session closed without feedback.'
-              : platformMode
-                ? submitted === 'approved'
-                  ? `Your approval was submitted to ${platformLabel}.`
-                  : `Your feedback was submitted to ${platformLabel}.`
-                : submitted === 'approved'
-                  ? `${getAgentName(origin)} will proceed with the changes.`
-                  : `${getAgentName(origin)} will address your review feedback.`
+              : submitted === 'approved'
+                ? `${getAgentName(origin)} will proceed with the changes.`
+                : `${getAgentName(origin)} will address your review feedback.`
           }
           agentLabel={getAgentName(origin)}
         />
 
-        {/* GitHub general comment dialog */}
-        <ReviewSubmissionDialog
-          isOpen={!!platformCommentDialog}
-          action={platformCommentDialog?.action ?? 'comment'}
-          submission={platformCommentDialog?.plan ?? { targets: [], orphans: [] }}
-          generalComment={platformGeneralComment}
-          onGeneralCommentChange={setPlatformGeneralComment}
-          platformOpenPR={platformOpenPR}
-          onPlatformOpenPRChange={(checked) => {
-            setPlatformOpenPR(checked);
-            storage.setItem('hypermark-platform-open-pr', String(checked));
-          }}
-          onConfirm={() => {
-            if (!platformCommentDialog) return;
-            handlePlatformAction(platformCommentDialog.action, platformCommentDialog.plan, platformGeneralComment);
-          }}
-          onCancel={() => setPlatformCommentDialog(null)}
-          isSubmitting={isPlatformActioning}
-          recoveryPersistsRefresh={platformRecoveryPersistsRefresh}
-          mrLabel={mrLabel}
-          platformLabel={platformLabel}
-        />
       </div>
 
       {lineAnnotationComposeRequest && (() => {

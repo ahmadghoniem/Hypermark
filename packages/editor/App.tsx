@@ -4236,8 +4236,6 @@ const AppInner: React.FC = () => {
           agentName={agentName}
           showAnnotationsWarning={hasFeedbackToSend}
           annotateDecision={annotateMode ? annotateDecision : undefined}
-          taterMode={taterMode}
-          agentTerminalAvailable={showAgentTerminalControls}
           onGoalSetupExit={handleGoalSetupExit}
           onGoalSetupSubmit={handleGoalSetupSubmit}
           onFeedback={handleHeaderFeedback}
@@ -4245,8 +4243,6 @@ const AppInner: React.FC = () => {
           onAnnotationPanelToggle={handleAnnotationPanelToggle}
           onArchiveCopy={archive.copy}
           onArchiveDone={archive.done}
-          onTaterModeChange={handleTaterModeChange}
-          onUIPreferencesChange={setUiPrefs}
           onCopyAgentInstructions={handleHeaderCopyAgentInstructions}
           agentInstructionsEnabled={isApiMode && !archive.archiveMode && !annotateMode && !goalSetupMode}
         />
