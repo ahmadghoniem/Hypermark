@@ -1,144 +1,202 @@
-# Fable brief — Hypermark spec pass
+# Fable brief — Hypermark
 
-Branch `ui-decluttering-pass`, 18 commits ahead of `main`. 689 TS/TSX files,
-~122K lines of source, ~40.5K lines across 169 test files.
+Branch `ui-decluttering-pass`. Hypermark is a single-user, Windows-first,
+Claude Code-only fork of Plannotator.
 
 ## Your job
 
-Write **specs, not code.** Every spec you produce is executed later by a cheaper
-model, so each one has to stand on its own: a reader with no memory of this
-conversation must be able to finish the work from the spec alone.
+Audit the code and write **specs**. Other agents write the code. Two outcomes
+count equally: a leaner product, with features the maintainer does not use
+removed, and a better interface, refined with `interface-review`.
 
-New specs go in `spec/` as `07-*.md` and up. `01`–`06` already exist and are
-themselves a workstream (see A).
+`spec/` is empty. Every spec you write starts fresh there.
 
-### Skills to use — all vendored in `.claude/skills/`, no plugin install needed
+### Context
+
+`FABLE-REMOVALS.md` is the record of what this branch has already removed and
+changed, plus the foundation the old specs laid down. Read it first, then check
+the code against it. Where the two disagree, the code wins.
+
+There is no other reference. `AGENTS.md` is empty on purpose.
+
+### Skills — vendored in `.claude/skills/`
 
 | Skill | Use it for |
 |---|---|
-| `writing-for-agents` | **Every spec you write.** This is the house style for documents another agent executes. Read it before writing the first one, not after. |
-| `interface-review` | Workstream D. It is the tool for the UI pass — not a general code review. |
-| `grilling` | Pressure-test each spec before you ship it. A spec that survives grilling is done; one that does not gets rewritten. |
-| `better-*` (7 skills) | Narrower UI passes when `interface-review` points at typography, colour, layout, accessibility or copy specifically. |
+| `writing-for-agents` | Every spec. Read it before writing the first one. |
+| `interface-review` | The UI pass (§C). |
+| `better-*` (7) | Narrower passes when `interface-review` points at typography, colour, layout, accessibility, UI or copy. |
+| `grilling` | Pressure-test each spec before it ships. A spec that survives grilling is done. |
 
 ### Rules
 
-1. **The code is the source of truth.** Where a `spec/` file and the code
-   disagree, the code wins and the spec is wrong. Old specs are a hint about
-   original intent, nothing more.
-2. **Do not run the test suite.** Read tests, classify them, propose deletions.
-   Never execute them.
-3. **Leanness is the goal.** This branch exists to delete things. When you are
-   choosing between a spec that adds a mechanism and a spec that removes one,
-   the removal needs a much lower bar.
-4. **Attach a number to every removal you propose** — files, lines, bytes. The
-   maintainer decides from the number.
-5. Where you are guessing, say so in the spec. A spec that quietly invents a
-   requirement costs more than one that flags an open question.
+1. **Leave the test suite unrun.** Read tests and classify them; never execute
+   them.
+2. **Count every removal** in files, lines or bytes. The maintainer decides from
+   the number.
+3. **Flag guesses.** Where you are inferring a requirement, say so in the spec
+   as an open question.
+4. **Windows first.** Performance on Windows and process lifecycle there are
+   first-class concerns, not portability afterthoughts. §E is the evidence.
+
+## How your specs get executed
+
+An **orchestrator** agent (Opus) reads your specs and dispatches each one to an
+**executor** (Gemini 3.8 Flash or Sonnet). Three to five executors run in
+parallel, each in its own git worktree, and their branches merge back into
+`ui-decluttering-pass`.
+
+Write every spec for that pipeline:
+
+- **Self-contained.** An executor with no memory of this brief finishes the work
+  from the spec alone.
+- **Owned files.** Name the files each spec changes. Two specs that touch the
+  same file cannot run in parallel; group them into one wave or sequence them.
+- **Waves.** Publish an execution plan: which specs run together, which wait,
+  and the merge order.
+- **Checkable finish.** End each spec on a completion criterion the orchestrator
+  can check: a grep that must return nothing, both typecheck lanes
+  (`bun run typecheck` and `bun run typecheck:editors`), a behaviour to observe.
+
+The orchestrator verifies each spec as it lands, and that helps. The
+verification that counts is yours: after the waves merge, you review the landed
+code against the specs you wrote.
+
+Spend your effort on judgement. Mechanical leftovers — props, imports, CSS,
+exports and tests that still point at something removed — go into one
+**sweep** spec that an executor runs with the repo's `knip.json` and grep.
 
 ---
 
-## A. The removals
+## A. Test pruning
 
-`FABLE-REMOVALS.md` (repo root) is your starting point. It records every
-feature deleted on this branch: what it was, which commit took it, what the old
-specs still claim about it, and — the part that matters — every prop, type,
-import, CSS class, test and dead branch that still references something gone.
-
-Work from it. A removal that left a prop threaded through five components is a
-simplification you can spec immediately: a prop that is now always `false`, a
-union with one member left, a conditional with one live arm, a component that
-now has one caller.
-
-The six `spec/` files (~92 KB) are a record of what the plugin used to *claim*
-to be. They are stale — they still describe the image annotator, review hover
-cards, WebMCP and the paste-path input. **The codebase is the source of truth.**
-Rewriting them as what the plugin *is* is the deliverable here.
-
-WebMCP is already at zero references (commit `30b87090`); do not spec its
-removal.
-
-## B. Test pruning
-
-40.5K lines of tests against 122K of source. Sort every test file into three
-buckets and spec the deletions:
+Sort every test file into three buckets and spec the deletions:
 
 - tests for behaviour that no longer exists → delete
 - tests that assert the implementation back to itself → delete
-- tests that are the only coverage of something real → keep, and say in the
-  spec what they cover and why nothing else does
+- tests that are the only coverage of something real → keep, and say what they
+  cover and why nothing else does
 
-## C. Duplication and dead code
+## B. Duplication
 
 `packages/editor`, `packages/review-editor` and `packages/ui` grew the same
 helpers separately. Name each duplicate pair and pick the survivor.
 
-## D. UI refinement (use `interface-review`)
+Then audit consistency across the plan and review apps: naming, prop shapes and
+file layout. They should read as one product.
 
-Parked items, each with a pointer:
+## C. UI refinement
 
-- **Review comment markers** — `packages/review-editor/components/GutterAnnotations.tsx`.
-  The 14px gutter marker is easy to scroll past; the hover preview is slow to
-  appear and may still be wired to an older path.
-- **Mobile/touch leftovers** — `compactTouchLayout` props survive their
-  removal in `packages/editor/components/AppHeader.tsx` (lines 41, 112, 155,
-  157, 158, 172, 182, 183, 205, 226, 278, 291, 318, 352) and
-  `packages/ui/components/PlanHeaderMenu.tsx` (lines 30, 47, 55, 60, 66, 67).
-  Spec the full removal, both files and their callers.
-- **Shortcuts panel** — check what it still gets wrong now that it reads the
-  registry rather than a hand-kept list.
-- **Decision labels** — `packages/ui/utils/decisionSpec.ts:217`. The primary
-  label is frozen at `'All good'` by maintainer decision. Do not re-open it;
-  audit the rest of the set against it.
+Run `interface-review` across both apps. The maintainer has already raised the
+items below; each is an observation to audit and spec, not a finished design.
 
-## E. Removal recommendations
+**Messages panel** — `packages/ui/components/sidebar/MessagesBrowser.tsx`, in
+the left side panel.
 
-Argue each with a count; the maintainer decides. Mobile/touch (D above) is the
-live one. Open-in-app is already gone (see `packages/ui/components/FileActionsButton.tsx`
-for what replaced it).
+- Remove the "Recent messages — newest first" heading.
+- The star icon beside the current message and its number reserves space even
+  when absent. Remove it.
+- A gutter of dead space on the left of each message truncates the text far
+  earlier than it needs to. Remove it.
 
-## F. Consistency audit
+**Decision menu** — `packages/ui/components/DecisionControl.tsx:538`, the
+dropdown whose items carry subtitles such as "Write a note and send it as
+feedback" (`packages/ui/utils/decisionSpec.ts`).
 
-Naming, prop shapes and file layout across the three apps.
+- Narrow it; there is dead space on the right.
+- List every label and subtitle across its states. Recommend shorter wording
+  wherever the text is verbose, so it fits the narrower menu. The primary label
+  `All good` stays as it is.
 
----
+**Review dock tabs.** The tab strip survives only because collapse-all lives in
+it. Move collapse-all next to the split/unified toggle in the review header,
+then remove the tab strip.
 
-## Settled decisions — do not re-open
+**Scrollbars.** Hide the scrollbar stepper arrows at the top and bottom of
+scrollbars in the review app.
 
-- **Primary decision label** is `'All good'` (`packages/ui/utils/decisionSpec.ts:217`).
-- **Comment composer shape** is the "Nested" variation: a 2px-inset outer
-  container with the top strip on the outer tier and the body as its own card,
-  **with the inset set to 0** — same two-tier structure, no visible offset.
-- **Top strip** carries an anchor icon (not a quote glyph), the location, and
-  `×` at the far right end. **No "1 of 3" counter** — multi-target counting is
-  an HTML-pinpoint concept and does not apply to line quotes.
-- **Expand icon** sits at the textarea's top-right, inside the container.
-- **Arc grip** at the top-left corner resizes the composer in place, as a local
-  alternative to the global expand.
-- **Action row** holds only `Improve` (rephrases the comment the way
-  improve-prompt does), `Ask` (opens the `/btw` side chat) and `Save` as the
-  primary. The attachment trigger is NOT in this row.
-- **Attachment control lives in the thumbnail shelf.** Empty: a plain image
-  icon sitting where the shelf will be. Filled: a dashed-border tile with a `+`
-  at the end of the thumbnail row. `Improve` and `Ask` keep full text labels —
-  no `AI` dropdown; the composer's min-width covers both states instead.
-- **Height never changes on attach.** The textarea is `flex: 1 1 auto` and
-  absorbs the shelf's height, so the action row stays at the same screen Y.
-  Growing downward would drop `Save` out from under the cursor and, near the
-  viewport bottom, make the popover flip above the anchored line.
-- **No bottom strip** and no separate image strip between the textarea and the
-  actions — the shelf *is* the image row, and it only exists when filled.
-- **Drop target is the whole popover**, not the dashed tile (Fitts's Law).
-- **Attach semantics**: `<button type="button">` driving a hidden
-  `<input type="file">` — not a `<label>`, not `role="button"`. Accessible name
-  `Attach images` empty, `Add another image` filled. Deleting attachment *n*
-  must push focus to the next item's remove button or focus drops to
-  `document.body`.
+**Input method default.** Pinpoint opens as the default every time. Default to
+Select. The default lives in `packages/ui/utils/inputMethod.ts`.
 
----
+**Global comment composer.**
 
-## Not in this brief
+- The top strip still renders on a global comment.
+- The scrollbar belongs to the textarea, not the whole card.
+- The resize grip resizes only vertically.
 
-**Session lifecycle and draft safety** — the orphaned annotate server and the
-composer draft lost on Ctrl+W — is being handled directly with the maintainer.
-Do not spec it.
+**Editing an annotation in the plan-review sidebar.** The edit button reopens
+the annotation for editing, and its textarea is larger than the annotation's
+normal display. Editing should look like the review app's annotations. The two
+apps should read as different states of one product, not two products.
+
+**Files tab.** Remove the Files tab from the left panel in annotate and
+annotate-last, end to end. It is `showFilesTab` in
+`packages/ui/components/sidebar/SidebarContainer.tsx`.
+
+**Review comment markers** — `packages/review-editor/components/GutterAnnotations.tsx`.
+The 14px gutter marker is easy to scroll past, and the hover preview is slow to
+appear.
+
+## D. Removal recommendations
+
+The maintainer found the analysis and pull-request features only by stumbling on
+them, and removed both. Having seen everything in `FABLE-REMOVALS.md`, recommend
+what else they would likely cut or trim. Argue each with a count.
+
+Open questions already known, each still live in the code:
+
+- `packages/ui/hooks/useViewportEnvironment.ts`, 350 lines of observed-viewport
+  machinery. Does it still earn its place on a desktop-only product?
+- The VS Code diff path: `packages/ui/components/plan-diff/PlanDiffViewer.tsx`
+  and `VSCodeIcon.tsx`.
+- The per-row staged dot in the review tree is informational. Does it earn the
+  prop threading through `App.tsx`, `FileTree.tsx` and `SectionsPanel.tsx`?
+- The `note-with-approval` decision, in `packages/editor/annotateDecision.ts:35`
+  and `packages/review-editor/reviewDecision.ts:56`. Two comments describe it as
+  a deliberate safety net.
+- The permission-mode fallback arm at `packages/server/index.ts:441-442` is
+  reachable only from a caller that omits `permissionMode`. Does any live
+  caller still omit it?
+- Two comments in `packages/editor/App.tsx` (around lines 1880 and 2922) still
+  describe OpenCode, an agent this fork does not support.
+- Shortcut bindings with no handler. `goalSetup.shortcuts.ts` is one; count them
+  all before proposing a check that catches them.
+- The root `package.json` depends on `@anthropic-ai/claude-agent-sdk`, which no
+  code imports. It is named as a sentinel in
+  `scripts/release-security/release-evidence.mjs:30`.
+
+## E. Session lifecycle and draft safety
+
+### E1. Drafts survive a closed tab
+
+Closing the tab with an open composer loses whatever was typed. Reopening a
+session with saved annotations shows a "Draft Recovered" dialog asking whether
+to restore them (`packages/editor/App.tsx:4278`,
+`packages/review-editor/App.tsx:2342`).
+
+The maintainer wants:
+
+- The open composer persisted through the **existing draft endpoint**, the one
+  saved drafts already use.
+- Annotations **restored automatically** on reopen, with no dialog.
+- The browser's own leave-site prompt left out: it asks, and saves nothing.
+- The annotate **abandonment lease always on**. Today it is gated to direct
+  structured invocations by `supportsAnnotateClientLease`
+  (`apps/hook/server/annotate-output.ts:36`,
+  `options.gate && options.json && !options.hook`).
+
+### E2. Orphaned servers on Windows
+
+Servers outlive the sessions that started them. Six
+`bun run apps/hook/server/index.ts` processes were found alive at once, the
+oldest twelve hours past its session.
+
+Two shapes have been proposed and neither is chosen:
+
+1. A **stale-session reaper** that exits a server whose session is gone.
+2. A **`hypermark sessions --kill`** command that lists live servers and ends
+   them on demand.
+
+Spec both. Argue which is right, with a count of what each costs, and say what
+happens to a server whose browser tab is still open. Then look for other ways
+Hypermark leaves processes, ports or files behind on Windows.
