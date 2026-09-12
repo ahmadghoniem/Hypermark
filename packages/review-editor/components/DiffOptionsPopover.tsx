@@ -7,7 +7,7 @@ import {
   INDICATOR_OPTIONS,
   LINE_DIFF_OPTIONS,
   LINE_BG_INTENSITY_OPTIONS,
-} from '@hypermark/ui/components/Settings';
+} from '@hypermark/ui/components/DiffDisplayOptions';
 
 function CompactSegmented<T extends string>({ options, value, onChange }: {
   options: { value: T; label: string }[];

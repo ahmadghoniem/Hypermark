@@ -14,7 +14,6 @@ import { ReviewAgentsIcon } from './ReviewAgentsIcon';
  * When nothing is left to show, the trigger does not render at all.
  */
 interface PlanHeaderMenuProps {
-  onOpenSettings: () => void;
   onCopyAgentInstructions: () => void;
   agentInstructionsEnabled: boolean;
 }

@@ -1,6 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { SemanticFileBadge } from './SemanticFileBadge';
-import { CallFlowFileBadge } from './CallFlowFileBadge';
 import { useReviewStateOptional } from '../dock/ReviewStateContext';
 import type { DiffFileStatus } from '../types';
 
@@ -223,8 +221,6 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
             {commentLabel && <span>{commentLabel}</span>}
           </button>
         )}
-        <CallFlowFileBadge filePath={filePath} oldPath={oldPath} />
-        <SemanticFileBadge filePath={filePath} />
         {(additions > 0 || deletions > 0 || (status && status !== 'modified') || isGenerated) && (
           <span className="flex-none flex items-center gap-1.5 text-xs leading-none">
             {additions > 0 && <span className="font-mono text-success">+{additions}</span>}

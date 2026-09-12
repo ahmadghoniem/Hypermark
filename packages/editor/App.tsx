@@ -392,7 +392,6 @@ const AppInner: React.FC = () => {
   // header share literally one submitPrimaryDecision.
   const submitPrimaryDecisionRef = useRef<() => void>(() => {});
   const [isPanelOpen, setIsPanelOpen] = useState(() => window.innerWidth >= 768);
-  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<EditorMode>(getEditorMode);
   const [inputMethod, setInputMethod] = useState<InputMethod>(getInputMethod);
   const [taterMode, setTaterMode] = useState(() => {
@@ -4034,8 +4033,6 @@ const AppInner: React.FC = () => {
   }), [annotateCloseTitle, annotateDecisionHandlers, annotateDecisionSpec, isHtmlSurface]);
 
   const handleHeaderCopyAgentInstructions = useCallback(() => headerHandlersRef.current.handleCopyAgentInstructions(), []);
-  const handleOpenSettings = useCallback(() => setMobileSettingsOpen(true), []);
-  const handleCloseSettings = useCallback(() => setMobileSettingsOpen(false), []);
 
   const hasReviewDocumentChanges = hasDirectEdits || hasSavedFileChanges;
   const planMaxWidth = useMemo(() => {
@@ -4240,7 +4237,6 @@ const AppInner: React.FC = () => {
           showAnnotationsWarning={hasFeedbackToSend}
           annotateDecision={annotateMode ? annotateDecision : undefined}
           taterMode={taterMode}
-          mobileSettingsOpen={mobileSettingsOpen}
           agentTerminalAvailable={showAgentTerminalControls}
           onGoalSetupExit={handleGoalSetupExit}
           onGoalSetupSubmit={handleGoalSetupSubmit}
@@ -4251,8 +4247,6 @@ const AppInner: React.FC = () => {
           onArchiveDone={archive.done}
           onTaterModeChange={handleTaterModeChange}
           onUIPreferencesChange={setUiPrefs}
-          onOpenSettings={handleOpenSettings}
-          onCloseSettings={handleCloseSettings}
           onCopyAgentInstructions={handleHeaderCopyAgentInstructions}
           agentInstructionsEnabled={isApiMode && !archive.archiveMode && !annotateMode && !goalSetupMode}
         />

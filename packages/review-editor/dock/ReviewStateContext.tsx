@@ -1,11 +1,8 @@
 import React, { createContext, useContext } from 'react';
-import type { CallFlowAnnotationTarget, CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ImageAttachment } from '@hypermark/ui/types';
+import type { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, ImageAttachment } from '@hypermark/ui/types';
 import type { DiffFile, AnnotationScrollTarget } from '../types';
 import type { ReviewSearchMatch } from '../utils/reviewSearch';
 import type { FeedbackDiffContext } from '../utils/exportFeedback';
-import type { CallFlowAnalysisState } from '../hooks/useCallFlowAnalysis';
-import type { CallFlowInstallController } from '../hooks/useCallFlowInstall';
-import type { CallFlowAdvert, CallFlowNode } from '@hypermark/shared/call-flow-types';
 
 /** One-shot request to open the native code-annotation composer on a source range. */
 export interface LineAnnotationComposeRequest {
@@ -63,11 +60,6 @@ export interface ReviewState {
   onLineSelection: (range: SelectedLineRange | null) => void;
   /** Resolve a source path and open the native line-annotation composer. */
   onRequestLineAnnotation: (filePath: string, range: SelectedLineRange) => void;
-  /** Commit one Call Flow comment with a primary inline anchor and related targets. */
-  onAddCallFlowAnnotation: (
-    targets: readonly CallFlowAnnotationTarget[],
-    text: string,
-  ) => boolean;
   onAddAnnotation: (type: CodeAnnotationType, text?: string, tokenMeta?: TokenAnnotationMeta, images?: ImageAttachment[]) => void;
   onAddAnnotationForFile: (filePath: string, type: CodeAnnotationType, text?: string, tokenMeta?: TokenAnnotationMeta, images?: ImageAttachment[]) => void;
   onAddFileComment: (text: string) => void;
@@ -132,21 +124,6 @@ export interface ReviewState {
   // Commit metadata when a commit:<sha> diff is active — heads the all-files
   // view (description card) and seeds its files collapsed.
   commitInfo: import('@hypermark/shared/types').CommitDiffInfo | null;
-  semanticDiffAvailable: boolean;
-  isSemanticDiffActive: boolean;
-  onSemanticDiffUnavailable: () => void;
-  onSemanticDiffLoadError: () => boolean;
-  onSemanticDiffLoadSuccess: () => void;
-  callFlowAvailable: boolean;
-  callFlowAdvert: CallFlowAdvert;
-  callFlowAnalysis: CallFlowAnalysisState;
-  retryCallFlowAnalysis: () => void;
-  /** Whether the complete node range exists in the currently reviewed patch. */
-  isCallFlowNodeInPatch: (node: CallFlowNode) => boolean;
-  isCallFlowActive: boolean;
-  openCallFlowPanel: () => void;
-  /** Opt-in runtime install controller backing the Dock's install funnel. */
-  callFlowInstall: CallFlowInstallController;
 
   // Code navigation
   onCodeNavRequest?: (request: import('@hypermark/shared/code-nav').CodeNavRequest) => void;
