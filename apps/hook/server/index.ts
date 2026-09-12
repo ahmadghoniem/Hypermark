@@ -23,12 +23,7 @@
  *    - Annotates the most recent assistant response in the annotation UI
  *    - Outputs structured feedback to stdout
  *
- * 5. Archive (`hypermark archive`):
- *    - Opens read-only browser for saved plan decisions
- *    - Lists plans from ~/.hypermark/plans/ with status badges
- *    - Done button closes the browser
- *
- * 6. Sessions (`hypermark sessions`):
+ * 5. Sessions (`hypermark sessions`):
  *    - Lists active Hypermark server sessions
  *    - `--open [N]` reopens a session in the browser
  *    - `--clean` removes stale session files
@@ -953,39 +948,6 @@ if (args[0] === "sessions") {
   server.stop();
 
   emitAnnotateOutcome(result);
-  process.exit(0);
-
-} else if (args[0] === "archive") {
-  // ============================================
-  // ARCHIVE BROWSER MODE
-  // ============================================
-
-  const archiveProject = (await detectProjectName()) ?? "_unknown";
-
-  const server = await startHypermarkServer({
-    plan: "",
-    origin: detectedOrigin,
-    mode: "archive",
-    htmlContent: planHtmlContent,
-    onReady: (url, port) => {
-      handleServerReady(url, port);
-    },
-  });
-
-  registerSession({
-    pid: process.pid,
-    port: server.port,
-    url: server.url,
-    mode: "archive",
-    project: archiveProject,
-    startedAt: new Date().toISOString(),
-    label: `archive-${archiveProject}`,
-  });
-
-  await server.waitForDone!();
-
-  await Bun.sleep(500);
-  server.stop();
   process.exit(0);
 
 } else if (args[0] === "improve-context") {

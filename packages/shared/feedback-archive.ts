@@ -3,11 +3,9 @@
  *
  * Hypermark's decision paths hand the user's feedback to the invoking agent
  * and then forget it: code review persisted nothing at all, plan decisions
- * only landed in `plans/` while the client-side planSave setting was on (and
- * overwrote the previous decision for the same slug), and the annotate
- * surfaces only kept the #678 record for single local files. This module is
- * the one place all of those write a durable, analyzable record of what the
- * user actually submitted.
+ * were written nowhere durable, and the annotate surfaces only kept the #678
+ * record for single local files. This module is the one place all of those
+ * write a durable, analyzable record of what the user actually submitted.
  *
  * Layout (per project, mirroring the `history/` project convention):
  *

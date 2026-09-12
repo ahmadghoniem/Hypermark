@@ -1,37 +1,19 @@
 /**
- * Plan Storage Utility
+ * Plan Version History
  *
- * Saves plans and annotations to ~/.hypermark/plans/
+ * Writes every revision of a plan to ~/.hypermark/history/{project}/{slug}/NNN.md
+ * before the review UI opens, and reads them back for the Versions browser.
  * Cross-platform: works on Windows, macOS, and Linux.
  *
  * Runtime-agnostic: uses only node:fs, node:path, node:os.
  */
 
-import { join, resolve, sep } from "path";
+import { join } from "path";
 import { mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { sanitizeTag } from "./project";
-import { resolveUserPath } from "./resolve-file";
 import { getHypermarkDataDir } from "./data-dir";
 
 const DATA_DIR = getHypermarkDataDir();
-
-/**
- * Get the plan storage directory, creating it if needed.
- * Cross-platform: uses os.homedir() for Windows/macOS/Linux compatibility.
- * @param customPath Optional custom path. Supports ~ for home directory.
- */
-export function getPlanDir(customPath?: string | null): string {
-  let planDir: string;
-
-  if (customPath?.trim()) {
-    planDir = resolveUserPath(customPath);
-  } else {
-    planDir = join(DATA_DIR, "plans");
-  }
-
-  mkdirSync(planDir, { recursive: true });
-  return planDir;
-}
 
 /**
  * Extract the first heading from markdown content.
@@ -53,138 +35,6 @@ export function generateSlug(plan: string): string {
   const slug = heading ? sanitizeTag(heading) : null;
 
   return slug ? `${slug}-${date}` : `plan-${date}`;
-}
-
-/**
- * Save the plan markdown to disk.
- * Returns the full path to the saved file.
- */
-export function savePlan(slug: string, content: string, customPath?: string | null): string {
-  const planDir = getPlanDir(customPath);
-  const filePath = join(planDir, `${slug}.md`);
-  writeFileSync(filePath, content, "utf-8");
-  return filePath;
-}
-
-/**
- * Save annotations to disk.
- * Returns the full path to the saved file.
- */
-export function saveAnnotations(slug: string, annotationsContent: string, customPath?: string | null): string {
-  const planDir = getPlanDir(customPath);
-  const filePath = join(planDir, `${slug}.annotations.md`);
-  writeFileSync(filePath, annotationsContent, "utf-8");
-  return filePath;
-}
-
-/**
- * Save the final snapshot on approve/deny.
- * Combines plan and annotations into a single file with status suffix.
- * Returns the full path to the saved file.
- */
-export function saveFinalSnapshot(
-  slug: string,
-  status: "approved" | "denied",
-  plan: string,
-  annotations: string,
-  customPath?: string | null
-): string {
-  const planDir = getPlanDir(customPath);
-  const filePath = join(planDir, `${slug}-${status}.md`);
-
-  // Combine plan with annotations appended
-  let content = plan;
-  if (annotations && annotations !== "No changes detected.") {
-    content += "\n\n---\n\n" + annotations;
-  }
-
-  writeFileSync(filePath, content, "utf-8");
-  return filePath;
-}
-
-// --- Plan Archive ---
-
-import type { ArchivedPlan } from '@hypermark/core/storage-types';
-export type { ArchivedPlan };
-
-/**
- * Parse an archive filename into metadata.
- * Handles both old (DATE-heading-status.md) and new (heading-DATE-status.md) formats.
- */
-export function parseArchiveFilename(filename: string): ArchivedPlan | null {
-  // Skip non-decision files
-  if (filename.endsWith(".annotations.md") || filename.endsWith(".diff.md")) return null;
-
-  const base = filename.replace(/\.md$/, "");
-
-  // Extract status suffix
-  let status: ArchivedPlan["status"] = "unknown";
-  let slug = base;
-  if (base.endsWith("-approved")) {
-    status = "approved";
-    slug = base.slice(0, -"-approved".length);
-  } else if (base.endsWith("-denied")) {
-    status = "denied";
-    slug = base.slice(0, -"-denied".length);
-  } else {
-    // Skip plain files (no decision status)
-    return null;
-  }
-
-  // Extract date (YYYY-MM-DD) — could be anywhere in the slug
-  const dateMatch = slug.match(/(\d{4}-\d{2}-\d{2})/);
-  const date = dateMatch ? dateMatch[1] : "";
-
-  // Title: remove date, convert hyphens to spaces, trim
-  const title = slug
-    .replace(/\d{4}-\d{2}-\d{2}/, "")
-    .replace(/^-+|-+$/g, "")
-    .replace(/-+/g, " ")
-    .trim() || "Untitled Plan";
-
-  return { filename, title, date, timestamp: "", status, size: 0 };
-}
-
-/**
- * List all archived plans (approved/denied decision snapshots).
- * Returns plans sorted by date descending.
- */
-export function listArchivedPlans(customPath?: string | null): ArchivedPlan[] {
-  const planDir = getPlanDir(customPath);
-  try {
-    const entries = readdirSync(planDir);
-    const plans: ArchivedPlan[] = [];
-    for (const entry of entries) {
-      if (!entry.endsWith(".md")) continue;
-      const parsed = parseArchiveFilename(entry);
-      if (!parsed) continue;
-      try {
-        const stat = statSync(join(planDir, entry));
-        parsed.size = stat.size;
-        parsed.timestamp = stat.mtime.toISOString();
-      } catch { /* keep defaults */ }
-      plans.push(parsed);
-    }
-    return plans.sort((a, b) => b.date.localeCompare(a.date) || b.timestamp.localeCompare(a.timestamp));
-  } catch {
-    return [];
-  }
-}
-
-/**
- * Read an archived plan file by filename.
- * Returns null if the file doesn't exist or on read error.
- */
-export function readArchivedPlan(filename: string, customPath?: string | null): string | null {
-  const planDir = getPlanDir(customPath);
-  const filePath = resolve(planDir, filename);
-  // Guard against path traversal (resolve + trailing separator, matching reference-handlers.ts)
-  if (!filePath.startsWith(planDir + sep)) return null;
-  try {
-    return readFileSync(filePath, "utf-8");
-  } catch {
-    return null;
-  }
 }
 
 // --- Version History ---
@@ -257,10 +107,10 @@ export function saveToHistory(
  * Save a durable record of submitted annotate feedback (#678).
  *
  * Annotate submissions settle a decision promise whose consumer (the invoking
- * CLI/agent) may have timed out and stopped listening. The plan flow persists
- * its decisions via saveFinalSnapshot; annotate had no equivalent, so a submit
- * whose caller was gone deleted the draft and left the feedback nowhere. This
- * writes the record next to the file's annotate version history:
+ * CLI/agent) may have timed out and stopped listening. Annotate had no durable
+ * record of its own, so a submit whose caller was gone deleted the draft and
+ * left the feedback nowhere. This writes the record next to the file's
+ * annotate version history:
  *
  *   {DATA_DIR}/history/{project}/{slug}/submissions/{timestamp}.md
  *

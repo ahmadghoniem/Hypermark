@@ -5,10 +5,10 @@
  */
 
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, readFileSync, readdirSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { generateSlug, getPlanDir, savePlan, saveToHistory, getPlanVersion, getVersionCount, listVersions } from "./storage";
+import { generateSlug, saveToHistory, getPlanVersion, getVersionCount, listVersions } from "./storage";
 
 const tempDirs: string[] = [];
 
@@ -47,49 +47,6 @@ describe("generateSlug", () => {
     const a = generateSlug("# Plan A");
     const b = generateSlug("# Plan B");
     expect(a).not.toBe(b);
-  });
-});
-
-describe("getPlanDir", () => {
-  test("creates directory at custom path", () => {
-    const dir = makeTempDir();
-    const customPath = join(dir, "custom", "plans");
-    const result = getPlanDir(customPath);
-    expect(result).toBe(customPath);
-    // Directory should exist
-    expect(readdirSync(customPath)).toBeDefined();
-  });
-
-  test("expands tilde in custom path", () => {
-    const result = getPlanDir("~/.hypermark/test-plans");
-    expect(result).not.toContain("~");
-    expect(result).toMatch(/\.hypermark\/test-plans$/);
-  });
-
-  test("uses default when no custom path", () => {
-    const result = getPlanDir();
-    expect(result).toMatch(/plans$/);
-    expect(result).toBe(getPlanDir(null));
-  });
-
-  test("uses default for null", () => {
-    const result = getPlanDir(null);
-    expect(result).toMatch(/plans$/);
-  });
-
-  test("uses default for whitespace-only custom path", () => {
-    const result = getPlanDir("   ");
-    expect(result).toMatch(/plans$/);
-    expect(result).not.toBe(process.cwd());
-  });
-});
-
-describe("savePlan", () => {
-  test("writes markdown file to disk", () => {
-    const dir = makeTempDir();
-    const path = savePlan("test-slug", "# Content", dir);
-    expect(path).toBe(join(dir, "test-slug.md"));
-    expect(readFileSync(path, "utf-8")).toBe("# Content");
   });
 });
 

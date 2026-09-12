@@ -21,10 +21,9 @@ export type WideModeExitLayout = {
 };
 
 export function canUseAnnotateWideMode(options: {
-  archiveMode: boolean;
   isPlanDiffActive: boolean;
 }): boolean {
-  return !options.archiveMode && !options.isPlanDiffActive;
+  return !options.isPlanDiffActive;
 }
 
 /** What the focus-mode keyboard shortcut should do on this press. */

@@ -12,7 +12,6 @@ import { startHypermarkServer as startBunPlanServer } from "./index";
 import { startReviewServer as startBunReviewServer } from "./review";
 
 const SPA_HTML = "<!doctype html><html><body>SPA fallback</body></html>";
-let archivePath = "";
 let dataDirPath = "";
 let savedDataDir: string | undefined;
 
@@ -36,8 +35,6 @@ const serverCases = [
         plan: "# Test Plan",
         origin: "claude-code",
         htmlContent: SPA_HTML,
-        mode: "archive",
-        customPlanPath: archivePath,
       }),
   },
   {
@@ -62,32 +59,6 @@ const serverCases = [
         htmlContent: SPA_HTML,
       }),
   },
-] as const;
-
-// The archive-mode subset of the servers above. Restored: spec 01 removed the
-// Pi entry and took the whole list with it, leaving the loop below referencing
-// an undefined name, which made this entire file fail to load.
-const archiveServerCases = [
-  {
-    name: "Bun plan",
-    start: () =>
-      startBunPlanServer({
-        plan: "# Test Plan",
-        origin: "claude-code",
-        htmlContent: SPA_HTML,
-        mode: "archive",
-        customPlanPath: archivePath,
-      }),
-  },
-] as const;
-
-const archiveMutationRequests = [
-  { path: "/api/approve", method: "POST" },
-  { path: "/api/deny", method: "POST" },
-  { path: "/api/draft", method: "POST" },
-  { path: "/api/draft", method: "DELETE" },
-  { path: "/api/save-notes", method: "POST" },
-  { path: "/api/upload", method: "POST" },
 ] as const;
 
 async function expectJsonNotFound(
@@ -122,7 +93,6 @@ async function startOnRandomLocalPort(
 
 describe("API route 404 guards", () => {
   beforeAll(() => {
-    archivePath = mkdtempSync(join(tmpdir(), "hypermark-api-404-"));
     // /favicon.png now answers from the persisted favicon style, so this suite
     // reads config.json. Point it at a temp dir: it must never depend on (or
     // touch) the real ~/.hypermark of whoever runs the tests.
@@ -132,7 +102,6 @@ describe("API route 404 guards", () => {
   });
 
   afterAll(() => {
-    rmSync(archivePath, { recursive: true, force: true });
     if (savedDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
     else process.env.HYPERMARK_DATA_DIR = savedDataDir;
     rmSync(dataDirPath, { recursive: true, force: true });
@@ -172,24 +141,6 @@ describe("API route 404 guards", () => {
         expect(spaResponse.status).toBe(200);
         expect(spaResponse.headers.get("content-type")).toContain("text/html");
         expect(await spaResponse.text()).toBe(SPA_HTML);
-      } finally {
-        server.stop();
-      }
-    });
-  }
-
-  for (const serverCase of archiveServerCases) {
-    test(`${serverCase.name} rejects document mutations in archive mode`, async () => {
-      const server = await startOnRandomLocalPort(serverCase.start);
-
-      try {
-        for (const request of archiveMutationRequests) {
-          const response = await fetch(`${server.url}${request.path}`, {
-            method: request.method,
-          });
-          expect(response.status).toBe(403);
-          expect(await response.json()).toEqual({ error: "Archive is read-only" });
-        }
       } finally {
         server.stop();
       }

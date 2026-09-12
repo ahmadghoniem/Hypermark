@@ -124,7 +124,6 @@ export interface ViewerProps {
    * callers that don't measure plan-area width.
    */
   actionsLabelMode?: ActionsLabelMode;
-  archiveInfo?: { status: 'approved' | 'denied' | 'unknown'; timestamp: string; title: string } | null;
   /** Source attribution for HTML/URL annotations (e.g. URL or filename) */
   sourceInfo?: string;
   /**
@@ -336,7 +335,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   disableCodePathValidation,
   copyLabel,
   actionsLabelMode = 'full',
-  archiveInfo,
   sourceInfo,
   messagePickerInfo,
   onToggleCheckbox,
@@ -392,7 +390,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     ro.observe(el);
     window.addEventListener('resize', measure);
     return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
-  }, [hasViewerAnnotationHeader, repoInfo, hasPreviousVersion, showDemoBadge, linkedDocInfo, archiveInfo, sourceInfo, planDiffStats]);
+  }, [hasViewerAnnotationHeader, repoInfo, hasPreviousVersion, showDemoBadge, linkedDocInfo, sourceInfo, planDiffStats]);
 
   // Per-doc heading slug map with dedup — computed once per blocks array so
   // anchor ids stay stable across re-renders and duplicate heading texts get
@@ -888,7 +886,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
         } as React.CSSProperties}
       >
         {/* Legacy badge placement remains byte-for-byte opt-out behavior. */}
-        {!viewerAnnotationHeader && (repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo || archiveInfo || sourceInfo) && (
+        {!viewerAnnotationHeader && (repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo || sourceInfo) && (
           <div ref={docBadgesRef} className="absolute top-3 md:top-4 left-0">
             <DocBadges
               layout="column"
@@ -900,7 +898,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               planDiffBaselineLabel={planDiffBaselineLabel}
               planDiffBaselineTooltip={planDiffBaselineTooltip}
               showDemoBadge={showDemoBadge}
-              archiveInfo={archiveInfo}
               linkedDocInfo={linkedDocInfo}
               sourceInfo={sourceInfo}
             />
@@ -924,7 +921,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               planDiffBaselineLabel,
               planDiffBaselineTooltip,
               showDemoBadge,
-              archiveInfo,
               linkedDocInfo,
               sourceInfo,
             }}

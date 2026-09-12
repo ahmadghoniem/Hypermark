@@ -22,7 +22,6 @@ This skill is the knowledge layer. The `hypermark-review`, `hypermark-annotate`,
 | Annotate a running local app (dev server) | `hypermark annotate <http://localhost:PORT/>` |
 | Pick a file to annotate from a folder | `hypermark annotate <folder/>` |
 | Annotate your latest assistant message | `hypermark last` |
-| Browse past plan decisions | `hypermark archive` |
 | Reopen or list live sessions | `hypermark sessions` |
 
 ## Session model
@@ -103,14 +102,6 @@ hypermark last
 Opens the latest rendered assistant message from the current agent session in the annotation UI (`last` is an alias). The session log is discovered per host automatically; `--stdin` reads the content from stdin instead.
 
 Do not print a commentary or status message immediately before running it: the command targets the latest rendered assistant message, so a preamble becomes the thing being annotated.
-
-## hypermark archive
-
-```bash
-hypermark archive
-```
-
-Opens a read-only browser over saved plan decisions (approved/denied badges) from the Hypermark data directory. No feedback comes back; the session ends when the user clicks Done.
 
 ## hypermark sessions
 

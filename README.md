@@ -104,7 +104,6 @@ No command needed. Plan mode is wired in through each harness's hooks. Any time 
 ```
 hypermark sessions                   # List active Hypermark sessions
 hypermark sessions --open 1          # Reopen a session in the browser
-hypermark archive                    # Browse saved plan decisions read-only
 ```
 
 ---

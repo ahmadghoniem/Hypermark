@@ -34,7 +34,6 @@ import { getIdentity } from '@hypermark/ui/utils/identity';
 import { copyTextToClipboard } from '@hypermark/ui/utils/clipboard';
 import { configStore, useConfigValue } from '@hypermark/ui/config';
 import { CompletionOverlay } from '@hypermark/ui/components/CompletionOverlay';
-import { getPlanSaveSettings } from '@hypermark/ui/utils/planSave';
 import { getUIPreferences, type PlanWidth } from '@hypermark/ui/utils/uiPreferences';
 import { getEditorMode, saveEditorMode } from '@hypermark/ui/utils/editorMode';
 import { getInputMethod, refreshInputMethodStamp, saveInputMethod } from '@hypermark/ui/utils/inputMethod';
@@ -54,7 +53,6 @@ import { usePlanDiff, type VersionInfo, type VersionEntry, type PlanDiffFetchers
 import { useLinkedDoc, type LinkedDocSessionState } from '@hypermark/ui/hooks/useLinkedDoc';
 import { useCodeFilePopout } from '@hypermark/ui/hooks/useCodeFilePopout';
 import { useAnnotationDraft, type DraftEditedDocument } from '@hypermark/ui/hooks/useAnnotationDraft';
-import { useArchive } from '@hypermark/ui/hooks/useArchive';
 import { useExternalAnnotations } from '@hypermark/ui/hooks/useExternalAnnotations';
 import { useExternalAnnotationHighlights } from '@hypermark/ui/hooks/useExternalAnnotationHighlights';
 import { useUndoHistory } from '@hypermark/ui/hooks/useUndoHistory';
@@ -64,7 +62,6 @@ import { getFileEditStatus } from '@hypermark/ui/components/sidebar/FileBrowser'
 import { generateId } from '@hypermark/ui/utils/generateId';
 import { SidebarTabs } from '@hypermark/ui/components/sidebar/SidebarTabs';
 import { SidebarContainer } from '@hypermark/ui/components/sidebar/SidebarContainer';
-import type { ArchivedPlan } from '@hypermark/ui/components/sidebar/ArchiveBrowser';
 import type { PickerMessage } from '@hypermark/ui/components/sidebar/MessagesBrowser';
 import { PlanDiffViewer } from '@hypermark/ui/components/plan-diff/PlanDiffViewer';
 import { CodeFilePopout, type CodeFileAnnotationInput } from '@hypermark/ui/components/CodeFilePopout';
@@ -1109,16 +1106,10 @@ const AppInner: React.FC = () => {
         : `/api/doc?path=${encodeURIComponent(codePath)}`;
     }, [activeDocBaseDir]),
   });
-
-  // Archive browser
-  const archive = useArchive({
-    markdown, viewerRef, linkedDocHook,
-    setMarkdown, setAnnotations, setSelectedAnnotationId, setSubmitted,
-  });
-  const documentReadOnly = archive.archiveMode;
+  const documentReadOnly = false;
   useEffect(() => {
     annotationHistory.clear();
-  }, [annotationHistory, archive.archiveMode]);
+  }, [annotationHistory]);
   // A Refresh lands the bytes and, for the root document, the version diff
   // the server recomputed against them (previousPlan/versionInfo still name
   // the saved baseline). The view returns to normal mode with the "Show
@@ -1154,9 +1145,8 @@ const AppInner: React.FC = () => {
     onUnanchored: handleHtmlRefreshUnanchored,
   });
   const canUseWideMode = useMemo(() => canUseAnnotateWideMode({
-    archiveMode: archive.archiveMode,
     isPlanDiffActive,
-  }), [archive.archiveMode, isPlanDiffActive]);
+  }), [isPlanDiffActive]);
 
   const enterViewMode = useCallback((type: WideModeType) => {
     if (!canUseWideMode) return;
@@ -1199,7 +1189,7 @@ const AppInner: React.FC = () => {
   // never while a dialog, an overlay, a submission, or a text field owns the
   // keystroke. Annotate-only commands layer their own conditions on top.
   const canHandleDocumentChromeShortcut = useCallback((event: KeyboardEvent) => {
-    if (archive.archiveMode || goalSetupMode) return false;
+    if (goalSetupMode) return false;
     if (event.defaultPrevented) return false;
     if (document.querySelector('[data-hypermark-confirm-dialog="true"]')) return false;
     if (showFeedbackPrompt || showClaudeCodeWarning ||
@@ -1211,7 +1201,6 @@ const AppInner: React.FC = () => {
     const tag = target?.tagName;
     return tag !== 'INPUT' && tag !== 'TEXTAREA' && !target?.isContentEditable;
   }, [
-    archive.archiveMode,
     goalSetupMode,
     showFeedbackPrompt,
     showClaudeCodeWarning,
@@ -1280,7 +1269,7 @@ const AppInner: React.FC = () => {
         handle: () => toggleSidebarTab('toc'),
       },
       toggleFiles: {
-        when: (event) => canHandleAnnotateSidebarShortcut(event) && showFilesTab && !archive.archiveMode,
+        when: (event) => canHandleAnnotateSidebarShortcut(event) && showFilesTab,
         handle: () => toggleSidebarTab('files'),
       },
     },
@@ -1518,8 +1507,7 @@ const AppInner: React.FC = () => {
       setEditorDiffersFromBaseline(false);
     }
     fileBrowser.setActiveFile(null);
-    archive.clearSelection();
-  }, [linkedDocHook, isEditingMarkdown, fileBrowser, archive]);
+  }, [linkedDocHook, isEditingMarkdown, fileBrowser]);
 
   // Derive annotation counts per file from linked doc cache (includes active doc's live state)
   const allAnnotationCounts = useMemo(() => {
@@ -1764,7 +1752,7 @@ const AppInner: React.FC = () => {
     if (wideModeType !== null) return;
 
     initialSidebarPreferenceAppliedRef.current = true;
-    if (archive.archiveMode || goalSetupMode || annotateSource === 'folder') return;
+    if (goalSetupMode || annotateSource === 'folder') return;
     // HTML chrome is owned by the surface-transition effect below, which also
     // covers linked .html docs opened from a markdown session.
     if (renderAs === 'html') return;
@@ -1773,7 +1761,6 @@ const AppInner: React.FC = () => {
     }
   }, [
     annotateSource,
-    archive.archiveMode,
     goalSetupMode,
     hasTocEntries,
     isLoading,
@@ -1798,7 +1785,7 @@ const AppInner: React.FC = () => {
     const wasHtml = prevHtmlChromeSurfaceRef.current;
     prevHtmlChromeSurfaceRef.current = isHtmlSurface;
     if (!isHtmlSurface || wasHtml) return;
-    if (archive.archiveMode || goalSetupMode || annotateSource === 'folder') return;
+    if (goalSetupMode || annotateSource === 'folder') return;
     const chrome = getHtmlChromeState();
     skipNextHtmlChromeSaveRef.current = true;
     if (chrome.sidebarOpen) sidebar.open();
@@ -1808,7 +1795,6 @@ const AppInner: React.FC = () => {
     htmlChromeRestoredRef.current = true;
   }, [
     annotateSource,
-    archive.archiveMode,
     goalSetupMode,
     isHtmlSurface,
     isLoading,
@@ -1895,7 +1881,7 @@ const AppInner: React.FC = () => {
   // Fetch available agents for OpenCode (for validation on approve)
 
   // Markdown edit mode: single consolidated gate. The editor only ever opens on
-  // the main plan/file markdown — never on HTML surfaces, archive/goal-setup
+  // the main plan/file markdown — never on HTML surfaces, goal-setup
   // views, linked docs, messages, folder pickers, or diff view.
   const canEditMarkdown =
     renderAs !== 'html' &&
@@ -1903,7 +1889,6 @@ const AppInner: React.FC = () => {
     // emptied document, so the user can re-enter and undo. Source-backed files
     // are editable even when they start empty.
     (activeEditableDocument?.sourceSave?.enabled || displayedMarkdown !== '' || editStats !== null) &&
-    !archive.archiveMode &&
     !goalSetupMode &&
     (!linkedDocHook.isActive || (annotateSource === 'folder' && activeEditableDocument?.sourceSave?.enabled)) &&
     !isPlanDiffActive &&
@@ -2647,9 +2632,8 @@ const AppInner: React.FC = () => {
   // so there is no input method or annotation mode left to switch.
   const toolstripVisible = useMemo(
     () =>
-      !goalSetupMode && !isPlanDiffActive && !archive.archiveMode && !isEditingMarkdown && !isHtmlSurface,
+      !goalSetupMode && !isPlanDiffActive && !isEditingMarkdown && !isHtmlSurface,
     [
-      archive.archiveMode,
       goalSetupMode,
       isHtmlSurface,
       isEditingMarkdown,
@@ -2690,7 +2674,7 @@ const AppInner: React.FC = () => {
         if (!res.ok) throw new Error('Not in API mode');
         return res.json();
       })
-      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last' | 'annotate-folder' | 'annotate-app' | 'archive' | 'goal-setup'; goalSetup?: GoalSetupBundle; filePath?: string; appUrl?: string; targetUrl?: string; liveToken?: string; sourceInfo?: string; sourceConverted?: boolean; sourceSave?: SourceSaveCapability; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; renderAs?: 'html' | 'markdown'; rawHtml?: string; shareHtml?: string; diffHtml?: string; convertHtml?: boolean; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; archivePlans?: ArchivedPlan[]; projectRoot?: string; markdownExtensions?: string[]; serverConfig?: { displayName?: string; gitUser?: string }; recentMessages?: PickerMessage[]; agentTerminal?: AgentTerminalCapability; feedbackTemplates?: AnnotateFeedbackTemplates }) => {
+      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last' | 'annotate-folder' | 'annotate-app' | 'goal-setup'; goalSetup?: GoalSetupBundle; filePath?: string; appUrl?: string; targetUrl?: string; liveToken?: string; sourceInfo?: string; sourceConverted?: boolean; sourceSave?: SourceSaveCapability; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; renderAs?: 'html' | 'markdown'; rawHtml?: string; shareHtml?: string; diffHtml?: string; convertHtml?: boolean; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; projectRoot?: string; markdownExtensions?: string[]; serverConfig?: { displayName?: string; gitUser?: string }; recentMessages?: PickerMessage[]; agentTerminal?: AgentTerminalCapability; feedbackTemplates?: AnnotateFeedbackTemplates }) => {
         // Initialize config store with server-provided values (config file > cookie > default)
         configStore.init(data.serverConfig);
         // Extra extensions the user registered as markdown (#1307) — the
@@ -2703,12 +2687,6 @@ const AppInner: React.FC = () => {
         if (data.mode === 'goal-setup' && data.goalSetup) {
           setGoalSetupBundle(data.goalSetup);
           setMarkdown('');
-        } else if (data.mode === 'archive') {
-          // Archive mode: show first archived plan or clear demo content
-          setMarkdown(data.plan || '');
-          if (data.archivePlans) archive.init(data.archivePlans);
-          archive.fetchPlans();
-          sidebar.open('archive');
         } else if (data.mode === 'annotate-app' && data.appUrl && data.liveToken) {
           // Live app annotation: full-viewport live surface on the loopback
           // proxy origin. No rawHtml and no version fields.
@@ -2867,7 +2845,7 @@ const AppInner: React.FC = () => {
   // plan-deny framing; annotate sessions wrap with the server-resolved template
   // (the same one Send Feedback gets, including custom prompts.annotate.*
   // config), falling back to the built-in annotate defaults when the server
-  // didn't ship one. Shared/static and archive sessions never set annotateMode
+  // didn't ship one. Shared/static sessions never set annotateMode
   // and keep today's behavior.
   const wrapCopiedFeedback = useCallback((feedback: string) => {
     if (annotateMode) {
@@ -2933,10 +2911,8 @@ const AppInner: React.FC = () => {
       const currentMarkdown = isEditingMarkdown
         ? markdownEditorHandleRef.current?.getMarkdown() ?? displayedMarkdown
         : displayedMarkdown;
-      const planSaveSettings = getPlanSaveSettings();
-
       // Build request body - include integrations if enabled
-      const body: { draftGeneration: number; feedback?: string; planSave?: { enabled: boolean; customPath?: string }; permissionMode?: string } = {
+      const body: { draftGeneration: number; feedback?: string; permissionMode?: string } = {
         draftGeneration: getDraftGeneration(),
       };
 
@@ -2944,12 +2920,6 @@ const AppInner: React.FC = () => {
       if (origin === 'claude-code') {
         body.permissionMode = PLAN_APPROVAL_PERMISSION_MODE;
       }
-
-      // Include plan save settings
-      body.planSave = {
-        enabled: planSaveSettings.enabled,
-        ...(planSaveSettings.customPath && { customPath: planSaveSettings.customPath }),
-      };
 
       // Include annotations as feedback if any exist (for OpenCode "approve with notes").
       // Direct edits count as feedback too — without the editsSection check here,
@@ -2987,17 +2957,12 @@ const AppInner: React.FC = () => {
         setIsSubmitting(false);
         return;
       }
-      const planSaveSettings = getPlanSaveSettings();
       await fetch('/api/deny', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           draftGeneration: getDraftGeneration(),
           feedback: getCurrentFeedbackPayload(checkedSavedFileChanges),
-          planSave: {
-            enabled: planSaveSettings.enabled,
-            ...(planSaveSettings.customPath && { customPath: planSaveSettings.customPath }),
-          },
         })
       });
       setSubmitted('denied');
@@ -3223,7 +3188,6 @@ const AppInner: React.FC = () => {
       // Don't intercept in demo/share mode (no API)
       if (!isApiMode) return;
 
-      // Standalone archive is navigable but has no review decision to submit.
       if (documentReadOnly) return;
 
       // While the markdown editor is open, submit shortcuts belong to editing,
@@ -4057,7 +4021,6 @@ const AppInner: React.FC = () => {
   ) : null;
   const handleNavigatorTabChange = (tab: SidebarTab) => {
     toggleSidebarTab(tab);
-    if (tab === 'archive' && !archive.archiveMode) archive.fetchPlans();
   };
 
   const handleNavigatorFileSelect = async (...args: Parameters<typeof handleFileBrowserSelect>) => {
@@ -4074,14 +4037,6 @@ const AppInner: React.FC = () => {
       return;
     }
     void handleFileBrowserSelect(...args);
-  };
-
-  const handleNavigatorArchiveSelect = (...args: Parameters<typeof archive.select>) => {
-    if (isEditingMarkdown) {
-      toast('Finish editing first', { description: 'Use "Done editing" before browsing archived plans.' });
-      return;
-    }
-    archive.select(...args);
   };
 
   const handleNavigatorMessageSelect = (messageId: string) => {
@@ -4111,7 +4066,7 @@ const AppInner: React.FC = () => {
         linkedDocFilepath={linkedDocHook.filepath}
         onLinkedDocBack={linkedDocHook.isActive ? handleLinkedDocBack : undefined}
         backLabel={backLabel}
-        showFilesTab={showFilesTab && !archive.archiveMode}
+        showFilesTab={showFilesTab}
         fileAnnotationCounts={fileAnnotationCounts}
         highlightedFiles={highlightedFiles}
         fileEditStatuses={editableDocuments.fileEditStatuses}
@@ -4131,11 +4086,6 @@ const AppInner: React.FC = () => {
         isSelectingVersion={planDiff.isSelectingVersion}
         fetchingVersion={planDiff.fetchingVersion}
         onFetchVersions={planDiff.fetchVersions}
-        showArchiveTab={isApiMode && !annotateMode && !goalSetupMode}
-        archivePlans={archive.plans}
-        selectedArchiveFile={archive.selectedFile}
-        onArchiveSelect={handleNavigatorArchiveSelect}
-        isLoadingArchive={archive.isLoading}
         showMessagesTab={annotateSource === 'message' && recentMessages.length > 1}
         messages={recentMessages}
         selectedMessageId={selectedMessageId}
@@ -4207,7 +4157,6 @@ const AppInner: React.FC = () => {
           onRefreshHtml={htmlRefresh.refresh}
           isApiMode={isApiMode}
           annotateMode={annotateMode}
-          archiveMode={archive.archiveMode}
           goalSetupMode={goalSetupMode}
           goalSetupCanSubmit={goalSetupAction.canSubmit}
           goalSetupIsSubmitting={goalSetupAction.isSubmitting}
@@ -4226,10 +4175,8 @@ const AppInner: React.FC = () => {
           onFeedback={handleHeaderFeedback}
           onApprove={handleHeaderApprove}
           onAnnotationPanelToggle={handleAnnotationPanelToggle}
-          onArchiveCopy={archive.copy}
-          onArchiveDone={archive.done}
           onCopyAgentInstructions={handleHeaderCopyAgentInstructions}
-          agentInstructionsEnabled={isApiMode && !archive.archiveMode && !annotateMode && !goalSetupMode}
+          agentInstructionsEnabled={isApiMode && !annotateMode && !goalSetupMode}
         />
 
         {/* The provider is render-transparent (context only, no DOM), so it can
@@ -4309,7 +4256,7 @@ const AppInner: React.FC = () => {
               onToggleTab={toggleSidebarTab}
               hasDiff={planDiff.hasPreviousVersion}
               showVersionsTab={!isHtmlSurface && activeDiffVersionInfo !== null && activeDiffVersionInfo.totalVersions > 1}
-              showFilesTab={showFilesTab && !archive.archiveMode}
+              showFilesTab={showFilesTab}
               showMessagesTab={annotateSource === 'message' && recentMessages.length > 1}
               showAgentTerminalTab={showAgentTerminalControls}
               isAgentTerminalOpen={isAgentTerminalOpen}
@@ -4351,11 +4298,11 @@ const AppInner: React.FC = () => {
               {/* Sticky header lane — ghost bar that pins the toolstrip +
                   badges at top: 12px once the user scrolls. Invisible at top
                   of doc; original toolstrip/badges remain the source of
-                  truth there. Hidden in plan diff or archive mode, or when
+                  truth there. Hidden in plan diff mode, or when
                   sticky actions are disabled. remountToken re-anchors the
                   ResizeObserver when Viewer swaps content (linked docs or
                   message switches). */}
-              {!goalSetupMode && !isPlanDiffActive && !isHtmlSurface && !archive.archiveMode && !isEditingMarkdown && uiPrefs.stickyActionsEnabled && (
+              {!goalSetupMode && !isPlanDiffActive && !isHtmlSurface && !isEditingMarkdown && uiPrefs.stickyActionsEnabled && (
                 <StickyHeaderLane
                   inputMethod={inputMethod}
                   onInputMethodChange={handleInputMethodChange}
@@ -4368,7 +4315,6 @@ const AppInner: React.FC = () => {
                   onPlanDiffToggle={() => setIsPlanDiffActive(!isPlanDiffActive)}
                   planDiffBaselineLabel={annotateMode ? 'since last review' : undefined}
                   planDiffBaselineTooltip={annotateMode ? 'Changes since you last reviewed this file' : undefined}
-                  archiveInfo={archive.currentInfo}
                   maxWidth={annotateReaderMaxWidth}
                   remountToken={viewerContentKey}
                 />
@@ -4378,7 +4324,7 @@ const AppInner: React.FC = () => {
                   comment/markup mode). Markdown surfaces only: HTML/live surfaces
                   are comment-only with pinpoint + drag both live, so no floating
                   toolstrip ever overlays the rendered page. Hidden during plan
-                  diff and archive browsing. */}
+                  diff browsing. */}
               {toolstripVisible && (
                 <div
                   className="w-full mb-3 md:mb-4 flex items-center justify-start"
@@ -4432,7 +4378,7 @@ const AppInner: React.FC = () => {
               )}
               {/* Normal Plan View — always mounted, hidden during diff mode */}
               <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : `flex justify-center${isEditingMarkdown ? ' flex-1 min-h-0' : ''}`}`} style={{ display: goalSetupMode || (isPlanDiffActive && planDiff.diffBlocks) || (annotateSource === 'folder' && !markdown && !linkedDocHook.isActive) ? 'none' : undefined }}>
-                {(canUseWideMode || canEditMarkdown) && !isPlanDiffActive && !archive.archiveMode && !isHtmlSurface && (
+                {(canUseWideMode || canEditMarkdown) && !isPlanDiffActive && !isHtmlSurface && (
                   <div
                     className="absolute -top-5 left-0 right-0 mx-auto w-full flex justify-end pointer-events-none"
                     style={annotateReaderMaxWidth === null ? undefined : { maxWidth: annotateReaderMaxWidth ?? 832 }}
@@ -4627,7 +4573,6 @@ const AppInner: React.FC = () => {
                     imageBaseDir={imageBaseDir}
                     codePathBaseDir={activeDocBaseDir}
                     copyLabel={annotateSource === 'message' ? 'Copy message' : annotateSource === 'file' || annotateSource === 'folder' ? 'Copy file' : undefined}
-                    archiveInfo={archive.currentInfo}
                     sourceInfo={sourceInfo}
                     messagePickerInfo={
                       annotateSource === 'message' && recentMessages.length > 1
@@ -4798,8 +4743,7 @@ const AppInner: React.FC = () => {
         <CompletionOverlay
           submitted={submitted}
           title={
-            archive.archiveMode ? 'Archive Closed'
-            : submitted === 'exited' ? 'Session Closed'
+            submitted === 'exited' ? 'Session Closed'
             : goalSetupMode ? 'Answers Submitted'
             : submitted === 'approved'
               ? (annotateMode ? 'Approved' : 'Plan Approved')
@@ -4809,9 +4753,7 @@ const AppInner: React.FC = () => {
           subtitle={
             submitted === 'exited'
               ? 'Annotation session closed without feedback.'
-              : archive.archiveMode
-                ? 'You can reopen with hypermark archive.'
-                : goalSetupMode
+              : goalSetupMode
                   ? `${agentName} will use your answers to continue.`
                 : submitted === 'approved'
                   ? (annotateMode

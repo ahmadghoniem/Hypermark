@@ -465,8 +465,7 @@ describe("plan decisions are archived", () => {
       const response = await fetch(`${server.url}/api/deny`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // planSave off: the archive must not depend on the legacy setting.
-        body: JSON.stringify({ feedback: "Split step one in two.", planSave: { enabled: false } }),
+        body: JSON.stringify({ feedback: "Split step one in two." }),
       });
       expect(response.status).toBe(200);
 
@@ -501,7 +500,7 @@ describe("plan decisions are archived", () => {
       await fetch(`${first.url}/api/deny`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback: "no", planSave: { enabled: false } }),
+        body: JSON.stringify({ feedback: "no" }),
       });
     } finally {
       await first.stop();
@@ -511,7 +510,7 @@ describe("plan decisions are archived", () => {
       await fetch(`${second.url}/api/approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planSave: { enabled: false } }),
+        body: JSON.stringify({}),
       });
     } finally {
       await second.stop();

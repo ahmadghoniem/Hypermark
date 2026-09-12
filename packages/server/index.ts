@@ -25,16 +25,11 @@ import {
 } from "./integrations";
 import {
   generateSlug,
-  saveAnnotations,
-  saveFinalSnapshot,
   saveToHistory,
   getPlanVersion,
   getPlanVersionPath,
   getVersionCount,
   listVersions,
-  listArchivedPlans,
-  readArchivedPlan,
-  type ArchivedPlan,
 } from "./storage";
 import { getRepoInfo } from "./repo";
 import { detectProjectName } from "./project";
@@ -49,7 +44,6 @@ import { handleDoc, handleDocExists, handleObsidianVaults, handleObsidianFiles, 
 import { closeAllFileBrowserWatchers, handleFileBrowserFilesStream } from "./reference-watch";
 import { warmFileListCache } from "@hypermark/shared/resolve-file";
 import { createExternalAnnotationHandler } from "./external-annotations";
-import { isArchiveDocumentMutation } from "@hypermark/shared/archive-mode";
 
 // Re-export utilities
 export { openBrowser } from "./browser";
@@ -72,10 +66,6 @@ export interface ServerOptions {
   /** Called when server starts with the URL, remote status, and port */
   onReady?: (url: string, port: number) => void | Promise<void>;
   /** OpenCode client for querying available agents (OpenCode only) */
-  /** When set to "archive", server runs in read-only archive browser mode */
-  mode?: "archive";
-  /** Custom plan save path — used by archive mode to find saved plans */
-  customPlanPath?: string | null;
 }
 
 export interface ServerResult {
@@ -87,11 +77,8 @@ export interface ServerResult {
   waitForDecision: () => Promise<{
     approved: boolean;
     feedback?: string;
-    savedPath?: string;
     permissionMode?: string;
   }>;
-  /** Wait for user to close (archive mode only) */
-  waitForDone?: () => Promise<void>;
   /** Stop the server and close active browser connections. */
   stop: () => Promise<void>;
 }
@@ -110,31 +97,14 @@ export interface ServerResult {
 export async function startHypermarkServer(
   options: ServerOptions
 ): Promise<ServerResult> {
-  const { plan, origin, htmlContent, permissionMode, onReady, mode, customPlanPath } = options;
+  const { plan, origin, htmlContent, permissionMode, onReady } = options;
 
   const gitUser = detectGitUser();
 
-  // --- Archive mode setup ---
-  let archivePlans: ArchivedPlan[] = [];
-  let initialArchivePlan = "";
-  let resolveDone: (() => void) | undefined;
-  let donePromise: Promise<void> | undefined;
-
-  if (mode === "archive") {
-    archivePlans = listArchivedPlans(customPlanPath ?? undefined);
-    initialArchivePlan = archivePlans.length > 0
-      ? readArchivedPlan(archivePlans[0].filename, customPlanPath ?? undefined) ?? ""
-      : "";
-    donePromise = new Promise<void>((resolve) => { resolveDone = resolve; });
-  }
-
-  // --- Plan review mode setup (skip in archive mode) ---
-  const draftKey = mode !== "archive" ? contentHash(plan) : "";
-  const externalAnnotations = mode !== "archive" ? createExternalAnnotationHandler("plan") : null;
-  const slug = mode !== "archive" ? generateSlug(plan) : "";
-
-  // Lazy cache for in-session archive browsing (plan review sidebar tab)
-  let cachedArchivePlans: ReturnType<typeof listArchivedPlans> | null = null;
+  // --- Plan review setup ---
+  const draftKey = contentHash(plan);
+  const externalAnnotations = createExternalAnnotationHandler("plan");
+  const slug = generateSlug(plan);
 
   // Plan-specific: repo info, version history, decision promise
   let repoInfo: Awaited<ReturnType<typeof getRepoInfo>> | null = null;
@@ -146,17 +116,15 @@ export async function startHypermarkServer(
   let resolveDecision: (result: {
     approved: boolean;
     feedback?: string;
-    savedPath?: string;
     permissionMode?: string;
   }) => void;
   let decisionPromise: Promise<{
     approved: boolean;
     feedback?: string;
-    savedPath?: string;
     permissionMode?: string;
   }>;
 
-  if (mode !== "archive") {
+  {
     repoInfo = await getRepoInfo();
     project = (await detectProjectName()) ?? "_unknown";
     const historyResult = saveToHistory(project, slug, plan);
@@ -174,19 +142,14 @@ export async function startHypermarkServer(
     decisionPromise = new Promise((resolve) => {
       resolveDecision = resolve;
     });
-  } else {
-    // Never-resolving promise — archive mode uses waitForDone instead
-    decisionPromise = new Promise(() => {});
   }
 
   // Durable feedback archive: append the decision (and any notes the reviewer
   // attached) to feedback/{project}/index.jsonl at settlement time.
   //
-  // Deliberately independent of the client-sent `planSave` setting: that one
-  // is off for some users, writes only while enabled, and keys its snapshot by
-  // slug — so approve → deny → approve on one plan keeps a single file per
-  // status and is not a timeline. The archive appends, so every decision on a
-  // plan survives in order.
+  // This is the only record of a decision. It appends, so every decision on a
+  // plan survives in order — approve → deny → approve are three records, not
+  // one overwritten file.
   //
   // The plan TEXT is not copied into the archive. The record names the exact
   // `history/{project}/{slug}/NNN.md` version this decision was made on, which
@@ -204,7 +167,6 @@ export async function startHypermarkServer(
   // location. That is the honest answer anyway — it is where the version file
   // actually was written — so this is documented rather than "fixed".
   const archivePlanDecision = (decision: FeedbackDecision, feedback?: string): void => {
-    if (mode === "archive") return;
     if (!resolveFeedbackHistory(loadConfig())) return;
     appendFeedbackRecord({
       project,
@@ -262,49 +224,8 @@ export async function startHypermarkServer(
             });
           }
 
-          // API: List archived plans (from ~/.hypermark/plans/)
-          // Cached for session lifetime — new plans won't appear during a single review
-          if (url.pathname === "/api/archive/plans" && req.method === "GET") {
-            const customPath = url.searchParams.get("customPath") || undefined;
-            if (!cachedArchivePlans) cachedArchivePlans = listArchivedPlans(customPath);
-            return Response.json({ plans: cachedArchivePlans });
-          }
-
-          // API: Get a specific archived plan
-          if (url.pathname === "/api/archive/plan" && req.method === "GET") {
-            const filename = url.searchParams.get("filename");
-            if (!filename) {
-              return Response.json({ error: "Missing filename parameter" }, { status: 400 });
-            }
-            const customPath = url.searchParams.get("customPath") || undefined;
-            const content = readArchivedPlan(filename, customPath);
-            if (content === null) {
-              return Response.json({ error: "Plan not found" }, { status: 404 });
-            }
-            return Response.json({ markdown: content, filepath: filename });
-          }
-
-          // API: Close archive browser (archive mode only)
-          if (url.pathname === "/api/done" && req.method === "POST") {
-            resolveDone?.();
-            return Response.json({ ok: true });
-          }
-
-          if (mode === "archive" && isArchiveDocumentMutation(req.method, url.pathname)) {
-            return Response.json({ error: "Archive is read-only" }, { status: 403 });
-          }
-
           // API: Get plan content
           if (url.pathname === "/api/plan") {
-            if (mode === "archive") {
-              return Response.json({
-                plan: initialArchivePlan,
-                origin,
-                mode: "archive",
-                archivePlans,
-                serverConfig: getServerConfig(gitUser),
-              });
-            }
             return Response.json({ plan, origin, permissionMode, repoInfo, previousPlan, versionInfo, projectRoot: process.cwd(), serverConfig: getServerConfig(gitUser) });
           }
 
@@ -453,8 +374,6 @@ export async function startHypermarkServer(
             // Check for note integrations and optional feedback
             let feedback: string | undefined;
             let requestedPermissionMode: string | undefined;
-            let planSaveEnabled = true; // default to enabled for backwards compat
-            let planSaveCustomPath: string | undefined;
             let draftGeneration: number | undefined;
             try {
               const body = (await req.json().catch(() => ({}))) as {
@@ -462,7 +381,6 @@ export async function startHypermarkServer(
                 bear?: BearConfig;
                 octarine?: OctarineConfig;
                 feedback?: string;
-                planSave?: { enabled: boolean; customPath?: string };
                 permissionMode?: string;
                 draftGeneration?: number;
               };
@@ -478,12 +396,6 @@ export async function startHypermarkServer(
               // Capture permission mode from client request (Claude Code)
               if (body.permissionMode) {
                 requestedPermissionMode = body.permissionMode;
-              }
-
-              // Capture plan save settings
-              if (body.planSave !== undefined) {
-                planSaveEnabled = body.planSave.enabled;
-                planSaveCustomPath = body.planSave.customPath;
               }
 
               // Run integrations in parallel — they're independent
@@ -510,16 +422,6 @@ export async function startHypermarkServer(
               console.error(`[Integration] Error:`, err);
             }
 
-            // Save annotations and final snapshot (if enabled)
-            let savedPath: string | undefined;
-            if (planSaveEnabled) {
-              const annotations = feedback || "";
-              if (annotations) {
-                saveAnnotations(slug, annotations, planSaveCustomPath);
-              }
-              savedPath = saveFinalSnapshot(slug, "approved", plan, annotations, planSaveCustomPath);
-            }
-
             // Archive the submission BEFORE the draft (the reviewer's other
             // copy) is deleted — the #678 ordering, generalized.
             archivePlanDecision(
@@ -538,46 +440,30 @@ export async function startHypermarkServer(
             // is the whole reason the mode is chosen here rather than inherited.
             const inheritedPermissionMode = permissionMode === "plan" ? undefined : permissionMode;
             const effectivePermissionMode = requestedPermissionMode || inheritedPermissionMode;
-            resolveDecision({ approved: true, feedback, savedPath, permissionMode: effectivePermissionMode });
-            return Response.json({ ok: true, savedPath });
+            resolveDecision({ approved: true, feedback, permissionMode: effectivePermissionMode });
+            return Response.json({ ok: true });
           }
 
           // API: Deny with feedback
           if (url.pathname === "/api/deny" && req.method === "POST") {
             let feedback = "Plan rejected by user";
-            let planSaveEnabled = true; // default to enabled for backwards compat
-            let planSaveCustomPath: string | undefined;
             let draftGeneration: number | undefined;
             try {
               const body = (await req.json()) as {
                 feedback?: string;
-                planSave?: { enabled: boolean; customPath?: string };
                 draftGeneration?: number;
               };
               draftGeneration = readDraftGenerationFromBody(body);
               feedback = body.feedback || feedback;
-
-              // Capture plan save settings
-              if (body.planSave !== undefined) {
-                planSaveEnabled = body.planSave.enabled;
-                planSaveCustomPath = body.planSave.customPath;
-              }
             } catch {
               // Use default feedback
-            }
-
-            // Save annotations and final snapshot (if enabled)
-            let savedPath: string | undefined;
-            if (planSaveEnabled) {
-              saveAnnotations(slug, feedback, planSaveCustomPath);
-              savedPath = saveFinalSnapshot(slug, "denied", plan, feedback, planSaveCustomPath);
             }
 
             archivePlanDecision("denied", feedback);
 
             deleteDraft(draftKey, draftGeneration);
-            resolveDecision({ approved: false, feedback, savedPath });
-            return Response.json({ ok: true, savedPath });
+            resolveDecision({ approved: false, feedback });
+            return Response.json({ ok: true });
           }
 
           // Favicon
@@ -636,7 +522,6 @@ export async function startHypermarkServer(
     port,
     url: serverUrl,
     waitForDecision: () => decisionPromise,
-    ...(donePromise && { waitForDone: () => donePromise }),
     stop,
   };
 }

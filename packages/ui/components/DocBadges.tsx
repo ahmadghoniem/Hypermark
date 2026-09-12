@@ -1,5 +1,5 @@
 /**
- * DocBadges — repo / branch / plan-diff / demo / archive / linked-doc badge cluster.
+ * DocBadges — repo / branch / plan-diff / demo / linked-doc badge cluster.
  *
  * Extracted from Viewer.tsx so the same markup can render in two places:
  *   - layout="column": original location at the top-left of the plan card (absolute)
@@ -42,7 +42,6 @@ export interface DocBadgesProps {
   planDiffBaselineLabel?: string;
   planDiffBaselineTooltip?: string;
   showDemoBadge?: boolean;
-  archiveInfo?: { status: 'approved' | 'denied' | 'unknown'; timestamp: string; title: string } | null;
   linkedDocInfo?: LinkedDocBadgeInfo | null;
   /** Source attribution for HTML/URL annotations (e.g. "https://..." or "index.html") */
   sourceInfo?: string;
@@ -58,20 +57,18 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
   planDiffBaselineLabel,
   planDiffBaselineTooltip,
   showDemoBadge,
-  archiveInfo,
   linkedDocInfo,
   sourceInfo,
 }) => {
   const isRow = layout === 'row';
   const isHorizontal = layout !== 'column';
-  // In row layout, only PlanDiffBadge (when it has stats to show) and
-  // archiveInfo (outside linked-doc mode) actually render — everything else
-  // is hidden. Check what will truly produce visible output to avoid an
-  // empty wrapper div. PlanDiffBadge is not linkedDocInfo-gated — see the
-  // header comment.
+  // In row layout, only PlanDiffBadge (when it has stats to show) actually
+  // renders — everything else is hidden. Check what will truly produce
+  // visible output to avoid an empty wrapper div. PlanDiffBadge is not
+  // linkedDocInfo-gated — see the header comment.
   const anything = isRow
-    ? (hasPreviousVersion && planDiffStats) || (archiveInfo && !linkedDocInfo)
-    : repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo || archiveInfo || sourceInfo;
+    ? hasPreviousVersion && planDiffStats
+    : repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo || sourceInfo;
   if (!anything) return null;
 
   // Row layout: single horizontal line. Column layout: stacked rows.
@@ -136,42 +133,6 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
         <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-amber-500/15 text-amber-600 dark:text-amber-400">
           Demo
         </span>
-      )}
-
-      {archiveInfo && !linkedDocInfo && (
-        <div className="flex items-center gap-1.5">
-          <span
-            className={`px-1.5 py-0.5 rounded ${
-              archiveInfo.status === 'approved'
-                ? 'bg-green-500/15 text-green-600 dark:text-green-400'
-                : archiveInfo.status === 'denied'
-                  ? 'bg-red-500/15 text-red-600 dark:text-red-400'
-                  : 'bg-muted/50 text-muted-foreground'
-            }`}
-          >
-            {archiveInfo.status === 'approved'
-              ? 'Approved'
-              : archiveInfo.status === 'denied'
-                ? 'Denied'
-                : 'Unknown'}
-          </span>
-          {archiveInfo.timestamp && (
-            <span
-              className="px-1.5 py-0.5 bg-muted/50 rounded"
-              title={archiveInfo.timestamp}
-            >
-              {new Date(archiveInfo.timestamp).toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })}{' '}
-              {new Date(archiveInfo.timestamp).toLocaleTimeString(undefined, {
-                hour: 'numeric',
-                minute: '2-digit',
-              })}
-            </span>
-          )}
-        </div>
       )}
 
       {/* Linked-doc breadcrumb: only in column layout (sticky lane is hidden in linked-doc mode) */}
