@@ -144,35 +144,6 @@ export const SETTINGS = {
     serverKey: undefined, fromServer: undefined, toServer: undefined,
   },
 
-  // Compact left-panel preferences. These are deliberately cookie-only: they
-  // shape the local file-list chrome without changing review semantics or the
-  // repository state, and should follow the reviewer across review sessions.
-  reviewShowViewedControls: {
-    defaultValue: true as boolean,
-    fromCookie: () => {
-      const value = storage.getItem('hypermark-review-show-viewed-controls');
-      return value === 'true' ? true : value === 'false' ? false : undefined;
-    },
-    toCookie: (value: boolean) =>
-      storage.setItem('hypermark-review-show-viewed-controls', String(value)),
-    serverKey: undefined, fromServer: undefined, toServer: undefined,
-  },
-
-  // Mark a file viewed when the reviewer scrolls past it or moves on to
-  // another file. Cookie-only like the other review-chrome preferences: it
-  // shapes how the local file list checks itself off and changes no review
-  // semantics (viewed gates nothing on submit).
-  reviewAutoViewed: {
-    defaultValue: true as boolean,
-    fromCookie: () => {
-      const value = storage.getItem('hypermark-review-auto-viewed');
-      return value === 'true' ? true : value === 'false' ? false : undefined;
-    },
-    toCookie: (value: boolean) =>
-      storage.setItem('hypermark-review-auto-viewed', String(value)),
-    serverKey: undefined, fromServer: undefined, toServer: undefined,
-  },
-
   defaultDiffType: {
     defaultValue: 'since-base' as 'since-base' | 'local-vs-remote' | 'uncommitted' | 'unstaged' | 'staged' | 'merge-base' | 'all',
     fromCookie: () => {

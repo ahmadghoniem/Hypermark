@@ -12,7 +12,7 @@
 
 ## Left alone
 
-- `FileRowBits` imports (ViewedControl, StageControl, …) — plain components, no Radix.
+- `FileRowBits` imports (StageControl, …) — plain components, no Radix.
 - `.file-tree-item` CSS — class-based, element unchanged (still a `<button>` via render).
 
 ## Behavior changes

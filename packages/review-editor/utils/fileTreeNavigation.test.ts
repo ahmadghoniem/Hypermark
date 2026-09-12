@@ -4,7 +4,6 @@ import type { DiffFile } from '../types';
 import {
   buildFileTreePaths,
   getKeyboardFileOrder,
-  getVisibleFiles,
   resolveFileTreeTargetFromComposedPath,
   revealFileInTree,
 } from './fileTreeAdapter';
@@ -90,55 +89,12 @@ describe('fileTreeAdapter — resolveFileTreeTargetFromComposedPath (double-clic
   });
 });
 
-describe('fileTreeAdapter — getVisibleFiles (visible file subset)', () => {
-  it('returns all files unmodified when hideViewedFiles is false', () => {
-    const viewed = new Set<string>(['src/added.ts', 'src/other.ts']);
-    const result = getVisibleFiles(files, viewed, false, 'src/added.ts');
-    expect(result).toBe(files as DiffFile[]);
-  });
-
-  it('filters out viewed files when hideViewedFiles is true', () => {
-    const viewed = new Set<string>(['src/added.ts', 'src/other.ts']);
-    const result = getVisibleFiles(files, viewed, true, 'src/deleted.ts');
-    expect(result.map((f) => f.path)).toEqual([
-      'src/deleted.ts',
-      'src/new-name.ts',
-      'assets/logo.png',
-      'src/a/b/c/d/e/deep.ts',
-    ]);
-  });
-
-  it('retains the active file even when viewed under hideViewedFiles', () => {
-    const viewed = new Set<string>(['src/added.ts', 'src/other.ts']);
-    // Active file is viewed, but must NOT drop out of the tree
-    const result = getVisibleFiles(files, viewed, true, 'src/added.ts');
-    expect(result.map((f) => f.path)).toContain('src/added.ts');
-    expect(result.map((f) => f.path)).not.toContain('src/other.ts');
-  });
-});
-
 describe('fileTreeAdapter — getKeyboardFileOrder (visible keyboard traversal)', () => {
   it('maps visible files to their canonical indices in the full files array', () => {
     // Subset with deleted (index 1) and other (index 5)
     const visible = [deleted, other];
     const order = getKeyboardFileOrder(files, visible);
     expect(order).toEqual([1, 5]);
-  });
-
-  it('never selects a viewed file that the tree is not showing when hideViewedFiles is on', () => {
-    const viewed = new Set<string>(['src/deleted.ts', 'assets/logo.png', 'src/other.ts']);
-    const visible = getVisibleFiles(files, viewed, true, 'src/added.ts');
-    const order = getKeyboardFileOrder(files, visible);
-
-    // Filtered out viewed files must not be reachable via keyboard order
-    expect(order).not.toContain(files.indexOf(deleted));
-    expect(order).not.toContain(files.indexOf(binary));
-    expect(order).not.toContain(files.indexOf(other));
-
-    // Active file and unviewed files are reachable
-    expect(order).toContain(files.indexOf(added));
-    expect(order).toContain(files.indexOf(renamed));
-    expect(order).toContain(files.indexOf(deeplyNested));
   });
 
   it('returns empty array when visibleFiles is empty', () => {
@@ -172,7 +128,7 @@ describe('fileTreeAdapter — reveal surviving path-set changes', () => {
       expect(model.getSelectedPaths()).toEqual(['src/a/b/c/d/e/deep.ts']);
       expect(isDirectoryExpanded(model, 'src/a')).toBe(true);
 
-      // resetPaths (e.g. from hideViewedFiles toggle) clears selection if the file drops out
+      // resetPaths clears selection if the file drops out
       model.resetPaths(['src/added.ts']);
       expect(model.getSelectedPaths()).toEqual([]);
 

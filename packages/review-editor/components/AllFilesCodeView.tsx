@@ -184,11 +184,6 @@ export interface AllFilesCodeViewProps {
   onDeleteAnnotation: (id: string) => void;
   // Header actions (P3). Mirror AllFilesDiffView's header surface.
   onAddFileCommentForFile?: (filePath: string, text: string) => void;
-  viewedFiles?: Set<string>;
-  onToggleViewed?: (filePath: string) => void;
-  /** Chrome preference (#1277): false hides the header Viewed buttons; the `v`
-   *  shortcut and viewed state are unaffected. */
-  showViewedControls?: boolean;
   /** Repo-relative paths marked `linguist-generated` in `.gitattributes`
    * (#1317). Their diffs SEED collapsed (GitHub-style) and their headers show
    * a "generated" tag. Presentation-only: the diff data is fully present, so
@@ -217,22 +212,9 @@ export interface AllFilesCodeViewProps {
    * identifier is app-only work, and this component is also compiled into the
    * read-only portable guide viewer, which passes neither handler.
    */
-  // File-tree active-file highlight follows scroll. The second argument
-  // reports whether the newly active item is COLLAPSED, which auto-mark-viewed
-  // needs (a folded card shows no content, so time parked on it is not
-  // reading time). Optional and additive — existing one-argument handlers are
-  // unaffected.
+  // File-tree active-file highlight follows scroll. Optional and additive —
+  // existing one-argument handlers are unaffected.
   onVisibleFileChange?: (filePath: string | null, info?: { collapsed: boolean }) => void;
-  /**
-   * Auto-mark-viewed: the reader MOVED ON from `filePath`. Fired on a downward
-   * active-file transition once the passed file's successor has reached the
-   * viewport top (so the file genuinely scrolled out above rather than merely
-   * losing the active race), and on every at-bottom tick for the final file,
-   * which can never scroll out above. Collapsed items never fire.
-   *
-   * Optional: without it this component behaves exactly as before.
-   */
-  onFileScrolledPast?: (filePath: string) => void;
   /** Tokenized request to reveal a file through CodeView's own item navigation.
    *  The token lets repeated requests for the same path fire again. */
   fileScrollTarget?: { filePath: string; token: number } | null;
@@ -364,15 +346,6 @@ function buildItemIdentity(
   return { items, filePathToItemId, filePathToItemIds, itemIdToFilePath, itemIdToFile };
 }
 
-/**
- * Slack allowed when deciding a file has scrolled out ABOVE the viewport for
- * auto-mark-viewed. The active-file rule uses a +50px threshold, so a file can
- * become "not active" while a sliver of it is still on screen; this epsilon
- * keeps the pass check honest without demanding pixel-exact alignment on a
- * momentum-scrolled frame.
- */
-const SCROLLED_PAST_EPSILON_PX = 8;
-
 // Resolved pixel height of the custom header. Must equal FileHeader's fixed
 // container height (`style={{ height: 'var(--panel-header-h)' }}`) so CodeView's
 // virtualization reserves exactly the right space for the header. FileHeader is
@@ -414,9 +387,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   onSelectAnnotation,
   onDeleteAnnotation,
   onAddFileCommentForFile,
-  viewedFiles,
-  onToggleViewed,
-  showViewedControls = true,
   generatedFiles,
   expandedGeneratedFiles,
   onGeneratedFileCollapsedChange,
@@ -426,7 +396,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   activeSearchMatch = null,
   onCodeNavRequest,
   onVisibleFileChange,
-  onFileScrolledPast,
   fileScrollTarget,
   fileOrder,
   registerCollapseAllToggle,
@@ -492,18 +461,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   // The file path CodeView currently reports as visible (active-file highlight).
   // Reset on diff switch so stepping/highlighting never anchors on an old file.
   const visibleFileRef = useRef<string | null>(null);
-  // The ITEM behind visibleFileRef. Auto-mark-viewed compares item positions
-  // (a path can own several items when a diff renders it twice), so the path
-  // alone cannot answer "did we move down?".
-  const visibleItemIdRef = useRef<string | null>(null);
-  // The item the reader has left but whose pass geometry has not resolved yet.
-  const passCandidateItemRef = useRef<string | null>(null);
-  // Whether a REAL scroll has happened on the current file set. The at-bottom
-  // branch below is true from the very first tick when the diff fits the
-  // viewport, and that tick is the mount seed — emitting there would mark a
-  // file the reviewer merely arrived at, without touching anything, which is
-  // the one thing auto-mark-viewed must never do.
-  const hasScrolledRef = useRef(false);
 
   // The file CodeView last reported a selection / line-click in. The toolbar is
   // keyed off this file's path + patch, but the value is sourced from the
@@ -524,10 +481,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   // refreshes the entry via handleFileComment).
   const fileCommentButtonRefs = useRef<Map<string, HTMLElement>>(new Map());
 
-  // Previous snapshots of header-driving props (see the header-refresh effect
-  // below). Declared up here with the other refs so the diff-switch reset effect
-  // can resync them.
-  const prevViewedRef = useRef<Set<string> | undefined>(viewedFiles);
   // Previous line-card snapshots for the per-item annotation-sync effect (P4).
   const prevAnnotationsRef = useRef<CodeAnnotation[]>(annotations);
 
@@ -823,15 +776,8 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     setSelectedLines(null);
     pendingToolbarRange.current = null;
     visibleFileRef.current = null;
-    visibleItemIdRef.current = null;
-    passCandidateItemRef.current = null;
-    hasScrolledRef.current = false;
     setFileCommentAnchor(null);
     fileCommentButtonRefs.current.clear();
-    // Resync the header-refresh snapshots to the current props so the post-
-    // remount header-refresh effect computes deltas against THIS diff, not the
-    // previous one (the remounted items already seed from live props).
-    prevViewedRef.current = viewedFiles;
     // Line cards are seeded into the remounted items at build time, so resync
     // this snapshot here to avoid a spurious refresh post-remount.
     prevAnnotationsRef.current = annotations;
@@ -878,7 +824,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     if (!filePath) return;
     // Generated files (#1317): let the owner track explicit expansion so it
     // survives remounts. Every collapse mutation funnels through here —
-    // toggle, viewed+collapse, collapse/expand-all, the collapsed-placeholder
+    // toggle, collapse/expand-all, the collapsed-placeholder
     // strip, and the navigation-driven expansions (search
     // match, sidebar comment) — so the owner's set always mirrors the live
     // item state.
@@ -905,19 +851,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     if (itemTop != null && itemTop < viewer.getScrollTop()) {
       viewer.scrollTo({ type: 'item', id: itemId, align: 'start' });
     }
-  });
-
-  // Collapse a file (idempotent) — used by viewed+collapse so marking a file
-  // viewed also folds it away, matching the legacy view.
-  const collapseItem = useStableCallback((itemId: string) => {
-    const handle = viewerRef.current;
-    const item = handle?.getItem(itemId);
-    if (handle == null || item == null || item.collapsed === true) return;
-    item.collapsed = true;
-    item.version = (item.version ?? 0) + 1;
-    handle.updateItem(item);
-    syncAllCollapsedMirror();
-    reportFileCollapsed(itemId, true);
   });
 
   const isItemCollapsed = useCallback((itemId: string): boolean => {
@@ -970,11 +903,8 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   // Force CodeView to re-render an item's slots (header included) WITHOUT
   // otherwise mutating it. Pierre renders `renderCustomHeader` into a portal
   // driven by an internal store that only republishes on item mount / unmount /
-  // updateItem. Because `renderCustomHeader` is a stable callback (its identity
-  // never changes), the memoized SlotPortals will NOT re-render when external
-  // React state captured by the closure (viewedFiles) changes. Bumping
-  // `item.version` + `updateItem` republishes the slot so the header reflects
-  // the new state — the same path collapse already uses.
+  // updateItem. Bumping `item.version` + `updateItem` republishes the slot so
+  // the header reflects the new state — the same path collapse already uses.
   const refreshItem = useCallback((itemId: string) => {
     const handle = viewerRef.current;
     const item = handle?.getItem(itemId);
@@ -1453,88 +1383,10 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
 
   // --- Header actions ---------------------------------------------------------
 
-  const handleToggleViewedAndCollapse = useStableCallback((filePath: string, itemId: string) => {
-    const wasViewed = viewedFiles?.has(filePath) ?? false;
-    onToggleViewed?.(filePath);
-    // Mark-as-viewed also collapses (legacy behavior); un-viewing leaves it.
-    // collapseItem bumps the version + updateItem so the header re-renders to
-    // the viewed state. Un-viewing performs no collapse, so it would otherwise
-    // skip the version bump and leave the (now stale) Viewed badge on screen —
-    // force a header refresh so the Viewed button reverts both ways.
-    if (!wasViewed) {
-      collapseItem(itemId);
-    } else {
-      refreshItem(itemId);
-    }
-  });
-
   const handleFileComment = useStableCallback((filePath: string, anchorEl: HTMLElement) => {
     fileCommentButtonRefs.current.set(filePath, anchorEl);
     setFileCommentAnchor({ el: anchorEl, filePath });
   });
-
-  // Header chrome (the Viewed badge) is driven by external React props, but
-  // the custom header is rendered into Pierre's slot portal which only
-  // republishes on updateItem — never when a stable render callback's captured
-  // props change. So whenever a header-driving prop changes, force a re-render
-  // of every affected item.
-  //
-  // Direct paths (the header Viewed button's un-view branch calls the handler
-  // without bumping any version) are covered here, so the header stays in sync
-  // regardless of which surface triggered the change. We track the previous
-  // snapshots (declared with the other refs above) and refresh exactly the
-  // items whose state actually changed.
-  useEffect(() => {
-    const handle = viewerRef.current;
-    if (handle == null) {
-      // Update snapshots even when no viewer is mounted yet so the first real
-      // diff doesn't refresh everything spuriously.
-      prevViewedRef.current = viewedFiles;
-      return;
-    }
-
-    const changedPaths = new Set<string>();
-    const collectSetDelta = (
-      next: Set<string> | undefined,
-      prev: Set<string> | undefined,
-    ) => {
-      if (next === prev) return;
-      next?.forEach((p) => {
-        if (!prev?.has(p)) changedPaths.add(p);
-      });
-      prev?.forEach((p) => {
-        if (!next?.has(p)) changedPaths.add(p);
-      });
-    };
-
-    collectSetDelta(viewedFiles, prevViewedRef.current);
-    // Generated tags (#1317) deliberately have no delta here: any
-    // content-changed generated set remounts CodeView via fileSetKey
-    // (generatedKey), so a delta on the live items is unreachable.
-
-    prevViewedRef.current = viewedFiles;
-
-    for (const path of changedPaths) {
-      // All twins of a duplicate path share viewed state (it's keyed by
-      // path), so refresh every item rendering it.
-      for (const itemId of filePathToItemIds.get(path) ?? []) {
-        refreshItem(itemId);
-      }
-    }
-  }, [viewedFiles, filePathToItemIds, refreshItem]);
-
-  // The control-visibility preference affects every header at once, so a
-  // toggle refreshes all items (same slot-portal republish constraint as the
-  // per-file sync above).
-  const prevShowViewedRef = useRef(showViewedControls);
-  useEffect(() => {
-    const changed = prevShowViewedRef.current !== showViewedControls;
-    prevShowViewedRef.current = showViewedControls;
-    if (!changed || viewerRef.current == null) return;
-    for (const itemIds of filePathToItemIds.values()) {
-      for (const itemId of itemIds) refreshItem(itemId);
-    }
-  }, [showViewedControls, filePathToItemIds, refreshItem]);
 
   // --- Line selection through CodeView (replaces geometry-based inference) ---
 
@@ -1689,49 +1541,8 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     }
     const path = itemIdToFilePath.get(bestId) ?? null;
     if (path !== visibleFileRef.current) {
-      // Auto-mark-viewed (Rule 1): the file the reader just left becomes a
-      // PASS CANDIDATE. It is not marked yet — the geometry still has to say
-      // it genuinely scrolled out above.
-      const previousItemId = visibleItemIdRef.current;
-      if (previousItemId != null && previousItemId !== bestId) {
-        passCandidateItemRef.current = previousItemId;
-      }
-      visibleItemIdRef.current = bestId;
       visibleFileRef.current = path;
       onVisibleFileChange?.(path, { collapsed: isCollapsed(bestId) });
-    }
-    // Resolve the candidate — possibly a tick or two after the transition. The
-    // active-file rule switches at scrollTop+50 while a pass demands the
-    // successor actually reach the viewport top, so one scroll frame can land
-    // inside that gap; judging only on the transition tick would skip the file
-    // for good. An upward move (or a return to the candidate itself) drops it:
-    // going back is not moving on.
-    if (onFileScrolledPast && passCandidateItemRef.current != null) {
-      const candidateId = passCandidateItemRef.current;
-      const candidateIndex = orderedItemIds.indexOf(candidateId);
-      const currentIndex = orderedItemIds.indexOf(bestId);
-      const candidatePath = itemIdToFilePath.get(candidateId);
-      if (candidateIndex === -1 || candidatePath == null || currentIndex <= candidateIndex
-          || isCollapsed(candidateId)) {
-        passCandidateItemRef.current = null;
-      } else {
-        // Successor top comes from getTopForItem, which is defined for every
-        // item (not just the rendered window), so no extra geometry is needed.
-        const successorTop = viewer.getTopForItem(orderedItemIds[candidateIndex + 1]);
-        if (successorTop != null && successorTop <= scrollTop + SCROLLED_PAST_EPSILON_PX) {
-          passCandidateItemRef.current = null;
-          onFileScrolledPast(candidatePath);
-        }
-      }
-    }
-    // The last file can never scroll out above, so reaching the end of the
-    // diff is its completion signal. Re-fires on every at-bottom tick; the
-    // owner's dwell floor decides whether it actually marks. Gated on a real
-    // scroll having happened, because a diff shorter than the viewport is
-    // at-bottom from the mount seed onwards.
-    if (atBottom && hasScrolledRef.current && path != null && onFileScrolledPast
-        && !isCollapsed(bestId)) {
-      onFileScrolledPast(path);
     }
   });
 
@@ -1741,7 +1552,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   const scrollReportRafRef = useRef<number | null>(null);
   const handleScroll = useStableCallback((position: number) => {
     lastScrollTsRef.current = Date.now();
-    hasScrolledRef.current = true;
     if (scrollReportRafRef.current != null) return;
     scrollReportRafRef.current = requestAnimationFrame(() => {
       scrollReportRafRef.current = null;
@@ -1773,7 +1583,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
 
   // File-level navigation for surfaces whose lightweight navigation UI lives
   // outside CodeView. Expand before scrolling so a
-  // viewed/collapsed target reveals code rather than only its file header.
+  // collapsed target reveals code rather than only its file header.
   // rAF waits for CodeView's initial seed/remount to publish the imperative
   // handle; token semantics allow the same file to be requested repeatedly.
   useEffect(() => {
@@ -1929,13 +1739,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
         return;
       }
 
-      // v — toggle viewed (and collapse on mark-viewed) for the current file.
-      if (e.key === 'v' && currentPath && currentId) {
-        e.preventDefault();
-        handleToggleViewedAndCollapse(currentPath, currentId);
-        return;
-      }
-
       if (e.key !== '[' && e.key !== ']') return;
       e.preventDefault();
 
@@ -1960,7 +1763,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     toggleItemCollapsed,
     isItemCollapsed,
     onAddFileCommentForFile,
-    handleToggleViewedAndCollapse,
   ]);
 
   // --- Custom header render slot (the full Hypermark FileHeader) -----------
@@ -1984,10 +1786,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
         patch={file.patch}
         status={file.status}
         oldPath={file.oldPath}
-        isViewed={viewedFiles?.has(filePath)}
         isGenerated={generatedFiles?.has(filePath) === true}
-        onToggleViewed={onToggleViewed ? () => handleToggleViewedAndCollapse(filePath, item.id) : undefined}
-        showViewedControl={showViewedControls}
         onFileComment={onAddFileCommentForFile ? (anchorEl) => handleFileComment(filePath, anchorEl) : undefined}
         // Eager registration so the `c` shortcut can anchor the popover for a
         // file whose button was never clicked. Detach (null) deletes the entry

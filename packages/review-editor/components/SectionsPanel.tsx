@@ -11,7 +11,6 @@ import { PanelViewToggle } from './PanelViewToggle';
 import { AllFilesRow } from './PanelNavRows';
 import { PanelControlsRow, PanelSearchField } from './PanelChrome';
 import {
-  ViewedControl,
   ChangeTypeLetter,
   StagedDot,
   AnnotationBadge,
@@ -30,8 +29,7 @@ import type { DiffFile } from '../types';
  * One composite diff (merge-base → working tree + untracked) grouped by
  * lifecycle state: Committed (viewport-adaptive), Changes (staged first),
  * Untracked. Rows share the tree view's exact anatomy (file-tree-item class,
- * circle viewed control, +/- counts, A/D/R letters) so switching views never
- * changes the visual language.
+ * +/- counts, A/D/R letters) so switching views never changes the visual language.
  */
 
 type SectionGroup = 'committed' | 'changes' | 'untracked';
@@ -56,16 +54,8 @@ interface SectionsPanelProps {
   /** j/k/arrows/Home/End file navigation (disabled while modals are open). */
   enableKeyboardNav?: boolean;
   annotations: CodeAnnotation[];
-  viewedFiles: Set<string>;
-  onToggleViewed?: (filePath: string) => void;
-  hideViewedFiles?: boolean;
-  onToggleHideViewed?: () => void;
-  showViewedControls?: boolean;
-  onToggleShowViewedControls?: () => void;
   /** Read-side staged set from the server's status sidecar — display only. */
   stagedFiles: Set<string>;
-  autoViewed?: boolean;
-  onToggleAutoViewed?: () => void;
   isLoadingDiff?: boolean;
   /** Base picker ("vs origin/main" affordance). */
   availableBranches?: AvailableBranches;
@@ -116,23 +106,17 @@ const SectionRow: React.FC<{
   item: SectionItem;
   isActive: boolean;
   isScrollActive: boolean;
-  isViewed: boolean;
   annotationCount: number;
   onSelect: () => void;
   onDoubleClick?: () => void;
-  onToggleViewed?: () => void;
-  showViewedControl: boolean;
   isStaged: boolean;
 }> = ({
   item,
   isActive,
   isScrollActive,
-  isViewed,
   annotationCount,
   onSelect,
   onDoubleClick,
-  onToggleViewed,
-  showViewedControl,
   isStaged,
 }) => {
   const { file } = item;
@@ -150,13 +134,11 @@ const SectionRow: React.FC<{
       style={{ paddingLeft: 8 }}
       title={file.path}
     >
-      {/* Leading rail: [view][status][letter] then path. View reveals on hover
-          or when the row is active; the staged/committed dot and the
+      {/* Leading rail: [status][letter] then path. The staged/committed dot and the
           change-type letter are always shown. Fixed-width slots keep the rail
           aligned. Path inherits the row font; only the letter/counts are the
           small size. */}
       <div className="flex items-center gap-1.5 flex-1 min-w-0">
-        {showViewedControl && <ViewedControl isViewed={isViewed} onToggle={onToggleViewed} forceVisible={isActive} />}
         {isStaged ? (
           <StagedDot />
         ) : item.group === 'committed' ? (
@@ -183,15 +165,7 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
   onDoubleClickFile,
   enableKeyboardNav,
   annotations,
-  viewedFiles,
-  onToggleViewed,
-  hideViewedFiles,
-  onToggleHideViewed,
-  showViewedControls = true,
-  onToggleShowViewedControls,
   stagedFiles,
-  autoViewed,
-  onToggleAutoViewed,
   isLoadingDiff,
   availableBranches,
   selectedBase,
@@ -232,7 +206,6 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
       untracked: [],
     };
     files.forEach((file, index) => {
-      if (hideViewedFiles && viewedFiles.has(file.path) && index !== activeFileIndex) return;
       const entry = sections.files[file.path];
       // A file in the composite patch with no status entry has a clean
       // working tree — it is committed branch work.
@@ -247,7 +220,7 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
     // Staged work floats to the top of Changes.
     grouped.changes.sort((a, b) => Number(b.staged) - Number(a.staged));
     return grouped;
-  }, [files, sections, hideViewedFiles, viewedFiles, activeFileIndex, stagedFiles]);
+  }, [files, sections, stagedFiles]);
 
   const annotationCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -392,12 +365,9 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
         isScrollActive={
           item.index !== activeFileIndex && scrollHighlightIndex != null && item.index === scrollHighlightIndex
         }
-        isViewed={viewedFiles.has(item.file.path)}
         annotationCount={annotationCounts.get(item.file.path) ?? 0}
         onSelect={() => onSelectFile(item.index)}
         onDoubleClick={onDoubleClickFile ? () => onDoubleClickFile(item.index) : undefined}
-        onToggleViewed={onToggleViewed ? () => onToggleViewed(item.file.path) : undefined}
-        showViewedControl={showViewedControls}
         isStaged={item.staged}
       />
     ));
@@ -425,17 +395,9 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
       stagedCount={stagedCount}
       isSearchVisible={isSearchVisible}
       onOpenSearch={onOpenSearch}
-      onToggleHideViewed={onToggleHideViewed}
-      hideViewedFiles={hideViewedFiles}
-      viewedCount={viewedFiles.size}
-      totalCount={files.length}
       onCopyRawDiff={onCopyRawDiff}
       canCopyRawDiff={canCopyRawDiff}
       copyRawDiffStatus={copyRawDiffStatus}
-      showViewedControls={showViewedControls}
-      onToggleShowViewedControls={onToggleShowViewedControls}
-      autoViewed={autoViewed}
-      onToggleAutoViewed={onToggleAutoViewed}
     />
   );
 

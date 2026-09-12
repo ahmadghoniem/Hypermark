@@ -13,18 +13,6 @@ const DEBOUNCE_MS = 500;
 
 interface DraftData {
   codeAnnotations: CodeAnnotation[];
-  viewedFiles?: string[];
-  /**
-   * Files the reviewer manually un-viewed, which auto-mark-viewed must never
-   * re-check (the "come back to this" contract). Additive and optional: a
-   * draft written before this field restores fine, and a draft carrying it is
-   * ignored gracefully by an older build.
-   *
-   * Deliberately absent from `isEmpty` and from the engagement signal — a
-   * session whose only state is suppression is still an empty draft and is
-   * still cleared, keeping #948's clear-everything semantics untouched.
-   */
-  autoViewSuppressed?: string[];
   draftGeneration?: number;
   ts: number;
 }
@@ -46,35 +34,30 @@ function formatTimeAgo(ts: number): string {
 
 interface UseCodeAnnotationDraftOptions {
   annotations: CodeAnnotation[];
-  viewedFiles: Set<string>;
-  autoViewSuppressed?: Set<string>;
   isApiMode: boolean;
   submitted: boolean;
 }
 
 interface UseCodeAnnotationDraftResult {
-  draftBanner: { count: number; viewedCount: number; timeAgo: string } | null;
-  restoreDraft: () => { annotations: CodeAnnotation[]; viewedFiles: string[]; autoViewSuppressed: string[] };
+  draftBanner: { count: number; timeAgo: string } | null;
+  restoreDraft: () => { annotations: CodeAnnotation[] };
   getDraftGeneration: () => number;
   dismissDraft: () => void;
 }
 
 export function useCodeAnnotationDraft({
   annotations,
-  viewedFiles,
-  autoViewSuppressed,
   isApiMode,
   submitted,
 }: UseCodeAnnotationDraftOptions): UseCodeAnnotationDraftResult {
-  const [draftBanner, setDraftBanner] = useState<{ count: number; viewedCount: number; timeAgo: string } | null>(null);
+  const [draftBanner, setDraftBanner] = useState<{ count: number; timeAgo: string } | null>(null);
   const draftDataRef = useRef<DraftData | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasMountedRef = useRef(false);
   const draftGenerationRef = useRef(0);
   // True once the user has actually had annotations this session. Used to decide
   // whether an empty state is a real "cleared everything" edit (persist it) vs a
-  // fresh/unengaged session (leave the server alone). Keyed on annotations only —
-  // see the autosave effect for why viewedFiles must not count.
+  // fresh/unengaged session (leave the server alone).
   const hasHadAnnotationsRef = useRef(false);
 
   // Load draft on mount
@@ -94,12 +77,10 @@ export function useCodeAnnotationDraft({
           draftGenerationRef.current = Math.max(draftGenerationRef.current, generation);
         }
         const annotationCount = Array.isArray(data?.codeAnnotations) ? data.codeAnnotations.length : 0;
-        const viewedCount = Array.isArray(data?.viewedFiles) ? data.viewedFiles.length : 0;
-        if (annotationCount > 0 || viewedCount > 0) {
+        if (annotationCount > 0) {
           draftDataRef.current = data;
           setDraftBanner({
             count: annotationCount,
-            viewedCount,
             timeAgo: formatTimeAgo(data?.ts || 0),
           });
         }
@@ -110,20 +91,18 @@ export function useCodeAnnotationDraft({
       });
   }, [isApiMode]);
 
-  // Debounced auto-save on annotation/viewed changes
+  // Debounced auto-save on annotation changes
   useEffect(() => {
     if (!isApiMode || submitted) return;
     if (!hasMountedRef.current) return;
 
-    // Track engagement on USER-AUTHORED annotations only. Two things that arrive
-    // without user action must NOT count as "had content", or a later empty state
-    // would look like the user deleted everything and wrongly delete the draft:
-    //   - viewedFiles are seeded on mount before the user does anything.
-    //   - external/SSE annotations (source-tagged, e.g. an eslint plugin) arrive
-    //     via `allAnnotations` and have their own lifecycle, separate from the draft.
+    // Track engagement on USER-AUTHORED annotations only. External/SSE annotations
+    // (source-tagged, e.g. an eslint plugin) arrive via `allAnnotations` and have
+    // their own lifecycle, separate from the draft; they must NOT count as "had content",
+    // or a later empty state would look like the user deleted everything and wrongly delete the draft.
     if (annotations.some((a) => !a.source)) hasHadAnnotationsRef.current = true;
 
-    const isEmpty = annotations.length === 0 && viewedFiles.size === 0;
+    const isEmpty = annotations.length === 0;
     // Leave the server alone for an empty state until the user has actually had
     // annotations this session. This preserves an unrestored draft sitting on disk
     // at mount (the draft-recovery banner can still offer it).
@@ -146,10 +125,6 @@ export function useCodeAnnotationDraft({
 
       const payload: DraftData = {
         codeAnnotations: annotations,
-        viewedFiles: [...viewedFiles],
-        ...(autoViewSuppressed && autoViewSuppressed.size > 0
-          ? { autoViewSuppressed: [...autoViewSuppressed] }
-          : {}),
         draftGeneration,
         ts: Date.now(),
       };
@@ -160,7 +135,7 @@ export function useCodeAnnotationDraft({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [annotations, viewedFiles, autoViewSuppressed, isApiMode, submitted]);
+  }, [annotations, isApiMode, submitted]);
 
   const restoreDraft = useCallback(() => {
     // Cancel any pending autosave so it can't fire with pre-restore state and
@@ -171,8 +146,6 @@ export function useCodeAnnotationDraft({
     draftDataRef.current = null;
     return {
       annotations: data?.codeAnnotations ?? [],
-      viewedFiles: data?.viewedFiles ?? [],
-      autoViewSuppressed: data?.autoViewSuppressed ?? [],
     };
   }, []);
 

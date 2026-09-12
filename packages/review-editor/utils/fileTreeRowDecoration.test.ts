@@ -14,7 +14,6 @@ const diffFile = (path: string, overrides: Partial<DiffFile> = {}): DiffFile => 
 });
 
 const base = {
-  isViewed: false,
   annotationCount: 0,
   isStaged: false,
 };
@@ -52,13 +51,6 @@ describe('buildRowDecoration — retained per-row metadata (spec 04:67-68)', () 
 
   it('omits the annotation bit entirely at zero', () => {
     expect(textOf(diffFile('src/a.ts'), { annotationCount: 0 })).not.toContain('✎');
-  });
-
-  it('marks viewed state and says so in the tooltip', () => {
-    const viewed = buildRowDecoration({ file: diffFile('src/a.ts'), ...base, isViewed: true });
-    expect(viewed!.text).toContain('✓');
-    expect(viewed!.title).toContain('Viewed');
-    expect(textOf(diffFile('src/a.ts'))).not.toContain('✓');
   });
 
   it('carries the change-type letter for each status', () => {
@@ -121,7 +113,6 @@ describe('buildRowDecoration — retained per-row metadata (spec 04:67-68)', () 
   it('uses theme custom properties, never hard-coded colors', () => {
     // Hard-coded hex would break the seven-palette contract from spec 03.
     const parts = partsOf(diffFile('src/a.ts', { status: 'added', additions: 3, deletions: 1 }), {
-      isViewed: true,
       annotationCount: 2,
     });
     for (const part of parts) {
@@ -129,16 +120,14 @@ describe('buildRowDecoration — retained per-row metadata (spec 04:67-68)', () 
     }
   });
 
-  it('orders the row as viewed, type, dot, annotations, then counts', () => {
+  it('orders the row as type, dot, annotations, then counts', () => {
     const decoration = buildRowDecoration({
       file: diffFile('src/a.ts', { status: 'added', additions: 7, deletions: 2 }),
       ...base,
-      isViewed: true,
       annotationCount: 4,
       isStaged: true,
     });
     const text = decoration!.text;
-    expect(text.indexOf('✓')).toBeLessThan(text.indexOf('A'));
     expect(text.indexOf('A')).toBeLessThan(text.indexOf('●'));
     expect(text.indexOf('●')).toBeLessThan(text.indexOf('✎4'));
     expect(text.indexOf('✎4')).toBeLessThan(text.indexOf('+7'));
@@ -149,7 +138,6 @@ describe('buildRowDecoration — retained per-row metadata (spec 04:67-68)', () 
     const decoration = buildRowDecoration({
       file: diffFile('src/a.ts', { status: 'renamed', oldPath: 'src/b.ts', additions: 1, deletions: 1 }),
       ...base,
-      isViewed: true,
       annotationCount: 2,
     });
     expect(decoration!.text).toBe(decoration!.parts.map(part => part.text).join(' '));

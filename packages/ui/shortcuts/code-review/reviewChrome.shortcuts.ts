@@ -67,13 +67,5 @@ export const reviewChromeShortcuts = defineShortcutScope({
       hint: 'Dismisses whatever is in front: an open menu, the compact navigator, the sidebar, then the search query.',
       displayOrder: 60,
     },
-    toggleViewed: {
-      description: 'Toggle viewed',
-      bindings: ['V'],
-      section: 'File Actions',
-      hint: 'Marks the focused file viewed. In all-files view it also collapses the file.',
-      displayOrder: 10,
-      preventDefault: true,
-    },
   },
 });

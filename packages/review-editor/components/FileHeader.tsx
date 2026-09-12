@@ -8,11 +8,6 @@ interface FileHeaderProps {
   status?: DiffFileStatus;
   /** Previous path for renames — rendered as "old → new" (diffshub treatment). */
   oldPath?: string;
-  isViewed?: boolean;
-  onToggleViewed?: () => void;
-  /** Chrome preference: false hides the Viewed button (the `V` shortcut and
-   *  viewed state are unaffected). */
-  showViewedControl?: boolean;
   onFileComment?: (anchorEl: HTMLElement) => void;
   /**
    * Eager registration of the comment button element on mount/unmount (ref
@@ -85,15 +80,12 @@ function countChanges(patch: string): { additions: number; deletions: number } {
   return { additions, deletions };
 }
 
-/** Sticky file header with file path, Viewed toggle, and Copy Diff button */
+/** Sticky file header with file path, collapse toggle, and comment button */
 export const FileHeader: React.FC<FileHeaderProps> = ({
   filePath,
   patch,
   status,
   oldPath,
-  isViewed = false,
-  onToggleViewed,
-  showViewedControl = true,
   onFileComment,
   fileCommentButtonRef,
   collapseToggle,
@@ -127,7 +119,6 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
   }, []);
 
   const commentLabel = isVeryTight ? '' : 'Comment';
-  const viewedLabel = isVeryTight ? '' : 'Viewed';
   const { additions, deletions } = React.useMemo(() => countChanges(patch), [patch]);
 
   return (
@@ -173,28 +164,6 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
         </span>
       </div>
       <div className={`flex flex-shrink-0 items-center pl-2 ${isCompact ? 'gap-1' : 'gap-2'}`}>
-        {showViewedControl && onToggleViewed && (
-          <button
-            onClick={onToggleViewed}
-            className={`text-xs rounded transition-colors flex items-center ${viewedLabel ? 'gap-1 px-2 py-1' : 'px-1.5 py-1'} ${
-              isViewed
-                ? 'bg-success/15 text-success'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            }`}
-            title={isViewed ? "Mark as not viewed (V)" : "Mark as viewed (V)"}
-          >
-            {isViewed ? (
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            ) : (
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <circle cx="12" cy="12" r="9" />
-              </svg>
-            )}
-            {viewedLabel && <span>{viewedLabel}</span>}
-          </button>
-        )}
         {onFileComment && (
           <button
             ref={(el) => {

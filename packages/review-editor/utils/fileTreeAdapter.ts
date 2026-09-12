@@ -3,7 +3,7 @@
  *
  * This is the ONE place that maps this app's review identity — canonical
  * `DiffFile.path`, display-only `oldPath`, status-independent change counts,
- * annotation counts, viewed state, and selection/reveal targeting — onto
+ * annotation counts, and selection/reveal targeting — onto
  * `@pierre/trees`' path-first API. Every version-sensitive `@pierre/trees`
  * call (a live model's `getItem`/`focusPath`/`scrollToPath`/selection) lives
  * here so a future beta bump only needs re-review of this one file.
@@ -15,7 +15,7 @@
  *    NEVER used to place, select, or expand a tree node.
  *  - Path comparison is exact-string (case-sensitive) — two case-distinct
  *    paths are two distinct files, never collapsed.
- *  - This module does not mutate `files`, `annotations`, or `viewedFiles`;
+ *  - This module does not mutate `files` or `annotations`;
  *    every export here is a pure read or a call into a caller-supplied
  *    `@pierre/trees` model instance.
  *
@@ -124,16 +124,6 @@ export function buildAnnotationCountMap(annotations: readonly CodeAnnotation[]):
 }
 
 /**
- * Whether `file` is viewed. `viewedFiles` is already keyed by canonical
- * `DiffFile.path` at its source (`App.tsx`'s `handleToggleViewed`), so this
- * is a guarded passthrough — kept here so no caller reads the set by a raw,
- * possibly-stale identifier.
- */
-export function isFileViewed(viewedFiles: ReadonlySet<string>, file: DiffFile): boolean {
-  return viewedFiles.has(file.path);
-}
-
-/**
  * The tree's selected-path set for a given `activeFileIndex`. Mirrors
  * `FileTree.tsx`'s existing rule that `activeFileIndex` is forced to `-1`
  * while All files/Semantic/Call flow/PR panels are active: returns an empty
@@ -207,34 +197,13 @@ export function resolveFileTreeTargetFromComposedPath(
 }
 
 /**
- * The visible subset of files that feeds `treePaths` and keyboard order.
- *
- * When `hideViewedFiles` is true, fully-viewed files drop out unless the file
- * is the active file (so the current selection never vanishes out from under
- * the user). When false, all files are visible.
- */
-export function getVisibleFiles(
-  files: readonly DiffFile[],
-  viewedFiles: ReadonlySet<string>,
-  hideViewedFiles: boolean,
-  activeFilePath?: string,
-): DiffFile[] {
-  if (!hideViewedFiles) return files as DiffFile[];
-  return files.filter(file => file.path === activeFilePath || !isFileViewed(viewedFiles, file));
-}
-
-/**
- * Derives the visual keyboard navigation order from the visible subset of
- * files (the same subset that feeds `treePaths`), mapping back to canonical
+ * Derives the visual keyboard navigation order from the files array
+ * (the same order that feeds `treePaths`), mapping back to canonical
  * indices into the full `files` array.
- *
- * When `hideViewedFiles` is active, keyboard navigation (`j`/`k`/`Home`/`End`)
- * only traverses files visible in the tree, while `onSelectFile(index)`
- * preserves its canonical index contract.
  */
 export function getKeyboardFileOrder(
   files: readonly DiffFile[],
-  visibleFiles: readonly DiffFile[],
+  visibleFiles: readonly DiffFile[] = files,
 ): number[] {
   if (visibleFiles.length === 0) return [];
   const tree = buildFileTree(visibleFiles as DiffFile[]);

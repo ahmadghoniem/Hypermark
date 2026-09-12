@@ -9,7 +9,6 @@ import {
   getAllFilesTarget,
   getChangeCounts,
   buildAnnotationCountMap,
-  isFileViewed,
   getSelectedPaths,
   revealFileInTree,
 } from './fileTreeAdapter';
@@ -238,20 +237,6 @@ describe('fileTreeAdapter — annotation counts', () => {
     const counts = buildAnnotationCountMap([annotation('src/Utils/Helper.ts'), annotation('src/utils/helper.ts')]);
     expect(counts.get('src/Utils/Helper.ts')).toBe(1);
     expect(counts.get('src/utils/helper.ts')).toBe(1);
-  });
-});
-
-describe('fileTreeAdapter — viewed state', () => {
-  it('reads viewed state off the canonical path only', () => {
-    const viewed = new Set<string>(['src/new-name.ts', 'assets/logo.png']);
-    expect(isFileViewed(viewed, renamed)).toBe(true);
-    expect(isFileViewed(viewed, binary)).toBe(true);
-    expect(isFileViewed(viewed, added)).toBe(false);
-  });
-
-  it('does not treat a marked oldPath as viewed for the renamed file', () => {
-    const viewed = new Set<string>(['src/old-name.ts']);
-    expect(isFileViewed(viewed, renamed)).toBe(false);
   });
 });
 

@@ -51,9 +51,6 @@ export interface ReviewState {
   onSelectAnnotation: (id: string | null) => void;
   onDeleteAnnotation: (id: string) => void;
 
-  // Viewed / staged
-  viewedFiles: Set<string>;
-  onToggleViewed: (filePath: string) => void;
   // Generated files (#1317): paths marked `linguist-generated` in
   // `.gitattributes` (server sidecar). Collapsed by default on the all-files
   // surface; headers show a "generated" tag. Presentation-only view state.
@@ -62,9 +59,6 @@ export interface ReviewState {
    *  panel remounts. */
   expandedGeneratedFiles: Set<string>;
   onGeneratedFileCollapsedChange: (filePath: string, collapsed: boolean) => void;
-  /** Cookie-only chrome preference (#1277): hide the Viewed controls everywhere
-   *  they render. Shortcuts and viewed state itself are unaffected. */
-  showViewedControls: boolean;
 
   // Search
   searchQuery: string;
@@ -78,8 +72,6 @@ export interface ReviewState {
   // Diff navigation
   fileScrollTarget: { filePath: string; token: number } | null;
   onAllFilesVisibleFileChange: (filePath: string | null, info?: { collapsed: boolean }) => void;
-  /** Auto-mark-viewed: the reader moved on from this file (see useAutoViewed). */
-  onAllFilesFileScrolledPast: (filePath: string) => void;
   isAllFilesActive: boolean;
   // Which left panel drives the all-files item order ('list' = sections order).
   allFilesOrder: 'tree' | 'list';

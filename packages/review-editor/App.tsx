@@ -72,9 +72,6 @@ import { useSidebar } from '@hypermark/ui/hooks/useSidebar';
 import { useViewportEnvironment } from '@hypermark/ui/hooks/useViewportEnvironment';
 import { FileTree } from './components/FileTree';
 import { useDiffFreshness } from './hooks/useDiffFreshness';
-import { useAutoViewed } from './hooks/useAutoViewed';
-import { resolveDiffSwitchUnviews } from './utils/autoViewed';
-import { needsAutoViewedNotice, markAutoViewedNoticeSeen, turnOffAutoViewed, toggleAutoViewed } from './utils/autoViewedNotice';
 import { useAnnotationFactory } from './hooks/useAnnotationFactory';
 import { DEMO_DIFF } from './demoData';
 import { exportReviewFeedback, commitShaFromMode } from './utils/exportFeedback';
@@ -225,7 +222,6 @@ const ReviewAppInner: React.FC = () => {
   const diffFontFamily = useConfigValue('diffFontFamily');
   const diffFontSize = useConfigValue('diffFontSize');
   const diffTabSize = useConfigValue('diffTabSize');
-  const reviewShowViewedControls = useConfigValue('reviewShowViewedControls');
   // Global plan-look preference. Code review can resolve this shared first-use
   // choice even though the visual result applies to plan/document surfaces.
 
@@ -255,15 +251,6 @@ const ReviewAppInner: React.FC = () => {
 
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [copyRawDiffStatus, setCopyRawDiffStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [viewedFiles, setViewedFiles] = useState<Set<string>>(new Set());
-  // Auto-mark-viewed (Rule 3): files the reviewer manually UN-viewed. That
-  // gesture means "come back to this", so auto-view must never re-check them.
-  // Owned here because it rides the review draft alongside viewedFiles.
-  const [autoViewSuppressed, setAutoViewSuppressed] = useState<Set<string>>(new Set());
-  // Read by the diff-apply path, which must not re-run on every checkmark.
-  const viewedFilesRef = useRef(viewedFiles);
-  viewedFilesRef.current = viewedFiles;
-  const [hideViewedFiles, setHideViewedFiles] = useState(false);
   // Generated-files sidecar (#1317): repo-relative paths marked
   // `linguist-generated` in `.gitattributes`. Their diffs seed collapsed on
   // the all-files surface (GitHub-style) and their headers carry a
@@ -515,8 +502,6 @@ const ReviewAppInner: React.FC = () => {
   // Auto-save code annotation drafts
   const { draftBanner, restoreDraft, getDraftGeneration, dismissDraft } = useCodeAnnotationDraft({
     annotations: allAnnotations,
-    viewedFiles,
-    autoViewSuppressed,
     isApiMode: !!origin,
     submitted: !!submitted,
   });
@@ -525,8 +510,6 @@ const ReviewAppInner: React.FC = () => {
     reviewHistory.clear();
     const restored = restoreDraft();
     if (restored.annotations.length > 0) setAnnotations(restored.annotations);
-    if (restored.viewedFiles.length > 0) setViewedFiles(new Set(restored.viewedFiles));
-    if (restored.autoViewSuppressed.length > 0) setAutoViewSuppressed(new Set(restored.autoViewSuppressed));
   }, [restoreDraft, reviewHistory]);
 
   const codeNav = useCodeNav();
@@ -743,7 +726,6 @@ const ReviewAppInner: React.FC = () => {
         agentCwd?: string | null;
         approvalNotesSupported?: boolean;
         repoInfo?: { display: string; branch?: string };
-        viewedFiles?: string[];
         error?: string;
        
         sections?: SinceBaseSections;
@@ -786,9 +768,6 @@ const ReviewAppInner: React.FC = () => {
         if (data.agentCwd !== undefined) setAgentCwd(data.agentCwd);
         setApprovalNotesSupported(readApprovalNotesAdvert(data.approvalNotesSupported));
         if (data.repoInfo) setRepoInfo(data.repoInfo);
-        if (data.viewedFiles && data.viewedFiles.length > 0) {
-          setViewedFiles(new Set(data.viewedFiles));
-        }
         if (data.error) setDiffError(data.error);
         setSections(data.sections ?? null);
         setCommitInfo(data.commitInfo ?? null);
@@ -994,92 +973,11 @@ const ReviewAppInner: React.FC = () => {
     }
   }, [files, openDiffFile]);
 
-  // Rule 3 of auto-mark-viewed. Called from inside the setViewedFiles updater
-  // below, which is where `willBeViewed` is known correctly under batching.
-  // Add/delete of one key is idempotent, so React strict mode's double
-  // invocation of that updater cannot flip the set.
-  const applyAutoViewSuppression = useCallback((filePath: string, viewed: boolean) => {
-    setAutoViewSuppressed(prev => {
-      if (viewed === !prev.has(filePath)) return prev;
-      const next = new Set(prev);
-      if (viewed) next.delete(filePath); else next.add(filePath);
-      return next;
-    });
-  }, []);
-
-  const handleToggleViewed = useCallback((filePath: string) => {
-    setViewedFiles(prev => {
-      const next = new Set(prev);
-      const willBeViewed = !prev.has(filePath);
-      if (willBeViewed) {
-        next.add(filePath);
-      } else {
-        next.delete(filePath);
-      }
-      // Un-viewing is the reviewer's "come back to this" gesture, so it
-      // suppresses auto-view for this file; marking it viewed by hand clears
-      // that suppression.
-      applyAutoViewSuppression(filePath, willBeViewed);
-      return next;
-    });
-  }, [applyAutoViewSuppression]);
-
-  // Auto-mark-viewed. The marker never decides anything the reviewer can't
-  // undo: it only ADDS to viewedFiles, exactly like the `v` shortcut, and
-  // gates nothing on submit.
-  const autoViewedEnabled = useConfigValue('reviewAutoViewed');
-  const markFilesViewed = useCallback((paths: string[]) => {
-    setViewedFiles(prev => {
-      const missing = paths.filter(path => !prev.has(path));
-      if (missing.length === 0) return prev;
-      const next = new Set(prev);
-      for (const path of missing) next.add(path);
-      return next;
-    });
-  }, []);
-  const handleAutoView = useCallback(() => {
-    // The notice fires the first time auto-view demonstrates itself. Deferred
-    // (not lost) behind a first-run dialog — the file still marks and the
-    // next auto-view retries the toast.
-    if (!needsAutoViewedNotice()) return;
-    markAutoViewedNoticeSeen();
-    toast('Files are marked viewed as you scroll', {
-      description: "Scroll past a file or move on to the next and it's checked off. Turn this off from the gear above the file list.",
-      duration: 10000,
-      position: 'top-right',
-      classNames: { toast: '!w-auto', description: '!text-foreground/70' },
-      action: {
-        label: 'Turn off',
-        onClick: () => {
-          turnOffAutoViewed();
-          toast('Auto-mark viewed is off', {
-            description: 'Re-enable it from the gear above the file list.',
-            duration: 5000,
-            position: 'top-right',
-            classNames: { toast: '!w-auto', description: '!text-foreground/70' },
-          });
-        },
-      },
-    });
-  }, []);
-  const { handleReadingFileChange: handleAutoViewReadingFile, handleFileScrolledPast } = useAutoViewed({
-    enabled: autoViewedEnabled,
-    // Rule 4 — only the review target. A commit diff is a documented
-    // session-only detour, not the change under review.
-    suspended: activeDiffBase.startsWith('commit:'),
-    viewedFiles,
-    suppressedFiles: autoViewSuppressed,
-    onMark: markFilesViewed,
-    onAutoView: handleAutoView,
-    singleFileReadingFile: null,
-    snapshotKey: `${snapshotId ?? ''}:${activeDiffBase}`,
-  });
   const handleAllFilesVisibleFileChange = useCallback(
-    (filePath: string | null, info?: { collapsed: boolean }) => {
+    (filePath: string | null) => {
       setAllFilesVisibleFile(filePath);
-      handleAutoViewReadingFile(filePath, info);
     },
-    [handleAutoViewReadingFile],
+    [],
   );
 
   // The three-stack sections panel exists only for the since-base composite
@@ -1121,26 +1019,6 @@ const ReviewAppInner: React.FC = () => {
     }
     return staged;
   }, [sections, files]);
-
-  // The single-file diff panel is gone, so the viewed shortcut acts on whichever
-  // file is currently in view inside the all-files surface.
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (isTypingTarget(e.target)) return;
-      if (!isAllFilesActive) return;
-      const filePath = allFilesVisibleFile;
-      if (!filePath) return;
-
-      if (matchesChrome(e, CHROME.toggleViewed.bindings)) {
-        e.preventDefault();
-        handleToggleViewed(filePath);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [isAllFilesActive, allFilesVisibleFile, handleToggleViewed]);
-
-
 
   // Shared helper: fetch a diff switch and update state.
   // Returns true on success, false on failure — callers that optimistically
@@ -1220,35 +1098,6 @@ const ReviewAppInner: React.FC = () => {
       }
 
       const nextFiles = orderFilesBySections(parseDiffToFiles(data.rawPatch), data.sections);
-      // Rule 5 of auto-mark-viewed: a checkmark on content that has since
-      // changed is misleading, so it drops. No platform sync — GitHub applies
-      // the same rule to its own viewed state server-side.
-      //
-      // This is the ONE apply path every diff transition funnels through, so
-      // the scope gate lives in resolveDiffSwitchUnviews rather than here: an
-      // opt-in from the caller, re-checked against the identity of the diff.
-      // Without it, entering a commit detour or folding whitespace out would
-      // strip checkmarks off files nothing changed in.
-      const unviewed = resolveDiffSwitchUnviews({
-        enabled: autoViewedEnabled,
-        contentRefresh: options?.contentRefresh === true,
-        requestedDiffType: fullDiffType,
-        activeDiffType: diffType,
-        requestedBase: baseOverride ?? selectedBase,
-        activeBase: selectedBase,
-        appliedDiffType: data.diffType,
-        isCommitDiffType,
-        previousFiles: files,
-        nextFiles,
-        viewedFiles: viewedFilesRef.current,
-      });
-      if (unviewed.length > 0) {
-        setViewedFiles(prev => {
-          const next = new Set(prev);
-          for (const path of unviewed) next.delete(path);
-          return next;
-        });
-      }
       setSections(data.sections ?? null);
       setCommitInfo(data.commitInfo ?? null);
       setGeneratedFiles(new Set(data.generatedFiles ?? []));
@@ -1324,7 +1173,7 @@ const ReviewAppInner: React.FC = () => {
     } finally {
       setIsLoadingDiff(false);
     }
-  }, [selectedBase, diffHideWhitespace, files, activeFileIndex, openDiffFile, clearPendingSelection, autoViewedEnabled, diffType]);
+  }, [selectedBase, diffHideWhitespace, files, activeFileIndex, openDiffFile, clearPendingSelection, diffType]);
 
   // Switch the base branch the current diff compares against.
   // Only triggers a refetch when the active mode actually uses a base.
@@ -1708,12 +1557,9 @@ const ReviewAppInner: React.FC = () => {
     onEditAnnotation: handleEditAnnotation,
     onSelectAnnotation: handleSelectAnnotation,
     onDeleteAnnotation: handleDeleteAnnotation,
-    viewedFiles,
-    onToggleViewed: handleToggleViewed,
     generatedFiles,
     expandedGeneratedFiles,
     onGeneratedFileCollapsedChange: handleGeneratedFileCollapsedChange,
-    showViewedControls: reviewShowViewedControls,
     searchQuery: isSearchPending ? '' : debouncedSearchQuery,
     isSearchPending,
     debouncedSearchQuery,
@@ -1722,7 +1568,6 @@ const ReviewAppInner: React.FC = () => {
     searchMatches,
     allFilesActiveSearchMatch: activeSearchMatch,
     onAllFilesVisibleFileChange: handleAllFilesVisibleFileChange,
-    onAllFilesFileScrolledPast: handleFileScrolledPast,
     isAllFilesActive,
     allFilesOrder,
     allFilesAllCollapsed,
@@ -1741,12 +1586,11 @@ const ReviewAppInner: React.FC = () => {
     allAnnotations,
     selectedAnnotationId, scrollTargetAnnotation, pendingSelection, handleLineSelection,
     handleAddAnnotationForFile, handleAddFileCommentForFile, handleEditAnnotation,
-    handleSelectAnnotation, handleDeleteAnnotation, viewedFiles,
+    handleSelectAnnotation, handleDeleteAnnotation,
     generatedFiles, expandedGeneratedFiles, handleGeneratedFileCollapsedChange,
-    handleToggleViewed, reviewShowViewedControls,
     isSearchPending, debouncedSearchQuery,
     fileScrollTarget, activeSearchMatchId, activeSearchMatch, searchMatches,
-    handleAllFilesVisibleFileChange, handleFileScrolledPast,
+    handleAllFilesVisibleFileChange,
     isAllFilesActive, allFilesOrder, allFilesAllCollapsed, onToggleAllFilesCollapsed, registerAllFilesCollapseToggle, commitInfo,
     handleCodeNavRequest, codeNav.result, codeNav.isLoading, codeNav.activeSymbol,
   ]);
@@ -1763,16 +1607,6 @@ const ReviewAppInner: React.FC = () => {
       setTimeout(() => setCopyRawDiffStatus('idle'), 2000);
     }
   }, [diffData]);
-
-  const handleToggleReviewViewedControls = useCallback(() => {
-    configStore.set('reviewShowViewedControls', !reviewShowViewedControls);
-  }, [reviewShowViewedControls]);
-
-  // An explicit toggle here (or in Settings) is proof the reviewer found the
-  // switch, so the first-time notice is consumed either way.
-  const handleToggleAutoViewed = useCallback(() => {
-    toggleAutoViewed(!autoViewedEnabled);
-  }, [autoViewedEnabled]);
 
   const feedbackMarkdown = useMemo(
     () => exportReviewFeedback(allAnnotations, feedbackDiffContext),
@@ -2367,15 +2201,7 @@ const ReviewAppInner: React.FC = () => {
                 onDoubleClickFile={(index) => handleFilePinned(index)}
                 enableKeyboardNav={hasSearchableFiles}
                 annotations={allAnnotations}
-                viewedFiles={viewedFiles}
-                onToggleViewed={handleToggleViewed}
-                hideViewedFiles={hideViewedFiles}
-                onToggleHideViewed={() => setHideViewedFiles(prev => !prev)}
-                showViewedControls={reviewShowViewedControls}
-                onToggleShowViewedControls={handleToggleReviewViewedControls}
                 stagedFiles={stagedFiles}
-                autoViewed={autoViewedEnabled}
-                onToggleAutoViewed={handleToggleAutoViewed}
                 isLoadingDiff={isLoadingDiff}
                 availableBranches={gitContext?.availableBranches}
                 selectedBase={selectedBase ?? undefined}
@@ -2442,12 +2268,6 @@ const ReviewAppInner: React.FC = () => {
                 onSelectFile={(index) => handleFilePreview(index)}
                 onDoubleClickFile={(index) => handleFilePinned(index)}
                 annotations={allAnnotations}
-                viewedFiles={viewedFiles}
-                onToggleViewed={handleToggleViewed}
-                hideViewedFiles={hideViewedFiles}
-                onToggleHideViewed={() => setHideViewedFiles(prev => !prev)}
-                showViewedControls={reviewShowViewedControls}
-                onToggleShowViewedControls={handleToggleReviewViewedControls}
                 enableKeyboardNav={hasSearchableFiles}
                 diffOptions={reviewMode === 'workspace' ? (workspaceDiffOptions ?? undefined) : gitContext?.diffOptions}
                 activeDiffType={activeDiffBase}
@@ -2467,8 +2287,6 @@ const ReviewAppInner: React.FC = () => {
                 jjEvologs={gitContext?.jjEvologs}
                 detectedEvoBase={gitContext?.jjEvologs?.[1]?.commitId}
                 stagedFiles={stagedFiles}
-                autoViewed={autoViewedEnabled}
-                onToggleAutoViewed={handleToggleAutoViewed}
                 onCopyRawDiff={handleCopyDiff}
                 canCopyRawDiff={!!diffData?.rawPatch}
                 copyRawDiffStatus={copyRawDiffStatus}
@@ -2522,12 +2340,7 @@ const ReviewAppInner: React.FC = () => {
               onClose={dismissDraft}
               onConfirm={handleRestoreDraft}
               title="Draft Recovered"
-              message={draftBanner ? (() => {
-                const parts: string[] = [];
-                if (draftBanner.count > 0) parts.push(`${draftBanner.count} annotation${draftBanner.count !== 1 ? 's' : ''}`);
-                if (draftBanner.viewedCount > 0) parts.push(`${draftBanner.viewedCount} viewed file${draftBanner.viewedCount !== 1 ? 's' : ''}`);
-                return `Found ${parts.join(' and ')} from ${draftBanner.timeAgo}. Would you like to restore them?`;
-              })() : ''}
+              message={draftBanner ? `Found ${draftBanner.count} annotation${draftBanner.count !== 1 ? 's' : ''} from ${draftBanner.timeAgo}. Would you like to restore them?` : ''}
               confirmText="Restore"
               cancelText="Dismiss"
               showCancel

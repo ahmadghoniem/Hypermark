@@ -4,7 +4,4 @@ export { useConfigValue } from './useConfig';
 export {
   setReviewPanelView,
   getPersistedReviewPanelView,
-  setReviewAutoViewed,
-  needsAutoViewedNotice,
-  markAutoViewedNoticeSeen,
 } from './reviewView';

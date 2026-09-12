@@ -1,13 +1,9 @@
 import React from "react";
-import { Popover } from "@base-ui/react/popover";
 import {
   ArrowsInLineVertical,
   ArrowsOutLineVertical,
   Check,
   Copy,
-  Eye,
-  EyeSlash,
-  GearSix,
   MagnifyingGlass,
   X,
 } from "@phosphor-icons/react";
@@ -17,10 +13,9 @@ import { Tooltip } from "@hypermark/ui/components/Tooltip";
  * Shared chrome for the left review panels (FileTree, SectionsPanel).
  *
  * The header's top row belongs to the PanelViewToggle alone (full width), so
- * the controls that used to share it — staged count, search, collapse-all,
- * hide-viewed, viewed counter — render as their own row directly above the
- * file list, below the "All files" entry. One source so both views keep the
- * same cluster in the same order.
+ * the controls that used to share it — staged count, search, collapse-all —
+ * render as their own row directly above the file list, below the "All files"
+ * entry. One source so both views keep the same cluster in the same order.
  */
 export function PanelControlsRow({
   stagedCount = 0,
@@ -29,17 +24,9 @@ export function PanelControlsRow({
   onToggleAllFolders,
   areAllFoldersExpanded = false,
   collapseDisabled = false,
-  onToggleHideViewed,
-  hideViewedFiles = false,
-  viewedCount,
-  totalCount,
   onCopyRawDiff,
   canCopyRawDiff = false,
   copyRawDiffStatus = "idle",
-  showViewedControls = true,
-  onToggleShowViewedControls,
-  autoViewed = true,
-  onToggleAutoViewed,
 }: {
   stagedCount?: number;
   isSearchVisible?: boolean;
@@ -48,20 +35,9 @@ export function PanelControlsRow({
   onToggleAllFolders?: () => void;
   areAllFoldersExpanded?: boolean;
   collapseDisabled?: boolean;
-  onToggleHideViewed?: () => void;
-  hideViewedFiles?: boolean;
-  viewedCount: number;
-  totalCount: number;
   onCopyRawDiff?: () => void;
   canCopyRawDiff?: boolean;
   copyRawDiffStatus?: "idle" | "success" | "error";
-  showViewedControls?: boolean;
-  onToggleShowViewedControls?: () => void;
-  /** Auto-mark-viewed (`reviewAutoViewed`). Optional: without the handler the
-   *  switch row is not rendered, so hosts that don't have the feature are
-   *  unchanged. */
-  autoViewed?: boolean;
-  onToggleAutoViewed?: () => void;
 }) {
   const copyLabel =
     copyRawDiffStatus === "success"
@@ -72,40 +48,10 @@ export function PanelControlsRow({
 
   return (
     <div
-      className="flex items-center justify-between gap-2 pl-1 pr-2 py-1"
+      className="flex items-center justify-end gap-2 pl-1 pr-2 py-1"
       data-panel-controls-row
     >
-      {showViewedControls && (
-        <div
-          className="flex min-w-0 items-center gap-1.5"
-          data-panel-viewed-controls
-        >
-          {onToggleHideViewed && (
-            <button
-              type="button"
-              onClick={onToggleHideViewed}
-              className={`panel-utility-button p-1 rounded transition-colors ${hideViewedFiles ? "bg-primary/15 text-primary" : "hover:bg-muted text-muted-foreground"}`}
-              aria-label={
-                hideViewedFiles ? "Show viewed files" : "Hide viewed files"
-              }
-              title={
-                hideViewedFiles ? "Show viewed files" : "Hide viewed files"
-              }
-            >
-              {hideViewedFiles ? (
-                <EyeSlash className="w-3.5 h-3.5" aria-hidden="true" />
-              ) : (
-                <Eye className="w-3.5 h-3.5" aria-hidden="true" />
-              )}
-            </button>
-          )}
-          <span className="text-xs text-muted-foreground tabular-nums">
-            {viewedCount}/{totalCount}
-          </span>
-        </div>
-      )}
-
-      <div className="ml-auto flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5">
         {stagedCount > 0 && (
           <span className="text-xs text-primary font-medium">
             {stagedCount} added
@@ -170,100 +116,6 @@ export function PanelControlsRow({
               )}
             </button>
           </Tooltip>
-        )}
-        {onToggleShowViewedControls && (
-          <Popover.Root>
-            <Popover.Trigger
-              render={
-                <button
-                  type="button"
-                  className="panel-utility-button p-1 rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                  aria-label="Tree controls"
-                  title="Tree controls"
-                >
-                  <GearSix className="w-3.5 h-3.5" aria-hidden="true" />
-                </button>
-              }
-            />
-            <Popover.Portal>
-              <Popover.Positioner
-                align="end"
-                side="top"
-                sideOffset={6}
-                className="z-[110]"
-              >
-                <Popover.Popup
-                  className="w-64 rounded-md border border-border bg-popover p-1.5 text-popover-foreground shadow-lg outline-none"
-                  aria-label="Tree controls"
-                  data-review-tree-settings
-                >
-                  <div className="px-2 pb-1.5 pt-1">
-                    <div className="text-xs font-medium">Tree controls</div>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={showViewedControls}
-                    onClick={() => {
-                      // Hiding the only filter affordance must never leave the
-                      // file list silently filtered.
-                      if (showViewedControls && hideViewedFiles) onToggleHideViewed?.();
-                      onToggleShowViewedControls();
-                    }}
-                    className="flex w-full items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted focus-visible:outline focus-visible:outline-1 focus-visible:outline-primary/60"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-xs">Viewed controls</span>
-                      <span className="block text-[10px] leading-snug text-muted-foreground">
-                        Per-file viewed buttons
-                      </span>
-                    </span>
-                    <span
-                      aria-hidden="true"
-                      className={`flex h-4 w-7 flex-shrink-0 items-center rounded-full border px-0.5 ${
-                        showViewedControls
-                          ? "justify-end border-primary/70 bg-primary"
-                          : "justify-start border-border bg-muted"
-                      }`}
-                    >
-                      <span
-                        className={`h-2.5 w-2.5 rounded-full ${showViewedControls ? "bg-primary-foreground" : "bg-muted-foreground/70"}`}
-                      />
-                    </span>
-                  </button>
-                  {onToggleAutoViewed && (
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={autoViewed}
-                      onClick={onToggleAutoViewed}
-                      className="flex w-full items-center gap-3 rounded px-2 py-2 text-left hover:bg-muted focus-visible:outline focus-visible:outline-1 focus-visible:outline-primary/60"
-                      data-review-auto-viewed-toggle
-                    >
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-xs">Auto-mark viewed</span>
-                        <span className="block text-[10px] leading-snug text-muted-foreground">
-                          Check files off as you scroll past
-                        </span>
-                      </span>
-                      <span
-                        aria-hidden="true"
-                        className={`flex h-4 w-7 flex-shrink-0 items-center rounded-full border px-0.5 ${
-                          autoViewed
-                            ? "justify-end border-primary/70 bg-primary"
-                            : "justify-start border-border bg-muted"
-                        }`}
-                      >
-                        <span
-                          className={`h-2.5 w-2.5 rounded-full ${autoViewed ? "bg-primary-foreground" : "bg-muted-foreground/70"}`}
-                        />
-                      </span>
-                    </button>
-                  )}
-                </Popover.Popup>
-              </Popover.Positioner>
-            </Popover.Portal>
-          </Popover.Root>
         )}
       </div>
 

@@ -2,10 +2,9 @@
  * Per-row decoration for the @pierre/trees file tree (spec 04, step 3).
  *
  * spec/04-file-tree.md:67-68 requires that the replacement tree preserve
- * "viewed state/progress, applicable annotation counts, and active-file
- * highlighting". The old `FileTreeNodeItem` rendered those as separate React
- * elements per row (`ViewedControl`, `ChangeTypeLetter`, `AnnotationBadge`,
- * `DiffCounts`, `StagedDot`, `CommittedDot`).
+ * "applicable annotation counts, and active-file highlighting". The old
+ * `FileTreeNodeItem` rendered those as separate React elements per row
+ * (`ChangeTypeLetter`, `AnnotationBadge`, `DiffCounts`, `StagedDot`, `CommittedDot`).
  *
  * `@pierre/trees` exposes exactly ONE decoration slot per row, and it is
  * declarative rather than a render prop: `FileTreeRowDecoration` is either a
@@ -13,15 +12,9 @@
  * and never interactive. So the whole right-hand metadata column collapses
  * into a single text decoration whose `parts` carry their own colors.
  *
- * Two consequences worth stating plainly rather than discovering later:
- *  - The inline viewed CHECKBOX is gone. Viewed state is still shown (a check
- *    glyph part), and it is still togglable from `FileHeader`, from
- *    `AllFilesCodeView`, and from the keyboard shortcut in `App.tsx` — but not
- *    by clicking the tree row. There is no library API to put an interactive
- *    control in a row.
- *  - There is one `title` for the whole decoration, not one per bit, so the
- *    per-bit tooltips ("Added file", "3 annotations", ...) are folded into a
- *    single composed string.
+ * There is one `title` for the whole decoration, not one per bit, so the
+ * per-bit tooltips ("Added file", "3 annotations", ...) are folded into a
+ * single composed string.
  *
  * Colors are theme CSS custom properties. They resolve inside the tree's
  * shadow root because custom properties inherit through the shadow boundary,
@@ -49,7 +42,6 @@ export interface SectionEntry {
   staged: boolean;
 }
 
-const COLOR_VIEWED = 'var(--success)';
 const COLOR_ADDED = 'var(--success)';
 const COLOR_DELETED = 'var(--destructive)';
 const COLOR_RENAMED = 'var(--primary)';
@@ -84,7 +76,6 @@ function changeTypeLetter(
 
 export interface BuildRowDecorationInput {
   file: DiffFile;
-  isViewed: boolean;
   annotationCount: number;
   /** Read-side staged set from the server's status sidecar — display only.
    *  Spec 02 removed the stage/unstage MUTATORS; this read side is retained. */
@@ -97,18 +88,13 @@ export interface BuildRowDecorationInput {
  * Composes one row's decoration. Returns `null` when a file has nothing to
  * show, so the library renders no decoration at all rather than an empty span.
  *
- * Ordering mirrors the old row: viewed marker, change-type letter, staged or
- * committed dot, annotation count, then the additions/deletions pair.
+ * Ordering mirrors the old row: change-type letter, staged or committed dot,
+ * annotation count, then the additions/deletions pair.
  */
 export function buildRowDecoration(input: BuildRowDecorationInput): RowDecoration | null {
-  const { file, isViewed, annotationCount, isStaged, sectionEntry } = input;
+  const { file, annotationCount, isStaged, sectionEntry } = input;
   const parts: RowDecorationPart[] = [];
   const titles: string[] = [];
-
-  if (isViewed) {
-    parts.push({ text: '✓', color: COLOR_VIEWED });
-    titles.push('Viewed');
-  }
 
   const untracked = sectionEntry?.group === 'untracked';
   const letter = changeTypeLetter(file, untracked);

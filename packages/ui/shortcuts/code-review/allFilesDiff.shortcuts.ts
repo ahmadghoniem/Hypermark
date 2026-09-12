@@ -16,7 +16,7 @@ export const reviewAllFilesDiffShortcuts = defineShortcutScope({
       description: 'Re-expand nearest collapsed file',
       bindings: ['Z'],
       section: 'All-Files View',
-      hint: 'Reopens the nearest collapsed file at or above the current position (collapse also fires when toggling viewed).',
+      hint: 'Reopens the nearest collapsed file at or above the current position.',
       displayOrder: 20,
     },
     addFileComment: {

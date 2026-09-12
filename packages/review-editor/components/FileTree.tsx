@@ -16,8 +16,6 @@ import {
   buildFileTreePaths,
   getKeyboardFileOrder,
   getSelectedPaths as getSelectedTreePaths,
-  getVisibleFiles,
-  isFileViewed,
   resolveFileTreeTarget,
   resolveFileTreeTargetFromComposedPath,
   revealFileInTree,
@@ -41,12 +39,6 @@ interface FileTreeProps {
   onSelectFile: (index: number) => void;
   onDoubleClickFile?: (index: number) => void;
   annotations: CodeAnnotation[];
-  viewedFiles: Set<string>;
-  onToggleViewed?: (filePath: string) => void;
-  hideViewedFiles?: boolean;
-  onToggleHideViewed?: () => void;
-  showViewedControls?: boolean;
-  onToggleShowViewedControls?: () => void;
   enableKeyboardNav?: boolean;
   diffOptions?: DiffOption[];
   activeDiffType?: string;
@@ -71,8 +63,6 @@ interface FileTreeProps {
   detectedEvoBase?: string;
   /** Read-side staged set from the server's status sidecar — display only. */
   stagedFiles: Set<string>;
-  autoViewed?: boolean;
-  onToggleAutoViewed?: () => void;
   onCopyRawDiff?: () => void;
   canCopyRawDiff?: boolean;
   copyRawDiffStatus?: 'idle' | 'success' | 'error';
@@ -115,12 +105,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
   onSelectFile,
   onDoubleClickFile,
   annotations,
-  viewedFiles,
-  onToggleViewed,
-  hideViewedFiles = false,
-  onToggleHideViewed,
-  showViewedControls = true,
-  onToggleShowViewedControls,
   enableKeyboardNav = true,
   diffOptions,
   activeDiffType,
@@ -140,8 +124,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
   jjEvologs,
   detectedEvoBase,
   stagedFiles,
-  autoViewed,
-  onToggleAutoViewed,
   onCopyRawDiff,
   canCopyRawDiff = false,
   copyRawDiffStatus = 'idle',
@@ -175,24 +157,14 @@ export const FileTree: React.FC<FileTreeProps> = ({
   // shows no selection of its own.
   const effectiveActiveFileIndex = isAllFilesActive ? -1 : activeFileIndex;
 
-  // `hideViewedFiles` is expressed as which paths the Pierre tree is even
-  // given — mirroring the old renderer's rule that a fully-viewed file drops
-  // out of the tree unless it's the active file (kept so the current
-  // selection never vanishes out from under the user).
-  const activeFilePath = files[effectiveActiveFileIndex]?.path;
-  const visibleFiles = useMemo(
-    () => getVisibleFiles(files, viewedFiles, hideViewedFiles, activeFilePath),
-    [files, viewedFiles, hideViewedFiles, activeFilePath],
-  );
-  const treePaths = useMemo(() => buildFileTreePaths(visibleFiles), [visibleFiles]);
+  const treePaths = useMemo(() => buildFileTreePaths(files), [files]);
 
-  // Keyboard navigation order is derived from the same visible subset that
-  // feeds treePaths, then mapped back to indices into the full `files` array
-  // so j/k/Home/End never land on a hidden file while onSelectFile keeps its
+  // Keyboard navigation order mapped back to indices into the full `files` array
+  // so j/k/Home/End preserves its visual order while onSelectFile keeps its
   // canonical index contract.
   const visualOrder = useMemo(
-    () => getKeyboardFileOrder(files, visibleFiles),
-    [files, visibleFiles],
+    () => getKeyboardFileOrder(files, files),
+    [files],
   );
 
   // Keyboard navigation: j/k or arrow keys
@@ -291,9 +263,8 @@ export const FileTree: React.FC<FileTreeProps> = ({
     if (target) currentOnSelectFile(target.fileIndex);
   }, []);
 
-  // Per-row metadata. spec/04-file-tree.md:67-68 requires viewed state,
-  // annotation counts, and change counts survive the tree replacement; the
-  // library gives one declarative decoration slot per row, so
+  // Per-row metadata. Annotation counts and change counts survive the tree
+  // replacement; the library gives one declarative decoration slot per row, so
   // `buildRowDecoration` folds the old row's whole metadata column into it.
   //
   // Read through a ref for the same reason `onSelectionChange` is: `useFileTree`
@@ -302,12 +273,11 @@ export const FileTree: React.FC<FileTreeProps> = ({
   const annotationCountMap = useMemo(() => buildAnnotationCountMap(annotations), [annotations]);
   const latestDecorationRef = useRef({
     files,
-    viewedFiles,
     annotationCountMap,
     stagedFiles,
     sinceBaseSections,
   });
-  latestDecorationRef.current = { files, viewedFiles, annotationCountMap, stagedFiles, sinceBaseSections };
+  latestDecorationRef.current = { files, annotationCountMap, stagedFiles, sinceBaseSections };
 
   const handleRenderRowDecoration = useCallback(
     ({ row }: { row: { kind: 'directory' | 'file'; path: string } }) => {
@@ -319,7 +289,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
       if (!target) return null;
       return buildRowDecoration({
         file: target.file,
-        isViewed: isFileViewed(current.viewedFiles, target.file),
         annotationCount: current.annotationCountMap.get(target.canonicalPath) ?? 0,
         isStaged: current.stagedFiles.has(target.canonicalPath),
         sectionEntry: current.sinceBaseSections?.files[target.canonicalPath],
@@ -332,7 +301,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
   // deliberately omitted. `gitStatus` is likewise never passed: spec 02 removed
   // the per-file Git status UI and spec 04 forbids reintroducing it as a
   // substitute. `paths` seeds construction only; `resetPaths` below keeps the
-  // live model in sync as `files`/hide-viewed change.
+  // live model in sync as `files` change.
   const { model } = useFileTree({
     paths: treePaths,
     initialExpansion: 'open',
@@ -370,7 +339,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
   // expandedFolders state. Routes through the step-2 adapter's
   // revealFileInTree, which expands ancestors, selects, focuses, and scrolls.
   // Re-runs on treePaths changes so reveal survives a path-set change that
-  // leaves files unchanged (e.g. toggling hideViewedFiles or marking a file viewed).
+  // leaves files unchanged.
   useEffect(() => {
     const [identifier] = getSelectedTreePaths(files, effectiveActiveFileIndex);
     if (identifier) {
@@ -420,17 +389,9 @@ export const FileTree: React.FC<FileTreeProps> = ({
       onToggleAllFolders={handleToggleAllFolders}
       areAllFoldersExpanded={areAllFoldersExpanded}
       collapseDisabled={allRealFolderPaths.length === 0}
-      onToggleHideViewed={onToggleHideViewed}
-      hideViewedFiles={hideViewedFiles}
-      viewedCount={viewedFiles.size}
-      totalCount={files.length}
       onCopyRawDiff={onCopyRawDiff}
       canCopyRawDiff={canCopyRawDiff}
       copyRawDiffStatus={copyRawDiffStatus}
-      showViewedControls={showViewedControls}
-      onToggleShowViewedControls={onToggleShowViewedControls}
-      autoViewed={autoViewed}
-      onToggleAutoViewed={onToggleAutoViewed}
     />
   );
 

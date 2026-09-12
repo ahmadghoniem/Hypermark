@@ -44,12 +44,9 @@ export const ReviewAllFilesDiffPanel: React.FC<IDockviewPanelProps> = () => {
       onSelectAnnotation={state.onSelectAnnotation}
       onDeleteAnnotation={state.onDeleteAnnotation}
       onAddFileCommentForFile={state.onAddFileCommentForFile}
-      viewedFiles={state.viewedFiles}
-      onToggleViewed={state.onToggleViewed}
       generatedFiles={state.generatedFiles}
       expandedGeneratedFiles={state.expandedGeneratedFiles}
       onGeneratedFileCollapsedChange={state.onGeneratedFileCollapsedChange}
-      showViewedControls={state.showViewedControls}
       fileScrollTarget={state.fileScrollTarget}
       // Search matches derive from the debounced query, so painting marks from
       // the raw query mid-debounce mismatches mark ids and re-walks every
@@ -60,7 +57,6 @@ export const ReviewAllFilesDiffPanel: React.FC<IDockviewPanelProps> = () => {
       activeSearchMatch={state.allFilesActiveSearchMatch}
       onCodeNavRequest={state.onCodeNavRequest}
       onVisibleFileChange={state.onAllFilesVisibleFileChange}
-      onFileScrolledPast={state.onAllFilesFileScrolledPast}
       fileOrder={state.allFilesOrder}
       registerCollapseAllToggle={state.registerAllFilesCollapseToggle}
       onAllCollapsedChange={state.onAllFilesCollapsedChange}
