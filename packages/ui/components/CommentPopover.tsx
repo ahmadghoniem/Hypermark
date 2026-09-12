@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import type { ImageAttachment } from '../types';
 import { AttachmentsButton } from './AttachmentsButton';
 import { AttachmentStrip } from './AttachmentStrip';
+import { CommentAttachShelf } from './CommentAttachShelf';
 import { imageFilesFrom, useAttachmentUploads } from '../hooks/useAttachmentUploads';
 import { submitHint } from '../utils/platform';
 import { useDraggable } from '../hooks/useDraggable';
@@ -196,7 +197,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   /** Focus the attach action once the last thumbnail was removed. */
   const focusAttachAction = useCallback(() => {
     popoverRef.current
-      ?.querySelector<HTMLButtonElement>('button[aria-label="Attachments"]')
+      ?.querySelector<HTMLButtonElement>('button[data-comment-attach="true"]')
       ?.focus();
   }, []);
 
@@ -320,6 +321,35 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   const scrollToPopover = useCallback(() => {
     anchorEl?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }, [anchorEl]);
+
+  // Arc grip: drag the composer taller in place. The height rides on the
+  // textarea's min-height rather than the container's, so the strip, the
+  // shelf and the action row keep their own heights and only the writing
+  // area grows. Null means "whatever the class says" - which is what
+  // double-click restores.
+  const [composerHeight, setComposerHeight] = useState<number | null>(null);
+
+  const beginGripResize = useCallback((event: React.PointerEvent) => {
+    // Left button only, and never let the strip's drag handler see it.
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const startY = event.clientY;
+    const startHeight = textareaRef.current?.getBoundingClientRect().height ?? 72;
+    const move = (e: PointerEvent) => {
+      // Dragging UP from the top-left corner grows the box, so the delta is
+      // inverted against the pointer's own direction.
+      setComposerHeight(Math.max(56, Math.min(480, startHeight + (startY - e.clientY))));
+    };
+    const end = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+  }, []);
+
+  const resetGripResize = useCallback(() => setComposerHeight(null), []);
 
   // Focus the textarea when it mounts (initial open and popover/dialog switches).
   // A ref callback rather than a mount effect: in popover mode the textarea only
@@ -717,7 +747,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       <div
         ref={popoverRef}
         data-comment-popover="true"
-      className={`fixed z-[100] bg-popover border border-border rounded-xl shadow-2xl flex flex-col${yieldClass}`}
+      className={`group/composer fixed z-[100] bg-card border border-border rounded-xl shadow-2xl flex flex-col${yieldClass}`}
       style={dragPosition
         ? {
             top: dragPosition.top,
@@ -752,83 +782,127 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       `}</style>
       {yieldStyleBlock}
 
-      {/* Header (draggable) */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border/50" {...dragHandleProps}>
-        <span className="text-xs text-muted-foreground truncate max-w-[260px]">
+      {/* Arc grip - drag the composer taller in place, double-click to reset.
+          The local alternative to Expand, which takes over the whole screen. */}
+      <span
+        onPointerDown={beginGripResize}
+        onDoubleClick={resetGripResize}
+        title="Drag to resize / double-click to reset"
+        className="absolute -left-[9px] -top-[9px] z-[3] grid h-6 w-6 cursor-nwse-resize place-items-center text-muted-foreground/60 opacity-0 transition-opacity group-hover/composer:opacity-100"
+      >
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
+          <path d="M1.5 13.5A12 12 0 0 1 13.5 1.5" />
+        </svg>
+      </span>
+
+      {/* Top strip - the outer tier. Anchor mark, the location, close at the
+          far right end. Draggable by the strip itself. */}
+      <div
+        className="flex items-center gap-2 rounded-t-xl bg-muted/40 pl-3 pr-1.5 py-1.5"
+        {...dragHandleProps}
+      >
+        <span className="flex shrink-0 text-primary" aria-hidden="true">
+          <AnchorIcon />
+        </span>
+        <span className="min-w-0 flex-1 truncate text-[11.5px] leading-snug text-muted-foreground">
           {headerLabel}
         </span>
-        <div className="flex items-center gap-1">
+        <button
+          onClick={() => handleClose()}
+          className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          title="Close"
+          aria-label="Close"
+        >
+          <CloseIcon />
+        </button>
+      </div>
+
+      {/* Body - the inner tier. Shares an edge with the strip (inset 0), so
+          only the wash and one hairline separate them. */}
+      <div className="flex min-h-0 flex-col rounded-b-xl border-t border-border/50 bg-popover">
+        {chipsRow}
+
+        {/* Textarea, with expand parked at its top-right. */}
+        <div className="relative px-3 py-2" {...composerDropProps}>
           <button
             onClick={() => { setDialogIsForced(false); setMode('dialog'); }}
-            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute right-2.5 top-2 z-[1] grid h-[22px] w-[22px] place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             title="Expand"
+            aria-label="Expand"
           >
             <ExpandIcon />
           </button>
-          <button
-            onClick={() => handleClose()}
-            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-            title="Close"
-          >
-            <CloseIcon />
-          </button>
-        </div>
-      </div>
-
-      {chipsRow}
-
-      {/* Textarea */}
-      <div className="relative px-3 py-2" {...composerDropProps}>
-        {skillAc.menu && (
-          <SkillReferenceMenu
-            id={skillListboxId}
-            items={skillAc.menu.items}
-            activeIndex={skillAc.menu.activeIndex}
-            onSelect={skillAc.select}
-          />
-        )}
-        <ComposerTextarea
-          textareaRef={focusOnMountRef}
-          value={text}
-          onChange={(e) => { setText(e.target.value); skillAc.onSelect(); }}
-          onKeyDown={handleKeyDown}
-          onSelectCaret={skillAc.onSelect}
-          placeholder={isGlobal ? 'Add a global comment...' : 'Add a comment...'}
-          sizeClassName="max-h-64 min-h-[4.5rem]"
-          skillReferences={skillReferences}
-          tokens={skillAc.referenceTokens}
-          listboxId={skillListboxId}
-          listboxOpen={skillAc.menu !== null}
-          activeOptionId={activeSkillOptionId}
-        />
-        <HumanOnlySkillNotice skills={skillAc.humanOnlyReferences} />
-        {attachmentStrip}
-      </div>
-
-      {/* Footer — same DOM-order/row-reverse pattern as the dialog footer above */}
-      <div className="flex flex-row-reverse items-center justify-between px-3 py-2 border-t border-border/50">
-        <div className="flex flex-row-reverse items-center gap-3">
-          <button
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className="px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-          >
-            {isGlobal ? 'Add' : 'Save'}
-          </button>
-          {!coarsePointer && (
-            <span className="text-[10px] text-muted-foreground">{submitHint}</span>
-          )}
-          {quickLookGoodButton}
-        </div>
-        <div className="flex items-center gap-2">
-          {allowImages && (
-            <AttachmentsButton
-              images={images}
-              onAdd={addImage}
-              onRemove={removeImage}
-              variant="inline"
+          {skillAc.menu && (
+            <SkillReferenceMenu
+              id={skillListboxId}
+              items={skillAc.menu.items}
+              activeIndex={skillAc.menu.activeIndex}
+              onSelect={skillAc.select}
             />
           )}
+          <ComposerTextarea
+            textareaRef={focusOnMountRef}
+            value={text}
+            onChange={(e) => { setText(e.target.value); skillAc.onSelect(); }}
+            onKeyDown={handleKeyDown}
+            onSelectCaret={skillAc.onSelect}
+            placeholder={isGlobal ? 'Add a global comment...' : 'Add a comment...'}
+            sizeClassName={composerHeight === null ? 'max-h-64 min-h-[4.5rem] pr-7' : 'pr-7'}
+            heightPx={composerHeight}
+            skillReferences={skillReferences}
+            tokens={skillAc.referenceTokens}
+            listboxId={skillListboxId}
+            listboxOpen={skillAc.menu !== null}
+            activeOptionId={activeSkillOptionId}
+          />
+          <HumanOnlySkillNotice skills={skillAc.humanOnlyReferences} />
+        </div>
+
+        {/* Attachment shelf - always mounted, so nothing below it moves. */}
+        {allowImages && (
+          <CommentAttachShelf
+            images={images}
+            pending={uploads.pending}
+            onFiles={attachFiles}
+            onRemove={removeImage}
+            onRemovePending={uploads.removePending}
+            onRetryPending={uploads.retry}
+          />
+        )}
+
+        {/* Action row. The attach trigger is deliberately not here. */}
+        <div className="flex items-center justify-between gap-3 px-2.5 pb-2 pt-1.5">
+          <div className="flex min-w-0 items-center gap-0.5">
+            <button
+              type="button"
+              disabled
+              title="Rewrite the comment - not wired up yet"
+              className="rounded-md px-2 py-1 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            >
+              Improve
+            </button>
+            <button
+              type="button"
+              disabled
+              title="Ask about this line - not wired up yet"
+              className="rounded-md px-2 py-1 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+            >
+              Ask
+            </button>
+          </div>
+          <div className="flex shrink-0 items-center gap-2.5">
+            {quickLookGoodButton}
+            {!coarsePointer && (
+              <span className="text-[10px] text-muted-foreground">{submitHint}</span>
+            )}
+            <button
+              onClick={handleSubmit}
+              disabled={!canSubmit}
+              className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isGlobal ? 'Add' : 'Save'}
+            </button>
+          </div>
         </div>
       </div>
       </div>
@@ -846,6 +920,8 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 const COMPOSER_TEXT_CLASSES = 'w-full bg-transparent text-sm px-1 py-0.5';
 
 interface ComposerTextareaProps {
+  /** Explicit height in px from the resize grip; null keeps the class-driven size. */
+  heightPx?: number | null;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -878,6 +954,7 @@ interface ComposerTextareaProps {
  * composition rendering (underlines, candidate highlights) intact.
  */
 const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
+  heightPx = null,
   value,
   onChange,
   onKeyDown,
@@ -892,6 +969,9 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
   activeOptionId,
 }) => {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const boxStyle: React.CSSProperties = heightPx === null
+    ? ({ fieldSizing: 'content' } as React.CSSProperties)
+    : { height: heightPx };
   const [composing, setComposing] = useState(false);
 
   const syncScroll = useCallback((el: HTMLTextAreaElement) => {
@@ -927,7 +1007,7 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
         onSelect={onSelectCaret}
         placeholder={placeholder}
         className={`${COMPOSER_TEXT_CLASSES} placeholder:text-muted-foreground resize-none focus:outline-none ${sizeClassName}`}
-        style={{ fieldSizing: 'content' } as React.CSSProperties}
+        style={boxStyle}
       />
     );
   }
@@ -992,7 +1072,7 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
         className={`${COMPOSER_TEXT_CLASSES} placeholder:text-muted-foreground resize-none focus:outline-none relative pn-ref-input ${
           composing ? 'pn-ref-composing' : ''
         } ${sizeClassName}`}
-        style={{ fieldSizing: 'content' } as React.CSSProperties}
+        style={boxStyle}
       />
     </div>
   );
@@ -1015,6 +1095,15 @@ const ChevronDownIcon = () => (
 const ExpandIcon = () => (
   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+  </svg>
+);
+
+/** Corner-down-right arrow: "this points at that". Not a quotation mark -
+ *  the strip holds a place in a file, and a place is not a quote. */
+const AnchorIcon = () => (
+  <svg className="w-[13px] h-[13px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 10 20 15 15 20" />
+    <path d="M4 4v7a4 4 0 0 0 4 4h12" />
   </svg>
 );
 
