@@ -48,7 +48,6 @@ export function lineAnnotationMetadata(ann: CodeAnnotation): DiffAnnotationMetad
     severity: ann.severity,
     reasoning: ann.reasoning,
     createdAt: ann.createdAt,
-    reviewProfileLabel: ann.reviewProfileLabel,
     source: ann.source,
     copyText: ann.text ? commentCopyText(ann) : undefined,
   };

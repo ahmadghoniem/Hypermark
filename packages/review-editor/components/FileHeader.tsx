@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { SemanticFileBadge } from './SemanticFileBadge';
 import { CallFlowFileBadge } from './CallFlowFileBadge';
-import { FileActionsButton } from '@hypermark/ui/components/FileActionsButton';
 import { useReviewStateOptional } from '../dock/ReviewStateContext';
 import type { DiffFileStatus } from '../types';
 
@@ -184,24 +183,8 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
             </>
           )}
         </span>
-        {(additions > 0 || deletions > 0 || (status && status !== 'modified') || isGenerated) && (
-          <span className="flex-none ml-2 flex items-center gap-1.5 text-xs leading-none">
-            {additions > 0 && <span className="font-mono text-success">+{additions}</span>}
-            {deletions > 0 && <span className="font-mono text-destructive">-{deletions}</span>}
-            {status && <FileStatusLetter status={status} oldPath={oldPath} />}
-            {isGenerated && (
-              <span
-                data-pn-generated-badge
-                className="flex-none rounded-sm border border-border/60 bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground"
-                title="Marked linguist-generated in .gitattributes"
-              >
-                generated
-              </span>
-            )}
-          </span>
-        )}
       </div>
-      {<div className={`flex flex-shrink-0 items-center pl-2 ${isCompact ? 'gap-1' : 'gap-2'}`}>
+      <div className={`flex flex-shrink-0 items-center pl-2 ${isCompact ? 'gap-1' : 'gap-2'}`}>
         {showViewedControl && onToggleViewed && (
           <button
             onClick={onToggleViewed}
@@ -242,9 +225,23 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
         )}
         <CallFlowFileBadge filePath={filePath} oldPath={oldPath} />
         <SemanticFileBadge filePath={filePath} />
-        {/* File actions: copy path, copy file diff. */}
-        {!readOnly && <FileActionsButton filePath={filePath} diffText={patch} />}
-      </div>}
+        {(additions > 0 || deletions > 0 || (status && status !== 'modified') || isGenerated) && (
+          <span className="flex-none flex items-center gap-1.5 text-xs leading-none">
+            {additions > 0 && <span className="font-mono text-success">+{additions}</span>}
+            {deletions > 0 && <span className="font-mono text-destructive">-{deletions}</span>}
+            {status && <FileStatusLetter status={status} oldPath={oldPath} />}
+            {isGenerated && (
+              <span
+                data-pn-generated-badge
+                className="flex-none rounded-sm border border-border/60 bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground"
+                title="Marked linguist-generated in .gitattributes"
+              >
+                generated
+              </span>
+            )}
+          </span>
+        )}
+      </div>
     </div>
   );
 };

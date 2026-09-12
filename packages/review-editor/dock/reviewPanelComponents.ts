@@ -1,5 +1,4 @@
 import { REVIEW_PANEL_TYPES } from './reviewPanelTypes';
-import { ReviewDiffPanel } from './panels/ReviewDiffPanel';
 import { ReviewAllFilesDiffPanel } from './panels/ReviewAllFilesDiffPanel';
 import { ReviewCodeNavPanel } from './panels/ReviewCodeNavPanel';
 import { ReviewSemanticDiffPanel } from './panels/ReviewSemanticDiffPanel';
@@ -10,7 +9,6 @@ import { ReviewCallFlowPanel } from './panels/ReviewCallFlowPanel';
  * Passed to <DockviewReact components={...} />.
  */
 export const reviewPanelComponents = {
-  [REVIEW_PANEL_TYPES.DIFF]: ReviewDiffPanel,
   [REVIEW_PANEL_TYPES.ALL_FILES]: ReviewAllFilesDiffPanel,
   [REVIEW_PANEL_TYPES.CODE_NAV]: ReviewCodeNavPanel,
   [REVIEW_PANEL_TYPES.SEMANTIC_DIFF]: ReviewSemanticDiffPanel,

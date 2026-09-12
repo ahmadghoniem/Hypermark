@@ -50,9 +50,10 @@ export const ReviewAllFilesDiffPanel: React.FC<IDockviewPanelProps> = () => {
       expandedGeneratedFiles={state.expandedGeneratedFiles}
       onGeneratedFileCollapsedChange={state.onGeneratedFileCollapsedChange}
       showViewedControls={state.showViewedControls}
-      // Debounced like ReviewDiffPanel: searchMatches derive from the
-      // debounced query, so painting marks from the raw query mid-debounce
-      // mismatches mark ids and re-walks every rendered item per keystroke.
+      fileScrollTarget={state.fileScrollTarget}
+      // Search matches derive from the debounced query, so painting marks from
+      // the raw query mid-debounce mismatches mark ids and re-walks every
+      // rendered item per keystroke.
       searchQuery={state.isSearchPending ? '' : state.debouncedSearchQuery}
       searchMatches={state.searchMatches}
       activeSearchMatchId={state.activeSearchMatchId}

@@ -195,7 +195,6 @@ interface ReviewAnnotation {
   // Agent review metadata (optional — only set by agent review findings)
   severity?: string; // "important" | "nit" | "pre_existing"
   reasoning?: string; // Validation chain explaining how the issue was confirmed
-  reviewProfileLabel?: string; // Custom review profile that produced this finding
   prUrl?: string;
   prNumber?: number;
   prTitle?: string;
@@ -352,7 +351,6 @@ export function transformReviewInput(
       // Agent review metadata (optional — only set by agent review findings)
       ...(typeof obj.severity === "string" && { severity: obj.severity }),
       ...(typeof obj.reasoning === "string" && { reasoning: obj.reasoning }),
-      ...(typeof obj.reviewProfileLabel === "string" && { reviewProfileLabel: obj.reviewProfileLabel }),
       ...(typeof obj.prUrl === "string" && { prUrl: obj.prUrl }),
       ...(typeof obj.prNumber === "number" && { prNumber: obj.prNumber }),
       ...(typeof obj.prTitle === "string" && { prTitle: obj.prTitle }),

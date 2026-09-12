@@ -72,11 +72,6 @@ export function useReviewSearch({
     return searchMatches.find(match => match.id === activeSearchMatchId) ?? null;
   }, [searchMatches, activeSearchMatchId]);
 
-  const activeFileSearchMatches = useMemo(() => {
-    if (!activeFilePath) return [];
-    return searchMatches.filter(match => match.filePath === activeFilePath);
-  }, [activeFilePath, searchMatches]);
-
   const openSearch = useCallback(() => {
     setIsSearchOpen(true);
     requestAnimationFrame(() => {
@@ -149,7 +144,6 @@ export function useReviewSearch({
     isSearchOpen,
     activeSearchMatchId,
     activeSearchMatch,
-    activeFileSearchMatches,
     searchMatches,
     searchGroups,
     searchInputRef,

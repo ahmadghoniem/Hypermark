@@ -240,7 +240,7 @@ Don't import these in a host. Each hits hardcoded Hypermark endpoints:
 - `hooks/useValidatedCodePaths` — `/api/doc/exists` (this is what `Viewer`'s `disableCodePathValidation` turns off).
 - `utils/sharing` — Hypermark's public paste service (share-URL feature).
 - `components/PlanHeaderMenu` — Hypermark's plan-session Options menu (agent instructions + the compact shell's action list). The release-check pair that used to sit beside it, `hooks/useUpdateCheck` and `components/MenuVersionSection`, is gone: the app no longer polls GitHub for a newer tag.
-- `utils/planAgentInstructions`, `utils/reviewAgentInstructions` — generate agent instructions that curl Hypermark's local API.
+- `utils/planAgentInstructions` — generate agent instructions that curl Hypermark's local API.
 - `components/DecisionControl`, `utils/decisionSpec`, `hooks/useDismissablePopover` — session decision chrome for Hypermark's own approve/deny/exit endpoints (a host's session decisions are its own outcomes against its own backend).
 
 If Workspaces ever wants one of these surfaces, the path is the same as everything else: add a seam to the module in a Hypermark PR, don't fork the component.

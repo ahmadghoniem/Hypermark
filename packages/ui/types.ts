@@ -186,7 +186,6 @@ export interface CodeAnnotation {
   source?: string; // External tool identifier (e.g., "eslint") — set when annotation comes from external API
   severity?: 'important' | 'nit' | 'pre_existing'; // Agent review severity (Claude)
   reasoning?: string; // Validation chain — how the issue was confirmed (Claude)
-  reviewProfileLabel?: string; // Custom review that produced this finding — shown as a tag
   /** Set when the annotation was created on a commit:<sha> diff (Commits
    *  panel). Line numbers anchor to THAT commit's diff-vs-parent — the export
    *  labels the annotation with its commit when sent from any other diff, so
@@ -229,7 +228,6 @@ export interface DiffAnnotationMetadata {
   // Shared comment-meta fields (so the inline diff card shows the same identity
   // row — author, time, badges — as the sidebar and file-banner cards).
   createdAt?: number;
-  reviewProfileLabel?: string;
   source?: string;
   /** Precomputed clipboard text (location prefix + body + reasoning) so the
    *  inline copy action matches the sidebar/banner — the inline card only has

@@ -6,32 +6,13 @@
  */
 
 export const REVIEW_PANEL_TYPES = {
-  DIFF: 'review-diff',
   ALL_FILES: 'review-all-files',
   CODE_NAV: 'review-code-nav',
   SEMANTIC_DIFF: 'review-semantic-diff',
   CALL_FLOW: 'review-call-flow',
 } as const;
 
-export const REVIEW_DIFF_PANEL_ID = 'review-diff';
-
-export interface ReviewDiffPanelParams {
-  filePath: string;
-}
-
 export const REVIEW_ALL_FILES_PANEL_ID = 'review-all-files';
 export const REVIEW_CODE_NAV_PANEL_ID = 'review-code-nav';
 export const REVIEW_SEMANTIC_DIFF_PANEL_ID = 'review-semantic-diff';
 export const REVIEW_CALL_FLOW_PANEL_ID = 'review-call-flow';
-
-export function isReviewDiffPanelId(panelId: string): boolean {
-  return panelId === REVIEW_DIFF_PANEL_ID;
-}
-
-export function getReviewDiffPanelFilePath(
-  params: unknown,
-): string | null {
-  if (!params || typeof params !== 'object') return null;
-  const filePath = (params as { filePath?: unknown }).filePath;
-  return typeof filePath === 'string' ? filePath : null;
-}

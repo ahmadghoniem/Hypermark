@@ -94,8 +94,6 @@ export const FileCommentCard: React.FC<{
             <FileNameChip path={comment.filePath} />
           </>
         }
-        reviewProfileLabel={comment.reviewProfileLabel}
-        source={comment.source}
         author={comment.author}
         createdAt={comment.createdAt}
       />
