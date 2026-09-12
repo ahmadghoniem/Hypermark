@@ -1106,7 +1106,6 @@ const AppInner: React.FC = () => {
         : `/api/doc?path=${encodeURIComponent(codePath)}`;
     }, [activeDocBaseDir]),
   });
-  const documentReadOnly = false;
   useEffect(() => {
     annotationHistory.clear();
   }, [annotationHistory]);
@@ -1139,7 +1138,7 @@ const AppInner: React.FC = () => {
     setHtmlUnanchoredIds((prev) => (prev.size === 0 ? prev : new Set()));
   }, [activeHtmlPath]);
   const htmlRefresh = useHtmlRefresh({
-    enabled: isApiMode && annotateMode && isHtmlSurface && !liveApp && !documentReadOnly,
+    enabled: isApiMode && annotateMode && isHtmlSurface && !liveApp,
     activePath: activeHtmlPath,
     onSnapshot: applyRefreshedHtml,
     onUnanchored: handleHtmlRefreshUnanchored,
@@ -1218,10 +1217,10 @@ const AppInner: React.FC = () => {
   );
 
   const canHandleAnnotationHistoryShortcut = useCallback((event: KeyboardEvent) => {
-    if (event.defaultPrevented || documentReadOnly || submitted || isSubmitting || isExiting) return false;
+    if (event.defaultPrevented || submitted || isSubmitting || isExiting) return false;
     if (isEditingMarkdown || isNativeHistoryOwner(event)) return false;
     return !hasActiveHistoryOverlay(document);
-  }, [documentReadOnly, isEditingMarkdown, isExiting, isSubmitting, submitted]);
+  }, [isEditingMarkdown, isExiting, isSubmitting, submitted]);
 
   useHistoryShortcuts({
     handlers: {
@@ -1589,7 +1588,7 @@ const AppInner: React.FC = () => {
   const activeSection = useActiveSection(planAreaRef, headingCount, scrollViewport);
 
   const { externalAnnotations, updateExternalAnnotation, deleteExternalAnnotation } = useExternalAnnotations<Annotation>({
-    enabled: isApiMode && !goalSetupMode && !documentReadOnly,
+    enabled: isApiMode && !goalSetupMode,
   });
 
   // Drive DOM highlights for SSE-delivered external annotations. Disabled
@@ -1869,7 +1868,7 @@ const AppInner: React.FC = () => {
     getEditedMarkdown: getDraftEditedMarkdown,
     getEditedDocuments: editableDocuments.getDraftDocuments,
     getSavedFileChanges: editableDocuments.getDraftSavedFileChanges,
-    isApiMode: isApiMode && !goalSetupMode && !documentReadOnly,
+    isApiMode: isApiMode && !goalSetupMode,
     // No share transport remains, so drafts always persist for a live session.
     isSharedSession: false,
     // isSubmitting counts: a save firing while approve/deny is in flight can
@@ -2652,7 +2651,7 @@ const AppInner: React.FC = () => {
   useHtmlAnnotateShortcuts({
     handlers: {
       toggleAnnotateMode: {
-        when: (event) => isHtmlSurface && !documentReadOnly && canHandleDocumentChromeShortcut(event),
+        when: (event) => isHtmlSurface && canHandleDocumentChromeShortcut(event),
         handle: handleHtmlAnnotateToggle,
       },
     },
@@ -3188,8 +3187,6 @@ const AppInner: React.FC = () => {
       // Don't intercept in demo/share mode (no API)
       if (!isApiMode) return;
 
-      if (documentReadOnly) return;
-
       // While the markdown editor is open, submit shortcuts belong to editing,
       // not the review session.
       if (isEditingMarkdown) return;
@@ -3237,14 +3234,13 @@ const AppInner: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning,
-    submitted, isSubmitting, isExiting, goalSetupAction.isSubmitting, isApiMode, documentReadOnly, isEditingMarkdown, linkedDocHook.isActive, annotations.length, codeAnnotations.length, externalAnnotations.length, annotateMode,
+    submitted, isSubmitting, isExiting, goalSetupAction.isSubmitting, isApiMode, isEditingMarkdown, linkedDocHook.isActive, annotations.length, codeAnnotations.length, externalAnnotations.length, annotateMode,
     hasFeedbackToSend, goalSetupMode, goalSetupAction.canSubmit, isAgentTerminalReady,
     annotateSource, origin,
     maybeConfirmUnsavedSourceFileEdits,
   ]);
 
   const handleAddAnnotation = (ann: Annotation) => {
-    if (documentReadOnly) return;
     // Live app sessions stamp every page-located annotation with the page it
     // was made on (restore filters per page; export groups by page). Global
     // comments have no page location and stay unstamped.
@@ -3290,7 +3286,6 @@ const AppInner: React.FC = () => {
   }, [isMobile, wideModeType]);
 
   const handleAddCodeAnnotation = React.useCallback((input: CodeFileAnnotationInput) => {
-    if (documentReadOnly) return;
     const annotation: CodeAnnotation = {
       id: generateId('code-ann'),
       type: 'comment',
@@ -3317,7 +3312,7 @@ const AppInner: React.FC = () => {
       beforeSelection,
       afterSelection: selectionRef.current,
     });
-  }, [annotationHistory, documentReadOnly]);
+  }, [annotationHistory]);
 
   // The code popout is full-viewport modal — the annotation panel is behind it.
   // This handler only fires when the popout is closed (sidebar visible), so
@@ -3333,7 +3328,6 @@ const AppInner: React.FC = () => {
   }, [codeAnnotations, codeFilePopout.open, isMobile, wideModeType]);
 
   const handleDeleteCodeAnnotation = React.useCallback((id: string) => {
-    if (documentReadOnly) return;
     const index = codeAnnotationsRef.current.findIndex((annotation) => annotation.id === id);
     const annotation = codeAnnotationsRef.current[index];
     if (!annotation) return;
@@ -3353,10 +3347,9 @@ const AppInner: React.FC = () => {
         afterSelection,
       });
     }
-  }, [annotationHistory, documentReadOnly]);
+  }, [annotationHistory]);
 
   const handleEditCodeAnnotation = React.useCallback((id: string, updates: Partial<CodeAnnotation>) => {
-    if (documentReadOnly) return;
     const before = codeAnnotationsRef.current.find((annotation) => annotation.id === id);
     if (!before) return;
     const after = { ...before, ...updates };
@@ -3370,11 +3363,10 @@ const AppInner: React.FC = () => {
         afterSelection: selectionRef.current,
       });
     }
-  }, [annotationHistory, documentReadOnly]);
+  }, [annotationHistory]);
 
   // Core annotation removal — highlight cleanup + state filter + selection clear
   const removeAnnotation = (id: string) => {
-    if (documentReadOnly) return;
     viewerRef.current?.removeHighlight(id);
     annotationsRef.current = annotationsRef.current.filter((annotation) => annotation.id !== id);
     setAnnotations(annotationsRef.current);
@@ -3416,7 +3408,6 @@ const AppInner: React.FC = () => {
   restoreCheckboxOverridesRef.current = checkbox.restoreOverrides;
 
   const deleteAnnotation = (id: string, history: 'record' | 'silent') => {
-    if (documentReadOnly) return;
     const ann = allAnnotations.find(a => a.id === id);
     if (ann?.source) annotationHistory.clear();
     // External annotations (live in SSE hook) route to the SSE hook, not local state.
@@ -3480,7 +3471,6 @@ const AppInner: React.FC = () => {
     updates: Partial<Annotation>,
     history: 'record' | 'silent',
   ) => {
-    if (documentReadOnly) return;
     const ann = allAnnotations.find(a => a.id === id);
     if (ann?.source) annotationHistory.clear();
     if (ann?.source && externalAnnotations.some(e => e.id === id)) {
@@ -3710,7 +3700,6 @@ const AppInner: React.FC = () => {
   useEffect(() => {
     const handleSaveShortcut = (e: KeyboardEvent) => {
       if (e.key !== 's' || !(e.metaKey || e.ctrlKey)) return;
-      if (documentReadOnly) return;
 
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
@@ -3731,7 +3720,7 @@ const AppInner: React.FC = () => {
     return () => window.removeEventListener('keydown', handleSaveShortcut);
   }, [
     showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning,
-    submitted, isApiMode, documentReadOnly, isEditingMarkdown, handleSaveEditedSourceFile, displayedMarkdown, annotationsOutput,
+    submitted, isApiMode, isEditingMarkdown, handleSaveEditedSourceFile, displayedMarkdown, annotationsOutput,
   ]);
 
   const agentName = useMemo(() => getAgentName(origin), [origin]);
@@ -4122,7 +4111,6 @@ const AppInner: React.FC = () => {
         onDiscard: item.id === 'plan' ? () => handleDiscardEdits() : undefined,
       })) ?? null}
       onOtherFileAnnotationsClick={handleFlashAnnotatedFiles}
-      readOnly={documentReadOnly}
     />
   );
 
@@ -4149,7 +4137,7 @@ const AppInner: React.FC = () => {
           sticky
           htmlSurface={isHtmlSurface}
           htmlAnnotateArmed={htmlAnnotateArmed}
-          onToggleHtmlAnnotate={isHtmlSurface && !documentReadOnly ? handleHtmlAnnotateToggle : undefined}
+          onToggleHtmlAnnotate={isHtmlSurface ? handleHtmlAnnotateToggle : undefined}
           htmlToolsHidden={htmlToolsHidden}
           onToggleHtmlTools={isHtmlSurface ? () => setHtmlToolsHidden((v) => !v) : undefined}
           canRefreshHtml={htmlRefresh.canRefresh}
@@ -4511,8 +4499,8 @@ const AppInner: React.FC = () => {
                     // commenting stays available. No input-method switch.
                     inputMethod="pinpoint"
                     annotateModeActive={htmlAnnotateArmed}
-                    onAnnotateModeExit={documentReadOnly ? undefined : handleHtmlAnnotateExit}
-                    onAnnotateModeToggle={documentReadOnly ? undefined : handleHtmlAnnotateToggle}
+                    onAnnotateModeExit={handleHtmlAnnotateExit}
+                    onAnnotateModeToggle={handleHtmlAnnotateToggle}
                     maxWidth={isHtmlSurface ? null : annotateReaderMaxWidth}
                     fullViewport={isHtmlSurface}
                     // The header's eye toggle is the way back, so a
@@ -4522,7 +4510,6 @@ const AppInner: React.FC = () => {
                     diffActive={!liveApp && isPlanDiffActive && !!htmlDiffHtml}
                     onToggleDiff={() => setIsPlanDiffActive((v) => !v)}
                     onUnanchoredChange={htmlRefresh.reportAnnotationRestore}
-                    readOnly={documentReadOnly}
                   />
                 ) : isEditingMarkdown ? (
                   <MarkdownEditor
@@ -4588,7 +4575,6 @@ const AppInner: React.FC = () => {
                     onToggleCheckbox={checkbox.toggle}
                     checkboxOverrides={checkbox.overrides}
                     actionsLabelMode={actionsLabelMode}
-                    readOnly={documentReadOnly}
                   />
                 )}
               </div>
@@ -4620,9 +4606,9 @@ const AppInner: React.FC = () => {
             {...codeFilePopout.popoutProps}
             annotations={codeAnnotations.filter((ann) => ann.filePath === codeFilePopout.popoutProps?.filepath)}
             selectedAnnotationId={selectedCodeAnnotationId}
-            onAddAnnotation={documentReadOnly ? undefined : handleAddCodeAnnotation}
-            onEditAnnotation={documentReadOnly ? undefined : handleEditCodeAnnotation}
-            onDeleteAnnotation={documentReadOnly ? undefined : handleDeleteCodeAnnotation}
+            onAddAnnotation={handleAddCodeAnnotation}
+            onEditAnnotation={handleEditCodeAnnotation}
+            onDeleteAnnotation={handleDeleteCodeAnnotation}
             onSelectAnnotation={(id) => {
               setSelectedAnnotationId(null);
               setSelectedCodeAnnotationId(id);
