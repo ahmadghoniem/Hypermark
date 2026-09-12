@@ -1,29 +1,18 @@
 import React from 'react';
 import type { IDockviewHeaderActionsProps } from 'dockview-react';
-import { configStore, useConfigValue } from '@hypermark/ui/config';
-import { DiffOptionsPopover } from '../components/DiffOptionsPopover';
 import { useReviewStateOptional } from './ReviewStateContext';
 import { REVIEW_ALL_FILES_PANEL_ID } from './reviewPanelTypes';
 
 /**
- * Split/Unified diff toggle + options, pinned to the right of the dock tab strip
- * (dockview's `rightHeaderActionsComponent`). Stays visible while the tabs
- * scroll. Desktop reads/writes the global `configStore`; compact-touch review
- * shells provide a session-only style through review state so opening a review
- * on a phone never changes the user's desktop preference.
+ * Collapse/expand-all, pinned to the right of the dock tab strip (dockview's
+ * `rightHeaderActionsComponent`). Stays visible while the tabs scroll.
  *
- * Rendered per group; for now it shows in every group's tab strip (the diff
- * setting is global). Scoping it to the diff-bearing group is a later refinement
- * if splitting proves it noisy.
+ * Diff style and the diff display options used to live here too; both moved to
+ * the review header, which is the only place that carries them now.
  */
 export const ReviewDockRightActions: React.FC<IDockviewHeaderActionsProps> = (props) => {
-  const storedDiffStyle = useConfigValue('diffStyle');
   const state = useReviewStateOptional();
 
-  const diffStyle = state?.diffStyle ?? storedDiffStyle;
-  const setDiffStyle = state?.onDiffStyleChange ?? ((style: 'split' | 'unified') => {
-    configStore.set('diffStyle', style);
-  });
   // Collapse/expand-all files — only meaningful (and only shown) when this
   // group's active panel is the All files view.
   const showCollapseAll = !!state && props.activePanel?.id === REVIEW_ALL_FILES_PANEL_ID;
@@ -61,33 +50,6 @@ export const ReviewDockRightActions: React.FC<IDockviewHeaderActionsProps> = (pr
           </svg>
         </button>
       )}
-      <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
-        <button
-          onClick={() => setDiffStyle('split')}
-          className={`px-2 py-1 text-xs rounded-md transition-colors ${
-            diffStyle === 'split'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Split
-        </button>
-        <button
-          onClick={() => setDiffStyle('unified')}
-          className={`px-2 py-1 text-xs rounded-md transition-colors ${
-            diffStyle === 'unified'
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Unified
-        </button>
-        <div className="w-px h-4 bg-border/60 mx-0.5" />
-        <DiffOptionsPopover
-          diffStyle={diffStyle}
-          onDiffStyleChange={setDiffStyle}
-        />
-      </div>
     </div>
   );
 };

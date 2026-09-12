@@ -33,10 +33,10 @@ export function useAnnotationFactory(
     } : {}),
   }), [commitContext, gitButlerContext]);
 
-  const withPRContext = useCallback(
+  const withDiffContext = useCallback(
     (annotation: CodeAnnotation): CodeAnnotation => ({ ...annotation, ...diffContext }),
     [diffContext],
   );
 
-  return { withPRContext, withContext: withPRContext };
+  return { withDiffContext };
 }

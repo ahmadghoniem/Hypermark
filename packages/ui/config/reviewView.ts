@@ -54,28 +54,6 @@ export function getPersistedReviewPanelView(): 'sections' | 'tree' | undefined {
   return SETTINGS.reviewPanelView.fromCookie();
 }
 
-export type ReviewDefaultDiffType =
-  | 'since-base'
-  | 'local-vs-remote'
-  | 'uncommitted'
-  | 'unstaged'
-  | 'staged'
-  | 'merge-base'
-  | 'all';
-
-export function setReviewDefaultDiffType(
-  value: ReviewDefaultDiffType,
-  store: PanelViewConfigStore = configStore,
-): void {
-  store.set('defaultDiffType', value);
-  if (value !== 'since-base' && store.get('reviewPanelView') !== 'tree') {
-    store.set('reviewPanelView', 'tree');
-    // The snap is an explicit-choice consequence (the user picked a classic
-    // diff default), so it syncs the memo like any explicit view write.
-    store.set('reviewPanelViewLastUsed', 'tree');
-  }
-}
-
 
 /**
  * One-time gate for the auto-mark-viewed notice — the toast that fires the

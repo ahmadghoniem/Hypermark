@@ -1,10 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useReviewStateOptional } from '../dock/ReviewStateContext';
 import type { DiffFileStatus } from '../types';
 
 interface FileHeaderProps {
-  /** Read-only host: no file-actions affordance. */
-  readOnly?: boolean;
   filePath: string;
   patch: string;
   /** Change type — added/deleted/renamed get an icon; modified is undecorated. */
@@ -54,9 +51,8 @@ function frontEllipsize(text: string, visibleChars: number): string {
  * tree): A added · D deleted · R renamed, colored so the critical changes pop.
  * Modified is bare — the +/- counts already say it changed within the file.
  */
-const STATUS_LETTER: Record<DiffFileStatus, { letter: string; className: string; title: string }> = {
+const STATUS_LETTER: Record<Exclude<DiffFileStatus, 'modified'>, { letter: string; className: string; title: string }> = {
   added: { letter: 'A', className: 'text-success', title: 'Added file' },
-  modified: { letter: 'M', className: 'text-muted-foreground', title: 'Modified file' },
   deleted: { letter: 'D', className: 'text-destructive', title: 'Deleted file' },
   renamed: { letter: 'R', className: 'text-[#007aff]', title: 'Renamed file' },
 };
@@ -102,11 +98,9 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
   fileCommentButtonRef,
   collapseToggle,
   onCollapseToggle,
-  readOnly = false,
   isGenerated = false,
 }) => {
   const [headerWidth, setHeaderWidth] = useState<number>(0);
-  const state = useReviewStateOptional();
   const headerRef = useRef<HTMLDivElement>(null);
   const fileCommentRef = useRef<HTMLButtonElement>(null);
   const { directory, name } = splitFilePath(filePath);
@@ -139,13 +133,13 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
   return (
     <div
       ref={headerRef}
-      className={`flex-shrink-0 border-b border-border/50 flex items-center justify-between gap-2 transition-colors duration-150 hover:bg-muted/30 ${'px-3'}`}
+      className={`flex-shrink-0 border-b border-border/50 flex items-center justify-between gap-2 transition-colors duration-150 hover:bg-muted/30 px-3`}
       style={{ height: 'var(--panel-header-h)'}}
     >
       <div className="min-w-0 flex flex-1 items-center" onClick={onCollapseToggle} style={onCollapseToggle ? { cursor: 'pointer' } : undefined}>
         {collapseToggle}
         <span
-          className={`min-w-0 flex items-center text-xs font-semibold leading-normal whitespace-nowrap ${''}`}
+          className={`min-w-0 flex items-center text-xs font-semibold leading-normal whitespace-nowrap`}
           title={status === 'renamed' && oldPath ? `${oldPath} → ${filePath}` : filePath}
         >
           {/* Rename: dimmed old path → new path (diffshub treatment). Dropped
@@ -166,20 +160,16 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
               </svg>
             </>
           )}
-          {(
-            <>
-              {!showFilenameOnly && directory && (
-                <span className="min-w-0 overflow-hidden text-ellipsis text-muted-foreground/70">
-                  {directory}
-                </span>
-              )}
-              <span
-                className={showFilenameOnly ? 'block min-w-0 overflow-hidden whitespace-nowrap text-foreground' : 'flex-none whitespace-nowrap text-foreground'}
-              >
-                {truncatedName}
-              </span>
-            </>
+          {!showFilenameOnly && directory && (
+            <span className="min-w-0 overflow-hidden text-ellipsis text-muted-foreground/70">
+              {directory}
+            </span>
           )}
+          <span
+            className={showFilenameOnly ? 'block min-w-0 overflow-hidden whitespace-nowrap text-foreground' : 'flex-none whitespace-nowrap text-foreground'}
+          >
+            {truncatedName}
+          </span>
         </span>
       </div>
       <div className={`flex flex-shrink-0 items-center pl-2 ${isCompact ? 'gap-1' : 'gap-2'}`}>

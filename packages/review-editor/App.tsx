@@ -65,9 +65,9 @@ import { ResizeHandle } from '@hypermark/ui/components/ResizeHandle';
 import { IconContext, Tree } from '@phosphor-icons/react';
 import { DockviewReact, type DockviewReadyEvent, type DockviewApi } from 'dockview-react';
 import { ThemeModeButton } from '@hypermark/ui/components/ThemeModeButton';
+import { DiffOptionsButton } from '@hypermark/ui/components/DiffOptionsButton';
 import { KeyboardShortcutsButton } from '@hypermark/ui/components/KeyboardShortcutsDialog';
 import { ReviewSidebar } from './components/ReviewSidebar';
-import type { ReviewSidebarTab } from './components/ReviewSidebar';
 import { useSidebar } from '@hypermark/ui/hooks/useSidebar';
 import { useViewportEnvironment } from '@hypermark/ui/hooks/useViewportEnvironment';
 import { FileTree } from './components/FileTree';
@@ -215,10 +215,6 @@ const ReviewAppInner: React.FC = () => {
   const [showNoAnnotationsDialog, setShowNoAnnotationsDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const diffStyle = useConfigValue('diffStyle');
-  const effectiveDiffStyle = diffStyle;
-  const handleDiffStyleChange = useCallback((style: 'split' | 'unified') => {
-    configStore.set('diffStyle', style);
-  }, []);
   const diffOverflow = useConfigValue('diffOverflow');
   const diffIndicators = useConfigValue('diffIndicators');
   const diffLineDiffType = useConfigValue('diffLineDiffType');
@@ -248,7 +244,7 @@ const ReviewAppInner: React.FC = () => {
     document.documentElement.style.setProperty('--diffs-tab-size', String(diffTabSize));
   }, [diffFontFamily, diffFontSize, diffTabSize]);
 
-  const reviewSidebar = useSidebar<ReviewSidebarTab>(false, 'annotations');
+  const reviewSidebar = useSidebar<'annotations'>(false, 'annotations');
   const [isFileTreeOpen, setIsFileTreeOpen] = useState(true);
   const isNavigatorOpen = isFileTreeOpen;
   const toggleNavigator = useCallback(() => {
@@ -449,27 +445,14 @@ const ReviewAppInner: React.FC = () => {
     }
   }, [clearPendingSelection, files, openAllFilesPanel]);
 
-  const handleRequestLineAnnotation = useCallback((filePath: string, range: SelectedLineRange) => {
-    const file = files.find(candidate => candidate.path === filePath || candidate.oldPath === filePath);
-    if (!file) return;
-
-    setPendingSelection(range);
-    nextLineAnnotationComposeRequestId.current += 1;
-    setLineAnnotationComposeRequest({
-      id: nextLineAnnotationComposeRequestId.current,
-      filePath: file.path,
-      range,
-    });
-  }, [files]);
-
   const handleRevealSearchMatch = useCallback((match: ReviewSearchMatch) => {
     // Respect the surface the user is in. When the all-files panel is active,
     // reveal IN PLACE — AllFilesCodeView scrolls to + highlights the active
-    // match via the activeSearchMatch prop. When a single-file panel is active
-    // (or there's no dock yet), open the match's file there instead (legacy
-    // behavior). Unconditionally activating the all-files panel here would
-    // teleport the user out of their tab just for typing a query (reveal also
-    // fires on first-match auto-activation, not only on explicit clicks).
+    // match via its activeSearchMatch prop. Otherwise (no dock yet, or another
+    // panel such as Code nav holds the group) scroll the all-files view to the
+    // match's file. Unconditionally activating that panel here would teleport
+    // the user out of their tab just for typing a query — reveal also fires on
+    // first-match auto-activation, not only on explicit clicks.
     if (dockApi && isAllFilesActiveRef.current) {
       return;
     }
@@ -667,7 +650,7 @@ const ReviewAppInner: React.FC = () => {
     codeNav.clear();
     dockApi?.getPanel(REVIEW_CODE_NAV_PANEL_ID)?.api.close();
   }, [canUseLiveWorkspaceActions, codeNav.clear, dockApi]);
-  const { withPRContext } = useAnnotationFactory(
+  const { withDiffContext } = useAnnotationFactory(
     activeCommitContext,
     activeGitButlerContext,
   );
@@ -895,40 +878,9 @@ const ReviewAppInner: React.FC = () => {
       author: identity,
       images,
     };
-    addCodeAnnotationsWithHistory([withPRContext(newAnnotation)]);
+    addCodeAnnotationsWithHistory([withDiffContext(newAnnotation)]);
     clearPendingSelection();
-  }, [pendingSelection, identity, withPRContext, clearPendingSelection, addCodeAnnotationsWithHistory]);
-
-  const handleAddAnnotation = useCallback((
-    type: CodeAnnotationType,
-    text?: string,
-    tokenMeta?: TokenAnnotationMeta,
-    images?: ImageAttachment[]
-  ) => {
-    if (!files[activeFileIndex]) return;
-    handleAddAnnotationForFile(files[activeFileIndex].path, type, text, tokenMeta, images);
-  }, [files, activeFileIndex, handleAddAnnotationForFile]);
-
-  const handleAddFileComment = useCallback((text: string) => {
-    const activeFile = files[activeFileIndex];
-    const trimmed = text.trim();
-    if (!activeFile || !trimmed) return;
-
-    const newAnnotation: CodeAnnotation = {
-      id: generateId(),
-      type: 'comment',
-      scope: 'file',
-      filePath: activeFile.path,
-      lineStart: 1,
-      lineEnd: 1,
-      side: 'new',
-      text: trimmed,
-      createdAt: Date.now(),
-      author: identity,
-    };
-
-    addCodeAnnotationsWithHistory([withPRContext(newAnnotation)]);
-  }, [files, activeFileIndex, identity, withPRContext, addCodeAnnotationsWithHistory]);
+  }, [pendingSelection, identity, withDiffContext, clearPendingSelection, addCodeAnnotationsWithHistory]);
 
   const handleAddFileCommentForFile = useCallback((filePath: string, text: string) => {
     const trimmed = text.trim();
@@ -947,8 +899,8 @@ const ReviewAppInner: React.FC = () => {
       author: identity,
     };
 
-    addCodeAnnotationsWithHistory([withPRContext(newAnnotation)]);
-  }, [identity, withPRContext, addCodeAnnotationsWithHistory]);
+    addCodeAnnotationsWithHistory([withDiffContext(newAnnotation)]);
+  }, [identity, withDiffContext, addCodeAnnotationsWithHistory]);
 
   // Edit annotation
   const handleEditAnnotation = useCallback((
@@ -1372,7 +1324,7 @@ const ReviewAppInner: React.FC = () => {
     } finally {
       setIsLoadingDiff(false);
     }
-  }, [dockApi, selectedBase, diffHideWhitespace, files, activeFileIndex, openDiffFile, clearPendingSelection, autoViewedEnabled, diffType]);
+  }, [selectedBase, diffHideWhitespace, files, activeFileIndex, openDiffFile, clearPendingSelection, autoViewedEnabled, diffType]);
 
   // Switch the base branch the current diff compares against.
   // Only triggers a refetch when the active mode actually uses a base.
@@ -1727,11 +1679,7 @@ const ReviewAppInner: React.FC = () => {
   // Build ReviewState value for dock panel context
   const reviewStateValue = useMemo<ReviewState>(() => ({
     files,
-    rawPatch: diffData?.rawPatch ?? '',
-    focusedFileIndex: activeFileIndex,
-    focusedFilePath: files[activeFileIndex]?.path ?? null,
-    diffStyle: effectiveDiffStyle,
-    onDiffStyleChange: handleDiffStyleChange,
+    diffStyle: diffStyle,
     diffOverflow,
     diffIndicators,
     lineDiffType: diffLineDiffType,
@@ -1749,24 +1697,16 @@ const ReviewAppInner: React.FC = () => {
         (activeDiffBase === 'since-base' || activeDiffBase === 'branch' || activeDiffBase === 'merge-base' || activeDiffBase === 'jj-line' || activeDiffBase === 'jj-evolog')
         ? committedBase ?? undefined
         : undefined,
-    activeDiffBase,
     feedbackDiffContext,
-    agentCwd,
-    canUseLiveWorkspaceActions,
     allAnnotations,
-    externalAnnotations,
     selectedAnnotationId,
     scrollTargetAnnotation,
     pendingSelection,
     onLineSelection: handleLineSelection,
-    onRequestLineAnnotation: handleRequestLineAnnotation,
-    onAddAnnotation: handleAddAnnotation,
     onAddAnnotationForFile: handleAddAnnotationForFile,
-    onAddFileComment: handleAddFileComment,
     onAddFileCommentForFile: handleAddFileCommentForFile,
     onEditAnnotation: handleEditAnnotation,
     onSelectAnnotation: handleSelectAnnotation,
-    onNavigateToAnnotation: handleNavigateToAnnotation,
     onDeleteAnnotation: handleDeleteAnnotation,
     viewedFiles,
     onToggleViewed: handleToggleViewed,
@@ -1774,17 +1714,13 @@ const ReviewAppInner: React.FC = () => {
     expandedGeneratedFiles,
     onGeneratedFileCollapsedChange: handleGeneratedFileCollapsedChange,
     showViewedControls: reviewShowViewedControls,
-    stagedFiles,
-    currentWorktreePath: activeWorktreePath,
     searchQuery: isSearchPending ? '' : debouncedSearchQuery,
     isSearchPending,
     debouncedSearchQuery,
     fileScrollTarget,
     activeSearchMatchId,
-    activeSearchMatch: activeSearchMatch?.filePath === files[activeFileIndex]?.path ? activeSearchMatch : null,
     searchMatches,
     allFilesActiveSearchMatch: activeSearchMatch,
-    openDiffFile,
     onAllFilesVisibleFileChange: handleAllFilesVisibleFileChange,
     onAllFilesFileScrolledPast: handleFileScrolledPast,
     isAllFilesActive,
@@ -1799,21 +1735,19 @@ const ReviewAppInner: React.FC = () => {
     codeNavIsLoading: codeNav.isLoading,
     codeNavActiveSymbol: codeNav.activeSymbol,
   }), [
-    files, diffData?.rawPatch, activeFileIndex, effectiveDiffStyle, handleDiffStyleChange, diffOverflow, diffIndicators,
+    files, diffStyle, diffOverflow, diffIndicators,
     diffLineDiffType, diffShowLineNumbers, diffShowBackground,
-    diffExpandUnchanged, diffFontFamily, diffFontSize, activeDiffBase, committedBase, feedbackDiffContext, agentCwd, canUseLiveWorkspaceActions,
-    allAnnotations, externalAnnotations,
+    diffExpandUnchanged, diffFontFamily, diffFontSize, activeDiffBase, committedBase, feedbackDiffContext,
+    allAnnotations,
     selectedAnnotationId, scrollTargetAnnotation, pendingSelection, handleLineSelection,
-    handleRequestLineAnnotation,
-    handleAddAnnotation, handleAddFileComment, handleAddFileCommentForFile, handleEditAnnotation,
-    handleSelectAnnotation, handleNavigateToAnnotation, handleDeleteAnnotation, viewedFiles,
+    handleAddAnnotationForFile, handleAddFileCommentForFile, handleEditAnnotation,
+    handleSelectAnnotation, handleDeleteAnnotation, viewedFiles,
     generatedFiles, expandedGeneratedFiles, handleGeneratedFileCollapsedChange,
-    handleToggleViewed, reviewShowViewedControls, stagedFiles,
-    activeWorktreePath, isSearchPending, debouncedSearchQuery,
+    handleToggleViewed, reviewShowViewedControls,
+    isSearchPending, debouncedSearchQuery,
     fileScrollTarget, activeSearchMatchId, activeSearchMatch, searchMatches,
-    openDiffFile,
     handleAllFilesVisibleFileChange, handleFileScrolledPast,
-    isAllFilesActive, allFilesOrder, allFilesAllCollapsed, onToggleAllFilesCollapsed, registerAllFilesCollapseToggle, commitInfo, handleAddAnnotationForFile,
+    isAllFilesActive, allFilesOrder, allFilesAllCollapsed, onToggleAllFilesCollapsed, registerAllFilesCollapseToggle, commitInfo,
     handleCodeNavRequest, codeNav.result, codeNav.isLoading, codeNav.activeSymbol,
   ]);
 
@@ -2008,7 +1942,7 @@ const ReviewAppInner: React.FC = () => {
   // scope:'general' review-level comment (spec §3.3). Unlike the submit note
   // above, it goes through history (undoable, draft-persisted, deletable via
   // the sidebar's existing delete); like it, it is deliberately NOT
-  // withPRContext-stamped, so it survives an in-place PR switch (see the
+  // withDiffContext-stamped, so it survives an in-place PR switch (see the
   // factory's doc in reviewDecision.ts).
   const handleAddGeneralComment = useCallback((text: string) => {
     // Mirrors the 'note' route's guard: a commit during an in-flight decision
@@ -2370,7 +2304,7 @@ const ReviewAppInner: React.FC = () => {
                           <button
                 onClick={() => reviewSidebar.toggleTab('annotations')}
                 className={`relative p-1.5 rounded-md transition-all ${
-                  reviewSidebar.isOpen && reviewSidebar.activeTab === 'annotations'
+                  reviewSidebar.isOpen
                     ? 'bg-primary/15 text-primary'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                 }`}
@@ -2406,6 +2340,8 @@ const ReviewAppInner: React.FC = () => {
                 </svg>
               )}
             </button>
+
+            <DiffOptionsButton />
 
             <ThemeModeButton />
 
@@ -2671,10 +2607,6 @@ const ReviewAppInner: React.FC = () => {
                               <ResizeHandle {...panelResize.handleProps} className="z-10" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => reviewSidebar.close()} />
               
               <ReviewSidebar
-                isOpen
-                onClose={reviewSidebar.close}
-                presentation={'panel'}
-                activeTab={reviewSidebar.activeTab}
                 annotations={allAnnotations}
                 files={files}
                 selectedAnnotationId={selectedAnnotationId}

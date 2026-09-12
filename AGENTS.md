@@ -86,7 +86,7 @@ hypermark/
 │   │   └── App.tsx               # Main plan review app
 │   └── review-editor/            # Code review UI
 │       ├── App.tsx               # Main review app
-│       ├── components/           # DiffViewer, FileTree, ReviewSidebar
+│       ├── components/           # AllFilesCodeView, FileTree, ReviewSidebar
 │       ├── dock/                 # Dockview center panel infrastructure
 │       ├── demoData.ts           # Demo diff for standalone mode
 │       └── index.css             # Review-specific styles

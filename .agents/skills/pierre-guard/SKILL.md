@@ -1,6 +1,6 @@
 ---
 name: pierre-guard
-description: Guard against breaking the @pierre/diffs integration in Hypermark's code review UI. Use this skill whenever modifying DiffViewer.tsx, upgrading the @pierre/diffs package, changing unsafeCSS injection, adding new props to FileDiff, or touching shadow DOM selectors or CSS variables that cross into Pierre's shadow boundary. Also trigger when someone asks "will this break the diff viewer", "is this safe to change", or when reviewing PRs that touch the review-editor package.
+description: Guard against breaking the @pierre/diffs integration in Hypermark's code review UI. Use this skill whenever modifying AllFilesCodeView.tsx, upgrading the @pierre/diffs package, changing unsafeCSS injection, adding new props to CodeView, or touching shadow DOM selectors or CSS variables that cross into Pierre's shadow boundary. Also trigger when someone asks "will this break the diff viewer", "is this safe to change", or when reviewing changes that touch the review-editor package.
 ---
 
 # Pierre Integration Guard
@@ -11,7 +11,7 @@ Hypermark's code review UI wraps `@pierre/diffs` — an open-source diff rendere
 
 - **Upstream repo**: https://github.com/pierrecomputer/pierre/tree/main/packages/diffs
 - **Local types**: `node_modules/@pierre/diffs/dist/` (`.d.ts` files)
-- **Integration point**: `packages/review-editor/components/DiffViewer.tsx`
+- **Integration point**: `packages/review-editor/components/AllFilesCodeView.tsx` (the rendering surface) and `packages/review-editor/workerPool.tsx` (the highlight worker pool)
 - **Current version**: check `packages/review-editor/package.json` for the pinned version
 
 Always verify against the upstream repo or local `.d.ts` files — don't rely on memory of the API shape.
@@ -19,15 +19,24 @@ Always verify against the upstream repo or local `.d.ts` files — don't rely on
 ## What We Import
 
 ```typescript
-import { FileDiff } from '@pierre/diffs/react';
+import { CodeView, type CodeViewHandle, useStableCallback } from '@pierre/diffs/react';
 import { getSingularPatch, processFile } from '@pierre/diffs';
+import { WorkerPoolContextProvider, useWorkerPool } from '@pierre/diffs/react';
+import DiffsWorker from '@pierre/diffs/worker/worker.js?worker&inline';
 ```
 
-These are the only three imports. `DiffViewer.tsx` is the only file that touches Pierre.
+`AllFilesCodeView.tsx` is the only file that renders Pierre; `workerPool.tsx` owns the
+worker pool. Four other files import Pierre TYPES only (`ToolbarHost.tsx`,
+`hooks/useAnnotationToolbar.ts`, `utils/buildCodeNavRequest.ts`,
+`utils/lineAnnotationProjection.ts`) and carry no runtime dependency.
+
+The single-file `FileDiff` component is no longer used — the review renders every file
+through one virtualized `CodeView`. Where this document still says `FileDiff`, read
+`CodeView`.
 
 ## API Surface to Guard
 
-### 1. Component Props (`FileDiff`)
+### 1. Component Props (`CodeView`)
 
 Read the current prop types from `node_modules/@pierre/diffs/dist/react/index.d.ts` or the upstream source. The props we use:
 
@@ -38,7 +47,7 @@ Read the current prop types from `node_modules/@pierre/diffs/dist/react/index.d.
 | `lineAnnotations` | `DiffLineAnnotation<T>[]` | `{ side, lineNumber, metadata }` |
 | `selectedLines` | `SelectedLineRange \| null` | `{ start, end, side }` |
 | `renderAnnotation` | `(ann) => ReactNode` | Custom inline annotation renderer |
-| `renderHoverUtility` | `(getHoveredLine) => ReactNode` | The `+` button on hover (deprecated upstream — watch for removal) |
+| `renderAnnotation` | `(ann, item) => ReactNode` | Custom inline annotation renderer; the item context carries file identity |
 
 ### 2. Options Object
 
@@ -50,7 +59,7 @@ Read the current prop types from `node_modules/@pierre/diffs/dist/react/index.d.
 | `diffIndicators` | `'bars'` | Low |
 | `hunkSeparators` | `'line-info'` | Low |
 | `enableLineSelection` | `true` | Low |
-| `enableHoverUtility` | `true` | Medium — deprecated prop |
+| `enableGutterUtility` | `true` | Medium — callback signature takes an item context |
 | `onLineSelectionEnd` | callback | Medium — signature could change |
 
 ### 3. Shadow DOM Selectors (via `unsafeCSS`)
@@ -98,7 +107,6 @@ When reviewing changes that touch the Pierre integration, check:
 
 ### Props & Types
 - [ ] Read the current `.d.ts` files to confirm prop names and types haven't changed
-- [ ] Check if `renderHoverUtility` is still supported (it's deprecated — may be removed)
 - [ ] Verify `DiffLineAnnotation` still uses `side: 'deletions' | 'additions'` (not `'old' | 'new'`)
 - [ ] Confirm `SelectedLineRange` shape: `{ start, end, side? }`
 

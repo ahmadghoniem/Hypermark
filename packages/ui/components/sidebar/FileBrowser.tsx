@@ -25,7 +25,6 @@ interface FileBrowserProps {
   annotationCounts?: Map<string, number>;
   highlightedFiles?: Set<string>;
   editStatuses?: Map<string, FileEditStatus>;
-  /** Prevent competing destination changes while a document is activating. */
 }
 
 export interface FileEditStatus {

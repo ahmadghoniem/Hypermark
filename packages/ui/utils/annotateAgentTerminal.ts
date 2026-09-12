@@ -34,10 +34,6 @@ export function saveAnnotateAgentId(agentId: string): void {
   configStore.set("agentTerminalDefaultAgent", agentId);
 }
 
-export function getSavedAnnotateAgentTerminalSide(): AnnotateAgentTerminalSide {
-  return configStore.get("agentTerminalSide");
-}
-
 export function saveAnnotateAgentTerminalSide(side: AnnotateAgentTerminalSide): void {
   configStore.set("agentTerminalSide", side);
 }

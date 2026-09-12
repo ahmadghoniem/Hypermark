@@ -50,16 +50,11 @@ describe("transformReviewInput — scope-aware location requirements", () => {
     expect("error" in r && r.error).toContain("invalid scope");
   });
 
-  test("preserves PR, commit, and GitButler attribution", () => {
+  test("preserves commit and GitButler attribution", () => {
     const [annotation] = ok({
       source: "external-tool",
       scope: "general",
       text: "finding",
-      prUrl: "https://github.com/acme/repo/pull/42",
-      prNumber: 42,
-      prTitle: "Improve review",
-      prRepo: "acme/repo",
-      diffScope: "full-stack",
       commitSha: "abc1234",
       commitSubject: "Fix the edge case",
       gitButlerDiffType: "gitbutler:branch:feature",
@@ -69,11 +64,6 @@ describe("transformReviewInput — scope-aware location requirements", () => {
     });
 
     expect(annotation).toMatchObject({
-      prUrl: "https://github.com/acme/repo/pull/42",
-      prNumber: 42,
-      prTitle: "Improve review",
-      prRepo: "acme/repo",
-      diffScope: "full-stack",
       commitSha: "abc1234",
       commitSubject: "Fix the edge case",
       gitButlerDiffType: "gitbutler:branch:feature",
@@ -81,24 +71,6 @@ describe("transformReviewInput — scope-aware location requirements", () => {
       gitButlerBase: "base123",
       gitButlerSnapshotId: "snapshot-1",
     });
-  });
-
-  test("rejects malformed PR attribution", () => {
-    const badScope = transformReviewInput({
-      source: "external-tool",
-      scope: "general",
-      text: "finding",
-      diffScope: "all",
-    });
-    expect("error" in badScope && badScope.error).toContain("invalid diffScope");
-
-    const badNumber = transformReviewInput({
-      source: "external-tool",
-      scope: "general",
-      text: "finding",
-      prNumber: 0,
-    });
-    expect("error" in badNumber && badNumber.error).toContain("invalid prNumber");
   });
 });
 

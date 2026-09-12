@@ -82,14 +82,6 @@ export function getQuickLabels(): QuickLabel[] {
   }
 }
 
-export function saveQuickLabels(labels: QuickLabel[]): void {
-  storage.setItem(STORAGE_KEY, JSON.stringify(labels));
-}
-
-export function resetQuickLabels(): void {
-  storage.removeItem(STORAGE_KEY);
-}
-
 /** Find a configured label whose formatted text matches an annotation's text field */
 export function findLabelByText(annotationText: string): QuickLabel | undefined {
   return getQuickLabels().find(l => formatQuickLabel(l) === annotationText);

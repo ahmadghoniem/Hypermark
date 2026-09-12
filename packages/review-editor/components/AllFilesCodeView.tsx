@@ -246,16 +246,6 @@ export interface AllFilesCodeViewProps {
   /** Seed every file collapsed (commit diffs open as a folded overview under
    * the commit-description header). The collapse-all toggle still works. */
   defaultCollapsed?: boolean;
-  /** Mount-only seed captured once for this component mount. Local collapse
-   * changes therefore do not alter CodeView's key; a true outer remount captures
-   * the shell's latest value. */
-  mountCollapsed?: boolean;
-  /** Restore an inner CodeView position after an outer virtualized shell remounts. */
-  initialScrollPosition?: number;
-  /** Persist the current inner CodeView position outside this component. */
-  onScrollPositionChange?: (position: number) => void;
-  /** Report collapse changes so an outer shell can preserve them across remounts. */
-  onFileCollapsedChange?: (filePath: string, collapsed: boolean) => void;
   /** Content rendered ABOVE the first file, inside the scroller — it scrolls
    * away with the diff (not pinned). Implemented as layout.paddingTop +
    * a portal into CodeView's scroll container, since CodeView owns both the
@@ -263,17 +253,6 @@ export interface AllFilesCodeViewProps {
   leadingContent?: React.ReactNode;
   // Only handle [/]/z/v/a/c/x keyboard nav when this surface is the active panel.
   isActive?: boolean;
-  /** Let wheel/touch gestures continue into a containing page when this nested
-   * viewer reaches either vertical boundary. Guided Review file cards opt in. */
-  allowScrollChaining?: boolean;
-  /**
-   * Portable / read-only host: no line or
-   * gutter selection, no annotation toolbar or comment popovers, no global
-   * keyboard shortcuts, no /api/file-content augmentation, no file-actions
-   * affordance. Everything the diff LOOKS like is unchanged — this only turns
-   * off surfaces that require the review server or mutate review state.
-   */
-  readOnly?: boolean;
 }
 
 // Diffshub-style stable path-based id allocation. Hypermark's file list is
@@ -453,17 +432,10 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   registerCollapseAllToggle,
   onAllCollapsedChange,
   defaultCollapsed,
-  mountCollapsed,
-  initialScrollPosition = 0,
-  onScrollPositionChange,
-  onFileCollapsedChange,
   leadingContent,
   isActive = true,
-  readOnly = false,
-  allowScrollChaining = false,
 }) => {
-  const mountCollapsedRef = useRef(mountCollapsed);
-  const seedCollapsed = mountCollapsedRef.current ?? defaultCollapsed;
+  const seedCollapsed = defaultCollapsed;
 
   // showFileHeader: true suppresses usePierreTheme's `[data-title]` hide rule.
   // With renderCustomHeader the built-in header runs in 'custom' mode (only the
@@ -904,7 +876,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   const reportFileCollapsed = useStableCallback((itemId: string, collapsed: boolean) => {
     const filePath = itemIdToFilePath.get(itemId);
     if (!filePath) return;
-    onFileCollapsedChange?.(filePath, collapsed);
     // Generated files (#1317): let the owner track explicit expansion so it
     // survives remounts. Every collapse mutation funnels through here —
     // toggle, viewed+collapse, collapse/expand-all, the collapsed-placeholder
@@ -1041,8 +1012,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   itemIdToFileRef.current = itemIdToFile;
   const fileSetKeyRef = useRef(fileSetKey);
   fileSetKeyRef.current = fileSetKey;
-  const readOnlyRef = useRef(readOnly);
-  readOnlyRef.current = readOnly;
 
   // Augmentation APPLIES are deferred to scroll-idle. updateItem() mutates
   // item layout — the full-content parse counts collapsed-context regions the
@@ -1117,13 +1086,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
 
     const controller = new AbortController();
 
-    // Read-only hosts have no review server: leave the raw-patch context in
-    // place and mark the item done so it never re-fires (no dead requests,
-    // no console noise from a CSP that blocks connect-src).
-    if (readOnlyRef.current) {
-      augmentState.set(itemId, { status: 'done', controller, generation });
-      return;
-    }
     augmentState.set(itemId, { status: 'pending', controller, generation });
 
     // A resolution stage is stale when its fetch was aborted (unmount / diff
@@ -1780,7 +1742,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   const handleScroll = useStableCallback((position: number) => {
     lastScrollTsRef.current = Date.now();
     hasScrolledRef.current = true;
-    onScrollPositionChange?.(position);
     if (scrollReportRafRef.current != null) return;
     scrollReportRafRef.current = requestAnimationFrame(() => {
       scrollReportRafRef.current = null;
@@ -1801,19 +1762,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     const raf = requestAnimationFrame(() => reportVisibleFile());
     return () => cancelAnimationFrame(raf);
   }, [reportVisibleFile, fileSetKey]);
-
-  // Outer virtualized shells survive while this CodeView is evicted. Restore
-  // its scroll position on mount once after this component mount; later parent
-  // renders may expose a newer live ref value, but must not snap active scrolling.
-  const hasRestoredInitialScrollRef = useRef(false);
-  useEffect(() => {
-    if (hasRestoredInitialScrollRef.current || initialScrollPosition <= 0) return;
-    hasRestoredInitialScrollRef.current = true;
-    const raf = requestAnimationFrame(() => {
-      viewerRef.current?.scrollTo({ type: 'position', position: initialScrollPosition });
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [fileSetKey, initialScrollPosition]);
 
   // --- [/]/z/v/a/c/x navigation + header actions driven by CodeView ----------
 
@@ -1922,7 +1870,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   }, [scrollTargetAnnotation, filePathToItemId]);
 
   useEffect(() => {
-    if (!isActive || readOnly) return;
+    if (!isActive) return;
     const handler = (e: KeyboardEvent) => {
       // composedPath()[0] pierces shadow DOM: window-level e.target retargets
       // to the shadow HOST (e.g. <diffs-container>), which would hide a
@@ -2005,7 +1953,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     return () => window.removeEventListener('keydown', handler);
   }, [
     isActive,
-    readOnly,
     orderedItemIds,
     filePathToItemId,
     itemIdToFilePath,
@@ -2033,7 +1980,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     return (
       <div className="flex flex-col">
         <FileHeader
-        readOnly={readOnly}
         filePath={filePath}
         patch={file.patch}
         status={file.status}
@@ -2151,8 +2097,8 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       disableLineNumbers,
       disableBackground,
       expandUnchanged,
-      enableLineSelection: !readOnly,
-      enableGutterUtility: !readOnly,
+      enableLineSelection: true,
+      enableGutterUtility: true,
       hunkSeparators: 'line-info',
       stickyHeaders: true,
       // Flush files together (no inter-file gap) — file boundaries already read
@@ -2219,7 +2165,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       disableLineNumbers,
       disableBackground,
       expandUnchanged,
-      readOnly,
       customLineHeight,
       leadingHeight,
       handleLineSelectionEnd,
@@ -2253,7 +2198,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       // overflow-anchor:none disables the BROWSER's scroll anchoring, which
       // otherwise fights CodeView's own anchor resolution whenever item
       // heights change (our augmentation applies).
-      className={`relative h-full overflow-y-auto overflow-x-clip ${allowScrollChaining ? 'overscroll-auto' : 'overscroll-contain'} [contain:strict] [overflow-anchor:none] [will-change:scroll-position] [&_diffs-container]:overflow-clip [&_diffs-container]:[contain:layout_paint_style]`}
+      className={`relative h-full overflow-y-auto overflow-x-clip overscroll-contain [contain:strict] [overflow-anchor:none] [will-change:scroll-position] [&_diffs-container]:overflow-clip [&_diffs-container]:[contain:layout_paint_style]`}
       initialItems={identity.items}
       options={options}
       selectedLines={selectedLines}
@@ -2292,7 +2237,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
         />
       )}
 
-      {!readOnly && (
       <ToolbarHost
         ref={toolbarHostRef}
         filePath={activeFilePath ?? ''}
@@ -2301,9 +2245,8 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
         onAddAnnotation={handleAddAnnotation}
         onEditAnnotation={onEditAnnotation}
       />
-      )}
 
-      {!readOnly && fileCommentAnchor && onAddFileCommentForFile && (
+      {fileCommentAnchor && onAddFileCommentForFile && (
         <CommentPopover
           key={`file:${fileCommentAnchor.filePath}`}
           anchorEl={fileCommentAnchor.el}

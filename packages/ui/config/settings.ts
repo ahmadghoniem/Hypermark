@@ -14,7 +14,6 @@ import {
   type AnnotateAgentTerminalSide,
 } from '@hypermark/core/agent-terminal';
 import type { DiffLineBgIntensity } from '@hypermark/core/config-types';
-import { isFaviconStyle, type FaviconStyle } from '@hypermark/core/favicon';
 import { storage } from '../utils/storage';
 import { generateIdentity } from '../utils/generateIdentity';
 import {
@@ -99,20 +98,6 @@ export const SETTINGS = {
       return normalizeThemePair(theme, getDefaultThemePair());
     },
     toServer: (v: ThemePair) => ({ theme: { mode: v.mode, light: v.light, dark: v.dark } }),
-  },
-  faviconStyle: {
-    defaultValue: 'classic' as FaviconStyle,
-    fromCookie: () => {
-      const v = storage.getItem('hypermark-favicon');
-      return isFaviconStyle(v) ? v : undefined;
-    },
-    toCookie: (v: FaviconStyle) => storage.setItem('hypermark-favicon', v),
-    serverKey: 'favicon',
-    fromServer: (sc: Record<string, unknown>) => {
-      const v = sc.favicon;
-      return isFaviconStyle(v) ? v : undefined;
-    },
-    toServer: (v: FaviconStyle) => ({ favicon: v }),
   },
 
   // --- Diff display options (namespaced under diffOptions in config.json) ---

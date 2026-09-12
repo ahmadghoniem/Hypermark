@@ -35,15 +35,3 @@ export function getPlanSaveSettings(): PlanSaveSettings {
     customPath: customPath || null,
   };
 }
-
-/**
- * Save plan save settings to storage
- */
-export function savePlanSaveSettings(settings: PlanSaveSettings): void {
-  storage.setItem(STORAGE_KEY_ENABLED, String(settings.enabled));
-  if (settings.customPath) {
-    storage.setItem(STORAGE_KEY_PATH, settings.customPath);
-  } else {
-    storage.removeItem(STORAGE_KEY_PATH);
-  }
-}

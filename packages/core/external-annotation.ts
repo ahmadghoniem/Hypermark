@@ -195,11 +195,6 @@ interface ReviewAnnotation {
   // Agent review metadata (optional — only set by agent review findings)
   severity?: string; // "important" | "nit" | "pre_existing"
   reasoning?: string; // Validation chain explaining how the issue was confirmed
-  prUrl?: string;
-  prNumber?: number;
-  prTitle?: string;
-  prRepo?: string;
-  diffScope?: "layer" | "full-stack";
   commitSha?: string;
   commitSubject?: string;
   gitButlerDiffType?: string;
@@ -322,20 +317,6 @@ export function transformReviewInput(
       };
     }
 
-    if (
-      obj.prNumber !== undefined &&
-      (typeof obj.prNumber !== "number" || !Number.isSafeInteger(obj.prNumber) || obj.prNumber <= 0)
-    ) {
-      return { error: `annotations[${i}] invalid prNumber. Must be a positive integer` };
-    }
-    if (
-      obj.diffScope !== undefined &&
-      obj.diffScope !== "layer" &&
-      obj.diffScope !== "full-stack"
-    ) {
-      return { error: `annotations[${i}] invalid diffScope. Must be one of: layer, full-stack` };
-    }
-
     annotations.push({
       id: crypto.randomUUID(),
       type,
@@ -351,11 +332,6 @@ export function transformReviewInput(
       // Agent review metadata (optional — only set by agent review findings)
       ...(typeof obj.severity === "string" && { severity: obj.severity }),
       ...(typeof obj.reasoning === "string" && { reasoning: obj.reasoning }),
-      ...(typeof obj.prUrl === "string" && { prUrl: obj.prUrl }),
-      ...(typeof obj.prNumber === "number" && { prNumber: obj.prNumber }),
-      ...(typeof obj.prTitle === "string" && { prTitle: obj.prTitle }),
-      ...(typeof obj.prRepo === "string" && { prRepo: obj.prRepo }),
-      ...((obj.diffScope === "layer" || obj.diffScope === "full-stack") && { diffScope: obj.diffScope }),
       ...(typeof obj.commitSha === "string" && { commitSha: obj.commitSha }),
       ...(typeof obj.commitSubject === "string" && { commitSubject: obj.commitSubject }),
       ...(typeof obj.gitButlerDiffType === "string" && { gitButlerDiffType: obj.gitButlerDiffType }),

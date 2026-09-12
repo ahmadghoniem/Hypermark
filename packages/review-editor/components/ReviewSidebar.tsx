@@ -13,14 +13,7 @@ import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';
 import type { DiffFile } from '../types';
 import { copyTextToClipboard } from '@hypermark/ui/utils/clipboard';
 
-export type ReviewSidebarTab = 'annotations';
-
-
 interface ReviewSidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
-  presentation?: 'panel' | 'overlay';
-  activeTab: ReviewSidebarTab;
   annotations: CodeAnnotation[];
   files: DiffFile[];
   selectedAnnotationId: string | null;
@@ -62,8 +55,7 @@ const GeneralCommentComposer: React.FC<{
   /** Popover alignment relative to the button: section header anchors right,
    *  the centered empty-state button anchors center. */
   align: 'right' | 'center';
-  /** The sidebar panel's width when it is a fixed-width panel; undefined in
-   *  the full-screen overlay presentation (the 100vw class guard covers it). */
+  /** The sidebar panel's width, for clamping the popover. */
   panelWidth?: number;
 }> = ({ onAdd, open, onOpenChange, text, onTextChange, align, panelWidth }) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -150,10 +142,6 @@ function compareCodeAnnotations(a: CodeAnnotation, b: CodeAnnotation): number {
 }
 
 export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
-  isOpen,
-  onClose,
-  presentation = 'panel',
-  activeTab,
   annotations,
   files,
   selectedAnnotationId,
@@ -174,9 +162,8 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
   // component and discards the draft (accepted).
   const [generalComposerOpen, setGeneralComposerOpen] = useState(false);
   const [generalDraft, setGeneralDraft] = useState('');
-  // Available panel width for the popover clamp; the overlay presentation is
-  // full-screen, where the 100vw class guard applies instead.
-  const generalComposerPanelWidth = presentation === 'overlay' ? undefined : (width ?? 288);
+  // Available panel width for the popover clamp.
+  const generalComposerPanelWidth = width ?? 288;
 
   const handleQuickCopy = async () => {
     if (!feedbackMarkdown) return;
@@ -211,8 +198,6 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
 
     return { generalAnnotations: general, groupedAnnotations: grouped };
   }, [annotations]);
-
-  if (!isOpen) return null;
 
   function renderAnnotationCard(annotation: CodeAnnotation) {
     const isSelected = selectedAnnotationId === annotation.id;
@@ -268,49 +253,29 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
 
   return (
     <aside
-      data-pn-review-transient-overlay={presentation === 'overlay' || undefined}
-      role={presentation === 'overlay' ? 'dialog' : undefined}
-      aria-label={presentation === 'overlay' ? 'Review sidebar' : undefined}
-      className={presentation === 'overlay'
-        ? 'absolute inset-0 z-40 flex min-w-0 flex-col bg-background'
-        : 'border-l border-border/50 bg-card/30 backdrop-blur-sm flex flex-col flex-shrink-0'
-      }
-      style={presentation === 'overlay' ? undefined : { width: width ?? 288 }}
+      className="border-l border-border/50 bg-card/30 backdrop-blur-sm flex flex-col flex-shrink-0"
+      style={{ width: width ?? 288 }}
     >
         {/* Header */}
         <div
-          className={`px-3 flex items-center border-b border-border/50 ${presentation === 'overlay' ? 'min-h-[52px]' : ''}`}
-          style={presentation === 'overlay' ? undefined : { height: 'var(--panel-header-h)' }}
+          className="px-3 flex items-center border-b border-border/50"
+          style={{ height: 'var(--panel-header-h)' }}
         >
           <div className="flex items-center gap-2 w-full min-w-0">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate">
               Annotations
             </h2>
-            {activeTab === 'annotations' && totalCount > 0 && (
+            {totalCount > 0 && (
               <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
                 {totalCount}
               </span>
-            )}            {presentation === 'overlay' && (
-              <button
-                autoFocus
-                type="button"
-                onClick={onClose}
-                className="ml-auto inline-flex shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label="Close review sidebar"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.25}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
             )}
           </div>
         </div>
 
         {/* Content */}
         <OverlayScrollArea className="flex-1 min-h-0">
-          {/* Annotations tab */}
-          {activeTab === 'annotations' && (
-            <div className="p-2 space-y-1.5">
+          <div className="p-2 space-y-1.5">
               {totalCount === 0 ? (
                 <div className="flex flex-col items-center justify-center h-40 text-center px-4">
                   <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center mb-3">
@@ -319,7 +284,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
                     </svg>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {presentation === 'overlay' ? 'Tap a line to add an annotation' : 'Click on lines to add annotations'}
+                    Click on lines to add annotations
                   </p>
                   {onAddGeneralComment && (
                     <div className="mt-3">
@@ -376,12 +341,11 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
                 </div>
               )}
 
-            </div>
-          )}
+          </div>
         </OverlayScrollArea>
 
-        {/* Quick Copy Footer — annotations tab only */}
-        {activeTab === 'annotations' && feedbackMarkdown && totalCount > 0 && (
+        {/* Quick Copy Footer */}
+        {feedbackMarkdown && totalCount > 0 && (
           <div className="p-2 border-t border-border/50">
             <button
               onClick={handleQuickCopy}
