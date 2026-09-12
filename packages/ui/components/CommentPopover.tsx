@@ -349,7 +349,9 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     window.addEventListener('pointerup', end);
   }, []);
 
-  const resetGripResize = useCallback(() => setComposerHeight(null), []);
+  const resetGripResize = useCallback(() => {
+    setComposerHeight(null);
+  }, []);
 
   // Focus the textarea when it mounts (initial open and popover/dialog switches).
   // A ref callback rather than a mount effect: in popover mode the textarea only
@@ -684,7 +686,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
               onKeyDown={handleKeyDown}
               onSelectCaret={skillAc.onSelect}
               placeholder={isGlobal ? 'Add a global comment...' : 'Add a comment...'}
-              sizeClassName="min-h-32 max-h-full"
+              sizeClassName="min-h-32 max-h-full text-sm"
               skillReferences={skillReferences}
               tokens={skillAc.referenceTokens}
               listboxId={skillListboxId}
@@ -747,21 +749,17 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       <div
         ref={popoverRef}
         data-comment-popover="true"
-      className={`group/composer fixed z-[100] bg-card border border-border rounded-xl shadow-2xl flex flex-col${yieldClass}`}
+      className={`group/composer fixed z-[100] bg-card border border-border rounded-xl shadow-[0_1px_2px_rgb(0_0_0/0.18),0_25px_50px_-12px_rgb(0_0_0/0.5)] flex flex-col${yieldClass}`}
       style={dragPosition
         ? {
             top: dragPosition.top,
             left: dragPosition.left,
             width: position.width,
-            maxHeight: visibleBounds.height,
-            overflowY: 'auto',
           }
         : {
             top: position.top,
             left: position.left,
             width: position.width,
-            maxHeight: position.maxHeight,
-            overflowY: 'auto',
             ...(position.flipAbove ? { transform: 'translateY(-100%)' } : {}),
             animation: position.flipAbove
               ? 'comment-popover-in-above 0.15s ease-out'
@@ -795,38 +793,60 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
         </svg>
       </span>
 
+      {/* The wash tier. It carries the strip's colour for the whole shell, so
+          the notches the body's rounded top corners cut read as strip rather
+          than as the darker card beneath — the seam that otherwise shows as two
+          mismatched pixels at each corner. */}
+      <div
+        className="flex min-h-0 flex-col overflow-y-auto rounded-xl bg-muted/40"
+        style={{
+          maxHeight: dragPosition ? visibleBounds.height : position.maxHeight,
+          overflowY: 'auto',
+        }}
+      >
+
       {/* Top strip - the outer tier. Anchor mark, the location, close at the
           far right end. Draggable by the strip itself. */}
       <div
-        className="flex items-center gap-2 rounded-t-xl bg-muted/40 pl-3 pr-1.5 py-1.5"
+        className={
+          isGlobal
+            ? 'rounded-t-xl py-1'
+            : 'flex items-center gap-2 rounded-t-xl pl-3 pr-1.5 py-1.5'
+        }
         {...dragHandleProps}
       >
-        <span className="flex shrink-0 text-primary" aria-hidden="true">
-          <AnchorIcon />
-        </span>
-        <span className="min-w-0 flex-1 truncate text-[11.5px] leading-snug text-muted-foreground">
-          {headerLabel}
-        </span>
-        <button
-          onClick={() => handleClose()}
-          className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          title="Close"
-          aria-label="Close"
-        >
-          <CloseIcon />
-        </button>
+        {!isGlobal && (
+          <>
+            <span className="flex shrink-0 text-primary" aria-hidden="true">
+              <AnchorIcon />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[11.5px] leading-snug text-muted-foreground">
+              {headerLabel}
+            </span>
+            <button
+              onClick={() => handleClose()}
+              className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title="Close"
+              aria-label="Close"
+            >
+              <CloseIcon />
+            </button>
+          </>
+        )}
       </div>
 
-      {/* Body - the inner tier. Shares an edge with the strip (inset 0), so
-          only the wash and one hairline separate them. */}
-      <div className="flex min-h-0 flex-col rounded-b-xl border-t border-border/50 bg-popover">
+      {/* Body - the inner tier. A card in its own right: fully rounded, its own
+          hairline, its own near shadow. It sits flush inside the shell (no
+          padding), so its top corners cut back to the strip's wash and the two
+          tiers read as stacked surfaces rather than one box split by a rule. */}
+      <div className="flex min-h-0 flex-col rounded-xl border border-border/50 bg-popover shadow-[0_1px_1px_rgb(0_0_0/0.16),0_2px_4px_-2px_rgb(0_0_0/0.3)]">
         {chipsRow}
 
         {/* Textarea, with expand parked at its top-right. */}
-        <div className="relative px-3 py-2" {...composerDropProps}>
+        <div className="relative px-[13px] pb-0.5 pt-2.5" {...composerDropProps}>
           <button
             onClick={() => { setDialogIsForced(false); setMode('dialog'); }}
-            className="absolute right-2.5 top-2 z-[1] grid h-[22px] w-[22px] place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="absolute right-2.5 top-2 z-[1] grid h-[22px] w-[22px] place-items-center rounded-[7px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             title="Expand"
             aria-label="Expand"
           >
@@ -847,7 +867,11 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             onKeyDown={handleKeyDown}
             onSelectCaret={skillAc.onSelect}
             placeholder={isGlobal ? 'Add a global comment...' : 'Add a comment...'}
-            sizeClassName={composerHeight === null ? 'max-h-64 min-h-[4.5rem] pr-7' : 'pr-7'}
+            sizeClassName={
+              composerHeight === null
+                ? 'max-h-64 min-h-14 pr-[26px] text-[12.5px] leading-[1.45]'
+                : 'pr-[26px] text-[12.5px] leading-[1.45]'
+            }
             heightPx={composerHeight}
             skillReferences={skillReferences}
             tokens={skillAc.referenceTokens}
@@ -871,21 +895,21 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
         )}
 
         {/* Action row. The attach trigger is deliberately not here. */}
-        <div className="flex items-center justify-between gap-3 px-2.5 pb-2 pt-1.5">
+        <div className="flex items-center justify-between gap-3 pb-2 pl-2.5 pr-2 pt-[7px]">
           <div className="flex min-w-0 items-center gap-0.5">
             <button
               type="button"
-              disabled
-              title="Rewrite the comment - not wired up yet"
-              className="rounded-md px-2 py-1 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+              onClick={() => {}}
+              title="Rewrite the comment"
+              className="rounded-md border border-success/30 bg-success/10 px-[9px] py-[5px] text-[11.5px] font-medium text-success transition-colors hover:bg-success/20"
             >
               Improve
             </button>
             <button
               type="button"
-              disabled
-              title="Ask about this line - not wired up yet"
-              className="rounded-md px-2 py-1 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+              onClick={() => {}}
+              title="Ask about this line"
+              className="rounded-md border border-destructive/30 bg-destructive/10 px-[9px] py-[5px] text-[11.5px] font-medium text-destructive transition-colors hover:bg-destructive/20"
             >
               Ask
             </button>
@@ -893,7 +917,10 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           <div className="flex shrink-0 items-center gap-2.5">
             {quickLookGoodButton}
             {!coarsePointer && (
-              <span className="text-[10px] text-muted-foreground">{submitHint}</span>
+              <span className="flex items-center gap-1 text-[10px] text-muted-foreground/60" title={submitHint}>
+                <span>Ctrl</span>
+                <span aria-hidden="true">↵</span>
+              </span>
             )}
             <button
               onClick={handleSubmit}
@@ -906,6 +933,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
         </div>
       </div>
       </div>
+      </div>
     </>,
     document.body
   );
@@ -916,8 +944,11 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 // ---------------------------------------------------------------------------
 
 /** Classes shared by the textarea and its highlight mirror — font, size,
- * and box metrics MUST stay identical or the overlay drifts out of alignment. */
-const COMPOSER_TEXT_CLASSES = 'w-full bg-transparent text-sm px-1 py-0.5';
+ * and box metrics MUST stay identical or the overlay drifts out of alignment.
+ * The type size is deliberately absent: it arrives via `sizeClassName`, which
+ * every one of the three layers receives, so the anchored composer can run at
+ * its own 12.5px while the expanded dialog stays at `text-sm`. */
+const COMPOSER_TEXT_CLASSES = 'w-full bg-transparent px-1 py-0.5';
 
 interface ComposerTextareaProps {
   /** Explicit height in px from the resize grip; null keeps the class-driven size. */

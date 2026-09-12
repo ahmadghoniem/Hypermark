@@ -507,6 +507,15 @@ html:not(.transitions-ready) * {
   outline: none;
 }
 
+/* The comment composer's textarea already sits inside a bordered card that is
+   only ever shown while it holds focus, so the global ring drew a second frame
+   a few pixels inside the first. Tailwind's own `focus:outline-none` on the
+   element cannot win here: it lives in a @layer and this rule does not.
+   Buttons inside the composer keep their ring. */
+[data-comment-popover] textarea:focus-visible {
+  outline: none;
+}
+
 .file-browser-filter-input::-webkit-search-decoration,
 .file-browser-filter-input::-webkit-search-cancel-button,
 .file-browser-filter-input::-webkit-search-results-button,

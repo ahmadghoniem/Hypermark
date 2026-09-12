@@ -12,7 +12,7 @@ import type { PendingAttachment } from './AttachmentStrip';
  * exactly there: the user just clicked attach and the OS file picker closed
  * over that spot. Save would move out from under them, and near the bottom of
  * the viewport the extra height makes the popover flip above the anchored
- * line. Costing 44px when nothing is attached buys a row below that cannot
+ * line. Costing 40px when nothing is attached buys a row below that cannot
  * move.
  *
  * Empty it holds one image icon. Filled it holds the thumbnails and a dashed
@@ -53,7 +53,7 @@ export const CommentAttachShelf: React.FC<CommentAttachShelfProps> = ({
   };
 
   return (
-    <div className="flex items-center gap-[7px] h-11 px-3 overflow-x-auto">
+    <div className="flex h-10 items-center gap-[7px] overflow-x-auto px-[13px]">
       <input
         ref={inputRef}
         type="file"
@@ -70,14 +70,14 @@ export const CommentAttachShelf: React.FC<CommentAttachShelfProps> = ({
           <img
             src={getImageSrc(image.path)}
             alt={image.name}
-            className={`${TILE} object-cover ring-1 ring-border/60`}
+            className={`${TILE} object-cover ring-1 ring-border/50`}
           />
           <button
             type="button"
             onClick={() => onRemove(image.path)}
             aria-label={`Remove ${image.name}`}
             title={`Remove ${image.name}`}
-            className="absolute -top-1 -right-1 grid h-4 w-4 place-items-center rounded-full border border-border bg-popover text-muted-foreground transition-colors hover:text-foreground"
+            className="absolute -right-[5px] -top-[5px] grid h-[15px] w-[15px] place-items-center rounded-full border border-border bg-popover text-muted-foreground transition-colors hover:text-foreground"
           >
             <RemoveGlyph />
           </button>
@@ -89,7 +89,7 @@ export const CommentAttachShelf: React.FC<CommentAttachShelfProps> = ({
           <img
             src={item.previewUrl}
             alt={item.name}
-            className={`${TILE} object-cover ring-1 ring-border/60 ${item.status === 'error' ? 'opacity-40' : 'opacity-70'}`}
+            className={`${TILE} object-cover ring-1 ring-border/50 ${item.status === 'error' ? 'opacity-40' : 'opacity-70'}`}
           />
           {item.status === 'uploading' && (
             <span className="absolute inset-x-0 bottom-0 h-0.5 animate-pulse rounded-b-md bg-primary" />
@@ -110,7 +110,7 @@ export const CommentAttachShelf: React.FC<CommentAttachShelfProps> = ({
             onClick={() => onRemovePending?.(item.id)}
             aria-label={`Remove ${item.name}`}
             title={`Remove ${item.name}`}
-            className="absolute -top-1 -right-1 grid h-4 w-4 place-items-center rounded-full border border-border bg-popover text-muted-foreground transition-colors hover:text-foreground"
+            className="absolute -right-[5px] -top-[5px] grid h-[15px] w-[15px] place-items-center rounded-full border border-border bg-popover text-muted-foreground transition-colors hover:text-foreground"
           >
             <RemoveGlyph />
           </button>

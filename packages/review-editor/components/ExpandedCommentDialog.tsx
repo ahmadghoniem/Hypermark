@@ -2,8 +2,8 @@ import React, { useCallback, useRef } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { useReviewAnnotationToolbarShortcuts } from '@hypermark/ui/shortcuts';
 import type { ImageAttachment } from '@hypermark/ui/types';
-import { AttachmentStrip, type PendingAttachment } from '@hypermark/ui/components/AttachmentStrip';
-import { AttachmentsButton } from '@hypermark/ui/components/AttachmentsButton';
+import { CommentAttachShelf } from '@hypermark/ui/components/CommentAttachShelf';
+import type { PendingAttachment } from '@hypermark/ui/components/AttachmentStrip';
 import { imageFilesFrom } from '@hypermark/ui/hooks/useAttachmentUploads';
 
 interface ExpandedCommentDialogProps {
@@ -21,7 +21,6 @@ interface ExpandedCommentDialogProps {
   // in-flight uploads survive the collapse/expand switch to AnnotationToolbar.
   images: ImageAttachment[];
   pendingAttachments: readonly PendingAttachment[];
-  onAddImage: (image: ImageAttachment) => void;
   onRemoveImage: (path: string) => void;
   onRemovePendingAttachment: (id: string) => void;
   onRetryPendingAttachment: (id: string) => void;
@@ -41,7 +40,6 @@ export const ExpandedCommentDialog: React.FC<ExpandedCommentDialogProps> = ({
   collapsible = true,
   images,
   pendingAttachments,
-  onAddImage,
   onRemoveImage,
   onRemovePendingAttachment,
   onRetryPendingAttachment,
@@ -77,11 +75,6 @@ export const ExpandedCommentDialog: React.FC<ExpandedCommentDialogProps> = ({
     onAttachFiles(files);
   }, [onAttachFiles]);
 
-  const focusAttachAction = useCallback(() => {
-    dialogRef.current
-      ?.querySelector<HTMLButtonElement>('button[aria-label="Attachments"]')
-      ?.focus();
-  }, []);
 
   useReviewAnnotationToolbarShortcuts({
     target: 'document',
@@ -173,26 +166,17 @@ export const ExpandedCommentDialog: React.FC<ExpandedCommentDialogProps> = ({
             {/* Spec 05 §3.2.1: attachments live inside the composer, directly
                 under the text and above the action row — never a floating card
                 or footer-only preview. */}
-            <AttachmentStrip
+            <CommentAttachShelf
               images={images}
               pending={pendingAttachments}
+              onFiles={onAttachFiles}
               onRemove={onRemoveImage}
               onRemovePending={onRemovePendingAttachment}
               onRetryPending={onRetryPendingAttachment}
-              onFocusAfterLastRemoved={focusAttachAction}
-              className="mt-2"
             />
           </div>
 
-          <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-border/50">
-            <div className="flex flex-wrap items-center gap-3">
-              <AttachmentsButton
-                images={images}
-                onAdd={onAddImage}
-                onRemove={onRemoveImage}
-                variant="inline"
-              />
-            </div>
+          <div className="shrink-0 flex flex-wrap items-center justify-end gap-3 px-4 py-3 border-t border-border/50">
             <div className="flex items-center gap-2">
               {collapsible && (
                 <button

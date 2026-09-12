@@ -144,7 +144,6 @@ export const ToolbarHost = forwardRef<ToolbarHostHandle, ToolbarHostProps>(funct
           collapsible={!toolbar.expandedComposerRequired}
           images={toolbar.images}
           pendingAttachments={uploads.pending}
-          onAddImage={addImage}
           onRemoveImage={removeImage}
           onRemovePendingAttachment={uploads.removePending}
           onRetryPendingAttachment={uploads.retry}
