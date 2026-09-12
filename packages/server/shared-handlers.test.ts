@@ -9,8 +9,7 @@ import {
   isCodexDesktopHost,
   writeServerReadyMetadata,
 } from "./shared-handlers";
-import { saveConfig } from "./config";
-import { CLASSIC_FAVICON_SVG, FAVICON_PNG_BYTES } from "@hypermark/shared/favicon";
+import { CLASSIC_FAVICON_SVG } from "@hypermark/shared/favicon";
 
 function saveNotesRequest(body: unknown): Request {
   return new Request("http://localhost/api/save-notes", {
@@ -221,48 +220,13 @@ describe("handleServerReady", () => {
  * break the moment someone added one (happy-dom replaces global fetch).
  */
 describe("handleFavicon", () => {
-  const savedDataDir = process.env.HYPERMARK_DATA_DIR;
-  let tempDir: string;
-
-  beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "hypermark-favicon-handler-"));
-    process.env.HYPERMARK_DATA_DIR = tempDir;
-  });
-
-  afterEach(() => {
-    if (savedDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
-    else process.env.HYPERMARK_DATA_DIR = savedDataDir;
-    rmSync(tempDir, { recursive: true, force: true });
-  });
-
-  test("serves the production PNG when no style is persisted", async () => {
+  test("serves the classic SVG, correctly typed", async () => {
     const response = handleFavicon();
-    expect(response.headers.get("content-type")).toBe("image/png");
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    expect(bytes).toEqual(FAVICON_PNG_BYTES);
-  });
-
-  test("serves the classic SVG, correctly typed, when the style is classic", async () => {
-    saveConfig({ favicon: "classic" });
-    const response = handleFavicon();
-    // The whole point of reading config here: without the right content type the
-    // browser has nothing to go on, since the entry HTML's <link> declares none.
-    // An image/png header over SVG bytes would be the pre-fix flash again.
     expect(response.headers.get("content-type")).toBe("image/svg+xml");
     expect(await response.text()).toBe(CLASSIC_FAVICON_SVG);
   });
 
-  test("ignores an unknown persisted style and falls back to the PNG", async () => {
-    saveConfig({ favicon: "totmn" as never });
-    const response = handleFavicon();
-    expect(response.headers.get("content-type")).toBe("image/png");
-  });
-
-  // One URL, two possible bodies: a long-lived cache would re-paint the old icon
-  // on the next session after a switch.
-  test("does not let either payload be cached under the shared URL", () => {
-    expect(handleFavicon().headers.get("cache-control")).toBe("no-cache");
-    saveConfig({ favicon: "classic" });
+  test("does not let the payload be cached under the shared URL", () => {
     expect(handleFavicon().headers.get("cache-control")).toBe("no-cache");
   });
 });

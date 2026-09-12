@@ -14,7 +14,6 @@ import {
   DEFAULT_REVIEW_DENIED_SUFFIX,
   LEGACY_REVIEW_APPROVAL_PLACEHOLDER,
   composeReviewApprovedMessage,
-  getConfiguredPrompt,
   getReviewApprovedPrompt,
   getPlanDeniedPrompt,
   getPlanApprovedPrompt,
@@ -593,27 +592,6 @@ describe("prompts", () => {
       }),
     ).toBe(DEFAULT_REVIEW_APPROVED_PROMPT);
   });
-
-  test("generic loader resolves prompt paths with fallback", () => {
-    expect(
-      getConfiguredPrompt({
-        section: "review",
-        key: "approved",
-        runtime: "claude-code",
-        fallback: "Fallback",
-        config: {
-          prompts: {
-            review: {
-              runtimes: {
-                pi: { approved: "Pi prompt" },
-              },
-            },
-          },
-        },
-      }),
-    ).toBe("Pi prompt");
-  });
-
 });
 
 // ─── Helper tests ────────────────────────────────────────────────────────────

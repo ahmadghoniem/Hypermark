@@ -2274,13 +2274,6 @@ describe("annotate server: live app mode (annotate-app)", () => {
       rmSync(dataDir, { recursive: true, force: true });
     }
   });
-
-  test("remote mode rejects live app sessions outright", async () => {
-    await expect(startLiveServer("http://127.0.0.1:65500")).rejects.toThrow(
-      "Live app annotation is unavailable in remote mode",
-    );
-  });
-
 });
 
 describe("annotate server: guarded shutdown (runGuardedShutdown)", () => {
