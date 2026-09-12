@@ -3,7 +3,6 @@ import type { IDockviewPanelProps } from 'dockview-react';
 import { DiffViewer } from '../../components/DiffViewer';
 import { useReviewState } from '../ReviewStateContext';
 import { getReviewDiffPanelFilePath, type ReviewDiffPanelParams } from '../reviewPanelTypes';
-import { annotationMatchesPrScope } from '../../utils/annotationScope';
 
 /**
  * Thin adapter between dockview's panel API and the existing DiffViewer.
@@ -24,14 +23,9 @@ export const ReviewDiffPanel: React.FC<IDockviewPanelProps> = (props) => {
   const fileAnnotations = useMemo(
     () => {
       if (!file) return [];
-      const currentPrUrl = state.prMetadata?.url;
-      const currentDiffScope = state.prDiffScope;
-      return state.allAnnotations.filter((a) =>
-        a.filePath === file.path &&
-        annotationMatchesPrScope(a, currentPrUrl, currentDiffScope)
-      );
+      return state.allAnnotations.filter((a) => a.filePath === file.path);
     },
-    [state.allAnnotations, file, state.prMetadata, state.prDiffScope]
+    [state.allAnnotations, file]
   );
 
 
@@ -64,8 +58,6 @@ export const ReviewDiffPanel: React.FC<IDockviewPanelProps> = (props) => {
         status={file.status}
         reviewBase={state.reviewBase}
         reviewSnapshotId={state.feedbackDiffContext?.snapshotId}
-        prUrl={state.prMetadata?.url}
-        prDiffScope={state.prDiffScope}
         isFocused={isFocusedFile}
         diffStyle={state.diffStyle}
         diffOverflow={state.diffOverflow}

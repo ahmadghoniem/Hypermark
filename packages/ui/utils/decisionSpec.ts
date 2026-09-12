@@ -107,26 +107,6 @@ export interface DecisionSpecInput {
    * NOT frozen.
    */
   feedbackDelivered?: boolean;
-  /**
-   * PR6 (§3.4): presence selects the platform (PR/MR destination) arm — the
-   * same DecisionSpec shape with NO composer and NO confirm items, ever:
-   * every platform action opens the existing ReviewSubmissionDialog, whose
-   * own general-comment textarea is the only note field on that side (a
-   * second composer would double-post via buildFileScopedBody).
-   * `approvalNotesSupported` is deliberately ignored by this arm — the
-   * platform posts to the forge API natively — so approve-carrying items
-   * gate only on `selfAuthored`, muted rather than removed.
-   */
-  platform?: DecisionPlatformInput;
-}
-
-export interface DecisionPlatformInput {
-  /** Platform display name ('GitHub' / 'GitLab') — named in the self-approval tooltip. */
-  label: string;
-  /** The PR/MR noun ('PR' / 'MR') the short mute reason uses. */
-  mrLabel: string;
-  /** The viewer authored this PR/MR: approve paths mute, never disappear. */
-  selfAuthored: boolean;
 }
 
 export const DECISION_NOTE_PLACEHOLDER = 'Add a note...';
@@ -338,97 +318,7 @@ function buildCloseItem(count: number, dividerBefore: boolean): DecisionMenuItem
   };
 }
 
-/**
- * The platform (PR) arm — PR6, §3.4, per the approved DESIGN_header-pr-mode
- * mock. Reuses the agent ids so the handler Record stays closed, but every
- * item is composer-less: labels tell the reviewer which mode the
- * ReviewSubmissionDialog opens in, nothing more. `close-session` is the one
- * exception — it is the shared exit and never opens the dialog.
- */
-function buildPlatformSpec(input: DecisionSpecInput, platform: DecisionPlatformInput): DecisionSpec {
-  const { count } = input;
-  const { selfAuthored } = platform;
-  const noun = platform.mrLabel === 'MR' ? 'merge request' : 'pull request';
-  // Frozen copy (maintainer-approved): the self-approval mute reason.
-  const selfReason = `You can't approve your own ${noun} on ${platform.label}.`;
-  const selfReasonShort = `You can't approve your own ${platform.mrLabel}`;
-
-  if (!input.hasFeedback) {
-    return {
-      primary: {
-        id: 'primary',
-        // Frozen copy (maintainer-approved): 'Approve'.
-        label: 'Approve',
-        title: selfAuthored ? selfReason : 'Approve: no changes needed',
-        tone: 'success',
-        icon: 'check',
-        ...(selfAuthored ? { muted: true } : {}),
-      },
-      items: [
-        {
-          id: 'note-with-approval',
-          // Approved design (PR6 detail confirmed): the empty-state platform
-          // menu is "Approve with a comment…" + "Request changes…".
-          label: 'Approve with a comment…',
-          subtitle: selfAuthored
-            ? selfReasonShort
-            : 'Opens the submission dialog; the comment rides the review body',
-          tone: 'success',
-          icon: 'check',
-          ...(selfAuthored ? { muted: true } : {}),
-        },
-        {
-          id: 'request-changes',
-          // Frozen copy (maintainer-approved): 'Request changes…'.
-          label: 'Request changes…',
-          subtitle: 'Overall feedback, zero line comments, via the dialog',
-          tone: 'primary',
-          icon: 'send',
-          dividerBefore: true,
-        },
-        buildCloseItem(count, true),
-      ],
-    };
-  }
-
-  return {
-    primary: {
-      id: 'primary',
-      // Frozen copy (maintainer-approved): 'Post Comments'.
-      label: 'Post Comments',
-      shortLabel: 'Post',
-      mobileLabel: 'Post comments',
-      title: `Post review to ${platform.label}`,
-      tone: 'primary',
-      icon: 'send',
-      count: count > 0 ? count : undefined,
-    },
-    items: [
-      {
-        id: 'approve-with-notes',
-        label: 'Approve with comments…',
-        subtitle: selfAuthored ? selfReasonShort : 'Submission dialog in approve mode',
-        tone: 'success',
-        icon: 'check',
-        ...(selfAuthored ? { muted: true } : {}),
-      },
-      {
-        id: 'note-with-feedback',
-        label: 'Post comments, then…',
-        subtitle: 'Request changes or stay neutral, chosen in the dialog',
-        tone: 'primary',
-        icon: 'send',
-        dividerBefore: true,
-      },
-      buildCloseItem(count, true),
-    ],
-  };
-}
-
 export function buildDecisionSpec(input: DecisionSpecInput): DecisionSpec {
-  // PR6 (§3.4): the platform destination maps onto the same spec shape with
-  // no composer items; presence of the arm selects it outright.
-  if (input.platform) return buildPlatformSpec(input, input.platform);
   // Review's primary positive decision IS approval, gate flag or not.
   const approvalFlow = input.app === 'review' || input.gate;
   return input.hasFeedback

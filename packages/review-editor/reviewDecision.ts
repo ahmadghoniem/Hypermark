@@ -1,5 +1,5 @@
 import { generateId } from '@hypermark/ui/utils/generateId';
-import type { DecisionActionId, DecisionMenuItem, DecisionPrimary } from '@hypermark/ui/utils/decisionSpec';
+import type { DecisionActionId } from '@hypermark/ui/utils/decisionSpec';
 import type { CodeAnnotation } from '@hypermark/ui/types';
 
 /**
@@ -18,7 +18,7 @@ import type { CodeAnnotation } from '@hypermark/ui/types';
  */
 /**
  * Reads the `approvalNotesSupported` capability advert off a diff payload
- * (`/api/diff` and the switch/PR family — the server echoes it on all four).
+ * (`/api/diff` and the switch family — the server echoes it on all).
  * Anything but a literal `true` reads as false: an OLD server that never
  * sends the field advertises "not capable" and the client renders no
  * approve-carrying items — exactly the PR3 behavior. A NEW server against an
@@ -59,39 +59,6 @@ export function resolveReviewDecisionAction(id: DecisionActionId): ReviewDecisio
       return { kind: 'approve-with-notes', withAnnotations: true };
     case 'close-session':
       return { kind: 'close' };
-  }
-}
-
-/**
- * PR6 (§3.4): platform-mode routing. Platform decisions never touch
- * `/api/feedback` — every id opens the EXISTING ReviewSubmissionDialog
- * (per-target state, retry, the "open PR" toggle, and the only
- * general-comment field on this side) in one of its two modes:
- *
- *   primary            → comment with annotations, approve when empty
- *   approve-with-notes → "Approve with comments…"  (approve mode)
- *   note-with-approval → "Approve with a comment…" (approve mode)
- *   note-with-feedback → "Post comments, then…"    (comment mode)
- *   request-changes    → "Request changes…"        (comment mode)
- *
- * Returns null for `close-session`: it is the shared exit and never opens
- * the dialog, so the caller routes it before asking for a dialog mode.
- */
-export function resolvePlatformDecisionAction(
-  id: DecisionActionId,
-  hasAnnotations: boolean,
-): 'approve' | 'comment' | null {
-  switch (id) {
-    case 'primary':
-      return hasAnnotations ? 'comment' : 'approve';
-    case 'note-with-approval':
-    case 'approve-with-notes':
-      return 'approve';
-    case 'request-changes':
-    case 'note-with-feedback':
-      return 'comment';
-    case 'close-session':
-      return null;
   }
 }
 
@@ -152,9 +119,6 @@ export function buildReviewApprovalBody(input: ReviewApprovalBodyInput): {
  * sidebar's durable "+ General comment" — so the transport shape the
  * review-note payload tests pin cannot fork between them.
  *
- * Deliberately carries no PR context (`prUrl`/`diffScope`): an unstamped
- * annotation passes every PR scope (`utils/annotationScope.ts`), which is
- * what lets a review-level comment survive an in-place PR switch (spec §3.3).
  * `generateId()` (crypto.randomUUID with an insecure-context fallback; remote-mode
  * http sessions have no crypto.randomUUID) rather than `Date.now()` because two commits in the
  * same millisecond would collide and the deferred-submit effect keys on the

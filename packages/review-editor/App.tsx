@@ -18,20 +18,15 @@ import {
   buildReviewApprovalBody,
   createGeneralReviewComment,
   readApprovalNotesAdvert,
-  resolvePlatformDecisionAction,
   resolveReviewDecisionAction,
 } from './reviewDecision';
 import { storage } from '@hypermark/ui/utils/storage';
 import { CompletionOverlay } from '@hypermark/ui/components/CompletionOverlay';
-import { GitHubIcon } from '@hypermark/ui/components/GitHubIcon';
-import { GitLabIcon } from '@hypermark/ui/components/GitLabIcon';
 import { RepoIcon } from '@hypermark/ui/components/RepoIcon';
-import { PullRequestIcon } from '@hypermark/ui/components/PullRequestIcon';
-import { getPlatformLabel, getMRLabel, getMRNumberLabel, getDisplayRepo } from '@hypermark/shared/pr-types';
 import type { SemanticDiffAdvert } from '@hypermark/shared/semantic-diff-types';
 import type { CallFlowAdvert, CallFlowNode } from '@hypermark/shared/call-flow-types';
 import { configStore, useConfigValue, setReviewPanelView } from '@hypermark/ui/config';
-import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, Annotation, CommentAnnotation, type ArtifactAnnotationMeta, type CallFlowAnnotationTarget, type ImageAttachment } from '@hypermark/ui/types';
+import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, Annotation, type CallFlowAnnotationTarget, type ImageAttachment } from '@hypermark/ui/types';
 import { useResizablePanel } from '@hypermark/ui/hooks/useResizablePanel';
 import { useCodeAnnotationDraft } from '@hypermark/ui/hooks/useCodeAnnotationDraft';
 import { generateId } from './utils/generateId';
@@ -89,26 +84,14 @@ import type { ReviewSidebarTab } from './components/ReviewSidebar';
 import { useSidebar } from '@hypermark/ui/hooks/useSidebar';
 import { useViewportEnvironment } from '@hypermark/ui/hooks/useViewportEnvironment';
 import { FileTree } from './components/FileTree';
-import { StackedPRLabel } from './components/StackedPRLabel';
-import { PRSelector } from './components/PRSelector';
-import { PRSwitchOverlay } from './components/PRSwitchOverlay';
-import { usePRStack } from './hooks/usePRStack';
 import { useDiffFreshness } from './hooks/useDiffFreshness';
 import { useAutoViewed } from './hooks/useAutoViewed';
 import { resolveDiffSwitchUnviews } from './utils/autoViewed';
 import { needsAutoViewedNotice, markAutoViewedNoticeSeen, turnOffAutoViewed, toggleAutoViewed } from './utils/autoViewedNotice';
-import { usePRSession, type PRSessionUpdate } from './hooks/usePRSession';
 import { useAnnotationFactory } from './hooks/useAnnotationFactory';
 import { DEMO_DIFF } from './demoData';
-import { exportReviewFeedback, buildProseFeedback, commitShaFromMode } from './utils/exportFeedback';
+import { exportReviewFeedback, commitShaFromMode } from './utils/exportFeedback';
 import { parseDiffToFiles } from './utils/diffParser';
-import {
-  ReviewSubmissionDialog,
-  buildPlatformReviewBody,
-  buildReviewSubmission,
-  type ReviewSubmission,
-  type SubmissionTarget,
-} from './components/ReviewSubmissionDialog';
 import {
   ReviewStateProvider,
   type LineAnnotationComposeRequest,
@@ -117,21 +100,17 @@ import {
 import { reviewPanelComponents } from './dock/reviewPanelComponents';
 import { ReviewDockTabRenderer } from './dock/ReviewDockTabRenderer';
 import { ReviewDockRightActions } from './dock/ReviewDockRightActions';
-import { usePRContext } from './hooks/usePRContext';
 import {
   REVIEW_PANEL_TYPES,
   REVIEW_DIFF_PANEL_ID,
   getReviewDiffPanelFilePath,
   isReviewDiffPanelId,
-  REVIEW_PR_OVERVIEW_PANEL_ID,
-  REVIEW_PR_ARTIFACTS_PANEL_ID,
   REVIEW_SEMANTIC_DIFF_PANEL_ID,
   REVIEW_CALL_FLOW_PANEL_ID,
   REVIEW_ALL_FILES_PANEL_ID,
   REVIEW_CODE_NAV_PANEL_ID,
 } from './dock/reviewPanelTypes';
 import type { DiffFile, AnnotationScrollTarget } from './types';
-import { annotationMatchesPrScope, proseAnnotationMatchesPr } from './utils/annotationScope';
 import type { DiffOption, WorktreeInfo, GitContext, SinceBaseSections, CommitDiffInfo } from '@hypermark/shared/types';
 import { SectionsPanel } from './components/SectionsPanel';
 import { CommitsPanel } from './components/CommitsPanel';
@@ -141,32 +120,9 @@ import { initializeReviewSetup, markReviewSetupSeen } from './utils/reviewSetup'
 import { resolvePanelView } from './utils/resolvePanelView';
 import { isCommitDiffType, resolveCommitExitDiff, type CommitViewRestoreTarget } from './utils/commitViewRestore';
 import { ExternalLineAnnotationComposer } from './components/ExternalLineAnnotationComposer';
-import { DestinationSpotlight } from './components/DestinationSpotlight';
-import { needsDestinationSpotlight, markDestinationSpotlightSeen } from './utils/destinationSpotlight';
 import { TextShimmer } from '@hypermark/ui/components/TextShimmer';
-import type { PRMetadata } from '@hypermark/shared/pr-types';
-import type { PRDiffScope, PRDiffScopeOption, PRStackInfo, PRStackTree } from '@hypermark/shared/pr-stack';
 import { altKey } from '@hypermark/ui/utils/platform';
 import { copyTextToClipboard } from '@hypermark/ui/utils/clipboard';
-import { buildPRArtifacts } from './utils/prArtifacts';
-import {
-  submitPlatformReviewTargets,
-} from './utils/platformReviewSubmission';
-import {
-  loadReviewSubmissionRecovery,
-  restoreReviewSubmission,
-  saveReviewSubmissionRecovery,
-  type ReviewSubmissionRecovery,
-  type ReviewRecoveryStorage,
-} from './utils/reviewSubmissionRecovery';
-
-function getReviewRecoveryStorage(): ReviewRecoveryStorage | null {
-  try {
-    return window.sessionStorage;
-  } catch {
-    return null;
-  }
-}
 
 interface DiffData {
   files: DiffFile[];
@@ -176,9 +132,6 @@ interface DiffData {
   diffType?: string;
   gitContext?: GitContext;
   diffOptions?: DiffOption[];
-  prStackInfo?: PRStackInfo | null;
-  prDiffScope?: PRDiffScope;
-  prDiffScopeOptions?: PRDiffScopeOption[];
   semanticDiff?: SemanticDiffAdvert;
   callFlow?: CallFlowAdvert;
 }
@@ -214,25 +167,12 @@ function orderFilesBySections(files: DiffFile[], sections?: SinceBaseSections | 
 /** Hint shown following the cursor while hovering a sidebar/panel resize handle. */
 const RESIZE_HANDLE_TOOLTIP = 'Click to close · Drag to resize';
 
-type ReviewHistoryAction =
-  | {
-      kind: 'code';
-      mutations: readonly CollectionMutation<CodeAnnotation>[];
-      beforeSelection: string | null;
-      afterSelection: string | null;
-    }
-  | {
-      kind: 'description';
-      mutations: readonly CollectionMutation<Annotation>[];
-      beforeSelection: string | null;
-      afterSelection: string | null;
-    }
-  | {
-      kind: 'comment';
-      mutations: readonly CollectionMutation<CommentAnnotation>[];
-      beforeSelection: string | null;
-      afterSelection: string | null;
-    };
+type ReviewHistoryAction = {
+  kind: 'code';
+  mutations: readonly CollectionMutation<CodeAnnotation>[];
+  beforeSelection: string | null;
+  afterSelection: string | null;
+};
 
 const reviewItemId = <T extends { id: string }>(item: T): string => item.id;
 
@@ -269,23 +209,6 @@ const ReviewAppInner: React.FC = () => {
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
   const selectedAnnotationIdRef = useRef(selectedAnnotationId);
   selectedAnnotationIdRef.current = selectedAnnotationId;
-  // PR description prose annotations (comment-only; separate from the diff store).
-  const [descriptionAnnotations, setDescriptionAnnotations] = useState<Annotation[]>([]);
-  const descriptionAnnotationsRef = useRef(descriptionAnnotations);
-  descriptionAnnotationsRef.current = descriptionAnnotations;
-  const [selectedDescriptionAnnotationId, setSelectedDescriptionAnnotationId] = useState<string | null>(null);
-  const selectedDescriptionAnnotationIdRef = useRef(selectedDescriptionAnnotationId);
-  selectedDescriptionAnnotationIdRef.current = selectedDescriptionAnnotationId;
-  // PR comment annotations (notes attached to a whole comment/review/thread).
-  const [commentAnnotations, setCommentAnnotations] = useState<CommentAnnotation[]>([]);
-  const commentAnnotationsRef = useRef(commentAnnotations);
-  commentAnnotationsRef.current = commentAnnotations;
-  const [selectedCommentAnnotationId, setSelectedCommentAnnotationId] = useState<string | null>(null);
-  const selectedCommentAnnotationIdRef = useRef(selectedCommentAnnotationId);
-  selectedCommentAnnotationIdRef.current = selectedCommentAnnotationId;
-  // Sidebar → source-comment navigation signal; token bumps per click so
-  // re-selecting the same comment re-scrolls. Consumed by PRCommentsTab.
-  const [commentScrollTarget, setCommentScrollTarget] = useState<{ commentId: string; token: number } | null>(null);
   // Sidebar-initiated "scroll to this comment" signal. The token bumps on every
   // sidebar click so re-selecting the same comment re-navigates. Selecting a
   // comment in the diff sets selectedAnnotationId but NOT this — so it never
@@ -309,8 +232,6 @@ const ReviewAppInner: React.FC = () => {
   isAllFilesActiveRef.current = isAllFilesActive;
   const [isSemanticDiffActive, setIsSemanticDiffActive] = useState(false);
   const [isCallFlowActive, setIsCallFlowActive] = useState(false);
-  const [isPROverviewActive, setIsPROverviewActive] = useState(false);
-  const [isPRArtifactsActive, setIsPRArtifactsActive] = useState(false);
   const [semanticDiffAvailable, setSemanticDiffAvailable] = useState(false);
   const [callFlowAdvert, setCallFlowAdvert] = useState<CallFlowAdvert>({
     enabled: false,
@@ -497,8 +418,7 @@ const ReviewAppInner: React.FC = () => {
     document.title = repoInfo ? `${repoInfo.display} · Code Review` : "Code Review";
   }, [repoInfo]);
 
-  const { prMetadata, prStackInfo, prStackTree, prDiffScope, prDiffScopeOptions, prPatchIncomplete, prPatchUpgradeAvailable, updatePRSession } = usePRSession();
-  const reviewHistoryContext = snapshotId ?? prMetadata?.url ?? diffData?.gitRef ?? 'loading';
+  const reviewHistoryContext = snapshotId ?? diffData?.gitRef ?? 'loading';
   const applyReviewHistory = useCallback((action: ReviewHistoryAction, direction: HistoryDirection) => {
     switch (action.kind) {
       case 'code':
@@ -510,23 +430,6 @@ const ReviewAppInner: React.FC = () => {
         selectedAnnotationIdRef.current = direction === 'undo' ? action.beforeSelection : action.afterSelection;
         setSelectedAnnotationId(selectedAnnotationIdRef.current);
         return;
-      case 'description':
-        setDescriptionAnnotations((current) => {
-          const next = applyCollectionMutations(current, action.mutations, direction, reviewItemId);
-          descriptionAnnotationsRef.current = next;
-          return next;
-        });
-        selectedDescriptionAnnotationIdRef.current = direction === 'undo' ? action.beforeSelection : action.afterSelection;
-        setSelectedDescriptionAnnotationId(selectedDescriptionAnnotationIdRef.current);
-        return;
-      case 'comment':
-        setCommentAnnotations((current) => {
-          const next = applyCollectionMutations(current, action.mutations, direction, reviewItemId);
-          commentAnnotationsRef.current = next;
-          return next;
-        });
-        selectedCommentAnnotationIdRef.current = direction === 'undo' ? action.beforeSelection : action.afterSelection;
-        setSelectedCommentAnnotationId(selectedCommentAnnotationIdRef.current);
     }
   }, []);
   const reviewHistory = useUndoHistory<ReviewHistoryAction>({
@@ -541,11 +444,11 @@ const ReviewAppInner: React.FC = () => {
   }, [reviewHistory, submitted]);
 
   // The Commits view (linear history rail) exists for plain local git
-  // sessions only — PR/workspace/jj/p4 keep their existing panels. Unlike
+  // sessions only — workspace/jj/p4 keep their existing panels. Unlike
   // sections it has NO coupled diff: the review opens on the user's normal
   // default until a commit is clicked, and the clicked sha is never persisted.
   // Declared this early because the global keyboard handler consults it.
-  const commitsCapable = !prMetadata && reviewMode !== 'workspace' && gitContext?.vcsType === 'git';
+  const commitsCapable = reviewMode !== 'workspace' && gitContext?.vcsType === 'git';
   const showCommitsPanel = commitsCapable && panelView === 'commits';
   // The diff the session was reviewing before the Commits view's commit
   // clicks (or its HEAD auto-select) took over the single session-global
@@ -555,62 +458,6 @@ const ReviewAppInner: React.FC = () => {
   // a render, and capture happens inside event handlers.
   const preCommitDiffRef = useRef<CommitViewRestoreTarget | null>(null);
 
-  const prStackCallbacksRef = useRef<import('./hooks/usePRStack').PRStackCallbacks | null>(null);
-  const {
-    isSwitchingPRScope,
-    isLoadingFullDiff,
-    handleScopeSelect: handlePRDiffScopeSelect,
-    handleLoadFullDiff,
-    handlePRSwitch,
-  } = usePRStack(prStackCallbacksRef);
-  const [reviewDestination, setReviewDestination] = useState<'agent' | 'platform'>(() => {
-    const stored = storage.getItem('hypermark-review-dest');
-    return stored === 'agent' ? 'agent' : 'platform'; // 'github' (legacy) → 'platform'
-  });
-  const [showDestinationMenu, setShowDestinationMenu] = useState(false);
-  // One-time spotlight pointing first-time PR reviewers at the destination
-  // switcher. Renders only after the first-run dialog chain has fully cleared.
-  const destToggleRef = useRef<HTMLButtonElement | null>(null);
-  const [showDestSpotlight, setShowDestSpotlight] = useState(needsDestinationSpotlight);
-  const dismissDestSpotlight = useCallback(() => {
-    markDestinationSpotlightSeen();
-    setShowDestSpotlight(false);
-  }, []);
-  const [isPlatformActioning, setIsPlatformActioning] = useState(false);
-  const [platformActionError, setPlatformActionError] = useState<string | null>(null);
-  const [platformUser, setPlatformUser] = useState<string | null>(null);
-  const [platformCommentDialog, setPlatformCommentDialog] = useState<{ action: 'approve' | 'comment'; plan: ReviewSubmission } | null>(null);
-  const [platformGeneralComment, setPlatformGeneralComment] = useState('');
-  const [platformReviewRecovery, setPlatformReviewRecovery] = useState<{
-    rootPrUrl: string;
-    recovery: ReviewSubmissionRecovery;
-  } | null>(null);
-  const [platformRecoveryPersistsRefresh, setPlatformRecoveryPersistsRefresh] = useState(false);
-  const [platformOpenPR, setPlatformOpenPR] = useState(() => {
-    const platformSetting = storage.getItem('hypermark-platform-open-pr');
-    if (platformSetting !== null) return platformSetting !== 'false';
-
-    const legacyGitHubSetting = storage.getItem('hypermark-github-open-pr');
-    if (legacyGitHubSetting !== null) {
-      storage.setItem('hypermark-platform-open-pr', legacyGitHubSetting);
-      return legacyGitHubSetting !== 'false';
-    }
-
-    return true;
-  });
-
-  // Derived: Platform mode is active when destination is platform AND we have PR/MR metadata
-  const platformMode = reviewDestination === 'platform' && !!prMetadata;
-  // The viewer authored this PR/MR — forges refuse self-approval, so every
-  // platform approve path mutes (never disappears) on this flag.
-  const isOwnPR = !!platformUser && prMetadata?.author === platformUser;
-
-  // Platform-aware labels
-  const platformLabel = prMetadata ? getPlatformLabel(prMetadata) : 'GitHub';
-  const mrLabel = prMetadata ? getMRLabel(prMetadata) : 'PR';
-  const mrNumberLabel = prMetadata ? getMRNumberLabel(prMetadata) : '';
-  const displayRepo = prMetadata ? getDisplayRepo(prMetadata) : '';
-
   const identity = useConfigValue('displayName');
 
   const clearPendingSelection = useCallback(() => {
@@ -618,16 +465,8 @@ const ReviewAppInner: React.FC = () => {
     setLineAnnotationComposeRequest(null);
   }, []);
 
-  // VS Code editor annotations (only polls when inside VS Code webview)
-
   // External annotations (SSE-based, for any external tool)
-  // TODO: Replace !!origin with a dedicated isApiMode boolean (set on /api/diff success/failure).
-  // origin is an identity field, not a connectivity signal — the standalone dev server
-  // (apps/review/) doesn't set it, so external annotations are silently disabled there.
-  // The same !!origin proxy is used elsewhere in this file (draft hook, feedback guard, conditional UI)
-  // so this should be addressed as a broader refactor.
   const { externalAnnotations, updateExternalAnnotation, deleteExternalAnnotation } = useExternalAnnotations<CodeAnnotation>({ enabled: !!origin });
-
 
   // Dockview center panel API for the review workspace.
   const [dockApi, setDockApi] = useState<DockviewApi | null>(null);
@@ -635,13 +474,6 @@ const ReviewAppInner: React.FC = () => {
   filesRef.current = files;
   const needsInitialDiffPanel = useRef(true);
   const semanticDiffAutoFallbackPending = useRef(false);
-
-  // PR context (lifted from sidebar so center dock PR panels can access it)
-  const { prContext, isLoading: isPRContextLoading, error: prContextError, fetchContext: fetchPRContext } = usePRContext(prMetadata ?? null);
-  const prArtifacts = useMemo(
-    () => buildPRArtifacts(prMetadata ?? null, prContext),
-    [prMetadata, prContext],
-  );
 
   // Sync activeFileIndex from dockview's active panel (wired in handleDockReady)
 
@@ -784,8 +616,6 @@ const ReviewAppInner: React.FC = () => {
   // Auto-save code annotation drafts
   const { draftBanner, restoreDraft, getDraftGeneration, dismissDraft } = useCodeAnnotationDraft({
     annotations: allAnnotations,
-    descriptionAnnotations,
-    commentAnnotations,
     viewedFiles,
     autoViewSuppressed,
     isApiMode: !!origin,
@@ -796,8 +626,6 @@ const ReviewAppInner: React.FC = () => {
     reviewHistory.clear();
     const restored = restoreDraft();
     if (restored.annotations.length > 0) setAnnotations(restored.annotations);
-    if (restored.descriptionAnnotations.length > 0) setDescriptionAnnotations(restored.descriptionAnnotations);
-    if (restored.commentAnnotations.length > 0) setCommentAnnotations(restored.commentAnnotations);
     if (restored.viewedFiles.length > 0) setViewedFiles(new Set(restored.viewedFiles));
     if (restored.autoViewSuppressed.length > 0) setAutoViewSuppressed(new Set(restored.autoViewSuppressed));
   }, [restoreDraft, reviewHistory]);
@@ -877,16 +705,12 @@ const ReviewAppInner: React.FC = () => {
         setIsAllFilesActive(false);
         setIsSemanticDiffActive(false);
         setIsCallFlowActive(false);
-        setIsPROverviewActive(false);
-        setIsPRArtifactsActive(false);
         setIsDiffPanelActive(false);
         return;
       }
       setIsAllFilesActive(panel.id === REVIEW_ALL_FILES_PANEL_ID);
       setIsSemanticDiffActive(panel.id === REVIEW_SEMANTIC_DIFF_PANEL_ID);
       setIsCallFlowActive(panel.id === REVIEW_CALL_FLOW_PANEL_ID);
-      setIsPROverviewActive(panel.id === REVIEW_PR_OVERVIEW_PANEL_ID);
-      setIsPRArtifactsActive(panel.id === REVIEW_PR_ARTIFACTS_PANEL_ID);
       setIsDiffPanelActive(isReviewDiffPanelId(panel.id));
       if (!isReviewDiffPanelId(panel.id)) return;
       const filePath = getReviewDiffPanelFilePath(panel.params);
@@ -959,50 +783,9 @@ const ReviewAppInner: React.FC = () => {
     dockApi?.getPanel(REVIEW_CODE_NAV_PANEL_ID)?.api.close();
   }, [canUseLiveWorkspaceActions, codeNav.clear, dockApi]);
   const { withPRContext } = useAnnotationFactory(
-    prMetadata,
-    prStackInfo ? prDiffScope : undefined,
     activeCommitContext,
     activeGitButlerContext,
   );
-
-
-  // Open the combined PR overview (summary + checks + comments) as a center dock panel
-  const openPROverviewPanel = useCallback(() => {
-    const api = dockApi;
-    if (!api) return;
-    const existing = api.getPanel(REVIEW_PR_OVERVIEW_PANEL_ID);
-    if (existing) {
-      existing.api.setActive();
-      return;
-    }
-    api.addPanel({
-      id: REVIEW_PR_OVERVIEW_PANEL_ID,
-      component: REVIEW_PANEL_TYPES.PR_OVERVIEW,
-      title: 'PR Overview',
-    });
-  }, [dockApi]);
-
-  // Open the hosted PR/MR attachment gallery as a center dock panel.
-  const openPRArtifactsPanel = useCallback(() => {
-    const api = dockApi;
-    if (!api || !prMetadata) return;
-    const existing = api.getPanel(REVIEW_PR_ARTIFACTS_PANEL_ID);
-    if (existing) {
-      existing.api.setActive();
-      return;
-    }
-    api.addPanel({
-      id: REVIEW_PR_ARTIFACTS_PANEL_ID,
-      component: REVIEW_PANEL_TYPES.PR_ARTIFACTS,
-      title: prMetadata.platform === 'gitlab' ? 'MR Artifacts' : 'PR Artifacts',
-    });
-  }, [dockApi, prMetadata]);
-
-  // A switch to local review must not leave a hosted-review panel behind.
-  useEffect(() => {
-    if (prMetadata !== null) return;
-    dockApi?.getPanel(REVIEW_PR_ARTIFACTS_PANEL_ID)?.api.close();
-  }, [dockApi, prMetadata]);
 
   const openAllFilesPanel = useCallback(() => {
     if (!dockApi) return;
@@ -1197,10 +980,8 @@ const ReviewAppInner: React.FC = () => {
   useEffect(() => {
     if (!dockApi || !needsInitialDiffPanel.current || files.length === 0) return;
     needsInitialDiffPanel.current = false;
-    // PR reviews land on the combined overview; everything else on all files.
-    if (prMetadata) openPROverviewPanel();
-    else openAllFilesPanel();
-  }, [dockApi, files, openAllFilesPanel, openPROverviewPanel, prMetadata]);
+    openAllFilesPanel();
+  }, [dockApi, files, openAllFilesPanel]);
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -1288,14 +1069,6 @@ const ReviewAppInner: React.FC = () => {
         agentCwd?: string | null;
         approvalNotesSupported?: boolean;
         repoInfo?: { display: string; branch?: string };
-        prMetadata?: PRMetadata;
-        prStackInfo?: PRStackInfo | null;
-        prStackTree?: PRStackTree | null;
-        prDiffScope?: PRDiffScope;
-        prDiffScopeOptions?: PRDiffScopeOption[];
-        prPatchIncomplete?: boolean;
-        prPatchUpgradeAvailable?: boolean;
-        platformUser?: string;
         viewedFiles?: string[];
         error?: string;
        
@@ -1343,19 +1116,6 @@ const ReviewAppInner: React.FC = () => {
         if (data.agentCwd !== undefined) setAgentCwd(data.agentCwd);
         setApprovalNotesSupported(readApprovalNotesAdvert(data.approvalNotesSupported));
         if (data.repoInfo) setRepoInfo(data.repoInfo);
-        updatePRSession({
-          ...(data.prMetadata && { prMetadata: data.prMetadata }),
-          ...(data.prStackInfo !== undefined && { prStackInfo: data.prStackInfo }),
-          ...(data.prStackTree !== undefined && { prStackTree: data.prStackTree }),
-          ...(data.prDiffScope && { prDiffScope: data.prDiffScope }),
-          ...(data.prDiffScopeOptions && { prDiffScopeOptions: data.prDiffScopeOptions }),
-          ...(data.prMetadata && {
-            prPatchIncomplete: data.prPatchIncomplete === true,
-            prPatchUpgradeAvailable: data.prPatchUpgradeAvailable === true,
-          }),
-        });
-        if (data.platformUser) setPlatformUser(data.platformUser);
-        // Initialize viewed files from GitHub's state (set before draft restore so draft takes precedence)
         if (data.viewedFiles && data.viewedFiles.length > 0) {
           setViewedFiles(new Set(data.viewedFiles));
         }
@@ -1367,7 +1127,7 @@ const ReviewAppInner: React.FC = () => {
         setGeneratedFiles(new Set(data.generatedFiles ?? []));
         setBaseBehindRemote(data.baseBehindRemote === true);
         // First-run: offer the review-view chooser for a plain local git
-        // session (not workspace/PR/jj/p4), once. An unseen reviewer's panel
+        // session (not workspace/jj/p4), once. An unseen reviewer's panel
         // is initialized to Tree while inheriting the resolved diff default;
         // the seen gate leaves returning reviewers' persisted and last-used
         // views untouched. The user's explicit choice in the dialog then
@@ -1383,7 +1143,7 @@ const ReviewAppInner: React.FC = () => {
           (o: { id: string }) => o.id === 'since-base',
         );
         if (
-          data.gitContext && data.mode !== 'workspace' && !data.prMetadata &&
+          data.gitContext && data.mode !== 'workspace' &&
           data.gitContext.vcsType === 'git' && sinceBaseAvailable && initializeReviewSetup()
         ) {
           reviewSetupIsFirstRun.current = true;
@@ -1637,23 +1397,8 @@ const ReviewAppInner: React.FC = () => {
     }
   }, [files, openDiffFile]);
 
-  // Best-effort GitHub viewed sync, shared by the manual toggle and the
-  // batched auto-view marks (`/api/pr-viewed` already takes an array).
-  const platformViewedSyncAvailable = !!prMetadata && prMetadata.platform === 'github';
-  const syncPlatformViewed = useCallback((filePaths: string[], viewed: boolean) => {
-    if (!prMetadata || prMetadata.platform !== 'github' || filePaths.length === 0) return;
-    fetch('/api/pr-viewed', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filePaths, viewed }),
-    }).catch(() => {
-      // Silently ignore — viewed sync is best-effort
-    });
-  }, [prMetadata]);
-
   // Rule 3 of auto-mark-viewed. Called from inside the setViewedFiles updater
-  // below, which is where `willBeViewed` is known correctly under batching
-  // (the same reason the platform sync has always been called from there).
+  // below, which is where `willBeViewed` is known correctly under batching.
   // Add/delete of one key is idempotent, so React strict mode's double
   // invocation of that updater cannot flip the set.
   const applyAutoViewSuppression = useCallback((filePath: string, viewed: boolean) => {
@@ -1678,12 +1423,9 @@ const ReviewAppInner: React.FC = () => {
       // suppresses auto-view for this file; marking it viewed by hand clears
       // that suppression.
       applyAutoViewSuppression(filePath, willBeViewed);
-      // Sync viewed state to GitHub (fire and forget — best effort)
-      // Capture willBeViewed inside the callback to ensure correctness with React batching
-      syncPlatformViewed([filePath], willBeViewed);
       return next;
     });
-  }, [syncPlatformViewed, applyAutoViewSuppression]);
+  }, [applyAutoViewSuppression]);
 
   // Auto-mark-viewed. The marker never decides anything the reviewer can't
   // undo: it only ADDS to viewedFiles, exactly like the `v` shortcut, and
@@ -1732,9 +1474,6 @@ const ReviewAppInner: React.FC = () => {
     viewedFiles,
     suppressedFiles: autoViewSuppressed,
     onMark: markFilesViewed,
-    onSyncPlatformViewed: platformViewedSyncAvailable
-      ? (paths) => syncPlatformViewed(paths, true)
-      : undefined,
     onAutoView: handleAutoView,
     singleFileReadingFile: isDiffPanelActive ? files[activeFileIndex]?.path ?? null : null,
     snapshotKey: `${snapshotId ?? ''}:${activeDiffBase}`,
@@ -1748,12 +1487,12 @@ const ReviewAppInner: React.FC = () => {
   );
 
   // The three-stack sections panel exists only for the since-base composite
-  // view in a plain git session (PR/workspace keep the classic tree).
-  const sectionsAvailable = !!sections && activeDiffBase === 'since-base' && !prMetadata && reviewMode !== 'workspace';
+  // view in a plain git session (workspace keeps the classic tree).
+  const sectionsAvailable = !!sections && activeDiffBase === 'since-base' && reviewMode !== 'workspace';
   // The sections view IS the since-base comparison — a repo that supports it
   // shows the view toggle even while an advanced (tree) mode is active, and
   // toggling back to Sections switches the diff back to since-base.
-  const sectionsCapable = !prMetadata && reviewMode !== 'workspace'
+  const sectionsCapable = reviewMode !== 'workspace'
     && !!gitContext?.diffOptions?.some(option => option.id === 'since-base');
   const activeCommitSha = activeDiffBase.startsWith('commit:')
     ? activeDiffBase.slice('commit:'.length)
@@ -1803,70 +1542,7 @@ const ReviewAppInner: React.FC = () => {
     return () => window.removeEventListener('keydown', handler);
   }, [files, activeFileIndex, isDiffPanelActive, handleToggleViewed]);
 
-  // Shared function: apply a PR response (used by both initial load and PR switch)
-  function applyPRResponse(data: PRSessionUpdate & {
-    rawPatch: string; gitRef: string;
-    snapshotId?: string;
-    repoInfo?: { display: string; branch?: string };
-    viewedFiles?: string[]; error?: string;
-    semanticDiff?: SemanticDiffAdvert;
-    callFlow?: CallFlowAdvert;
-    agentCwd?: string | null;
-    approvalNotesSupported?: boolean;
-  }) {
-    const isPRSwitch = !!data.prMetadata;
-    setSnapshotId(data.snapshotId);
-    // Keep the approval-notes advert in lockstep with whatever payload the
-    // client last applied — the servers echo it on the PR family too.
-    if (data.approvalNotesSupported !== undefined) {
-      setApprovalNotesSupported(readApprovalNotesAdvert(data.approvalNotesSupported));
-    }
-    const nextFiles = parseDiffToFiles(data.rawPatch);
-    dockApi?.getPanel(REVIEW_DIFF_PANEL_ID)?.api.close();
-    needsInitialDiffPanel.current = true;
-    setDiffData(prev => prev ? { ...prev, rawPatch: data.rawPatch, gitRef: data.gitRef } : prev);
-    setFiles(nextFiles);
-    if (isPRSwitch) {
-      setActiveFileIndex(0);
-    } else {
-      const currentFile = files[activeFileIndex];
-      const preserved = currentFile ? nextFiles.findIndex(f => f.path === currentFile.path) : -1;
-      setActiveFileIndex(preserved >= 0 ? preserved : 0);
-    }
-    clearPendingSelection();
-    updatePRSession({
-      ...(data.prMetadata && { prMetadata: data.prMetadata }),
-      ...(data.prStackInfo !== undefined && { prStackInfo: data.prStackInfo }),
-      ...(data.prStackTree !== undefined && { prStackTree: data.prStackTree }),
-      ...(data.prDiffScope && { prDiffScope: data.prDiffScope }),
-      ...(data.prDiffScopeOptions && { prDiffScopeOptions: data.prDiffScopeOptions }),
-      // Scope/switch responses authoritatively report partiality; absence
-      // means the patch is complete (e.g. after the local recompute upgrade).
-      prPatchIncomplete: data.prPatchIncomplete === true,
-      prPatchUpgradeAvailable: data.prPatchUpgradeAvailable === true,
-    });
-    if (data.repoInfo) setRepoInfo(data.repoInfo);
-    if (data.prMetadata) {
-      setViewedFiles(data.viewedFiles ? new Set(data.viewedFiles) : new Set());
-    }
-    setDiffError(data.error || null);
-    applySemanticDiffAdvert(data.semanticDiff);
-    applyCallFlowAdvert(data.callFlow);
-    // The PR's local checkout changes on switch (and warms in later). Use the
-    // server's value when present; otherwise clear it on a switch so the Open-in
-    // button can't keep pointing at the previous PR's checkout (the 5s freshness
-    // probe re-advertises the new one). Scope toggles keep the same checkout.
-    if (data.agentCwd !== undefined) {
-      setAgentCwd(data.agentCwd);
-    } else if (isPRSwitch) {
-      setAgentCwd(null);
-    }
-  }
 
-  prStackCallbacksRef.current = {
-    applyPRResponse,
-    onError: (message) => setDiffError(message),
-  };
 
   // Shared helper: fetch a diff switch and update state.
   // Returns true on success, false on failure — callers that optimistically
@@ -2338,33 +2014,13 @@ const ReviewAppInner: React.FC = () => {
   }, [diffType, selectedBase, fetchDiffSwitch]);
 
   const handleRefreshStaleDiff = useCallback(() => {
-    if (prMetadata) {
-      // Either scope can be stale now: full-stack via its local VCS
-      // fingerprint, and ANY scope via a snapshot mismatch (another tab
-      // switched scope or PR). Re-selecting the CURRENT scope re-fetches the
-      // server's snapshot for this tab (the endpoint has no same-scope
-      // early-return). Known residual: after a cross-tab PR SWITCH this
-      // updates the patch but not prMetadata (the scope endpoint doesn't
-      // carry it) — accepted for the rare two-tab case.
-      //
-      // Incomplete layer patch: the server's layer branch runs the local
-      // recompute, which can park for MINUTES behind checkout warmup — use
-      // the non-blocking upgrade path (progress notice) instead of
-      // handlePRDiffScopeSelect's full-screen switch overlay.
-      if (prDiffScope === 'layer' && prPatchIncomplete) {
-        void handleLoadFullDiff();
-      } else {
-        void handlePRDiffScopeSelect(prDiffScope);
-      }
-      return;
-    }
     // Same params, fresh snapshot. preserveFile keeps the reviewer on the
     // file they were reading; contentRefresh licenses Rule 5, because here a
     // per-path patch delta really is the content having changed underneath.
     void fetchDiffSwitch(diffType, selectedBase, { preserveFile: true, contentRefresh: true });
     // New commits are part of what went stale — bring the rail along.
     if (showCommitsPanel) commitsView.refresh();
-  }, [prMetadata, prDiffScope, prPatchIncomplete, handlePRDiffScopeSelect, handleLoadFullDiff, fetchDiffSwitch, diffType, selectedBase, showCommitsPanel, commitsView.refresh]);
+  }, [fetchDiffSwitch, diffType, selectedBase, showCommitsPanel, commitsView.refresh]);
 
   // Select annotation - switches file if needed and scrolls to it.
   // isAllFilesActive is read through the ref (declared with the state): this
@@ -2385,136 +2041,6 @@ const ReviewAppInner: React.FC = () => {
     });
   }, []);
 
-  // --- PR description annotations (comment-only prose store) ---
-  // The web-highlighter marks live in AnnotatableDescription; App owns only the
-  // data. The wrapper reconciles marks (apply new / remove deleted) off this store.
-  const handleAddDescriptionAnnotation = useCallback((ann: Annotation) => {
-    // Stamp the active PR so the note stays bound to it across an in-place switch.
-    const annotation = { ...ann, prUrl: prMetadata?.url };
-    const index = descriptionAnnotationsRef.current.length;
-    const beforeSelection = selectedDescriptionAnnotationIdRef.current;
-    descriptionAnnotationsRef.current = [...descriptionAnnotationsRef.current, annotation];
-    setDescriptionAnnotations(descriptionAnnotationsRef.current);
-    selectedDescriptionAnnotationIdRef.current = ann.id;
-    setSelectedDescriptionAnnotationId(ann.id);
-    if (ann.artifact) setSelectedCommentAnnotationId(null);
-    reviewHistory.record({
-      kind: 'description',
-      mutations: [{ kind: 'add', item: annotation, index }],
-      beforeSelection,
-      afterSelection: ann.id,
-    });
-  }, [prMetadata?.url, reviewHistory]);
-
-  const handleSelectDescriptionAnnotation = useCallback((id: string | null) => {
-    setSelectedDescriptionAnnotationId(prev => {
-      const next = !id || prev === id ? null : id;
-      selectedDescriptionAnnotationIdRef.current = next;
-      return next;
-    });
-    if (!id) return;
-    const ann = descriptionAnnotations.find(a => a.id === id);
-    if (ann?.artifact) {
-      setSelectedCommentAnnotationId(null);
-      openPRArtifactsPanel();
-    }
-  }, [descriptionAnnotations, openPRArtifactsPanel]);
-
-  const handleDeleteDescriptionAnnotation = useCallback((id: string) => {
-    const index = descriptionAnnotationsRef.current.findIndex((annotation) => annotation.id === id);
-    const annotation = descriptionAnnotationsRef.current[index];
-    if (!annotation) return;
-    const beforeSelection = selectedDescriptionAnnotationIdRef.current;
-    descriptionAnnotationsRef.current = descriptionAnnotationsRef.current.filter((item) => item.id !== id);
-    setDescriptionAnnotations(descriptionAnnotationsRef.current);
-    const afterSelection = beforeSelection === id ? null : beforeSelection;
-    selectedDescriptionAnnotationIdRef.current = afterSelection;
-    setSelectedDescriptionAnnotationId(afterSelection);
-    reviewHistory.record({
-      kind: 'description',
-      mutations: [{ kind: 'delete', item: annotation, index }],
-      beforeSelection,
-      afterSelection,
-    });
-  }, [reviewHistory]);
-
-  // --- PR comment annotations (button-driven notes attached to a whole comment) ---
-  const handleAddCommentAnnotation = useCallback((commentId: string, commentAuthor: string, commentBody: string, text: string, options?: { id?: string; artifact?: ArtifactAnnotationMeta }) => {
-    const ann: CommentAnnotation = {
-      id: options?.id ?? crypto.randomUUID(),
-      commentId,
-      commentAuthor,
-      commentBody,
-      text,
-      createdAt: Date.now(),
-      prUrl: prMetadata?.url, // bind to the active PR (survives an in-place switch)
-      artifact: options?.artifact,
-    };
-    const index = commentAnnotationsRef.current.length;
-    const beforeSelection = selectedCommentAnnotationIdRef.current;
-    commentAnnotationsRef.current = [...commentAnnotationsRef.current, ann];
-    setCommentAnnotations(commentAnnotationsRef.current);
-    selectedCommentAnnotationIdRef.current = ann.id;
-    setSelectedCommentAnnotationId(ann.id);
-    if (ann.artifact) setSelectedDescriptionAnnotationId(null);
-    reviewHistory.record({
-      kind: 'comment',
-      mutations: [{ kind: 'add', item: ann, index }],
-      beforeSelection,
-      afterSelection: ann.id,
-    });
-  }, [prMetadata?.url, reviewHistory]);
-
-  const handleSelectCommentAnnotation = useCallback((id: string | null) => {
-    setSelectedCommentAnnotationId(prev => {
-      const next = !id || prev === id ? null : id;
-      selectedCommentAnnotationIdRef.current = next;
-      return next;
-    });
-    if (!id) return;
-    // Reveal the source comment: open the PR Overview panel and signal
-    // PRCommentsTab to select + scroll to it.
-    const ann = commentAnnotations.find(a => a.id === id);
-    if (ann?.artifact) {
-      setSelectedDescriptionAnnotationId(null);
-      openPRArtifactsPanel();
-    } else if (ann) {
-      openPROverviewPanel();
-      setCommentScrollTarget(prev => ({ commentId: ann.commentId, token: (prev?.token ?? 0) + 1 }));
-    }
-  }, [commentAnnotations, openPROverviewPanel, openPRArtifactsPanel]);
-
-  const handleDeleteCommentAnnotation = useCallback((id: string) => {
-    const index = commentAnnotationsRef.current.findIndex((annotation) => annotation.id === id);
-    const annotation = commentAnnotationsRef.current[index];
-    if (!annotation) return;
-    const beforeSelection = selectedCommentAnnotationIdRef.current;
-    commentAnnotationsRef.current = commentAnnotationsRef.current.filter((item) => item.id !== id);
-    setCommentAnnotations(commentAnnotationsRef.current);
-    const afterSelection = beforeSelection === id ? null : beforeSelection;
-    selectedCommentAnnotationIdRef.current = afterSelection;
-    setSelectedCommentAnnotationId(afterSelection);
-    reviewHistory.record({
-      kind: 'comment',
-      mutations: [{ kind: 'delete', item: annotation, index }],
-      beforeSelection,
-      afterSelection,
-    });
-  }, [reviewHistory]);
-
-  // Prose notes for the ACTIVE PR only. The full arrays keep every PR's notes
-  // (and persist them to the draft) so an in-place switch loses nothing; these
-  // filtered views drive display/export/count so notes never render or ship
-  // against the wrong PR. A switch back re-reveals the originals.
-  const visibleDescriptionAnnotations = useMemo(
-    () => descriptionAnnotations.filter(a => proseAnnotationMatchesPr(a, prMetadata?.url)),
-    [descriptionAnnotations, prMetadata?.url],
-  );
-  const visibleCommentAnnotations = useMemo(
-    () => commentAnnotations.filter(a => proseAnnotationMatchesPr(a, prMetadata?.url)),
-    [commentAnnotations, prMetadata?.url],
-  );
-
   // Sidebar navigation: select AND scroll-to the comment (DiffsHub "set +
   // scroll"). The token bump re-fires the panels' scroll effect even when the
   // same comment is clicked twice; in single-file mode it switches to the
@@ -2525,13 +2051,7 @@ const ReviewAppInner: React.FC = () => {
       return;
     }
     const annotation = allAnnotationsRef.current.find(a => a.id === id);
-    // An annotation that's gone (deleted) or filtered out of the active
-    // PR/diff-scope has nothing in the current diff to scroll to or highlight,
-    // so don't fake a selection on it. Clear the current selection instead of
-    // silently no-opping, so the click still gives visible feedback rather than
-    // appearing broken (e.g. after an in-place PR switch leaves stale sidebar
-    // cards listed).
-    if (!annotation || !annotationMatchesPrScope(annotation, prMetadata?.url, prDiffScope)) {
+    if (!annotation) {
       setSelectedAnnotationId(null);
       return;
     }
@@ -2549,19 +2069,18 @@ const ReviewAppInner: React.FC = () => {
     }
     setSelectedAnnotationId(id);
     setScrollTargetAnnotation(prev => ({ id, token: (prev?.token ?? 0) + 1 }));
-  }, [files, handleFileSwitch, prMetadata, prDiffScope, openCallFlowPanel]);
+  }, [files, handleFileSwitch, openCallFlowPanel]);
 
   // Diff context bundled into local-mode feedback headers so the receiving
   // agent knows which diff the annotations are anchored to. Uses committedBase
   // (what the server actually computed) and activeDiffBase/activeWorktreePath
-  // (derived from the committed diffType). Skipped in PR mode — the PR header
-  // already carries the relevant context.
+  // (derived from the committed diffType).
   // Declared before reviewStateValue because both reviewStateValue and the
   // feedbackMarkdown memo below read it; moving it below either would put it
   // in the TDZ when those memos run on first render.
   const feedbackDiffContext = useMemo(
     () =>
-      prMetadata || !activeDiffBase
+      !activeDiffBase
         ? undefined
         : {
             mode: activeDiffBase,
@@ -2570,16 +2089,8 @@ const ReviewAppInner: React.FC = () => {
             commitSubject: activeCommitContext?.subject,
             snapshotId,
           },
-    [prMetadata, activeDiffBase, committedBase, activeWorktreePath, activeCommitContext, snapshotId],
+    [activeDiffBase, committedBase, activeWorktreePath, activeCommitContext, snapshotId],
   );
-
-  const prReviewScopeLabel = useMemo(() => {
-    if (!prMetadata || !prStackInfo) return undefined;
-    if (prDiffScope === 'full-stack') {
-      return `Diff vs \`${prMetadata.defaultBranch ?? 'default branch'}\``;
-    }
-    return `Diff vs \`${prMetadata.baseBranch}\``;
-  }, [prMetadata, prStackInfo, prDiffScope]);
 
   // Build ReviewState value for dock panel context
   const reviewStateValue = useMemo<ReviewState>(() => ({

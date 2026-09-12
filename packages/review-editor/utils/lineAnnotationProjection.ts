@@ -1,6 +1,5 @@
 import type { CodeAnnotation, DiffAnnotationMetadata } from '@hypermark/ui/types';
 import type { DiffLineAnnotation } from '@pierre/diffs';
-import { annotationMatchesPrScope } from './annotationScope';
 import { lineAnnotationMetadata } from './annotationDisplay';
 
 /**
@@ -17,15 +16,12 @@ import { lineAnnotationMetadata } from './annotationDisplay';
 export function projectFileAnnotations(
   annotations: CodeAnnotation[],
   filePath: string,
-  prUrl: string | undefined,
-  prDiffScope: string | undefined,
 ): DiffLineAnnotation<DiffAnnotationMetadata>[] {
   return annotations
     .filter(
       (a) =>
         a.filePath === filePath &&
-        (a.scope ?? 'line') === 'line' &&
-        annotationMatchesPrScope(a, prUrl, prDiffScope),
+        (a.scope ?? 'line') === 'line',
     )
     .flatMap((ann) => {
       // One entry per covered line, not only `lineEnd` (spec 05 §4.3.5), so a

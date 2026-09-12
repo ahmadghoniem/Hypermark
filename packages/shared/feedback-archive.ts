@@ -90,14 +90,9 @@ export interface FeedbackReviewTarget {
   gitRef?: string;
   snapshotId?: string;
   /**
-   * The review's working directory at submit time. Recorded as provenance,
-   * not as a durable handle: a PR review started with `--local` points at a
-   * per-PR pool checkout that is cleaned up when the session ends, so this
-   * path can be gone by the time anyone reads the record. `pr` plus `gitRef`
-   * are the identity that survives.
+   * The review's working directory at submit time.
    */
   cwd?: string;
-  pr?: { provider: string; repo: string; number: number };
   changedFiles?: number;
   patchBytes?: number;
 }
@@ -341,7 +336,6 @@ export function renderFeedbackRecordMarkdown(record: FeedbackRecord): string {
       .join(", ");
     if (bits) lines.push(`- Diff: ${bits}`);
     if (review.cwd) lines.push(`- Repository: ${review.cwd}`);
-    if (review.pr) lines.push(`- Pull request: ${review.pr.provider} ${review.pr.repo}#${review.pr.number}`);
   }
   lines.push(
     `- Annotations: ${record.counts.annotations}${record.counts.external > 0 ? ` (${record.counts.external} external)` : ""}`,

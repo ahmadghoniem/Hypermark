@@ -36,7 +36,7 @@ import { FileHeader } from './FileHeader';
 import { BinaryFileNotice } from './BinaryFileNotice';
 import { GeneratedFileNotice } from './GeneratedFileNotice';
 import { FileCommentBanner } from './FileCommentBanner';
-import { annotationMatchesPrScope, isFileScopedAnnotation, lineRangeForAnnotation } from '../utils/annotationScope';
+import { isFileScopedAnnotation, lineRangeForAnnotation } from '../utils/annotationScope';
 import { projectFileAnnotations } from '../utils/lineAnnotationProjection';
 import {
   GutterAnnotationMarker,
@@ -203,8 +203,6 @@ export interface AllFilesCodeViewProps {
   /** Report a generated file's collapse change so the owner can maintain
    * expandedGeneratedFiles. Fires only for paths in generatedFiles. */
   onGeneratedFileCollapsedChange?: (filePath: string, collapsed: boolean) => void;
-  prUrl?: string;
-  prDiffScope?: string;
   // Search (P6). The raw-patch index lives in App (useReviewSearch); these feed
   // the per-item <mark> application + scrollTo navigation over the recycled DOM.
   searchQuery?: string;
@@ -307,8 +305,6 @@ function buildItemIdentity(
   files: DiffFile[],
   visualOrder: number[],
   annotations: CodeAnnotation[],
-  prUrl: string | undefined,
-  prDiffScope: string | undefined,
   patchHashes: string[],
   seedCollapsed: boolean,
   generatedFiles: Set<string> | undefined,
@@ -356,12 +352,12 @@ function buildItemIdentity(
     // cacheKey seeds worker highlighting (a later phase), whose cache is a
     // singleton that SURVIVES fileSetKey remounts — so the key must be unique
     // per item (duplicate display paths) AND per diff content (the same path
-    // across a base/whitespace/PR switch carries different contents). The
+    // across a base/whitespace switch carries different contents). The
     // content hash is the same one fileSetKey uses.
     fileDiff.cacheKey = `${id}#${patchHashes[index] ?? ''}`;
     // Seed annotations at build time so the first render (and any remount via
     // fileSetKey) already paints existing annotations without an extra update.
-    const fileAnnotations = projectFileAnnotations(annotations, file.path, prUrl, prDiffScope);
+    const fileAnnotations = projectFileAnnotations(annotations, file.path);
     // Generated files (#1317) seed collapsed like GitHub's diff view, unless
     // the user already expanded them this session. A view-state seed only —
     // the item carries the full fileDiff either way.
@@ -447,8 +443,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   generatedFiles,
   expandedGeneratedFiles,
   onGeneratedFileCollapsedChange,
-  prUrl,
-  prDiffScope,
   searchQuery = '',
   searchMatches = [],
   activeSearchMatchId = null,
@@ -618,15 +612,13 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       files,
       visualOrder,
       annotationsRef.current,
-      prUrl,
-      prDiffScope,
       patchHashes,
       seedCollapsed === true,
       generatedFiles,
       expandedGeneratedRef.current,
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [files, visualOrder, prUrl, prDiffScope, patchHashes, seedCollapsed, generatedKey],
+    [files, visualOrder, patchHashes, seedCollapsed, generatedKey],
   );
   const { filePathToItemId, filePathToItemIds, itemIdToFilePath, itemIdToFile } = identity;
 
@@ -635,13 +627,9 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   const gutter = useGutterAnnotations();
 
   // Stable identity of the current diff. Changes whenever the file set or any
-  // file's patch CONTENT changes (diff type / base / whitespace / PR switch),
+  // file's patch CONTENT changes (diff type / base / whitespace switch),
   // and is used as the CodeView `key` to force a remount + fresh seed.
   const fileSetKey = useMemo(
-    // prUrl/prDiffScope are part of the key so a pure scope switch (layer ↔
-    // full-stack, same file set) remounts and re-seeds annotations through the
-    // current scope filter — the incremental sync bails on an unchanged
-    // annotations ref and can't otherwise detect the filter change.
     // fileOrder is part of the key: CodeView seeds initialItems once per
     // instance, so an order change must remount to re-seed in the new order.
     // seedCollapsed is part of the key: normal surfaces can change their live
@@ -652,8 +640,8 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     // The user's expandedGenerated set is deliberately NOT in the key —
     // expansion is live item state, and remounting on expand would lose
     // scroll/selection state.
-    () => `${fileOrder ?? 'tree'}:${seedCollapsed ? 'c' : 'e'}:g${generatedKey ? hashString(generatedKey) : ''}:${prUrl ?? ''}:${prDiffScope ?? ''}:${reviewSnapshotId ?? ''}:${files.length}:${files.map((f, i) => `${f.path}#${patchHashes[i]}`).join('|')}`,
-    [files, patchHashes, prUrl, prDiffScope, reviewSnapshotId, fileOrder, seedCollapsed, generatedKey],
+    () => `${fileOrder ?? 'tree'}:${seedCollapsed ? 'c' : 'e'}:g${generatedKey ? hashString(generatedKey) : ''}:${reviewSnapshotId ?? ''}:${files.length}:${files.map((f, i) => `${f.path}#${patchHashes[i]}`).join('|')}`,
+    [files, patchHashes, reviewSnapshotId, fileOrder, seedCollapsed, generatedKey],
   );
 
   // Visual-order list of file paths (for [/] stepping). Derived from items so it
@@ -777,13 +765,13 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   const gutterAnchors = useMemo(() => {
     const all = new Map<string, GutterAnchor>();
     for (const file of files) {
-      const projected = projectFileAnnotations(annotations, file.path, prUrl, prDiffScope);
+      const projected = projectFileAnnotations(annotations, file.path);
       for (const [key, anchor] of groupAnchors(projected, `${file.path}:`, file.path)) {
         if (!all.has(key)) all.set(key, anchor);
       }
     }
     return all;
-  }, [annotations, files, prDiffScope, prUrl]);
+  }, [annotations, files]);
   const gutterAnchorsRef = useRef(gutterAnchors);
   gutterAnchorsRef.current = gutterAnchors;
   const openGutterAnchor = gutter.state ? gutterAnchors.get(gutter.state.anchorKey) : undefined;
@@ -794,20 +782,20 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     if (gutter.state && !gutterAnchors.has(gutter.state.anchorKey)) gutter.close();
   }, [gutter, gutterAnchors]);
 
-  // Per-file file-scoped comments, namespaced to the active PR/diff-scope. These
+  // Per-file file-scoped comments. These
   // render in the file HEADER (renderCustomHeader, below the path) when the file
   // is expanded — not in the gutter — so they read as a file-level note rather
   // than a stray line comment.
   const fileCommentsByPath = useMemo(() => {
     const map = new Map<string, CodeAnnotation[]>();
     for (const a of annotations) {
-      if (!isFileScopedAnnotation(a) || !annotationMatchesPrScope(a, prUrl, prDiffScope)) continue;
+      if (!isFileScopedAnnotation(a)) continue;
       const arr = map.get(a.filePath);
       if (arr) arr.push(a);
       else map.set(a.filePath, [a]);
     }
     return map;
-  }, [annotations, prUrl, prDiffScope]);
+  }, [annotations]);
 
   // Render a single annotation from item state. `renderAnnotation` receives both
   // the LineAnnotation and DiffLineAnnotation union — guard `'side' in
@@ -1447,13 +1435,11 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       item.annotations = projectFileAnnotations(
         allAnnotations,
         filePath,
-        prUrl,
-        prDiffScope,
       );
       item.version = (item.version ?? 0) + 1;
       handle.updateItem(item);
     },
-    [prUrl, prDiffScope],
+    [],
   );
 
   // Keep review annotations incremental: a single add/edit/delete republishes
@@ -1470,7 +1456,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       for (const a of list) {
         const scope = a.scope ?? 'line';
         if (scope !== 'line' && scope !== 'file') continue;
-        if (!annotationMatchesPrScope(a, prUrl, prDiffScope)) continue;
         // File comments carry different render-affecting fields than line notes
         // (no line/side/suggestion; they DO surface source + profile badges).
         const sig = scope === 'file'
@@ -1504,7 +1489,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
         syncItemAnnotations(path, itemId, annotations);
       }
     }
-  }, [annotations, prUrl, prDiffScope, filePathToItemIds, syncItemAnnotations]);
+  }, [annotations, filePathToItemIds, syncItemAnnotations]);
 
   // --- Header actions ---------------------------------------------------------
 
@@ -2322,11 +2307,11 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
 
       {!readOnly && fileCommentAnchor && onAddFileCommentForFile && (
         <CommentPopover
-          key={`file:${prUrl ?? ''}:${prDiffScope ?? ''}:${fileCommentAnchor.filePath}`}
+          key={`file:${fileCommentAnchor.filePath}`}
           anchorEl={fileCommentAnchor.el}
           contextText={fileCommentAnchor.filePath.split('/').pop() || fileCommentAnchor.filePath}
           isGlobal={false}
-          draftKey={`file:${prUrl ?? ''}:${prDiffScope ?? ''}:${fileCommentAnchor.filePath}`}
+          draftKey={`file:${fileCommentAnchor.filePath}`}
           onSubmit={(text) => {
             onAddFileCommentForFile(fileCommentAnchor.filePath, text);
             setFileCommentAnchor(null);

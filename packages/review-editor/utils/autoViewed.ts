@@ -210,56 +210,7 @@ export class AutoViewedTracker {
   }
 }
 
-/**
- * Batches auto-view marks into one platform sync request.
- *
- * `/api/pr-viewed` already takes a `filePaths` array; without batching, a
- * read-through of a 40-file PR fires 40 POSTs. The viewed STATE is applied
- * immediately by the caller — only the remote sync waits.
- */
-export const AUTO_VIEW_SYNC_BATCH_MS = 2000;
 
-export interface ViewedSyncBatcher {
-  add(paths: string[]): void;
-  flush(): void;
-  dispose(): void;
-}
-
-export function createViewedSyncBatcher(
-  send: (paths: string[]) => void,
-  options: { windowMs?: number } = {},
-): ViewedSyncBatcher {
-  const windowMs = options.windowMs ?? AUTO_VIEW_SYNC_BATCH_MS;
-  const pending = new Set<string>();
-  let timer: ReturnType<typeof setTimeout> | null = null;
-
-  const flush = () => {
-    if (timer !== null) {
-      clearTimeout(timer);
-      timer = null;
-    }
-    if (pending.size === 0) return;
-    const batch = [...pending];
-    pending.clear();
-    send(batch);
-  };
-
-  return {
-    add(paths: string[]) {
-      for (const path of paths) pending.add(path);
-      if (pending.size === 0 || timer !== null) return;
-      timer = setTimeout(flush, windowMs);
-    },
-    flush,
-    dispose() {
-      if (timer !== null) {
-        clearTimeout(timer);
-        timer = null;
-      }
-      pending.clear();
-    },
-  };
-}
 
 
 /**

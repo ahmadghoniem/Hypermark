@@ -84,8 +84,6 @@ import {
   probeAnnotateToken,
   selectAnnotateTokenTarget,
 } from "@hypermark/shared/annotate-target";
-import { createWorktreePool, type WorktreePool, type PoolEntry } from "@hypermark/shared/worktree-pool";
-import { parsePRUrl, checkPRAuth, fetchPR, getCliName, getCliInstallUrl, getMRLabel, getMRNumberLabel, getDisplayRepo } from "@hypermark/server/pr";
 import { resolveAnnotateTarget } from "./annotate-resolution";
 // Bridge sources for live app sessions: the CLI supplies them so
 // @hypermark/server never imports @hypermark/ui (mirrors the existing
@@ -95,8 +93,6 @@ import {
   BRIDGE_SCRIPT,
   LIVE_BRIDGE_BOOTSTRAP,
 } from "@hypermark/ui/components/html-viewer/bridge-script";
-import { rmSync, realpathSync } from "fs";
-import { parseRemoteUrl } from "@hypermark/shared/repo";
 import {
   composeReviewApprovedMessage,
   getReviewDeniedSuffix,
@@ -151,7 +147,6 @@ import {
   STRICT_GATE_ERROR_EXIT_CODE,
 } from "./strict-annotate-result";
 import path from "path";
-import { tmpdir } from "os";
 import { createInterface } from "node:readline/promises";
 import { buildLocalWorkspaceReview, type WorkspaceDiffType } from "@hypermark/server/review-workspace";
 import {
@@ -507,298 +502,46 @@ if (args[0] === "sessions") {
   // ============================================
 
   const reviewArgs = parseReviewArgs(args.slice(1));
-  const urlArg = reviewArgs.prUrl;
-  const isPRMode = urlArg !== undefined;
-  const useLocal = isPRMode && reviewArgs.useLocal;
 
   let rawPatch: string;
   let gitRef: string;
   let diffError: string | undefined;
   let initialFingerprint: string | undefined;
   let gitContext: Awaited<ReturnType<typeof prepareLocalReviewDiff>>["gitContext"] | undefined;
-  let prMetadata: Awaited<ReturnType<typeof fetchPR>>["metadata"] | undefined;
-  let prPatchIncomplete = false;
   let initialDiffType: DiffType | WorkspaceDiffType | undefined;
   let agentCwd: string | undefined;
-  let worktreePool: WorktreePool | undefined;
-  let worktreeCleanup: (() => void | Promise<void>) | undefined;
   let workspace: Awaited<ReturnType<typeof buildLocalWorkspaceReview>> | undefined;
 
-  if (isPRMode) {
-    // --- PR Review Mode ---
-    const prRef = parsePRUrl(urlArg);
-    if (!prRef) {
-      console.error(`Invalid PR/MR URL: ${urlArg}`);
-      console.error("Supported formats:");
-      console.error("  GitHub: https://github.com/owner/repo/pull/123");
-      console.error("  GitLab: https://gitlab.com/group/project/-/merge_requests/42");
-      process.exit(1);
-    }
+  const config = loadConfig();
+  const managedVcs = await detectManagedVcs(process.cwd(), reviewArgs.vcsType);
+  const forcedVcs = !!reviewArgs.vcsType && reviewArgs.vcsType !== "auto";
 
-    const cliName = getCliName(prRef);
-    const cliUrl = getCliInstallUrl(prRef);
-
-    try {
-      await checkPRAuth(prRef);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes("not found") || msg.includes("ENOENT")) {
-        console.error(`${cliName === "gh" ? "GitHub" : "GitLab"} CLI (${cliName}) is not installed.`);
-        console.error(`Install it from ${cliUrl}`);
-      } else {
-        console.error(msg);
-      }
-      process.exit(1);
-    }
-
-    console.error(`Fetching ${getMRLabel(prRef)} ${getMRNumberLabel(prRef)} from ${getDisplayRepo(prRef)}...`);
-    try {
-      const pr = await fetchPR(prRef);
-      rawPatch = pr.rawPatch;
-      gitRef = `${getMRLabel(prRef)} ${getMRNumberLabel(prRef)}`;
-      prMetadata = pr.metadata;
-      prPatchIncomplete = pr.patchIncomplete ?? false;
-    } catch (err) {
-      console.error(err instanceof Error ? err.message : "Failed to fetch PR");
-      process.exit(1);
-    }
-
-    // --local: create a local checkout with the PR head for full file access.
-    // The checkout is built in the BACKGROUND — the platform diff is already
-    // in hand, so the review server starts immediately. The pool entry starts
-    // ready:false and flips to ready when the warmup completes; consumers that
-    // need real files (agent jobs, full-stack diff, code-nav) await it via
-    // pool.ensure().
-    if (useLocal && prMetadata) {
-      // Hoisted so catch block can clean up partially-created directories
-      let localPath: string | undefined;
-      let sessionDir: string | undefined;
-      try {
-        const repoDir = process.cwd();
-        const identifier = prMetadata.platform === "github"
-          ? `${prMetadata.owner}-${prMetadata.repo}-${prMetadata.number}`
-          : `${prMetadata.projectPath.replace(/\//g, "-")}-${prMetadata.iid}`;
-        const suffix = Math.random().toString(36).slice(2, 8);
-        // Resolve tmpdir to its real path — on macOS, tmpdir() returns /var/folders/...
-        // but processes report /private/var/folders/... which breaks path stripping.
-        sessionDir = path.join(realpathSync(tmpdir()), `hypermark-pr-${identifier}-${suffix}`);
-        const prNumber = prMetadata.platform === "github" ? prMetadata.number : prMetadata.iid;
-        localPath = path.join(sessionDir, "pool", `pr-${prNumber}`);
-        const fetchRefStr = prMetadata.platform === "github"
-          ? `refs/pull/${prMetadata.number}/head`
-          : `refs/merge-requests/${prMetadata.iid}/head`;
-
-        // Validate inputs from platform API to prevent git flag/path injection
-        if (prMetadata.baseBranch.includes('..') || prMetadata.baseBranch.startsWith('-')) throw new Error(`Invalid base branch: ${prMetadata.baseBranch}`);
-        if (!/^[0-9a-f]{40,64}$/i.test(prMetadata.baseSha)) throw new Error(`Invalid base SHA: ${prMetadata.baseSha}`);
-
-        // Detect same-repo vs cross-repo (must match both owner/repo AND host)
-        let isSameRepo = false;
-        try {
-          const remoteResult = await gitRuntime.runGit(["remote", "get-url", "origin"]);
-          if (remoteResult.exitCode === 0) {
-            const remoteUrl = remoteResult.stdout.trim();
-            const currentRepo = parseRemoteUrl(remoteUrl);
-            const prRepo = prMetadata.platform === "github"
-              ? `${prMetadata.owner}/${prMetadata.repo}`
-              : prMetadata.projectPath;
-            const repoMatches = !!currentRepo && currentRepo.toLowerCase() === prRepo.toLowerCase();
-            // Extract host from remote URL to avoid cross-instance false positives (GHE)
-            const sshHost = remoteUrl.match(/^[^@]+@([^:]+):/)?.[1];
-            const httpsHost = (() => { try { return new URL(remoteUrl).hostname; } catch { return null; } })();
-            const remoteHost = (sshHost || httpsHost || "").toLowerCase();
-            const prHost = prMetadata.host.toLowerCase();
-            isSameRepo = repoMatches && remoteHost === prHost;
-          }
-        } catch { /* not in a git repo — cross-repo path */ }
-
-        // Capture closure values — the warmup outlives this block.
-        const warmupPath = localPath;
-        const warmupSessionDir = sessionDir;
-        const { baseBranch, baseSha, url: prUrl } = prMetadata;
-        const platform = prMetadata.platform;
-        const host = prMetadata.host;
-        const prRepo = platform === "github"
-          ? `${prMetadata.owner}/${prMetadata.repo}`
-          : prMetadata.projectPath;
-        // Validate repo identifier to prevent flag injection via crafted URLs
-        if (/^-/.test(prRepo)) throw new Error(`Invalid repository identifier: ${prRepo}`);
-
-        // Async spawn for background steps — spawnSync would block the event
-        // loop and freeze the review server while cloning. Children are
-        // tracked so a process exit mid-warmup can kill them instead of
-        // letting an orphaned clone/fetch resurrect the removed session dir
-        // or register a stale worktree after we're gone.
-        const warmupProcs = new Set<ReturnType<typeof Bun.spawn>>();
-        const runStep = async (
-          cmd: string[],
-          opts: { cwd?: string; env?: Record<string, string> } = {},
-        ): Promise<{ exitCode: number; stderr: string }> => {
-          const proc = Bun.spawn(cmd, {
-            cwd: opts.cwd,
-            env: opts.env,
-            stdout: "ignore",
-            stderr: "pipe",
-          });
-          warmupProcs.add(proc);
-          try {
-            const [stderr, exitCode] = await Promise.all([
-              new Response(proc.stderr).text(),
-              proc.exited,
-            ]);
-            return { exitCode, stderr };
-          } finally {
-            warmupProcs.delete(proc);
-          }
-        };
-
-        const warmup: Promise<PoolEntry> = isSameRepo
-          ? (async () => {
-              // ── Same-repo: fast worktree path (tracked spawns — see above) ──
-              // Fetch base branch so origin/<baseBranch> is current for agent
-              // diffs. Ensure baseSha is available (may fetch, which overwrites
-              // FETCH_HEAD). Both MUST happen before the PR head fetch since
-              // FETCH_HEAD is what worktree add uses — PR head fetch is last.
-              const baseFetchRes = await runStep(["git", "fetch", "origin", "--", baseBranch], { cwd: repoDir });
-              if (baseFetchRes.exitCode !== 0) throw new Error(`git fetch origin ${baseBranch} failed: ${baseFetchRes.stderr.trim()}`);
-              // Best-effort baseSha availability — mirrors ensureObjectAvailable
-              const catRes = await runStep(["git", "cat-file", "-t", baseSha], { cwd: repoDir });
-              if (catRes.exitCode !== 0) await runStep(["git", "fetch", "origin", "--", baseSha], { cwd: repoDir });
-              const headFetchRes = await runStep(["git", "fetch", "origin", "--", fetchRefStr], { cwd: repoDir });
-              if (headFetchRes.exitCode !== 0) throw new Error(`git fetch origin ${fetchRefStr} failed: ${headFetchRes.stderr.trim()}`);
-
-              const addRes = await runStep(["git", "worktree", "add", "--detach", warmupPath, "FETCH_HEAD"], { cwd: repoDir });
-              if (addRes.exitCode !== 0) throw new Error(`git worktree add failed: ${addRes.stderr.trim()}`);
-              return { path: warmupPath, prUrl, number: prNumber, ready: true };
-            })()
-          : (async () => {
-              // ── Cross-repo: shallow clone + fetch PR head ──
-              const cli = platform === "github" ? "gh" : "glab";
-              // gh/glab repo clone doesn't accept --hostname; set GH_HOST/GITLAB_HOST env instead
-              const isDefaultHost = host === "github.com" || host === "gitlab.com";
-              const cloneEnv = isDefaultHost ? undefined : {
-                ...process.env,
-                ...(platform === "github" ? { GH_HOST: host } : { GITLAB_HOST: host }),
-              } as Record<string, string>;
-
-              // Step 1: Fast skeleton clone (no checkout, depth 1 — minimal data transfer)
-              const cloneResult = await runStep(
-                [cli, "repo", "clone", prRepo, warmupPath, "--", "--depth=1", "--no-checkout"],
-                { env: cloneEnv },
-              );
-              if (cloneResult.exitCode !== 0) {
-                throw new Error(`${cli} repo clone failed: ${cloneResult.stderr.trim()}`);
-              }
-
-              // Step 2: Fetch only the PR head ref (targeted, much faster than full fetch)
-              const fetchResult = await runStep(
-                ["git", "fetch", "--depth=200", "origin", fetchRefStr],
-                { cwd: warmupPath },
-              );
-              if (fetchResult.exitCode !== 0) throw new Error(`Failed to fetch PR head ref: ${fetchResult.stderr.trim()}`);
-
-              // Step 3: Checkout PR head (critical — if this fails, worktree is empty)
-              const checkoutResult = await runStep(["git", "checkout", "FETCH_HEAD"], { cwd: warmupPath });
-              if (checkoutResult.exitCode !== 0) {
-                throw new Error(`git checkout FETCH_HEAD failed: ${checkoutResult.stderr.trim()}`);
-              }
-
-              // Best-effort: create base refs so `git diff main...HEAD` and `git diff origin/main...HEAD` work
-              const baseFetch = await runStep(["git", "fetch", "--depth=200", "origin", baseSha], { cwd: warmupPath });
-              if (baseFetch.exitCode !== 0) console.error("Warning: failed to fetch baseSha, agent diffs may be inaccurate");
-              await runStep(["git", "branch", "--", baseBranch, baseSha], { cwd: warmupPath });
-              await runStep(["git", "update-ref", `refs/remotes/origin/${baseBranch}`, baseSha], { cwd: warmupPath });
-
-              return { path: warmupPath, prUrl, number: prNumber, ready: true };
-            })();
-
-        // --local only provides a sandbox path for agent processes.
-        // Do NOT set gitContext — that would contaminate the diff pipeline.
-        agentCwd = localPath;
-
-        // Pool starts with the initial PR as a not-ready entry; the seeded
-        // warmup flips it to ready (or leaves it not-ready on failure).
-        worktreePool = createWorktreePool(
-          { sessionDir, repoDir, isSameRepo },
-          { path: localPath, prUrl, number: prNumber, ready: false },
-          warmup,
-        );
-
-        worktreeCleanup = async () => {
-          if (isSameRepo && worktreePool) await worktreePool.cleanup(gitRuntime);
-          try { rmSync(warmupSessionDir, { recursive: true, force: true }); } catch {}
-        };
-        process.once("exit", () => {
-          // Best-effort sync cleanup: kill in-flight warmup children first so
-          // an orphaned clone/fetch can't write into the dir we're removing,
-          // then remove each pool worktree from git, then rm session dir.
-          for (const proc of warmupProcs) { try { proc.kill(); } catch {} }
-          if (isSameRepo) {
-            try {
-              for (const entry of worktreePool?.entries() ?? []) {
-                Bun.spawnSync(["git", "worktree", "remove", "--force", entry.path], { cwd: repoDir });
-              }
-            } catch {}
-            // Clear any registration left by a worktree add that completed
-            // after the kill (or by a not-ready entry the loop can't see).
-            try { Bun.spawnSync(["git", "worktree", "prune"], { cwd: repoDir }); } catch {}
-          }
-          try { Bun.spawnSync(["rm", "-rf", warmupSessionDir]); } catch {}
-        });
-
-        console.error(isSameRepo
-          ? "Preparing local worktree in the background..."
-          : `Cloning ${prRepo} (shallow) in the background...`);
-        warmup.then(
-          () => console.error(`Local checkout ready at ${warmupPath}`),
-          (err) => {
-            console.error("Warning: local checkout failed — features needing local files (agents, full-stack diff) are limited");
-            console.error(err instanceof Error ? err.message : String(err));
-            try { rmSync(warmupSessionDir, { recursive: true, force: true }); } catch {}
-          },
-        );
-      } catch (err) {
-        console.error(`Warning: --local failed, falling back to remote diff`);
-        console.error(err instanceof Error ? err.message : String(err));
-        if (sessionDir) try { rmSync(sessionDir, { recursive: true, force: true }); } catch {}
-        agentCwd = undefined;
-        worktreePool = undefined;
-        worktreeCleanup = undefined;
-      }
-    }
+  if (managedVcs || forcedVcs) {
+    const diffResult = await prepareLocalReviewDiff({
+      vcsType: reviewArgs.vcsType,
+      configuredDiffType: resolveDefaultDiffType(config),
+      hideWhitespace: config.diffOptions?.hideWhitespace ?? false,
+    });
+    gitContext = diffResult.gitContext;
+    initialDiffType = diffResult.diffType;
+    rawPatch = diffResult.rawPatch;
+    gitRef = diffResult.gitRef;
+    diffError = diffResult.error;
+    initialFingerprint = diffResult.fingerprint;
   } else {
-    // --- Local Review Mode ---
-    const config = loadConfig();
-    const managedVcs = await detectManagedVcs(process.cwd(), reviewArgs.vcsType);
-    const forcedVcs = !!reviewArgs.vcsType && reviewArgs.vcsType !== "auto";
-
-    if (managedVcs || forcedVcs) {
-      const diffResult = await prepareLocalReviewDiff({
-        vcsType: reviewArgs.vcsType,
-        configuredDiffType: resolveDefaultDiffType(config),
-        hideWhitespace: config.diffOptions?.hideWhitespace ?? false,
-      });
-      gitContext = diffResult.gitContext;
-      initialDiffType = diffResult.diffType;
-      rawPatch = diffResult.rawPatch;
-      gitRef = diffResult.gitRef;
-      diffError = diffResult.error;
-      initialFingerprint = diffResult.fingerprint;
-    } else {
-      workspace = await buildLocalWorkspaceReview(process.cwd(), {
-        configuredDiffType: resolveDefaultDiffType(config),
-        hideWhitespace: config.diffOptions?.hideWhitespace ?? false,
-      });
-      if (workspace.repos.length === 0) {
-        console.error("Not in a VCS repo and no nested Git/JJ/GitButler repositories were found.");
-        process.exit(1);
-      }
-      rawPatch = workspace.rawPatch;
-      gitRef = workspace.gitRef;
-      diffError = workspace.error;
-      initialDiffType = workspace.diffType;
-      agentCwd = workspace.root;
+    workspace = await buildLocalWorkspaceReview(process.cwd(), {
+      configuredDiffType: resolveDefaultDiffType(config),
+      hideWhitespace: config.diffOptions?.hideWhitespace ?? false,
+    });
+    if (workspace.repos.length === 0) {
+      console.error("Not in a VCS repo and no nested Git/JJ/GitButler repositories were found.");
+      process.exit(1);
     }
+    rawPatch = workspace.rawPatch;
+    gitRef = workspace.gitRef;
+    diffError = workspace.error;
+    initialDiffType = workspace.diffType;
+    agentCwd = workspace.root;
   }
 
   const reviewProject = (await detectProjectName()) ?? "_unknown";
@@ -813,16 +556,12 @@ if (args[0] === "sessions") {
     diffType: workspace ? (initialDiffType ?? workspace.diffType) : gitContext ? (initialDiffType ?? "unstaged") : undefined,
     gitContext,
     initialFingerprint,
-    prMetadata,
-    prPatchIncomplete,
     workspace,
     agentCwd,
-    worktreePool,
     // The approved branch below prints result.feedback after the prompt, so
     // this CLI's origins may see approve-carrying menu items (spec §6.4).
     approvalNotesSupported: supportsReviewApprovalNotes(detectedOrigin),
     htmlContent: reviewHtmlContent,
-    onCleanup: worktreeCleanup,
     onReady: async (url, port) => {
       handleReviewServerReady(url, port);
     },
@@ -835,7 +574,7 @@ if (args[0] === "sessions") {
     mode: "review",
     project: reviewProject,
     startedAt: new Date().toISOString(),
-    label: isPRMode ? `${getMRLabel(prMetadata!).toLowerCase()}-review-${getDisplayRepo(prMetadata!)}${getMRNumberLabel(prMetadata!)}` : `review-${reviewProject}`,
+    label: `review-${reviewProject}`,
   });
 
   // Wait for user feedback
@@ -857,10 +596,7 @@ if (args[0] === "sessions") {
     console.log(composeReviewApprovedMessage(detectedOrigin, result.feedback));
   } else {
     console.log(result.feedback);
-    // Append the verification-only suffix whenever the reviewer sent annotations to
-    // act on — in PR mode too. Platform PR actions (approve/comment posted to
-    // the host) come back with an empty annotation set and a status message;
-    // those must NOT get the "verify findings and don't change code" instruction.
+    // Append the verification-only suffix whenever the reviewer sent annotations to act on.
     if (result.annotations.length > 0) {
       console.log(getReviewDeniedSuffix(detectedOrigin));
     }

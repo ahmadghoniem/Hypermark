@@ -16,10 +16,8 @@ import {
   buildReviewApprovalBody,
   createGeneralReviewComment,
   readApprovalNotesAdvert,
-  resolvePlatformDecisionAction,
   resolveReviewDecisionAction,
 } from "./reviewDecision";
-import { annotationMatchesPrScope } from "./utils/annotationScope";
 
 /** Every input combination the review app can hand the spec builder — the
  *  advert swept both ways, so neither advert state can surface an unrouted
@@ -34,23 +32,6 @@ function reviewInputs(): DecisionSpecInput[] {
         count,
         hasFeedback: count > 0,
         approvalNotesSupported,
-      });
-  return inputs;
-}
-
-/** Every input combination platform (PR) mode can hand the spec builder —
- *  self-authorship swept both ways (PR6, §3.4). */
-function platformInputs(): DecisionSpecInput[] {
-  const inputs: DecisionSpecInput[] = [];
-  for (const selfAuthored of [false, true])
-    for (const count of [0, 1, 3])
-      inputs.push({
-        app: "review",
-        gate: true,
-        count,
-        hasFeedback: count > 0,
-        approvalNotesSupported: false, // ignored by the platform arm
-        platform: { label: "GitHub", mrLabel: "PR", selfAuthored },
       });
   return inputs;
 }
@@ -188,23 +169,6 @@ describe("review decision handler exhaustiveness", () => {
     expect(body.feedback).toBe("ship it\n\n# Code Review Feedback\n");
     expect(body.annotations).toHaveLength(1);
   });
-
-  // PR6 (§3.4) exhaustiveness, same failure class as the agent sweep: an id
-  // the platform arm starts emitting without a dialog-mode route resolves to
-  // null and its menu row silently does nothing. The mode itself must match
-  // the row's meaning — an approve-flavoured row landing in comment mode
-  // would post a review where the reviewer asked to approve.
-  test("every id the platform arm emits resolves to the matching dialog mode", () => {
-    for (const input of platformInputs()) {
-      const spec = buildDecisionSpec(input);
-      expect(resolvePlatformDecisionAction("primary", input.count > 0))
-        .toBe(input.count > 0 ? "comment" : "approve");
-      for (const item of spec.items) {
-        const mode = resolvePlatformDecisionAction(item.id, input.count > 0);
-        expect(mode).toBe(item.tone === "success" ? "approve" : "comment");
-      }
-    }
-  });
 });
 
 describe("createGeneralReviewComment — the one review-level comment shape", () => {
@@ -232,16 +196,5 @@ describe("createGeneralReviewComment — the one review-level comment shape", ()
     expect(createGeneralReviewComment("   \n  ")).toBeNull();
     expect(createGeneralReviewComment("")).toBeNull();
     expect("author" in createGeneralReviewComment("x", "")!).toBe(false);
-  });
-
-  // Guards the PR-switch survival the spec's PR4 hunt names: the comment
-  // carries no prUrl/diffScope, so it passes every PR scope predicate and a
-  // switched-to PR still renders and exports it.
-  test("survives an in-place PR switch: no PR context, passes every PR scope", () => {
-    const note = createGeneralReviewComment("overall note")!;
-    expect(note.prUrl).toBeUndefined();
-    expect(note.diffScope).toBeUndefined();
-    expect(annotationMatchesPrScope(note, "https://github.com/o/r/pull/7", "layer")).toBe(true);
-    expect(annotationMatchesPrScope(note, undefined, undefined)).toBe(true);
   });
 });

@@ -6,15 +6,13 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { CodeAnnotation, Annotation, CommentAnnotation } from '../types';
+import type { CodeAnnotation } from '../types';
 import { getDraftTransport } from './useAnnotationDraft';
 
 const DEBOUNCE_MS = 500;
 
 interface DraftData {
   codeAnnotations: CodeAnnotation[];
-  descriptionAnnotations?: Annotation[];
-  commentAnnotations?: CommentAnnotation[];
   viewedFiles?: string[];
   /**
    * Files the reviewer manually un-viewed, which auto-mark-viewed must never
@@ -48,8 +46,6 @@ function formatTimeAgo(ts: number): string {
 
 interface UseCodeAnnotationDraftOptions {
   annotations: CodeAnnotation[];
-  descriptionAnnotations?: Annotation[];
-  commentAnnotations?: CommentAnnotation[];
   viewedFiles: Set<string>;
   autoViewSuppressed?: Set<string>;
   isApiMode: boolean;
@@ -58,15 +54,13 @@ interface UseCodeAnnotationDraftOptions {
 
 interface UseCodeAnnotationDraftResult {
   draftBanner: { count: number; viewedCount: number; timeAgo: string } | null;
-  restoreDraft: () => { annotations: CodeAnnotation[]; descriptionAnnotations: Annotation[]; commentAnnotations: CommentAnnotation[]; viewedFiles: string[]; autoViewSuppressed: string[] };
+  restoreDraft: () => { annotations: CodeAnnotation[]; viewedFiles: string[]; autoViewSuppressed: string[] };
   getDraftGeneration: () => number;
   dismissDraft: () => void;
 }
 
 export function useCodeAnnotationDraft({
   annotations,
-  descriptionAnnotations = [],
-  commentAnnotations = [],
   viewedFiles,
   autoViewSuppressed,
   isApiMode,
@@ -99,9 +93,7 @@ export function useCodeAnnotationDraft({
         if (generation !== null) {
           draftGenerationRef.current = Math.max(draftGenerationRef.current, generation);
         }
-        const annotationCount = (Array.isArray(data?.codeAnnotations) ? data.codeAnnotations.length : 0)
-          + (Array.isArray(data?.descriptionAnnotations) ? data.descriptionAnnotations.length : 0)
-          + (Array.isArray(data?.commentAnnotations) ? data.commentAnnotations.length : 0);
+        const annotationCount = Array.isArray(data?.codeAnnotations) ? data.codeAnnotations.length : 0;
         const viewedCount = Array.isArray(data?.viewedFiles) ? data.viewedFiles.length : 0;
         if (annotationCount > 0 || viewedCount > 0) {
           draftDataRef.current = data;
@@ -126,13 +118,12 @@ export function useCodeAnnotationDraft({
     // Track engagement on USER-AUTHORED annotations only. Two things that arrive
     // without user action must NOT count as "had content", or a later empty state
     // would look like the user deleted everything and wrongly delete the draft:
-    //   - viewedFiles are seeded from GitHub's already-viewed state on mount
-    //     (review App.tsx) before the user does anything.
+    //   - viewedFiles are seeded on mount before the user does anything.
     //   - external/SSE annotations (source-tagged, e.g. an eslint plugin) arrive
     //     via `allAnnotations` and have their own lifecycle, separate from the draft.
-    if (annotations.some((a) => !a.source) || descriptionAnnotations.length > 0 || commentAnnotations.length > 0) hasHadAnnotationsRef.current = true;
+    if (annotations.some((a) => !a.source)) hasHadAnnotationsRef.current = true;
 
-    const isEmpty = annotations.length === 0 && descriptionAnnotations.length === 0 && commentAnnotations.length === 0 && viewedFiles.size === 0;
+    const isEmpty = annotations.length === 0 && viewedFiles.size === 0;
     // Leave the server alone for an empty state until the user has actually had
     // annotations this session. This preserves an unrestored draft sitting on disk
     // at mount (the draft-recovery banner can still offer it).
@@ -155,8 +146,6 @@ export function useCodeAnnotationDraft({
 
       const payload: DraftData = {
         codeAnnotations: annotations,
-        descriptionAnnotations,
-        commentAnnotations,
         viewedFiles: [...viewedFiles],
         ...(autoViewSuppressed && autoViewSuppressed.size > 0
           ? { autoViewSuppressed: [...autoViewSuppressed] }
@@ -171,7 +160,7 @@ export function useCodeAnnotationDraft({
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [annotations, descriptionAnnotations, commentAnnotations, viewedFiles, autoViewSuppressed, isApiMode, submitted]);
+  }, [annotations, viewedFiles, autoViewSuppressed, isApiMode, submitted]);
 
   const restoreDraft = useCallback(() => {
     // Cancel any pending autosave so it can't fire with pre-restore state and
@@ -182,8 +171,6 @@ export function useCodeAnnotationDraft({
     draftDataRef.current = null;
     return {
       annotations: data?.codeAnnotations ?? [],
-      descriptionAnnotations: data?.descriptionAnnotations ?? [],
-      commentAnnotations: data?.commentAnnotations ?? [],
       viewedFiles: data?.viewedFiles ?? [],
       autoViewSuppressed: data?.autoViewSuppressed ?? [],
     };
