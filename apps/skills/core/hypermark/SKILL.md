@@ -40,14 +40,13 @@ The stdout contract is the whole interface:
 ## hypermark review
 
 ```bash
-hypermark review [--git | --gitbutler] [--local | --no-local] [PR_URL]
+hypermark review [--git | --gitbutler]
 ```
 
-Reviews local VCS changes, or a pull request when a URL is given. Feedback and annotations come back on stdout when the reviewer submits; an approval comes back as an LGTM-style message.
+Reviews local VCS changes. Feedback and annotations come back on stdout when the reviewer submits; an approval comes back as an LGTM-style message.
 
 - VCS is auto-detected (JJ, GitButler, Git, and P4 where supported). `--git` forces plain Git; `--gitbutler` forces GitButler (requires the `but` CLI 0.21.0+). Running from a non-VCS parent folder that contains nested repos produces a combined workspace diff.
 - The default diff is "everything a PR would show now": merge-base of the trunk vs the working tree plus untracked files. The reviewer can switch diff types in the UI; you do not control that from the CLI.
-- PR review (`hypermark review https://github.com/owner/repo/pull/123`, GitLab MR URLs too) needs an authenticated `gh` or `glab` CLI. `--local` (the default) builds a local checkout of the PR head in the background for full file access; `--no-local` skips it and reviews the platform diff only.
 
 ## hypermark annotate
 

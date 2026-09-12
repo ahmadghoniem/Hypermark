@@ -1,6 +1,6 @@
 ---
 name: hypermark-review
-description: Open Hypermark's browser-based code review UI for the current worktree or a pull request URL, then act on the feedback that comes back.
+description: Open Hypermark's browser-based code review UI for the current worktree, then act on the feedback that comes back.
 disable-model-invocation: true
 ---
 
@@ -11,7 +11,7 @@ Use this skill when the user wants to review current code changes in Hypermark i
 Run:
 
 ```bash
-hypermark review [optional-pr-url]
+hypermark review
 ```
 
 Behavior:

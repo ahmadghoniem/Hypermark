@@ -204,7 +204,7 @@ its row. Scope such rules away from the header, e.g.
 `[data-viewer-document-header] [data-sticky-actions] { margin-top: 0; margin-right: 0; }`.
 
 The config is intentionally typed rather than a React-node slot. Viewer reuses
-its existing `mode`, `inputMethod`, and `taterMode`; the config supplies only
+its existing `mode` and `inputMethod`; the config supplies only
 the state-change callbacks and optional `hideQuickLabel`. Compact toolstrips
 never render the Hypermark help modal. Hiding Quick Label does not clamp the
 mode, so hosts must still prevent stored `'quickLabel'` state from reaching

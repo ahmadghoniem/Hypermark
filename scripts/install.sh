@@ -2,8 +2,6 @@
 set -e
 
 REPO="ahmadghoniem/Hypermark"
-SEM_REPO="Ataraxy-Labs/sem"
-SEM_VERSION="v0.8.0"
 INSTALL_DIR="$HOME/.local/bin"
 
 # First hypermark release that carries SLSA build-provenance attestations.
@@ -41,7 +39,7 @@ MODEL_INVOCABLE_FLAG=""
 NON_INTERACTIVE=0
 RECONFIGURE=0
 # Binary-only mode. Installs just the hypermark binary (to $INSTALL_DIR) and
-# no persistent state elsewhere — no sem sidecar, no agent-terminal runtime, no
+# no persistent state elsewhere — no agent-terminal runtime, no
 # skills, hooks, slash commands, or Claude configuration. Set by --minimal
 # (1) / --no-minimal (0); -1 = neither flag
 # given (fall through to the HYPERMARK_MINIMAL env var). Resolved after arg
@@ -79,8 +77,8 @@ Options:
                          (e.g. hypermark-review,hypermark-compound), or
                          "none". Skills are user-invoked-only by default.
   --minimal              Install only the hypermark binary (aliased
-                         --binary-only). Skips the sem semantic-diff sidecar,
-                         the agent-terminal runtime, and every
+                         --binary-only). Skips the agent-terminal runtime
+                         and every
                          integration (skills, hooks, slash commands, and the
                          Claude Code configuration). No
                          persistent state is written outside $HOME/.local/bin
@@ -121,11 +119,6 @@ gh login is required. The credential-free path needs one JSON tool on PATH
 (node, python3, or jq) to extract the bundle; without one, and whenever the
 public bundle fetch or bundle verification does not complete, gh's
 authenticated fetch runs as the fallback.
-
-The optional semantic-diff sidecar (the 'sem' binary, used by code review) is
-installed after Hypermark itself. Skip it by exporting
-HYPERMARK_SKIP_SEM_INSTALL=1. Its download is time-bounded, so a slow network
-never blocks an otherwise-complete install.
 
 The optional annotate agent terminal runtime is installed after Hypermark
 itself. Skip it by exporting HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL=1. If
@@ -278,7 +271,7 @@ done
 
 # Resolve binary-only mode. Precedence: --minimal / --no-minimal flag >
 # HYPERMARK_MINIMAL env var > default (off). The env var lets `curl ... | bash`
-# runs opt in without a flag, matching how HYPERMARK_SKIP_SEM_INSTALL et al.
+# runs opt in without a flag, matching how HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL
 # work; --no-minimal lets a flag override an env var that enables it.
 minimal=0
 case "${HYPERMARK_MINIMAL:-}" in
@@ -764,107 +757,6 @@ if [ "$minimal" -eq 1 ]; then
     exit 0
 fi
 
-sem_asset_for_platform() {
-    case "$platform" in
-        darwin-arm64) echo "sem-darwin-arm64.tar.gz" ;;
-        linux-arm64)  echo "sem-linux-arm64.tar.gz" ;;
-        linux-x64)    echo "sem-linux-x86_64.tar.gz" ;;
-        *)            return 1 ;;
-    esac
-}
-
-install_sem_sidecar() {
-    case "${HYPERMARK_SKIP_SEM_INSTALL:-}" in
-        1|true|yes|TRUE|YES|True|Yes)
-            echo "Skipping semantic diff sidecar install (HYPERMARK_SKIP_SEM_INSTALL is set)"
-            return 0
-            ;;
-    esac
-
-    sem_asset="$(sem_asset_for_platform 2>/dev/null || true)"
-    if [ -z "$sem_asset" ]; then
-        echo "Skipping semantic diff sidecar install (sem does not publish ${platform})"
-        return 0
-    fi
-
-    sem_dir="${_config_dir}/vendor/sem/${SEM_VERSION}"
-    sem_bin="${sem_dir}/sem"
-    if [ -x "$sem_bin" ] && "$sem_bin" --version 2>/dev/null | grep -q '^sem '; then
-        echo "Semantic diff sidecar already installed at ${sem_bin}"
-        return 0
-    fi
-
-    tmp_sem_dir="$(mktemp -d)"
-    sem_archive="${tmp_sem_dir}/${sem_asset}"
-    sem_checksums="${tmp_sem_dir}/checksums.txt"
-    sem_base_url="https://github.com/${SEM_REPO}/releases/download/${SEM_VERSION}"
-
-    # Bounded so a slow/hung download of this optional sidecar can't wedge an
-    # install where hypermark itself already landed. On timeout curl fails and
-    # we skip gracefully. Opt out entirely with HYPERMARK_SKIP_SEM_INSTALL=1.
-    if ! curl -fsSL --connect-timeout 10 --max-time 120 -o "$sem_archive" "${sem_base_url}/${sem_asset}"; then
-        echo "Skipping semantic diff sidecar install (download failed)"
-        rm -rf "$tmp_sem_dir"
-        return 0
-    fi
-    if ! curl -fsSL --connect-timeout 10 --max-time 60 -o "$sem_checksums" "${sem_base_url}/checksums.txt"; then
-        echo "Skipping semantic diff sidecar install (checksum download failed)"
-        rm -rf "$tmp_sem_dir"
-        return 0
-    fi
-
-    expected_sem_checksum="$(awk -v name="$sem_asset" '$2 == name { print $1 }' "$sem_checksums")"
-    if [ -z "$expected_sem_checksum" ]; then
-        echo "Skipping semantic diff sidecar install (checksum missing for ${sem_asset})"
-        rm -rf "$tmp_sem_dir"
-        return 0
-    fi
-
-    if [ "$(uname -s)" = "Darwin" ]; then
-        actual_sem_checksum="$(shasum -a 256 "$sem_archive" | cut -d' ' -f1)"
-    else
-        actual_sem_checksum="$(sha256sum "$sem_archive" | cut -d' ' -f1)"
-    fi
-
-    if [ "$actual_sem_checksum" != "$expected_sem_checksum" ]; then
-        echo "Skipping semantic diff sidecar install (checksum mismatch)"
-        rm -rf "$tmp_sem_dir"
-        return 0
-    fi
-
-    if ! tar -xzf "$sem_archive" -C "$tmp_sem_dir"; then
-        echo "Skipping semantic diff sidecar install (extract failed)"
-        rm -rf "$tmp_sem_dir"
-        return 0
-    fi
-
-    extracted_sem="$(find "$tmp_sem_dir" -type f -name sem -print -quit)"
-    if [ -z "$extracted_sem" ]; then
-        echo "Skipping semantic diff sidecar install (binary missing from archive)"
-        rm -rf "$tmp_sem_dir"
-        return 0
-    fi
-
-    if ! mkdir -p "$sem_dir"; then
-        echo "Skipping semantic diff sidecar install (directory creation failed)"
-        rm -rf "$tmp_sem_dir"
-        return 0
-    fi
-    if ! cp "$extracted_sem" "$sem_bin"; then
-        echo "Skipping semantic diff sidecar install (copy failed)"
-        rm -rf "$tmp_sem_dir"
-        return 0
-    fi
-    if ! chmod +x "$sem_bin"; then
-        echo "Skipping semantic diff sidecar install (chmod failed)"
-        rm -f "$sem_bin"
-        rm -rf "$tmp_sem_dir"
-        return 0
-    fi
-    rm -rf "$tmp_sem_dir"
-    echo "Semantic diff sidecar installed to ${sem_bin}"
-}
-
 install_agent_terminal_runtime() {
     case "${HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL:-}" in
         1|true|yes|TRUE|YES|True|Yes)
@@ -878,7 +770,6 @@ install_agent_terminal_runtime() {
     fi
 }
 
-install_sem_sidecar
 install_agent_terminal_runtime
 
 print_path_advice

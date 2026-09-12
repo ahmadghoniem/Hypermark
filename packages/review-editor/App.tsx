@@ -19,19 +19,15 @@ import {
   readApprovalNotesAdvert,
   resolveReviewDecisionAction,
 } from './reviewDecision';
-import { storage } from '@hypermark/ui/utils/storage';
 import { CompletionOverlay } from '@hypermark/ui/components/CompletionOverlay';
 import { RepoIcon } from '@hypermark/ui/components/RepoIcon';
 import { configStore, useConfigValue, setReviewPanelView } from '@hypermark/ui/config';
-import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, Annotation, type ImageAttachment } from '@hypermark/ui/types';
+import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, type ImageAttachment } from '@hypermark/ui/types';
 import { useResizablePanel } from '@hypermark/ui/hooks/useResizablePanel';
 import { useCodeAnnotationDraft } from '@hypermark/ui/hooks/useCodeAnnotationDraft';
 import { generateId } from './utils/generateId';
 import { toast, Toaster } from 'sonner';
 import { useCodeNav, type CodeNavRequest } from './hooks/useCodeNav';
-import { detectLanguage } from './utils/detectLanguage';
-import type { DiffTokenEventBaseProps } from '@pierre/diffs';
-import { extractLinesFromPatch } from './utils/patchParser';
 import {
   shouldHandleReviewSearchShortcut,
   isTypingTarget,
@@ -97,7 +93,7 @@ import {
   REVIEW_CODE_NAV_PANEL_ID,
 } from './dock/reviewPanelTypes';
 import type { DiffFile, AnnotationScrollTarget } from './types';
-import type { DiffOption, WorktreeInfo, GitContext, SinceBaseSections, CommitDiffInfo } from '@hypermark/shared/types';
+import type { DiffOption, GitContext, SinceBaseSections, CommitDiffInfo } from '@hypermark/shared/types';
 import { SectionsPanel } from './components/SectionsPanel';
 import { CommitsPanel } from './components/CommitsPanel';
 import { useCommitsView } from './hooks/useCommitsView';
@@ -105,8 +101,6 @@ import { initializeReviewSetup } from './utils/reviewSetup';
 import { resolvePanelView } from './utils/resolvePanelView';
 import { isCommitDiffType, resolveCommitExitDiff, type CommitViewRestoreTarget } from './utils/commitViewRestore';
 import { ExternalLineAnnotationComposer } from './components/ExternalLineAnnotationComposer';
-import { TextShimmer } from '@hypermark/ui/components/TextShimmer';
-import { altKey } from '@hypermark/ui/utils/platform';
 import { copyTextToClipboard } from '@hypermark/ui/utils/clipboard';
 
 interface DiffData {
@@ -2415,9 +2409,7 @@ const ReviewAppInner: React.FC = () => {
 
             <ThemeModeButton />
 
-                <ThemeModeButton />
-
-                <KeyboardShortcutsButton mode="review" />
+            <KeyboardShortcutsButton mode="review" />
           </div>
         </header>
 

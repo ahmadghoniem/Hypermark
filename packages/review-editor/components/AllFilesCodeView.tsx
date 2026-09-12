@@ -11,7 +11,7 @@ import type {
   PostRenderPhase,
   SelectedLineRange,
 } from '@pierre/diffs';
-import { CodeView, EditProvider, type CodeViewHandle, useStableCallback } from '@pierre/diffs/react';
+import { CodeView, type CodeViewHandle, useStableCallback } from '@pierre/diffs/react';
 import type { DiffTokenEventBaseProps } from '@pierre/diffs';
 import type {
   CodeAnnotation,
@@ -45,7 +45,6 @@ import {
   useGutterAnnotations,
   type GutterAnchor,
 } from './GutterAnnotations';
-import { detectLanguage } from '../utils/detectLanguage';
 import type { ReviewSearchMatch } from '../utils/reviewSearch';
 import {
   applyItemSearchHighlights,
@@ -401,7 +400,6 @@ const SCROLLED_PAST_EPSILON_PX = 8;
 // internally responsive (ResizeObserver shrinks labels) but its OUTER box height
 // is fixed, so the responsive label changes never alter the row height.
 const PANEL_HEADER_HEIGHT = 33; // --panel-header-h
-const COMPACT_PANEL_HEADER_HEIGHT = 44;
 // Hunk separator height forced by usePierreTheme unsafeCSS:
 //   [data-separator='line-info'] { height: 24px; margin-block: 4px; }
 // => 24 + 4*2 = 32. Pierre's own 'line-info' default metric is also 32, so

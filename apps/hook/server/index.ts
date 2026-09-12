@@ -71,7 +71,7 @@ import {
   startGoalSetupServer,
   handleGoalSetupServerReady,
 } from "@hypermark/server/goal-setup";
-import { type DiffType, detectManagedVcs, prepareLocalReviewDiff, gitRuntime } from "@hypermark/server/vcs";
+import { type DiffType, detectManagedVcs, prepareLocalReviewDiff } from "@hypermark/server/vcs";
 import { loadConfig, resolveDefaultDiffType } from "@hypermark/shared/config";
 import { parseReviewArgs } from "@hypermark/shared/review-args";
 import {
@@ -98,7 +98,6 @@ import {
   getReviewDeniedSuffix,
   getPlanDeniedPrompt,
   getPlanToolName,
-  buildPlanFileRule,
 } from "@hypermark/shared/prompts";
 import { supportsReviewApprovalNotes } from "./review-output";
 import { registerSession, unregisterSession, listSessions } from "@hypermark/server/sessions";

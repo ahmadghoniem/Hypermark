@@ -7,8 +7,6 @@ import { submitHint } from '@hypermark/ui/utils/platform';
 import { CommentMeta } from './CommentMeta';
 import { CommentActions } from './CommentActions';
 import { commentCopyText } from '../utils/annotationDisplay';
-import { HighlightedCode } from './HighlightedCode';
-import { detectLanguage } from '../utils/detectLanguage';
 import { renderInlineMarkdown } from '../utils/renderInlineMarkdown';
 import { FileNameChip } from './FileNameChip';
 import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';

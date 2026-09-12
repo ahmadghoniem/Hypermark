@@ -38,7 +38,7 @@ if ($Minimal -and $NoMinimal) {
 }
 
 # Binary-only mode. Installs just the hypermark binary and no persistent state
-# elsewhere - no sem sidecar, agent-terminal runtime, skills, hooks, or per-agent
+# elsewhere - no agent-terminal runtime, skills, hooks, or per-agent
 # config. Precedence: -Minimal / -NoMinimal switch > HYPERMARK_MINIMAL env var
 # > default (off). Mirrors install.sh's --minimal / --no-minimal.
 $minimal = $false
@@ -49,8 +49,6 @@ if ($Minimal) { $minimal = $true }
 if ($NoMinimal) { $minimal = $false }
 
 $repo = "ahmadghoniem/Hypermark"
-$semRepo = "Ataraxy-Labs/sem"
-$semVersion = "v0.8.0"
 $installDir = "$env:LOCALAPPDATA\hypermark"
 
 # First hypermark release that carries SLSA build-provenance attestations.
@@ -196,73 +194,6 @@ if ($configDir -eq "~") {
     $configDir = $env:USERPROFILE
 } elseif ($configDir.StartsWith("~/") -or $configDir.StartsWith('~\')) {
     $configDir = Join-Path $env:USERPROFILE ($configDir.Substring(2))
-}
-
-function Install-SemSidecar {
-    if ($env:HYPERMARK_SKIP_SEM_INSTALL -match '^(1|true|yes)$') {
-        Write-Host "Skipping semantic diff sidecar install (HYPERMARK_SKIP_SEM_INSTALL is set)"
-        return
-    }
-
-    $semAsset = if ($platform -eq "win32-x64") { "sem-windows-x86_64.zip" } else { $null }
-    if (-not $semAsset) {
-        Write-Host "Skipping semantic diff sidecar install (sem does not publish $platform)"
-        return
-    }
-
-    $semDir = Join-Path $configDir "vendor\sem\$semVersion"
-    $semPath = Join-Path $semDir "sem.exe"
-    if (Test-Path $semPath) {
-        try {
-            $versionText = & $semPath --version 2>$null
-            if ($LASTEXITCODE -eq 0 -and $versionText -match '^sem ') {
-                Write-Host "Semantic diff sidecar already installed at $semPath"
-                return
-            }
-        } catch {
-            # Replace invalid stale sidecar below.
-        }
-    }
-
-    $tmpSemDir = Join-Path ([System.IO.Path]::GetTempPath()) "hypermark-sem-$([System.Guid]::NewGuid().ToString('N'))"
-    New-Item -ItemType Directory -Force -Path $tmpSemDir | Out-Null
-
-    try {
-        $semBaseUrl = "https://github.com/$semRepo/releases/download/$semVersion"
-        $semArchive = Join-Path $tmpSemDir $semAsset
-        $semChecksums = Join-Path $tmpSemDir "checksums.txt"
-        # Bounded so a slow/hung download of this optional sidecar can't wedge an
-        # install where hypermark already landed; the catch below skips it.
-        Invoke-WebRequest -Uri "$semBaseUrl/$semAsset" -OutFile $semArchive -UseBasicParsing -TimeoutSec 120
-        Invoke-WebRequest -Uri "$semBaseUrl/checksums.txt" -OutFile $semChecksums -UseBasicParsing -TimeoutSec 60
-
-        $expected = (Get-Content $semChecksums | Where-Object { $_ -match "\s$([regex]::Escape($semAsset))$" } | ForEach-Object { ($_ -split '\s+')[0] } | Select-Object -First 1)
-        if (-not $expected) {
-            Write-Host "Skipping semantic diff sidecar install (checksum missing for $semAsset)"
-            return
-        }
-
-        $actual = (Get-FileHash -Path $semArchive -Algorithm SHA256).Hash.ToLower()
-        if ($actual -ne $expected.ToLower()) {
-            Write-Host "Skipping semantic diff sidecar install (checksum mismatch)"
-            return
-        }
-
-        Expand-Archive -Force -Path $semArchive -DestinationPath $tmpSemDir
-        $extracted = Get-ChildItem -Path $tmpSemDir -Filter "sem.exe" -Recurse | Select-Object -First 1
-        if (-not $extracted) {
-            Write-Host "Skipping semantic diff sidecar install (binary missing from archive)"
-            return
-        }
-
-        New-Item -ItemType Directory -Force -Path $semDir | Out-Null
-        Copy-Item -Force $extracted.FullName $semPath
-        Write-Host "Semantic diff sidecar installed to $semPath"
-    } catch {
-        Write-Host "Skipping semantic diff sidecar install ($($_.Exception.Message))"
-    } finally {
-        Remove-Item -Recurse -Force $tmpSemDir -ErrorAction SilentlyContinue
-    }
 }
 
 function Install-AgentTerminalRuntime {
@@ -577,9 +508,9 @@ function Show-PathAdvice {
 }
 
 # Binary-only mode stops here (see the $minimal resolution near the top): the
-# binary is installed, so add it to PATH and exit before any sidecar download,
+# binary is installed, so add it to PATH and exit before any runtime install,
 # agent integration, skill checkout, config write, or cleanup runs. Only the
-# binary and its PATH entry are added - none of the sem sidecar, agent-terminal
+# binary and its PATH entry are added - none of the agent-terminal
 # runtime, or per-agent skills, hooks, or config.
 if ($minimal) {
     Show-PathAdvice
@@ -589,7 +520,6 @@ if ($minimal) {
     exit 0
 }
 
-Install-SemSidecar
 Install-AgentTerminalRuntime
 
 Show-PathAdvice

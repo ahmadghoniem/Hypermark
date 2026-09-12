@@ -16,7 +16,7 @@ import { type Origin, getAgentName } from '@hypermark/shared/agents';
 import { shouldStripFrontmatter } from '@hypermark/shared/annotatable';
 import { setExtraMarkdownExtensions } from '@hypermark/ui/utils/markdownExtensions';
 import { annotateFileFeedback, annotateMessageFeedback, wrapFeedbackForClipboard, type AnnotateFeedbackTemplates } from '@hypermark/shared/feedback-templates';
-import { parseMarkdownToBlocks, exportAnnotations, exportLinkedDocAnnotations, exportCodeFileAnnotations, exportMessageAnnotations, extractFrontmatter, wrapFeedbackForAgent, Frontmatter, type LinkedDocAnnotationEntry, type MessageAnnotationEntry } from '@hypermark/ui/utils/parser';
+import { parseMarkdownToBlocks, exportAnnotations, exportLinkedDocAnnotations, exportCodeFileAnnotations, extractFrontmatter, wrapFeedbackForAgent, Frontmatter, type LinkedDocAnnotationEntry, type MessageAnnotationEntry } from '@hypermark/ui/utils/parser';
 import { primeSkillCatalog, primeSkillContentsForExport } from '@hypermark/ui/utils/skillCatalog';
 import { Viewer, ViewerHandle } from '@hypermark/ui/components/Viewer';
 import { HtmlViewer } from '@hypermark/ui/components/html-viewer';
@@ -28,7 +28,6 @@ import { ThemeProvider } from '@hypermark/ui/components/ThemeProvider';
 import { Tooltip, TooltipProvider } from '@hypermark/ui/components/Tooltip';
 import { AnnotationToolstrip } from '@hypermark/ui/components/AnnotationToolstrip';
 import { StickyHeaderLane } from '@hypermark/ui/components/StickyHeaderLane';
-import { TaterSpriteRunning } from '@hypermark/ui/components/TaterSpriteRunning';
 import { useActiveSection } from '@hypermark/ui/hooks/useActiveSection';
 import { storage } from '@hypermark/ui/utils/storage';
 import { getIdentity } from '@hypermark/ui/utils/identity';
@@ -36,7 +35,7 @@ import { copyTextToClipboard } from '@hypermark/ui/utils/clipboard';
 import { configStore, useConfigValue } from '@hypermark/ui/config';
 import { CompletionOverlay } from '@hypermark/ui/components/CompletionOverlay';
 import { getPlanSaveSettings } from '@hypermark/ui/utils/planSave';
-import { getUIPreferences, type UIPreferences, type PlanWidth } from '@hypermark/ui/utils/uiPreferences';
+import { getUIPreferences, type PlanWidth } from '@hypermark/ui/utils/uiPreferences';
 import { getEditorMode, saveEditorMode } from '@hypermark/ui/utils/editorMode';
 import { getInputMethod, refreshInputMethodStamp, saveInputMethod } from '@hypermark/ui/utils/inputMethod';
 import { getHtmlChromeState, saveHtmlChromeState } from '@hypermark/ui/utils/htmlChrome';
@@ -45,20 +44,16 @@ import { usePrintMode } from '@hypermark/ui/hooks/usePrintMode';
 import { useResizablePanel } from '@hypermark/ui/hooks/useResizablePanel';
 import { ResizeHandle } from '@hypermark/ui/components/ResizeHandle';
 import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';
-import {
-  getDocumentScrollViewport,
-  ScrollViewportProvider,
-} from '@hypermark/ui/hooks/useScrollViewport';
+import { ScrollViewportProvider } from '@hypermark/ui/hooks/useScrollViewport';
 import { useOverlayViewport } from '@hypermark/ui/hooks/useOverlayViewport';
 import { useIsMobile } from '@hypermark/ui/hooks/useIsMobile';
-import { fileName as pathFileName } from '@hypermark/ui/utils/displayPath';
 import { useViewportEnvironment } from '@hypermark/ui/hooks/useViewportEnvironment';
 import { PLAN_APPROVAL_PERMISSION_MODE } from '@hypermark/ui/utils/permissionMode';
 import { useSidebar, type SidebarTab } from '@hypermark/ui/hooks/useSidebar';
 import { usePlanDiff, type VersionInfo, type VersionEntry, type PlanDiffFetchers } from '@hypermark/ui/hooks/usePlanDiff';
 import { useLinkedDoc, type LinkedDocSessionState } from '@hypermark/ui/hooks/useLinkedDoc';
 import { useCodeFilePopout } from '@hypermark/ui/hooks/useCodeFilePopout';
-import { useAnnotationDraft, type DraftEditedDocument, type DraftSavedFileChange } from '@hypermark/ui/hooks/useAnnotationDraft';
+import { useAnnotationDraft, type DraftEditedDocument } from '@hypermark/ui/hooks/useAnnotationDraft';
 import { useArchive } from '@hypermark/ui/hooks/useArchive';
 import { useExternalAnnotations } from '@hypermark/ui/hooks/useExternalAnnotations';
 import { useExternalAnnotationHighlights } from '@hypermark/ui/hooks/useExternalAnnotationHighlights';
@@ -163,7 +158,7 @@ import {
   buildAnnotateApprovalBody,
   buildCompleteAnnotateFeedback,
 } from './annotateSubmission';
-import { buildDecisionSpec, type DecisionActionId, type DecisionMenuItem } from '@hypermark/ui/utils/decisionSpec';
+import { buildDecisionSpec, type DecisionActionId } from '@hypermark/ui/utils/decisionSpec';
 import { DecisionNoteDialog, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import { resolveAnnotateDecisionAction } from './annotateDecision';
 import {
@@ -394,10 +389,6 @@ const AppInner: React.FC = () => {
   const [isPanelOpen, setIsPanelOpen] = useState(() => window.innerWidth >= 768);
   const [editorMode, setEditorMode] = useState<EditorMode>(getEditorMode);
   const [inputMethod, setInputMethod] = useState<InputMethod>(getInputMethod);
-  const [taterMode, setTaterMode] = useState(() => {
-    const stored = storage.getItem('hypermark-tater-mode');
-    return stored === 'true';
-  });
   const [uiPrefs, setUiPrefs] = useState(() => getUIPreferences());
 
   // Plan-area width (inside the OverlayScrollArea, after sidebar/panel
@@ -2618,11 +2609,6 @@ const AppInner: React.FC = () => {
     };
   }, [sourceWatchSubscription.key]);
 
-  const handleTaterModeChange = useCallback((enabled: boolean) => {
-    setTaterMode(enabled);
-    storage.setItem('hypermark-tater-mode', String(enabled));
-  }, []);
-
   const handleEditorModeChange = (mode: EditorMode) => {
     setEditorMode(mode);
     saveEditorMode(mode);
@@ -4034,7 +4020,6 @@ const AppInner: React.FC = () => {
 
   const handleHeaderCopyAgentInstructions = useCallback(() => headerHandlersRef.current.handleCopyAgentInstructions(), []);
 
-  const hasReviewDocumentChanges = hasDirectEdits || hasSavedFileChanges;
   const planMaxWidth = useMemo(() => {
     const widths: Record<PlanWidth, number> = { compact: 832, default: 1040, wide: 1280 };
     return widths[uiPrefs.planWidth] ?? 832;
@@ -4316,8 +4301,6 @@ const AppInner: React.FC = () => {
 
         {/* Main Content */}
         <div className={`flex-1 flex overflow-hidden relative z-0 ${isResizing ? 'select-none' : ''}`}>
-          {/* Tater sprites — inside content wrapper so z-0 stacking context applies */}
-          {taterMode && <TaterSpriteRunning />}
           {showAgentTerminalOnLeft && agentTerminalPanel}
           {/* Left Sidebar: collapsed tab flags (when sidebar is closed) */}
           {wideModeType === null && !sidebar.isOpen && !goalSetupMode && !isLeftAgentTerminalVisible && !(isHtmlSurface && htmlToolsHidden) && (
@@ -4454,7 +4437,7 @@ const AppInner: React.FC = () => {
                     className="absolute -top-5 left-0 right-0 mx-auto w-full flex justify-end pointer-events-none"
                     style={annotateReaderMaxWidth === null ? undefined : { maxWidth: annotateReaderMaxWidth ?? 832 }}
                   >
-                    <div className={`pointer-events-auto flex items-center gap-1.5 text-[11px] tracking-wide ${taterMode ? 'mr-[60px]' : 'mr-[4px]'}`}>
+                    <div className={`pointer-events-auto flex items-center gap-1.5 text-[11px] tracking-wide mr-[4px]`}>
                       {canUseWideMode && (['wide', 'focus'] as const).map((type, i) => (
                         <React.Fragment key={type}>
                           {i > 0 && <span aria-hidden className="text-muted-foreground/30 select-none">|</span>}
@@ -4616,7 +4599,6 @@ const AppInner: React.FC = () => {
                     selectedAnnotationId={selectedAnnotationId}
                     mode={effectiveEditorMode}
                     inputMethod={effectiveInputMethod}
-                    taterMode={taterMode}
                     repoInfo={repoInfo}
                     stickyActions={uiPrefs.stickyActionsEnabled}
                     planDiffStats={planDiff.diffStats}

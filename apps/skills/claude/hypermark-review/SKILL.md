@@ -1,6 +1,6 @@
 ---
 name: hypermark-review
-description: Open Hypermark's browser-based code review UI for the current worktree or a pull request URL, then act on the feedback that comes back.
+description: Open Hypermark's browser-based code review UI for the current worktree, then act on the feedback that comes back.
 allowed-tools: Bash(hypermark:*)
 disable-model-invocation: true
 ---

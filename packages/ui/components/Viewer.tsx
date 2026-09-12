@@ -37,7 +37,6 @@ class ToolbarErrorBoundary extends React.Component<
 }
 
 import { CommentPopover } from './CommentPopover';
-import { TaterSpriteSitting } from './TaterSpriteSitting';
 import { MessagesIcon } from './icons/MessagesIcon';
 import { GraphvizBlock } from './GraphvizBlock';
 import { MermaidBlock } from './MermaidBlock';
@@ -83,7 +82,6 @@ export interface ViewerProps {
   selectedAnnotationId: string | null;
   mode: EditorMode;
   inputMethod?: InputMethod;
-  taterMode: boolean;
   repoInfo?: { display: string; branch?: string; host?: string } | null;
   stickyActions?: boolean;
   /**
@@ -319,7 +317,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   selectedAnnotationId,
   mode,
   inputMethod = 'drag',
-  taterMode,
   repoInfo,
   stickyActions = true,
   annotationHeader,
@@ -883,7 +880,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   return (
     <CodePathValidationContext.Provider value={codePathValidation}>
     <div className="relative z-50 w-full" style={maxWidth === null ? undefined : { maxWidth: maxWidth ?? 832 }}>
-      {taterMode && <TaterSpriteSitting />}
       <article
         ref={containerRef}
         className={`w-full bg-card rounded-xl py-5 md:py-8 lg:py-10 xl:py-12 relative ${inputMethod === 'pinpoint' ? 'cursor-pointer' : ''}`}

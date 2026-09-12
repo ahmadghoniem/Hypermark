@@ -599,6 +599,8 @@ function removeInstallerData(
   // retained as local state in the default mode: the migration ledger is what
   // prevents a later reinstall from mistaking separately installed extras for
   // obsolete installer copies. Purge removes those files through its inventory.
+  // `sem` and `call-flow` are legacy: the features are gone, but an upgrade
+  // from a version that installed them must still clean their directories.
   const sidecarPaths = [
     join(state.dataDir, "vendor", "sem"),
     join(state.dataDir, "vendor", "agent-terminal"),

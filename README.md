@@ -90,8 +90,6 @@ Need a realistic document to try? Any markdown file works — try one of your ow
 
 ```
 /hypermark-review                    # Review uncommitted changes
-/hypermark-review <github-pr-url>    # Review a GitHub pull request
-/hypermark-review <gitlab-mr-url>    # Review a GitLab merge request
 hypermark review --gitbutler         # Review an active GitButler workspace
 ```
 

@@ -25,7 +25,6 @@ import {
 } from "./integrations";
 import {
   generateSlug,
-  savePlan,
   saveAnnotations,
   saveFinalSnapshot,
   saveToHistory,

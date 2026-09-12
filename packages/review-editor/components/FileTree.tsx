@@ -31,9 +31,8 @@ import { PanelViewToggle, type ReviewPanelView } from './PanelViewToggle';
 import { getReviewSearchSideLabel, type ReviewSearchFileGroup, type ReviewSearchMatch } from '../utils/reviewSearch';
 import type { DiffFile } from '../types';
 import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';
-import { CaretRight, CaretDown } from '@phosphor-icons/react';
 
-import { SidebarActionRow, AllFilesRow } from './PanelNavRows';
+import { AllFilesRow } from './PanelNavRows';
 import { PanelControlsRow, PanelSearchField } from './PanelChrome';
 
 interface FileTreeProps {
