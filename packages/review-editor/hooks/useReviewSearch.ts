@@ -156,5 +156,4 @@ export function useReviewSearch({
   };
 }
 
-export type UseReviewSearchResult = ReturnType<typeof useReviewSearch>;
 export type { ReviewSearchMatch };

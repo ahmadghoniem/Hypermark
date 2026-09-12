@@ -44,7 +44,6 @@
     "./annotate-target": "./annotate-target.ts",
     "./at-reference": "./at-reference.ts",
     "./code-nav": "./code-nav.ts",
-    "./token-hover": "./token-hover.ts",
     "./goal-setup": "./goal-setup.ts",
     "./single-flight": "./single-flight.ts",
     "./source-save": "./source-save.ts",
@@ -56,7 +55,6 @@
     "./generated-files": "./generated-files.ts",
     "./annotate-client-lease": "./annotate-client-lease.ts",
     "./annotate-decision": "./annotate-decision.ts",
-    "./archive-mode": "./archive-mode.ts",
     "./live-proxy-core": "./live-proxy-core.ts",
     "./live-probe": "./live-probe.ts"
   },

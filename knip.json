@@ -1,0 +1,47 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "ignore": ["**/dist/**", "scripts/fixtures/**"],
+  "ignoreBinaries": ["bun", "bunx"],
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/shiki-wasm-stub.ts", "tests/setup/*.ts"],
+      "project": ["scripts/**/*.{ts,mjs}", "tests/**/*.{ts,tsx}"]
+    },
+    "apps/hook": {
+      "entry": ["dev-mock-api.ts", "**/*.test.{ts,tsx}"],
+      "project": ["**/*.{ts,tsx}"]
+    },
+    "apps/review": {
+      "project": ["**/*.{ts,tsx}"]
+    },
+    "packages/core": {
+      "entry": ["**/*.test.{ts,tsx}"],
+      "project": ["**/*.{ts,tsx}"]
+    },
+    "packages/shared": {
+      "entry": ["**/*.test.{ts,tsx}"],
+      "project": ["**/*.{ts,tsx}"]
+    },
+    "packages/server": {
+      "entry": ["**/*.test.{ts,tsx}"],
+      "project": ["**/*.{ts,tsx}"]
+    },
+    "packages/ui": {
+      "entry": [
+        "scripts/build-bridge-assets.ts",
+        "scripts/package-smoke.ts",
+        "vite.css.config.ts",
+        "**/*.test.{ts,tsx}"
+      ],
+      "project": ["**/*.{ts,tsx}"]
+    },
+    "packages/editor": {
+      "entry": ["**/*.test.{ts,tsx}"],
+      "project": ["**/*.{ts,tsx}"]
+    },
+    "packages/review-editor": {
+      "entry": ["**/*.test.{ts,tsx}"],
+      "project": ["**/*.{ts,tsx}"]
+    }
+  }
+}

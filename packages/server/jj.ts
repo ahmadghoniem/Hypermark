@@ -1,28 +1,10 @@
 import {
-  type DiffResult,
-  type DiffType,
   type GitCommandResult,
-  type GitContext,
-  type GitDiffOptions,
 } from "@hypermark/shared/review-core";
 import {
   type ReviewJjRuntime,
-  detectJjWorkspace as detectJjWorkspaceCore,
-  getJjContext as getJjContextCore,
-  getJjFileContentsForDiff as getJjFileContentsForDiffCore,
-  runJjDiff as runJjDiffCore,
 } from "@hypermark/shared/jj-core";
 
-export {
-  JJ_TRUNK_REVSET,
-  getJjDiffArgs,
-  jjCompareTargetRevset,
-  jjLineBaseRevset,
-  parseJjBookmarkList,
-  parseJjRemoteBookmarkList,
-  parseRemoteBookmark,
-  selectDefaultJjCompareTarget,
-} from "@hypermark/shared/jj-core";
 
 /**
  * Read stdout with a byte ceiling, killing the command the moment it is passed.
@@ -104,29 +86,3 @@ export const runtime: ReviewJjRuntime = {
   runJj,
 };
 
-export function detectJjWorkspace(cwd?: string): Promise<string | null> {
-  return detectJjWorkspaceCore(runtime, cwd);
-}
-
-export function getJjContext(cwd?: string): Promise<GitContext> {
-  return getJjContextCore(runtime, cwd);
-}
-
-export function runJjDiff(
-  diffType: DiffType,
-  defaultBranch: string,
-  cwd?: string,
-  options?: GitDiffOptions,
-): Promise<DiffResult> {
-  return runJjDiffCore(runtime, diffType, defaultBranch, cwd, options);
-}
-
-export function getJjFileContentsForDiff(
-  diffType: DiffType,
-  defaultBranch: string,
-  filePath: string,
-  oldPath?: string,
-  cwd?: string,
-): Promise<{ oldContent: string | null; newContent: string | null }> {
-  return getJjFileContentsForDiffCore(runtime, diffType, defaultBranch, filePath, oldPath, cwd);
-}

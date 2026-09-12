@@ -5,13 +5,12 @@ const ACTIVE_MATCH_BACKGROUND = '#f59e0b';
 const MATCH_FOREGROUND = '#1f2937';
 const PASSIVE_MATCH_RING = '0 0 0 1px rgba(161, 98, 7, 0.18)';
 const ACTIVE_MATCH_RING = '0 0 0 1px rgba(180, 83, 9, 0.35)';
-const MAX_SCROLL_ATTEMPTS = 10;
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-export function getSearchRoots(root: ParentNode): ParentNode[] {
+function getSearchRoots(root: ParentNode): ParentNode[] {
   const roots: ParentNode[] = [root];
   const elementRoot = root as Element;
   const walker = document.createTreeWalker(elementRoot, NodeFilter.SHOW_ELEMENT);
@@ -36,7 +35,7 @@ export function getSearchRoots(root: ParentNode): ParentNode[] {
 // marks: only nodes this module marked can need clearing.
 const markedItemNodes = new WeakSet<HTMLElement>();
 
-export function clearSearchHighlights(root: ParentNode) {
+function clearSearchHighlights(root: ParentNode) {
   const marks = root.querySelectorAll('mark[data-review-search-match]');
   marks.forEach((mark) => {
     const parent = mark.parentNode;
@@ -85,7 +84,7 @@ function lineKey(match: ReviewSearchMatch): string {
   return `${match.filePath}:${match.side}:${match.lineNumber}`;
 }
 
-export function applySearchHighlights(
+function applySearchHighlights(
   root: ParentNode,
   query: string,
   searchMatches: ReviewSearchMatch[],
@@ -269,7 +268,7 @@ function scrollSearchTargetIntoContainer(
   });
 }
 
-export function scrollToSearchMatch(
+function scrollToSearchMatch(
   scrollContainer: HTMLElement,
   root: ParentNode,
   match: ReviewSearchMatch,
@@ -283,28 +282,3 @@ export function scrollToSearchMatch(
   return true;
 }
 
-export function retryScrollToSearchMatch(
-  container: HTMLElement,
-  match: ReviewSearchMatch,
-): () => void {
-  let attempts = 0;
-  let cancelled = false;
-
-  const tryScroll = () => {
-    if (cancelled) return;
-
-    const didScroll = getSearchRoots(container).some(root => scrollToSearchMatch(container, root, match));
-    if (didScroll) return;
-
-    attempts += 1;
-    if (attempts < MAX_SCROLL_ATTEMPTS) {
-      requestAnimationFrame(tryScroll);
-    }
-  };
-
-  tryScroll();
-
-  return () => {
-    cancelled = true;
-  };
-}

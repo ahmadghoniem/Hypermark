@@ -6,7 +6,6 @@
   "exports": {
     ".": "./App.tsx",
     "./styles": "./index.css",
-    "./shortcuts": "./shortcuts.ts",
     "./worker-pool": "./workerPool.tsx",
     "./components/*": "./components/*.tsx"
   },
@@ -20,8 +19,6 @@
     "@hypermark/core": "workspace:*",
     "@hypermark/shared": "workspace:*",
     "@hypermark/ui": "workspace:*",
-    "marked": "^17.0.6",
-    "motion": "^12.38.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "tailwindcss": "^4.1.18",
