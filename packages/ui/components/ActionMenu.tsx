@@ -77,7 +77,6 @@ export const ActionMenuItem: React.FC<ActionMenuItemProps> = ({
   className,
 }) => (
   <button
-    data-pn-touch-target
     type="button"
     onClick={onClick}
     disabled={disabled}

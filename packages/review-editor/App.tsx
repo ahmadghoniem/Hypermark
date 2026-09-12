@@ -88,7 +88,6 @@ import { ReviewSidebar } from './components/ReviewSidebar';
 import type { ReviewSidebarTab } from './components/ReviewSidebar';
 import { useSidebar } from '@hypermark/ui/hooks/useSidebar';
 import { useViewportEnvironment } from '@hypermark/ui/hooks/useViewportEnvironment';
-import { useCompactTouchLayout } from '@hypermark/ui/hooks/useIsMobile';
 import { FileTree } from './components/FileTree';
 import { StackedPRLabel } from './components/StackedPRLabel';
 import { PRSelector } from './components/PRSelector';

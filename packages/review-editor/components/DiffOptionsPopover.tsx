@@ -113,8 +113,6 @@ export const DiffOptionsPopover: React.FC<DiffOptionsPopoverProps> = ({
       <Popover.Trigger
         render={
           <button
-            data-pn-touch-target
-            data-pn-touch-target-icon
             className="px-2 py-1 rounded-md text-muted-foreground hover:text-foreground transition-colors flex items-center data-popup-open:bg-background data-popup-open:text-foreground data-popup-open:shadow-sm"
             title="Diff display options"
           />

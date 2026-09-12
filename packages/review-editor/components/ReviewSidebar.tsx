@@ -80,8 +80,7 @@ const GeneralCommentComposer: React.FC<{
   /** The sidebar panel's width when it is a fixed-width panel; undefined in
    *  the full-screen overlay presentation (the 100vw class guard covers it). */
   panelWidth?: number;
-  touchTarget?: boolean;
-}> = ({ onAdd, open, onOpenChange, text, onTextChange, align, panelWidth, touchTarget }) => {
+}> = ({ onAdd, open, onOpenChange, text, onTextChange, align, panelWidth }) => {
   const ref = useRef<HTMLDivElement>(null);
   useDismissablePopover({ enabled: open, ref, onDismiss: () => onOpenChange(false) });
 
@@ -111,7 +110,6 @@ const GeneralCommentComposer: React.FC<{
     <div ref={ref} className="relative" data-review-general-composer={open ? 'open' : 'closed'}>
       <button
         type="button"
-        data-pn-touch-target={touchTarget || undefined}
         data-add-general-comment
         onClick={() => onOpenChange(!open)}
         aria-expanded={open}
@@ -438,8 +436,6 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
               </span>
             )}            {presentation === 'overlay' && (
               <button
-                data-pn-touch-target
-                data-pn-touch-target-icon
                 autoFocus
                 type="button"
                 onClick={onClose}
@@ -479,7 +475,6 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
                         onTextChange={setGeneralDraft}
                         align="center"
                         panelWidth={generalComposerPanelWidth}
-                        touchTarget={presentation === 'overlay'}
                       />
                     </div>
                   )}
@@ -502,7 +497,6 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
                             onTextChange={setGeneralDraft}
                             align="right"
                             panelWidth={generalComposerPanelWidth}
-                            touchTarget={presentation === 'overlay'}
                           />
                         )}
                       </div>
@@ -593,7 +587,6 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
         {activeTab === 'annotations' && feedbackMarkdown && totalCount > 0 && (
           <div className="p-2 border-t border-border/50">
             <button
-              data-pn-touch-target={presentation === 'overlay' || undefined}
               onClick={handleQuickCopy}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded text-xs font-medium transition-all text-muted-foreground hover:text-foreground hover:bg-muted/50"
             >

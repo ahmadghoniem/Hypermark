@@ -61,7 +61,6 @@ function ChecksDisclosure({ context }: { context: PRContext }) {
   return (
     <div className="mt-4 border-t border-border/30 pt-3">
       <button
-        data-pn-touch-target
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}

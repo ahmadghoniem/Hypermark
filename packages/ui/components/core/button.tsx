@@ -31,8 +31,6 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
     {...props}
     ref={ref}
     type={type}
-    data-pn-touch-target="true"
-    data-pn-touch-target-icon={size === 'icon' || variant === 'icon' ? 'true' : undefined}
     className={cx(
       'inline-flex items-center justify-center gap-2 rounded-md text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50',
       size === 'sm' && 'h-8 px-2.5',

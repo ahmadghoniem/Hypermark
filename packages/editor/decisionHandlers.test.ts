@@ -4,19 +4,15 @@
  *
  * Neither app package is typechecked (spec §9), so the contract "every id the
  * spec can emit has a route" is enforced here at runtime: an id added to
- * `decisionSpec.ts` without a branch in `resolveAnnotateDecisionAction` (or
- * the compact row mapper) returns `undefined` and fails these sweeps.
+ * `decisionSpec.ts` without a branch in `resolveAnnotateDecisionAction`
+ * returns `undefined` and fails these sweeps.
  */
 import { describe, expect, test } from "bun:test";
 import {
   buildDecisionSpec,
   type DecisionSpecInput,
 } from "@hypermark/ui/utils/decisionSpec";
-import {
-  compactPrimaryIdForDecision,
-  compactRowIdForDecisionItem,
-  resolveAnnotateDecisionAction,
-} from "./annotateDecision";
+import { resolveAnnotateDecisionAction } from "./annotateDecision";
 
 /** Every input combination the annotate app can hand the spec builder. */
 function annotateInputs(): DecisionSpecInput[] {
@@ -79,21 +75,6 @@ describe("annotate decision handler exhaustiveness", () => {
     // Close never varies by gate: it dismisses, it never approves.
     for (const ctx of [gated, ungated]) {
       expect(resolveAnnotateDecisionAction("close-session", ctx)).toEqual({ kind: "close" });
-    }
-  });
-
-  // Guards the compact surface: row ids double as React keys and the
-  // primary-row sort key, so a collision hides a decision row on touch —
-  // the silent-data-loss class the #1436 review flagged.
-  test("compact row ids are unique per spec and never collide with the primary row", () => {
-    for (const input of annotateInputs()) {
-      const spec = buildDecisionSpec(input);
-      const ids = [
-        compactPrimaryIdForDecision(spec.primary),
-        ...spec.items.map((item) => compactRowIdForDecisionItem(item.id)),
-      ];
-      for (const id of ids) expect(id).toBeDefined();
-      expect(new Set(ids).size).toBe(ids.length);
     }
   });
 });

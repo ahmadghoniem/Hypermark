@@ -8,7 +8,6 @@ import { PlanHeaderMenu } from '@hypermark/ui/components/PlanHeaderMenu';
 import { ThemeModeButton } from '@hypermark/ui/components/ThemeModeButton';
 import { SettingsIcon } from '@hypermark/ui/components/icons/headerIcons';
 import type { UIPreferences } from '@hypermark/ui/utils/uiPreferences';
-import type { CompactPlanAction } from '@hypermark/ui/components/PlanHeaderMenu';
 import { HtmlSurfaceControls } from '@hypermark/ui/components/HtmlSurfaceControls';
 
 /** Hypermark's refresh strings for the published control: the document
@@ -36,15 +35,6 @@ interface AppHeaderProps {
   canRefreshHtml?: boolean;
   isRefreshingHtml?: boolean;
   onRefreshHtml?: () => void;
-  /** Compact touch layouts replace the brand mark with a task-focused entry
-   * into the full-stage document navigator. Desktop never receives it. */
-  compactTouchLayout?: boolean;
-  compactNavigatorAvailable?: boolean;
-  compactNavigatorOpen?: boolean;
-  onCompactNavigatorToggle?: () => void;
-  compactDocumentTitle?: string;
-  compactSessionActions?: CompactPlanAction[];
-  compactDocumentActions?: CompactPlanAction[];
   // Mode flags (stable after mount)
   isApiMode: boolean;
   annotateMode: boolean;
@@ -109,13 +99,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   canRefreshHtml,
   isRefreshingHtml,
   onRefreshHtml,
-  compactTouchLayout = false,
-  compactNavigatorAvailable = false,
-  compactNavigatorOpen = false,
-  onCompactNavigatorToggle,
-  compactDocumentTitle,
-  compactSessionActions,
-  compactDocumentActions,
   isApiMode,
   annotateMode,
   archiveMode,
@@ -152,35 +135,14 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   return (
     <header
       data-app-header="true"
-      className={`${compactTouchLayout ? 'h-[52px] grid grid-cols-[44px_minmax(0,1fr)_44px] items-center px-1' : 'h-12 flex items-center justify-between px-2 md:px-4'} border-b border-border/50 bg-card/50 backdrop-blur-xl z-[50] ${sticky ? 'sticky top-0' : 'relative'}`}
+      className={`h-12 flex items-center justify-between px-2 md:px-4 border-b border-border/50 bg-card/50 backdrop-blur-xl z-[50] ${sticky ? 'sticky top-0' : 'relative'}`}
     >
-      <div className={compactTouchLayout ? 'flex items-center justify-start' : 'flex items-center gap-2'}>
-        {compactTouchLayout ? (
-          compactNavigatorAvailable && onCompactNavigatorToggle ? (
-            <CompactPlanNavigatorTrigger
-              open={compactNavigatorOpen}
-              onToggle={onCompactNavigatorToggle}
-            />
-          ) : (
-            <span className="block h-11 w-11" aria-hidden="true" />
-          )
-        ) : (
-          <AppHeaderLogo />
-        )}
+      <div className="flex items-center gap-2">
+        <AppHeaderLogo />
       </div>
 
-      {compactTouchLayout && (
-        <div
-          data-pn-compact-document-title="true"
-          className="min-w-0 px-2 text-center text-sm font-medium tracking-tight text-foreground"
-          title={compactDocumentTitle}
-        >
-          <span className="block truncate">{compactDocumentTitle || 'Plan'}</span>
-        </div>
-      )}
-
-      <div className={`flex items-center gap-1 md:gap-2 ${compactTouchLayout ? 'justify-end' : ''}`}>
-        {!compactTouchLayout && isApiMode && !linkedDocIsActive && archiveMode && (
+      <div className="flex items-center gap-1 md:gap-2">
+        {isApiMode && !linkedDocIsActive && archiveMode && (
           <>
             <button
               onClick={onArchiveCopy}
@@ -202,7 +164,7 @@ export const AppHeader = React.memo<AppHeaderProps>(({
           </>
         )}
 
-        {!compactTouchLayout && isApiMode && !linkedDocIsActive && goalSetupMode && (
+        {isApiMode && !linkedDocIsActive && goalSetupMode && (
           <>
             <ExitButton
               onClick={onGoalSetupExit}
@@ -223,7 +185,7 @@ export const AppHeader = React.memo<AppHeaderProps>(({
           </>
         )}
 
-        {!compactTouchLayout && isApiMode && (!linkedDocIsActive || annotateMode) && !archiveMode && !goalSetupMode && (
+        {isApiMode && (!linkedDocIsActive || annotateMode) && !archiveMode && !goalSetupMode && (
           <>
             {annotateMode ? (
               annotateDecision && (
@@ -269,13 +231,9 @@ export const AppHeader = React.memo<AppHeaderProps>(({
 
         {/* HTML and live-app surfaces only: the eye (show/hide tools, the
             only way back from hidden), the refresh, and the Interact/Annotate
-            pen, in that order. The published control carries the markup;
-            the compact touch shell offers the same three actions in its
-            Options menu instead (compactDocumentActions in App: Show/Hide
-            tools, Interact/Annotate, Refresh from disk). */}
+            pen, in that order. */}
         {htmlSurface && (onToggleHtmlTools || onToggleHtmlAnnotate) && (
           <HtmlSurfaceControls
-            compact={compactTouchLayout}
             armed={!!htmlAnnotateArmed}
             onToggleArmed={onToggleHtmlAnnotate}
             toolsHidden={!!htmlToolsHidden}
@@ -288,7 +246,7 @@ export const AppHeader = React.memo<AppHeaderProps>(({
         )}
 
         {/* Annotations panel toggle */}
-        {!compactTouchLayout && !goalSetupMode && (
+        {!goalSetupMode && (
           <button
             onClick={onAnnotationPanelToggle}
             className={`relative p-1.5 rounded-md text-xs font-medium transition-all ${
@@ -311,25 +269,18 @@ export const AppHeader = React.memo<AppHeaderProps>(({
 
         {/* Theme and Settings sit in the header rather than under Options:
             they are the controls reached most often, and a two-click menu hop
-            for each was the whole reason Options existed.
-            Compact touch is the exception — its header is a three-region grid
-            whose trailing region is one 44px target wide, so there they stay
-            rows in the Options menu (see PlanHeaderMenu). */}
-        {!compactTouchLayout && (
-          <>
-            <ThemeModeButton />
+            for each was the whole reason Options existed. */}
+        <ThemeModeButton />
 
-            <button
-              type="button"
-              onClick={onOpenSettings}
-              className="flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              title="Settings"
-              aria-label="Settings"
-            >
-              <SettingsIcon className="w-4 h-4" />
-            </button>
-          </>
-        )}
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          title="Settings"
+          aria-label="Settings"
+        >
+          <SettingsIcon className="w-4 h-4" />
+        </button>
 
         {/* Settings dialog (controlled, button hidden — opened by the gear above) */}
         <div className="hidden">
@@ -349,45 +300,11 @@ export const AppHeader = React.memo<AppHeaderProps>(({
           onOpenSettings={onOpenSettings}
           onCopyAgentInstructions={onCopyAgentInstructions}
           agentInstructionsEnabled={agentInstructionsEnabled}
-          compactTouchLayout={compactTouchLayout}
-          compactSessionActions={compactSessionActions}
-          compactDocumentActions={compactDocumentActions}
         />
       </div>
     </header>
   );
 });
-
-export const CompactPlanNavigatorTrigger = ({
-  open,
-  onToggle,
-}: {
-  open: boolean;
-  onToggle: () => void;
-}) => (
-  <button
-    id="pn-compact-plan-navigator-trigger"
-    type="button"
-    onClick={onToggle}
-    data-pn-touch-target="true"
-    data-pn-touch-target-icon="true"
-    data-pn-compact-navigator-trigger="true"
-    className={`flex h-11 w-11 items-center justify-center rounded-lg text-sm font-semibold tracking-tight outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/60 ${
-      open
-        ? 'bg-primary/15 text-primary'
-        : 'text-foreground hover:bg-muted'
-    }`}
-    aria-label={open ? 'Close plan navigator' : 'Open plan navigator'}
-    aria-expanded={open}
-    aria-controls="pn-compact-plan-navigator"
-    title={open ? 'Close navigator' : 'Navigate plan'}
-  >
-    <svg className="h-[18px] w-[18px] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 6h14M5 12h14M5 18h9" />
-    </svg>
-    <span className="sr-only">Plan navigation</span>
-  </button>
-);
 
 const AppHeaderLogo = () => (
   <div className="flex items-center gap-2 md:gap-3">

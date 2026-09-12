@@ -244,7 +244,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
       {embedded && otherFileAnnotations && otherFileAnnotations.count > 0 && (
         <button
           type="button"
-          data-pn-touch-target="true"
           onClick={onOtherFileAnnotationsClick}
           className="min-h-11 flex-shrink-0 border-b border-border/50 px-3 text-left text-xs text-primary/80 active:bg-muted"
           title="Show annotated files in navigator"

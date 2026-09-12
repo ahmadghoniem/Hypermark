@@ -63,8 +63,6 @@ function Button({
     <ButtonPrimitive
       {...props}
       data-slot="button"
-      data-pn-touch-target="true"
-      data-pn-touch-target-icon={size === "icon" ? "true" : undefined}
       className={cn(buttonVariants({ variant, size, className }))}
     >
       {iconLeft ? (

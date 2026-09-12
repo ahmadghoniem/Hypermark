@@ -11,12 +11,6 @@ export const reviewAnnotationToolbarShortcuts = defineShortcutScope({
       section: 'Annotations',
       displayOrder: 10,
     },
-    indentSuggestedCode: {
-      description: 'Indent suggested code',
-      bindings: ['Tab'],
-      section: 'Annotations',
-      displayOrder: 20,
-    },
     cancel: {
       description: 'Close comment editor',
       bindings: ['Escape'],

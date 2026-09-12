@@ -113,7 +113,6 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             <button
               ref={cancelButtonRef}
               type="button"
-              data-pn-touch-target="true"
               onClick={onClose}
               className="px-4 py-2 rounded-md text-sm font-medium bg-muted text-muted-foreground [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted/80 transition-opacity"
             >
@@ -123,7 +122,6 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <button
             ref={confirmButtonRef}
             type="button"
-            data-pn-touch-target="true"
             onClick={() => {
               if (onConfirm) {
                 onConfirm();

@@ -50,7 +50,7 @@ import {
   ScrollViewportProvider,
 } from '@hypermark/ui/hooks/useScrollViewport';
 import { useOverlayViewport } from '@hypermark/ui/hooks/useOverlayViewport';
-import { useCompactTouchLayout, useIsMobile } from '@hypermark/ui/hooks/useIsMobile';
+import { useIsMobile } from '@hypermark/ui/hooks/useIsMobile';
 import { fileName as pathFileName } from '@hypermark/ui/utils/displayPath';
 import { useViewportEnvironment } from '@hypermark/ui/hooks/useViewportEnvironment';
 import { PLAN_APPROVAL_PERMISSION_MODE } from '@hypermark/ui/utils/permissionMode';
@@ -165,10 +165,7 @@ import {
 } from './annotateSubmission';
 import { buildDecisionSpec, type DecisionActionId, type DecisionMenuItem } from '@hypermark/ui/utils/decisionSpec';
 import { DecisionNoteDialog, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
-import {
-  compactRowIdForDecisionItem,
-  resolveAnnotateDecisionAction,
-} from './annotateDecision';
+import { resolveAnnotateDecisionAction } from './annotateDecision';
 import {
   openAnnotateClientLeaseStream,
   shouldConnectAnnotateClientLease,
@@ -1801,11 +1798,9 @@ const AppInner: React.FC = () => {
   // (a root raw-HTML session, or a linked .html doc opened from markdown),
   // apply the sidebar/panel/toolsHidden state the user last left an HTML
   // session with (first-ever run: both closed, tools visible). A restored
-  // toolsHidden:true always has a way back on every layout: the desktop
-  // header eye toggle, and the compact Options menu "Show tools" action
-  // (compactDocumentActions). Re-restoring on each entry is also what keeps
-  // a markdown surface's sidebar state from leaking into the HTML cookie on
-  // the way back.
+  // toolsHidden:true always has a way back: the header's eye toggle.
+  // Re-restoring on each entry is also what keeps a markdown surface's
+  // sidebar state from leaking into the HTML cookie on the way back.
   const prevHtmlChromeSurfaceRef = useRef(false);
   useEffect(() => {
     if (isLoading) return;
@@ -4115,10 +4110,9 @@ const AppInner: React.FC = () => {
     handleActivatePlanDiff();
   };
 
-  const renderPlanSidebar = (presentation: 'desktop') => {
+  const renderPlanSidebar = () => {
     return (
       <SidebarContainer
-        presentation={presentation}
         activeTab={sidebar.activeTab}
         onTabChange={handleNavigatorTabChange}
         onClose={sidebar.close}
@@ -4142,7 +4136,6 @@ const AppInner: React.FC = () => {
         fileBrowser={fileBrowser}
         onFilesSelectFile={handleNavigatorFileSelect}
         onFilesFetchAll={() => fileBrowser.fetchAll(fileBrowserDirs)}
-        pendingFileLabel={null}
         hasFileAnnotations={hasFileAnnotations}
         showVersionsTab={!isHtmlSurface && activeDiffVersionInfo !== null && activeDiffVersionInfo.totalVersions > 1}
         versionInfo={activeDiffVersionInfo}
@@ -4358,7 +4351,7 @@ const AppInner: React.FC = () => {
           {/* Left Sidebar: open state (TOC or Version Browser) */}
           {sidebar.isOpen && !goalSetupMode && (
             <div className="contents group/sidebar">
-              {renderPlanSidebar('desktop')}
+              {renderPlanSidebar()}
               <ResizeHandle {...tocResize.handleProps} className="hidden lg:block z-[55]" side="left" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={sidebar.close} />
             </div>
           )}
@@ -4603,10 +4596,8 @@ const AppInner: React.FC = () => {
                     onAnnotateModeToggle={documentReadOnly ? undefined : handleHtmlAnnotateToggle}
                     maxWidth={isHtmlSurface ? null : annotateReaderMaxWidth}
                     fullViewport={isHtmlSurface}
-                    // Applied on every layout: desktop has the header eye
-                    // toggle, and the compact touch shell has the Options
-                    // menu "Show tools" action (compactDocumentActions), so
-                    // a restored toolsHidden:true always has a way back.
+                    // The header's eye toggle is the way back, so a
+                    // restored toolsHidden:true is never a trap.
                     hideControls={isHtmlSurface && htmlToolsHidden}
                     diffAvailable={!liveApp && !!htmlDiffHtml}
                     diffActive={!liveApp && isPlanDiffActive && !!htmlDiffHtml}

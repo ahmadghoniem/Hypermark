@@ -629,16 +629,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
     toolbarHostRef.current?.handleLineSelectionEnd(range);
   }, []);
 
-  // Compact touch keeps a dragged range on screen instead of opening the
-  // composer, so `pendingSelection` is non-null for the whole time the reviewer
-  // may drag again — and a non-null `selectedLines` is exactly what puts Pierre
-  // in controlled-selection mode. Feed the in-flight range back so the second
-  // drag repaints and the finger stays tracked. Desktop never enters that state
-  // through a preserved range, and gets no handler at all.
-  const handlePierreLineSelectionChange = useCallback((range: SelectedLineRange | null) => {
-    onLineSelection(range);
-  }, [onLineSelection]);
-
   const handleGutterUtilityClick = useCallback((range: SelectedLineRange) => {
     handleLineSelectionInteraction('gutter-comment-action', range);
   }, [handleLineSelectionInteraction]);

@@ -17,8 +17,6 @@ interface ExpandedCommentDialogProps {
   onCancel: () => void;
   autoFocus?: boolean;
   collapsible?: boolean;
-  onEditSuggestion?: () => void;
-  hasSuggestedCode?: boolean;
   // Spec 05 §3.2: comment-owned image attachments, owned by ToolbarHost so
   // in-flight uploads survive the collapse/expand switch to AnnotationToolbar.
   images: ImageAttachment[];
@@ -41,8 +39,6 @@ export const ExpandedCommentDialog: React.FC<ExpandedCommentDialogProps> = ({
   onCancel,
   autoFocus = true,
   collapsible = true,
-  onEditSuggestion,
-  hasSuggestedCode = false,
   images,
   pendingAttachments,
   onAddImage,
@@ -196,15 +192,6 @@ export const ExpandedCommentDialog: React.FC<ExpandedCommentDialogProps> = ({
                 onRemove={onRemoveImage}
                 variant="inline"
               />
-              {onEditSuggestion && (
-                <button
-                  type="button"
-                  onClick={onEditSuggestion}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {hasSuggestedCode ? 'Edit suggestion' : 'Suggest code'}
-                </button>
-              )}
             </div>
             <div className="flex items-center gap-2">
               {collapsible && (

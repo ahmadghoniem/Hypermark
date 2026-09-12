@@ -52,8 +52,6 @@ export const ReviewHeaderMenu: React.FC<ReviewHeaderMenuProps> = ({
       panelClassName={undefined}
       renderTrigger={({ isOpen, toggleMenu }) => (
         <button
-          data-pn-touch-target
-          data-pn-touch-target-icon
           onClick={toggleMenu}
           className={`relative flex h-7 items-center gap-1.5 px-1.5 lg:px-2.5 rounded-md text-xs font-medium transition-colors ${
             isOpen

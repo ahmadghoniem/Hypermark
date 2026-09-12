@@ -149,7 +149,6 @@ export function StackedPRLabel({
       <Popover.Trigger
         render={
           <button
-            data-pn-touch-target
             type="button"
             disabled={isSwitchingScope}
             title={`Stack: comparing vs ${scopeTarget}`}
@@ -189,7 +188,6 @@ export function StackedPRLabel({
               </span>
               {showToggle && (
                 <button
-                  data-pn-touch-target
                   type="button"
                   onClick={toggleHideMerged}
                   title={hideMerged ? 'Show merged PRs' : 'Hide merged PRs'}
@@ -227,7 +225,6 @@ export function StackedPRLabel({
                       }`} />
                     </div>
                     <button
-                      data-pn-touch-target
                       type="button"
                       disabled={disabled}
                       onClick={() => handleNodeClick(node)}
@@ -274,7 +271,6 @@ export function StackedPRLabel({
             </div>
             {layerOption && (
               <button
-                data-pn-touch-target
                 type="button"
                 disabled={!layerOption.enabled || isSwitchingScope}
                 onClick={() => handleSelect('layer')}
@@ -301,7 +297,6 @@ export function StackedPRLabel({
             )}
             {fullStackOption && (
               <button
-                data-pn-touch-target
                 type="button"
                 disabled={!fullStackOption.enabled || isSwitchingScope}
                 onClick={() => handleSelect('full-stack')}

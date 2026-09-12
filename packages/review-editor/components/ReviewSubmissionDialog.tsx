@@ -485,7 +485,7 @@ export function ReviewSubmissionDialog({
         )}
 
         {/* Open PR checkbox */}
-        <label data-pn-touch-target className="flex items-center gap-2 text-sm text-muted-foreground mb-4 cursor-pointer select-none">
+        <label className="flex items-center gap-2 text-sm text-muted-foreground mb-4 cursor-pointer select-none">
           <input
             type="checkbox"
             checked={platformOpenPR}
@@ -498,7 +498,6 @@ export function ReviewSubmissionDialog({
         {/* Actions */}
         <div className="sticky bottom-0 -mx-4 -mb-4 flex justify-end gap-2 border-t border-border/50 bg-card px-4 pb-4 pt-3 sm:-mx-6 sm:-mb-6 sm:px-6 sm:pb-6">
           <button
-            data-pn-touch-target
             onClick={onCancel}
             disabled={isSubmitting}
             className="px-4 py-2 rounded-md text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80 disabled:opacity-50"
@@ -506,7 +505,6 @@ export function ReviewSubmissionDialog({
             {hasPartial || hasBlocked ? 'Close' : 'Cancel'}
           </button>
           <button
-            data-pn-touch-target
             onClick={onConfirm}
             disabled={isSubmitting || hasBlocked || (!hasTargets && !isApprove && !generalComment.trim()) || allSucceeded}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-opacity ${

@@ -62,8 +62,6 @@ export interface HtmlSurfaceControlsProps {
   canRefresh?: boolean;
   onRefresh?: () => void;
   isRefreshing?: boolean;
-  /** Compact touch shells put these actions in a menu instead: render nothing. */
-  compact?: boolean;
   labels?: HtmlSurfaceControlLabels;
 }
 
@@ -75,10 +73,8 @@ export function HtmlSurfaceControls({
   canRefresh = false,
   onRefresh,
   isRefreshing = false,
-  compact = false,
   labels,
 }: HtmlSurfaceControlsProps) {
-  if (compact) return null;
   const text = { ...DEFAULT_HTML_SURFACE_CONTROL_LABELS, ...labels };
   const penLabel = armed ? labels?.annotateLabel : labels?.interactLabel;
   const showRefresh = canRefresh && !!onRefresh;

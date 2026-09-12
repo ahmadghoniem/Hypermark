@@ -56,8 +56,6 @@ const DialogContent = React.forwardRef<
         {children}
         {!hideClose && (
           <DialogPrimitive.Close
-            data-pn-touch-target="true"
-            data-pn-touch-target-icon="true"
             className="absolute top-3.5 right-3.5 inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground [@media(hover:hover)_and_(pointer:fine)]:hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
           >
             <X className="size-4" />

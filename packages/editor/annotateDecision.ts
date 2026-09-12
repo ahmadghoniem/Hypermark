@@ -1,5 +1,4 @@
-import type { DecisionActionId, DecisionMenuItem, DecisionPrimary } from "@hypermark/ui/utils/decisionSpec";
-import type { CompactPlanAction } from "@hypermark/ui/components/PlanHeaderMenu";
+import type { DecisionActionId } from "@hypermark/ui/utils/decisionSpec";
 
 /**
  * Pure transport routing for the annotate decision control.
@@ -53,35 +52,4 @@ export function resolveAnnotateDecisionAction(
     case "close-session":
       return { kind: "close" };
   }
-}
-
-/**
- * Compact/touch row ids for the spec-driven decision rows. Ids double as
- * React keys and the primary-row sort key, so they must be unique within any
- * one spec: the positive-finish composer is `note`, the change-request
- * composer is `feedback` (it IS the change-request send), approve-with-notes
- * is `approve`, and the exit item is `close`.
- */
-export function compactRowIdForDecisionItem(
-  id: DecisionMenuItem["id"],
-): Extract<CompactPlanAction["id"], "note" | "feedback" | "approve" | "exit"> {
-  switch (id) {
-    case "note-with-approval":
-    case "note-with-feedback":
-      return "note";
-    case "request-changes":
-      return "feedback";
-    case "approve-with-notes":
-      return "approve";
-    case "close-session":
-      return "exit";
-  }
-}
-
-/** The compact primary row id for the spec's primary (data, not copy: the
- *  send icon marks the Send Feedback state; check marks Done/Approve). */
-export function compactPrimaryIdForDecision(
-  primary: Pick<DecisionPrimary, "icon">,
-): Extract<CompactPlanAction["id"], "feedback" | "approve"> {
-  return primary.icon === "send" ? "feedback" : "approve";
 }
