@@ -238,7 +238,12 @@ went with it.
 
 ---
 
-## Done, not yet committed
+## Committed in the split of the former "one last commit"
+
+The single commit `82fc3146` was split into nine so each removal can be read on
+its own: `20325f81` (§22), `9f4c26d9` and `e33835bf` (§23), `5f85b4f7` (§24),
+`dec47527` (§25–26), `2120b3e0` (§27), `74cbc51d` and `b9af12a9` (§28),
+`c0071690` (§29).
 
 ### 22. The viewed feature
 
