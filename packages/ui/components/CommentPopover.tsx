@@ -12,8 +12,6 @@ import { useSkillReferenceAutocomplete } from '../hooks/useSkillReferenceAutocom
 import { HumanOnlySkillNotice, SkillReferenceMenu } from './SkillReferenceMenu';
 import type { SkillReferenceToken } from '../utils/skillReferences';
 import {
-  hasPrimaryCoarsePointer,
-  shouldUseExpandedComposer,
   useVisibleViewportBounds,
   type VisibleViewportBounds,
 } from '../hooks/useViewportEnvironment';
@@ -157,22 +155,11 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   yieldState,
 }) => {
   const visibleBounds = useVisibleViewportBounds(16);
-  const coarsePointer = hasPrimaryCoarsePointer();
-  const prefersExpandedComposer = shouldUseExpandedComposer({
-    bounds: visibleBounds,
-    coarsePointer,
-  });
-  const [mode, setMode] = useState<'popover' | 'dialog'>(() =>
-    prefersExpandedComposer ? 'dialog' : 'popover'
-  );
-  // Dialog mode has two very different origins. Either the viewport PREFERS an
-  // expanded composer (phones, small windows), or the anchor simply has no room
-  // for a popover and the geometry FORCED it. Only the forced kind can bounce:
-  // collapsing recomputes the same geometry and immediately re-expands, which
-  // ate Escape and made the Collapse button a no-op. Track which one we are in.
+  const [mode, setMode] = useState<'popover' | 'dialog'>('popover');
+  // Dialog mode origin: the anchor simply has no room for a popover and the
+  // geometry FORCED it.
   const [dialogIsForced, setDialogIsForced] = useState(false);
-  // A preference-driven dialog is never the forced kind.
-  const forcedDialog = dialogIsForced && !prefersExpandedComposer;
+  const forcedDialog = dialogIsForced;
   const initialDraft = draftKey ? draftStore.get(draftKey) : undefined;
   const [text, setText] = useState(initialDraft?.text ?? initialText);
   const [images, setImages] = useState<ImageAttachment[]>(allowImages ? initialDraft?.images ?? [] : []);
@@ -358,7 +345,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   // renders after `position` is measured, and WebKit fires 0ms timers ahead of
   // that commit, so an effect keyed on mode alone can run before the textarea
   // exists and never focus it (e.g. in WKWebView hosts like Glimpse).
-  const shouldAutoFocus = !coarsePointer || initialText.length > 0 || isGlobal;
+  const shouldAutoFocus = true;
   const focusOnMountRef = useCallback((el: HTMLTextAreaElement | null) => {
     textareaRef.current = el;
     if (!el || !shouldAutoFocus) return;
@@ -707,9 +694,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
               >
                 {isGlobal ? 'Add' : 'Save'}
               </button>
-              {!coarsePointer && (
-                <span className="text-[10px] text-muted-foreground">{submitHint}</span>
-              )}
+              <span className="text-[10px] text-muted-foreground">{submitHint}</span>
               {quickLookGoodButton}
             </div>
             <div className="flex items-center gap-2">
@@ -916,12 +901,10 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           </div>
           <div className="flex shrink-0 items-center gap-2.5">
             {quickLookGoodButton}
-            {!coarsePointer && (
-              <span className="flex items-center gap-1 text-[10px] text-muted-foreground/60" title={submitHint}>
-                <span>Ctrl</span>
-                <span aria-hidden="true">↵</span>
-              </span>
-            )}
+            <span className="flex items-center gap-1 text-[10px] text-muted-foreground/60" title={submitHint}>
+              <span>Ctrl</span>
+              <span aria-hidden="true">↵</span>
+            </span>
             <button
               onClick={handleSubmit}
               disabled={!canSubmit}

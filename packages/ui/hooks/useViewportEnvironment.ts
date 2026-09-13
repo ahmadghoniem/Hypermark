@@ -1,25 +1,13 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 
-export interface VisualViewportSnapshot {
-  width: number;
-  height: number;
-  offsetTop: number;
-  offsetLeft: number;
-  scale: number;
-}
-
 export interface ViewportEnvironmentInput {
   layoutWidth: number;
   layoutHeight: number;
-  visualViewport?: VisualViewportSnapshot | null;
 }
 
 export interface ViewportEnvironment {
   width: number;
   height: number;
-  offsetTop: number;
-  offsetLeft: number;
-  keyboardInset: number;
 }
 
 export interface ViewportEdgeInsets {
@@ -41,9 +29,6 @@ export interface VisibleViewportBounds {
 const ZERO_ENVIRONMENT: ViewportEnvironment = {
   width: 0,
   height: 0,
-  offsetTop: 0,
-  offsetLeft: 0,
-  keyboardInset: 0,
 };
 
 const ZERO_INSETS: ViewportEdgeInsets = {
@@ -56,9 +41,6 @@ const ZERO_INSETS: ViewportEdgeInsets = {
 const VIEWPORT_PROPERTIES = [
   '--pn-viewport-width',
   '--pn-viewport-height',
-  '--pn-viewport-offset-top',
-  '--pn-viewport-offset-left',
-  '--pn-keyboard-inset',
 ] as const;
 
 type ViewportProperty = (typeof VIEWPORT_PROPERTIES)[number];
@@ -72,74 +54,23 @@ function finiteOr(value: number, fallback: number): number {
   return Number.isFinite(value) ? value : fallback;
 }
 
-function positiveOr(value: number, fallback: number): number {
-  const finite = finiteOr(value, fallback);
-  return finite > 0 ? finite : fallback;
-}
-
 function rounded(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-/**
- * Converts the visual viewport into application-stage geometry. Pinch zoom is
- * intentionally represented by offsets only: reshaping the app while a user
- * zooms and pans would fight accessibility zoom. At the normal scale, browser
- * chrome and the software keyboard are allowed to reduce the usable stage.
- */
 export function calculateViewportEnvironment({
   layoutWidth,
   layoutHeight,
-  visualViewport,
 }: ViewportEnvironmentInput): ViewportEnvironment {
   const safeLayoutWidth = Math.max(0, finiteOr(layoutWidth, 0));
   const safeLayoutHeight = Math.max(0, finiteOr(layoutHeight, 0));
 
-  if (!visualViewport) {
-    return {
-      width: rounded(safeLayoutWidth),
-      height: rounded(safeLayoutHeight),
-      offsetTop: 0,
-      offsetLeft: 0,
-      keyboardInset: 0,
-    };
-  }
-
-  const scale = positiveOr(visualViewport.scale, 1);
-  const offsetTop = Math.max(0, finiteOr(visualViewport.offsetTop, 0));
-  const offsetLeft = Math.max(0, finiteOr(visualViewport.offsetLeft, 0));
-  const isPinchZoomed = Math.abs(scale - 1) > 0.01;
-  if (isPinchZoomed) {
-    return {
-      width: rounded(safeLayoutWidth),
-      height: rounded(safeLayoutHeight),
-      offsetTop: rounded(offsetTop),
-      offsetLeft: rounded(offsetLeft),
-      keyboardInset: 0,
-    };
-  }
-
-  const scaledWidth = positiveOr(visualViewport.width, safeLayoutWidth);
-  const scaledHeight = positiveOr(visualViewport.height, safeLayoutHeight);
-  const availableWidth = Math.max(0, safeLayoutWidth - offsetLeft);
-  const availableHeight = Math.max(0, safeLayoutHeight - offsetTop);
-  const width = safeLayoutWidth > 0 ? Math.min(scaledWidth, availableWidth) : scaledWidth;
-  const height = safeLayoutHeight > 0 ? Math.min(scaledHeight, availableHeight) : scaledHeight;
-
   return {
-    width: rounded(Math.max(0, width)),
-    height: rounded(Math.max(0, height)),
-    offsetTop: rounded(offsetTop),
-    offsetLeft: rounded(offsetLeft),
-    keyboardInset: rounded(Math.max(0, safeLayoutHeight - offsetTop - height)),
+    width: rounded(safeLayoutWidth),
+    height: rounded(safeLayoutHeight),
   };
 }
 
-/**
- * Converts the observed viewport into usable fixed-position bounds. Padding
- * and safe-area insets are inputs so positioning remains deterministic and
- * testable instead of reading CSS environment variables in every overlay.
- */
 export function calculateVisibleViewportBounds(
   environment: ViewportEnvironment,
   edgePadding = 0,
@@ -152,15 +83,15 @@ export function calculateVisibleViewportBounds(
     bottom: Math.max(0, finiteOr(insets.bottom ?? 0, 0)),
     left: Math.max(0, finiteOr(insets.left ?? 0, 0)),
   };
-  const left = environment.offsetLeft + padding + safeInsets.left;
-  const top = environment.offsetTop + padding + safeInsets.top;
+  const left = padding + safeInsets.left;
+  const top = padding + safeInsets.top;
   const right = Math.max(
     left,
-    environment.offsetLeft + environment.width - padding - safeInsets.right,
+    environment.width - padding - safeInsets.right,
   );
   const bottom = Math.max(
     top,
-    environment.offsetTop + environment.height - padding - safeInsets.bottom,
+    environment.height - padding - safeInsets.bottom,
   );
 
   return {
@@ -173,37 +104,10 @@ export function calculateVisibleViewportBounds(
   };
 }
 
-export function shouldUseExpandedComposer({
-  bounds,
-  coarsePointer,
-}: {
-  bounds: VisibleViewportBounds;
-  coarsePointer: boolean;
-}): boolean {
-  return coarsePointer || bounds.width < 640 || bounds.height < 420;
-}
-
-/** Returns whether the device's primary pointing input is coarse. */
-export function hasPrimaryCoarsePointer(targetWindow?: Window): boolean {
-  const resolvedWindow = targetWindow ?? (typeof window === 'undefined' ? undefined : window);
-  if (!resolvedWindow?.matchMedia) return false;
-  return resolvedWindow.matchMedia('(pointer: coarse)').matches;
-}
-
 function readViewportEnvironment(targetWindow: Window): ViewportEnvironment {
-  const visualViewport = targetWindow.visualViewport;
   return calculateViewportEnvironment({
     layoutWidth: targetWindow.innerWidth,
     layoutHeight: targetWindow.innerHeight,
-    visualViewport: visualViewport
-      ? {
-          width: visualViewport.width,
-          height: visualViewport.height,
-          offsetTop: visualViewport.offsetTop,
-          offsetLeft: visualViewport.offsetLeft,
-          scale: visualViewport.scale,
-        }
-      : null,
   });
 }
 
@@ -213,10 +117,7 @@ function environmentsEqual(
 ): boolean {
   return !!left
     && left.width === right.width
-    && left.height === right.height
-    && left.offsetTop === right.offsetTop
-    && left.offsetLeft === right.offsetLeft
-    && left.keyboardInset === right.keyboardInset;
+    && left.height === right.height;
 }
 
 function getViewportEnvironmentSnapshot(): ViewportEnvironment {
@@ -230,9 +131,6 @@ function cssValues(environment: ViewportEnvironment): Record<ViewportProperty, s
   return {
     '--pn-viewport-width': `${environment.width}px`,
     '--pn-viewport-height': `${environment.height}px`,
-    '--pn-viewport-offset-top': `${environment.offsetTop}px`,
-    '--pn-viewport-offset-left': `${environment.offsetLeft}px`,
-    '--pn-keyboard-inset': `${environment.keyboardInset}px`,
   };
 }
 
@@ -269,13 +167,10 @@ function startViewportEnvironmentObserver(
     animationFrame = targetWindow.requestAnimationFrame(write);
   };
 
-  const visualViewport = targetWindow.visualViewport;
   targetWindow.addEventListener('resize', scheduleWrite);
   targetWindow.addEventListener('orientationchange', scheduleWrite);
   targetWindow.addEventListener('pageshow', scheduleWrite);
   targetDocument.addEventListener('visibilitychange', scheduleWrite);
-  visualViewport?.addEventListener('resize', scheduleWrite);
-  visualViewport?.addEventListener('scroll', scheduleWrite);
   write();
 
   return () => {
@@ -283,8 +178,6 @@ function startViewportEnvironmentObserver(
     targetWindow.removeEventListener('orientationchange', scheduleWrite);
     targetWindow.removeEventListener('pageshow', scheduleWrite);
     targetDocument.removeEventListener('visibilitychange', scheduleWrite);
-    visualViewport?.removeEventListener('resize', scheduleWrite);
-    visualViewport?.removeEventListener('scroll', scheduleWrite);
     if (animationFrame !== null) targetWindow.cancelAnimationFrame(animationFrame);
 
     for (const property of VIEWPORT_PROPERTIES) {
@@ -333,9 +226,7 @@ export function useViewportEnvironment(): void {
 }
 
 /**
- * Reactive bounds for fixed overlays. It shares the root observer and its
- * animation-frame coalescing, so composer consumers do not add parallel
- * Visual Viewport listeners.
+ * Reactive bounds for fixed overlays.
  */
 export function useVisibleViewportBounds(edgePadding = 0): VisibleViewportBounds {
   const environment = useSyncExternalStore(
