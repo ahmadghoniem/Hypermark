@@ -4,7 +4,7 @@
  * spec/04-file-tree.md:67-68 requires that the replacement tree preserve
  * "applicable annotation counts, and active-file highlighting". The old
  * `FileTreeNodeItem` rendered those as separate React elements per row
- * (`ChangeTypeLetter`, `AnnotationBadge`, `DiffCounts`, `StagedDot`, `CommittedDot`).
+ * (`ChangeTypeLetter`, `AnnotationBadge`, `DiffCounts`, `CommittedDot`).
  *
  * `@pierre/trees` exposes exactly ONE decoration slot per row, and it is
  * declarative rather than a render prop: `FileTreeRowDecoration` is either a
@@ -39,7 +39,6 @@ export interface RowDecoration {
 /** Since-base sidecar entry, as `FileTree` already receives it. */
 export interface SectionEntry {
   group: 'committed' | 'changes' | 'untracked';
-  staged: boolean;
 }
 
 const COLOR_ADDED = 'var(--success)';
@@ -77,9 +76,6 @@ function changeTypeLetter(
 export interface BuildRowDecorationInput {
   file: DiffFile;
   annotationCount: number;
-  /** Read-side staged set from the server's status sidecar — display only.
-   *  Spec 02 removed the stage/unstage MUTATORS; this read side is retained. */
-  isStaged: boolean;
   /** Since-base sidecar entry, when in since-base mode. */
   sectionEntry?: SectionEntry;
 }
@@ -88,11 +84,11 @@ export interface BuildRowDecorationInput {
  * Composes one row's decoration. Returns `null` when a file has nothing to
  * show, so the library renders no decoration at all rather than an empty span.
  *
- * Ordering mirrors the old row: change-type letter, staged or committed dot,
+ * Ordering mirrors the old row: change-type letter, committed dot,
  * annotation count, then the additions/deletions pair.
  */
 export function buildRowDecoration(input: BuildRowDecorationInput): RowDecoration | null {
-  const { file, annotationCount, isStaged, sectionEntry } = input;
+  const { file, annotationCount, sectionEntry } = input;
   const parts: RowDecorationPart[] = [];
   const titles: string[] = [];
 
@@ -101,14 +97,10 @@ export function buildRowDecoration(input: BuildRowDecorationInput): RowDecoratio
   parts.push(letter.part);
   titles.push(letter.title);
 
-  // Since-base mode distinguishes already-committed rows from working ones;
-  // outside since-base, `stagedFiles` alone drives the staged dot.
+  // Since-base mode distinguishes already-committed rows from working ones.
   if (sectionEntry?.group === 'committed') {
     parts.push({ text: '●', color: COLOR_MUTED });
     titles.push('Committed since base');
-  } else if (sectionEntry ? sectionEntry.staged : isStaged) {
-    parts.push({ text: '●', color: COLOR_ADDED });
-    titles.push('Staged');
   }
 
   if (annotationCount > 0) {

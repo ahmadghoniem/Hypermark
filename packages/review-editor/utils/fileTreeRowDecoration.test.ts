@@ -15,7 +15,6 @@ const diffFile = (path: string, overrides: Partial<DiffFile> = {}): DiffFile => 
 
 const base = {
   annotationCount: 0,
-  isStaged: false,
 };
 
 const textOf = (file: DiffFile, overrides: Partial<Parameters<typeof buildRowDecoration>[0]> = {}) =>
@@ -69,45 +68,21 @@ describe('buildRowDecoration — retained per-row metadata (spec 04:67-68)', () 
     expect(decoration!.text).not.toContain('src/old.ts');
   });
 
-  it('shows a staged dot from the retained read-side staged set', () => {
-    // Spec 02 removed the stage/unstage mutators; this read side stays.
-    const staged = buildRowDecoration({ file: diffFile('src/a.ts'), ...base, isStaged: true });
-    expect(staged!.title).toContain('Staged');
-    expect(textOf(diffFile('src/a.ts'))).not.toContain('●');
-  });
-
-  it('distinguishes committed, staged, and untracked in since-base mode', () => {
+  it('distinguishes committed and untracked in since-base mode', () => {
     const committed = buildRowDecoration({
       file: diffFile('src/a.ts'),
       ...base,
-      sectionEntry: { group: 'committed', staged: false },
+      sectionEntry: { group: 'committed' },
     });
     expect(committed!.title).toContain('Committed since base');
 
     const untracked = buildRowDecoration({
       file: diffFile('src/b.ts'),
       ...base,
-      sectionEntry: { group: 'untracked', staged: false },
+      sectionEntry: { group: 'untracked' },
     });
     expect(untracked!.text).toContain('U');
     expect(untracked!.title).toContain('Untracked file');
-
-    const stagedChange = buildRowDecoration({
-      file: diffFile('src/c.ts'),
-      ...base,
-      sectionEntry: { group: 'changes', staged: true },
-    });
-    expect(stagedChange!.title).toContain('Staged');
-  });
-
-  it('lets the since-base entry win over the bare staged set', () => {
-    const decoration = buildRowDecoration({
-      file: diffFile('src/a.ts'),
-      ...base,
-      isStaged: true,
-      sectionEntry: { group: 'changes', staged: false },
-    });
-    expect(decoration!.title).not.toContain('Staged');
   });
 
   it('uses theme custom properties, never hard-coded colors', () => {
@@ -125,7 +100,7 @@ describe('buildRowDecoration — retained per-row metadata (spec 04:67-68)', () 
       file: diffFile('src/a.ts', { status: 'added', additions: 7, deletions: 2 }),
       ...base,
       annotationCount: 4,
-      isStaged: true,
+      sectionEntry: { group: 'committed' },
     });
     const text = decoration!.text;
     expect(text.indexOf('A')).toBeLessThan(text.indexOf('●'));

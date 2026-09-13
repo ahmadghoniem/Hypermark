@@ -12,7 +12,6 @@ import { AllFilesRow } from './PanelNavRows';
 import { PanelControlsRow, PanelSearchField } from './PanelChrome';
 import {
   ChangeTypeLetter,
-  StagedDot,
   AnnotationBadge,
   DiffCounts,
   CommittedDot,
@@ -38,7 +37,6 @@ interface SectionItem {
   file: DiffFile;
   index: number;
   group: SectionGroup;
-  staged: boolean;
 }
 
 interface SectionsPanelProps {
@@ -54,8 +52,6 @@ interface SectionsPanelProps {
   /** j/k/arrows/Home/End file navigation (disabled while modals are open). */
   enableKeyboardNav?: boolean;
   annotations: CodeAnnotation[];
-  /** Read-side staged set from the server's status sidecar — display only. */
-  stagedFiles: Set<string>;
   isLoadingDiff?: boolean;
   /** Base picker ("vs origin/main" affordance). */
   availableBranches?: AvailableBranches;
@@ -109,7 +105,6 @@ const SectionRow: React.FC<{
   annotationCount: number;
   onSelect: () => void;
   onDoubleClick?: () => void;
-  isStaged: boolean;
 }> = ({
   item,
   isActive,
@@ -117,15 +112,13 @@ const SectionRow: React.FC<{
   annotationCount,
   onSelect,
   onDoubleClick,
-  isStaged,
 }) => {
   const { file } = item;
 
   // Same row anatomy the tree rows used before @pierre/trees — the file-tree-item class
   // and its .active/.has-annotations states come from theme.css, so the two
   // panel views share one visual language. The .staged class (green row tint)
-  // is deliberately NOT applied here: green reads as "committed", and staged
-  // is its own state — the primary-colored dot + top-of-section sort carry it.
+  // is deliberately NOT applied here: green reads as "committed".
   return (
     <button
       onClick={onSelect}
@@ -134,14 +127,12 @@ const SectionRow: React.FC<{
       style={{ paddingLeft: 8 }}
       title={file.path}
     >
-      {/* Leading rail: [status][letter] then path. The staged/committed dot and the
+      {/* Leading rail: [status][letter] then path. The committed dot and the
           change-type letter are always shown. Fixed-width slots keep the rail
           aligned. Path inherits the row font; only the letter/counts are the
           small size. */}
       <div className="flex items-center gap-1.5 flex-1 min-w-0">
-        {isStaged ? (
-          <StagedDot />
-        ) : item.group === 'committed' ? (
+        {item.group === 'committed' ? (
           <CommittedDot />
         ) : (
           <span className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
@@ -165,7 +156,6 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
   onDoubleClickFile,
   enableKeyboardNav,
   annotations,
-  stagedFiles,
   isLoadingDiff,
   availableBranches,
   selectedBase,
@@ -209,18 +199,11 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
       const entry = sections.files[file.path];
       // A file in the composite patch with no status entry has a clean
       // working tree — it is committed branch work.
-      let group: SectionGroup = entry?.group ?? 'committed';
-      // Read-side staged set from the server's status sidecar.
-      const staged = stagedFiles.has(file.path);
-      // A staged add is tracked in the index, so it belongs under Changes even
-      // though the working-tree scan still classifies it as untracked.
-      if (group === 'untracked' && staged) group = 'changes';
-      grouped[group].push({ file, index, group, staged });
+      const group: SectionGroup = entry?.group ?? 'committed';
+      grouped[group].push({ file, index, group });
     });
-    // Staged work floats to the top of Changes.
-    grouped.changes.sort((a, b) => Number(b.staged) - Number(a.staged));
     return grouped;
-  }, [files, sections, stagedFiles]);
+  }, [files, sections]);
 
   const annotationCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -283,10 +266,6 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
     observer.observe(el);
     return () => observer.disconnect();
   }, [remeasureCommittedFit]);
-
-  // "N added" mirrors the rows' staged dots — read-side status from the
-  // server's sidecar, display only.
-  const stagedCount = stagedFiles.size;
 
   // Keyboard file navigation (j/k/arrows/Home/End) over the panel's VISIBLE
   // rows in render order. The tree view had this via FileTree; the sections
@@ -368,7 +347,6 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
         annotationCount={annotationCounts.get(item.file.path) ?? 0}
         onSelect={() => onSelectFile(item.index)}
         onDoubleClick={onDoubleClickFile ? () => onDoubleClickFile(item.index) : undefined}
-        isStaged={item.staged}
       />
     ));
 
@@ -392,7 +370,6 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
 
   const panelControls = (
     <PanelControlsRow
-      stagedCount={stagedCount}
       isSearchVisible={isSearchVisible}
       onOpenSearch={onOpenSearch}
       onCopyRawDiff={onCopyRawDiff}

@@ -40,17 +40,7 @@ export const ChangeTypeLetter: React.FC<{
   </span>
 );
 
-/** Read-only staged marker — primary dot when the file is already in the
- * index, per the server's read-side status. Display only: nothing here
- * mutates the index. Fixed 16px slot so it columns with CommittedDot. */
-export const StagedDot: React.FC = () => (
-  <span className="w-4 h-4 flex items-center justify-center flex-shrink-0" title="Staged (git add)" aria-label="Staged">
-    <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-  </span>
-);
-
-/** Committed-file marker — green dot in the status-slot column. Mirrors
- * StagedDot: green = already committed, primary = staged. */
+/** Committed-file marker — green dot in the status-slot column. */
 export const CommittedDot: React.FC = () => (
   <span className="w-4 h-4 flex items-center justify-center flex-shrink-0" title="Committed" aria-label="Committed">
     <span className="w-1.5 h-1.5 rounded-full bg-success" />

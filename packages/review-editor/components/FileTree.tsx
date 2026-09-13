@@ -61,8 +61,6 @@ interface FileTreeProps {
   jjEvologs?: JjEvoLogEntry[];
   /** Default evolog commit ID to compare against (second evolog entry). */
   detectedEvoBase?: string;
-  /** Read-side staged set from the server's status sidecar — display only. */
-  stagedFiles: Set<string>;
   onCopyRawDiff?: () => void;
   canCopyRawDiff?: boolean;
   copyRawDiffStatus?: 'idle' | 'success' | 'error';
@@ -123,7 +121,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
   recentCommits,
   jjEvologs,
   detectedEvoBase,
-  stagedFiles,
   onCopyRawDiff,
   canCopyRawDiff = false,
   copyRawDiffStatus = 'idle',
@@ -274,10 +271,9 @@ export const FileTree: React.FC<FileTreeProps> = ({
   const latestDecorationRef = useRef({
     files,
     annotationCountMap,
-    stagedFiles,
     sinceBaseSections,
   });
-  latestDecorationRef.current = { files, annotationCountMap, stagedFiles, sinceBaseSections };
+  latestDecorationRef.current = { files, annotationCountMap, sinceBaseSections };
 
   const handleRenderRowDecoration = useCallback(
     ({ row }: { row: { kind: 'directory' | 'file'; path: string } }) => {
@@ -290,7 +286,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
       return buildRowDecoration({
         file: target.file,
         annotationCount: current.annotationCountMap.get(target.canonicalPath) ?? 0,
-        isStaged: current.stagedFiles.has(target.canonicalPath),
         sectionEntry: current.sinceBaseSections?.files[target.canonicalPath],
       });
     },
@@ -383,7 +378,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
 
   const panelControls = (
     <PanelControlsRow
-      stagedCount={stagedFiles.size}
       isSearchVisible={isSearchVisible}
       onOpenSearch={onOpenSearch}
       onToggleAllFolders={handleToggleAllFolders}
