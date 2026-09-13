@@ -145,7 +145,6 @@ import { buildLocalWorkspaceReview, type WorkspaceDiffType } from "@hypermark/se
 import {
   createAnnotateOutcomeEmitter,
   supportsAnnotateApprovalNotes,
-  supportsAnnotateClientLease,
 } from "./annotate-output";
 
 // Embed the built HTML at compile time
@@ -767,11 +766,6 @@ if (args[0] === "sessions") {
       json: jsonFlag,
       hook: hookFlag,
     }),
-    clientLeaseSupported: supportsAnnotateClientLease({
-      gate: gateFlag,
-      json: jsonFlag,
-      hook: hookFlag,
-    }),
     rawHtml,
     renderHtml: !!rawHtml,
     convertHtml: renderMarkdownFlag,
@@ -915,11 +909,6 @@ if (args[0] === "sessions") {
     mode: "annotate-last",
     gate: gateFlag,
     approvalNotesSupported: supportsAnnotateApprovalNotes({
-      gate: gateFlag,
-      json: jsonFlag,
-      hook: hookFlag,
-    }),
-    clientLeaseSupported: supportsAnnotateClientLease({
       gate: gateFlag,
       json: jsonFlag,
       hook: hookFlag,

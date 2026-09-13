@@ -110,13 +110,6 @@ export interface AnnotateServerOptions {
   /** Whether this transport can deliver feedback attached to an approval. */
   approvalNotesSupported?: boolean;
   /**
-   * Whether this transport can safely resolve an abandoned gate automatically.
-   * Only direct structured annotate gates (`--gate --json`, not `--hook`)
-   * qualify — see supportsAnnotateClientLease in
-   * apps/hook/server/annotate-output.ts.
-   */
-  clientLeaseSupported?: boolean;
-  /**
    * @internal Test-only timing overrides for the client-lease grace/heartbeat
    * period. Production always uses the real 30s/5s defaults; tests inject
    * short values so they don't have to sleep for the real grace period.
@@ -222,10 +215,6 @@ export async function startAnnotateServer(
     liveApp,
     onReady,
   } = options;
-
-  // The single decision point both the /api/plan advert and the SSE endpoint
-  // below read.
-  const clientLeaseSupported = options.clientLeaseSupported ?? false;
 
   const gitUser = detectGitUser();
 
@@ -662,9 +651,7 @@ export async function startAnnotateServer(
               liveToken: liveSessionToken,
               gate,
               approvalNotesSupported,
-              clientLease: clientLeaseSupported
-                ? { enabled: true as const, reconnectGraceMs: clientLeaseGraceMs }
-                : { enabled: false as const },
+              clientLease: { enabled: true as const, reconnectGraceMs: clientLeaseGraceMs },
               convertHtml: false,
               repoInfo,
               projectRoot: process.cwd(),
@@ -712,9 +699,7 @@ export async function startAnnotateServer(
               sourceSave: primarySource.sourceSave,
               gate,
               approvalNotesSupported,
-              clientLease: clientLeaseSupported
-                ? { enabled: true as const, reconnectGraceMs: clientLeaseGraceMs }
-                : { enabled: false as const },
+              clientLease: { enabled: true as const, reconnectGraceMs: clientLeaseGraceMs },
               renderAs: displayRawHtml ? 'html' as const : 'markdown' as const,
               ...(displayRawHtml ? { rawHtml: displayRawHtml } : {}),
               ...(diffHtml ? { diffHtml } : {}),
@@ -997,10 +982,6 @@ export async function startAnnotateServer(
           // and serve this; other transports get a 404 (idleTimeout is already 0
           // for the whole server above, so no per-connection opt-out is needed).
           if (url.pathname === ANNOTATE_CLIENT_LEASE_STREAM_PATH && req.method === "GET") {
-            if (!clientLeaseSupported) {
-              return new Response("Client lease unavailable", { status: 404 });
-            }
-
             const encoder = new TextEncoder();
             let session: AnnotateClientLeaseStreamSession | null = null;
 

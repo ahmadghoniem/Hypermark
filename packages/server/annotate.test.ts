@@ -1485,47 +1485,6 @@ describe("annotate server: client lease", () => {
     return () => settled;
   }
 
-  test("advertises the effective client-lease capability in /api/plan", async () => {
-    for (const clientLeaseSupported of [true, false]) {
-      const server = await startAnnotateServer({
-        markdown: "# Test",
-        filePath: join(tmpdir(), "client-lease-capability.md"),
-        htmlContent: MINIMAL_HTML,
-        gate: true,
-        approvalNotesSupported: true,
-        clientLeaseSupported,
-      });
-
-      try {
-        const response = await fetch(`${server.url}/api/plan`);
-        const plan = await response.json() as { clientLease?: { enabled: boolean; reconnectGraceMs?: number } };
-        if (clientLeaseSupported) {
-          expect(plan.clientLease).toEqual({ enabled: true, reconnectGraceMs: 30_000 });
-        } else {
-          expect(plan.clientLease).toEqual({ enabled: false });
-        }
-      } finally {
-        server.stop();
-      }
-    }
-  });
-
-
-  test("returns 404 for the client-lease stream when the capability is disabled", async () => {
-    const server = await startAnnotateServer({
-      markdown: "# Test",
-      filePath: join(tmpdir(), "client-lease-disabled.md"),
-      htmlContent: MINIMAL_HTML,
-    });
-
-    try {
-      const response = await fetch(`${server.url}/api/annotate/client-lease`);
-      expect(response.status).toBe(404);
-    } finally {
-      server.stop();
-    }
-  });
-
   test("resolves the decision as dismissed after the last client disconnects and the grace period elapses", async () => {
     const server = await startAnnotateServer({
       markdown: "# Test",
@@ -1533,7 +1492,6 @@ describe("annotate server: client lease", () => {
       htmlContent: MINIMAL_HTML,
       gate: true,
       approvalNotesSupported: true,
-      clientLeaseSupported: true,
       clientLeaseTestOverrides: { graceMs: 50 },
     });
 
@@ -1561,7 +1519,6 @@ describe("annotate server: client lease", () => {
       htmlContent: MINIMAL_HTML,
       gate: true,
       approvalNotesSupported: true,
-      clientLeaseSupported: true,
       clientLeaseTestOverrides: { graceMs: 80 },
     });
 
@@ -1595,7 +1552,6 @@ describe("annotate server: client lease", () => {
       htmlContent: MINIMAL_HTML,
       gate: true,
       approvalNotesSupported: true,
-      clientLeaseSupported: true,
       clientLeaseTestOverrides: { graceMs: 60 },
     });
 
@@ -1635,7 +1591,6 @@ describe("annotate server: client lease", () => {
       htmlContent: MINIMAL_HTML,
       gate: true,
       approvalNotesSupported: true,
-      clientLeaseSupported: true,
       clientLeaseTestOverrides: { graceMs: 30 },
     });
 
@@ -1690,7 +1645,6 @@ describe("annotate server: client lease", () => {
       htmlContent: MINIMAL_HTML,
       gate: true,
       approvalNotesSupported: true,
-      clientLeaseSupported: true,
     });
 
     const response = await fetch(`${server.url}/api/annotate/client-lease`);
