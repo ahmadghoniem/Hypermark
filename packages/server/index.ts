@@ -406,15 +406,9 @@ export async function startHypermarkServer(
             // Clean up draft on successful submit
             deleteDraft(draftKey, draftGeneration);
 
-            // Use permission mode from client request if provided, otherwise fall
-            // back to hook input — but NEVER to `plan`. The ExitPlanMode hook
-            // fires while the session is still in plan mode, so `permission_mode`
-            // on that event reports `plan`; echoing it back as `setMode` would
-            // approve the plan and leave the session unable to act on it. That
-            // is the whole reason the mode is chosen here rather than inherited.
-            const inheritedPermissionMode = permissionMode === "plan" ? undefined : permissionMode;
-            const effectivePermissionMode = requestedPermissionMode || inheritedPermissionMode;
-            resolveDecision({ approved: true, feedback, permissionMode: effectivePermissionMode });
+            // Never echo `plan` back as a mode: ExitPlanMode fires while still in plan mode,
+            // so echoing it would leave the session unable to act on the approved plan.
+            resolveDecision({ approved: true, feedback, permissionMode: requestedPermissionMode });
             return Response.json({ ok: true });
           }
 
