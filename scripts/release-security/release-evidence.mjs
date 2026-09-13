@@ -27,7 +27,6 @@ export const RELEASE_WORKSPACES = [
 ];
 
 export const SBOM_SENTINELS = [
-  "@anthropic-ai/claude-agent-sdk",
   "@joplin/turndown-plugin-gfm",
   "@pierre/diffs",
   "@plannotator/webtui",
