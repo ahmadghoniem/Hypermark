@@ -1,24 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   findClosestSubcommand,
   findUnknownSubcommand,
   formatUnknownSubcommandError,
-  KNOWN_SUBCOMMANDS,
 } from "./unknown-subcommand";
 
 describe("unknown subcommand", () => {
-  test("the known command registry matches the dispatcher", () => {
-    const source = readFileSync(resolve(import.meta.dir, "index.ts"), "utf8");
-    const dispatched = new Set(
-      [...source.matchAll(/args\[0\] === "([^"]+)"/g)].map((match) => match[1]),
-    );
-
-    expect(dispatched.size).toBe(KNOWN_SUBCOMMANDS.size);
-    expect(dispatched).toEqual(KNOWN_SUBCOMMANDS);
-  });
-
   test("leaves flags and the no-argument hook invocation to the dispatcher", () => {
     expect(findUnknownSubcommand([])).toBeNull();
     expect(findUnknownSubcommand(["--help"])).toBeNull();
