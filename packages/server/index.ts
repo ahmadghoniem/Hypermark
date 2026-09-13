@@ -13,7 +13,6 @@
 import type { Origin } from "@hypermark/shared/agents";
 import { resolve } from "path";
 import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./server-port";
-import { openEditorDiff } from "./ide";
 import {
   saveToObsidian,
   saveToBear,
@@ -285,31 +284,6 @@ export async function startHypermarkServer(
           // API: Upload image -> save to temp -> return path
           if (url.pathname === "/api/upload" && req.method === "POST") {
             return handleUpload(req);
-          }
-
-          // API: Open plan diff in VS Code
-          if (url.pathname === "/api/plan/vscode-diff" && req.method === "POST") {
-            try {
-              const body = (await req.json()) as { baseVersion: number };
-
-              if (!body.baseVersion) {
-                return Response.json({ error: "Missing baseVersion" }, { status: 400 });
-              }
-
-              const basePath = getPlanVersionPath(project, slug, body.baseVersion);
-              if (!basePath) {
-                return Response.json({ error: `Version ${body.baseVersion} not found` }, { status: 404 });
-              }
-
-              const result = await openEditorDiff(basePath, currentPlanPath);
-              if ("error" in result) {
-                return Response.json({ error: result.error }, { status: 500 });
-              }
-              return Response.json({ ok: true });
-            } catch (err) {
-              const message = err instanceof Error ? err.message : "Failed to open VS Code diff";
-              return Response.json({ error: message }, { status: 500 });
-            }
           }
 
           // API: Detect Obsidian vaults
