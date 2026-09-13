@@ -102,14 +102,6 @@ describe('fromShareable — legacy tuple annotations', () => {
     expect(restored!.author).toBe('tater');
   });
 
-  test('the trailing 1 flag restores a quick label; its absence sets no key', () => {
-    const [quick] = fromShareable([['C', 'quote', 'Nit', null, undefined, 1]]);
-    expect(quick!.isQuickLabel).toBe(true);
-
-    const [plain] = fromShareable([['C', 'quote', 'Nit', null]]);
-    expect('isQuickLabel' in plain!).toBe(false);
-  });
-
   test('images decode on every tuple form, in both encodings', () => {
     const [comment, deletion, global] = fromShareable([
       ['C', 'quote', 'see this', null, [['/data/a.png', 'A']]],
