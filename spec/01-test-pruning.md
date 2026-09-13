@@ -39,9 +39,11 @@ generated; the executor needs only the deletions below.
 | `apps/hook/server/unknown-subcommand.test.ts` | 102 | Test 1 (lines 12–20) reads `index.ts` as text and regex-extracts `args[0] === "…"` to compare with `KNOWN_SUBCOMMANDS`. That is a grep, not a test. **Trim**: delete that one test; keep `findClosestSubcommand` / `formatUnknownSubcommandError` tests, which cover real output. |
 | `apps/hook/server/annotate-output.test.ts` | 120 | The `annotate client-lease call sites` describe (lines ~60–120) reads `index.ts` as text and counts occurrences of `clientLeaseSupported: supportsAnnotateClientLease({`. Spec 10 removes the predicate entirely, so this describe dies with it. **Trim**: delete the describe; keep `annotate stdout` (formatAnnotateOutcome), which is the only test of the JSON/plaintext/hook output shapes. |
 | `apps/hook/server/strict-annotate-result.test.ts` | 310 | One test (lines ~144–170) slices `index.ts` source between two string markers and asserts no `process.exit(1)` inside. **Trim**: delete that test; the rest covers result-file serialization and is the only coverage of `--result-file`. |
-| `packages/server/live-proxy.test.ts` | 804 | One test (`the proxy origin and bind are always loopback`, line ~511) reads `live-proxy.ts` and asserts on source strings. **Trim**: replace with the runtime assertion already present on the line above (`proxy.origin` is `127.0.0.1`), delete the three `source` expectations. |
 
-Bucket B deletions total: 1 file removed (`favicon.test.ts`, counted in A because its constants are also dead), 4 files trimmed by one test each.
+`packages/server/live-proxy.test.ts` also reads source as text, but spec 13
+deletes the whole live-app feature including that file. Leave it alone here.
+
+Bucket B deletions total: 1 file removed (`favicon.test.ts`, counted in A because its constants are also dead), 3 files trimmed by one test each.
 
 ## 3. Source constant that goes with §1
 
@@ -85,4 +87,4 @@ These looked deletable and are not:
 - `rg -n "mode: \"archive\"|customPlanPath" packages apps` → nothing.
 - `rg -n "readFileSync\([^)]*import\.meta\.dir[^)]*\.tsx?\"" packages apps -g '*.test.ts'` → nothing (no test reads a source file as text).
 - `bun run typecheck && bun run typecheck:editors` green.
-- Net: 2 files deleted (`skills-endpoint.test.ts`, `favicon.test.ts`), 5 trimmed, ≈ 450 lines removed including the PNG constants.
+- Net: 2 files deleted (`skills-endpoint.test.ts`, `favicon.test.ts`), 4 trimmed, ≈ 450 lines removed including the PNG constants.

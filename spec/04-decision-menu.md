@@ -86,15 +86,8 @@ what the label does not — where it goes, or what rides along. Nothing restates
 `decisionSpec.test.ts` pins labels at lines 31, 49, 67, 81, 103, 115, 129 (all
 frozen — unchanged) and `toContain('Close,')` at 73 and 82. The new close label
 is `Discard N and close…`, so change those two assertions to
-`toContain('Discard')`. Line 249 (`not.toContain('0')`) still holds. Add one
-assertion: no subtitle exceeds 32 characters —
-
-```ts
-for (const spec of allSpecs) for (const item of spec.items) expect(item.subtitle.length).toBeLessThanOrEqual(32);
-```
-
-where `allSpecs` enumerates the input matrix the file already loops over at
-line ~190.
+`toContain('Discard')`. Line 249 (`not.toContain('0')`) still holds. Add no
+new tests.
 
 ## Completion
 

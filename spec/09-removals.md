@@ -1,8 +1,8 @@
 # 09 — Removals
 
-Each item: what it is, the count, the verdict, and the edit. The maintainer
-decides from the number; the executor performs every item marked **cut** or
-**trim**, and leaves **ask** items alone.
+Each item: what it is, the count, the verdict, and the edit. The executor
+performs every item marked **cut** or **trim**; **keep** and **moved** rows
+need no edit here.
 
 ## Owned files
 
@@ -129,15 +129,15 @@ Counted with `wc -l` over the named files.
 
 | # | What | Lines | Verdict | Why |
 |---|---|---|---|---|
-| B1 | `server/p4.ts` — Perforce diff provider, reachable via `hypermark review --vcs p4` | 417 | **cut** | Windows-first, git-only maintainer; `vcs.ts` registers it as one of three providers. Delete file, its `vcsProvider` entry and `p4-*` diff types in `vcs.ts`. |
-| B2 | `server/jj.ts` (88) and `server/gitbutler.ts` (58) — Jujutsu and GitButler providers | 146 | **ask** | Same shape as p4. The maintainer removed GitButler *docs* but README:93 still advertises `--gitbutler`. Cut both unless one is in use. |
-| B3 | Extra skills `apps/skills/extra/` (compound, setup-goal, visual-explainer) + goal-setup mode (`GoalSetupSurface.tsx` 1,367, `server/goal-setup.ts` 211, `core/goal-setup.ts` 336, the `setup-goal` CLI arm, 220 refs) | ≈2,900 | **ask** | Goal-setup is a whole interview UI reachable only from the `hypermark-setup-goal` skill. If the maintainer does not run `/hypermark-setup-goal`, this is the largest single cut left. |
-| B4 | Note-app integrations (`server/integrations.ts` 214, `shared/integrations-common.ts` 230, `handleObsidian*` routes, `/api/approve` body fields) | 444 + routes | **cut** | Obsidian/Bear/Octarine save-on-approve. No UI sends the body fields (`rg -n "obsidian|bear|octarine" packages/ui packages/editor packages/review-editor` → nothing). Bear and Octarine are macOS-only apps. `detectObsidianVaults` also backs `/api/reference/obsidian/*` (skill references from a vault) — keep that one function in `reference-handlers.ts`, delete the rest. |
-| B5 | Live-app annotate (`server/live-proxy.ts` 359, `shared/live-proxy-core.ts`, bridge 910 total; `ui/components/html-viewer/` 6,210) | ≈7,100 | **ask** | `hypermark annotate http://localhost:PORT/` proxies a running dev server and lets you comment on its DOM. It is the biggest subsystem in the repo. The brief's HTML-surface fixes (spec 06) assume it stays. Ask: is it used? |
-| B6 | Theme palettes — 7 CSS files | 1,008 | **trim to 2** | `pierre` (default) and `hypermark`. Delete `catppuccin`, `github`, `ayu-dark`, `one-dark-pro`, `tokyo-night` (736 lines) and their entries in the theme list (`rg -n "catppuccin" packages/ui`). One palette per mode is what a single user picks once. |
+| B1 | Perforce provider | — | **moved to spec 14** | Maintainer decision: cut, together with jj and GitButler. |
+| B2 | Jujutsu and GitButler providers | — | **moved to spec 14** | Maintainer decision: cut. |
+| B3 | Goal-setup mode + `hypermark-setup-goal` skill | — | **moved to spec 12** | Maintainer decision: cut. |
+| B4 | Note-app integrations, **end to end** (`server/integrations.ts`, `shared/integrations-common.ts`, `integrations.test.ts`, the `/api/save-notes` handler in `shared-handlers.ts`, the `/api/approve` body fields, **and** the vault routes `/api/obsidian/vaults`, `/api/reference/obsidian/files`, `/api/reference/obsidian/doc` with `handleObsidianVaults/Files/Doc` in `reference-handlers.ts` on both `server/index.ts` and `server/annotate.ts`) | 444 + routes | **cut** | Maintainer decision: remove everything related to Obsidian, Bear and Octarine. No client calls the vault routes (`rg -n "api/obsidian|api/reference/obsidian" packages -g '!packages/server/**'` → nothing), so `detectObsidianVaults` goes too. Also remove the README "Obsidian Integration" section (`apps/hook/README.md`, and its table-of-contents link), any config/settings fields, their tests, and the lines in `packages/ui/HANDOFF.md`. |
+| B5 | Live-app annotate | — | **moved to spec 13** | Maintainer decision: cut. |
+| B6 | Theme palettes — 7 CSS files | 1,008 | **keep** | Maintainer decision: keep all seven. No edit. |
 | B7 | Codex remnants: `~/.codex/skills` skill root (`review-skill-loader.ts`, 9 refs; `skillReferences.ts`), `isCodexDesktopHost` (`shared-handlers.ts:198–220`) | ≈40 | **cut** | Codex adapters went in `73f373d8`; these scan a directory and an env var only Codex sets. |
 | B8 | `isQuickLabel` field: `types.ts:47`, `parser.ts:1292,1320,1344`, tuple decoder `annotationSerialization.ts:94–108` | ≈25 | **cut** | The picker is gone; the flag only affects how old drafts render. Also lets spec 01's trimmed test shrink further. |
-| B9 | Folder annotate + Files tab (spec 03 open question): `FileBrowser.tsx` 623, `useFileBrowser.ts` 337, `reference-watch.ts`, `file-browser-watch-core.ts` 385, two routes ×2 servers | ≈1,500 | **ask** | Keep if `hypermark annotate <folder>` is used. |
+| B9 | Folder annotate + Files tab | — | **moved to spec 13** | Maintainer decision: cut. |
 | B10 | `hypermark sessions --open N` | ≈20 | keep | Spec 10 builds `--kill` beside it. |
 
 ## Completion
@@ -150,14 +150,12 @@ rg -n "stagedFiles|isStaged|StagedDot|stagedCount" packages/review-editor
 rg -n "inheritedPermissionMode|effectivePermissionMode" packages/server
 rg -n "OpenCode" packages/editor/App.tsx
 rg -n "claude-agent-sdk" package.json scripts
-rg -n "p4Provider|from \"./p4\"" packages/server
-rg -n "saveToObsidian|saveToBear|saveToOctarine|integrations-common" packages
-rg -n "catppuccin|tokyo-night|one-dark-pro|ayu-dark|\"github\"" packages/ui --type ts
+rg -n -i "obsidian|octarine|saveToBear|integrations-common" packages apps
 rg -n "isCodexDesktopHost|CODEX_HOME|\.codex" packages
 rg -n "isQuickLabel" packages
 rg -n "visualViewport|keyboard-inset|coarsePointer" packages/ui
 ```
 
 Plus `packages/ui/shortcuts/registry.test.ts` exists and reads clean, and
-both typecheck lanes are green. Expected net for the cut/trim set: ≈ 3,000
-lines; the **ask** set is a further ≈ 12,000 if all approved.
+both typecheck lanes are green. No **ask** items remain; the larger feature
+cuts live in specs 12, 13 and 14.

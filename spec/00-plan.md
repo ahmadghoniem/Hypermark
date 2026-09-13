@@ -1,67 +1,71 @@
 # Execution plan
 
-Branch `ui-decluttering-pass`. Twelve specs in `spec/`, dispatched by the
-orchestrator in four waves. A spec names the files it owns; two specs that
-share a file sit in different waves. Every spec ends on checks the orchestrator
-runs; the shared gate for every wave is both typecheck lanes green:
+Branch `fable-exec` (cut from `8351f40c`; `ui-decluttering-pass` is not
+touched). Fourteen specs in `spec/`, run in four waves. Each spec runs in its
+own git worktree on its own branch (`fable/<NN>-<name>`), cut from the tip of
+`fable-exec` at the start of its wave. The orchestrator reviews each branch,
+merges it into `fable-exec` in the merge order below, and starts the next wave
+from the merged tip.
+
+Gate for every spec before merge:
 
 ```
 bun run typecheck && bun run typecheck:editors
 ```
 
-Tests are read, classified and deleted by spec; they are not executed on
-this Linux sandbox. `WINDOWS-HANDOFF.md` at the repo root lists what an agent on
-the maintainer's Windows machine runs after the waves merge.
+plus the tests the spec's Completion section names. The work runs on the
+maintainer's Windows machine, so tests are executed, not only read.
+`WINDOWS-HANDOFF.md` runs once after wave 4.
+
+## Maintainer decisions (2026-09-13)
+
+- Cut: goal-setup (12); live-app, remote-URL and folder annotate (13);
+  jj, GitButler and Perforce (14); Obsidian, Bear and Octarine end to end (09 B4).
+- Keep: all seven theme palettes; `tailwindcss` in `packages/ui`; parent-PID
+  polling and `taskkill /T` (10); client lease always on for annotate (10).
 
 ## Waves
 
-| Wave | Specs | Why together |
+| Wave | Specs | Notes |
 |---|---|---|
-| 1 | `01-test-pruning`, `09-removals`, `10-session-lifecycle` | Server-side and test-only work; disjoint from every UI file. `09` and `10` both touch `apps/hook/server/index.ts` — see the sequence note below. |
-| 2 | `03-left-panel`, `04-decision-menu`, `05-review-dock`, `06-input-and-scrollbars`, `08-gutter-markers` | Five UI specs with disjoint owned files. |
-| 3 | `07-composer` | Owns `CommentPopover.tsx`, `AnnotationPanel.tsx` and the review composer; waits for `05` (which deletes the dock and touches `AllFilesCodeView.tsx`) and `10` (which adds composer persistence to the draft hooks). |
-| 4 | `02-duplication`, `11-sweep` | `02` repoints imports across packages; `11` runs `knip` and the leftover greps over the merged tree. Both must see the final shape. |
-
-Sequence inside wave 1: `10` lands before `09`. Both edit
-`apps/hook/server/index.ts`; `10` adds the parent watcher and `--kill`, `09`
-removes the OpenCode comment and the permission fallback in `packages/server/index.ts`.
-Merge `10` first, rebase `09`.
+| 1 | `10-session-lifecycle`, `09-removals`, `01-test-pruning` | Server and test work. `10` and `09` both edit `apps/hook/server/index.ts`; merge `10` first. |
+| 2 | `03-left-panel`, `04-decision-menu`, `05-review-dock`, `06-input-and-scrollbars`, `08-gutter-markers`, `12-goal-setup-cut` | `12` and `06` both touch `editor/App.tsx` (06: one line). |
+| 3 | `07-composer`, `13-annotate-targets-cut`, `14-vcs-providers-cut` | `07` waits for `05` and `10`. `13` edits `editor/App.tsx`, `server/annotate.ts`, hook `index.ts`; `14` edits `review-editor/App.tsx`, `AllFilesCodeView.tsx`, `server/review.ts` — both after the wave-2 edits to those files. |
+| 4 | `02-duplication`, then `11-sweep` | Run one after the other; `11` is always last. |
 
 ## Merge order
 
 ```
-10 → 09 → 01        (wave 1)
-03 → 04 → 05 → 06 → 08   (wave 2, any order; listed for determinism)
-07                  (wave 3)
-02 → 11             (wave 4; 11 is always last)
+10 → 09 → 01                    (wave 1)
+03 → 04 → 05 → 06 → 08 → 12     (wave 2)
+07 → 14 → 13                    (wave 3)
+02 → 11                         (wave 4)
 ```
 
-## File ownership
+## File ownership (shared files)
 
-| File | Owner |
+| File | Specs, in merge order |
 |---|---|
-| `apps/hook/server/index.ts` | 10, then 09 (sequenced) |
-| `apps/hook/server/annotate-output.ts` (+test) | 10 |
-| `packages/server/sessions.ts`, new `packages/server/parent-watch.ts` | 10 |
-| `packages/server/index.ts` | 09 (permission fallback, vscode-diff route, integrations) |
-| `packages/server/annotate.ts`, `packages/server/review.ts` | 10 (parent watcher wiring only) |
-| `packages/server/ide.ts`, `p4.ts`, `integrations.ts`, `packages/shared/integrations-common.ts` | 09 (deletions) |
-| `packages/ui/hooks/useAnnotationDraft.ts`, `useCodeAnnotationDraft.ts` | 10 |
-| `packages/editor/App.tsx` | 10 (draft restore), 09 (comments, VS Code diff), 03 (Files tab), 07 (sidebar edit) — waves 1 → 2 → 3, rebased each time |
-| `packages/review-editor/App.tsx` | 10 (draft restore), 05 (dock), 09 (staged dot) — 10 in wave 1, 05 and 09 conflict: 09 owns only the `stagedFiles` block (lines ~1005–1020, 2204, 2289); 05 owns the dockview block. Rebase 09 onto 05 if both land in the same day; otherwise the orchestrator resolves the trivial conflict. |
-| `packages/ui/components/sidebar/MessagesBrowser.tsx`, `SidebarContainer.tsx`, `SidebarTabs.tsx`, `FileBrowser.tsx`, `packages/ui/hooks/useFileBrowser.ts`, `useSidebar.ts` | 03 |
-| `packages/ui/utils/decisionSpec.ts` (+test), `packages/ui/components/DecisionControl.tsx`, `ActionMenu.tsx` | 04 |
-| `packages/review-editor/dock/**`, `packages/review-editor/index.css`, `packages/review-editor/components/AllFilesCodeView.tsx` (dock/code-nav props only) | 05 |
-| `packages/ui/utils/inputMethod.ts`, `packages/ui/theme.css` (scrollbar block) | 06 |
-| `packages/ui/components/CommentPopover.tsx`, `AnnotationPanel.tsx`, `packages/review-editor/components/AnnotationToolbar.tsx`, `ExpandedCommentDialog.tsx`, `ToolbarHost.tsx`, `packages/review-editor/hooks/useAnnotationToolbar.ts` | 07 |
-| `packages/review-editor/components/GutterAnnotations.tsx` | 08 |
-| `packages/ui/hooks/useViewportEnvironment.ts`, `packages/ui/components/plan-diff/*`, staged-dot files (`FileTree.tsx`, `SectionsPanel.tsx`, `FileRowBits.tsx`, `fileTreeRowDecoration.ts`) | 09 |
-| `packages/editor/annotateDecision.ts`, `packages/review-editor/reviewDecision.ts` | 09 |
-| `packages/review-editor/utils/generateId.ts`, `packages/ui/hooks/useCodeAnnotationDraft.ts` (dedupe only, after 10) | 02 |
-| `knip.json`, every `package.json`, `bun.lock` | 11 |
+| `apps/hook/server/index.ts` | 10, 09 (wave 1); 12 (wave 2); 13, 14 (wave 3) |
+| `apps/hook/server/cli.ts` (+test) | 12; 13, 14 |
+| `packages/server/index.ts` | 09 (permission fallback, vscode-diff, integrations, vault routes); 13 (files tree route) |
+| `packages/server/annotate.ts` | 10 (lease, parent watcher); 09 (vault routes, save-notes); 13 (live, folder) |
+| `packages/server/review.ts` | 10 (parent watcher); 05 (code-nav routes); 14 (providers) |
+| `packages/editor/App.tsx` | 10, 09; 06 (one line), 12; 13 |
+| `packages/review-editor/App.tsx` | 10, 09 (staged dot); 05 (dock); 14 (providers) |
+| `packages/review-editor/components/AllFilesCodeView.tsx` | 05; 07 (toolbar call sites), 14 |
+| `packages/review-editor/components/FileTree.tsx` | 09 (staged dot); 14 |
+| `packages/ui/components/CommentPopover.tsx` | 10 (draft store); 07 |
+| `packages/ui/hooks/useAnnotationDraft.ts`, `useCodeAnnotationDraft.ts` | 10; 02 (dedupe) |
+| `packages/ui/shortcuts/**` | 09 (dead hooks + registry test); 12 (goal-setup scope) |
+| `packages/ui/components/sidebar/*`, `packages/ui/hooks/useSidebar.ts` | 03 (MessagesBrowser only); 13 (Files tab) |
+| `packages/shared/package.json`, `packages/server/package.json` | 12, 13, 14 (export entries); 11 |
+| `knip.json`, root `package.json`, `bun.lock` | 09 (agent-sdk), 05 (dockview); 11 |
+
+A conflict at merge time on any row above is resolved by the orchestrator,
+keeping both specs' intent; the later spec's agent is not re-run for it.
 
 ## After the waves
 
-The author of these specs reviews the merged tree against each spec's
-completion criterion, then runs `WINDOWS-HANDOFF.md` items on the maintainer's
-machine (or hands that file to an agent there).
+The orchestrator checks the merged tree against every spec's Completion
+section, runs the full `bun test`, then `WINDOWS-HANDOFF.md`.

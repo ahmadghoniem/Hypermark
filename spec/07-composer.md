@@ -38,12 +38,31 @@ Runs in wave 3, after spec 05 (which edits `AllFilesCodeView.tsx`) and spec
    (strip 32 + shelf 40 + actions 44 + paddings ≈ 128px). The textarea already
    has `overflow-y-auto` from `field-sizing` growth. Dialog mode (`mode ===
    'dialog'`, line 673) already scrolls its own body; leave it.
-3. **Resize grip.** `beginGripResize` (line 332) already applies only a
-   vertical delta to `composerHeight`, but the grip's cursor is
-   `cursor-nwse-resize` and it sits at the top-left corner, both of which say
-   "diagonal". Change the cursor to `cursor-ns-resize`, move the grip to the
-   top-centre of the body (`left-1/2 -translate-x-1/2 -top-[9px]`), and keep
-   the inverted-delta drag (up = taller). Title: `Drag to resize`.
+3. **Resize grip resizes both axes.** `beginGripResize` (line 332) applies
+   only a vertical delta to `composerHeight`, while the grip at the top-left
+   corner shows `cursor-nwse-resize` — the cursor promises diagonal, the drag
+   delivers vertical. Make the drag match the cursor: keep the grip where it
+   is, keep `cursor-nwse-resize`, and add a `composerWidth` state beside
+   `composerHeight`. On drag, dragging up grows height (existing inverted
+   delta) and dragging left grows width (`startWidth + (startX - e.clientX)`).
+   Width clamps to `[position.width, min(720, visibleBounds.width - 32)]`;
+   height keeps `[56, 480]`. The width applies to the card container (the
+   element that today takes `width: position.width`, lines ~757/762) so the
+   strip, shelf and actions widen with it; because the grip is on the left
+   edge, the card's `left` shifts by the same delta so the right edge stays
+   put. Double-click resets both to null. Title: `Drag to resize`.
+4. **Expanded (maximized) composer matches the regular one.** The expand
+   button (line ~848) switches to `mode === 'dialog'` (line ~601), which
+   renders a different component tree: its own header row with a text label,
+   `max-w-xl` card, `px-4 py-3` textarea padding, a separate footer. Make the
+   dialog reuse the popover's parts: the same strip (context text + collapse
+   button in place of expand), the same wash tier, the same textarea
+   `sizeClassName` family, the same shelf and the same action row
+   (Improve/Ask/Save, `Ctrl ↵` hint). Extract those parts into local
+   components or render functions shared by both modes; the dialog differs
+   only in the outer wrapper (centred overlay + backdrop, wider card
+   `w-[min(720px,calc(100vw-2rem))]`, taller textarea `min-h-64`). Keep
+   Escape-to-close and backdrop-click-to-close.
 
 ## 2. Plan sidebar edit uses the composer (`AnnotationPanel.tsx`)
 
@@ -121,7 +140,8 @@ the composer's verb does not need the noun.
 - `ls packages/review-editor/components/AnnotationToolbar.tsx packages/review-editor/components/ExpandedCommentDialog.tsx` → both missing.
 - `rg -n "lastMousePosition|showCommentModal|modalLayout|handleMouseMove" packages/review-editor` → nothing.
 - `rg -n "fieldSizing|editComposer|setEditText" packages/ui/components/AnnotationPanel.tsx` → nothing.
-- `rg -n "cursor-nwse-resize" packages/ui/components/CommentPopover.tsx` → nothing; `rg -n "cursor-ns-resize"` → one hit.
+- `rg -n "composerWidth" packages/ui/components/CommentPopover.tsx` → hits; dragging the grip up-left grows the composer in both directions.
+- Expand a composer: the dialog shows the same strip, shelf and action row as the popover, only larger.
 - Behaviour, `bun run dev:review`: select lines → the composer that opens is visually the `CommentPopover` (anchor strip, shelf, Improve/Ask/Save). Behaviour, `bun run dev:hook`: add a comment, press its Edit action in the right panel → the same popover opens anchored to the card, prefilled. Open a global comment → no strip above the textarea; type 30 lines → only the textarea scrolls.
 - `bun run typecheck && bun run typecheck:editors` green.
 - Net ≈ −700 lines.

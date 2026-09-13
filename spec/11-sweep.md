@@ -47,9 +47,14 @@ Whatever `knip` and the greps name, plus `knip.json`, every `package.json`,
    modes are gone). Delete the directory unless the maintainer says otherwise;
    log the count.
 4. **Dependencies.** Remove every unused dependency knip still lists after
-   step 2. `tailwindcss` in `apps/review` and `packages/ui` devDeps: the
-   plugin is `@tailwindcss/vite`; the bare `tailwindcss` package is pulled
-   transitively. Remove both. `glimpseui`: `server/browser.ts:56` looks it up
+   step 2. `tailwindcss`: `bunfig.toml` sets `linker = "isolated"`, so a
+   package only resolves what it declares — nothing is "pulled transitively".
+   **Keep** it in `packages/ui` devDependencies (`packages/ui/styles-entry.css`
+   imports it and `ui` otherwise lists it only as a peer); add it to that
+   workspace's `ignoreDependencies` if knip still flags it. In `apps/review`,
+   remove it only if `bun install && bun run --cwd apps/review build` still
+   succeeds afterwards; otherwise keep it and add it to `ignoreDependencies`.
+   `glimpseui`: `server/browser.ts:56` looks it up
    with `Bun.which` at runtime — an optional external binary, not an import;
    remove the devDependency. `@happy-dom/global-registrator`: nothing in
    `bunfig.toml`'s `[test] preload` or `tests/setup/` references it
@@ -71,6 +76,12 @@ Whatever `knip` and the greps name, plus `knip.json`, every `package.json`,
    rg -n "stagedFiles|StagedDot" packages
    rg -n "vscode-diff|VSCodeIcon" packages
    rg -n "onCleanup" packages/server/review.ts
+   rg -n "goal-setup|GoalSetup|setup-goal" packages apps
+   rg -n "live-proxy|live-probe|liveApp|annotate-app|--app\b|--static\b" packages apps
+   rg -n "annotate-folder|FileBrowser|useFileBrowser" packages apps
+   rg -n "urlToMarkdown|url-to-markdown|Jina|jina" packages apps
+   rg -n -i "gitbutler|\bjj\b|jujutsu|evolog|perforce|\bp4\b" packages apps
+   rg -n -i "obsidian|octarine|\bbear\b" packages apps
    ```
 
    The `Pi` grep will hit comments in `shared/annotate-client-lease.ts`,
