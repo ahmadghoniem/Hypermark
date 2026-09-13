@@ -257,14 +257,6 @@ const buildMessageAnnotationCounts = (
   return counts;
 };
 
-const draftBannerMessage = (banner: { count: number; timeAgo: string; hasEdits: boolean }): string => {
-  const parts = [
-    banner.count > 0 ? `${banner.count} annotation${banner.count !== 1 ? 's' : ''}` : '',
-    banner.hasEdits ? 'unsent direct edits' : '',
-  ].filter(Boolean);
-  return `Found ${parts.join(' and ')} from ${banner.timeAgo}. Would you like to restore them?`;
-};
-
 const feedbackLossDescription = (annotationCount: number, hasDirectEdits: boolean): string => {
   const parts = [
     annotationCount > 0 ? `${annotationCount} annotation${annotationCount !== 1 ? 's' : ''}` : '',
@@ -1861,7 +1853,8 @@ const AppInner: React.FC = () => {
   }, [editableDocuments, getEditedMarkdown]);
 
   // Auto-save annotation drafts
-  const { draftBanner, restoreDraft, scheduleDraftSave, scheduleDraftSaveAfterSubmitFailure, getDraftGeneration, dismissDraft } = useAnnotationDraft({
+  const handleRestoreDraftRef = useRef<(loadedDraft?: any, meta?: any) => Promise<void>>(() => Promise.resolve());
+  const { restoreDraft, scheduleDraftSave, scheduleDraftSaveAfterSubmitFailure, getDraftGeneration, discardDraft, flushDraft } = useAnnotationDraft({
     annotations: allAnnotations,
     codeAnnotations,
     globalAttachments,
@@ -1872,9 +1865,10 @@ const AppInner: React.FC = () => {
     // No share transport remains, so drafts always persist for a live session.
     isSharedSession: false,
     // isSubmitting counts: a save firing while approve/deny is in flight can
-    // land after the server's draft delete and ghost a "Draft Recovered"
-    // banner into the next session for this plan. Saving resumes if it fails.
+    // land after the server's draft delete and ghost a draft
+    // into the next session for this plan. Saving resumes if it fails.
     submitted: !!submitted || isSubmitting,
+    onDraftLoaded: (draft, meta) => handleRestoreDraftRef.current(draft, meta),
   });
 
   // Fetch available agents for OpenCode (for validation on approve)
@@ -2080,7 +2074,10 @@ const AppInner: React.FC = () => {
     };
   }, [resolveSavedFileChangeSource]);
 
-  const handleRestoreDraft = React.useCallback(async () => {
+  const handleRestoreDraft = React.useCallback(async (
+    loadedDraft?: ReturnType<typeof restoreDraft>,
+    meta?: { count: number; timeAgo: string; hasEdits: boolean },
+  ) => {
     annotationHistory.clear();
     const {
       annotations: restored,
@@ -2092,8 +2089,30 @@ const AppInner: React.FC = () => {
       editedMarkdown,
       editedDocuments,
       savedFileChanges,
-    } = restoreDraft();
+    } = loadedDraft ?? restoreDraft();
     if (restoredCode.length > 0) setCodeAnnotations(restoredCode);
+
+    const showRestoredToast = () => {
+      if (meta) {
+        const parts = [
+          meta.count > 0 ? `${meta.count} annotation${meta.count !== 1 ? 's' : ''}` : '',
+          meta.hasEdits ? 'unsent direct edits' : '',
+        ].filter(Boolean);
+        const desc = parts.length > 0 ? parts.join(' and ') : 'draft content';
+        toast(`Restored ${desc} from ${meta.timeAgo}`, {
+          action: {
+            label: 'Discard',
+            onClick: () => {
+              discardDraft();
+              setAnnotations([]);
+              setCodeAnnotations([]);
+              annotationHistory.clear();
+              viewerRef.current?.applySharedAnnotations([]);
+            },
+          },
+        });
+      }
+    };
 
     const nestedSavedFileChanges = editedDocuments
       .map((doc) => doc.savedChange)
@@ -2151,6 +2170,7 @@ const AppInner: React.FC = () => {
               }
             }
             scheduleDraftSave();
+            showRestoredToast();
             return;
           }
         }
@@ -2168,6 +2188,7 @@ const AppInner: React.FC = () => {
             }
           }
           scheduleDraftSave();
+          showRestoredToast();
           return;
         }
       }
@@ -2190,6 +2211,7 @@ const AppInner: React.FC = () => {
       const remapped = applyEditedDocument(edited, restored);
       repaintHighlights(remapped);
       scheduleDraftSave();
+      showRestoredToast();
       return;
     }
     if (edited !== null && (editStats !== null || isEditingMarkdown)) {
@@ -2209,7 +2231,9 @@ const AppInner: React.FC = () => {
       }, 100);
     }
     scheduleDraftSave();
-  }, [annotationHistory, restoreDraft, validateDraftSavedFileChanges, editStats, isEditingMarkdown, editableDocuments, activeEditableDocument, markdown, applyEditedDocument, repaintHighlights, scheduleDraftSave]);
+    showRestoredToast();
+  }, [annotationHistory, restoreDraft, validateDraftSavedFileChanges, editStats, isEditingMarkdown, editableDocuments, activeEditableDocument, markdown, applyEditedDocument, repaintHighlights, scheduleDraftSave, discardDraft]);
+  handleRestoreDraftRef.current = handleRestoreDraft;
 
   const handleEditToggle = useCallback(() => {
     if (isEditingMarkdown) {
@@ -3016,14 +3040,14 @@ const AppInner: React.FC = () => {
           });
       if (isAgentTerminalReady) {
         if (!shouldSendAgentTerminalFeedback(agentTerminalDeliveryRef.current, agentFeedbackDelivery)) {
-          dismissDraft();
+          discardDraft();
           setIsSubmitting(false);
           return true;
         }
         const agentFeedback = buildAnnotateAgentFeedback(feedback);
         if (agentFeedbackDelivery && sendToAgentTerminal(agentFeedback)) {
           setAgentTerminalDelivery(agentFeedbackDelivery);
-          dismissDraft();
+          discardDraft();
           annotationHistory.clear();
           setIsSubmitting(false);
           return true;
@@ -3044,7 +3068,7 @@ const AppInner: React.FC = () => {
         }),
       });
       if (!res.ok) throw new Error('Failed to send feedback');
-      dismissDraft();
+      discardDraft();
       setSubmitted('denied'); // reuse 'denied' state for "feedback sent" overlay
       return true;
     } catch {
@@ -3088,7 +3112,7 @@ const AppInner: React.FC = () => {
         })),
       });
       if (!res.ok) throw new Error('Failed to approve');
-      dismissDraft();
+      discardDraft();
       setSubmitted('approved');
       return true;
     } catch {
@@ -4271,16 +4295,6 @@ const AppInner: React.FC = () => {
             overflowY="auto"
             onViewportReady={handleDocumentViewportReady}
           >
-            <ConfirmDialog
-              isOpen={!!draftBanner}
-              onClose={dismissDraft}
-              onConfirm={handleRestoreDraft}
-              title="Draft Recovered"
-              message={draftBanner ? draftBannerMessage(draftBanner) : ''}
-              confirmText="Restore"
-              cancelText="Dismiss"
-              showCancel
-            />
             <div ref={planAreaRef} className={`${isHtmlSurface ? 'h-full flex flex-col' : 'min-h-full flex flex-col items-center px-2 py-3 md:px-10 md:py-8 xl:px-16'} relative z-10`}>
               {/* Sticky header lane — ghost bar that pins the toolstrip +
                   badges at top: 12px once the user scrolls. Invisible at top

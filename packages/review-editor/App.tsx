@@ -499,18 +499,37 @@ const ReviewAppInner: React.FC = () => {
   const allAnnotationsRef = useRef(allAnnotations);
   allAnnotationsRef.current = allAnnotations;
 
+  const handleRestoreDraftRef = useRef<(draft?: any, meta?: any) => void>(() => {});
   // Auto-save code annotation drafts
-  const { draftBanner, restoreDraft, getDraftGeneration, dismissDraft } = useCodeAnnotationDraft({
+  const { restoreDraft, getDraftGeneration, discardDraft, flushDraft } = useCodeAnnotationDraft({
     annotations: allAnnotations,
     isApiMode: !!origin,
     submitted: !!submitted,
+    onDraftLoaded: (draft, meta) => handleRestoreDraftRef.current(draft, meta),
   });
 
-  const handleRestoreDraft = useCallback(() => {
+  const handleRestoreDraft = useCallback((
+    loadedDraft?: { annotations: CodeAnnotation[] },
+    meta?: { count: number; timeAgo: string },
+  ) => {
     reviewHistory.clear();
-    const restored = restoreDraft();
+    const restored = loadedDraft ?? restoreDraft();
     if (restored.annotations.length > 0) setAnnotations(restored.annotations);
-  }, [restoreDraft, reviewHistory]);
+    const count = meta?.count ?? restored.annotations.length;
+    if (count > 0) {
+      toast(`Restored ${count} annotation${count !== 1 ? 's' : ''} from ${meta?.timeAgo ?? 'earlier'}`, {
+        action: {
+          label: 'Discard',
+          onClick: () => {
+            discardDraft();
+            setAnnotations([]);
+            reviewHistory.clear();
+          },
+        },
+      });
+    }
+  }, [restoreDraft, reviewHistory, discardDraft]);
+  handleRestoreDraftRef.current = handleRestoreDraft;
 
   const codeNav = useCodeNav();
   const handleCodeNavRequest = useCallback((request: CodeNavRequest) => {
@@ -2335,16 +2354,6 @@ const ReviewAppInner: React.FC = () => {
                 </div>
               </div>
             )}
-            <ConfirmDialog
-              isOpen={!!draftBanner}
-              onClose={dismissDraft}
-              onConfirm={handleRestoreDraft}
-              title="Draft Recovered"
-              message={draftBanner ? `Found ${draftBanner.count} annotation${draftBanner.count !== 1 ? 's' : ''} from ${draftBanner.timeAgo}. Would you like to restore them?` : ''}
-              confirmText="Restore"
-              cancelText="Dismiss"
-              showCancel
-            />
             {files.length > 0 ? (
               <DockviewReact
                 className={`h-full ${resolvedMode === 'light' ? 'dockview-theme-light' : 'dockview-theme-dark'}`}
