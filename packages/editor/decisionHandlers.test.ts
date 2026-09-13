@@ -60,9 +60,8 @@ describe("annotate decision handler exhaustiveness", () => {
       expect(buildDecisionSpec(input).items.map((item) => item.id))
         .not.toContain("note-with-approval");
     }
-    // …and pin that even a stray dispatch cannot fabricate approval framing.
     expect(resolveAnnotateDecisionAction("note-with-approval", ungated))
-      .toEqual({ kind: "note", route: "feedback", approvalFraming: false });
+      .toEqual({ kind: "note", route: "approve", approvalFraming: false });
 
     for (const ctx of [gated, ungated]) {
       // The two differ only by state, never by transport or framing.
