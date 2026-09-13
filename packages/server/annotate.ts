@@ -11,6 +11,7 @@
  */
 
 import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./server-port";
+import { existsSync, unlinkSync } from "fs";
 import { getRepoInfo } from "./repo";
 import type { Origin } from "@hypermark/shared/agents";
 import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, handleReferenceSkills, handleReferenceSkillContent, handleSaveNotes, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
@@ -217,6 +218,7 @@ export async function startAnnotateServer(
   } = options;
 
   const gitUser = detectGitUser();
+  const sessionUploads = new Set<string>();
 
   // Per-file version history → powers the native version diff in annotate mode.
   // Unlike the plan flow (slug = first-heading + date), annotate keys history by
@@ -967,7 +969,7 @@ export async function startAnnotateServer(
 
           // API: Upload image -> save to temp -> return path
           if (url.pathname === "/api/upload" && req.method === "POST") {
-            return handleUpload(req);
+            return handleUpload(req, sessionUploads);
           }
 
           // API: Annotation draft persistence
@@ -1200,6 +1202,13 @@ export async function startAnnotateServer(
         }],
         ["agent terminal", () => agentTerminal.dispose()],
         ["live proxy", () => liveProxy?.stop()],
+        ["session uploads", () => {
+          for (const uploadPath of sessionUploads) {
+            try {
+              if (existsSync(uploadPath)) unlinkSync(uploadPath);
+            } catch {}
+          }
+        }],
       ],
       () => server.stop(),
     );

@@ -12,6 +12,7 @@
 
 import type { Origin } from "@hypermark/shared/agents";
 import { resolve } from "path";
+import { existsSync, unlinkSync } from "fs";
 import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./server-port";
 import { openEditorDiff } from "./ide";
 import {
@@ -112,6 +113,7 @@ export async function startHypermarkServer(
   let currentPlanPath = "";
   let previousPlan: string | null = null;
   let versionInfo = { version: 0, totalVersions: 0, project: "" };
+  const sessionUploads = new Set<string>();
 
   let resolveDecision: (result: {
     approved: boolean;
@@ -284,7 +286,7 @@ export async function startHypermarkServer(
 
           // API: Upload image -> save to temp -> return path
           if (url.pathname === "/api/upload" && req.method === "POST") {
-            return handleUpload(req);
+            return handleUpload(req, sessionUploads);
           }
 
           // API: Open plan diff in VS Code
@@ -497,6 +499,11 @@ export async function startHypermarkServer(
     stopPromise ??= (async () => {
       try {
         closeAllFileBrowserWatchers();
+        for (const uploadPath of sessionUploads) {
+          try {
+            if (existsSync(uploadPath)) unlinkSync(uploadPath);
+          } catch {}
+        }
       } finally {
         await server.stop(true);
       }

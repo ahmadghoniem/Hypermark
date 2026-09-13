@@ -12,6 +12,7 @@ import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } 
 import type { Origin } from "@hypermark/shared/agents";
 import { type DiffType, type GitContext, runVcsDiff, getVcsFileContentsForDiff, getVcsDiffFingerprint, resolveVcsCwd, validateFilePath, getVcsContext, detectRemoteDefaultCompareTarget, vcsOwnsDiffType, gitRuntime } from "./vcs";
 import { basename } from "node:path";
+import { existsSync, unlinkSync } from "node:fs";
 import { SingleFlight } from "@hypermark/shared/single-flight";
 import {
   isSameCwdCommitSwitch,
@@ -491,6 +492,7 @@ export async function startReviewServer(
   };
 
   let serverUrl = "";
+  const sessionUploads = new Set<string>();
   const resolveAgentCwd = (): string => {
     if (workspace) return workspace.root;
     return options.agentCwd ?? resolveVcsCwd(currentDiffType as DiffType, gitContext?.cwd) ?? process.cwd();
@@ -1149,7 +1151,7 @@ export async function startReviewServer(
 
           // API: Upload image -> save to temp -> return path
           if (url.pathname === "/api/upload" && req.method === "POST") {
-            return handleUpload(req);
+            return handleUpload(req, sessionUploads);
           }
 
           // API: Annotation draft persistence
@@ -1248,6 +1250,11 @@ export async function startReviewServer(
   serverUrl = buildAdvertisedUrl(port);
 
   const stop = () => {
+    for (const uploadPath of sessionUploads) {
+      try {
+        if (existsSync(uploadPath)) unlinkSync(uploadPath);
+      } catch {}
+    }
     server.stop();
     // Invoke cleanup callback (e.g., remove temp worktree)
     if (options.onCleanup) {
