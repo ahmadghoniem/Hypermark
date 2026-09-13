@@ -1,5 +1,4 @@
 import { defineShortcutScope } from '../core';
-import { createShortcutScopeHook } from '../runtime';
 
 export const annotationPanelShortcuts = defineShortcutScope({
   id: 'annotation-panel',
@@ -21,5 +20,3 @@ export const annotationPanelShortcuts = defineShortcutScope({
     },
   },
 });
-
-export const useAnnotationPanelShortcuts = createShortcutScopeHook(annotationPanelShortcuts);

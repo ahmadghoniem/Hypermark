@@ -1,5 +1,4 @@
 import { defineShortcutScope } from '../core';
-import { createShortcutScopeHook } from '../runtime';
 
 export const viewerShortcuts = defineShortcutScope({
   id: 'viewer',
@@ -20,5 +19,3 @@ export const viewerShortcuts = defineShortcutScope({
     },
   },
 });
-
-export const useViewerShortcuts = createShortcutScopeHook(viewerShortcuts);
