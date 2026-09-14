@@ -1,5 +1,5 @@
 /** Responsive presentation chosen for a measured compact document header. */
-export type CompactHeaderLayout = 'wide' | 'tight' | 'narrow';
+type CompactHeaderLayout = 'wide' | 'tight' | 'narrow';
 
 /** Measurements used to place a compact leading lane beside trailing actions. */
 export interface CompactHeaderMeasurements {

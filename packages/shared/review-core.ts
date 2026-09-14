@@ -1,8 +1,5 @@
 /**
- * Runtime-agnostic code-review core shared by Bun runtimes and Pi.
- *
- * Pi consumes a build-time copy of this file so its published package stays
- * self-contained while review diff logic remains sourced from one module.
+ * Runtime-agnostic code-review core.
  */
 
 import {
@@ -505,8 +502,7 @@ export async function listBranches(
 
 /**
  * Pick a safe base branch. Trusts the caller verbatim if they supplied one,
- * otherwise falls back to the detected default. Shared by Bun (`review.ts`)
- * and Pi (`serverReview.ts`) so both runtimes behave identically.
+ * otherwise falls back to the detected default.
  *
  * Why trust the caller: the UI picker only ever sends refs from the known
  * list, and external/programmatic callers may pass tags, SHAs, or refs under
@@ -620,7 +616,7 @@ export async function getGitContext(
   // `vs <default>` diff from the default branch itself is always empty), but
   // the base picker now lets reviewers compare against any branch from any
   // branch, so there's no meaningless-by-construction option. Also: preserving
-  // diff mode across worktree switches and Pi's `initialBase` can land the
+  // diff mode across worktree switches and `initialBase` can land the
   // reviewer on the default branch with branch/merge-base already active — the
   // old guard hid the active mode's option, trapping them. Unconditional
   // emission keeps the active option reachable in every flow.
@@ -2125,7 +2121,7 @@ export interface SinceBaseSectionEntry {
   group: "committed" | "changes" | "untracked";
   /** True when the file has staged (index) changes — porcelain column X.
    *  SNAPSHOT value from when the sidecar was computed. For DISPLAY, always
-   *  render from the client's effective stagedFiles set (useGitAdd folds
+   *  render from the client's effective staged set (useGitAdd folds
    *  this in with session overrides) — never OR this flag back in, or files
    *  unstaged mid-session keep a stale staged indicator. */
   staged: boolean;

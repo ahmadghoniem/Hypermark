@@ -129,7 +129,7 @@ export interface HypermarkConfig {
    * the HYPERMARK_SKIP_SKILLS_INSTALL env var, which is in turn overridden
    * by the --skip-skills flag. Default: off.
    *
-   * The per-agent codex/gemini/kiro/opencode entries this object used to
+   * The per-agent entries this object used to
    * carry went with the integrations spec 02 removed. It stays an object
    * rather than a bare boolean so an existing config.json carrying those
    * keys still parses; unknown keys are simply not read.
@@ -475,9 +475,7 @@ export function getServerConfig(gitUser: string | null): {
  * @hypermark/core: `HypermarkConfig.agentTerminalSide` IS that type and
  * this predicate delegates to that module's guard, so neither the union nor
  * its membership test can drift on one side of the boundary. Direct import
- * rather than a duplicated literal check: the Pi vendor step rewrites the
- * relative specifier to the flat `./agent-terminal.ts` it already vendors
- * from core, so both runtimes end up on the same implementation.
+ * rather than a duplicated literal check keeps the implementation in sync.
  */
 export function isAgentTerminalSide(
   value: unknown,

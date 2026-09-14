@@ -187,8 +187,7 @@ export function parseDiffFilePathLines(lines: string[]): DiffPathPair {
  * a header-only card with no counts and no explanation — which reads as broken.
  *
  * Lives here (rather than in review-core) so the browser bundle can detect the
- * shape without pulling the whole node-facing review core in. Both server
- * runtimes get it from review-core, which is vendored to Pi alongside this file.
+ * shape without pulling the whole node-facing review core in.
  *
  * The `#` prefix is what makes detection unambiguous: diff CONTENT lines are
  * always prefixed with `+`, `-`, or a space, so a bare match on this exact line

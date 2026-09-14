@@ -33,8 +33,5 @@
   },
   "peerDependencies": {
     "bun": ">=1.0.0"
-  },
-  "devDependencies": {
-    "glimpseui": "^0.8.0"
   }
 }

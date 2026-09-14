@@ -4,9 +4,6 @@
  * Thin HTTP adapter over the shared annotation store. Handles routing,
  * request parsing, and SSE broadcasting using Bun's Request/Response +
  * ReadableStream APIs.
- *
- * The Pi extension has a mirror handler using node:http primitives at
- * the review server's external-annotations ingestion.
  */
 
 import {
@@ -21,8 +18,6 @@ import {
   type StorableAnnotation,
   type ExternalAnnotationEvent,
 } from "@hypermark/shared/external-annotation";
-
-export type { ExternalAnnotationEvent } from "@hypermark/shared/external-annotation";
 
 // ---------------------------------------------------------------------------
 // Handler interface

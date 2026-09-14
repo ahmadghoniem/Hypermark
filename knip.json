@@ -1,47 +1,89 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "ignore": ["**/dist/**", "scripts/fixtures/**"],
-  "ignoreBinaries": ["bun", "bunx"],
+  "ignoreBinaries": [
+    "taskkill.exe"
+  ],
   "workspaces": {
     ".": {
-      "entry": ["scripts/shiki-wasm-stub.ts", "tests/setup/*.ts"],
-      "project": ["scripts/**/*.{ts,mjs}", "tests/**/*.{ts,tsx}"]
+      "entry": [
+        "scripts/shiki-wasm-stub.ts",
+        "tests/setup/*.ts",
+        "scripts/**/*.mjs",
+        "scripts/dast/target.ts"
+      ],
+      "project": [
+        "scripts/**/*.{ts,mjs}",
+        "tests/**/*.{ts,tsx}"
+      ]
     },
     "apps/hook": {
-      "entry": ["dev-mock-api.ts", "**/*.test.{ts,tsx}"],
-      "project": ["**/*.{ts,tsx}"]
+      "entry": [
+        "dev-mock-api.ts",
+        "**/*.test.{ts,tsx}"
+      ],
+      "project": [
+        "**/*.{ts,tsx,css}"
+      ]
     },
     "apps/review": {
-      "project": ["**/*.{ts,tsx}"]
+      "project": [
+        "**/*.{ts,tsx,css}"
+      ]
     },
     "packages/core": {
-      "entry": ["**/*.test.{ts,tsx}"],
-      "project": ["**/*.{ts,tsx}"]
+      "entry": [
+        "**/*.test.{ts,tsx}"
+      ],
+      "project": [
+        "**/*.{ts,tsx}"
+      ]
     },
     "packages/shared": {
-      "entry": ["**/*.test.{ts,tsx}"],
-      "project": ["**/*.{ts,tsx}"]
+      "entry": [
+        "**/*.test.{ts,tsx}",
+        "**/*.test-d.ts"
+      ],
+      "project": [
+        "**/*.{ts,tsx}"
+      ]
     },
     "packages/server": {
-      "entry": ["**/*.test.{ts,tsx}"],
-      "project": ["**/*.{ts,tsx}"]
+      "entry": [
+        "**/*.test.{ts,tsx}"
+      ],
+      "project": [
+        "**/*.{ts,tsx}"
+      ]
     },
     "packages/ui": {
       "entry": [
-        "scripts/build-bridge-assets.ts",
-        "scripts/package-smoke.ts",
-        "vite.css.config.ts",
+        "styles-entry.css",
+        "build-stubs/*.css",
+        "test-consumer/*.tsx",
         "**/*.test.{ts,tsx}"
       ],
-      "project": ["**/*.{ts,tsx}"]
+      "project": [
+        "**/*.{ts,tsx,css}"
+      ],
+      "ignoreDependencies": [
+        "@happy-dom/global-registrator"
+      ]
     },
     "packages/editor": {
-      "entry": ["**/*.test.{ts,tsx}"],
-      "project": ["**/*.{ts,tsx}"]
+      "entry": [
+        "**/*.test.{ts,tsx}"
+      ],
+      "project": [
+        "**/*.{ts,tsx,css}"
+      ]
     },
     "packages/review-editor": {
-      "entry": ["**/*.test.{ts,tsx}"],
-      "project": ["**/*.{ts,tsx}"]
+      "entry": [
+        "**/*.test.{ts,tsx}"
+      ],
+      "project": [
+        "**/*.{ts,tsx,css}"
+      ]
     }
   }
 }

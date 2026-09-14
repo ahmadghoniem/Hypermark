@@ -12,7 +12,7 @@ export function needsReviewSetup(): boolean {
   return storage.getItem(SEEN_KEY) !== 'true';
 }
 
-export function markReviewSetupSeen(): void {
+function markReviewSetupSeen(): void {
   storage.setItem(SEEN_KEY, 'true');
 }
 

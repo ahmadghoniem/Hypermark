@@ -154,7 +154,7 @@ export interface UseHtmlAnnotationOptions {
 }
 
 /** Clamp a host cap into the package's bound; anything unusable is the default. */
-export function resolveMaxAdditionalTargets(value: number | undefined): number {
+function resolveMaxAdditionalTargets(value: number | undefined): number {
   if (value === undefined || !Number.isFinite(value)) return MAX_ADDITIONAL_TARGETS;
   return Math.max(0, Math.min(MAX_ADDITIONAL_TARGETS, Math.floor(value)));
 }
@@ -187,7 +187,7 @@ const MAX_ANCHOR_TEXT_LENGTH = 400;
 // Multi-select caps: the additional-target array is bounded at the trust
 // boundary (a hostile page cannot grow a draft past this), and the bridge's
 // short target keys / 40-char hover labels get generous-but-hard ceilings.
-export const MAX_ADDITIONAL_TARGETS = 16;
+const MAX_ADDITIONAL_TARGETS = 16;
 const MAX_TARGET_KEY_LENGTH = 64;
 const MAX_TARGET_LABEL_LENGTH = 64;
 // Selection text is page-controlled too (a pinpoint click posts the element's
@@ -195,11 +195,11 @@ const MAX_TARGET_LABEL_LENGTH = 64;
 // rejected, a legitimate huge selection still annotates — before it can reach
 // React state, drafts, exported feedback, or a share URL. Mirrors
 // MAX_SELECTION_TEXT in bridge-script.ts; this side is the authoritative one.
-export const MAX_SELECTION_TEXT_LENGTH = 10000;
+const MAX_SELECTION_TEXT_LENGTH = 10000;
 
 /** Truncate to the cap without ever splitting a UTF-16 surrogate pair (a
  * lone high surrogate becomes U+FFFD once UTF-8-encoded downstream). */
-export function capSelectionText(text: string): string {
+function capSelectionText(text: string): string {
   if (text.length <= MAX_SELECTION_TEXT_LENGTH) return text;
   let cut = MAX_SELECTION_TEXT_LENGTH;
   const last = text.charCodeAt(cut - 1);
@@ -229,7 +229,7 @@ function parseAnchorPoint(value: unknown): { x: number; y: number } | undefined 
 }
 
 /** Validate a bridge-posted element anchor. Exported for protocol tests. */
-export function parseHtmlElementAnchor(value: unknown): HtmlElementAnchor | null {
+function parseHtmlElementAnchor(value: unknown): HtmlElementAnchor | null {
   if (!isRecord(value)) return null;
   const { selector, tagName, text } = value;
   if (
@@ -278,7 +278,7 @@ function parseBridgeRect(value: unknown): BridgeRect | null {
 }
 
 /** Validate any bridge message. Exported for protocol tests. */
-export function parseBridgeMessage(value: unknown): BridgeMessage | null {
+function parseBridgeMessage(value: unknown): BridgeMessage | null {
   if (!isRecord(value) || typeof value.type !== "string") return null;
 
   switch (value.type) {

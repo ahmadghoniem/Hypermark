@@ -13,7 +13,7 @@ import { Annotation, AnnotationType, Block } from '@hypermark/ui/types';
 export type CheckboxOverrideSnapshot = ReadonlyArray<readonly [string, boolean]>;
 
 /** Checkbox annotation plus its exact position in the document collection. */
-export interface IndexedCheckboxAnnotation {
+interface IndexedCheckboxAnnotation {
   annotation: Annotation;
   index: number;
 }

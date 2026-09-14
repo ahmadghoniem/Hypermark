@@ -285,8 +285,7 @@ describe("feedback archive: shared index", () => {
 
 describe("feedback archive: changed-file counting", () => {
   test("a rename counts once, a delete counts once, an empty patch counts zero", () => {
-    // Regression: extractChangedFiles (code-nav) UNIONS the a/ and b/ sides so
-    // a reader can resolve either path, which makes a one-file rename look
+    // Regression: UNION-ing the a/ and b/ sides would make a one-file rename look
     // like a two-file review in the record's size metadata.
     const rename =
       "diff --git a/src/old.ts b/src/new.ts\nsimilarity index 92%\nrename from src/old.ts\nrename to src/new.ts\n";

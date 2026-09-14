@@ -136,11 +136,9 @@ export function getReviewApprovedWithNotesPrompt(
 }
 
 /**
- * PR5 approve-with-notes delivery (decision-control spec §6.4): the one
- * composer every review decision consumer (Claude Code CLI, OpenCode native,
- * OpenCode CLI bridge, Pi — §6.3) emits approvals through, so the format
- * cannot fork between them. A bare approval is the plain approved prompt,
- * byte-identical to pre-PR5. An approval carrying feedback uses the
+ * composer every review decision consumer (such as the Claude Code CLI)
+ * emits approvals through, so the format cannot fork between callers. A bare
+ * approval is the plain approved prompt, byte-identical to pre-PR5. An approval
  * approved-WITH-NOTES template (`prompts.review.approvedWithNotes`
  * configurable, default `DEFAULT_REVIEW_APPROVED_WITH_NOTES_PROMPT`): the
  * bare prompt says "no changes requested" and the feedback export opens with

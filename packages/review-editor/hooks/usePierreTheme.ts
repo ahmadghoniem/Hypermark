@@ -6,11 +6,9 @@ import { useConfigValue } from '@hypermark/ui/config';
 /**
  * The (colorTheme, mode) -> Shiki theme mapping moved to
  * `@hypermark/ui/utils/syntaxTheme` so the plan editor's markdown fences
- * resolve the same theme this diff pane does. Re-exported here because it is
- * the import path the review editor has always used.
+ * resolve the same theme this diff pane does.
  */
 import { resolveSyntaxTheme } from '@hypermark/ui/utils/syntaxTheme';
-export { SHIKI_THEME_MAP, resolveSyntaxTheme } from '@hypermark/ui/utils/syntaxTheme';
 
 export interface PierreTheme {
   type: 'dark' | 'light';
@@ -101,7 +99,7 @@ const EMPHASIS_LIGHTNESS_SHIFT = 0.07;
  * "hide emphasis when diff bg is off" rule so that toggle behaves consistently
  * at every intensity.
  */
-export function buildLineBgOverrides(intensity: DiffLineBgIntensity, mode: 'light' | 'dark'): string {
+function buildLineBgOverrides(intensity: DiffLineBgIntensity, mode: 'light' | 'dark'): string {
   // The library's word-emphasis rule (`[data-line-type=…] [data-diff-span] {
   // background-color: var(--diffs-bg-addition-emphasis); }`) is NOT gated on
   // `[data-background]`, so disabling diff backgrounds still leaves chips

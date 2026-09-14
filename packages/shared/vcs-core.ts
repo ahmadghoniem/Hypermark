@@ -276,7 +276,7 @@ export function createVcsApi(providers: readonly VcsProvider[]): VcsApi {
   }
 
   async function detectVcs(cwd?: string): Promise<VcsProvider> {
-    // OpenCode and Pi keep this module alive across review sessions. Always
+    // Long-lived processes keep this module alive across review sessions. Always
     // re-detect at the session boundary so nested-repo changes cannot leave
     // a stale provider with the wrong staging semantics cached for this cwd.
     return (await detectManagedVcs(cwd)) ?? defaultProvider;

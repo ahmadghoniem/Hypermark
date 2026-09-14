@@ -22,7 +22,7 @@ export interface CompleteAnnotateCommandOptions {
   logError?: (message: string) => void;
 }
 
-export function writeStdout(output: string): Promise<void> {
+function writeStdout(output: string): Promise<void> {
   return new Promise((resolve, reject) => {
     process.stdout.write(output, (error) => {
       if (error) reject(error);

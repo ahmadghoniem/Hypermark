@@ -2,16 +2,15 @@
  * External Annotations — shared types, store logic, and SSE helpers.
  *
  * Runtime-agnostic: no node:fs, no node:http, no Bun APIs.
- * Both the Bun server handler and Pi server handler import this module
- * and wrap it with their respective HTTP transport layers.
+ * The Bun server handler imports this module and wraps it with its HTTP
+ * transport layer.
  *
  * The store is generic — plan servers store Annotation objects,
  * review servers store CodeAnnotation objects. The mode-specific
  * input transformers handle validation and field assignment.
  */
 
-// Reply-threading validation for PATCH ingest, re-exported so both HTTP
-// adapters import it from the module they already use.
+// Reply-threading validation for PATCH ingest.
 export { validateReplyTarget } from "./annotation-threads";
 
 // ---------------------------------------------------------------------------
@@ -371,7 +370,7 @@ export interface AnnotationStore<T extends StorableAnnotation> {
  *
  * The store is runtime-agnostic — it holds data and emits events.
  * HTTP transport (SSE broadcasting, request parsing) is handled by
- * the server-specific adapter (Bun or Pi).
+ * the server adapter.
  */
 export function createAnnotationStore<T extends StorableAnnotation>(): AnnotationStore<T> {
   const annotations: T[] = [];

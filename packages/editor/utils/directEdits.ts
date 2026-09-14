@@ -32,7 +32,7 @@ export interface EditStats {
   removed: number;
 }
 
-export function isEmptyFeedbackSentinel(feedback: string): boolean {
+function isEmptyFeedbackSentinel(feedback: string): boolean {
   return EMPTY_FEEDBACK_SENTINELS.has(feedback);
 }
 

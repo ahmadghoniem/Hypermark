@@ -27,7 +27,7 @@ type SourceDocumentFetchResult =
   | { status: 'missing' }
   | { status: 'unavailable' };
 
-export interface SourceDocumentSnapshot {
+interface SourceDocumentSnapshot {
   markdown: string;
   sourceSave: EnabledSourceSaveCapability;
 }
@@ -42,7 +42,7 @@ export type SourceDocumentSnapshotResult =
  * present only when the server served the session's ROOT document (it
  * recomputes them against the bytes just read); linked docs carry none.
  */
-export interface HtmlDocumentSnapshot extends HtmlVersionDiffFields {
+interface HtmlDocumentSnapshot extends HtmlVersionDiffFields {
   rawHtml: string;
   filepath: string;
 }

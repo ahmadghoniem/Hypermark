@@ -33,6 +33,23 @@ describe("parseProcessTablePs", () => {
     expect(table.get(456)).toBe(123);
     expect(table.size).toBe(3);
   });
+
+  test("skips blank and malformed lines", () => {
+    const stdout = [
+      "",
+      "   ",
+      "not a row",
+      "  100   200",
+      "only-one",
+    ].join("\n");
+    const table = parseProcessTablePs(stdout);
+    expect(table.get(100)).toBe(200);
+    expect(table.size).toBe(1);
+  });
+
+  test("returns empty map for empty input", () => {
+    expect(parseProcessTablePs("").size).toBe(0);
+  });
 });
 
 describe("parseProcessTableCsv", () => {
@@ -42,6 +59,34 @@ describe("parseProcessTableCsv", () => {
     expect(table.get(123)).toBe(1);
     expect(table.get(456)).toBe(123);
     expect(table.size).toBe(2);
+  });
+
+  test("tolerates unquoted numeric rows", () => {
+    const stdout = [
+      "ProcessId,ParentProcessId",
+      "100,200",
+      "300,100",
+    ].join("\n");
+    const table = parseProcessTableCsv(stdout);
+    expect(table.get(100)).toBe(200);
+    expect(table.get(300)).toBe(100);
+  });
+
+  test("skips malformed rows", () => {
+    const stdout = [
+      '"ProcessId","ParentProcessId"',
+      'garbage',
+      '"100","200"',
+      '"abc","def"',
+      '',
+    ].join("\r\n");
+    const table = parseProcessTableCsv(stdout);
+    expect(table.size).toBe(1);
+    expect(table.get(100)).toBe(200);
+  });
+
+  test("returns empty map for empty input", () => {
+    expect(parseProcessTableCsv("").size).toBe(0);
   });
 });
 

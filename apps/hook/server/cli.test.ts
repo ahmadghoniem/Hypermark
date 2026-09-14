@@ -75,7 +75,6 @@ describe("CLI subcommand help", () => {
     // advertised "run 'hypermark <command> --help'" contract holds.
     for (const sub of [
       "annotate",
-      "archive",
       "sessions",
       "uninstall",
       "improve-context",
