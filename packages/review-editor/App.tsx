@@ -25,6 +25,7 @@ import { configStore, useConfigValue, setReviewPanelView } from '@hypermark/ui/c
 import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, type ImageAttachment } from '@hypermark/ui/types';
 import { useResizablePanel } from '@hypermark/ui/hooks/useResizablePanel';
 import { useCodeAnnotationDraft } from '@hypermark/ui/hooks/useCodeAnnotationDraft';
+import { useSessionEndedStream } from '@hypermark/ui/hooks/useSessionEndedStream';
 import { generateId } from './utils/generateId';
 import { toast, Toaster } from 'sonner';
 import { useCodeNav, type CodeNavRequest } from './hooks/useCodeNav';
@@ -1702,6 +1703,16 @@ const ReviewAppInner: React.FC = () => {
       setIsExiting(false);
     }
   }, [getDraftGeneration]);
+
+  // Session-ended: the parent watcher (packages/server/parent-watch.ts)
+  // announces when the Claude Code process that owns this session has
+  // exited. Flush the draft first, then show the same "Session Closed"
+  // overlay a manual exit shows. Stops listening once a decision is in.
+  const handleSessionEnded = useCallback(() => {
+    flushDraft();
+    setSubmitted('exited');
+  }, [flushDraft]);
+  useSessionEndedStream(submitted === false, handleSessionEnded);
 
   // Approve — bare (LGTM), with a composer note, or with the live annotations
   // riding along (PR5 delivery, spec §6.4). The old LGTM placeholder is gone:

@@ -53,6 +53,7 @@ import { usePlanDiff, type VersionInfo, type VersionEntry, type PlanDiffFetchers
 import { useLinkedDoc, type LinkedDocSessionState } from '@hypermark/ui/hooks/useLinkedDoc';
 import { useCodeFilePopout } from '@hypermark/ui/hooks/useCodeFilePopout';
 import { useAnnotationDraft, type DraftEditedDocument } from '@hypermark/ui/hooks/useAnnotationDraft';
+import { useSessionEndedStream } from '@hypermark/ui/hooks/useSessionEndedStream';
 import { useExternalAnnotations } from '@hypermark/ui/hooks/useExternalAnnotations';
 import { useExternalAnnotationHighlights } from '@hypermark/ui/hooks/useExternalAnnotationHighlights';
 import { useUndoHistory } from '@hypermark/ui/hooks/useUndoHistory';
@@ -2817,6 +2818,20 @@ const AppInner: React.FC = () => {
     const stream = openAnnotateClientLeaseStream(EventSource);
     return () => stream.close();
   }, [annotateMode, submitted, clientLease]);
+
+  // Session-ended: the parent watcher (packages/server/parent-watch.ts)
+  // announces when the Claude Code process that owns this session has
+  // exited. Flush the draft first — the reviewer's typing was never sent
+  // anywhere else — then show the same "Session Closed" overlay a manual
+  // exit shows. Stops listening once a decision is already in.
+  const handleSessionEnded = useCallback(() => {
+    flushDraft();
+    setSubmitted('exited');
+  }, [flushDraft]);
+  // Goal-setup sessions are served by packages/server/goal-setup.ts, which
+  // this spec does not touch (spec 12 removes goal-setup entirely) and
+  // which advertises no /api/session/stream route.
+  useSessionEndedStream(submitted == null && !goalSetupMode, handleSessionEnded);
 
   // Document-level image paste was removed: global attachments are no longer
   // a writable surface (spec 05 §4.1). A composer that is open claims its own
