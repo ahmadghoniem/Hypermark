@@ -12,7 +12,6 @@
     "./browser-paths": "./browser-paths.ts",
     "./code-file": "./code-file.ts",
     "./embed-insert": "./embed-insert.ts",
-    "./external-annotation": "./external-annotation.ts",
     "./extract-code-paths": "./extract-code-paths.ts",
     "./favicon": "./favicon.ts",
     "./session-stream": "./session-stream.ts",

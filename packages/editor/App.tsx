@@ -53,10 +53,7 @@ import { useLinkedDoc, type LinkedDocSessionState } from '@hypermark/ui/hooks/us
 import { useCodeFilePopout } from '@hypermark/ui/hooks/useCodeFilePopout';
 import { useAnnotationDraft, type DraftEditedDocument } from '@hypermark/ui/hooks/useAnnotationDraft';
 import { useSessionEndedStream } from '@hypermark/ui/hooks/useSessionEndedStream';
-import { useExternalAnnotations } from '@hypermark/ui/hooks/useExternalAnnotations';
-import { useExternalAnnotationHighlights } from '@hypermark/ui/hooks/useExternalAnnotationHighlights';
 import { useUndoHistory } from '@hypermark/ui/hooks/useUndoHistory';
-import { buildPlanAgentInstructions } from '@hypermark/ui/utils/planAgentInstructions';
 import { generateId } from '@hypermark/ui/utils/generateId';
 import { SidebarTabs } from '@hypermark/ui/components/sidebar/SidebarTabs';
 import { SidebarContainer } from '@hypermark/ui/components/sidebar/SidebarContainer';
@@ -1194,38 +1191,7 @@ const AppInner: React.FC = () => {
   const headingCount = useMemo(() => blocks.filter(b => b.type === 'heading').length, [blocks]);
   const activeSection = useActiveSection(planAreaRef, headingCount, scrollViewport);
 
-  const { externalAnnotations, updateExternalAnnotation, deleteExternalAnnotation } = useExternalAnnotations<Annotation>({
-    enabled: isApiMode,
-  });
-
-  // Drive DOM highlights for SSE-delivered external annotations. Disabled
-  // while a linked doc overlay is open (Viewer DOM is hidden) and while the
-  // plan diff view is active (diff view has its own annotation surface).
-  const { reset: resetExternalHighlights } = useExternalAnnotationHighlights({
-    viewerRef,
-    externalAnnotations,
-    enabled: isApiMode && !linkedDocHook.isActive && !isPlanDiffActive && !isEditingMarkdown,
-    planKey: markdown,
-  });
-
-  // Merge local + SSE annotations, deduping draft-restored externals against
-  // live SSE versions. Prefer the SSE version when both exist (same source,
-  // type, and originalText). This avoids the timing issues of an effect-based
-  // cleanup — draft-restored externals persist until SSE actually re-delivers them.
-  const allAnnotations = useMemo(() => {
-    if (externalAnnotations.length === 0) return annotations;
-
-    const local = annotations.filter(a => {
-      if (!a.source) return true;
-      return !externalAnnotations.some(ext =>
-        ext.source === a.source &&
-        ext.type === a.type &&
-        ext.originalText === a.originalText
-      );
-    });
-
-    return [...local, ...externalAnnotations];
-  }, [annotations, externalAnnotations]);
+  const allAnnotations = annotations;
 
   // Plan diff state — memoize filtered annotation lists to avoid new references per render
   const diffAnnotations = useMemo(() => allAnnotations.filter(a => !!a.diffContext), [allAnnotations]);
@@ -1477,10 +1443,8 @@ const AppInner: React.FC = () => {
   // The Viewer is remounted after every edit-mode exit (it was unmounted while
   // editing), so highlight DOM is rebuilt from scratch. Re-anchor via the same
   // text-search restore used by draft/share/linked-doc flows, then report
-  // annotations whose text vanished. resetExternalHighlights repaints live SSE
-  // annotation highlights the same way the share-import path does.
+  // annotations whose text vanished.
   const repaintHighlights = useCallback((list: Annotation[]) => {
-    resetExternalHighlights();
     const planAnnotations = list.filter(
       (a) => !a.diffContext && a.type !== AnnotationType.GLOBAL_COMMENT && !a.id.startsWith('ann-checkbox-')
     );
@@ -1499,7 +1463,7 @@ const AppInner: React.FC = () => {
         });
       }
     }, 120);
-  }, [resetExternalHighlights]);
+  }, []);
 
   // Commits the open editor buffer: updates markdown state, records the edit
   // for the Direct Edits diff, re-anchors annotations, repaints highlights.
@@ -2690,7 +2654,7 @@ const AppInner: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning,
-    submitted, isSubmitting, isExiting, isApiMode, isEditingMarkdown, linkedDocHook.isActive, annotations.length, codeAnnotations.length, externalAnnotations.length, annotateMode,
+    submitted, isSubmitting, isExiting, isApiMode, isEditingMarkdown, linkedDocHook.isActive, annotations.length, codeAnnotations.length, annotateMode,
     hasFeedbackToSend,
     annotateSource, origin,
     maybeConfirmUnsavedSourceFileEdits,
@@ -2857,18 +2821,6 @@ const AppInner: React.FC = () => {
 
   const deleteAnnotation = (id: string, history: 'record' | 'silent') => {
     const ann = allAnnotations.find(a => a.id === id);
-    if (ann?.source) annotationHistory.clear();
-    // External annotations (live in SSE hook) route to the SSE hook, not local state.
-    // Check membership by ID — source alone is insufficient because share-imported
-    // and draft-restored annotations also carry source but live in local state.
-    if (ann?.source && externalAnnotations.some(e => e.id === id)) {
-      deleteExternalAnnotation(id);
-      if (selectionRef.current.annotationId === id) {
-        selectionRef.current = { ...selectionRef.current, annotationId: null };
-        setSelectedAnnotationId(null);
-      }
-      return;
-    }
     // Checkbox deletion is one composite action: visual state and generated
     // annotation must travel together through history.
     if (id.startsWith('ann-checkbox-')) {
@@ -2920,11 +2872,6 @@ const AppInner: React.FC = () => {
     history: 'record' | 'silent',
   ) => {
     const ann = allAnnotations.find(a => a.id === id);
-    if (ann?.source) annotationHistory.clear();
-    if (ann?.source && externalAnnotations.some(e => e.id === id)) {
-      updateExternalAnnotation(id, updates);
-      return;
-    }
     if (!ann) return;
     const after = { ...ann, ...updates };
     annotationsRef.current = annotationsRef.current.map((annotation) => annotation.id === id ? after : annotation);
@@ -3131,19 +3078,6 @@ const AppInner: React.FC = () => {
     toast.success(`Reloaded ${reloaded.basename} from disk`);
   }, [applyEditedDocument, editableDocuments, repaintHighlights, scheduleDraftSave]);
 
-  // Agent Instructions — copy a clipboard payload teaching external agents
-  // (Claude Code, etc.) how to POST annotations into this session via
-  // /api/external-annotations. The instruction body lives in a separate module
-  // (utils/agentInstructions.ts) so it's easy to edit independently of UI code.
-  const handleCopyAgentInstructions = async () => {
-    const payload = buildPlanAgentInstructions(window.location.origin);
-    if (await copyTextToClipboard(payload)) {
-      toast.success('Agent instructions copied');
-    } else {
-      toast.error('Failed to copy');
-    }
-  };
-
   // Cmd/Ctrl+S keyboard shortcut — saves the active source file while editing.
   useEffect(() => {
     const handleSaveShortcut = (e: KeyboardEvent) => {
@@ -3182,7 +3116,6 @@ const AppInner: React.FC = () => {
     handleAnnotateApprove,
     handleAnnotateFeedback,
     handleAnnotateExit,
-    handleCopyAgentInstructions,
     getDocAnnotations: linkedDocHook.getDocAnnotations,
   });
   headerHandlersRef.current = {
@@ -3191,7 +3124,6 @@ const AppInner: React.FC = () => {
     handleAnnotateApprove,
     handleAnnotateFeedback,
     handleAnnotateExit,
-    handleCopyAgentInstructions,
     getDocAnnotations: linkedDocHook.getDocAnnotations,
   };
 
@@ -3415,8 +3347,6 @@ const AppInner: React.FC = () => {
     dismissOnIframeFocus: isHtmlSurface,
   }), [annotateCloseTitle, annotateDecisionHandlers, annotateDecisionSpec, isHtmlSurface]);
 
-  const handleHeaderCopyAgentInstructions = useCallback(() => headerHandlersRef.current.handleCopyAgentInstructions(), []);
-
   const planMaxWidth = useMemo(() => {
     const widths: Record<PlanWidth, number> = { compact: 832, default: 1040, wide: 1280 };
     return widths[uiPrefs.planWidth] ?? 832;
@@ -3542,8 +3472,6 @@ const AppInner: React.FC = () => {
           onFeedback={handleHeaderFeedback}
           onApprove={handleHeaderApprove}
           onAnnotationPanelToggle={handleAnnotationPanelToggle}
-          onCopyAgentInstructions={handleHeaderCopyAgentInstructions}
-          agentInstructionsEnabled={isApiMode && !annotateMode}
         />
 
         {/* The provider is render-transparent (context only, no DOM), so it can

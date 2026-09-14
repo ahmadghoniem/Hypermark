@@ -1,10 +1,9 @@
 /**
  * Reply threading (`inReplyTo`) rules shared by every consumer: the feedback
- * export, the annotations panel, and the external-annotation ingest.
+ * export and the annotations panel.
  *
  * Browser-safe, zero-dep. `inReplyTo` is an additive field whose value can
- * come from anywhere (a browser agent's tool call, a PATCH on
- * /api/external-annotations that merges arbitrary fields), so consumers must
+ * come from drafts, imported threads, or agents, so consumers must
  * never trust it to form a tree. The one rule every consumer applies:
  *
  *   An annotation is a reply only when its `inReplyTo` names a DIFFERENT
@@ -19,8 +18,7 @@
  *
  * Every walk here is linear in the number of annotations: each id is
  * classified once and later chains stop at the first classified id, so a
- * 5,000-deep chain (which a hostile or buggy tool can POST) costs 5,000
- * steps, not 12.5 million.
+ * 5,000-deep chain costs 5,000 steps, not 12.5 million.
  */
 
 export interface ThreadableAnnotation {
@@ -118,44 +116,4 @@ export function resolveThreadRootTimestamps<T extends ThreadableAnnotation & { c
     for (const id of path) rootTs.set(id, resolved);
   }
   return rootTs;
-}
-
-/**
- * Validate an `inReplyTo` value about to be written onto annotation `id`
- * (external-annotation PATCH ingest, both runtimes). A reply must point at
- * an existing, different annotation, and must not close a cycle through the
- * existing chain. `null`/`undefined` clear the field and are always valid.
- * Returns the error message, or `null` when the value may be applied.
- */
-export function validateReplyTarget(
-  all: readonly ThreadableAnnotation[],
-  id: string,
-  inReplyTo: unknown,
-): string | null {
-  if (inReplyTo === undefined || inReplyTo === null) return null;
-  if (typeof inReplyTo !== "string" || inReplyTo.length === 0) {
-    return 'invalid "inReplyTo": must be the id of an existing annotation';
-  }
-  if (inReplyTo === id) {
-    return 'invalid "inReplyTo": an annotation cannot reply to itself';
-  }
-  const byId = new Map<string, ThreadableAnnotation>();
-  for (const item of all) byId.set(item.id, item);
-  if (!byId.has(inReplyTo)) {
-    return `invalid "inReplyTo": no annotation with id "${inReplyTo}"`;
-  }
-  // Would the target's own chain lead back to `id`? Then the write would
-  // create a cycle.
-  const seen = new Set<string>();
-  let current: ThreadableAnnotation | undefined = byId.get(inReplyTo);
-  while (current) {
-    if (current.id === id) {
-      return 'invalid "inReplyTo": the reply chain would form a cycle';
-    }
-    if (seen.has(current.id)) break; // pre-existing cycle elsewhere; not ours to close
-    seen.add(current.id);
-    const next = typeof current.inReplyTo === "string" ? current.inReplyTo : null;
-    current = next ? byId.get(next) : undefined;
-  }
-  return null;
 }

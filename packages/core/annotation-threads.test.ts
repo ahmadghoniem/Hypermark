@@ -1,11 +1,11 @@
 /**
  * The one threading rule every `inReplyTo` consumer applies. Failures to
  * catch: a cycle member being treated as a reply (and then dropped by a
- * renderer that only walks down from roots), a self-reference threading
- * under itself, and the ingest accepting a write that would close a cycle.
+ * renderer that only walks down from roots), and a self-reference threading
+ * under itself.
  */
 import { describe, expect, test } from "bun:test";
-import { resolveReplyParents, resolveThreadRootTimestamps, validateReplyTarget } from "./annotation-threads";
+import { resolveReplyParents, resolveThreadRootTimestamps } from "./annotation-threads";
 
 const a = (id: string, inReplyTo?: string) => ({ id, inReplyTo });
 
@@ -85,28 +85,5 @@ describe("resolveThreadRootTimestamps", () => {
     expect(ts.get("x")).toBe(30);
     expect(ts.get("y")).toBe(40);
     expect(ts.get("c")).toBe(30);
-  });
-});
-
-describe("validateReplyTarget", () => {
-  const all = [a("p"), a("r", "p"), a("x", "y"), a("y", "x")];
-
-  test("accepts an existing different target and clearing", () => {
-    expect(validateReplyTarget(all, "x", "p")).toBeNull();
-    expect(validateReplyTarget(all, "r", null)).toBeNull();
-    expect(validateReplyTarget(all, "r", undefined)).toBeNull();
-  });
-
-  test("rejects self, missing, non-string and cycle-closing targets", () => {
-    expect(validateReplyTarget(all, "p", "p")).toContain("itself");
-    expect(validateReplyTarget(all, "p", "nope")).toContain("nope");
-    expect(validateReplyTarget(all, "p", 42)).toContain("inReplyTo");
-    expect(validateReplyTarget(all, "p", "")).toContain("inReplyTo");
-    // r -> p; setting p -> r closes p -> r -> p.
-    expect(validateReplyTarget(all, "p", "r")).toContain("cycle");
-  });
-
-  test("a pre-existing cycle elsewhere does not block an unrelated reply", () => {
-    expect(validateReplyTarget(all, "p", "x")).toBeNull();
   });
 });

@@ -22,7 +22,6 @@ configureHypermarkUI({
   docPreviewFetcher,
   fileTreeBackend,
   draftTransport,
-  externalAnnotationTransport, // live/agent comments
   serverSync,
   mathRendererLoader,          // how KaTeX loads when no renderer is registered before first math render
   identityGenerator,           // sync generator behind the default "tater" name (no identityProvider)
@@ -104,7 +103,6 @@ Everything a host needs around `HtmlViewer` to match Hypermark's HTML annotation
 - **`components/HtmlSurfaceControls`**: the eye / refresh / pen header controls with Hypermark's markup and `labels` overrides.
 - **`AnnotationPanel` `unanchoredIds`**: an "Unanchored" chip on the listed cards.
 - **`HtmlViewer` `scrollBehavior`** (`'auto'` for reduced motion) and **`maxAdditionalTargets`** (a product cap the bridge honors too). With the cap enforced upstream (bridge toggle, parent trust boundary on submit and on restore, `projectHostThreads` `maxTargets` on read), a composed comment never reaches the host with more targets than the cap, so a host's own cap-dropped handling (`capDroppedTargets` from `buildPersistedHtmlAnchor`, or a message-counting listener) is unreachable in normal operation; keep it only as a backstop for rows written by an older host build or by another writer. Byte-budget drops (`sizeDroppedTargets`) are a separate path and remain reachable.
-- An `ExternalAnnotationTransport` whose `subscribe` emits `snapshot` on a host push keeps `useExternalAnnotations` off its fallback poll.
 
 See HANDOFF.md § "HTML annotation parity seams".
 

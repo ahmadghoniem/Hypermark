@@ -1,6 +1,6 @@
 import type { CodeAnnotation, CodeAnnotationScope, DiffAnnotationMetadata } from '@hypermark/ui/types';
 
-/** A code annotation's scope, defaulting to 'line' for older/external data. */
+/** A code annotation's scope, defaulting to 'line' for older data. */
 function annotationScope(a: CodeAnnotation): CodeAnnotationScope {
   return a.scope ?? 'line';
 }

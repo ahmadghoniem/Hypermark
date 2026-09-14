@@ -32,7 +32,6 @@ import { contentHash, deleteDraft } from "./draft";
 import { handleDoc, handleDocExists } from "./reference-handlers";
 import { closeAllFileBrowserWatchers, handleFileBrowserFilesStream } from "./reference-watch";
 import { warmFileListCache } from "@hypermark/shared/resolve-file";
-import { createExternalAnnotationHandler } from "./external-annotations";
 import { SESSION_STREAM_PATH } from "@hypermark/shared/session-stream";
 import { createSessionStreamBroadcaster } from "./session-stream";
 import { startParentWatch, type ParentWatcher } from "./parent-watch";
@@ -108,7 +107,6 @@ export async function startHypermarkServer(
 
   // --- Plan review setup ---
   const draftKey = contentHash(plan);
-  const externalAnnotations = createExternalAnnotationHandler("plan");
   // Session-ended stream: announces on /api/session/stream when the parent
   // watcher below detects the Claude Code process that owns this plan is
   // gone (see ./parent-watch.ts).
@@ -201,8 +199,7 @@ export async function startHypermarkServer(
         hostname: getServerHostname(),
         port,
         // Bun's default 10s idleTimeout kills long-parked requests (e.g. the
-        // external-annotation and file-browser SSE streams, which can stall
-        // between events).
+        // file-browser SSE stream, which can stall between events).
         idleTimeout: 0,
 
         async fetch(req, server) {
@@ -296,12 +293,6 @@ export async function startHypermarkServer(
           if (url.pathname === SESSION_STREAM_PATH && req.method === "GET") {
             return sessionStream.handleRequest();
           }
-
-          // API: External annotations (SSE-based, for any external tool)
-          const externalResponse = await externalAnnotations?.handle(req, url, {
-            disableIdleTimeout: () => server.timeout(req, 0),
-          });
-          if (externalResponse) return externalResponse;
 
           // API: Approve plan
           if (url.pathname === "/api/approve" && req.method === "POST") {

@@ -36,7 +36,6 @@ import { detectGeneratedFiles, detectGeneratedFilesByName } from "@hypermark/sha
 import { getRepoInfo } from "./repo";
 import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
 import { contentHash, deleteDraft } from "./draft";
-import { createExternalAnnotationHandler } from "./external-annotations";
 import { loadConfig, saveConfig, detectGitUser, getServerConfig, resolveFeedbackHistory } from "./config";
 import { appendFeedbackRecord, countChangedFiles, deriveFeedbackProject, type FeedbackDecision, type FeedbackReviewTarget } from "@hypermark/shared/feedback-archive";
 import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
@@ -156,7 +155,6 @@ export async function startReviewServer(
   const sessionVcsType = gitContext?.vcsType;
   let clientGitContext = gitContext;
   let draftKey = contentHash(options.rawPatch);
-  const externalAnnotations = createExternalAnnotationHandler("review");
 
   // Mutable state for diff switching
   let currentPatch = options.rawPatch;
@@ -1104,12 +1102,6 @@ export async function startReviewServer(
           if (url.pathname === SESSION_STREAM_PATH && req.method === "GET") {
             return sessionStream.handleRequest();
           }
-
-          // API: External annotations (SSE-based, for any external tool)
-          const externalResponse = await externalAnnotations.handle(req, url, {
-            disableIdleTimeout: () => server.timeout(req, 0),
-          });
-          if (externalResponse) return externalResponse;
 
           // API: Exit review session without feedback
           if (url.pathname === "/api/exit" && req.method === "POST") {

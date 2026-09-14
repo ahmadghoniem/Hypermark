@@ -6,8 +6,7 @@ interface CommentActionsProps {
   onEdit?: () => void;
   /** When provided, shows the copy button (middle). */
   copyText?: string;
-  /** When provided, shows the delete/close button (right-most). Omitted for
-   *  read-only (e.g. externally-sourced) comments. */
+  /** When provided, shows the delete/close button (right-most). */
   onDelete?: () => void;
 }
 

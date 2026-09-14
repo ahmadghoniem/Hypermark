@@ -47,9 +47,8 @@ describe('exportAnnotations with inReplyTo', () => {
     expect(out).not.toContain('**Reply');
   });
 
-  // Reachable through PATCH /api/external-annotations before ingest refused
-  // it, and still possible in drafts: a cycle used to be dropped from the
-  // body while the header still counted it.
+  // Possible in corrupted drafts or malformed inputs: a cycle used to be dropped
+  // from the body while the header still counted it.
   test('an inReplyTo cycle drops nothing: its members are roots in original order and the count matches', () => {
     const x = comment('x', 'Rotate the key', 'X says', { inReplyTo: 'y', createdA: 1 });
     const y = comment('y', 'Rotate the key', 'Y says', { inReplyTo: 'x', createdA: 2 });

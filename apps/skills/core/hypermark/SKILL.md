@@ -120,15 +120,9 @@ hypermark uninstall [--purge] [--yes] [--dry-run]
 | `HYPERMARK_PORT` | Fix the port instead of a random one. |
 | `HYPERMARK_ORIGIN` | Override agent-origin detection. This fork installs only `claude-code`; the other ids are still recognized so older saved records keep a readable origin tag. |
 | `HYPERMARK_DATA_DIR` | Move the data directory (default `~/.hypermark`): plans, history, drafts, config. |
-| `HYPERMARK_BROWSER` | Open sessions in a specific browser. |
-
-## Posting annotations into a live session
-
-A running plan-review session exposes a small HTTP API on its base URL for external annotations: `POST /api/external-annotations` adds inline annotations the reviewer sees immediately, with PATCH/DELETE for updates and an SSE stream at `/api/external-annotations/stream`. The UI's "copy agent instructions" action puts the full API contract for the current session, with the correct base URL, on the clipboard for handing to an agent or script. If the user pastes such instructions, follow them; do not invent endpoints beyond that contract.
-
 ## Do not
 
-- Do not parse or scrape the browser UI's HTML; the CLI's stdout (and the documented HTTP API above) is the whole contract.
+- Do not parse or scrape the browser UI's HTML; the CLI's stdout is the whole contract.
 - Do not use `--hook` outside a real hook context; use `--json` when you need structured output.
 - Do not run bare `hypermark` interactively; it is the hook entry point.
 - Do not guess flags. Run `hypermark <command> --help` when unsure; unknown dashed tokens make annotate fail on purpose.

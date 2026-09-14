@@ -42,7 +42,7 @@ export interface Annotation {
   originalText: string; // The text that was selected
   createdA: number;
   author?: string; // Tater identity for collaborative sharing
-  source?: string; // External tool identifier (e.g., "eslint") — set when annotation comes from external API
+  source?: string; // Legacy identifier preserved for backwards-compatibility with older saved drafts
   images?: ImageAttachment[]; // Attached images with human-readable names
   quickLabelTip?: string; // optional instruction tip from the label definition
   diffContext?: 'added' | 'removed' | 'modified'; // set when annotation created in plan diff view
@@ -150,7 +150,7 @@ export interface CodeAnnotation {
   selectedText?: string;
   createdAt: number;
   author?: string;
-  source?: string; // External tool identifier (e.g., "eslint") — set when annotation comes from external API
+  source?: string; // Legacy identifier preserved for backwards-compatibility with older saved drafts
   severity?: 'important' | 'nit' | 'pre_existing'; // Agent review severity (Claude)
   reasoning?: string; // Validation chain — how the issue was confirmed (Claude)
   /** Set when the annotation was created on a commit:<sha> diff (Commits
@@ -245,8 +245,3 @@ export interface VaultNode {
   type: "file" | "folder";
   children?: VaultNode[];
 }
-
-
-export type {
-  ExternalAnnotationEvent,
-} from '@hypermark/core/external-annotation';

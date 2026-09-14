@@ -40,11 +40,11 @@ interface ReviewSidebarProps {
  *
  * Fully controlled: `open`/`text` live in ReviewSidebar, shared by both
  * placements, so the draft survives a dismissal (outside click / Escape), a
- * placement flip (an external annotation arriving over SSE mid-sentence
- * unmounts the empty-state instance and mounts the section-header one), and a
- * tab switch. Only a commit clears it; collapsing the sidebar discards it
- * (accepted). An empty commit never fires the callback — it refocuses the
- * field, the same contract as the decision composers.
+ * placement flip (a comment arriving mid-sentence unmounts the empty-state
+ * instance and mounts the section-header one), and a tab switch. Only a commit
+ * clears it; collapsing the sidebar discards it (accepted). An empty commit
+ * never fires the callback — it refocuses the field, the same contract as the
+ * decision composers.
  */
 const GeneralCommentComposer: React.FC<{
   onAdd: (text: string) => void;
@@ -156,10 +156,10 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
   const [copied, setCopied] = useState(false);
   // General-comment composer state lives HERE, not in GeneralCommentComposer:
   // the two placements (empty state vs section header) are different branches,
-  // so a totalCount 0→1 flip mid-sentence (an external annotation arriving
-  // over SSE) or a tab switch unmounts the instance — parent state keeps the
-  // draft and open popover across both. Collapsing the sidebar unmounts this
-  // component and discards the draft (accepted).
+  // so a totalCount 0→1 flip mid-sentence or a tab switch unmounts the
+  // instance — parent state keeps the draft and open popover across both.
+  // Collapsing the sidebar unmounts this component and discards the draft
+  // (accepted).
   const [generalComposerOpen, setGeneralComposerOpen] = useState(false);
   const [generalDraft, setGeneralDraft] = useState('');
   // Available panel width for the popover clamp.

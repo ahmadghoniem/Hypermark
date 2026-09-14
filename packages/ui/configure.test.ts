@@ -6,7 +6,6 @@ import * as storage from './utils/storage';
 import * as upload from './utils/upload';
 import * as identity from './utils/identity';
 import * as useAnnotationDraft from './hooks/useAnnotationDraft';
-import * as useExternalAnnotations from './hooks/useExternalAnnotations';
 import { configStore } from './config';
 
 import type { ImageSrcResolver } from './components/ImageThumbnail';
@@ -15,7 +14,6 @@ import type { StorageBackend } from './utils/storage';
 import type { UploadTransport } from './utils/upload';
 import type { IdentityProvider } from './utils/identity';
 import type { DraftTransport } from './hooks/useAnnotationDraft';
-import type { ExternalAnnotationTransport } from './hooks/useExternalAnnotations';
 
 // Capture the REAL exports at module-evaluation time (top-level, before any
 // mock.module() is installed). These are used to restore the module registry
@@ -33,8 +31,6 @@ const realSetIdentityProvider = identity.setIdentityProvider;
 const realResetIdentityProvider = identity.resetIdentityProvider;
 const realSetDraftTransport = useAnnotationDraft.setDraftTransport;
 const realResetDraftTransport = useAnnotationDraft.resetDraftTransport;
-const realSetExternalAnnotationTransport = useExternalAnnotations.setExternalAnnotationTransport;
-const realResetExternalAnnotationTransport = useExternalAnnotations.resetExternalAnnotationTransport;
 
 // Spy mocks — will be installed into the module registry in beforeAll.
 const setImageSrcResolver = mock((_: ImageSrcResolver) => {});
@@ -43,7 +39,6 @@ const setStorageBackend = mock((_: StorageBackend) => {});
 const setUploadTransport = mock((_: UploadTransport) => {});
 const setIdentityProvider = mock((_: IdentityProvider) => {});
 const setDraftTransport = mock((_: DraftTransport) => {});
-const setExternalAnnotationTransport = mock((_: ExternalAnnotationTransport<{ id: string; source?: string }>) => {});
 
 // configStore is shared with sibling suites — spy on the real instance methods
 // instead of replacing the ./config module.
@@ -60,14 +55,6 @@ const draftTransport: DraftTransport = {
   load: async () => ({ data: null, generation: null }),
   save: async () => {},
   remove: async () => {},
-};
-const externalAnnotationTransport: ExternalAnnotationTransport<{ id: string; source?: string }> = {
-  subscribe: () => () => {},
-  getSnapshot: async () => null,
-  add: async () => {},
-  remove: async () => {},
-  update: async () => {},
-  clear: async () => {},
 };
 const serverSync = (_payload: Record<string, unknown>) => {};
 
@@ -114,11 +101,6 @@ describe('configureHypermarkUI routing', () => {
       setDraftTransport,
       resetDraftTransport: realResetDraftTransport,
     }));
-    mock.module('./hooks/useExternalAnnotations', () => ({
-      ...useExternalAnnotations,
-      setExternalAnnotationTransport,
-      resetExternalAnnotationTransport: realResetExternalAnnotationTransport,
-    }));
   });
 
   afterAll(() => {
@@ -155,11 +137,6 @@ describe('configureHypermarkUI routing', () => {
       setDraftTransport: realSetDraftTransport,
       resetDraftTransport: realResetDraftTransport,
     }));
-    mock.module('./hooks/useExternalAnnotations', () => ({
-      ...useExternalAnnotations,
-      setExternalAnnotationTransport: realSetExternalAnnotationTransport,
-      resetExternalAnnotationTransport: realResetExternalAnnotationTransport,
-    }));
   });
 
   it('routes each provided seam to its underlying setter', async () => {
@@ -172,7 +149,6 @@ describe('configureHypermarkUI routing', () => {
       docPreviewFetcher,
       identityProvider,
       draftTransport,
-      externalAnnotationTransport,
       serverSync,
       loadSettingsFromBackend: true,
     });
@@ -183,7 +159,6 @@ describe('configureHypermarkUI routing', () => {
     expect(setUploadTransport).toHaveBeenCalledWith(uploadTransport);
     expect(setIdentityProvider).toHaveBeenCalledWith(identityProvider);
     expect(setDraftTransport).toHaveBeenCalledWith(draftTransport);
-    expect(setExternalAnnotationTransport).toHaveBeenCalledWith(externalAnnotationTransport);
     expect(setServerSync).toHaveBeenCalledWith(serverSync);
     expect(loadFromBackend).toHaveBeenCalledTimes(1);
 
@@ -198,7 +173,7 @@ describe('configureHypermarkUI routing', () => {
 
     [
       setImageSrcResolver, setDocPreviewFetcher, setStorageBackend, setUploadTransport,
-      setIdentityProvider, setDraftTransport, setExternalAnnotationTransport,
+      setIdentityProvider, setDraftTransport,
       setServerSync, loadFromBackend,
     ].forEach((m) => m.mockClear());
 

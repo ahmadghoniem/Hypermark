@@ -31,7 +31,6 @@ import {
 	readSourceFileSnapshot,
 	saveSourceFileAtomic,
 } from "@hypermark/shared/source-save-node";
-import { createExternalAnnotationHandler } from "./external-annotations";
 import {
   ANNOTATE_CLIENT_LEASE_GRACE_MS,
   ANNOTATE_CLIENT_LEASE_HEARTBEAT_MS,
@@ -339,7 +338,6 @@ export async function startAnnotateServer(
     // A failed write only holds the draft back when there was content to lose.
     return legacyDurable && (archived || !hasContent);
   };
-  const externalAnnotations = createExternalAnnotationHandler("plan");
   const htmlAssets = createHtmlAssetRegistry();
 
   // The fallback is silent to the reviewer, so the reason is logged once per
@@ -552,8 +550,8 @@ export async function startAnnotateServer(
     Bun.serve({
         hostname: getServerHostname(),
         port,
-        // Bun's default 10s idleTimeout kills long-parked requests (e.g. the
-        // external-annotation SSE stream, which can stall between events).
+        // Bun's default 10s idleTimeout kills long-parked requests (e.g.
+        // SSE streams, which can stall between events).
         idleTimeout: 0,
 
         async fetch(req, server) {
@@ -859,12 +857,6 @@ export async function startAnnotateServer(
           if (url.pathname === SESSION_STREAM_PATH && req.method === "GET") {
             return sessionStream.handleRequest();
           }
-
-          // API: External annotations (SSE-based, for any external tool)
-          const externalResponse = await externalAnnotations.handle(req, url, {
-            disableIdleTimeout: () => server.timeout(req, 0),
-          });
-          if (externalResponse) return externalResponse;
 
           // API: Exit annotation session without feedback
           if (url.pathname === "/api/exit" && req.method === "POST") {

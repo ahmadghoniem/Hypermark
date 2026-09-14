@@ -4,12 +4,11 @@ import { setStorageBackend, type StorageBackend } from './utils/storage';
 import { setUploadTransport, type UploadTransport, type UploadResult } from './utils/upload';
 import { setIdentityProvider, type IdentityProvider } from './utils/identity';
 import { setDraftTransport, type DraftTransport } from './hooks/useAnnotationDraft';
-import { setExternalAnnotationTransport, type ExternalAnnotationTransport } from './hooks/useExternalAnnotations';
 import { setMathRendererLoader, type MathRenderer, type MathRendererLoader } from './utils/math';
 import { setIdentityGenerator, type IdentityGenerator } from './utils/generateIdentity';
 import { configStore } from './config';
 import type { ServerSyncFn } from './config/configStore';
-import type { ExternalAnnotationEvent, VaultNode } from './types';
+import type { VaultNode } from './types';
 
 // One-stop type barrel: every seam contract a host implements is importable
 // from this module, next to configureHypermarkUI itself.
@@ -23,15 +22,11 @@ export type {
   IdentityProvider,
   VaultNode,
   DraftTransport,
-  ExternalAnnotationTransport,
-  ExternalAnnotationEvent,
   ServerSyncFn,
   MathRenderer,
   MathRendererLoader,
   IdentityGenerator,
 };
-
-type ExternalAnnotationBase = { id: string; source?: string };
 
 export interface HypermarkUIConfig {
   imageSrcResolver?: ImageSrcResolver;
@@ -40,13 +35,6 @@ export interface HypermarkUIConfig {
   docPreviewFetcher?: DocPreviewFetcher;
   identityProvider?: IdentityProvider;
   draftTransport?: DraftTransport;
-  /**
-   * Base-constraint transport. If your annotation type extends the base
-   * constraint ({ id: string; source?: string }) with extra fields, call
-   * setExternalAnnotationTransport<YourType>() directly for full type safety —
-   * this front-door field intentionally pins the base constraint for ergonomics.
-   */
-  externalAnnotationTransport?: ExternalAnnotationTransport<ExternalAnnotationBase>;
   serverSync?: ServerSyncFn;
   /**
    * How the math renderer is loaded when no renderer is registered before the
@@ -74,7 +62,6 @@ export function configureHypermarkUI(config: HypermarkUIConfig): void {
   if (config.docPreviewFetcher) setDocPreviewFetcher(config.docPreviewFetcher);
   if (config.identityProvider) setIdentityProvider(config.identityProvider);
   if (config.draftTransport) setDraftTransport(config.draftTransport);
-  if (config.externalAnnotationTransport) setExternalAnnotationTransport(config.externalAnnotationTransport);
   if (config.serverSync) configStore.setServerSync(config.serverSync);
   if (config.mathRendererLoader) setMathRendererLoader(config.mathRendererLoader);
   if (config.identityGenerator) setIdentityGenerator(config.identityGenerator);

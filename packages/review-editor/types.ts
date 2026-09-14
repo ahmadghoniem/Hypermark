@@ -1,13 +1,4 @@
-import type { SelectedLineRange } from '@hypermark/ui/types';
-
 export type { DiffFile, DiffFileStatus } from '@hypermark/core/diff-files';
-
-/** One-shot request to open the native code-annotation composer on a source range. */
-export interface LineAnnotationComposeRequest {
-  readonly id: number;
-  readonly filePath: string;
-  readonly range: SelectedLineRange;
-}
 
 /**
  * A "scroll the diff to this comment" request, distinct from mere selection so

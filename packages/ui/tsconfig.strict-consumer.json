@@ -52,7 +52,6 @@
     "hooks/useAnnotationHighlighter.ts",
     "hooks/useAnnotationDraft.ts",
     "hooks/useCodeAnnotationDraft.ts",
-    "hooks/useExternalAnnotations.ts",
     "hooks/useResizablePanel.ts",
     "hooks/useActiveSection.ts",
     "hooks/useScrollViewport.ts",

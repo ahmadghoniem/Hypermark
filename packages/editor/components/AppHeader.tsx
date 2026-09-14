@@ -3,7 +3,6 @@ import type { Origin } from '@hypermark/shared/agents';
 import { FeedbackButton, ApproveButton } from '@hypermark/ui/components/ToolbarButtons';
 import { DecisionControl, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import type { DecisionActionId, DecisionSpec } from '@hypermark/ui/utils/decisionSpec';
-import { PlanHeaderMenu } from '@hypermark/ui/components/PlanHeaderMenu';
 import { ThemeModeButton } from '@hypermark/ui/components/ThemeModeButton';
 import { KeyboardShortcutsButton } from '@hypermark/ui/components/KeyboardShortcutsDialog';
 import type { UIPreferences } from '@hypermark/ui/utils/uiPreferences';
@@ -63,10 +62,6 @@ interface AppHeaderProps {
   onFeedback: () => void;
   onApprove: () => void;
   onAnnotationPanelToggle: () => void;
-  onCopyAgentInstructions: () => void;
-
-  // PlanHeaderMenu config
-  agentInstructionsEnabled: boolean;
 }
 
 export const AppHeader = React.memo<AppHeaderProps>(({
@@ -93,8 +88,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   onFeedback,
   onApprove,
   onAnnotationPanelToggle,
-  onCopyAgentInstructions,
-  agentInstructionsEnabled,
 }) => {
   return (
     <header
@@ -189,11 +182,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
         <ThemeModeButton />
 
         <KeyboardShortcutsButton mode={annotateMode ? 'annotate' : 'plan'} />
-
-        <PlanHeaderMenu
-          onCopyAgentInstructions={onCopyAgentInstructions}
-          agentInstructionsEnabled={agentInstructionsEnabled}
-        />
       </div>
     </header>
   );

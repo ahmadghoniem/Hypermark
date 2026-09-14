@@ -26,7 +26,7 @@ If you read nothing else, read **"The 60-second version"**, **"Supported imports
 
 **New package: `@hypermark/core`** — a browser-safe, zero-dependency package carved out of `@hypermark/shared`. It holds the pure utilities and types `ui` depends on, so `ui` can be installed without dragging in Hypermark's Node/server code. Modules were moved with `git mv` (not copied). CI typechecks it with no `@types/node` so a `node:` import can't sneak in.
 
-Core modules: `agents`, `browser-paths`, `code-file`, `external-annotation`, `extract-code-paths`, `favicon`, `feedback-templates`, `open-in-apps`, `project`, `source-save`, plus extracted type files (`config-types`, `storage-types`, `workspace-status-types`, `ai-context`, `types`).
+Core modules: `agents`, `browser-paths`, `code-file`, `extract-code-paths`, `favicon`, `feedback-templates`, `open-in-apps`, `project`, `source-save`, plus extracted type files (`config-types`, `storage-types`, `workspace-status-types`, `ai-context`, `types`).
 
 **`@hypermark/shared` re-exports core via one-line shims** — e.g. `packages/shared/project.ts` is just `export * from '@hypermark/core/project';`. This is why none of Hypermark's ~99 internal import sites changed: they still import from `@hypermark/shared/*` and get the moved code transparently.
 
@@ -95,7 +95,6 @@ Pass any subset of these to `configureHypermarkUI({ ... })`. Anything omitted ke
 | `docPreviewFetcher` | `(path, base?) => Promise<DocPreviewResult \| null>` | Hover/inline preview of a linked `.md` doc | `GET /api/doc` |
 | `fileTreeBackend` | `FileTreeBackend` | The file/folder browser tree + live-watch | `GET /api/reference/files`, EventSource watch |
 | `draftTransport` | `DraftTransport` | Auto-saved annotation drafts (survive a crash/reload) | `GET/POST/DELETE /api/draft` |
-| `externalAnnotationTransport` | `ExternalAnnotationTransport<T>` | Live/agent comments streamed into the doc | SSE `/api/external-annotations/stream` + polling snapshot + CRUD |
 | `serverSync` | `ServerSyncFn` | Push a settings change back to the server | No-op-ish (Hypermark's local sync) |
 | `loadSettingsFromBackend` | `boolean` | After install, re-hydrate settings from your `storageBackend` | off |
 | `mathRendererLoader` | `() => Promise<MathRenderer>` | How KaTeX is loaded when no renderer is registered before the first math node renders (see "Lazy renderers and eager entries"). Once registered, the package default is never called, not even as a fallback after a rejected load, and `resetMathRenderer()` keeps the registration (0.34.0); a default load already in flight at registration still fills the slot (pre-existing, see `setMathRendererLoader`), so register before the first math render | `utils/math-default-loader`'s `import('katex')`, JS only; CSS stays yours |
@@ -114,8 +113,6 @@ Pass any subset of these to `configureHypermarkUI({ ... })`. Anything omitted ke
 **`UploadTransport`** — `upload(file: File): Promise<{ path: string; originalName? }>`. The default does Hypermark's `POST /api/upload` and returns the server path. For Workspaces, send the bytes to your asset API (`PUT /v1/workspaces/:wsId/assets/:assetPath`) and return the content-addressed URL (or an opaque ref) in `path`. Notes from the Workspaces asset layer: your API makes the **caller choose the asset path** and 409s if a document owns it, so your adapter — not the UI — owns path selection (namespace uploads, e.g. an `assets/` prefix); it enforces a **10 MiB cap + content-type allowlist**, so surface upload failures; and because asset URLs need **no signing** (content-addressed, served from the cookieless `tot.page` origin), `imageSrcResolver` can be a pass-through — returning a full URL in `path` renders directly (the default resolver passes http(s) URLs through).
 
 **`DraftTransport`** — `load()`, `save(body, { keepalive })`, `remove(generation, { keepalive })`. The generation-gated tombstone and keepalive retry logic stay inside the hook; you only provide the three transport calls. `keepalive: true` means "best-effort deliver this even though the page is closing" (maps to `fetch(..., { keepalive: true })` or `navigator.sendBeacon`). One non-obvious contract on `load()`: it returns `{ data, generation }`, where `generation` is the **deletion tombstone counter** for the no-draft case — Hypermark's server encodes it in the 404 body so a stale tab can't resurrect a deleted draft. If your backend tracks draft deletions, return the tombstone generation with `data: null`; if it doesn't, return `{ data, generation: null }` and the hook still works (you just lose stale-tab deletion protection).
-
-**`ExternalAnnotationTransport<T>`** — `subscribe(onEvent, onError) => unsubscribe`, `getSnapshot(since) => { annotations, version } | null` (return `null` for "no changes", i.e. the 304 case), plus `add/remove/update/clear`. For Workspaces this is your realtime layer — a Durable Object WebSocket or SSE fanning out comment events. `T` extends `{ id: string; source?: string }`; if your annotation type adds fields, call `setExternalAnnotationTransport<YourType>()` directly for full type safety (the `configure` front door pins the base type for ergonomics).
 
 **`FileTreeBackend`** currently returns `Response` objects** (the raw `fetch` response) rather than parsed domain types — `loadTree` returns `Promise<Response>` whose JSON is a known shape. **This is a known rough edge** (see "Known rough edges"). To satisfy this today, Workspaces has to hand back something `Response`-shaped (status, `.json()`). It works, but it leaks the old HTTP contract. We deliberately left it as-is for the first cut (move-don't-rewrite); expect to clean it up in a v2 driven by what's actually painful when you wire it.
 
@@ -145,7 +142,6 @@ configureHypermarkUI({
   docPreviewFetcher,              // your doc store
   fileTreeBackend,                // your workspace file tree + realtime watch
   draftTransport,                 // your draft store
-  externalAnnotationTransport,    // adapt your Yjs/WebSocket realtime onto this
   serverSync,                     // your settings push
   loadSettingsFromBackend: true,  // re-hydrate settings from storageBackend after install
 });
@@ -171,7 +167,6 @@ Grounded in a read of the Workspaces repo (`apps/app`, `apps/usercontent`, `apps
 | `docPreviewFetcher` | `GET /v1/workspaces/:wsId/documents/:docId` (D1 + git content store). | thin adapter |
 | `fileTreeBackend` | `GET /v1/workspaces/:wsId/documents` (D1 doc list); live-watch via the DocumentDO. | thin adapter |
 | `draftTransport` | KV or a per-doc Durable Object; `sendBeacon` for keepalive. | thin adapter |
-| `externalAnnotationTransport` | **Transport kind differs** — Workspaces realtime is Yjs-over-WebSocket (DocumentDO), and comments are REST with no live push. Adapt comment events onto the DO awareness channel (or add an SSE endpoint). | biggest adapter |
 | `serverSync` | A Worker endpoint that persists the settings delta. | thin adapter |
 
 **Backend follow-up (Workspaces side, not a UI change):** if you want readable author names instead of raw `user_…` ids in comments, the `Me`/annotation projections need to start carrying a display-name field (WorkOS has `first_name`/`last_name`; the current `Me` projection drops them).
@@ -188,7 +183,7 @@ We deliberately did **not** restructure the exports map in this PR (move-don't-r
 
 | Import | Notes |
 |---|---|
-| `configure` (`configureHypermarkUI`) | The front door. Also re-exports **every seam contract type** (`StorageBackend`, `IdentityProvider`, `UploadTransport`/`UploadResult`, `DraftTransport`, `ExternalAnnotationTransport`/`ExternalAnnotationEvent`, `FileTreeBackend`/`VaultNode`, `ImageSrcResolver`, `DocPreviewFetcher`/`DocPreviewResult`, `ServerSyncFn`) so host adapters need one import. |
+| `configure` (`configureHypermarkUI`) | The front door. Also re-exports **every seam contract type** (`StorageBackend`, `IdentityProvider`, `UploadTransport`/`UploadResult`, `DraftTransport`, `FileTreeBackend`/`VaultNode`, `ImageSrcResolver`, `DocPreviewFetcher`/`DocPreviewResult`, `ServerSyncFn`) so host adapters need one import. |
 | `theme` / `styles.css` | Theme tokens + precompiled stylesheet. **Prefer `styles.css`.** The raw `theme` export still `@import`s KaTeX (re-acquiring the fonts `styles.css` deliberately excludes, as separate lazy files) and contains Tailwind v4 `@theme` at-rules, so it's inert without Tailwind processing. |
 | `types` | `Annotation`, `Block`, `AnnotationType`, etc. |
 | `utils/parser` (`parseMarkdownToBlocks`, `exportAnnotations`) | Pure — no backend. |
@@ -204,7 +199,7 @@ We deliberately did **not** restructure the exports map in this PR (move-don't-r
 | `components/ThemeProvider` | Color-mode context. |
 | `theme-modes` (`THEME_MODES`, `Mode`) | The supported Light/Dark/System catalog and mode type. `Mode` also remains exported from `components/ThemeProvider` for compatibility with existing consumers. |
 | `components/ImageThumbnail` / `getImageSrc` | Routes through `imageSrcResolver`. |
-| Seam-backed hooks: `useAnnotationHighlighter`, `useAnnotationDraft`, `useCodeAnnotationDraft`, `useExternalAnnotations` | Their network access goes through the seams in the catalog above. |
+| Seam-backed hooks: `useAnnotationHighlighter`, `useAnnotationDraft`, `useCodeAnnotationDraft` | Their network access goes through the seams in the catalog above. |
 | `config` (`ConfigStore`) | Persists through `storageBackend`. |
 | `components/TableOfContents` | Pure — renders from `blocks`; pair with `useActiveSection` for scroll-spy. *(Blessed in 0.24.0.)* |
 | `components/ResizeHandle` + `hooks/useResizablePanel` | Layout pair for draggable panel widths; persists the width through the `storageBackend` seam. *(Blessed in 0.24.0.)* |
@@ -236,8 +231,6 @@ Don't import these in a host. Each hits hardcoded Hypermark endpoints:
 - `hooks/useLinkedDoc` — `/api/doc` directly (the `docPreviewFetcher` seam covers `InlineMarkdown`'s hover previews, **not** this full linked-doc overlay).
 - `hooks/useValidatedCodePaths` — `/api/doc/exists` (this is what `Viewer`'s `disableCodePathValidation` turns off).
 - `utils/sharing` — Hypermark's public paste service (share-URL feature).
-- `components/PlanHeaderMenu` — Hypermark's plan-session Options menu (agent instructions + the compact shell's action list). The release-check pair that used to sit beside it, `hooks/useUpdateCheck` and `components/MenuVersionSection`, is gone: the app no longer polls GitHub for a newer tag.
-- `utils/planAgentInstructions` — generate agent instructions that curl Hypermark's local API.
 - `components/DecisionControl`, `utils/decisionSpec`, `hooks/useDismissablePopover` — session decision chrome for Hypermark's own approve/deny/exit endpoints (a host's session decisions are its own outcomes against its own backend).
 
 If Workspaces ever wants one of these surfaces, the path is the same as everything else: add a seam to the module in a Hypermark PR, don't fork the component.
@@ -617,7 +610,7 @@ The overlay-projection annotation viewer for raw HTML (placed comment markers, p
 
 ### `@hypermark/core` 0.23.0
 
-Additive only, but required: `@hypermark/ui` 0.29.0 imports the new `@hypermark/core/annotatable` subpath (absent from published core 0.22.0), so core 0.23.0 must be installed/published first. Also picks up additive exports in `agent-jobs`, `config-types`, `favicon`, `feedback-templates`, and an external-annotation PATCH-merge fix (tool-submitted `source` markers are no longer clearable via PATCH).
+Additive only, but required: `@hypermark/ui` 0.29.0 imports the new `@hypermark/core/annotatable` subpath (absent from published core 0.22.0), so core 0.23.0 must be installed/published first. Also picks up additive exports in `agent-jobs`, `config-types`, `favicon`, and `feedback-templates`.
 
 ---
 
@@ -660,9 +653,7 @@ Nine additive seams so a host can run the raw-HTML annotation surface with the s
 
 7. **`HtmlViewer` `maxAdditionalTargets?: number`** (0..16, default 16) is the host's product cap on shift-click targets per comment: enforced at the parent trust boundary, on submit and on restore, and carried on `arm-multi-select { key, max }` so the bridge's toggle stops at the same number for that draft (reset with the arm on every draft; a value above 16 never raises the package cap). Absent leaves the arm message unchanged. A host that adopts the package's 16 needs neither this prop nor a message-counting listener. Consequence for a host that passes a smaller cap: because it is enforced upstream at every step (the bridge stops the toggle, the parent boundary trims on submit and on restore, `projectHostThreads` `maxTargets` trims on read), a composed comment never reaches host code with more targets than the cap, so the host's own cap-dropped handling (`capDroppedTargets` from `buildPersistedHtmlAnchor`, or a counting listener) is unreachable in normal operation. Keep it only as a backstop for rows written by an older host build or another writer; the byte-budget drop (`sizeDroppedTargets`) is a different path and remains reachable.
 
-8. **`ExternalAnnotationTransport.subscribe` may emit `snapshot` from a host push.** `useExternalAnnotations` falls back to 500 ms version-gated polling only when the stream errors before its first event. A transport whose `subscribe` delivers a `{ type: 'snapshot', annotations, version }` event whenever the host's realtime layer signals a change (a Durable Object poke, a socket message) keeps the hook on the push path and the fallback poll is never entered. No package change; this is the sanctioned shape.
-
-9. **Blessed imports:** `shortcuts` (`useHtmlAnnotateShortcuts` and the scope registry) and `utils/inputMethod` join the supported table above. Both are fetch-free and `/api`-free (verified by grep over the modules and everything they import); `utils/inputMethod` persists through the `storageBackend` seam.
+8. **Blessed imports:** `shortcuts` (`useHtmlAnnotateShortcuts` and the scope registry) and `utils/inputMethod` join the supported table above. Both are fetch-free and `/api`-free (verified by grep over the modules and everything they import); `utils/inputMethod` persists through the `storageBackend` seam.
 
 Behavior is pinned by `../core/html-anchor.test.ts`, `components/html-viewer/unanchored.test.ts` and the "unanchored report" suite in `components/html-viewer/htmlPinpointProtocol.test.tsx`, `hooks/useHtmlRefresh.test.tsx`, `components/HtmlSurfaceControls.test.tsx`, `components/AnnotationPanel.unanchored.test.tsx`, and the cap and scroll-to cases in `components/html-viewer/srcdoc.test.ts` and `htmlPinpointProtocol.test.tsx`.
 

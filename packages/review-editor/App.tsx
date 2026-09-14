@@ -32,7 +32,6 @@ import {
   isTypingTarget,
   useReviewSearch,
 } from './hooks/useReviewSearch';
-import { useExternalAnnotations } from '@hypermark/ui/hooks/useExternalAnnotations';
 import { useUndoHistory } from '@hypermark/ui/hooks/useUndoHistory';
 import {
   getMatchingShortcutBindingIndex,
@@ -72,8 +71,7 @@ import { DEMO_DIFF } from './demoData';
 import { exportReviewFeedback, commitShaFromMode } from './utils/exportFeedback';
 import { parseDiffToFiles } from './utils/diffParser';
 import { AllFilesCodeView } from './components/AllFilesCodeView';
-import { CommitDescriptionHeader } from './components/CommitDescriptionHeader';
-import type { DiffFile, AnnotationScrollTarget, LineAnnotationComposeRequest } from './types';
+import type { DiffFile, AnnotationScrollTarget } from './types';
 import type { DiffOption, GitContext, SinceBaseSections, CommitDiffInfo } from '@hypermark/shared/types';
 import { SectionsPanel } from './components/SectionsPanel';
 import { CommitsPanel } from './components/CommitsPanel';
@@ -81,7 +79,6 @@ import { useCommitsView } from './hooks/useCommitsView';
 import { initializeReviewSetup } from './utils/reviewSetup';
 import { resolvePanelView } from './utils/resolvePanelView';
 import { isCommitDiffType, resolveCommitExitDiff, type CommitViewRestoreTarget } from './utils/commitViewRestore';
-import { ExternalLineAnnotationComposer } from './components/ExternalLineAnnotationComposer';
 import { copyTextToClipboard } from '@hypermark/ui/utils/clipboard';
 
 interface DiffData {
@@ -183,9 +180,6 @@ const ReviewAppInner: React.FC = () => {
   const fileScrollTokenRef = useRef(0);
   const [allFilesVisibleFile, setAllFilesVisibleFile] = useState<string | null>(null);
   const [pendingSelection, setPendingSelection] = useState<SelectedLineRange | null>(null);
-  const [lineAnnotationComposeRequest, setLineAnnotationComposeRequest] =
-    useState<LineAnnotationComposeRequest | null>(null);
-  const nextLineAnnotationComposeRequestId = useRef(0);
   const [showWorktreeDialog, setShowWorktreeDialog] = useState(false);
   const [showNoAnnotationsDialog, setShowNoAnnotationsDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -373,11 +367,7 @@ const ReviewAppInner: React.FC = () => {
 
   const clearPendingSelection = useCallback(() => {
     setPendingSelection(null);
-    setLineAnnotationComposeRequest(null);
   }, []);
-
-  // External annotations (SSE-based, for any external tool)
-  const { externalAnnotations, updateExternalAnnotation, deleteExternalAnnotation } = useExternalAnnotations<CodeAnnotation>({ enabled: !!origin });
 
   const openDiffFile = useCallback((filePath: string) => {
     const file = files.find(candidate => candidate.path === filePath || candidate.oldPath === filePath);
@@ -423,27 +413,7 @@ const ReviewAppInner: React.FC = () => {
     !!gitContext?.diffOptions?.length ||
     !!gitContext?.worktrees?.length;
 
-  // Merge local + SSE annotations, deduping draft-restored externals against
-  // live SSE versions. Prefer the SSE version when both exist (same source,
-  // type, and originalText). This avoids the timing issues of an effect-based
-  // cleanup — draft-restored externals persist until SSE actually re-delivers them.
-  const allAnnotations = useMemo(() => {
-    if (externalAnnotations.length === 0) return annotations;
-
-    const local = annotations.filter(a => {
-      if (!a.source) return true;
-      return !externalAnnotations.some(ext =>
-        ext.source === a.source &&
-        ext.type === a.type &&
-        ext.filePath === a.filePath &&
-        ext.lineStart === a.lineStart &&
-        ext.lineEnd === a.lineEnd &&
-        ext.side === a.side
-      );
-    });
-
-    return [...local, ...externalAnnotations];
-  }, [annotations, externalAnnotations]);
+  const allAnnotations = annotations;
   const allAnnotationsRef = useRef(allAnnotations);
   allAnnotationsRef.current = allAnnotations;
 
@@ -704,7 +674,6 @@ const ReviewAppInner: React.FC = () => {
   // Handle line selection from diff viewer
   const handleLineSelection = useCallback((range: SelectedLineRange | null) => {
     setPendingSelection(range);
-    if (range === null) setLineAnnotationComposeRequest(null);
   }, []);
 
   const addCodeAnnotationsWithHistory = useCallback((items: readonly CodeAnnotation[]) => {
@@ -778,8 +747,6 @@ const ReviewAppInner: React.FC = () => {
     text?: string,
     images?: ImageAttachment[],
   ) => {
-    const ann = allAnnotationsRef.current.find(a => a.id === id);
-    if (ann?.source) reviewHistory.clear();
     const updates: Partial<CodeAnnotation> = {
       ...(text !== undefined && { text }),
       // The composer always sends its concrete image list (never omits it), so
@@ -787,10 +754,6 @@ const ReviewAppInner: React.FC = () => {
       // leaving stale references behind (spec 05 §4.1.5).
       ...(images !== undefined && { images: images.length > 0 ? images : undefined }),
     };
-    if (ann?.source && externalAnnotations.some(e => e.id === id)) {
-      updateExternalAnnotation(id, updates);
-      return;
-    }
     const before = annotationsRef.current.find((annotation) => annotation.id === id);
     if (!before) return;
     const after = { ...before, ...updates };
@@ -804,7 +767,7 @@ const ReviewAppInner: React.FC = () => {
         afterSelection: selectedAnnotationIdRef.current,
       });
     }
-  }, [updateExternalAnnotation, externalAnnotations, reviewHistory]);
+  }, [reviewHistory]);
 
   // selectedAnnotationId is cleared via a functional update (not a captured
   // value): this handler is captured by Pierre slot portals (inline annotation
@@ -812,16 +775,6 @@ const ReviewAppInner: React.FC = () => {
   // the state value goes stale and would leave a dangling selection id after
   // deleting the currently-selected annotation.
   const handleDeleteAnnotation = useCallback((id: string) => {
-    const ann = allAnnotationsRef.current.find(a => a.id === id);
-    if (ann?.source) reviewHistory.clear();
-    if (ann?.source && externalAnnotations.some(e => e.id === id)) {
-      deleteExternalAnnotation(id);
-      if (selectedAnnotationIdRef.current === id) {
-        selectedAnnotationIdRef.current = null;
-        setSelectedAnnotationId(null);
-      }
-      return;
-    }
     const index = annotationsRef.current.findIndex((annotation) => annotation.id === id);
     const local = annotationsRef.current[index];
     if (!local) return;
@@ -839,7 +792,7 @@ const ReviewAppInner: React.FC = () => {
         afterSelection,
       });
     }
-  }, [deleteExternalAnnotation, externalAnnotations, reviewHistory]);
+  }, [reviewHistory]);
 
   // Handle identity change - update author on existing annotations
   // Switch file in the dedicated center diff panel.
@@ -2126,21 +2079,6 @@ const ReviewAppInner: React.FC = () => {
         />
 
       </div>
-
-      {lineAnnotationComposeRequest && (() => {
-        const targetFile = files.find(file => file.path === lineAnnotationComposeRequest.filePath);
-        if (!targetFile) return null;
-        return (
-          <ExternalLineAnnotationComposer
-            key={lineAnnotationComposeRequest.id}
-            request={lineAnnotationComposeRequest}
-            file={targetFile}
-            onLineSelection={handleLineSelection}
-            onAddAnnotationForFile={handleAddAnnotationForFile}
-            onEditAnnotation={handleEditAnnotation}
-          />
-        );
-      })()}
 
     <Toaster
       position="bottom-center"
