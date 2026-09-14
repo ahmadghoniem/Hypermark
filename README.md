@@ -291,10 +291,6 @@ You run /hypermark-review
 
 ## Integrations
 
-**Obsidian**: Auto-save approved plans to a vault with YAML frontmatter, tags from the plan title, and backlinks for graph connectivity. Configure in Hypermark's Settings panel.
-
-**Bear**: Save plans as Bear notes with nested tags and project metadata.
-
 **GitHub / GitLab**: Pass any PR or MR URL to `/hypermark-review` and review it with the full diff viewer, annotations, and file tree.
 
 ---

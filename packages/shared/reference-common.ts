@@ -1,4 +1,4 @@
-// --- Vault file tree helpers ---
+// --- Reference file tree helpers ---
 
 export const FILE_BROWSER_EXCLUDED = [
 	"node_modules/",
@@ -9,8 +9,6 @@ export const FILE_BROWSER_EXCLUDED = [
 	"build/",
 	".next/",
 	"__pycache__/",
-	".obsidian/",
-	".trash/",
 	".venv/",
 	"vendor/",
 	"target/",

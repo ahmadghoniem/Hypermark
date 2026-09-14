@@ -25,7 +25,7 @@ Released binaries ship with SHA256 sidecars and [SLSA build provenance](https://
 
 ---
 
-[Plugin Installation](#plugin-installation) · [Manual Installation (Hooks)](#manual-installation-hooks) · [Obsidian Integration](#obsidian-integration)  
+[Plugin Installation](#plugin-installation) · [Manual Installation (Hooks)](#manual-installation-hooks)  
 
 ---
 
@@ -92,35 +92,3 @@ Hypermark's slash commands are installed as Claude Code skills in `~/.claude/ski
 | `/hypermark-review [--git \| --gitbutler]` | Open code review UI for current changes or a GitHub PR; optionally force the Git or GitButler provider |
 | `/hypermark-annotate <file.md \| file.html \| https://... \| folder/>` | Annotate a file, URL, or folder |
 | `/hypermark-last` | Annotate the agent's last message |
-
-## Obsidian Integration
-
-Approved plans can be automatically saved to your Obsidian vault.
-
-**Setup:**
-1. Open Settings (gear icon) in Hypermark
-2. Enable "Obsidian Integration"
-3. Select your vault from the dropdown (auto-detected) or enter the path manually
-4. Set folder name (default: `hypermark`)
-
-**What gets saved:**
-- Plans saved with human-readable filenames: `Title - Jan 2, 2026 2-30pm.md`
-- YAML frontmatter with `created`, `source`, and `tags`
-- Tags extracted automatically from the plan title and code languages
-- Backlink to `[[Hypermark Plans]]` for graph connectivity
-
-**Example saved file:**
-```markdown
----
-created: 2026-01-02T14:30:00.000Z
-source: hypermark
-tags: [plan, authentication, typescript, sql]
----
-
-[[Hypermark Plans]]
-
-# Implementation Plan: User Authentication
-...
-```
-
-<img width="1190" height="730" alt="image" src="https://github.com/user-attachments/assets/1f0876a0-8ace-4bcf-b0d6-4bbb07613b25" />

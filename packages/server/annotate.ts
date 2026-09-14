@@ -13,8 +13,8 @@
 import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./server-port";
 import { getRepoInfo } from "./repo";
 import type { Origin } from "@hypermark/shared/agents";
-import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, handleReferenceSkills, handleReferenceSkillContent, handleSaveNotes, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
-import { handleDoc, handleDocExists, handleFileBrowserFiles, handleObsidianVaults, handleObsidianFiles, handleObsidianDoc, resolveAllowedDocPath, type FolderAnnotateHistory } from "./reference-handlers";
+import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, handleReferenceSkills, handleReferenceSkillContent, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
+import { handleDoc, handleDocExists, handleFileBrowserFiles, resolveAllowedDocPath, type FolderAnnotateHistory } from "./reference-handlers";
 import { closeAllFileBrowserWatchers, handleFileBrowserFilesStream } from "./reference-watch";
 import { getExtraMarkdownExtensions, MAX_ANNOTATABLE_FILE_BYTES, resolveUserPath, warmFileListCache } from "@hypermark/shared/resolve-file";
 import { contentHash, deleteDraft } from "./draft";
@@ -943,11 +943,6 @@ export async function startAnnotateServer(
             return handleDocExists(req, { rootPaths: getReferenceRootPaths() });
           }
 
-          // API: Detect Obsidian vaults
-          if (url.pathname === "/api/obsidian/vaults") {
-            return handleObsidianVaults();
-          }
-
           // API: Global skill catalog for comment skill references
           if (url.pathname === "/api/skills" && req.method === "GET") {
             return handleReferenceSkills();
@@ -956,16 +951,6 @@ export async function startAnnotateServer(
           // API: SKILL.md contents for a referenced human-only skill
           if (url.pathname === "/api/skills/content" && req.method === "GET") {
             return handleReferenceSkillContent(req);
-          }
-
-          // API: List Obsidian vault files as a tree
-          if (url.pathname === "/api/reference/obsidian/files" && req.method === "GET") {
-            return handleObsidianFiles(req);
-          }
-
-          // API: Read an Obsidian vault document
-          if (url.pathname === "/api/reference/obsidian/doc" && req.method === "GET") {
-            return handleObsidianDoc(req);
           }
 
           // API: List markdown files in a directory as a tree
@@ -1140,11 +1125,6 @@ export async function startAnnotateServer(
                   : "Failed to process feedback";
               return Response.json({ error: message }, { status: 500 });
             }
-          }
-
-          // API: Save notes to external integrations (Obsidian, Bear, Octarine)
-          if (url.pathname === "/api/save-notes" && req.method === "POST") {
-            return handleSaveNotes(req);
           }
 
           // Favicon
