@@ -397,11 +397,8 @@ const ReviewAppInner: React.FC = () => {
     }
   }, [clearPendingSelection, files]);
 
-  const handleSelectAllFiles = useCallback(() => {
-    if (files[0]) {
-      openDiffFile(files[0].path);
-    }
-  }, [files, openDiffFile]);
+  // The all-files view is the only surface now, so "All files" is already active.
+  const handleSelectAllFiles = useCallback(() => {}, []);
 
   const handleRevealSearchMatch = useCallback((_match: ReviewSearchMatch) => {
     // Respect the surface the user is in. AllFilesCodeView reveals IN PLACE —
@@ -493,8 +490,6 @@ const ReviewAppInner: React.FC = () => {
   }, [restoreDraft, reviewHistory, discardDraft]);
   handleRestoreDraftRef.current = handleRestoreDraft;
 
-
-
   // Resizable panels
   const panelResize = useResizablePanel({
     storageKey: 'hypermark-review-panel-width',
@@ -510,9 +505,6 @@ const ReviewAppInner: React.FC = () => {
     onClick: () => setIsFileTreeOpen(false),
   });
   const isResizing = panelResize.isDragging || fileTreeResize.isDragging;
-
-
-
 
   // Derive worktree path and base diff type from the composite diffType
   // string. Hand-parsed rather than via shared/review-core's
@@ -884,8 +876,6 @@ const ReviewAppInner: React.FC = () => {
     if (!file) return;
     openDiffFile(file.path);
   }, [files, openDiffFile]);
-
-
 
   const handleAllFilesVisibleFileChange = useCallback(
     (filePath: string | null) => {

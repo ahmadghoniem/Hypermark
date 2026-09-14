@@ -243,17 +243,6 @@ export function usePierreTheme(options?: {
           [data-diff-type='split'][data-overflow='scroll'] > [data-code][data-additions] [data-content] {
             min-width: 0 !important;
           }
-          .pn-token-nav {
-            text-decoration: underline;
-            text-decoration-color: var(--primary, oklch(0.70 0.20 280));
-            text-underline-offset: 2px;
-            text-decoration-thickness: 2px;
-            /* Pierre's [data-*] selectors outrank a bare class inside the
-               shadow root, so the pointer needs the same !important the
-               neighboring overrides use, or the I-beam wins. */
-            cursor: pointer !important;
-            opacity: 0.85;
-          }
 
           /* Separator bars — slimmer, semi-transparent, integrated with theme */
           :host {
