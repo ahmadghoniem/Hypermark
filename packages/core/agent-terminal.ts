@@ -58,14 +58,13 @@ export type AgentTerminalCapability =
 export type AnnotateAgentTerminalMode =
   | "annotate"
   | "annotate-last"
-  | "annotate-folder"
   | string
   | undefined;
 
 export function supportsAnnotateAgentTerminalMode(
   mode: AnnotateAgentTerminalMode,
 ): boolean {
-  return mode === "annotate" || mode === "annotate-folder";
+  return mode === "annotate";
 }
 
 /**
