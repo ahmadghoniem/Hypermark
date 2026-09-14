@@ -29,7 +29,7 @@ import {
   resolveUserPath,
 } from "@hypermark/shared/resolve-file";
 
-export interface AnnotateResolutionSuccess {
+interface AnnotateResolutionSuccess {
   ok: true;
   markdown: string;
   rawHtml?: string;
@@ -39,7 +39,7 @@ export interface AnnotateResolutionSuccess {
   sourceConverted: boolean;
 }
 
-export interface AnnotateResolutionFailure {
+interface AnnotateResolutionFailure {
   ok: false;
   /** True only when the input resolved to nothing at all. */
   notFound: boolean;
