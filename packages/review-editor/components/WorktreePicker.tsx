@@ -1,5 +1,13 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Popover } from '@base-ui/react/popover';
+import {
+  RefPicker,
+  RefPickerEmpty,
+  RefPickerGroupLabel,
+  RefPickerList,
+  RefPickerRow,
+  RefPickerSearch,
+  RefPickerTriggerLabel,
+} from './RefPicker';
 import type { WorktreeInfo } from '@hypermark/shared/types';
 
 interface WorktreePickerProps {
@@ -52,109 +60,68 @@ export const WorktreePicker: React.FC<WorktreePickerProps> = ({
   const isCustom = activeWorktreePath !== null;
 
   return (
-    <Popover.Root
+    <RefPicker
       open={open}
       onOpenChange={(v) => {
         setOpen(v);
         if (!v) setQuery('');
       }}
-    >
-      <Popover.Trigger
-        render={
-          <button
-            type="button"
-            disabled={disabled}
-            title={active ? `${activeLabel} — ${active.path}` : mainLabel}
-            className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed ${
-              isCustom
-                ? 'bg-primary/10 border border-primary/30 text-foreground'
-                : 'bg-muted border border-transparent text-foreground'
-            }`}
-          />
-        }
-      >
+      disabled={disabled}
+      title={active ? `${activeLabel} — ${active.path}` : mainLabel}
+      isCustom={isCustom}
+      widthClassName="w-72"
+      initialFocus={() => {
+        // Only override the default focus when the search input is
+        // actually rendered — otherwise arrow keys would bubble out to
+        // the file-tree nav. For short worktree lists, returning null
+        // falls back to Base UI's default focus (the popup's first
+        // tabbable); undefined would mean "do nothing" and leave focus
+        // on the trigger.
+        return searchRef.current;
+      }}
+      trigger={
+        <>
           <span className="truncate flex-1 text-left">{activeLabel}</span>
-          {isCustom && (
-            <span className="text-[10px] uppercase tracking-wide opacity-60 shrink-0">
-              worktree
-            </span>
-          )}
-          <svg
-            className="size-3.5 text-muted-foreground shrink-0"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner side="bottom" align="start" sideOffset={4} className="z-50">
-          <Popover.Popup
-            className="w-72 bg-popover text-popover-foreground border border-border rounded-sm shadow-lg overflow-hidden origin-(--transform-origin) transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0"
-            initialFocus={() => {
-              // Only override the default focus when the search input is
-              // actually rendered — otherwise arrow keys would bubble out to
-              // the file-tree nav. For short worktree lists, returning null
-              // falls back to Base UI's default focus (the popup's first
-              // tabbable); undefined would mean "do nothing" and leave focus
-              // on the trigger.
-              return searchRef.current;
-            }}
-          >
-          {worktrees.length > 3 && (
-            <div className="p-2 border-b border-border/50">
-              <input
-                ref={searchRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search worktrees…"
-                className="w-full px-2 py-1.5 bg-muted rounded-sm text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-              />
-            </div>
-          )}
-          <div className="max-h-72 overflow-y-auto py-1">
+          {isCustom && <RefPickerTriggerLabel>worktree</RefPickerTriggerLabel>}
+        </>
+      }
+    >
+      {worktrees.length > 3 && (
+        <RefPickerSearch inputRef={searchRef} value={query} onChange={setQuery} placeholder="Search worktrees…" />
+      )}
+      <RefPickerList>
+        {mainMatchesQuery && (
+          <WorktreeRow
+            label={mainLabel}
+            sublabel={null}
+            isSelected={activeWorktreePath === MAIN_REPO}
+            onClick={() => handleSelect(MAIN_REPO)}
+          />
+        )}
+
+        {filtered.length > 0 && (
+          <>
             {mainMatchesQuery && (
+              <div className="h-px bg-border/50 mx-2 my-1" />
+            )}
+            <RefPickerGroupLabel>Worktrees</RefPickerGroupLabel>
+            {filtered.map((wt) => (
               <WorktreeRow
-                label={mainLabel}
-                sublabel={null}
-                isSelected={activeWorktreePath === MAIN_REPO}
-                onClick={() => handleSelect(MAIN_REPO)}
+                key={wt.path}
+                label={wt.branch || wt.path.split('/').pop() || 'worktree'}
+                sublabel={wt.path}
+                isSelected={wt.path === activeWorktreePath}
+                onClick={() => handleSelect(wt.path)}
               />
-            )}
+            ))}
+          </>
+        )}
 
-            {filtered.length > 0 && (
-              <>
-                {mainMatchesQuery && (
-                  <div className="h-px bg-border/50 mx-2 my-1" />
-                )}
-                <div className="px-3 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                  Worktrees
-                </div>
-                {filtered.map((wt) => (
-                  <WorktreeRow
-                    key={wt.path}
-                    label={wt.branch || wt.path.split('/').pop() || 'worktree'}
-                    sublabel={wt.path}
-                    isSelected={wt.path === activeWorktreePath}
-                    onClick={() => handleSelect(wt.path)}
-                  />
-                ))}
-              </>
-            )}
-
-            {!mainMatchesQuery && filtered.length === 0 && (
-              <div className="px-3 py-2 text-xs text-muted-foreground">
-                No worktrees match.
-              </div>
-            )}
-          </div>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+        {!mainMatchesQuery && filtered.length === 0 && (
+          <RefPickerEmpty>No worktrees match.</RefPickerEmpty>
+        )}
+      </RefPickerList>
+    </RefPicker>
   );
 };
 
@@ -166,25 +133,12 @@ interface WorktreeRowProps {
 }
 
 const WorktreeRow: React.FC<WorktreeRowProps> = ({ label, sublabel, isSelected, onClick }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`w-full flex items-center gap-2 mx-1 px-2 py-1.5 text-xs text-left rounded-sm hover:bg-muted focus:outline-none focus:bg-muted ${
-      isSelected ? 'text-foreground font-medium' : 'text-foreground/80'
-    }`}
-  >
-    <span className="w-3 shrink-0">
-      {isSelected && (
-        <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
-      )}
-    </span>
+  <RefPickerRow isSelected={isSelected} onClick={onClick}>
     <div className="min-w-0 flex-1">
       <div className="truncate" title={label}>{label}</div>
       {sublabel && (
         <div className="truncate text-[10px] text-muted-foreground" title={sublabel}>{sublabel}</div>
       )}
     </div>
-  </button>
+  </RefPickerRow>
 );
