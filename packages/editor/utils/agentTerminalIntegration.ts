@@ -20,7 +20,7 @@ export type TerminalAskPromptParams = {
   } | null;
 };
 
-export function textKey(value: string): string {
+function textKey(value: string): string {
   let hash = 0x811c9dc5;
   for (let i = 0; i < value.length; i += 1) {
     hash ^= value.charCodeAt(i);

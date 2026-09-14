@@ -79,7 +79,7 @@ const DISPLAY_STORAGE_KEY = "hypermark-agent-terminal-display";
 const MIN_FONT_SIZE = 10;
 const MAX_FONT_SIZE = 24;
 
-export const DEFAULT_DISPLAY_SETTINGS: AgentTerminalDisplaySettings = {
+const DEFAULT_DISPLAY_SETTINGS: AgentTerminalDisplaySettings = {
   fontFamily: "theme",
   fontSize: 14,
   fontWeight: "regular",
@@ -532,7 +532,7 @@ function formatExit(event: PtyExit): string {
 
 /** Exported for tests (the surrounding panel needs a live WebTUI session to
  * render this popover). `defaultOpen` is a test seam only. */
-export function AgentTerminalDisplayPopover({
+function AgentTerminalDisplayPopover({
   settings,
   side,
   onChange,

@@ -3458,7 +3458,7 @@ const AppInner: React.FC = () => {
   }, [applyEditedDocument, editableDocuments, repaintHighlights, scheduleDraftSave]);
 
   // Agent Instructions — copy a clipboard payload teaching external agents
-  // (Claude Code, Codex, etc.) how to POST annotations into this session via
+  // (Claude Code, etc.) how to POST annotations into this session via
   // /api/external-annotations. The instruction body lives in a separate module
   // (utils/agentInstructions.ts) so it's easy to edit independently of UI code.
   const handleCopyAgentInstructions = async () => {
