@@ -20,8 +20,7 @@
     "./uninstall": "./uninstall.ts",
     "./sessions": "./sessions.ts",
     "./project": "./project.ts",
-    "./html-assets": "./html-assets.ts",
-    "./live-proxy": "./live-proxy.ts"
+    "./html-assets": "./html-assets.ts"
   },
   "files": [
     "*.ts",

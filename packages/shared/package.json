@@ -37,7 +37,6 @@
     "./improvement-hooks": "./improvement-hooks.ts",
     "./pfm-reminder": "./pfm-reminder.ts",
     "./html-to-markdown": "./html-to-markdown.ts",
-    "./url-to-markdown": "./url-to-markdown.ts",
     "./html-assets": "./html-assets.ts",
     "./html-assets-node": "./html-assets-node.ts",
     "./annotate-target": "./annotate-target.ts",
@@ -53,8 +52,6 @@
     "./generated-files": "./generated-files.ts",
     "./annotate-client-lease": "./annotate-client-lease.ts",
     "./annotate-decision": "./annotate-decision.ts",
-    "./live-proxy-core": "./live-proxy-core.ts",
-    "./live-probe": "./live-probe.ts",
     "./session-stream": "./session-stream.ts"
   },
   "dependencies": {
