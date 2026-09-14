@@ -45,7 +45,6 @@ import { loadConfig, saveConfig, detectGitUser, getServerConfig, resolveFeedback
 import { appendFeedbackRecord, countChangedFiles, deriveFeedbackProject, type FeedbackDecision, type FeedbackReviewTarget } from "@hypermark/shared/feedback-archive";
 import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
 import type { LocalWorkspaceReview, WorkspaceDiffType } from "./review-workspace";
-import { handleCodeNavResolve, extractChangedFiles } from "./code-nav";
 import { SESSION_STREAM_PATH } from "@hypermark/shared/session-stream";
 import { createSessionStreamBroadcaster } from "./session-stream";
 import { startParentWatch, type ParentWatcher } from "./parent-watch";
@@ -1096,60 +1095,6 @@ export async function startReviewServer(
             }
 
             return Response.json({ error: "No file access available" }, { status: 400 });
-          }
-
-          // API: Code navigation (search-based symbol resolution)
-          if (url.pathname === "/api/code-nav/resolve" && req.method === "POST") {
-            if (isGitButlerCommittedView()) {
-              return Response.json(
-                { error: "Code navigation is unavailable for committed GitButler views" },
-                { status: 400 },
-              );
-            }
-            const hasCodeNavAccess = !!workspace || !!gitContext || !!options.agentCwd;
-            if (!hasCodeNavAccess) {
-              return Response.json(
-                { error: "Code navigation requires local access" },
-                { status: 400 },
-              );
-            }
-            const navCwd = await resolveAgentCwdReady();
-            if (!navCwd) {
-              return Response.json({ error: "Local checkout unavailable" }, { status: 400 });
-            }
-            const changedFiles = extractChangedFiles(currentPatch);
-            return handleCodeNavResolve(req, navCwd, changedFiles);
-          }
-
-          // API: Code navigation file preview (read file from working tree)
-          if (url.pathname === "/api/code-nav/file" && req.method === "GET") {
-            if (isGitButlerCommittedView()) {
-              return Response.json(
-                { error: "Code navigation is unavailable for committed GitButler views" },
-                { status: 400 },
-              );
-            }
-            const hasCodeNavAccess = !!workspace || !!gitContext || !!options.agentCwd;
-            if (!hasCodeNavAccess) {
-              return Response.json({ error: "Code navigation requires local access" }, { status: 400 });
-            }
-            const filePath = url.searchParams.get("path");
-            if (!filePath) {
-              return Response.json({ error: "Missing path" }, { status: 400 });
-            }
-            try { validateFilePath(filePath); } catch {
-              return Response.json({ error: "Invalid path" }, { status: 400 });
-            }
-            try {
-              const navCwd = await resolveAgentCwdReady();
-              if (!navCwd) {
-                return Response.json({ error: "Local checkout unavailable" }, { status: 400 });
-              }
-              const content = await Bun.file(`${navCwd}/${filePath}`).text();
-              return Response.json({ content });
-            } catch {
-              return Response.json({ error: "File not found" }, { status: 404 });
-            }
           }
 
           // API: Update user config (write-back to ~/.hypermark/config.json)
