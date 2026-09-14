@@ -13,7 +13,7 @@
     "@hypermark/shared": "workspace:*",
     "@hypermark/ui": "workspace:*",
     "@plannotator/webtui": "0.1.0",
-    "diff": "^8.0.3",
+    "diff": "^9.0.0",
     "@phosphor-icons/react": "2.1.10",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
