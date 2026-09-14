@@ -15,9 +15,9 @@
  */
 
 import { readdirSync, statSync, readFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { join, dirname, basename } from "node:path";
 import { homedir } from "node:os";
+import { createDefaultGetParentPid } from "@hypermark/server";
 
 const claudeConfigDir =
   process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude");
@@ -161,7 +161,7 @@ export function findSessionLogsForCwd(cwd: string, projectsDirOverride?: string)
  * (e.g. after the user runs `cd` during a session).
  */
 
-export interface SessionMetadata {
+interface SessionMetadata {
   pid: number;
   sessionId: string;
   cwd: string;
@@ -182,99 +182,6 @@ function readSessionMetadata(
   } catch {
     return null;
   }
-}
-
-/**
- * Parse `ps -eo pid=,ppid=` output into a pid → ppid map.
- * Each non-empty line is expected to be two whitespace-separated integers.
- * Malformed lines are skipped.
- */
-export function parseProcessTablePs(stdout: string): Map<number, number> {
-  const table = new Map<number, number>();
-  for (const line of stdout.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    const parts = trimmed.split(/\s+/);
-    if (parts.length < 2) continue;
-    const pid = parseInt(parts[0], 10);
-    const ppid = parseInt(parts[1], 10);
-    if (Number.isFinite(pid) && Number.isFinite(ppid)) {
-      table.set(pid, ppid);
-    }
-  }
-  return table;
-}
-
-/**
- * Parse PowerShell `Get-CimInstance Win32_Process | ConvertTo-Csv` output
- * into a pid → ppid map. Skips the CSV header and any malformed rows.
- */
-export function parseProcessTableCsv(stdout: string): Map<number, number> {
-  const table = new Map<number, number>();
-  const lines = stdout.split(/\r?\n/);
-  // Skip the CSV header row if present
-  for (let i = 1; i < lines.length; i++) {
-    const match = lines[i].trim().match(/^"?(\d+)"?\s*,\s*"?(\d+)"?$/);
-    if (!match) continue;
-    const pid = parseInt(match[1], 10);
-    const ppid = parseInt(match[2], 10);
-    if (Number.isFinite(pid) && Number.isFinite(ppid)) {
-      table.set(pid, ppid);
-    }
-  }
-  return table;
-}
-
-/**
- * Snapshot the entire process table in a single spawn, platform-aware.
- *
- * Unix: `ps -eo pid=,ppid=` (suppresses headers with trailing `=`).
- * Windows: `powershell Get-CimInstance Win32_Process | ConvertTo-Csv`.
- *   PowerShell 5.1 ships with every Windows install as `powershell.exe`.
- *
- * Returns an empty map on any failure (missing binary, non-zero exit, timeout).
- * Callers walk the returned map with cycle detection, so an empty map just
- * means the ancestor-PID resolver degrades to tier 2.
- */
-function snapshotProcessTable(): Map<number, number> {
-  try {
-    if (process.platform === "win32") {
-      const result = spawnSync(
-        "powershell",
-        [
-          "-NoProfile",
-          "-NonInteractive",
-          "-Command",
-          "Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId | ConvertTo-Csv -NoTypeInformation",
-        ],
-        { encoding: "utf-8", timeout: 2000 }
-      );
-      if (result.status !== 0) return new Map();
-      return parseProcessTableCsv(result.stdout);
-    }
-    const result = spawnSync("ps", ["-eo", "pid=,ppid="], {
-      encoding: "utf-8",
-      timeout: 2000,
-    });
-    if (result.status !== 0) return new Map();
-    return parseProcessTablePs(result.stdout);
-  } catch {
-    return new Map();
-  }
-}
-
-/**
- * Default `getParentPid` implementation. Snapshots the process table lazily
- * on first call and caches it for the lifetime of the closure, so walking
- * up to `maxHops` ancestors costs a single spawn instead of one per hop.
- */
-export function createDefaultGetParentPid(): (pid: number) => number | null {
-  let table: Map<number, number> | null = null;
-  return (pid: number) => {
-    if (table === null) table = snapshotProcessTable();
-    const ppid = table.get(pid);
-    return ppid && ppid > 0 ? ppid : null;
-  };
 }
 
 /**

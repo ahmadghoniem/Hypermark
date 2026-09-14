@@ -44,6 +44,7 @@ export { openBrowser } from "./browser";
 export * from "./storage";
 export { handleServerReady } from "./shared-handlers";
 export { type VaultNode, buildFileTree } from "@hypermark/shared/reference-common";
+export { createDefaultGetParentPid } from "./parent-watch";
 
 // --- Types ---
 
