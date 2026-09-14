@@ -23,11 +23,9 @@
         "@hypermark/editor": "workspace:*",
         "@hypermark/server": "workspace:*",
         "@hypermark/shared": "workspace:*",
-        "@hypermark/ui": "workspace:*",
         "@tailwindcss/vite": "^4.1.18",
         "react": "^19.2.3",
         "react-dom": "^19.2.3",
-        "tailwindcss": "^4.1.18",
       },
       "devDependencies": {
         "@types/node": "^22.14.0",
@@ -46,7 +44,6 @@
         "@tailwindcss/vite": "^4.1.18",
         "react": "^19.2.3",
         "react-dom": "^19.2.3",
-        "tailwindcss": "^4.1.18",
       },
       "devDependencies": {
         "@types/node": "^22.14.0",
@@ -119,9 +116,6 @@
         "@plannotator/webtui": "0.1.0",
         "jsonc-parser": "^3.3.1",
       },
-      "devDependencies": {
-        "glimpseui": "^0.8.0",
-      },
       "peerDependencies": {
         "bun": ">=1.0.0",
       },
@@ -145,8 +139,6 @@
         "@codemirror/autocomplete": "^6.20.3",
         "@codemirror/state": "^6.6.0",
         "@codemirror/view": "^6.43.0",
-        "@fontsource-variable/geist-mono": "5.2.7",
-        "@fontsource-variable/inter": "^5.2.8",
         "@hypermark/core": "0.25.1",
         "@phosphor-icons/react": "2.1.10",
         "@pierre/diffs": "1.4.1",
@@ -802,8 +794,6 @@
     "fsevents": ["fsevents@2.3.3", "", { "os": "darwin" }, "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="],
 
     "gensync": ["gensync@1.0.0-beta.2", "", {}, "sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg=="],
-
-    "glimpseui": ["glimpseui@0.8.1", "", { "os": [ "linux", "win32", "darwin", ], "bin": { "glimpseui": "bin/glimpse.mjs" } }, "sha512-p0MWbRh5Bq0MtMG0qxJBBKghfB3c7U2zW+J3EXJTQe3XdVKM4ncyhQXAyHokw0LHvCysLTO/63c+4gducg1zhQ=="],
 
     "graceful-fs": ["graceful-fs@4.2.11", "", {}, "sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ=="],
 
