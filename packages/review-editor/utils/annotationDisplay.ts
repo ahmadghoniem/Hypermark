@@ -1,7 +1,7 @@
 import type { CodeAnnotation, CodeAnnotationScope, DiffAnnotationMetadata } from '@hypermark/ui/types';
 
 /** A code annotation's scope, defaulting to 'line' for older/external data. */
-export function annotationScope(a: CodeAnnotation): CodeAnnotationScope {
+function annotationScope(a: CodeAnnotation): CodeAnnotationScope {
   return a.scope ?? 'line';
 }
 
@@ -11,7 +11,7 @@ export function annotationScope(a: CodeAnnotation): CodeAnnotationScope {
  * comments carry path + line range. Never emits the "" / 0 sentinels that stand
  * in for "no file / no line" on file and general comments.
  */
-export function copyLocationPrefix(
+function copyLocationPrefix(
   a: CodeAnnotation,
   scope: CodeAnnotationScope = annotationScope(a),
 ): string {
