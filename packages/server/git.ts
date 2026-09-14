@@ -2,7 +2,7 @@
  * Git utilities for code review
  *
  * Centralized git operations for diff collection and branch detection.
- * Used by both Claude Code hook and OpenCode plugin.
+ * Used by the Claude Code hook.
  */
 
 import { lstat, readlink } from "node:fs/promises";

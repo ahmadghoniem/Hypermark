@@ -321,8 +321,7 @@ describe("annotate server: local rendered-HTML root freshness", () => {
   // A root that exists but cannot be read is the missing-file fallback: the
   // startup snapshot, with its version diff, and the share endpoint agrees.
   // On Bun, Bun.file(dir).exists() is false, so a path replaced by a
-  // directory already took the missing path (the case guards the Pi mirror,
-  // where existsSync is true and the read throws); the chmod 000 case below
+  // directory already took the missing path; the chmod 000 case below
   // is the one that made the Bun handler throw and answer 500.
   async function seedTwoVersions(label: string): Promise<{ pagePath: string; project: string }> {
     const pagePath = join(freshDocDir(label), "page.html");

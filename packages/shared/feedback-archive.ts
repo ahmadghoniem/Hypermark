@@ -39,8 +39,7 @@
  *    like storage.ts does), so a test can redirect HYPERMARK_DATA_DIR
  *    inside the test body — Bun runs every test file in one process, and a
  *    module-load capture cannot be redirected without import-order games.
- *
- * Runtime-agnostic: node:fs / node:path only, so Pi vendors it unmodified.
+ * Runtime-agnostic: node:fs / node:path only.
  */
 
 import { appendFileSync, mkdirSync, writeFileSync } from "fs";
@@ -474,11 +473,10 @@ export function parseFeedbackIndex(contents: string): FeedbackRecord[] {
 /**
  * Count the files a patch touches, for the record's `changedFiles` metadata.
  *
- * Deliberately not `extractChangedFiles` (code-nav): that one UNIONS the a/
- * and b/ sides because it exists to resolve any path a reader might mention,
- * so a rename counts twice and the record would overstate the review's size.
- * The `diff --git` header always names a real path on both sides (deletions
- * do not put /dev/null there), so the b side alone is one entry per file.
+ * Scans the `b/` side of `diff --git` headers so renames are counted once
+ * rather than twice. The `diff --git` header always names a real path on both
+ * sides (deletions do not put /dev/null there), so the b side alone is one
+ * entry per file.
  */
 export function countChangedFiles(patch: string | null | undefined): number {
   if (!patch) return 0;

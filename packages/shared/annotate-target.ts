@@ -34,8 +34,8 @@ export interface AnnotateTokenCandidate {
   /**
    * What the token resolved to: an absolute path for HTML files and document
    * matches, the token itself for ambiguous document names. Feeding this
-   * back into the host pipeline on a single match keeps hosts without fuzzy
-   * resolution (Pi) consistent with the probe's answer.
+   * back into the host pipeline on a single match keeps callers without fuzzy
+   * resolution consistent with the probe's answer.
    */
   value: string;
 }
