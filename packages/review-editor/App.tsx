@@ -1019,7 +1019,6 @@ const ReviewAppInner: React.FC = () => {
         // non-preserve branch below already does).
         clearPendingSelection();
       } else {
-        needsInitialDiffPanel.current = true;
         setDiffData(prev => prev ? { ...prev, rawPatch: data.rawPatch, gitRef: data.gitRef, diffType: data.diffType } : prev);
         setFiles(nextFiles);
         setDiffType(data.diffType);
@@ -1175,10 +1174,7 @@ const ReviewAppInner: React.FC = () => {
     const fullDiffType = activeWorktreePath
       ? `worktree:${activeWorktreePath}:commit:${sha}`
       : `commit:${sha}`;
-    if (fullDiffType === diffType) {
-      openAllFilesPanel();
-      return;
-    }
+    if (fullDiffType === diffType) return;
     // First entry into the commit family (covers both user clicks and the
     // HEAD auto-select, which routes through this same handler): remember the
     // diff the session came from so leaving the Commits view can restore it.
@@ -1191,7 +1187,7 @@ const ReviewAppInner: React.FC = () => {
       preCommitDiffRef.current = { diffType, base: selectedBase };
     }
     void fetchDiffSwitch(fullDiffType);
-  }, [activeWorktreePath, diffType, selectedBase, fetchDiffSwitch, openAllFilesPanel]);
+  }, [activeWorktreePath, diffType, selectedBase, fetchDiffSwitch]);
 
   // The Commits-view session machine (log + poll + HEAD auto-select + center
   // veil) lives in the hook so its invariants stay in one file; App supplies
