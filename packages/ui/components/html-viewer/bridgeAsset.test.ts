@@ -21,7 +21,6 @@ import {
   ANNOTATION_HIGHLIGHT_CSS,
   BRIDGE_PROTOCOL_VERSION,
   BRIDGE_SCRIPT,
-  LIVE_BRIDGE_BOOTSTRAP,
 } from "./bridge-script";
 import {
   BRIDGE_ASSET_DIR,
@@ -56,7 +55,6 @@ describe("generated bridge assets", () => {
 
       const lite = await import(join(dir, BRIDGE_LITE_FILENAME));
       expect(lite.ANNOTATION_HIGHLIGHT_CSS).toBe(ANNOTATION_HIGHLIGHT_CSS);
-      expect(lite.LIVE_BRIDGE_BOOTSTRAP).toBe(LIVE_BRIDGE_BOOTSTRAP);
       expect(lite.BRIDGE_PROTOCOL_VERSION).toBe(BRIDGE_PROTOCOL_VERSION);
       expect(lite.BRIDGE_SCRIPT).toBe("");
     } finally {

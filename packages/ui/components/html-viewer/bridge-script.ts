@@ -102,67 +102,8 @@ export const BRIDGE_PROTOCOL_VERSION = 1;
 export const BRIDGE_SCRIPT = `(function() {
   var PREFIX = 'hypermark-bridge-';
 
-  // --- Live mode (proxied local app) ---
-  // Srcdoc sessions carry no config: LIVE stays null and every branch below is
-  // inert, keeping srcdoc behavior byte-for-byte identical. The proxy injects
-  // this script into EVERY HTML response, so a frame gate deactivates the
-  // bridge when the proxied page is opened directly (not framed) and inside
-  // nested same-origin subframes: only the frame whose parent IS the editor
-  // may run.
-  var LIVE = window.__hypermarkLiveConfig || null;
-  if (LIVE && (window === window.parent || window.parent !== window.top)) return;
-  // The server cannot know which origin form (localhost or 127.0.0.1) the
-  // editor tab was opened on, so live outbound messages are posted once per
-  // listed editor origin: the browser delivers only the post whose
-  // targetOrigin matches the parent document and silently drops the rest,
-  // so exactly one copy arrives. Inbound accepts any listed origin. Srcdoc
-  // keeps targetOrigin '*' and no token.
-  function isEditorOrigin(origin) {
-    if (!LIVE) return true;
-    var list = LIVE.editorOrigins || [];
-    for (var i = 0; i < list.length; i++) { if (list[i] === origin) return true; }
-    return false;
-  }
   function postToParent(msg) {
-    if (LIVE) {
-      msg.token = LIVE.token;
-      var origins = LIVE.editorOrigins || [];
-      for (var o = 0; o < origins.length; o++) parent.postMessage(msg, origins[o]);
-      return;
-    }
     parent.postMessage(msg, '*');
-  }
-  // Page identity for multi-page live sessions: annotations are stamped with
-  // the page they were made on, and restore filters to the current page.
-  function currentPageUrl() {
-    return (location.pathname + location.search).slice(0, 2048);
-  }
-  if (LIVE) {
-    // SPA navigation: report history changes so the parent can re-filter the
-    // restored set. Coalesced with a microtask flag so a pushState burst posts
-    // once. Full reloads need nothing: the proxy re-injects and the fresh
-    // document posts ready again.
-    var pageChangeQueued = false;
-    var postPageChange = function() {
-      if (pageChangeQueued) return;
-      pageChangeQueued = true;
-      Promise.resolve().then(function() {
-        pageChangeQueued = false;
-        postToParent({ type: PREFIX + 'page-change', pageUrl: currentPageUrl() });
-      });
-    };
-    var wrapHistory = function(name) {
-      var original = history[name];
-      if (typeof original !== 'function') return;
-      history[name] = function() {
-        var result = original.apply(this, arguments);
-        postPageChange();
-        return result;
-      };
-    };
-    wrapHistory('pushState');
-    wrapHistory('replaceState');
-    window.addEventListener('popstate', postPageChange);
   }
 
   // --- Theme ---
@@ -171,7 +112,6 @@ export const BRIDGE_SCRIPT = `(function() {
   // root, and its class list is never touched.
   window.addEventListener('message', function(e) {
     if (e.source !== parent) return;
-    if (LIVE && (!isEditorOrigin(e.origin) || !e.data || e.data.token !== LIVE.token)) return;
     if (!e.data) return;
     if (e.data.type !== PREFIX + 'theme') return;
     var root = document.documentElement;
@@ -191,7 +131,6 @@ export const BRIDGE_SCRIPT = `(function() {
   // --- Resize ---
   var lastHeight = 0;
   function postResize() {
-    if (LIVE) return; // live surfaces render full-viewport; the parent ignores height
     if (!document.body) return;
     var h = document.body.scrollHeight;
     if (h !== lastHeight) {
@@ -231,11 +170,7 @@ export const BRIDGE_SCRIPT = `(function() {
     if (whole < 0) return 0;
     return whole > MAX_MULTI_TARGETS ? MAX_MULTI_TARGETS : whole;
   }
-  // Live mode clamps the INPUT METHOD to pinpoint (click = element). Text
-  // drag-selection is a separate, always-on channel — see the mouseup handler
-  // — so the clamp only decides what a plain click does, never whether text
-  // can be selected and commented.
-  var currentInputMethod = LIVE ? 'pinpoint' : 'drag'; // 'drag' = text selection, 'pinpoint' = click an element
+  var currentInputMethod = 'drag'; // 'drag' = text selection, 'pinpoint' = click an element
   // Interact/Annotate mode. While INACTIVE the bridge keeps clicks native: no
   // pinpoint capture, no hover outline, no [data-annotate] click, no
   // committed-highlight click interception — clicks, forms, and SPA
@@ -365,7 +300,6 @@ export const BRIDGE_SCRIPT = `(function() {
   // --- Mark Creation ---
   window.addEventListener('message', function(e) {
     if (e.source !== parent) return;
-    if (LIVE && (!isEditorOrigin(e.origin) || !e.data || e.data.token !== LIVE.token)) return;
     if (!e.data || !e.data.type) return;
     var type = e.data.type;
 
@@ -549,9 +483,7 @@ export const BRIDGE_SCRIPT = `(function() {
     }
 
     else if (type === PREFIX + 'set-input-method') {
-      // Live mode clamps the input method to pinpoint (what a plain click
-      // does); text drag-selection commenting stays live regardless.
-      currentInputMethod = (LIVE || e.data.method === 'pinpoint') ? 'pinpoint' : 'drag';
+      currentInputMethod = (e.data.method === 'pinpoint') ? 'pinpoint' : 'drag';
       if (currentInputMethod === 'pinpoint') {
         clearHoverHighlight(); // pinpoint owns clicks; drop the select affordance (and any pending hit test)
       } else {
@@ -1504,47 +1436,9 @@ export const BRIDGE_SCRIPT = `(function() {
         }
       }
     }
-    if (!record.targets.length && LIVE) {
-      // Live pages render late (lazy routes, data-dependent trees): a
-      // restore that resolves nothing keeps its record, seeded with
-      // unresolved placeholder targets built from the durable params, so
-      // the mutation-driven reconcile re-acquires them when the elements
-      // appear. Srcdoc documents are static (nothing would ever
-      // re-resolve), so the record is dropped below exactly as before.
-      if (anchor) {
-        record.targets.push({
-          kind: 'element',
-          element: null,
-          anchor: anchor,
-          point: normalizedPointOf(anchor, null)
-        });
-      }
-      if (originalText) {
-        record.targets.push({
-          kind: 'range',
-          range: null,
-          text: originalText,
-          markerless: !!anchor
-        });
-      }
-      if (additionalAnchors && additionalAnchors.length) {
-        var lateCount = Math.min(additionalAnchors.length, MAX_MULTI_TARGETS);
-        for (var lateIndex = 0; lateIndex < lateCount; lateIndex++) {
-          if (!additionalAnchors[lateIndex]) continue;
-          record.targets.push({
-            kind: 'element',
-            element: null,
-            anchor: additionalAnchors[lateIndex],
-            point: normalizedPointOf(additionalAnchors[lateIndex], null)
-          });
-        }
-      }
-    }
     if (!record.targets.length) {
       // The record is removed (nothing to retry), so the per-pass dead scan
       // cannot see this id: track it separately for the unanchored report.
-      // Live sessions only reach here when the durable params seeded no
-      // placeholder targets at all (nothing will ever re-resolve).
       removeAnnRecord(id);
       restoreFailedIds.add(id);
     }
@@ -3285,12 +3179,8 @@ export const BRIDGE_SCRIPT = `(function() {
       }).observe(document.body);
     }
     watchPageMutations();
-    // Armed is the default on both surfaces, and live sessions default to
-    // pinpoint: show the cursor affordance immediately instead of waiting for
-    // the parent's first set-input-method/set-annotate-mode round trip.
     updatePinpointCursor();
     var readyMsg = { type: PREFIX + 'ready', protocolVersion: ${BRIDGE_PROTOCOL_VERSION} };
-    if (LIVE) readyMsg.pageUrl = currentPageUrl();
     postToParent(readyMsg);
   }
   if (document.readyState === 'loading') {
@@ -3320,21 +3210,3 @@ export const BRIDGE_SCRIPT = `(function() {
   };
 })();`;
 
-/**
- * Live-mode bootstrap, prepended to BRIDGE_SCRIPT by the annotate server when
- * composing the proxy-served bridge body. Reads the JSON config prelude
- * (window.__hypermarkLiveConfig) and installs the annotation CSS that srcdoc
- * mode splices as a <style> tag. Runs before the bridge IIFE and before its
- * MutationObserver exists, so this write never feeds the reconcile loop.
- * Same escaping rules as BRIDGE_SCRIPT: a dependency-free string constant.
- */
-export const LIVE_BRIDGE_BOOTSTRAP = `(function() {
-  var config = window.__hypermarkLiveConfig;
-  if (!config || typeof config.css !== 'string') return;
-  try {
-    var style = document.createElement('style');
-    style.setAttribute('data-hypermark-live-css', '');
-    style.appendChild(document.createTextNode(config.css));
-    (document.head || document.documentElement).appendChild(style);
-  } catch (ex) {}
-})();`;

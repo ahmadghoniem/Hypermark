@@ -26,12 +26,9 @@ import {
 import { buildSyncNumbering } from "./annotationNumbering";
 import { mergeUnanchoredIds } from "./unanchored";
 import {
-  MAX_PAGE_URL_LENGTH,
   checkBridgeProtocolVersion,
   formatBridgeProtocolWarning,
-  rejectsLiveMessage,
   useHtmlAnnotation,
-  type HtmlLiveSession,
 } from "./useHtmlAnnotation";
 import {
   THEME_TOKENS,
@@ -104,17 +101,6 @@ export function formatBridgeUnavailableMessage(info: BridgeUnavailableInfo): str
 /** Inputs for the sandboxed raw-HTML viewer and its parent-side annotation UI. */
 export interface HtmlViewerProps {
   rawHtml: string;
-  /** Live proxied-app mode: render `src` (no sandbox, no srcdoc) instead of
-   *  rawHtml. The caller must also set `fullViewport` and `liveSession`. */
-  src?: string;
-  /** Live session credentials paired with `src`: proxy origin + per-session
-   *  token, validated on every inbound message and stamped on every post. */
-  liveSession?: HtmlLiveSession;
-  /** Current page (pathname + search) in a live multi-page session. Restore
-   *  filters annotations to this page; changing it re-applies the filter. */
-  currentPageUrl?: string;
-  /** Live-mode page navigation reports (ready pageUrl + page-change). */
-  onPageChange?: (pageUrl: string) => void;
   annotations: Annotation[];
   onAddAnnotation: (ann: Annotation) => void;
   onSelectAnnotation: (id: string | null) => void;
@@ -182,8 +168,7 @@ export interface HtmlViewerProps {
    * so the script needs no CORS and no `crossorigin` attribute is set; a CSP
    * header on the host page is inherited by the frame and must allow
    * `script-src` for the asset origin, and the asset must not be served with
-   * `Cross-Origin-Resource-Policy: same-origin`. Ignored in live (`src`)
-   * mode, where the proxy injects the bridge.
+   * `Cross-Origin-Resource-Policy: same-origin`.
    */
   bridgeScriptUrl?: string;
   /**
@@ -217,10 +202,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
   (
     {
       rawHtml,
-      src,
-      liveSession,
-      currentPageUrl,
-      onPageChange,
       annotations,
       onAddAnnotation,
       onSelectAnnotation,
@@ -259,56 +240,33 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       contextText: string;
     } | null>(null);
 
-    // Live proxied-app mode: the iframe navigates a real origin, so the
-    // srcdoc pipeline is skipped entirely and its messages carry credentials.
-    const liveMode = !!src;
-    const liveSessionRef = useRef<HtmlLiveSession | null>(liveSession ?? null);
-    liveSessionRef.current = liveSession ?? null;
-    const onPageChangeRef = useRef(onPageChange);
-    onPageChangeRef.current = onPageChange;
     const onAnnotateModeExitRef = useRef(onAnnotateModeExit);
     onAnnotateModeExitRef.current = onAnnotateModeExit;
     const onAnnotateModeToggleRef = useRef(onAnnotateModeToggle);
     onAnnotateModeToggleRef.current = onAnnotateModeToggle;
 
-    /** Single choke point for direct-to-bridge posts: live sessions get the
-     *  token + concrete targetOrigin, srcdoc keeps "*" and no token. */
     const postToBridge = useCallback((msg: Record<string, unknown>) => {
       const win = iframeRef.current?.contentWindow;
       if (!win) return;
-      const live = liveSessionRef.current;
-      if (live) {
-        // Browsers silently drop posts whose targetOrigin does not match the
-        // receiving window (mid-navigation frames); some DOM environments
-        // throw instead, so align with the browser semantics explicitly.
-        try {
-          win.postMessage({ ...msg, token: live.token }, live.origin);
-        } catch {
-          // Dropped, matching browser behavior for unmatched target origins.
-        }
-      } else {
-        win.postMessage(msg, "*");
-      }
+      win.postMessage(msg, "*");
     }, []);
 
     // Host theming is opt-in per document (Hypermark-generated artifacts tag
     // themselves); arbitrary HTML renders untouched, like a standalone tab.
-    const hostTheme = useMemo(() => !liveMode && hasHostThemeOptIn(rawHtml), [liveMode, rawHtml]);
+    const hostTheme = useMemo(() => hasHostThemeOptIn(rawHtml), [rawHtml]);
 
-    // The URL path is srcdoc-only: live mode has the proxy inject the bridge.
-    // Resolved against THIS document's base before it is written into the
-    // srcdoc, so a framed page's own <base href> can never re-anchor it.
+    // The URL path is srcdoc-only. Resolved against THIS document's base before
+    // it is written into the srcdoc, so a framed page's own <base href> can never re-anchor it.
     const bridgeUrl = useMemo(
-      () => (!liveMode && bridgeScriptUrl
+      () => (bridgeScriptUrl
         ? resolveBridgeScriptUrl(bridgeScriptUrl, document.baseURI)
         : undefined),
-      [liveMode, bridgeScriptUrl],
+      [bridgeScriptUrl],
     );
     const bridgeUrlRef = useRef(bridgeUrl);
     bridgeUrlRef.current = bridgeUrl;
 
     const srcdoc = useMemo(() => {
-      if (liveMode) return undefined; // src mode: the proxy injects the bridge
       const injection = buildSrcdocInjection({
         tokens: readThemeTokens(),
         isLight: isLightTheme(),
@@ -317,7 +275,7 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
         bridgeScriptUrl: bridgeUrl,
       });
       return injectIntoHead(rawHtml, injection);
-    }, [liveMode, rawHtml, hostTheme, diffActive, bridgeUrl]);
+    }, [rawHtml, hostTheme, diffActive, bridgeUrl]);
 
     // Error state for the bridgeScriptUrl path only: the inline path never
     // sets it (no timer, and a version mismatch there can only be a forged
@@ -356,9 +314,8 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
     }, [bridgeError]);
 
     const handleResize = useCallback((height: number) => {
-      if (liveMode) return; // live surfaces are full-viewport; height is ignored
       setIframeHeight(height);
-    }, [liveMode]);
+    }, []);
 
     // Composer yield while shift-selecting (multi-target drafts): fade the
     // composer as the pointer approaches, click-through when over it. Pointer
@@ -465,8 +422,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       selectedAnnotationId,
       mode,
       onResize: handleResize,
-      live: liveSession,
-      onPageChange,
       onBridgePointer: handleBridgePointer,
       onUnanchoredChange: handleBridgeUnanchored,
       maxAdditionalTargets,
@@ -536,9 +491,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
     useEffect(() => {
       function handler(e: MessageEvent<unknown>) {
         if (e.source !== iframeRef.current?.contentWindow) return;
-        // Live sessions verify origin + token before reading anything.
-        const live = liveSessionRef.current;
-        if (live && rejectsLiveMessage(live, e.origin, e.data)) return;
         if (isBridgeReadyMessage(e.data)) {
           // Protocol stamp: one console warning on drift, naming both
           // versions. The ready is still honored (an older bridge answers
@@ -568,22 +520,8 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
             );
           }
           setIframeReadyVersion((version) => version + 1);
-          // Live ready carries the page identity (validated like page-change)
-          // so reloads and cross-page navigations re-anchor the restore filter.
-          if (live && isRecord(e.data)) {
-            const pageUrl = e.data.pageUrl;
-            if (
-              typeof pageUrl === "string"
-              && pageUrl.length > 0
-              && pageUrl.length <= MAX_PAGE_URL_LENGTH
-            ) {
-              onPageChangeRef.current?.(pageUrl);
-            }
-          }
           return;
         }
-        // Interact/Annotate mode messages ride the same authenticated path:
-        // live sessions already rejected wrong-origin/tokenless data above.
         if (isRecord(e.data) && e.data.type === `${PREFIX}annotate-exit`) {
           onAnnotateModeExitRef.current?.();
           return;
@@ -597,21 +535,10 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       return () => window.removeEventListener("message", handler);
     }, [readOnly]);
 
-    // Restore filter for live multi-page sessions: only annotations made on
-    // the current page (or without page identity) are pushed for restoration.
-    // Numbering (sync-annotations) still ships the FULL list: numbers are
-    // parent-authoritative and global across pages, matching export.
-    const forCurrentPage = useCallback(
-      (anns: Annotation[]) =>
-        anns.filter((a) => !a.pageUrl || a.pageUrl === currentPageUrl),
-      [currentPageUrl],
-    );
-
     useEffect(() => {
       if (iframeReadyVersion === 0) return;
-      const restorable = forCurrentPage(annotations);
-      if (restorable.length > 0) {
-        hook.applyAnnotations(restorable);
+      if (annotations.length > 0) {
+        hook.applyAnnotations(annotations);
       }
       // A fresh document: the bridge starts from an empty set and would stay
       // silent when everything restores. Ask for one complete report after
@@ -621,33 +548,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       bridgeReportedRef.current = false;
       postToBridge({ type: `${PREFIX}report-unanchored` });
     }, [iframeReadyVersion]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    // Live page navigation with a ready iframe: explicitly clear the previous
-    // page's marks, then re-apply the filtered set. Relying on dead anchors to
-    // hide pins would risk cross-page text-search false matches and waste
-    // reconcile budget.
-    const lastAppliedPageRef = useRef<string | undefined>(currentPageUrl);
-    useEffect(() => {
-      if (lastAppliedPageRef.current === currentPageUrl) return;
-      lastAppliedPageRef.current = currentPageUrl;
-      if (iframeReadyVersion === 0) return;
-      postToBridge({ type: `${PREFIX}clear-marks` });
-      const restorable = forCurrentPage(annotations);
-      if (restorable.length > 0) {
-        hook.applyAnnotations(restorable);
-      }
-      // clear-marks drops the bridge's synced numbering; re-establish it so
-      // restored markers keep their export-matching global numbers.
-      postToBridge({
-        type: `${PREFIX}sync-annotations`,
-        annotations: buildSyncNumbering(annotations),
-      });
-      // A new page is a new restore batch: report its complete set once, and
-      // deliver nothing computed against the previous page's report until
-      // that answer arrives.
-      bridgeReportedRef.current = false;
-      postToBridge({ type: `${PREFIX}report-unanchored` });
-    }, [currentPageUrl, iframeReadyVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Placed-marker numbering is parent-authoritative and matches the
     // numbers exportAnnotations writes into the submitted feedback: the full
@@ -734,9 +634,8 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
     useImperativeHandle(ref, () => ({
       removeHighlight: hook.removeHighlight,
       clearAllHighlights: hook.clearAllHighlights,
-      // Shared/draft restores respect the live page filter too.
       applySharedAnnotations: (anns: Annotation[]) =>
-        hook.applyAnnotations(forCurrentPage(anns)),
+        hook.applyAnnotations(anns),
     }));
 
     const handleGlobalCommentSubmit = useCallback(
@@ -873,12 +772,10 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
                 )}
               </div>
             )}
-            {/* Live proxied-app mode navigates a real loopback origin: no
-                sandbox (the user's own app needs cookies, storage, and
-                same-origin XHR) and no srcdoc. Srcdoc mode is unchanged. */}
             <iframe
               ref={iframeRef}
-              {...(src ? { src } : { srcDoc: srcdoc, sandbox: "allow-scripts" })}
+              srcDoc={srcdoc}
+              sandbox="allow-scripts"
               style={{
                 width: "100%",
                 height: fullViewport ? "100%" : `${iframeHeight}px`,
