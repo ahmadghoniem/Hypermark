@@ -34,7 +34,6 @@ describe("CLI top-level help", () => {
     expect(output).toContain("hypermark annotate <file.md | file.txt | file.html | https://... | folder/>");
     expect(output).toContain("[--markdown] [--no-jina]");
     expect(output).toContain("hypermark annotate-last [--stdin]");
-    expect(output).toContain("hypermark setup-goal <interview|facts>");
     expect(output).toContain("hypermark uninstall [--purge] [--yes]");
     expect(output).toContain("Run 'hypermark <command> --help' for command-specific usage.");
     expect(output).toContain("running 'hypermark' without arguments is for hook integration");
@@ -77,7 +76,6 @@ describe("CLI subcommand help", () => {
     // advertised "run 'hypermark <command> --help'" contract holds.
     for (const sub of [
       "annotate",
-      "setup-goal",
       "archive",
       "sessions",
       "uninstall",
@@ -312,7 +310,6 @@ describe("interactive no-arg invocation", () => {
     expect(output).toContain("usually launched automatically by Claude Code hooks");
     expect(output).toContain("It expects hook JSON on stdin.");
     expect(output).toContain("hypermark review");
-    expect(output).toContain("hypermark setup-goal interview bundle.json --json");
     expect(output).toContain("hypermark sessions");
     expect(output).toContain("hypermark uninstall");
     expect(output).toContain("Run 'hypermark --help' for top-level usage.");
