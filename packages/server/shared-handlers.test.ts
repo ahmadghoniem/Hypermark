@@ -4,88 +4,12 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   handleFavicon,
-  handleSaveNotes,
   handleServerReady,
-  isCodexDesktopHost,
   writeServerReadyMetadata,
 } from "./shared-handlers";
 import { CLASSIC_FAVICON_SVG } from "@hypermark/shared/favicon";
 
-function saveNotesRequest(body: unknown): Request {
-  return new Request("http://localhost/api/save-notes", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-}
 
-describe("handleSaveNotes", () => {
-  test("saves to an Obsidian vault and returns JSON success", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "hypermark-save-notes-"));
-    try {
-      const response = await handleSaveNotes(
-        saveNotesRequest({
-          obsidian: {
-            vaultPath: tmpDir,
-            folder: "hypermark",
-            plan: "# Test Plan\n\nContent here",
-          },
-        }),
-      );
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get("content-type")).toContain("application/json");
-      const json = await response.json();
-      expect(json).toHaveProperty("ok", true);
-      expect(json.results.obsidian).toHaveProperty("success", true);
-      expect(json.results.obsidian).toHaveProperty("path");
-    } finally {
-      rmSync(tmpDir, { recursive: true, force: true });
-    }
-  });
-
-  test("returns 200 with empty results when no integrations are configured", async () => {
-    const response = await handleSaveNotes(saveNotesRequest({}));
-
-    expect(response.status).toBe(200);
-    const json = await response.json();
-    expect(json).toHaveProperty("ok", true);
-    expect(json.results).toEqual({});
-  });
-
-  test("a failed integration is reported, not thrown as a server error", async () => {
-    const response = await handleSaveNotes(
-      saveNotesRequest({
-        obsidian: {
-          vaultPath: "/nonexistent-vault-path",
-          folder: "hypermark",
-          plan: "# Test Plan\n\nContent here",
-        },
-      }),
-    );
-
-    expect(response.status).toBe(200);
-    const json = await response.json();
-    expect(json).toHaveProperty("ok", true);
-    expect(json.results.obsidian).toHaveProperty("success", false);
-    expect(json.results.obsidian).toHaveProperty("error");
-  });
-
-  test("an unparseable body returns a 500 JSON error (not SPA HTML)", async () => {
-    const badRequest = new Request("http://localhost/api/save-notes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: "{ not valid json",
-    });
-
-    const response = await handleSaveNotes(badRequest);
-
-    expect(response.status).toBe(500);
-    expect(response.headers.get("content-type")).toContain("application/json");
-    const json = await response.json();
-    expect(json).toHaveProperty("error");
-  });
-});
 
 describe("writeServerReadyMetadata", () => {
   test("writes host-plugin ready metadata", () => {
@@ -109,45 +33,27 @@ describe("writeServerReadyMetadata", () => {
 });
 
 describe("handleServerReady", () => {
-  test("detects the Codex Desktop app host", () => {
-    expect(isCodexDesktopHost({ __CFBundleIdentifier: "com.openai.codex" })).toBe(true);
-    expect(isCodexDesktopHost({ __CFBundleIdentifier: "com.apple.Terminal" })).toBe(false);
-  });
-
   test("does not open a browser when host-plugin mode handles it", async () => {
     let opened = false;
-    const originalBundleIdentifier = process.env.__CFBundleIdentifier;
-    process.env.__CFBundleIdentifier = "com.apple.Terminal";
 
-    try {
-      await handleServerReady("http://localhost:12345", 12345, {
-        skipBrowserOpen: true,
-        openBrowser: async () => {
-          opened = true;
-        },
-      });
-    } finally {
-      if (originalBundleIdentifier === undefined) {
-        delete process.env.__CFBundleIdentifier;
-      } else {
-        process.env.__CFBundleIdentifier = originalBundleIdentifier;
-      }
-    }
+    await handleServerReady("http://localhost:12345", 12345, {
+      skipBrowserOpen: true,
+      openBrowser: async () => {
+        opened = true;
+      },
+    });
 
     expect(opened).toBe(false);
   });
-
 
   test("does not print the URL for a local session when the browser opens", async () => {
     const writes: string[] = [];
     let opened = "";
     const original = process.stderr.write.bind(process.stderr);
-    const originalBundleIdentifier = process.env.__CFBundleIdentifier;
     (process.stderr as { write: unknown }).write = (chunk: unknown) => {
       writes.push(String(chunk));
       return true;
     };
-    process.env.__CFBundleIdentifier = "com.apple.Terminal";
     try {
       await handleServerReady("http://localhost:3000", 3000, {
         openBrowser: async (u: string) => {
@@ -157,38 +63,9 @@ describe("handleServerReady", () => {
       });
     } finally {
       (process.stderr as { write: unknown }).write = original;
-      if (originalBundleIdentifier === undefined) {
-        delete process.env.__CFBundleIdentifier;
-      } else {
-        process.env.__CFBundleIdentifier = originalBundleIdentifier;
-      }
     }
     expect(writes.join("")).not.toContain("http://localhost:3000");
     expect(opened).toBe("http://localhost:3000");
-  });
-
-  test("prints the URL for a local Codex Desktop session even when the browser opens", async () => {
-    const writes: string[] = [];
-    const originalWrite = process.stderr.write.bind(process.stderr);
-    const originalBundleIdentifier = process.env.__CFBundleIdentifier;
-    (process.stderr as { write: unknown }).write = (chunk: unknown) => {
-      writes.push(String(chunk));
-      return true;
-    };
-    process.env.__CFBundleIdentifier = "com.openai.codex";
-    try {
-      await handleServerReady("http://localhost:3000", 3000, {
-        openBrowser: async () => true,
-      });
-    } finally {
-      (process.stderr as { write: unknown }).write = originalWrite;
-      if (originalBundleIdentifier === undefined) {
-        delete process.env.__CFBundleIdentifier;
-      } else {
-        process.env.__CFBundleIdentifier = originalBundleIdentifier;
-      }
-    }
-    expect(writes.join("")).toContain("http://localhost:3000");
   });
 
   // Regression: a local session whose browser can't be opened (headless box,

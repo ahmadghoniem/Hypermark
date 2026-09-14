@@ -1,4 +1,4 @@
-// --- Vault file tree helpers ---
+// --- Reference file tree helpers ---
 
 export const FILE_BROWSER_EXCLUDED = [
 	"node_modules/",

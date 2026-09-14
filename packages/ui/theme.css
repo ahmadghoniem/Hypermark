@@ -237,8 +237,8 @@ body:has([data-pn-browser-canvas="background"]) {
  * that the software keyboard is a rectangular bottom inset. */
 .pn-visible-viewport-overlay {
   position: fixed;
-  top: var(--pn-viewport-offset-top, 0px);
-  left: var(--pn-viewport-offset-left, 0px);
+  top: 0;
+  left: 0;
   box-sizing: border-box;
   width: var(--pn-viewport-width, 100vw);
   height: var(--pn-viewport-height, 100vh);

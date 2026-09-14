@@ -452,7 +452,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     type: AnnotationType,
     text?: string,
     images?: ImageAttachment[],
-    isQuickLabel?: boolean,
     quickLabelTip?: string,
   ) => {
     if (readOnlyRef.current) return;
@@ -473,7 +472,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
       createdA: Date.now(),
       author: getIdentity(),
       images,
-      ...(isQuickLabel ? { isQuickLabel: true } : {}),
       ...(quickLabelTip ? { quickLabelTip } : {}),
     };
 
@@ -728,7 +726,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     if (!codeEl) return;
     applyCodeBlockAnnotation(
       codeBlockToolbar.block.id, codeEl, AnnotationType.COMMENT,
-      formatQuickLabel(label), undefined, true, label.tip
+      formatQuickLabel(label), undefined, label.tip
     );
     setCodeBlockToolbar(null);
   };

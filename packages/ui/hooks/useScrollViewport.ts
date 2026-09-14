@@ -23,13 +23,10 @@ export function getScrollViewportRect(viewport: HTMLElement): DOMRect {
   if (!isDocumentScrollViewport(viewport)) return viewport.getBoundingClientRect();
 
   const targetWindow = viewport.ownerDocument.defaultView;
-  const visualViewport = targetWindow?.visualViewport;
-  const left = visualViewport?.offsetLeft ?? 0;
-  const top = visualViewport?.offsetTop ?? 0;
-  const width = visualViewport?.width ?? targetWindow?.innerWidth ?? viewport.clientWidth;
-  const height = visualViewport?.height ?? targetWindow?.innerHeight ?? viewport.clientHeight;
+  const width = targetWindow?.innerWidth ?? viewport.clientWidth;
+  const height = targetWindow?.innerHeight ?? viewport.clientHeight;
   const DOMRectConstructor = targetWindow?.DOMRect ?? DOMRect;
-  return new DOMRectConstructor(left, top, width, height);
+  return new DOMRectConstructor(0, 0, width, height);
 }
 
 export function getScrollViewportTop(viewport: HTMLElement): number {

@@ -14,16 +14,6 @@ import type { Origin } from "@hypermark/shared/agents";
 import { resolve } from "path";
 import { existsSync, unlinkSync } from "fs";
 import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./server-port";
-import { openEditorDiff } from "./ide";
-import {
-  saveToObsidian,
-  saveToBear,
-  saveToOctarine,
-  type ObsidianConfig,
-  type BearConfig,
-  type OctarineConfig,
-  type IntegrationResult,
-} from "./integrations";
 import {
   generateSlug,
   saveToHistory,
@@ -39,9 +29,9 @@ import { appendFeedbackRecord, type FeedbackDecision } from "@hypermark/shared/f
 import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
 import { readImprovementHook, getImprovementHookExpectedPath } from "@hypermark/shared/improvement-hooks";
 import { composeImproveContext } from "@hypermark/shared/pfm-reminder";
-import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, handleReferenceSkills, handleReferenceSkillContent, handleSaveNotes, readDraftGenerationFromBody } from "./shared-handlers";
+import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, handleReferenceSkills, handleReferenceSkillContent, readDraftGenerationFromBody } from "./shared-handlers";
 import { contentHash, deleteDraft } from "./draft";
-import { handleDoc, handleDocExists, handleObsidianVaults, handleObsidianFiles, handleObsidianDoc, handleFileBrowserFiles } from "./reference-handlers";
+import { handleDoc, handleDocExists, handleFileBrowserFiles } from "./reference-handlers";
 import { closeAllFileBrowserWatchers, handleFileBrowserFilesStream } from "./reference-watch";
 import { warmFileListCache } from "@hypermark/shared/resolve-file";
 import { createExternalAnnotationHandler } from "./external-annotations";
@@ -51,7 +41,6 @@ import { startParentWatch, type ParentWatcher } from "./parent-watch";
 
 // Re-export utilities
 export { openBrowser } from "./browser";
-export * from "./integrations";
 export * from "./storage";
 export { handleServerReady } from "./shared-handlers";
 export { type VaultNode, buildFileTree } from "@hypermark/shared/reference-common";
@@ -110,7 +99,6 @@ export interface ServerResult {
  * Handles:
  * - Remote detection and port configuration
  * - All API routes (/api/plan, /api/approve, /api/deny, etc.)
- * - Obsidian/Bear integrations
  * - Port conflict retries
  */
 export async function startHypermarkServer(
@@ -311,36 +299,6 @@ export async function startHypermarkServer(
             return handleUpload(req, sessionUploads);
           }
 
-          // API: Open plan diff in VS Code
-          if (url.pathname === "/api/plan/vscode-diff" && req.method === "POST") {
-            try {
-              const body = (await req.json()) as { baseVersion: number };
-
-              if (!body.baseVersion) {
-                return Response.json({ error: "Missing baseVersion" }, { status: 400 });
-              }
-
-              const basePath = getPlanVersionPath(project, slug, body.baseVersion);
-              if (!basePath) {
-                return Response.json({ error: `Version ${body.baseVersion} not found` }, { status: 404 });
-              }
-
-              const result = await openEditorDiff(basePath, currentPlanPath);
-              if ("error" in result) {
-                return Response.json({ error: result.error }, { status: 500 });
-              }
-              return Response.json({ ok: true });
-            } catch (err) {
-              const message = err instanceof Error ? err.message : "Failed to open VS Code diff";
-              return Response.json({ error: message }, { status: 500 });
-            }
-          }
-
-          // API: Detect Obsidian vaults
-          if (url.pathname === "/api/obsidian/vaults") {
-            return handleObsidianVaults();
-          }
-
           // API: Global skill catalog for comment skill references
           if (url.pathname === "/api/skills" && req.method === "GET") {
             return handleReferenceSkills();
@@ -349,16 +307,6 @@ export async function startHypermarkServer(
           // API: SKILL.md contents for a referenced human-only skill
           if (url.pathname === "/api/skills/content" && req.method === "GET") {
             return handleReferenceSkillContent(req);
-          }
-
-          // API: List Obsidian vault files as a tree
-          if (url.pathname === "/api/reference/obsidian/files" && req.method === "GET") {
-            return handleObsidianFiles(req);
-          }
-
-          // API: Read an Obsidian vault document
-          if (url.pathname === "/api/reference/obsidian/doc" && req.method === "GET") {
-            return handleObsidianDoc(req);
           }
 
           // API: List markdown files in a directory as a tree
@@ -394,11 +342,6 @@ export async function startHypermarkServer(
           });
           if (externalResponse) return externalResponse;
 
-          // API: Save to notes (decoupled from approve/deny)
-          if (url.pathname === "/api/save-notes" && req.method === "POST") {
-            return handleSaveNotes(req);
-          }
-
           // API: Approve plan
           if (url.pathname === "/api/approve" && req.method === "POST") {
             // Check for note integrations and optional feedback
@@ -407,9 +350,6 @@ export async function startHypermarkServer(
             let draftGeneration: number | undefined;
             try {
               const body = (await req.json().catch(() => ({}))) as {
-                obsidian?: ObsidianConfig;
-                bear?: BearConfig;
-                octarine?: OctarineConfig;
                 feedback?: string;
                 permissionMode?: string;
                 draftGeneration?: number;
@@ -427,29 +367,8 @@ export async function startHypermarkServer(
               if (body.permissionMode) {
                 requestedPermissionMode = body.permissionMode;
               }
-
-              // Run integrations in parallel — they're independent
-              const integrationResults: Record<string, IntegrationResult> = {};
-              const integrationPromises: Promise<void>[] = [];
-              if (body.obsidian?.vaultPath && body.obsidian?.plan) {
-                integrationPromises.push(saveToObsidian(body.obsidian).then(r => { integrationResults.obsidian = r; }));
-              }
-              if (body.bear?.plan) {
-                integrationPromises.push(saveToBear(body.bear).then(r => { integrationResults.bear = r; }));
-              }
-              if (body.octarine?.plan && body.octarine?.workspace) {
-                integrationPromises.push(saveToOctarine(body.octarine).then(r => { integrationResults.octarine = r; }));
-              }
-              await Promise.allSettled(integrationPromises);
-
-              for (const [name, result] of Object.entries(integrationResults)) {
-                if (!result?.success && result) {
-                  console.error(`[${name}] Save failed: ${result.error}`);
-                }
-              }
-            } catch (err) {
-              // Don't block approval on integration errors
-              console.error(`[Integration] Error:`, err);
+            } catch {
+              // Ignore body parse errors
             }
 
             // Archive the submission BEFORE the draft (the reviewer's other
@@ -462,15 +381,9 @@ export async function startHypermarkServer(
             // Clean up draft on successful submit
             deleteDraft(draftKey, draftGeneration);
 
-            // Use permission mode from client request if provided, otherwise fall
-            // back to hook input — but NEVER to `plan`. The ExitPlanMode hook
-            // fires while the session is still in plan mode, so `permission_mode`
-            // on that event reports `plan`; echoing it back as `setMode` would
-            // approve the plan and leave the session unable to act on it. That
-            // is the whole reason the mode is chosen here rather than inherited.
-            const inheritedPermissionMode = permissionMode === "plan" ? undefined : permissionMode;
-            const effectivePermissionMode = requestedPermissionMode || inheritedPermissionMode;
-            resolveDecision({ approved: true, feedback, permissionMode: effectivePermissionMode });
+            // Never echo `plan` back as a mode: ExitPlanMode fires while still in plan mode,
+            // so echoing it would leave the session unable to act on the approved plan.
+            resolveDecision({ approved: true, feedback, permissionMode: requestedPermissionMode });
             return Response.json({ ok: true });
           }
 

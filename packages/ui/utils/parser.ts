@@ -1289,16 +1289,9 @@ export const exportAnnotations = (
         break;
 
       case 'COMMENT':
-        if (ann.isQuickLabel) {
-          output += `[${ann.text}] Feedback on: "${ann.originalText}"\n`;
-          if (ann.quickLabelTip) {
-            output += `> ${ann.quickLabelTip}\n`;
-          }
-        } else {
-          output += `Feedback on: "${ann.originalText}"\n`;
-          if (ann.text) {
-            output += `> ${ann.text}\n`;
-          }
+        output += `Feedback on: "${ann.originalText}"\n`;
+        if (ann.text) {
+          output += `> ${ann.text}\n`;
         }
         break;
 
@@ -1317,9 +1310,7 @@ export const exportAnnotations = (
     // registered). An annotation carrying a `source` arrived through the
     // external-annotations API, not from the reviewer — it may list skills
     // but must never cause a human-only skill's instructions to be injected.
-    if (!ann.isQuickLabel) {
-      output += skillReferenceExportBlock(ann.text, injectedSkills, { external: !!ann.source });
-    }
+    output += skillReferenceExportBlock(ann.text, injectedSkills, { external: !!ann.source });
 
     // Add attached images for this annotation
     if (ann.images && ann.images.length > 0) {
@@ -1339,21 +1330,6 @@ export const exportAnnotations = (
   });
 
   output += `---\n`;
-
-  // Quick Label Summary
-  const labeledAnns = sortedAnns.filter((a: any) => a.isQuickLabel && a.text);
-  if (labeledAnns.length > 0) {
-    const grouped = new Map<string, number>();
-    labeledAnns.forEach((a: any) => {
-      grouped.set(a.text, (grouped.get(a.text) || 0) + 1);
-    });
-
-    output += `\n## Label Summary\n\n`;
-    for (const [text, count] of grouped) {
-      output += `- **${text}**: ${count}\n`;
-    }
-    output += '\n';
-  }
 
   return output;
 };

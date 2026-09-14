@@ -18,7 +18,6 @@ import { Tooltip } from "@hypermark/ui/components/Tooltip";
  * entry. One source so both views keep the same cluster in the same order.
  */
 export function PanelControlsRow({
-  stagedCount = 0,
   isSearchVisible = false,
   onOpenSearch,
   onToggleAllFolders,
@@ -28,7 +27,6 @@ export function PanelControlsRow({
   canCopyRawDiff = false,
   copyRawDiffStatus = "idle",
 }: {
-  stagedCount?: number;
   isSearchVisible?: boolean;
   onOpenSearch?: () => void;
   /** Tree view only — the sections view has no folders to collapse. */
@@ -52,11 +50,6 @@ export function PanelControlsRow({
       data-panel-controls-row
     >
       <div className="flex items-center gap-1.5">
-        {stagedCount > 0 && (
-          <span className="text-xs text-primary font-medium">
-            {stagedCount} added
-          </span>
-        )}
         {onOpenSearch && (
           <button
             type="button"

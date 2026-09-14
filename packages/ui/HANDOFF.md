@@ -232,7 +232,7 @@ Don't import these in a host. Each hits hardcoded Hypermark endpoints:
 - `components/sidebar/VersionBrowser`, `hooks/usePlanDiff`, `components/plan-diff/*` — `/api/plan/version(s)` (Hypermark's version history; Workspaces builds its own versions UI anyway).
 - `hooks/useArchive`, `components/sidebar/ArchiveBrowser` — `/api/archive/*`.
 - `hooks/useAgents` — `/api/agents`.
-- `components/ExportModal`, `components/OpenInAppButton` — `/api/save-notes`, `/api/open-in` (Obsidian/Bear/editor integrations).
+- `components/ExportModal`, `components/OpenInAppButton` — `/api/open-in` (editor integrations).
 - `components/goal-setup/*` — Hypermark's goal-package scaffolding endpoints.
 - `hooks/useEditorAnnotations` — `/api/editor-annotations` (VS Code extension only).
 - `hooks/useLinkedDoc` — `/api/doc` directly (the `docPreviewFetcher` seam covers `InlineMarkdown`'s hover previews, **not** this full linked-doc overlay).

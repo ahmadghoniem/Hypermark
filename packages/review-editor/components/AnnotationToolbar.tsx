@@ -5,7 +5,6 @@ import { formatLineRange, formatTokenContext } from '../utils/formatLineRange';
 import type { ImageAttachment } from '@hypermark/ui/types';
 import { useDraggable } from '@hypermark/ui/hooks/useDraggable';
 import {
-  hasPrimaryCoarsePointer,
   useVisibleViewportBounds,
 } from '@hypermark/ui/hooks/useViewportEnvironment';
 import { AttachmentStrip, type PendingAttachment } from '@hypermark/ui/components/AttachmentStrip';
@@ -55,8 +54,7 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
   onRetryPendingAttachment,
   onAttachFiles,
 }) => {
-  const coarsePointer = hasPrimaryCoarsePointer();
-  const visibleBounds = useVisibleViewportBounds(coarsePointer ? 16 : 0);
+  const visibleBounds = useVisibleViewportBounds(0);
   const toolbarWidth = Math.min(TOOLBAR_MAX_WIDTH, visibleBounds.width);
   const horizontalInset = toolbarWidth / 2;
   const { dragPosition, dragHandleProps, wasDragged, reset: resetDrag } = useDraggable(toolbarRef);
@@ -178,7 +176,7 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
               placeholder="Leave feedback..."
               className="w-full min-h-[4.5rem] max-h-[calc(var(--pn-viewport-height,100vh)-16rem)] px-3 py-2 bg-muted rounded-lg text-xs leading-6 resize-y border-0 focus:outline-none focus:ring-1 focus:ring-primary/50 placeholder:text-muted-foreground"
               rows={3}
-              autoFocus={!coarsePointer}
+              autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Escape') {
                   e.stopPropagation();

@@ -80,7 +80,6 @@ beforeEach(() => {
   // no env override (Bun's homedir() honors HOME).
   setEnv("HOME", home);
   setEnv("CLAUDE_CONFIG_DIR", join(home, ".claude"));
-  setEnv("CODEX_HOME", join(home, ".codex"));
   setEnv("XDG_CONFIG_HOME", join(home, ".config"));
 });
 
@@ -98,13 +97,12 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("discoverSkills — root resolution", () => {
-  test("env overrides point discovery at the right dirs (all three roots)", () => {
+  test("env overrides point discovery at the right dirs (both roots)", () => {
     writeSkill(join(home, ".claude", "skills"), "claude-skill");
-    writeSkill(join(home, ".codex", "skills"), "codex-skill");
     writeSkill(join(home, ".config", "agents", "skills"), "universal-skill");
 
     const names = discoverSkills().map((s) => s.name).sort();
-    expect(names).toEqual(["claude-skill", "codex-skill", "universal-skill"]);
+    expect(names).toEqual(["claude-skill", "universal-skill"]);
   });
 
   test("walks the skills/<category>/<skill> catalog layout one level deeper", () => {
@@ -116,9 +114,9 @@ describe("discoverSkills — root resolution", () => {
     expect(found!.sourcePath).toBe(join(claude, "category", "nested-skill"));
   });
 
-  test("cross-root name clash → first-seen wins (Claude before Codex)", () => {
+  test("cross-root name clash → first-seen wins (Claude before universal)", () => {
     writeSkill(join(home, ".claude", "skills"), "dup", "# claude version");
-    writeSkill(join(home, ".codex", "skills"), "dup", "# codex version");
+    writeSkill(join(home, ".config", "agents", "skills"), "dup", "# universal version");
 
     const dups = discoverSkills().filter((s) => s.name === "dup");
     expect(dups).toHaveLength(1);
@@ -126,12 +124,8 @@ describe("discoverSkills — root resolution", () => {
   });
 
   test("two roots resolving to the same path dedupe (no double discovery)", () => {
-    // Aim the Claude and Codex roots at one on-disk dir: CODEX_HOME is a symlink
-    // to the real CLAUDE_CONFIG_DIR, so .claude/skills and .codex/skills realpath
-    // to the same place and must collapse to one discovery.
     writeSkill(join(home, ".claude", "skills"), "shared-skill");
-    symlinkSync(join(home, ".claude"), join(home, ".codex-link"));
-    setEnv("CODEX_HOME", join(home, ".codex-link"));
+    symlinkSync(join(home, ".claude"), join(home, ".config", "agents"));
 
     const matches = discoverSkills().filter((s) => s.name === "shared-skill");
     expect(matches).toHaveLength(1);
@@ -364,18 +358,17 @@ describe("listReferenceSkills — the comment-reference catalog", () => {
 
   test("lists skills across all roots with metadata, sorted by name", () => {
     writeMetaSkill(join(home, ".claude", "skills"), "zeta", { description: "Z skill" });
-    writeMetaSkill(join(home, ".codex", "skills"), "alpha", { humanOnly: true });
-    writeMetaSkill(join(home, ".agents", "skills"), "mid");
+    writeMetaSkill(join(home, ".agents", "skills"), "alpha", { humanOnly: true });
 
     const skills = listReferenceSkills();
-    expect(skills.map((s) => s.name)).toEqual(["alpha", "mid", "zeta"]);
-    expect(skills[0]).toMatchObject({ root: "codex", humanOnly: true });
-    expect(skills[2]).toMatchObject({ root: "claude", description: "Z skill", humanOnly: false });
+    expect(skills.map((s) => s.name)).toEqual(["alpha", "zeta"]);
+    expect(skills[0]).toMatchObject({ root: "universal", humanOnly: true });
+    expect(skills[1]).toMatchObject({ root: "claude", description: "Z skill", humanOnly: false });
   });
 
-  test("cross-root name clash: first-seen wins (claude over codex)", () => {
+  test("cross-root name clash: first-seen wins (claude over universal)", () => {
     writeMetaSkill(join(home, ".claude", "skills"), "dupe", { description: "claude copy" });
-    writeMetaSkill(join(home, ".codex", "skills"), "dupe", { description: "codex copy" });
+    writeMetaSkill(join(home, ".agents", "skills"), "dupe", { description: "universal copy" });
 
     const skills = listReferenceSkills();
     expect(skills).toHaveLength(1);

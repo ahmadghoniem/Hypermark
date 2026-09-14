@@ -18,7 +18,7 @@ import { exportAnnotations, exportCodeFileAnnotations } from './parser';
 
 const catalog: SkillCatalogEntry[] = [
   { name: 'write-better', root: 'claude', description: 'Improve prose', humanOnly: false },
-  { name: 'code-review', root: 'codex', humanOnly: false },
+  { name: 'code-review', root: 'universal', humanOnly: false },
   { name: 'hypermark-review', root: 'claude', humanOnly: true },
   { name: 'humanizer', root: 'universal', humanOnly: false },
 ];

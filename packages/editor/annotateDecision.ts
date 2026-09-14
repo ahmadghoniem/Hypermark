@@ -33,16 +33,7 @@ export function resolveAnnotateDecisionAction(
     case "primary":
       return { kind: "primary" };
     case "note-with-approval":
-      // Gate: the note rides the approval body (/api/approve). The non-gate
-      // arm is UNREACHABLE from the spec since the empty-menu collapse
-      // (maintainer ruling: the non-gate menu's one composer is
-      // 'request-changes' / "Send a note…"); it stays only because the id
-      // union is shared with the gate. If a stray dispatch ever lands here it
-      // must behave like the collapsed item — plain feedback, and never
-      // fabricated approval framing.
-      return ctx.gate
-        ? { kind: "note", route: "approve", approvalFraming: false }
-        : { kind: "note", route: "feedback", approvalFraming: false };
+      return { kind: "note", route: "approve", approvalFraming: false };
     case "request-changes":
     case "note-with-feedback":
       // The two differ only by state (empty vs feedback), never by transport.

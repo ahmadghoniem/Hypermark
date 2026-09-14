@@ -31,7 +31,6 @@ let archivePath = "";
 const ENV_KEYS = [
   "HOME",
   "CLAUDE_CONFIG_DIR",
-  "CODEX_HOME",
   "XDG_CONFIG_HOME",
   "HYPERMARK_DATA_DIR",
   "HYPERMARK_PORT",
@@ -67,7 +66,6 @@ beforeEach(() => {
   for (const key of ENV_KEYS) savedEnv[key] = process.env[key];
   process.env.HOME = home;
   process.env.CLAUDE_CONFIG_DIR = join(home, ".claude");
-  process.env.CODEX_HOME = join(home, ".codex");
   process.env.XDG_CONFIG_HOME = join(home, ".config");
   process.env.HYPERMARK_DATA_DIR = join(base, "data");
   delete process.env.HYPERMARK_PORT;

@@ -486,7 +486,6 @@ export function useAnnotationHighlighter({
     type: AnnotationType,
     text?: string,
     images?: ImageAttachment[],
-    isQuickLabel?: boolean,
     quickLabelTip?: string,
   ) => {
     const doms = highlighter.getDoms(source.id);
@@ -529,7 +528,6 @@ export function useAnnotationHighlighter({
           displayMode: target.displayMode,
         })),
       } : {}),
-      ...(isQuickLabel ? { isQuickLabel: true } : {}),
       ...(quickLabelTip ? { quickLabelTip } : {}),
     };
 
@@ -549,7 +547,6 @@ export function useAnnotationHighlighter({
     type: AnnotationType,
     text?: string,
     images?: ImageAttachment[],
-    isQuickLabel?: boolean,
     quickLabelTip?: string,
   ) => {
     const id = annotationId();
@@ -569,7 +566,6 @@ export function useAnnotationHighlighter({
       createdA: Date.now(),
       author: getIdentity(),
       images,
-      ...(isQuickLabel ? { isQuickLabel: true } : {}),
       ...(quickLabelTip ? { quickLabelTip } : {}),
     };
 
@@ -1161,7 +1157,7 @@ export function useAnnotationHighlighter({
     if (isMathAnnotationSource(toolbarState.source)) {
       createAnnotationFromMathSource(
         toolbarState.source, AnnotationType.COMMENT,
-        formatQuickLabel(label), undefined, true, label.tip
+        formatQuickLabel(label), undefined, label.tip
       );
       clearPendingSelection();
       setToolbarState(null);
@@ -1171,7 +1167,7 @@ export function useAnnotationHighlighter({
     if (!highlighter) return;
     createAnnotationFromSource(
       highlighter, toolbarState.source, AnnotationType.COMMENT,
-      formatQuickLabel(label), undefined, true, label.tip
+      formatQuickLabel(label), undefined, label.tip
     );
     clearPendingSelection();
     setToolbarState(null);

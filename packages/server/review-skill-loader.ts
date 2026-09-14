@@ -9,8 +9,8 @@
  * Server-side (node:fs). Read-only: nothing here writes to the data directory.
  *
  * Trust model (v1): global, user-owned roots only (`~/.claude/skills`,
- * `~/.codex/skills`, `~/.config/agents/skills`), honoring the standard env
- * overrides (`CLAUDE_CONFIG_DIR`, `CODEX_HOME`, `XDG_CONFIG_HOME`). Project/repo
+ * `~/.config/agents/skills`), honoring the standard env
+ * overrides (`CLAUDE_CONFIG_DIR`, `XDG_CONFIG_HOME`). Project/repo
  * skills are NOT discovered (the fork-trust problem).
  *
  * Skip-and-log discipline: an unreadable dir / file is skipped with one log
@@ -33,7 +33,7 @@ import { join } from "node:path";
 /** Directories never descended during discovery. */
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build", "__pycache__"]);
 
-export type SkillRoot = "claude" | "codex" | "universal";
+export type SkillRoot = "claude" | "universal";
 
 /** A skill discovered on disk — catalog stage, no body read, no frontmatter read. */
 export interface DiscoveredSkill {
@@ -53,7 +53,7 @@ export interface DiscoveredSkill {
 
 /**
  * The ordered global skill roots, honoring env overrides. First-seen wins on a
- * cross-root name clash, so order matters: Claude → Codex → universal.
+ * cross-root name clash, so order matters: Claude → universal.
  *
  * Roots that resolve (via realpath) to the same on-disk directory are deduped,
  * keeping the first occurrence.
@@ -64,7 +64,6 @@ export function resolveGlobalSkillRoots(): Array<{ dir: string; root: SkillRoot 
   // start and ignores a later HOME, so $HOME is also what makes this testable.
   const home = process.env.HOME?.trim() || homedir();
   const claudeHome = process.env.CLAUDE_CONFIG_DIR?.trim() || join(home, ".claude");
-  const codexHome = process.env.CODEX_HOME?.trim() || join(home, ".codex");
   // Universal root. Two locations are in the wild: the documented/de-facto
   // ~/.agents/skills (where the installer puts skills and Claude symlinks them)
   // and the XDG path ${XDG_CONFIG_HOME:-~/.config}/agents/skills. Scan both; the
@@ -73,13 +72,12 @@ export function resolveGlobalSkillRoots(): Array<{ dir: string; root: SkillRoot 
 
   const candidates: Array<{ dir: string; root: SkillRoot }> = [
     { dir: join(claudeHome, "skills"), root: "claude" },
-    { dir: join(codexHome, "skills"), root: "codex" },
     { dir: join(home, ".agents", "skills"), root: "universal" },
     { dir: join(configHome, "agents", "skills"), root: "universal" },
   ];
 
-  // Dedup by realpath so two roots pointing at the same dir (e.g. via a symlink,
-  // or CLAUDE_CONFIG_DIR and CODEX_HOME aimed at one place) collapse to one.
+  // Dedup by realpath so two roots pointing at the same dir (e.g. via a symlink)
+  // collapse to one.
   // Keep first occurrence.
   const seen = new Set<string>();
   const roots: Array<{ dir: string; root: SkillRoot }> = [];
@@ -157,7 +155,7 @@ function listSubdirs(dir: string): string[] {
  * A child dir that itself holds a SKILL.md is taken as the skill and not
  * descended into.
  *
- * Dedup by skill `name` across roots — first-seen wins, ordered Claude → Codex
+ * Dedup by skill `name` across roots — first-seen wins, ordered Claude
  * → universal (the same first-seen-wins clash story as the old JSON design).
  */
 export function discoverSkills(): DiscoveredSkill[] {
@@ -387,7 +385,7 @@ export function parseSkillFrontmatterMeta(
 
 /**
  * The reference catalog: every discovered skill (same roots, dedupe, and
- * first-seen precedence as discoverSkills — Claude → Codex → universal) with
+ * first-seen precedence as discoverSkills — Claude → universal) with
  * picker metadata read from the head of its SKILL.md. Read fresh on each call,
  * never cached or persisted server-side (the catalog is ephemeral by design).
  * A skill whose SKILL.md cannot be read is skipped; this never throws.

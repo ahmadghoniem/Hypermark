@@ -1022,23 +1022,6 @@ const ReviewAppInner: React.FC = () => {
   // order when the sections view is active, tree order otherwise.
   const allFilesOrder: 'tree' | 'list' = effectivePanelView === 'sections' ? 'list' : 'tree';
 
-  // Read-side staged set: the paths the server's status sidecar reports as
-  // already in the index. Display only — no client path stages or unstages.
-  // Filtered to RENDERED paths: porcelain marks BOTH sides of a staged rename
-  // staged, but an above-threshold rename renders as one file (the new path)
-  // — counting the hidden old path would inflate "N added" and leave a phantom
-  // entry. Below-threshold renames render delete+add as two rows and both
-  // sides correctly pass this filter.
-  const stagedFiles = useMemo(() => {
-    const staged = new Set<string>();
-    if (sections) {
-      const rendered = new Set(files.map((file) => file.path));
-      for (const [path, entry] of Object.entries(sections.files)) {
-        if (entry.staged && rendered.has(path)) staged.add(path);
-      }
-    }
-    return staged;
-  }, [sections, files]);
 
   // Shared helper: fetch a diff switch and update state.
   // Returns true on success, false on failure — callers that optimistically
@@ -2231,7 +2214,6 @@ const ReviewAppInner: React.FC = () => {
                 onDoubleClickFile={(index) => handleFilePinned(index)}
                 enableKeyboardNav={hasSearchableFiles}
                 annotations={allAnnotations}
-                stagedFiles={stagedFiles}
                 isLoadingDiff={isLoadingDiff}
                 availableBranches={gitContext?.availableBranches}
                 selectedBase={selectedBase ?? undefined}
@@ -2316,7 +2298,6 @@ const ReviewAppInner: React.FC = () => {
                 recentCommits={gitContext?.recentCommits}
                 jjEvologs={gitContext?.jjEvologs}
                 detectedEvoBase={gitContext?.jjEvologs?.[1]?.commitId}
-                stagedFiles={stagedFiles}
                 onCopyRawDiff={handleCopyDiff}
                 canCopyRawDiff={!!diffData?.rawPatch}
                 copyRawDiffStatus={copyRawDiffStatus}

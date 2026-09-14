@@ -28,10 +28,10 @@ import { AnnotationType, type Annotation, type ImageAttachment } from '../types'
 // Image in shareable format: plain string (old) or [path, name] tuple (new)
 export type ShareableImage = string | [string, string];
 
-// Minimal shareable annotation format: [type, originalText, text?, author?, images?, quickLabel?]
+// Minimal shareable annotation format: [type, originalText, text?, author?, images?]
 export type ShareableAnnotation =
   | ['D', string, string | null, ShareableImage[]?]                    // Deletion: type, original, author, images
-  | ['C', string, string, string | null, ShareableImage[]?, (1)?]      // Comment: type, original, comment, author, images, isQuickLabel
+  | ['C', string, string, string | null, ShareableImage[]?]            // Comment: type, original, comment, author, images
   | ['G', string, string | null, ShareableImage[]?];                   // Global Comment: type, comment, author, images
 
 /**
@@ -91,8 +91,6 @@ export function fromShareable(data: ShareableAnnotation[], diffContexts?: (strin
     const text = type === 'D' ? undefined : item[2] as string;
     const author = type === 'D' ? item[2] as string | null : item[3] as string | null;
     const rawImages = type === 'D' ? item[3] as ShareableImage[] | undefined : item[4] as ShareableImage[] | undefined;
-    // Comment annotations may have isQuickLabel flag at index 5
-    const isQuickLabel = type === 'C' && item.length > 5 && item[5] === 1 ? true : undefined;
 
     return {
       id: `shared-${index}-${Date.now()}`,
@@ -105,7 +103,6 @@ export function fromShareable(data: ShareableAnnotation[], diffContexts?: (strin
       createdA: Date.now() + index,  // Preserve order
       author: author || undefined,
       images: parseShareableImages(rawImages),
-      ...(isQuickLabel ? { isQuickLabel } : {}),
       ...(diffContexts?.[index] ? { diffContext: diffContexts[index] as Annotation['diffContext'] } : {}),
       ...(sources?.[index] ? { source: sources[index] } : {}),
       // startMeta/endMeta will be set by web-highlighter

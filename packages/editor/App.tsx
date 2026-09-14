@@ -1872,8 +1872,6 @@ const AppInner: React.FC = () => {
     onDraftLoaded: (draft, meta) => handleRestoreDraftRef.current(draft, meta),
   });
 
-  // Fetch available agents for OpenCode (for validation on approve)
-
   // Markdown edit mode: single consolidated gate. The editor only ever opens on
   // the main plan/file markdown — never on HTML surfaces, goal-setup
   // views, linked docs, messages, folder pickers, or diff view.
@@ -2958,7 +2956,7 @@ const AppInner: React.FC = () => {
         body.permissionMode = PLAN_APPROVAL_PERMISSION_MODE;
       }
 
-      // Include annotations as feedback if any exist (for OpenCode "approve with notes").
+      // Annotations and direct edits ride the approval as feedback.
       // Direct edits count as feedback too — without the editsSection check here,
       // an edit-only approval would silently drop the user's changes.
       const hasDocAnnotations = Array.from(linkedDocHook.getDocAnnotations().values()).some(

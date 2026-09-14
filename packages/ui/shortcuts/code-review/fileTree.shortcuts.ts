@@ -1,5 +1,4 @@
 import { defineShortcutScope } from '../core';
-import { createShortcutScopeHook } from '../runtime';
 
 export const reviewFileTreeShortcuts = defineShortcutScope({
   id: 'review-file-tree',
@@ -31,5 +30,3 @@ export const reviewFileTreeShortcuts = defineShortcutScope({
     },
   },
 });
-
-export const useReviewFileTreeShortcuts = createShortcutScopeHook(reviewFileTreeShortcuts);

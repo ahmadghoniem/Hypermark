@@ -1,12 +1,7 @@
 /**
  * Annotate Server — end-to-end route wiring
  *
- * Boots the real annotate server and exercises /api/save-notes over HTTP. This
- * is the regression guard for the original bug (#844): the route was missing
- * from the annotate server, so POSTs fell through to the SPA HTML catch-all and
- * the "Save to Obsidian" button silently failed. handleSaveNotes is unit-tested
- * in shared-handlers.test.ts; this proves it is actually wired into the server
- * and answers with JSON rather than the HTML page.
+ * Boots the real annotate server and exercises route wiring over HTTP.
  *
  * NOTE: this can only run because apps/opencode-plugin/commands.test.ts injects
  * its annotate-server stub via CommandDeps instead of a global `mock.module`.
@@ -26,8 +21,7 @@ import { getHypermarkDataDir } from "@hypermark/shared/data-dir";
 
 const MINIMAL_HTML = "<html><body>Hypermark</body></html>";
 
-describe("annotate server: /api/save-notes wiring", () => {
-  // Bind a random local port regardless of env left behind by sibling suites.
+describe("annotate server: SPA fallback", () => {
   let savedPort: string | undefined;
 
   beforeEach(() => {
@@ -40,35 +34,7 @@ describe("annotate server: /api/save-notes wiring", () => {
     else process.env.HYPERMARK_PORT = savedPort;
   });
 
-  test("POST is served as JSON by the route, not the SPA HTML catch-all", async () => {
-    const server = await startAnnotateServer({
-      markdown: "# Test",
-      filePath: join(tmpdir(), "test.md"),
-      htmlContent: MINIMAL_HTML,
-    });
-
-    try {
-      // Empty body keeps this focused on wiring; handler behaviour with real
-      // integrations is unit-tested in shared-handlers.test.ts. If the route
-      // were missing, this POST would fall to the catch-all and return the
-      // 200 text/html SPA page instead of JSON.
-      const response = await fetch(`${server.url}/api/save-notes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-
-      expect(response.status).toBe(200);
-      expect(response.headers.get("content-type")).toContain("application/json");
-      const json = await response.json();
-      expect(json).toHaveProperty("ok", true);
-      expect(json.results).toEqual({});
-    } finally {
-      server.stop();
-    }
-  });
-
-  test("an unmatched path still falls through to the SPA HTML", async () => {
+  test("an unmatched path falls through to the SPA HTML", async () => {
     const server = await startAnnotateServer({
       markdown: "# Test",
       filePath: join(tmpdir(), "test.md"),

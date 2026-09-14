@@ -1,11 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { CodeAnnotation, SelectedLineRange, CodeAnnotationType, TokenAnnotationMeta, ImageAttachment } from '@hypermark/ui/types';
 import { useDismissOnOutsideAndEscape } from '@hypermark/ui/hooks/useDismissOnOutsideAndEscape';
-import {
-  hasPrimaryCoarsePointer,
-  shouldUseExpandedComposer,
-  useVisibleViewportBounds,
-} from '@hypermark/ui/hooks/useViewportEnvironment';
 import type { DiffTokenEventBaseProps } from '@pierre/diffs';
 
 export interface TokenMeta {
@@ -54,11 +49,6 @@ function draftKey(filePath: string, range: SelectedLineRange): string {
 }
 
 export function useAnnotationToolbar({ filePath, isFocused, onLineSelection, onAddAnnotation, onEditAnnotation }: UseAnnotationToolbarArgs) {
-  const visibleBounds = useVisibleViewportBounds(16);
-  const expandedComposerRequired = shouldUseExpandedComposer({
-    bounds: visibleBounds,
-    coarsePointer: hasPrimaryCoarsePointer(),
-  });
   const toolbarRef = useRef<HTMLDivElement>(null);
   const lastMousePosition = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const tokenAnchorRef = useRef<TokenMeta | null>(null);

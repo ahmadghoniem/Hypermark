@@ -22,7 +22,6 @@
     "./annotate-history": "./annotate-history.ts",
     "./feedback-archive": "./feedback-archive.ts",
     "./html-diff": "./html-diff.ts",
-    "./integrations-common": "./integrations-common.ts",
     "./repo": "./repo.ts",
     "./reference-common": "./reference-common.ts",
     "./file-browser-watch-core": "./file-browser-watch-core.ts",

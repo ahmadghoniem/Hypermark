@@ -1,5 +1,4 @@
 import { defineShortcutScope } from '../core';
-import { createShortcutScopeHook } from '../runtime';
 
 export const reviewAllFilesDiffShortcuts = defineShortcutScope({
   id: 'review-all-files-diff',
@@ -42,5 +41,3 @@ export const reviewAllFilesDiffShortcuts = defineShortcutScope({
     },
   },
 });
-
-export const useReviewAllFilesDiffShortcuts = createShortcutScopeHook(reviewAllFilesDiffShortcuts);

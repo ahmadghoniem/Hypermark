@@ -30,7 +30,6 @@
     "build:ui-css": "bun run --cwd packages/ui build:css"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.92",
     "@pierre/diffs": "1.4.1",
     "diff": "^8.0.4",
     "dockview-react": "^5.2.0",
