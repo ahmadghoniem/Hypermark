@@ -31,7 +31,7 @@ import { readImprovementHook, getImprovementHookExpectedPath } from "@hypermark/
 import { composeImproveContext } from "@hypermark/shared/pfm-reminder";
 import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, handleReferenceSkills, handleReferenceSkillContent, readDraftGenerationFromBody } from "./shared-handlers";
 import { contentHash, deleteDraft } from "./draft";
-import { handleDoc, handleDocExists, handleFileBrowserFiles } from "./reference-handlers";
+import { handleDoc, handleDocExists } from "./reference-handlers";
 import { closeAllFileBrowserWatchers, handleFileBrowserFilesStream } from "./reference-watch";
 import { warmFileListCache } from "@hypermark/shared/resolve-file";
 import { createExternalAnnotationHandler } from "./external-annotations";
@@ -307,11 +307,6 @@ export async function startHypermarkServer(
           // API: SKILL.md contents for a referenced human-only skill
           if (url.pathname === "/api/skills/content" && req.method === "GET") {
             return handleReferenceSkillContent(req);
-          }
-
-          // API: List markdown files in a directory as a tree
-          if (url.pathname === "/api/reference/files" && req.method === "GET") {
-            return handleFileBrowserFiles(req);
           }
 
           // API: Watch file browser roots and refresh the tree/status snapshot on changes

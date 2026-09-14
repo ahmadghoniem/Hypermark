@@ -4,23 +4,20 @@
  * Extracted from the annotate branch of index.ts so the resolution pipeline
  * can be re-run once by the tolerant token fallback (#1182) and unit tested.
  * The behavior of a single resolution pass is unchanged: the same branch
- * order (URL, folder, HTML, document), the same messages, and the same
- * progress lines, emitted through `log` at the same points as before.
+ * order (HTML, document), the same messages, and the same progress lines,
+ * emitted through `log` at the same points as before.
  *
  * Failures are returned instead of exiting; the caller maps them onto the
  * existing exit behavior. `notFound` is true only for the "the input named
  * nothing" terminal, which is the sole hook point for the token fallback.
- * Every target-specific failure (unsupported type, oversized file, empty
- * folder, unreachable URL, ambiguous name) keeps `notFound` false so it
- * surfaces verbatim.
+ * Every target-specific failure (unsupported type, oversized file, ambiguous
+ * name) keeps `notFound` false so it surfaces verbatim.
  */
 
 import { existsSync, statSync } from "fs";
 import path from "path";
 import { resolveAtReference, stripAtPrefix } from "@hypermark/shared/at-reference";
-import { loadConfig, resolveUseJina } from "@hypermark/shared/config";
 import { htmlToMarkdown } from "@hypermark/shared/html-to-markdown";
-import { FILE_BROWSER_EXCLUDED } from "@hypermark/shared/reference-common";
 import {
   buildAnnotatableDocRegex,
   buildAnnotatableExtensionsHint,
@@ -28,35 +25,18 @@ import {
 import {
   getExtraMarkdownExtensions,
   MAX_ANNOTATABLE_FILE_BYTES,
-  hasMarkdownFiles,
   resolveMarkdownFile,
   resolveUserPath,
 } from "@hypermark/shared/resolve-file";
-import { isConvertedSource, urlToMarkdown } from "@hypermark/shared/url-to-markdown";
-import { isLoopbackHostname } from "@hypermark/server/live-proxy";
-import {
-  LIVE_APP_REQUIRES_HTTP_MESSAGE,
-  LIVE_APP_REQUIRES_LOOPBACK_MESSAGE,
-  LIVE_APP_REQUIRES_URL_MESSAGE,
-  buildForceAppFailureMessage,
-  buildLiveProbeFallbackNotice,
-  classifyLiveAppCandidate,
-  probeLiveAppTarget,
-} from "@hypermark/shared/live-probe";
 
 export interface AnnotateResolutionSuccess {
   ok: true;
   markdown: string;
   rawHtml?: string;
   absolutePath: string;
-  folderPath?: string;
-  annotateMode: "annotate" | "annotate-folder";
+  annotateMode: "annotate";
   sourceInfo?: string;
   sourceConverted: boolean;
-  isUrl: boolean;
-  /** Loopback HTML target resolved as a LIVE app session (server mode
-   *  "annotate-app"): the URL is proxied, not converted. */
-  liveApp?: boolean;
 }
 
 export interface AnnotateResolutionFailure {
@@ -70,16 +50,13 @@ export type AnnotateResolutionResult =
   | AnnotateResolutionSuccess
   | AnnotateResolutionFailure;
 
-/** The loopback gate for the live-app probe: the proxy-side predicate is the
- * single source of truth (localhost, IPv6 loopback, or a LITERAL IPv4
- * address in 127.0.0.0/8, never a string prefix, which DNS names like
- * 127.0.0.1.evil.example would satisfy). Re-exported for the tests. */
-export { isLoopbackHostname };
+/** Message returned when the token looks like a URL or names a directory:
+ * only local files (`.md`, `.mdx`, `.txt`, `.html`) can be annotated. */
+export const ANNOTATE_TAKES_FILE_PATH_MESSAGE = "hypermark annotate takes a file path";
 
 export async function resolveAnnotateTarget(options: {
   rawFilePath: string;
   projectRoot: string;
-  noJina: boolean;
   renderMarkdown: boolean;
   /**
    * Extra extensions the user registered as markdown (#1307). Defaults to the
@@ -87,13 +64,9 @@ export async function resolveAnnotateTarget(options: {
    * that already hold a resolved list.
    */
   extraMarkdownExtensions?: readonly string[];
-  /** --app: force live mode; loud startup failure when it cannot apply. */
-  forceApp?: boolean;
-  /** --static: force the classic conversion pipeline on loopback URLs. */
-  forceStatic?: boolean;
   log?: (line: string) => void;
 }): Promise<AnnotateResolutionResult> {
-  const { rawFilePath, projectRoot, noJina, renderMarkdown, forceApp = false, forceStatic = false } = options;
+  const { rawFilePath, projectRoot, renderMarkdown } = options;
   const extraMarkdownExtensions =
     options.extraMarkdownExtensions ?? getExtraMarkdownExtensions();
   const log = options.log ?? ((line: string) => console.error(line));
@@ -108,107 +81,16 @@ export async function resolveAnnotateTarget(options: {
     log(`[DEBUG] File path arg: ${filePath}`);
   }
 
-  // --- URL annotation ---
-  const isUrl = /^https?:\/\//i.test(filePath);
-
-  // --app is contracted to fail loudly whenever it cannot apply; a file or
-  // folder target silently swallowing it would hide the flag's typo'd use.
-  if (!isUrl && forceApp) {
+  // URL tokens: only local files are annotatable.
+  if (/^https?:\/\//i.test(filePath)) {
     return {
       ok: false,
       notFound: false,
-      message: LIVE_APP_REQUIRES_URL_MESSAGE,
+      message: ANNOTATE_TAKES_FILE_PATH_MESSAGE,
     };
   }
 
-  if (isUrl) {
-    // --- Live app detection (shared with the Pi extension) ---
-    // Loopback http URLs default to LIVE mode when a quick probe returns an
-    // HTML page; --static forces the classic conversion pipeline; --app
-    // forces live mode and fails loudly when it cannot apply. Non-loopback
-    // URLs keep the conversion pipeline untouched. Probe semantics and
-    // messages live in @hypermark/shared/live-probe so every host judges
-    // the same URL identically.
-    const { parsed: parsedUrl, loopback } = classifyLiveAppCandidate(filePath);
-
-    if (forceApp && !loopback) {
-      return {
-        ok: false,
-        notFound: false,
-        message: LIVE_APP_REQUIRES_LOOPBACK_MESSAGE,
-      };
-    }
-    if (forceApp && parsedUrl?.protocol === "https:") {
-      // The live proxy is http-only.
-      return {
-        ok: false,
-        notFound: false,
-        message: LIVE_APP_REQUIRES_HTTP_MESSAGE,
-      };
-    }
-
-    if (loopback && parsedUrl?.protocol === "http:" && !forceStatic) {
-      const probe = await probeLiveAppTarget(filePath, parsedUrl);
-      if (probe.liveEligible) {
-        log(`Live app: ${filePath}`);
-        return {
-          ok: true,
-          markdown: "",
-          absolutePath: filePath,
-          annotateMode: "annotate",
-          liveApp: true,
-          sourceInfo: filePath,
-          sourceConverted: false,
-          isUrl,
-        };
-      }
-      if (forceApp) {
-        return {
-          ok: false,
-          notFound: false,
-          message: buildForceAppFailureMessage(filePath, probe),
-        };
-      }
-      // Probe failure or non-HTML without --app: fall through to the static
-      // pipeline, whose own error surfaces verbatim (preserves the legacy
-      // behavior for dead URLs and JSON endpoints). A failed probe says so
-      // first: a dev server still starting up probes as unreachable, and a
-      // silent downgrade to static conversion reads as a broken live session.
-      if (probe.probeError !== null) {
-        log(buildLiveProbeFallbackNotice(filePath, probe.probeError));
-      }
-    }
-
-    const useJina = resolveUseJina(noJina, loadConfig());
-    log(`Fetching: ${filePath}${useJina ? " (via Jina Reader)" : " (via fetch+Turndown)"}`);
-    let markdown: string;
-    let sourceConverted: boolean;
-    try {
-      const result = await urlToMarkdown(filePath, { useJina });
-      markdown = result.markdown;
-      sourceConverted = isConvertedSource(result.source);
-      if (process.env.HYPERMARK_DEBUG) {
-        log(`[DEBUG] Fetched via ${result.source} (${markdown.length} chars)`);
-      }
-    } catch (err) {
-      return {
-        ok: false,
-        notFound: false,
-        message: `Failed to fetch URL: ${err instanceof Error ? err.message : String(err)}`,
-      };
-    }
-    return {
-      ok: true,
-      markdown,
-      absolutePath: filePath, // Use URL as the "path" for display
-      annotateMode: "annotate",
-      sourceInfo: filePath, // Full URL for source attribution
-      sourceConverted,
-      isUrl,
-    };
-  }
-
-  // Folder check with literal-@ fallback for scoped-package-style names.
+  // Folder tokens: only local files are annotatable.
   const folderCandidate = resolveAtReference(rawFilePath, (c) => {
     try {
       return statSync(resolveUserPath(c, projectRoot)).isDirectory();
@@ -218,24 +100,10 @@ export async function resolveAnnotateTarget(options: {
   });
 
   if (folderCandidate !== null) {
-    const resolvedArg = resolveUserPath(folderCandidate, projectRoot);
-    // Folder annotation mode (markdown/plain text/config + HTML files)
-    if (!hasMarkdownFiles(resolvedArg, FILE_BROWSER_EXCLUDED, buildAnnotatableDocRegex(extraMarkdownExtensions))) {
-      return {
-        ok: false,
-        notFound: false,
-        message: `No annotatable files (markdown, plain-text, config, or HTML) found in ${resolvedArg}`,
-      };
-    }
-    log(`Folder: ${resolvedArg}`);
     return {
-      ok: true,
-      markdown: "",
-      absolutePath: resolvedArg,
-      folderPath: resolvedArg,
-      annotateMode: "annotate-folder",
-      sourceConverted: false,
-      isUrl,
+      ok: false,
+      notFound: false,
+      message: ANNOTATE_TAKES_FILE_PATH_MESSAGE,
     };
   }
 
@@ -269,7 +137,6 @@ export async function resolveAnnotateTarget(options: {
       annotateMode: "annotate",
       sourceInfo: path.basename(resolvedArg),
       sourceConverted,
-      isUrl,
     };
   }
 
@@ -329,6 +196,5 @@ export async function resolveAnnotateTarget(options: {
     absolutePath,
     annotateMode: "annotate",
     sourceConverted: false,
-    isUrl,
   };
 }

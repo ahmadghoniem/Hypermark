@@ -58,8 +58,6 @@ import { useExternalAnnotations } from '@hypermark/ui/hooks/useExternalAnnotatio
 import { useExternalAnnotationHighlights } from '@hypermark/ui/hooks/useExternalAnnotationHighlights';
 import { useUndoHistory } from '@hypermark/ui/hooks/useUndoHistory';
 import { buildPlanAgentInstructions } from '@hypermark/ui/utils/planAgentInstructions';
-import { useFileBrowser } from '@hypermark/ui/hooks/useFileBrowser';
-import { getFileEditStatus } from '@hypermark/ui/components/sidebar/FileBrowser';
 import { generateId } from '@hypermark/ui/utils/generateId';
 import { SidebarTabs } from '@hypermark/ui/components/sidebar/SidebarTabs';
 import { SidebarContainer } from '@hypermark/ui/components/sidebar/SidebarContainer';
@@ -118,7 +116,6 @@ import {
 } from './hooks/usePlanDiffViewAutoExit';
 import { AppHeader } from './components/AppHeader';
 import { useHtmlRefresh, type HtmlRefreshedDocument } from './hooks/useHtmlRefresh';
-import { FolderAnnotationEmptyState } from './components/FolderAnnotationEmptyState';
 import {
   AnnotateAgentTerminalPanel,
   type AnnotateAgentTerminalPanelHandle,
@@ -169,11 +166,7 @@ import {
 } from './savedFileChangeValidation';
 import { fetchSourceDocumentSnapshot, probeSourceSave } from './sourceDocumentClient';
 import { reconcileSourceDocuments, type SourceDocumentReconcileEvent } from './sourceDocumentReconciliation';
-import {
-  buildSourceWatchSubscription,
-  normalizeBrowserPath,
-  pathIsInsideDir,
-} from './sourceDocumentPaths';
+import { buildSourceWatchSubscription } from './sourceDocumentPaths';
 import { pickRestoredSingleFileDraftToDisplay } from './draftRestoreSelection';
 
 type MessageAnnotationState = {
@@ -433,7 +426,7 @@ const AppInner: React.FC = () => {
   const [gate, setGate] = useState(false);
   const [approvalNotesSupported, setApprovalNotesSupported] = useState(false);
   const [clientLease, setClientLease] = useState<AnnotateClientLeaseConfig | null>(null);
-  const [annotateSource, setAnnotateSource] = useState<'file' | 'message' | 'folder' | null>(null);
+  const [annotateSource, setAnnotateSource] = useState<'file' | 'message' | null>(null);
   const [recentMessages, setRecentMessages] = useState<PickerMessage[]>([]);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const messageStateCacheRef = useRef<Map<string, MessageAnnotationState>>(new Map());
@@ -450,18 +443,11 @@ const AppInner: React.FC = () => {
   const [rawHtml, setRawHtml] = useState('');
   const [htmlDiffHtml, setHtmlDiffHtml] = useState<string | null>(null);
   const [shareHtml, setShareHtml] = useState('');
-  // Live app annotation (mode "annotate-app"): the HtmlViewer navigates the
-  // loopback proxy origin instead of rendering srcdoc HTML. Pinpoint-only,
-  // edit/diff/share hidden, annotations stamped with the page they were
-  // made on.
-  const [liveApp, setLiveApp] = useState<{ appUrl: string; origin: string; token: string } | null>(null);
-  const [livePageUrl, setLivePageUrl] = useState('');
-  // Interact/Annotate mode for HTML and live-app surfaces. Armed = the bridge
+  // Interact/Annotate mode for HTML surfaces. Armed = the bridge
   // captures clicks for pinpoint annotation; disarmed (Interact) = clicks are
   // fully native while committed markers stay visible/clickable and text
   // drag-selection commenting stays live. Session-only, never persisted.
-  // BOTH surface kinds start armed; Esc (or the header pen) drops to
-  // Interact.
+  // Esc (or the header pen) drops to Interact.
   const [htmlAnnotateArmed, setHtmlAnnotateArmed] = useState(true);
   const handleHtmlAnnotateToggle = useCallback(() => setHtmlAnnotateArmed((v) => !v), []);
   const handleHtmlAnnotateExit = useCallback(() => setHtmlAnnotateArmed(false), []);
@@ -549,7 +535,6 @@ const AppInner: React.FC = () => {
     annotateSource ?? 'plan',
     selectedMessageId ?? 'message',
     linkedDocParsePath ?? sourceFilePath ?? 'root',
-    livePageUrl || 'page',
   ].join(':');
   const applyDocumentHistory = useCallback((action: DocumentHistoryAction, direction: HistoryDirection) => {
     if (action.kind === 'checkbox') {
@@ -852,7 +837,7 @@ const AppInner: React.FC = () => {
 
   // Sync sidebar open state when the "Auto-open Sidebar" preference changes in
   // Settings. Deliberately does NOT react to the document or render mode —
-  // switching files (e.g. in annotate-folder) leaves the sidebar exactly as the
+  // switching files leaves the sidebar exactly as the
   // user left it.
   useEffect(() => {
     if (wideModeType !== null) return;
@@ -865,7 +850,7 @@ const AppInner: React.FC = () => {
   // Auto-close the sidebar when blocks parse with no TOC entries. Fires
   // only on blocks/hasTocEntries change (not on sidebar state) so a user
   // who manually re-opens the empty sidebar is left alone — until the
-  // document changes again (e.g. picking a new file in annotate-folder).
+  // document changes again (e.g. picking a linked file).
   useEffect(() => {
     if (blocks.length === 0) return;
     if (hasTocEntries) return;
@@ -925,34 +910,13 @@ const AppInner: React.FC = () => {
     editableDocuments.setActiveKey(restoreKey);
   }, [editableDocuments]);
 
-  const handleLinkedDocumentLoaded = useCallback((doc: { markdown?: string; filepath?: string; renderAs?: 'markdown' | 'html'; sourceSave?: SourceSaveCapability }) => {
-    if (annotateSource !== 'folder') {
-      if (activeEditableDocument?.sourceSave?.enabled) {
-        suspendedRootEditableKeyRef.current = activeEditableDocument.key;
-        editableDocuments.setActiveKey(null);
-      }
-      return undefined;
-    }
-
-    if (doc.renderAs === 'html' || !doc.filepath || doc.markdown == null) {
+  const handleLinkedDocumentLoaded = useCallback((_doc: { markdown?: string; filepath?: string; renderAs?: 'markdown' | 'html'; sourceSave?: SourceSaveCapability }) => {
+    if (activeEditableDocument?.sourceSave?.enabled) {
+      suspendedRootEditableKeyRef.current = activeEditableDocument.key;
       editableDocuments.setActiveKey(null);
-      return undefined;
     }
-
-    const sourceSave = doc.sourceSave ?? null;
-    const key = editableDocumentKey(sourceSave, `file:${doc.filepath}`);
-    editableDocuments.openDocument({ key, text: doc.markdown, sourceSave });
-    const currentText = editableDocuments.getCurrentText(key) ?? doc.markdown;
-    const record = editableDocuments.getDocument(key);
-
-    if (isEditingMarkdown) {
-      editSessionBaseRef.current = currentText;
-      setEditorDirty(false);
-      setEditorDiffersFromBaseline(record ? currentText !== record.diskBaseline : false);
-    }
-
-    return currentText;
-  }, [activeEditableDocument, annotateSource, editableDocuments, isEditingMarkdown]);
+    return undefined;
+  }, [activeEditableDocument, editableDocuments]);
 
   const handleLinkedDocumentActivated = useCallback(() => {}, []);
 
@@ -1114,7 +1078,7 @@ const AppInner: React.FC = () => {
     setHtmlUnanchoredIds((prev) => (prev.size === 0 ? prev : new Set()));
   }, [activeHtmlPath]);
   const htmlRefresh = useHtmlRefresh({
-    enabled: isApiMode && annotateMode && isHtmlSurface && !liveApp,
+    enabled: isApiMode && annotateMode && isHtmlSurface,
     activePath: activeHtmlPath,
     onSnapshot: applyRefreshedHtml,
     onUnanchored: handleHtmlRefreshUnanchored,
@@ -1151,14 +1115,6 @@ const AppInner: React.FC = () => {
       exitWideMode();
     }
   }, [canUseWideMode, exitWideMode, wideModeType]);
-
-  // Markdown file browser
-  const fileBrowser = useFileBrowser();
-  // The browser is scoped to the project the session was launched in. There
-  // is no user-configured list of extra directories: browsing arbitrary
-  // folders was a settings surface nobody used, so the project root is the
-  // whole tree.
-  const showFilesTab = !!projectRoot;
 
   // Shared gate for the chrome-level keyboard commands (sidebars, focus mode):
   // never while a dialog, an overlay, a submission, or a text field owns the
@@ -1241,10 +1197,6 @@ const AppInner: React.FC = () => {
         when: canHandleAnnotateSidebarShortcut,
         handle: () => toggleSidebarTab('toc'),
       },
-      toggleFiles: {
-        when: (event) => canHandleAnnotateSidebarShortcut(event) && showFilesTab,
-        handle: () => toggleSidebarTab('files'),
-      },
     },
   });
 
@@ -1260,27 +1212,6 @@ const AppInner: React.FC = () => {
       },
     },
   });
-
-  const fileBrowserDirs = useMemo(
-    () => (projectRoot ? [projectRoot] : []),
-    [projectRoot],
-  );
-
-  // Clear active file when file browser is disabled
-  useEffect(() => {
-    if (!showFilesTab) fileBrowser.setActiveFile(null);
-  }, [showFilesTab]);
-
-  useEffect(() => {
-    if (sidebar.activeTab === 'files' && showFilesTab) {
-      if (fileBrowserDirs.length > 0) {
-        const loaded = fileBrowser.dirs.map(d => d.path);
-        const needsReload = fileBrowserDirs.some(d => !loaded.includes(d))
-          || loaded.some(d => !fileBrowserDirs.includes(d));
-        if (needsReload) fileBrowser.fetchAll(fileBrowserDirs);
-      }
-    }
-  }, [fileBrowserDirs, showFilesTab, sidebar.activeTab]);
 
   const buildCurrentMessageState = React.useCallback((): MessageAnnotationState | null => {
     if (annotateSource !== 'message' || !selectedMessageId) return null;
@@ -1398,80 +1329,22 @@ const AppInner: React.FC = () => {
     annotationHistory,
   ]);
 
-  const handleFileBrowserSelect = React.useCallback(async (absolutePath: string, dirPath: string): Promise<void> => {
-    const normalizedAbsolutePath = normalizeBrowserPath(absolutePath);
-    const dirState = fileBrowser.dirs.find(d => d.path === dirPath);
-    const normalizedDirPath = normalizeBrowserPath(dirPath);
-    const dirPrefix = normalizedDirPath === "/" || /^[A-Za-z]:\/$/.test(normalizedDirPath)
-      ? normalizedDirPath
-      : `${normalizedDirPath}/`;
-    const relativePath = normalizedAbsolutePath === normalizedDirPath
-      ? ""
-      : normalizedAbsolutePath.startsWith(dirPrefix)
-        ? normalizedAbsolutePath.slice(dirPrefix.length)
-        : undefined;
-    const editableStatus = getFileEditStatus(
-      absolutePath,
-      editableDocuments.fileEditStatuses,
-      relativePath,
-      dirState?.workspaceStatus,
-    );
-    const editableKey = editableStatus?.key ?? `file:${absolutePath}`;
-    const editableRecord = editableDocuments.getDocument(editableKey);
-    if (editableRecord?.missingOnDisk && editableRecord.sourceSave?.enabled) {
-      linkedDocHook.openLoaded({
-        filepath: editableRecord.path ?? absolutePath,
-        markdown: editableRecord.currentText,
-        renderAs: 'markdown',
-        sourceSave: editableRecord.sourceSave,
-      }, 'files', { notifyDocumentLoaded: false });
-      editableDocuments.setActiveKey(editableKey);
-      if (isEditingMarkdown) {
-        editSessionBaseRef.current = editableRecord.currentText;
-        setEditorDirty(false);
-        setEditorDiffersFromBaseline(editableRecord.currentText !== editableRecord.diskBaseline);
-        setEditStats(
-          editableRecord.currentText !== editableRecord.diskBaseline
-            ? computeEditStats(editableRecord.diskBaseline, editableRecord.currentText)
-            : null,
-        );
-      }
-      fileBrowser.setActiveFile(absolutePath);
-      return;
-    }
-
-    // `doc=1`: file-browser selections always want annotatable document
-    // rendering — without it, extensions that overlap the code-file set
-    // (.yaml, .json, .toml, …) would come back as code-file popout payloads.
-    const buildUrl = (path: string) => `/api/doc?path=${encodeURIComponent(path)}&base=${encodeURIComponent(dirPath)}&doc=1${convertHtml ? '&convert=1' : ''}`;
-    fileBrowser.setActiveFile(absolutePath);
-    await linkedDocHook.open(absolutePath, buildUrl, 'files');
-  }, [editableDocuments, linkedDocHook, fileBrowser, convertHtml, isEditingMarkdown]);
-
   // Route linked doc opens through the correct endpoint based on current context
   const handleOpenLinkedDoc = React.useCallback((docPath: string) => {
-    if (fileBrowser.activeFile && fileBrowser.activeDirPath) {
-      // When viewing a file browser doc, resolve links relative to current file's directory
-      const baseDir = linkedDocHook.filepath?.replace(/\/[^/]+$/, '') || fileBrowser.activeDirPath;
+    // Pass the current file's directory as base for relative path resolution
+    const baseDir = linkedDocHook.filepath
+      ? linkedDocHook.filepath.replace(/\/[^/]+$/, '')
+      : imageBaseDir?.includes('/') ? imageBaseDir : undefined;
+    if (baseDir) {
       linkedDocHook.open(docPath, (path) =>
         `/api/doc?path=${encodeURIComponent(path)}&base=${encodeURIComponent(baseDir)}${convertHtml ? '&convert=1' : ''}`
       );
     } else {
-      // Pass the current file's directory as base for relative path resolution
-      const baseDir = linkedDocHook.filepath
-        ? linkedDocHook.filepath.replace(/\/[^/]+$/, '')
-        : imageBaseDir?.includes('/') ? imageBaseDir : undefined;
-      if (baseDir) {
-        linkedDocHook.open(docPath, (path) =>
-          `/api/doc?path=${encodeURIComponent(path)}&base=${encodeURIComponent(baseDir)}${convertHtml ? '&convert=1' : ''}`
-        );
-      } else {
-        linkedDocHook.open(docPath);
-      }
+      linkedDocHook.open(docPath);
     }
-  }, [fileBrowser.dirs, fileBrowser.activeDirPath, fileBrowser.activeFile, linkedDocHook, imageBaseDir, convertHtml]);
+  }, [linkedDocHook, imageBaseDir, convertHtml]);
 
-  // Wrap linked doc back to also clear file browser active file
+  // Wrap linked doc back
   const handleLinkedDocBack = React.useCallback(() => {
     linkedDocHook.back();
     if (isEditingMarkdown) {
@@ -1479,8 +1352,7 @@ const AppInner: React.FC = () => {
       setEditorDirty(false);
       setEditorDiffersFromBaseline(false);
     }
-    fileBrowser.setActiveFile(null);
-  }, [linkedDocHook, isEditingMarkdown, fileBrowser]);
+  }, [linkedDocHook, isEditingMarkdown]);
 
   // Derive annotation counts per file from linked doc cache (includes active doc's live state)
   const allAnnotationCounts = useMemo(() => {
@@ -1491,21 +1363,6 @@ const AppInner: React.FC = () => {
     }
     return counts;
   }, [linkedDocHook.getDocAnnotations, annotations, globalAttachments]);
-
-  // FileBrowser counts: all files under any loaded dir (regular + vault)
-  const fileAnnotationCounts = useMemo(() => {
-    const allDirPaths = fileBrowser.dirs.map(d => d.path);
-    if (allDirPaths.length === 0) return allAnnotationCounts;
-    const counts = new Map<string, number>();
-    for (const [fp, count] of allAnnotationCounts) {
-      if (allDirPaths.some(dir => pathIsInsideDir(fp, dir))) {
-        counts.set(fp, count);
-      }
-    }
-    return counts;
-  }, [allAnnotationCounts, fileBrowser.dirs]);
-
-  const hasFileAnnotations = fileAnnotationCounts.size > 0;
 
   // Annotations in other files (not the current view) — for the right panel "+N" indicator
   const otherFileAnnotations = useMemo(() => {
@@ -1521,29 +1378,8 @@ const AppInner: React.FC = () => {
     return count > 0 ? { count, files } : undefined;
   }, [allAnnotationCounts, linkedDocHook.filepath]);
 
-  // Flash highlight for annotated files in the sidebar
-  const [highlightedFiles, setHighlightedFiles] = useState<Set<string> | undefined>();
-  const flashTimerRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const handleFlashAnnotatedFiles = React.useCallback(() => {
-    const filePaths = new Set(allAnnotationCounts.keys());
-    if (filePaths.size === 0) return;
-    // Open sidebar to the files tab so the flash is visible
-    if (!sidebar.isOpen || sidebar.activeTab !== 'files') {
-      openSidebarTab('files');
-    }
-    // Cancel any pending clear from a previous flash
-    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
-    // Clear first so re-triggering restarts the CSS animation
-    setHighlightedFiles(undefined);
-    requestAnimationFrame(() => {
-      setHighlightedFiles(filePaths);
-      flashTimerRef.current = setTimeout(() => setHighlightedFiles(undefined), 1200);
-    });
-  }, [allAnnotationCounts, openSidebarTab, sidebar]);
-
   // Context-aware back label for linked doc navigation
-  const backLabel = annotateSource === 'folder' ? 'file list'
-    : annotateSource === 'file' ? 'file'
+  const backLabel = annotateSource === 'file' ? 'file'
     : annotateSource === 'message' ? 'message'
     : 'plan';
 
@@ -1691,7 +1527,7 @@ const AppInner: React.FC = () => {
           blocks,
           allAnnotations,
           globalAttachments,
-          annotateSource === 'message' ? 'Message Feedback' : annotateSource === 'folder' ? 'Folder Feedback' : annotateSource === 'file' ? 'File Feedback' : 'Plan Feedback',
+          annotateSource === 'message' ? 'Message Feedback' : annotateSource === 'file' ? 'File Feedback' : 'Plan Feedback',
           annotateSource ?? 'plan',
           { sourceConverted: activeConverted },
         )
@@ -1725,7 +1561,6 @@ const AppInner: React.FC = () => {
     if (wideModeType !== null) return;
 
     initialSidebarPreferenceAppliedRef.current = true;
-    if (annotateSource === 'folder') return;
     // HTML chrome is owned by the surface-transition effect below, which also
     // covers linked .html docs opened from a markdown session.
     if (renderAs === 'html') return;
@@ -1733,7 +1568,6 @@ const AppInner: React.FC = () => {
       sidebar.open('toc');
     }
   }, [
-    annotateSource,
     hasTocEntries,
     isLoading,
     renderAs,
@@ -1757,7 +1591,6 @@ const AppInner: React.FC = () => {
     const wasHtml = prevHtmlChromeSurfaceRef.current;
     prevHtmlChromeSurfaceRef.current = isHtmlSurface;
     if (!isHtmlSurface || wasHtml) return;
-    if (annotateSource === 'folder') return;
     const chrome = getHtmlChromeState();
     skipNextHtmlChromeSaveRef.current = true;
     if (chrome.sidebarOpen) sidebar.open();
@@ -1766,7 +1599,6 @@ const AppInner: React.FC = () => {
     setHtmlToolsHidden(chrome.toolsHidden);
     htmlChromeRestoredRef.current = true;
   }, [
-    annotateSource,
     isHtmlSurface,
     isLoading,
     sidebar.close,
@@ -1860,7 +1692,7 @@ const AppInner: React.FC = () => {
     // emptied document, so the user can re-enter and undo. Source-backed files
     // are editable even when they start empty.
     (activeEditableDocument?.sourceSave?.enabled || displayedMarkdown !== '' || editStats !== null) &&
-    (!linkedDocHook.isActive || (annotateSource === 'folder' && activeEditableDocument?.sourceSave?.enabled)) &&
+    !linkedDocHook.isActive &&
     !isPlanDiffActive &&
     annotateSource !== 'message' &&
     !submitted;
@@ -1981,7 +1813,6 @@ const AppInner: React.FC = () => {
       if (discarded.missingOnDisk) {
         if (linkedDocHook.isActive) {
           linkedDocHook.back();
-          fileBrowser.setActiveFile(null);
         } else {
           const remapped = displayedMarkdown !== ''
             ? applyEditedDocument('')
@@ -2010,7 +1841,7 @@ const AppInner: React.FC = () => {
     const remapped = markdown !== base ? applyEditedDocument(base) : annotations;
     repaintHighlights(remapped);
     scheduleDraftSave();
-  }, [activeEditableDocument, editableDocuments, displayedMarkdown, markdown, annotations, applyEditedDocument, repaintHighlights, linkedDocHook, fileBrowser, scheduleDraftSave]);
+  }, [activeEditableDocument, editableDocuments, displayedMarkdown, markdown, annotations, applyEditedDocument, repaintHighlights, linkedDocHook, scheduleDraftSave]);
 
   // Restores a recovered draft: annotations always; direct edits when present
   // and the baseline exists. Edits flow through the same helpers
@@ -2416,11 +2247,9 @@ const AppInner: React.FC = () => {
       codeAnnotations: discard ? [] : codeAnnotations,
       title: annotateSource === 'message'
         ? 'Message Feedback'
-        : annotateSource === 'folder'
-          ? 'Folder Feedback'
-          : annotateSource === 'file'
-            ? 'File Feedback'
-            : 'Plan Feedback',
+        : annotateSource === 'file'
+          ? 'File Feedback'
+          : 'Plan Feedback',
       subject: annotateSource ?? 'plan',
       sourceConverted: activeConverted,
       directEditsSection: buildEditsSection(),
@@ -2600,11 +2429,11 @@ const AppInner: React.FC = () => {
   };
 
   const handleInputMethodChange = (method: InputMethod) => {
-    // HTML and live-app surfaces pin the viewer to pinpoint (drag-selection
-    // commenting is simultaneously live there, so there is nothing to
-    // switch): the toolstrip is not rendered and the Alt shortcut must not
-    // flip state the surface ignores or write the html cookie.
-    if (liveApp || isHtmlSurface) return;
+    // HTML surfaces pin the viewer to pinpoint (drag-selection commenting
+    // is simultaneously live there, so there is nothing to switch): the toolstrip
+    // is not rendered and the Alt shortcut must not flip state the surface ignores
+    // or write the html cookie.
+    if (isHtmlSurface) return;
     setInputMethod(method);
     // Surface-scoped persistence: an explicit choice made on the HTML surface
     // sticks for HTML sessions only; markdown keeps its own preference.
@@ -2672,7 +2501,7 @@ const AppInner: React.FC = () => {
         if (!res.ok) throw new Error('Not in API mode');
         return res.json();
       })
-      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last' | 'annotate-folder' | 'annotate-app'; filePath?: string; appUrl?: string; targetUrl?: string; liveToken?: string; sourceInfo?: string; sourceConverted?: boolean; sourceSave?: SourceSaveCapability; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; renderAs?: 'html' | 'markdown'; rawHtml?: string; shareHtml?: string; diffHtml?: string; convertHtml?: boolean; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; projectRoot?: string; markdownExtensions?: string[]; serverConfig?: { displayName?: string; gitUser?: string }; recentMessages?: PickerMessage[]; agentTerminal?: AgentTerminalCapability; feedbackTemplates?: AnnotateFeedbackTemplates }) => {
+      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last'; filePath?: string; sourceInfo?: string; sourceConverted?: boolean; sourceSave?: SourceSaveCapability; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; renderAs?: 'html' | 'markdown'; rawHtml?: string; shareHtml?: string; diffHtml?: string; convertHtml?: boolean; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; projectRoot?: string; markdownExtensions?: string[]; serverConfig?: { displayName?: string; gitUser?: string }; recentMessages?: PickerMessage[]; agentTerminal?: AgentTerminalCapability; feedbackTemplates?: AnnotateFeedbackTemplates }) => {
         // Initialize config store with server-provided values (config file > cookie > default)
         configStore.init(data.serverConfig);
         // Extra extensions the user registered as markdown (#1307) — the
@@ -2682,26 +2511,11 @@ const AppInner: React.FC = () => {
         // Session-level force-markdown preference (--markdown); threaded into folder/linked
         // /api/doc requests so on-demand HTML files convert too.
         setConvertHtml(data.convertHtml ?? false);
-        if (data.mode === 'annotate-app' && data.appUrl && data.liveToken) {
-          // Live app annotation: full-viewport live surface on the loopback
-          // proxy origin. No rawHtml and no version fields.
-          setRenderAs('html');
-          setMarkdown('');
-          // Live sessions open ARMED like every HTML surface (htmlAnnotateArmed
-          // defaults true): pinpoint is the default, Esc drops to Interact.
-          setLiveApp({
-            appUrl: data.appUrl,
-            origin: new URL(data.appUrl).origin,
-            token: data.liveToken,
-          });
-        } else if (data.renderAs === 'html' && data.rawHtml) {
+        if (data.renderAs === 'html' && data.rawHtml) {
           setRenderAs('html');
           setRawHtml(data.rawHtml);
           setShareHtml(data.shareHtml ?? '');
           setHtmlDiffHtml(data.diffHtml ?? null);
-          setMarkdown('');
-        } else if (data.mode === 'annotate-folder') {
-          // Folder annotation mode: clear demo content, let user pick a file
           setMarkdown('');
         } else if (typeof data.plan === 'string') {
           // CM6 joins lines with \n; CRLF input would make an untouched
@@ -2715,17 +2529,14 @@ const AppInner: React.FC = () => {
           }
         }
         setIsApiMode(true);
-        if (data.mode === 'annotate' || data.mode === 'annotate-last' || data.mode === 'annotate-folder' || data.mode === 'annotate-app') {
+        if (data.mode === 'annotate' || data.mode === 'annotate-last') {
           setAnnotateMode(true);
           setGate(data.gate ?? false);
           setApprovalNotesSupported(data.approvalNotesSupported ?? false);
           setClientLease(data.clientLease ?? null);
         }
-        if (data.mode === 'annotate-folder') {
-          sidebar.open('files');
-        }
-        if (data.mode === 'annotate' || data.mode === 'annotate-last' || data.mode === 'annotate-folder' || data.mode === 'annotate-app') {
-          setAnnotateSource(data.mode === 'annotate-last' ? 'message' : data.mode === 'annotate-folder' ? 'folder' : 'file');
+        if (data.mode === 'annotate' || data.mode === 'annotate-last') {
+          setAnnotateSource(data.mode === 'annotate-last' ? 'message' : 'file');
         }
         if (data.mode === 'annotate-last' && data.recentMessages && data.recentMessages.length > 0) {
           messageStateCacheRef.current = new Map();
@@ -2742,7 +2553,7 @@ const AppInner: React.FC = () => {
         setFeedbackTemplates(data.feedbackTemplates ?? null);
         setSourceConverted(!!data.sourceConverted);
         if (data.filePath) {
-          setImageBaseDir(data.mode === 'annotate-folder' ? data.filePath : data.filePath.replace(/\/[^/]+$/, ''));
+          setImageBaseDir(data.filePath.replace(/\/[^/]+$/, ''));
           if (data.mode === 'annotate') {
             setSourceFilePath(data.filePath);
           }
@@ -2822,20 +2633,10 @@ const AppInner: React.FC = () => {
     if (sourceFilePath) {
       return { fileHeader: 'File', filePath: sourceFilePath };
     }
-    if (fileBrowser.activeFile) {
-      return { fileHeader: 'File', filePath: fileBrowser.activeFile };
-    }
-    if (annotateSource === 'folder') {
-      return { fileHeader: 'Folder', filePath: fileBrowser.activeDirPath ?? projectRoot ?? 'selected folder' };
-    }
     return { fileHeader: 'File', filePath: 'current file' };
   }, [
-    annotateSource,
-    fileBrowser.activeDirPath,
-    fileBrowser.activeFile,
     linkedDocHook.filepath,
     linkedDocHook.isActive,
-    projectRoot,
     sourceFilePath,
   ]);
 
@@ -3181,9 +2982,8 @@ const AppInner: React.FC = () => {
       // not the review session.
       if (isEditingMarkdown) return;
 
-      // Folder files are the active review target; normal linked docs are side
-      // references and should not submit the root plan.
-      if (linkedDocHook.isActive && annotateSource !== 'folder') return;
+      // Linked docs are side references and should not submit the root plan.
+      if (linkedDocHook.isActive) return;
 
       // Don't intercept if typing in an input/textarea.
       if (isTextField) return;
@@ -3223,24 +3023,17 @@ const AppInner: React.FC = () => {
   ]);
 
   const handleAddAnnotation = (ann: Annotation) => {
-    // Live app sessions stamp every page-located annotation with the page it
-    // was made on (restore filters per page; export groups by page). Global
-    // comments have no page location and stay unstamped.
-    const stamped =
-      liveApp && livePageUrl && ann.type !== AnnotationType.GLOBAL_COMMENT
-        ? { ...ann, pageUrl: livePageUrl }
-        : ann;
     const beforeSelection = selectionRef.current;
     const index = annotationsRef.current.length;
-    annotationsRef.current = [...annotationsRef.current, stamped];
+    annotationsRef.current = [...annotationsRef.current, ann];
     setAnnotations(annotationsRef.current);
-    setSelectedAnnotationId(stamped.id);
+    setSelectedAnnotationId(ann.id);
     setSelectedCodeAnnotationId(null);
-    selectionRef.current = { annotationId: stamped.id, codeAnnotationId: null };
-    if (isHumanHistoryMutation(stamped)) {
+    selectionRef.current = { annotationId: ann.id, codeAnnotationId: null };
+    if (isHumanHistoryMutation(ann)) {
       annotationHistory.record({
         kind: 'annotation',
-        mutation: { kind: 'add', item: stamped, index },
+        mutation: { kind: 'add', item: ann, index },
         beforeSelection,
         afterSelection: selectionRef.current,
       });
@@ -3993,22 +3786,6 @@ const AppInner: React.FC = () => {
     toggleSidebarTab(tab);
   };
 
-  const handleNavigatorFileSelect = async (...args: Parameters<typeof handleFileBrowserSelect>) => {
-    // Plan/review linked-doc browsing still swaps the root document under the
-    // editor. Folder mode snapshots the active file first.
-    if (isEditingMarkdown && annotateSource !== 'folder') {
-      toast('Finish editing first', { description: 'Use "Done editing" before opening files.' });
-      return;
-    }
-    // Wider annotatable types are view-only. Switching to one mid-edit would
-    // silently downgrade "Done editing" to feedback-only edits.
-    if (isEditingMarkdown && !isSourceSaveFilePath(args[0])) {
-      toast('Finish editing first', { description: 'Use "Done editing" before opening non-editable files.' });
-      return;
-    }
-    void handleFileBrowserSelect(...args);
-  };
-
   const handleNavigatorMessageSelect = (messageId: string) => {
     handleSelectMessage(messageId);
   };
@@ -4036,14 +3813,6 @@ const AppInner: React.FC = () => {
         linkedDocFilepath={linkedDocHook.filepath}
         onLinkedDocBack={linkedDocHook.isActive ? handleLinkedDocBack : undefined}
         backLabel={backLabel}
-        showFilesTab={showFilesTab}
-        fileAnnotationCounts={fileAnnotationCounts}
-        highlightedFiles={highlightedFiles}
-        fileEditStatuses={editableDocuments.fileEditStatuses}
-        fileBrowser={fileBrowser}
-        onFilesSelectFile={handleNavigatorFileSelect}
-        onFilesFetchAll={() => fileBrowser.fetchAll(fileBrowserDirs)}
-        hasFileAnnotations={hasFileAnnotations}
         showVersionsTab={!isHtmlSurface && activeDiffVersionInfo !== null && activeDiffVersionInfo.totalVersions > 1}
         versionInfo={activeDiffVersionInfo}
         versions={planDiff.versions}
@@ -4091,7 +3860,6 @@ const AppInner: React.FC = () => {
         ...item,
         onDiscard: item.id === 'plan' ? () => handleDiscardEdits() : undefined,
       })) ?? null}
-      onOtherFileAnnotationsClick={handleFlashAnnotatedFiles}
     />
   );
 
@@ -4219,14 +3987,12 @@ const AppInner: React.FC = () => {
               onToggleTab={toggleSidebarTab}
               hasDiff={planDiff.hasPreviousVersion}
               showVersionsTab={!isHtmlSurface && activeDiffVersionInfo !== null && activeDiffVersionInfo.totalVersions > 1}
-              showFilesTab={showFilesTab}
               showMessagesTab={annotateSource === 'message' && recentMessages.length > 1}
               showAgentTerminalTab={showAgentTerminalControls}
               isAgentTerminalOpen={isAgentTerminalOpen}
               isAgentTerminalRunning={isAgentTerminalRunning}
               onToggleAgentTerminal={toggleAgentTerminal}
               hasMessageAnnotations={activeMessageAnnotationCounts.size > 0}
-              hasFileAnnotations={hasFileAnnotations}
               className="hidden lg:flex absolute left-0 top-0 z-20"
             />
           )}
@@ -4313,12 +4079,8 @@ const AppInner: React.FC = () => {
                   />
                 </div>
               )}
-              {/* Folder annotation empty state — shown before user picks a file */}
-              {annotateSource === 'folder' && !markdown && !linkedDocHook.isActive && (
-                <FolderAnnotationEmptyState />
-              )}
               {/* Normal Plan View — always mounted, hidden during diff mode */}
-              <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : `flex justify-center${isEditingMarkdown ? ' flex-1 min-h-0' : ''}`}`} style={{ display: (isPlanDiffActive && planDiff.diffBlocks) || (annotateSource === 'folder' && !markdown && !linkedDocHook.isActive) ? 'none' : undefined }}>
+              <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : `flex justify-center${isEditingMarkdown ? ' flex-1 min-h-0' : ''}`}`} style={{ display: isPlanDiffActive && planDiff.diffBlocks ? 'none' : undefined }}>
                 {(canUseWideMode || canEditMarkdown) && !isPlanDiffActive && !isHtmlSurface && (
                   <div
                     className="absolute -top-5 left-0 right-0 mx-auto w-full flex justify-end pointer-events-none"
@@ -4434,19 +4196,15 @@ const AppInner: React.FC = () => {
                 )}
                 {renderAs === 'html' ? (
                   <HtmlViewer
-                    key={`${liveApp ? 'live-app' : linkedDocHook.isActive ? `doc:${linkedDocHook.filepath}` : 'plan'}${isPlanDiffActive && htmlDiffHtml ? ':diff' : ''}:reload-${htmlRefresh.reloadGeneration}`}
+                    key={`${linkedDocHook.isActive ? `doc:${linkedDocHook.filepath}` : 'plan'}${isPlanDiffActive && htmlDiffHtml ? ':diff' : ''}:reload-${htmlRefresh.reloadGeneration}`}
                     ref={viewerRef}
                     rawHtml={isPlanDiffActive && htmlDiffHtml ? htmlDiffHtml : rawHtml}
-                    src={liveApp?.appUrl}
-                    liveSession={liveApp ? { origin: liveApp.origin, token: liveApp.token } : undefined}
-                    currentPageUrl={liveApp ? livePageUrl : undefined}
-                    onPageChange={liveApp ? setLivePageUrl : undefined}
                     annotations={viewerAnnotations}
                     onAddAnnotation={handleAddAnnotation}
                     onSelectAnnotation={handleSelectAnnotation}
                     selectedAnnotationId={selectedAnnotationId}
                     mode={effectiveEditorMode}
-                    // HTML/live surfaces are always pinpoint: armed = click
+                    // HTML surfaces are always pinpoint: armed = click
                     // pins an element AND drag selects text (both live at
                     // once); Interact (Esc) keeps clicks native while drag
                     // commenting stays available. No input-method switch.
@@ -4459,8 +4217,8 @@ const AppInner: React.FC = () => {
                     // The header's eye toggle is the way back, so a
                     // restored toolsHidden:true is never a trap.
                     hideControls={isHtmlSurface && htmlToolsHidden}
-                    diffAvailable={!liveApp && !!htmlDiffHtml}
-                    diffActive={!liveApp && isPlanDiffActive && !!htmlDiffHtml}
+                    diffAvailable={!!htmlDiffHtml}
+                    diffActive={isPlanDiffActive && !!htmlDiffHtml}
                     onToggleDiff={() => setIsPlanDiffActive((v) => !v)}
                     onUnanchoredChange={htmlRefresh.reportAnnotationRestore}
                   />
@@ -4502,17 +4260,15 @@ const AppInner: React.FC = () => {
                         ? {
                             filepath: linkedDocHook.filepath!,
                             onBack: handleLinkedDocBack,
-                            label: annotateSource === 'folder'
-                              ? undefined
-                              : fileBrowser.activeFile ? 'File' : undefined,
+                            label: undefined,
                             backLabel,
-                            variant: annotateSource === 'folder' ? 'folder-file' : 'breadcrumb',
+                            variant: 'breadcrumb',
                           }
                         : null
                     }
                     imageBaseDir={imageBaseDir}
                     codePathBaseDir={activeDocBaseDir}
-                    copyLabel={annotateSource === 'message' ? 'Copy message' : annotateSource === 'file' || annotateSource === 'folder' ? 'Copy file' : undefined}
+                    copyLabel={annotateSource === 'message' ? 'Copy message' : annotateSource === 'file' ? 'Copy file' : undefined}
                     sourceInfo={sourceInfo}
                     messagePickerInfo={
                       annotateSource === 'message' && recentMessages.length > 1
@@ -4696,7 +4452,7 @@ const AppInner: React.FC = () => {
                     ? `${agentName} will proceed.`
                     : `${agentName} will proceed with the implementation.`)
                 : annotateMode
-                  ? `${agentName} will address your feedback on the ${annotateSource === 'message' ? 'message' : annotateSource === 'folder' ? 'files' : 'file'}.`
+                  ? `${agentName} will address your feedback on the ${annotateSource === 'message' ? 'message' : 'file'}.`
                   : `${agentName} will revise the plan based on your feedback.`
           }
           agentLabel={agentName}

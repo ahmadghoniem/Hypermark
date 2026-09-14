@@ -7,8 +7,6 @@ import {
 	createSourceSaveCapabilityFromSnapshot,
 	createSourceSaveCapabilityFromText,
 	readSourceFileSnapshot,
-	resolveFolderSourceFile,
-	resolveFolderSourceFileForSave,
 	saveSourceFileAtomic,
 } from "./source-save-node";
 
@@ -161,30 +159,5 @@ describe("source-save node helpers", () => {
 		expect(missing.ok).toBe(false);
 		if (!missing.ok) expect(missing.code).toBe("not-writable");
 		expect(() => readFileSync(missingPath, "utf8")).toThrow();
-	});
-	test("rejects folder source paths that resolve outside the folder through a symlink", () => {
-		const root = tempRoot();
-		const folder = join(root, "docs");
-		const outside = join(root, "outside");
-		mkdirSync(folder);
-		mkdirSync(outside);
-		writeFileSync(join(outside, "secret.md"), "secret\n");
-		symlinkSync(outside, join(folder, "linked"));
-
-		const resolved = resolveFolderSourceFile(resolve(folder, "linked/secret.md"), folder);
-
-		expect(resolved).toBeNull();
-	});
-
-	test("resolves missing folder source leaves without following symlinked parents outside the folder", () => {
-		const root = tempRoot();
-		const folder = join(root, "docs");
-		const outside = join(root, "outside");
-		mkdirSync(folder);
-		mkdirSync(outside);
-		symlinkSync(outside, join(folder, "linked"));
-
-		expect(resolveFolderSourceFileForSave(join(folder, "new.md"), folder)).toBe(join(realpathSync(folder), "new.md"));
-		expect(resolveFolderSourceFileForSave(join(folder, "linked", "new.md"), folder)).toBeNull();
 	});
 });

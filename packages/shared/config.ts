@@ -138,13 +138,6 @@ export interface HypermarkConfig {
     skills?: boolean;
   };
   /**
-   * Enable Jina Reader for URL-to-markdown conversion during annotation.
-   * When true (default), `hypermark annotate <url>` routes through
-   * r.jina.ai for better JS-rendered page support and reader-mode extraction.
-   * Set to false to always use plain fetch + Turndown.
-   */
-  jina?: boolean;
-  /**
    * Save per-file version history when annotating local files. Powers the
    * annotate version diff ("what changed since I last looked"). NOTE: this
    * writes a copy of each annotated file's content under
@@ -534,12 +527,6 @@ export function resolveUseGlimpse(config: HypermarkConfig): boolean {
 }
 
 /**
- * Resolve whether to use Jina Reader for URL annotation.
- *
- * Priority (highest wins):
- *   --no-jina CLI flag  →  HYPERMARK_JINA env var  →  config.jina  →  default true
- */
-/**
  * Resolve whether annotate mode saves per-file version history.
  *
  * Priority (highest wins):
@@ -570,20 +557,6 @@ export function resolveFeedbackHistory(config: HypermarkConfig): boolean {
     return envVal === "1" || envVal.toLowerCase() === "true";
   }
   return coerceConfigBoolean(config.feedbackHistory, true);
-}
-
-export function resolveUseJina(cliNoJina: boolean, config: HypermarkConfig): boolean {
-  // CLI flag has highest priority
-  if (cliNoJina) return false;
-
-  // Environment variable
-  const envVal = process.env.HYPERMARK_JINA;
-  if (envVal !== undefined) {
-    return envVal === "1" || envVal.toLowerCase() === "true";
-  }
-
-  // Config file (default: enabled)
-  return coerceConfigBoolean(config.jina, true);
 }
 
 /**

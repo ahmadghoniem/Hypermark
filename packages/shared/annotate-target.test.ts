@@ -47,23 +47,10 @@ afterAll(() => {
 const probe = (token: string) => probeAnnotateToken(token, root);
 
 describe("probeAnnotateToken", () => {
-  test("accepts URLs by shape without fetching", () => {
-    expect(probe("https://example.com/page")).toBe("https://example.com/page");
-    expect(probe("HTTP://example.com")).toBe("HTTP://example.com");
-  });
-
-  test("recognizes wrapped URLs: `@`-prefixed and quoted", () => {
-    // The pipeline strips the `@` reference marker and wrapping quotes
-    // before its own URL check, so the probe must unwrap the same way or
-    // `annotate @https://example.com/page and summarize it` hands off
-    // instead of opening the URL.
-    expect(probe("@https://example.com/page")).toBe("https://example.com/page");
-    expect(probe('"https://example.com/page"')).toBe("https://example.com/page");
-  });
-
-  test("resolves folders to absolute paths", () => {
-    expect(probe("docs")).toBe(join(root, "docs"));
-    expect(probe("docs/")).toBe(join(root, "docs"));
+  test("rejects URLs and folders (only local files are annotate targets)", () => {
+    expect(probe("https://example.com/page")).toBeNull();
+    expect(probe("docs")).toBeNull();
+    expect(probe("docs/")).toBeNull();
   });
 
   test("resolves HTML files to absolute paths", () => {
@@ -107,23 +94,23 @@ describe("probeAnnotateToken", () => {
     expect(probe("")).toBeNull();
   });
 
-  test("bare directory names only resolve when bareDirectories is allowed", () => {
-    expect(probeAnnotateToken("docs", root, { bareDirectories: false })).toBeNull();
-    expect(probeAnnotateToken(".", root, { bareDirectories: false })).toBeNull();
-    // Explicit paths keep resolving: a separator marks intent.
-    expect(probeAnnotateToken("docs/", root, { bareDirectories: false })).toBe(join(root, "docs"));
-    // Default (sole-argument semantics) is unchanged.
-    expect(probeAnnotateToken("docs", root)).toBe(join(root, "docs"));
+  test("bare directory names and trailing-slash paths never resolve", () => {
+    expect(probeAnnotateToken("docs", root)).toBeNull();
+    expect(probeAnnotateToken(".", root)).toBeNull();
+    expect(probeAnnotateToken("docs/", root)).toBeNull();
   });
 });
 
 describe("annotateInputNamesExistingTarget", () => {
   test("true for anything the pipeline reaches a verdict on", () => {
     expect(annotateInputNamesExistingTarget("plan.md", root)).toBe(true);
-    expect(annotateInputNamesExistingTarget("docs", root)).toBe(true);
-    expect(annotateInputNamesExistingTarget("https://example.com", root)).toBe(true);
     // Exists but unsupported: pipeline owns its specific error.
     expect(annotateInputNamesExistingTarget("script.py", root)).toBe(true);
+  });
+
+  test("false for URLs and folders", () => {
+    expect(annotateInputNamesExistingTarget("docs", root)).toBe(false);
+    expect(annotateInputNamesExistingTarget("https://example.com", root)).toBe(false);
   });
 
   test("false for natural language and empty input", () => {
@@ -149,17 +136,6 @@ describe("selectAnnotateTokenTarget", () => {
     if (selection.kind === "single") {
       expect(selection.candidate.token).toBe("docs/spec.md");
       expect(selection.candidate.value).toBe(join(root, "docs/spec.md"));
-    }
-  });
-
-  test("fast path: a wrapped URL among natural language is the candidate", () => {
-    const selection = selectAnnotateTokenTarget(
-      "@https://example.com/page and summarize it",
-      probe,
-    );
-    expect(selection.kind).toBe("single");
-    if (selection.kind === "single") {
-      expect(selection.candidate.value).toBe("https://example.com/page");
     }
   });
 
@@ -189,18 +165,11 @@ describe("selectAnnotateTokenTarget", () => {
 
   test("unrecognized dash tokens disable tolerance instead of being skipped", () => {
     // Known flags are stripped before selection, so any dash token here is a
-    // typo'd flag; skipping it would change behavior (e.g. --no-jna
-    // silently fetching via Jina).
+    // typo'd flag; skipping it would change behavior.
     const typoFlag = selectAnnotateTokenTarget("the aim doc --markdwn", probe);
     expect(typoFlag.kind).toBe("flagged");
     if (typoFlag.kind === "flagged") {
       expect(typoFlag.flagTokens).toEqual(["--markdwn"]);
-    }
-
-    const noJinaTypo = selectAnnotateTokenTarget("--no-jna https://example.com/doc", probe);
-    expect(noJinaTypo.kind).toBe("flagged");
-    if (noJinaTypo.kind === "flagged") {
-      expect(noJinaTypo.flagTokens).toEqual(["--no-jna"]);
     }
   });
 
@@ -240,17 +209,17 @@ describe("message builders", () => {
       words: ["the", "aim", "doc"],
     });
     expect(message).toContain("the aim doc");
-    expect(message).toContain("hypermark annotate <file.md | file.txt | file.html | https://... | folder/>");
+    expect(message).toContain("hypermark annotate <file.md | file.txt | file.html>");
     expect(message).not.toContain("If you are an agent");
   });
 
   test("agent handoff adds the re-run instruction and preserves flags", () => {
     const message = buildUnresolvedAnnotateArgsMessage({
       words: ["the", "aim", "doc"],
-      flags: ["--markdown", "--no-jina"],
+      flags: ["--markdown"],
       agentHandoff: true,
     });
     expect(message).toContain("If you are an agent reading this");
-    expect(message).toContain("hypermark annotate <path-or-url> --markdown --no-jina");
+    expect(message).toContain("hypermark annotate <path> --markdown");
   });
 });

@@ -7,9 +7,8 @@ import {
 } from "./agent-terminal";
 
 describe("supportsAnnotateAgentTerminalMode", () => {
-  test("enables the terminal only for annotate file and folder modes", () => {
+  test("enables the terminal only for annotate file mode", () => {
     expect(supportsAnnotateAgentTerminalMode("annotate")).toBe(true);
-    expect(supportsAnnotateAgentTerminalMode("annotate-folder")).toBe(true);
     expect(supportsAnnotateAgentTerminalMode("annotate-last")).toBe(false);
     expect(supportsAnnotateAgentTerminalMode("archive")).toBe(false);
     expect(supportsAnnotateAgentTerminalMode(undefined)).toBe(false);

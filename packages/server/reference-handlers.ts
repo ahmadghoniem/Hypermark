@@ -4,16 +4,6 @@
  * Handles /api/doc and /api/reference/files. Extracted from index.ts for modularity.
  */
 
-import { existsSync, statSync } from "fs";
-import { readdir } from "fs/promises";
-import { join, relative, resolve } from "path";
-import { buildFileTree, isFileBrowserExcludedPath } from "@hypermark/shared/reference-common";
-import {
-	filterWorkspaceStatusForDirectory,
-	getWorkspaceStatusForDirectory,
-	getWorkspaceStatusRelativePaths,
-	type WorkspaceFileChange,
-} from "@hypermark/shared/workspace-status";
 import { parseCodePath } from "@hypermark/shared/code-file";
 import {
 	isAbsoluteUserPath,
@@ -22,7 +12,6 @@ import {
 	resolveMarkdownFile,
 	resolveUserPath,
 	isWithinProjectRoot,
-	getFileBrowserMaxFiles,
 	warmFileListCache,
 	getAnnotatableDocRegex,
 	MAX_ANNOTATABLE_FILE_BYTES,
@@ -60,7 +49,6 @@ export type FolderAnnotateHistory = Omit<AnnotateHistoryResult, "diffCurrent">;
 export interface HandleDocOptions {
 	rewriteHtml?: (html: string, filepath: string) => string;
 	sourceSaveFilePath?: string;
-	sourceSaveFolderPath?: string;
 	onSourceDocumentServed?: (path: string) => void;
 	rootPaths?: string[];
 	/**
@@ -269,7 +257,7 @@ function applyDocOptions<T extends Record<string, unknown>>(
 		}
 	}
 	if (typeof data.filepath !== "string") {
-		return (options.sourceSaveFolderPath || options.sourceSaveFilePath
+		return (options.sourceSaveFilePath
 			? { ...next, sourceSave: disabledSourceSave("not-local-file") }
 			: next) as DocOptionsResult<T>;
 	}
@@ -289,15 +277,7 @@ function applyDocOptions<T extends Record<string, unknown>>(
 			return { ...next, sourceSave: doc } as DocOptionsResult<T>;
 		}
 	}
-	if (!options.sourceSaveFolderPath) return next as DocOptionsResult<T>;
-	const sourceSave = sourceSnapshot
-		? createSourceSaveCapabilityFromSnapshot("folder-file", data.filepath, sourceSnapshot, options.sourceSaveFolderPath)
-		: createSourceSaveCapability("folder-file", data.filepath, options.sourceSaveFolderPath);
-	if (sourceSave.enabled) options.onSourceDocumentServed?.(sourceSave.path);
-	return {
-		...next,
-		sourceSave,
-	} as DocOptionsResult<T>;
+	return next as DocOptionsResult<T>;
 }
 
 function docJson(data: Record<string, unknown>, options?: HandleDocOptions, sourceSnapshot?: SourceFileSnapshot): Response {
@@ -551,100 +531,4 @@ export async function handleDocExists(req: Request, options?: HandleDocExistsOpt
 	);
 
 	return Response.json({ results });
-}
-
-// --- File Browser ---
-
-// Resolved per call, not captured at module load: the accepted set includes
-// the user's configured extra markdown extensions (#1307), which the shared
-// resolver reads from config.json on first use.
-function includeWorkspaceFile(relativePath: string, _change: WorkspaceFileChange): boolean {
-	return getAnnotatableDocRegex().test(relativePath) && !isFileBrowserExcludedPath(relativePath);
-}
-
-type FileBrowserWalkState = {
-	files: Set<string>;
-	limit: number;
-	truncated: boolean;
-};
-
-function addFileBrowserFile(state: FileBrowserWalkState, relativePath: string): void {
-	if (state.files.has(relativePath)) return;
-	if (state.files.size >= state.limit) {
-		state.truncated = true;
-		return;
-	}
-	state.files.add(relativePath);
-}
-
-async function walkFileBrowserFiles(dir: string, root: string, state: FileBrowserWalkState): Promise<void> {
-	if (state.truncated) return;
-	let entries;
-	try {
-		entries = await readdir(dir, { withFileTypes: true });
-	} catch {
-		return;
-	}
-
-	for (const entry of entries) {
-		if (state.truncated) return;
-		const fullPath = join(dir, entry.name);
-		const relativePath = relative(root, fullPath).replace(/\\/g, "/");
-		if (entry.isDirectory()) {
-			if (isFileBrowserExcludedPath(relativePath)) continue;
-			await walkFileBrowserFiles(fullPath, root, state);
-		} else if (entry.isFile() && getAnnotatableDocRegex().test(entry.name)) {
-			if (isFileBrowserExcludedPath(relativePath)) continue;
-			addFileBrowserFile(state, relativePath);
-		}
-	}
-}
-
-/** List markdown files in a directory as a nested tree. */
-export async function handleFileBrowserFiles(req: Request): Promise<Response> {
-	const url = new URL(req.url);
-	const dirPath = url.searchParams.get("dirPath");
-	if (!dirPath) {
-		return Response.json(
-			{ error: "Missing dirPath parameter" },
-			{ status: 400 },
-		);
-	}
-
-	const resolvedDir = resolveUserPath(dirPath);
-	if (!existsSync(resolvedDir) || !statSync(resolvedDir).isDirectory()) {
-		return Response.json({ error: "Invalid directory path" }, { status: 400 });
-	}
-
-	try {
-		const state: FileBrowserWalkState = {
-			files: new Set<string>(),
-			limit: getFileBrowserMaxFiles(),
-			truncated: false,
-		};
-		// Seed the user's own modified/untracked files BEFORE the bulk walk: the
-		// walk fills the cap in raw readdir order and addFileBrowserFile drops
-		// everything once the cap latches — the one set of files that must never
-		// silently vanish from the browser is the ones the user just touched.
-		const workspaceStatus = filterWorkspaceStatusForDirectory(await getWorkspaceStatusForDirectory(resolvedDir), resolvedDir, includeWorkspaceFile);
-		for (const match of getWorkspaceStatusRelativePaths(workspaceStatus, resolvedDir, includeWorkspaceFile)) {
-			addFileBrowserFile(state, match);
-			if (state.truncated) break;
-		}
-		await walkFileBrowserFiles(resolvedDir, resolvedDir, state);
-		const sortedFiles = [...state.files].sort();
-
-		const tree = buildFileTree(sortedFiles);
-		return Response.json({
-			tree,
-			workspaceStatus,
-			truncated: state.truncated,
-			fileLimit: state.limit,
-		});
-	} catch {
-		return Response.json(
-			{ error: "Failed to list directory files" },
-			{ status: 500 },
-		);
-	}
 }

@@ -12,7 +12,7 @@
  * always the host's unchanged pipeline):
  *
  *   1. Fast path: probe each whitespace-delimited token; if exactly one names
- *      an existing file, URL, or folder, proceed with it directly.
+ *      an existing file, proceed with it directly.
  *   2. Ambiguity: two or more tokens resolve; error naming every candidate,
  *      never guess.
  *   3. Handoff: nothing resolves; emit a message that echoes the words tried
@@ -32,10 +32,10 @@ export interface AnnotateTokenCandidate {
   /** The whitespace-delimited token the user typed. */
   token: string;
   /**
-   * What the token resolved to: an absolute path for folders, HTML files and
-   * document matches, the token itself for URLs and ambiguous document names.
-   * Feeding this back into the host pipeline on a single match keeps hosts
-   * without fuzzy resolution (Pi) consistent with the probe's answer.
+   * What the token resolved to: an absolute path for HTML files and document
+   * matches, the token itself for ambiguous document names. Feeding this
+   * back into the host pipeline on a single match keeps hosts without fuzzy
+   * resolution (Pi) consistent with the probe's answer.
    */
   value: string;
 }
@@ -47,33 +47,21 @@ export type AnnotateTokenSelection =
   /**
    * The input contains dash-prefixed tokens the caller did not recognize
    * (every known flag is stripped before selection runs). Tolerance must not
-   * apply: silently skipping a typo'd flag would change behavior (for
-   * example `--no-jna` fetching via Jina, exactly what `--no-jina` exists to
-   * prevent). Callers fall through to their unchanged pipeline so the
-   * invocation fails the same way it did before tolerant resolution existed.
+   * apply: silently skipping a typo'd flag would change behavior. Callers
+   * fall through to their unchanged pipeline so the invocation fails the
+   * same way it did before tolerant resolution existed.
    */
   | { kind: "flagged"; flagTokens: string[] };
 
 export type AnnotateTokenProbe = (token: string) => string | null;
 
-export interface ProbeAnnotateTokenOptions {
-  /**
-   * Whether a bare directory name (no path separator) may resolve as a
-   * folder candidate. Defaults to true, which is correct when the token is
-   * the sole argument. Multi-token selection passes false so a stray word
-   * that happens to match a directory name (or `.`) cannot hijack the
-   * fast path; explicit paths like `src/` or `docs/guides` still resolve.
-   */
-  bareDirectories?: boolean;
-}
-
 /**
  * Would `hypermark annotate <token>` reach a specific verdict on this
  * token: open it, or fail with a target-specific error ("Ambiguous
- * filename", "File type not supported", "File too large", empty folder)?
+ * filename", "File type not supported", "File too large")?
  *
- * Mirrors the CLI resolution branch order: URL, folder, HTML file, then
- * document resolution (strip-first with the literal-`@` fallback for
+ * Mirrors the CLI resolution branch order: HTML file, then document
+ * resolution (strip-first with the literal-`@` fallback for
  * scoped-package-style names), then bare existence (existing-but-unsupported
  * targets belong to the pipeline so its specific errors keep surfacing
  * verbatim). Returns the value to feed the pipeline, or null. An ambiguous
@@ -82,33 +70,15 @@ export interface ProbeAnnotateTokenOptions {
  *
  * Cheap for natural-language words: without an annotatable extension the
  * document resolver returns before walking the project, and the remaining
- * checks are single stat calls.
+ * check is a single stat call.
  */
 export function probeAnnotateToken(
   token: string,
   projectRoot: string,
-  options?: ProbeAnnotateTokenOptions,
 ): string | null {
   if (!token) return null;
 
-  // Unwrap the `@` reference marker and wrapping quotes before the URL
-  // check: the pipeline strips them first (and re-strips harmlessly), so
-  // `@https://example.com/page` in a multi-token invocation must count as a
-  // URL candidate, not fall through to the handoff.
   const unwrapped = stripAtPrefix(token);
-  if (/^https?:\/\//i.test(unwrapped)) return unwrapped;
-
-  const allowBareDirectory = options?.bareDirectories !== false;
-  if (allowBareDirectory || /[\\/]/.test(token)) {
-    const folder = resolveAtReference(token, (candidate) => {
-      try {
-        return statSync(resolveUserPath(candidate, projectRoot)).isDirectory();
-      } catch {
-        return false;
-      }
-    });
-    if (folder !== null) return resolveUserPath(folder, projectRoot);
-  }
 
   const html = resolveAtReference(token, (candidate) => {
     const abs = resolveUserPath(candidate, projectRoot);
@@ -123,9 +93,7 @@ export function probeAnnotateToken(
   if (doc.kind === "found") return doc.path;
   if (doc.kind === "ambiguous") return unwrapped;
 
-  // Bare existence is file-only: directories are candidates exclusively via
-  // the folder branch above, so disabling bare directories cannot be undone
-  // by this fallback.
+  // Bare existence is file-only: a directory never counts as a candidate.
   const literal = resolveAtReference(token, (candidate) => {
     try {
       return statSync(resolveUserPath(candidate, projectRoot)).isFile();
@@ -197,8 +165,7 @@ export function selectAnnotateTokenTarget(
   return { kind: "none", words };
 }
 
-export const ANNOTATE_USAGE_TARGET =
-  "<file.md | file.txt | file.html | https://... | folder/>";
+export const ANNOTATE_USAGE_TARGET = "<file.md | file.txt | file.html>";
 
 /**
  * Tier-2 error: several tokens each name an existing target. Never guess;
@@ -228,7 +195,7 @@ export function buildUnresolvedAnnotateArgsMessage(options: {
   const { words, flags = [], agentHandoff = false } = options;
   const flagSuffix = flags.length > 0 ? ` ${flags.join(" ")}` : "";
   const lines = [
-    "Could not resolve the arguments below to a file, URL, or folder; nothing in them matches an existing path:",
+    "Could not resolve the arguments below to a file; nothing in them matches an existing path:",
     "",
     `  ${words.join(" ")}`,
     "",
@@ -237,9 +204,9 @@ export function buildUnresolvedAnnotateArgsMessage(options: {
   if (agentHandoff) {
     lines.push(
       "",
-      "If you are an agent reading this: the arguments look like a natural-language description of what to annotate. Work out from the conversation which file, URL, or folder the user means, then run the command yourself with that concrete target:",
+      "If you are an agent reading this: the arguments look like a natural-language description of what to annotate. Work out from the conversation which file the user means, then run the command yourself with that concrete target:",
       "",
-      `  hypermark annotate <path-or-url>${flagSuffix}`,
+      `  hypermark annotate <path>${flagSuffix}`,
     );
   }
   return lines.join("\n");

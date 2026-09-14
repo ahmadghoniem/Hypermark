@@ -117,30 +117,7 @@ type BridgeMessage =
   | { type: `${typeof PREFIX}keytype`; key: string }
   | { type: `${typeof PREFIX}mark-click`; id: string }
   | { type: `${typeof PREFIX}unanchored`; ids: string[] }
-  | { type: `${typeof PREFIX}resize`; height: number }
-  | { type: `${typeof PREFIX}page-change`; pageUrl: string };
-
-/** Live proxied-app session credentials: the proxy origin messages must come
- * from, and the per-session token every message must echo. */
-export interface HtmlLiveSession {
-  origin: string;
-  token: string;
-}
-
-/** Cap for live-mode page identity strings (mirrors the bridge's slice). */
-export const MAX_PAGE_URL_LENGTH = 2048;
-
-/** True when a live-session message event fails the origin or token check.
- * Exported for protocol tests. */
-export function rejectsLiveMessage(
-  live: HtmlLiveSession,
-  origin: string,
-  data: unknown,
-): boolean {
-  if (origin !== live.origin) return true;
-  if (!isRecord(data) || data.token !== live.token) return true;
-  return false;
-}
+  | { type: `${typeof PREFIX}resize`; height: number };
 
 /** Dependencies and callbacks for the sandboxed HTML annotation bridge. */
 export interface UseHtmlAnnotationOptions {
@@ -153,12 +130,6 @@ export interface UseHtmlAnnotationOptions {
   selectedAnnotationId: string | null;
   mode: EditorMode;
   onResize?: (height: number) => void;
-  /** Live proxied-app session: reject messages that fail the origin or token
-   *  check before parsing, and stamp token + concrete targetOrigin on every
-   *  outbound post. Absent for srcdoc sessions (behavior unchanged). */
-  live?: HtmlLiveSession;
-  /** Live-mode page navigation reports (validated, capped at 2048 chars). */
-  onPageChange?: (pageUrl: string) => void;
   /** Validated pointer positions relayed from inside the iframe while a
    *  pinpoint draft is open (iframe-local viewport coordinates), with the
    *  Shift state observed by the iframe (the parent cannot see modifiers
@@ -191,20 +162,7 @@ export function resolveMaxAdditionalTargets(value: number | undefined): number {
 function postToIframe(
   iframe: HTMLIFrameElement | null,
   msg: Record<string, unknown>,
-  live?: HtmlLiveSession | null,
 ) {
-  if (live) {
-    // Live proxied-app sessions: token on every message, concrete targetOrigin.
-    // Browsers silently DROP a post whose targetOrigin does not match the
-    // receiving window (mid-navigation frames); some DOM environments throw
-    // instead, so align with the browser semantics explicitly.
-    try {
-      iframe?.contentWindow?.postMessage({ ...msg, token: live.token }, live.origin);
-    } catch {
-      // Dropped, matching browser behavior for unmatched target origins.
-    }
-    return;
-  }
   iframe?.contentWindow?.postMessage(msg, "*");
 }
 
@@ -391,13 +349,6 @@ export function parseBridgeMessage(value: unknown): BridgeMessage | null {
       return typeof value.height === "number" && Number.isFinite(value.height)
         ? { type: value.type, height: value.height }
         : null;
-    case `${PREFIX}page-change`:
-      // Live-mode SPA navigation report. Bounded like every bridge string.
-      return typeof value.pageUrl === "string"
-        && value.pageUrl.length > 0
-        && value.pageUrl.length <= MAX_PAGE_URL_LENGTH
-        ? { type: value.type, pageUrl: value.pageUrl }
-        : null;
     default:
       return null;
   }
@@ -417,8 +368,6 @@ export function useHtmlAnnotation({
   selectedAnnotationId,
   mode,
   onResize,
-  live,
-  onPageChange,
   onBridgePointer,
   onUnanchoredChange,
   maxAdditionalTargets,
@@ -484,10 +433,6 @@ export function useHtmlAnnotation({
   onSelectRef.current = onSelectAnnotation;
   const onUnanchoredChangeRef = useRef(onUnanchoredChange);
   onUnanchoredChangeRef.current = onUnanchoredChange;
-  const liveRef = useRef<HtmlLiveSession | null>(live ?? null);
-  liveRef.current = live ?? null;
-  const onPageChangeRef = useRef(onPageChange);
-  onPageChangeRef.current = onPageChange;
   // The effective cap and whether the host set one: only an explicit cap
   // rides on arm-multi-select, so an unconfigured viewer posts today's message.
   const maxTargetsRef = useRef(resolveMaxAdditionalTargets(maxAdditionalTargets));
@@ -497,11 +442,9 @@ export function useHtmlAnnotation({
 
   const anchorRef = useRef<HTMLDivElement | null>(null);
 
-  /** Post into the iframe with the live token + targetOrigin when a live
-   *  session is active; srcdoc posts keep targetOrigin "*" and no token. */
   const post = useCallback(
     (msg: Record<string, unknown>) => {
-      postToIframe(iframeRef.current, msg, liveRef.current);
+      postToIframe(iframeRef.current, msg);
     },
     [iframeRef],
   );
@@ -581,11 +524,6 @@ export function useHtmlAnnotation({
   useEffect(() => {
     function handler(e: MessageEvent<unknown>) {
       if (e.source !== iframeRef.current?.contentWindow) return;
-      // Live sessions verify origin + session token BEFORE parsing. The
-      // existing caps stay exactly as they are: live content is friendlier
-      // but the trust boundary does not relax.
-      const liveSession = liveRef.current;
-      if (liveSession && rejectsLiveMessage(liveSession, e.origin, e.data)) return;
       const message = parseBridgeMessage(e.data);
       if (!message) return;
 
@@ -596,8 +534,6 @@ export function useHtmlAnnotation({
         && type !== `${PREFIX}mark-click`
         && type !== `${PREFIX}unanchored`
         && type !== `${PREFIX}resize`
-        // Page identity is navigation state, not an annotation mutation.
-        && type !== `${PREFIX}page-change`
       ) {
         return;
       }
@@ -755,10 +691,6 @@ export function useHtmlAnnotation({
 
       if (type === `${PREFIX}resize`) {
         onResize?.(message.height);
-      }
-
-      if (type === `${PREFIX}page-change`) {
-        onPageChangeRef.current?.(message.pageUrl);
       }
     }
 

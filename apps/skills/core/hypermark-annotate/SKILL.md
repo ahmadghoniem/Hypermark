@@ -1,6 +1,6 @@
 ---
 name: hypermark-annotate
-description: Open Hypermark's annotation UI for a markdown file, plain-text config file (.yaml, .json, .toml, .ini, .csv, .log, …), HTML file, URL, or folder and then respond to the returned annotations.
+description: Open Hypermark's annotation UI for a markdown file, plain-text config file (.yaml, .json, .toml, .ini, .csv, .log, …), or HTML file and then respond to the returned annotations.
 disable-model-invocation: true
 ---
 
@@ -11,13 +11,13 @@ Use this skill when the user wants to annotate a document in Hypermark instead o
 Run for ordinary annotation/feedback:
 
 ```bash
-hypermark annotate <path-or-url>
+hypermark annotate <file>
 ```
 
 Run when the user asks to review, approve, accept, or gate a generated plan/spec/document:
 
 ```bash
-hypermark annotate <path-or-url> --gate --json
+hypermark annotate <file> --gate --json
 ```
 
 Plain `annotate` has no **Approve** button; it only supports feedback or closing the session. Never promise an approval action unless `--gate` is present. `--json` only changes the output format and does not enable approval by itself.
@@ -32,7 +32,7 @@ Behavior:
    `"feedback"` field. Read those notes and carry them into subsequent work, but
    do not revise the document over them: they are guidance, not a change request.
 6. If the command reports that the arguments could not be resolved to a file,
-   URL, or folder, work out which target the user means and re-run the command
-   yourself with that concrete path or URL.
+   work out which target the user means and re-run the command
+   yourself with that concrete path.
 
 Do not ask the user to paste a shell command into the chat. Run the command yourself.

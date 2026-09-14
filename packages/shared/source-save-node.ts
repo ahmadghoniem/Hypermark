@@ -80,70 +80,19 @@ export function sourceFileSnapshotFromText(text: string): SourceFileSnapshot {
 	};
 }
 
-export function resolveFolderSourceFile(filePath: string, folderPath: string): string | null {
-	if (!isSourceSaveFilePath(filePath)) return null;
-
-	let root: string;
-	let candidate: string;
-	try {
-		root = realpathSync(resolveUserPath(folderPath));
-		candidate = resolveUserPath(filePath, root);
-		if (!existsSync(candidate)) return null;
-		candidate = realpathSync(candidate);
-	} catch {
-		return null;
-	}
-
-	if (!isWithinProjectRoot(candidate, root)) return null;
-	return candidate;
-}
-
-export function resolveFolderSourceFileForSave(filePath: string, folderPath: string): string | null {
-	if (!isSourceSaveFilePath(filePath)) return null;
-
-	let root: string;
-	let candidate: string;
-	try {
-		root = realpathSync(resolveUserPath(folderPath));
-		candidate = resolveUserPath(filePath, root);
-	} catch {
-		return null;
-	}
-
-	try {
-		if (existsSync(candidate)) return resolveFolderSourceFile(candidate, root);
-
-		const realParent = realpathSync(dirname(candidate));
-		if (!isWithinProjectRoot(realParent, root)) return null;
-		const resolvedMissingLeaf = join(realParent, basename(candidate));
-		if (!isWithinProjectRoot(resolvedMissingLeaf, root)) return null;
-		return resolvedMissingLeaf;
-	} catch {
-		return null;
-	}
-}
-
 export function resolveExistingSourceSaveFile(
 	scope: SourceSaveScope,
 	filePath: string,
-	folderPath?: string,
 ): string | null {
 	if (!isSourceSaveFilePath(filePath)) return null;
 
-	const resolved =
-		scope === "folder-file" && folderPath
-			? resolveFolderSourceFile(filePath, folderPath)
-			: resolveUserPath(filePath);
+	const resolved = resolveUserPath(filePath);
 
 	if (!resolved) return null;
 	if (!existsSync(resolved)) return null;
 
 	try {
 		const real = realpathSync(resolved);
-		if (scope === "folder-file" && folderPath) {
-			const root = realpathSync(resolveUserPath(folderPath));
-			if (!isWithinProjectRoot(real, root)) return null;
-		}
 		const stat = statSync(real);
 		if (!stat.isFile()) return null;
 		return real;
@@ -156,13 +105,12 @@ export function createSourceSaveCapabilityFromSnapshot(
 	scope: SourceSaveScope,
 	filePath: string,
 	snapshot: SourceFileSnapshot,
-	folderPath?: string,
 ): SourceSaveCapability {
 	if (!isSourceSaveFilePath(filePath)) {
 		return disabledSourceSave("unsupported-extension");
 	}
 
-	const resolved = resolveExistingSourceSaveFile(scope, filePath, folderPath);
+	const resolved = resolveExistingSourceSaveFile(scope, filePath);
 	if (!resolved) return disabledSourceSave("not-local-file");
 	return enabledSourceSave(scope, resolved, snapshot);
 }
@@ -174,17 +122,9 @@ export function createSourceSaveCapabilityFromText(
 	scope: SourceSaveScope,
 	filePath: string,
 	text: string,
-	folderPath?: string,
 ): SourceSaveCapability {
 	if (!isSourceSaveFilePath(filePath)) {
 		return disabledSourceSave("unsupported-extension");
-	}
-
-	if (scope === "folder-file") {
-		if (!folderPath) return disabledSourceSave("not-local-file");
-		const resolved = resolveFolderSourceFileForSave(filePath, folderPath);
-		if (!resolved) return disabledSourceSave("not-local-file");
-		return enabledSourceSave(scope, resolved, sourceFileSnapshotFromText(text));
 	}
 
 	const resolved = resolveUserPath(filePath);
@@ -206,28 +146,18 @@ export function createSourceSaveCapabilityFromText(
 export function createSourceSaveCapability(
 	scope: SourceSaveScope,
 	filePath: string,
-	folderPath?: string,
 ): SourceSaveCapability {
 	if (!isSourceSaveFilePath(filePath)) {
 		return disabledSourceSave("unsupported-extension");
 	}
 
-	const resolved =
-		scope === "folder-file" && folderPath
-			? resolveFolderSourceFile(filePath, folderPath)
-			: resolveUserPath(filePath);
+	const resolved = resolveUserPath(filePath);
 
 	if (!resolved) return disabledSourceSave("not-local-file");
 	if (!existsSync(resolved)) return disabledSourceSave("missing-file");
 
 	try {
 		const real = realpathSync(resolved);
-		if (scope === "folder-file" && folderPath) {
-			const root = realpathSync(resolveUserPath(folderPath));
-			if (!isWithinProjectRoot(real, root)) {
-				return disabledSourceSave("not-local-file");
-			}
-		}
 		const stat = statSync(real);
 		if (!stat.isFile()) return disabledSourceSave("unsupported-extension");
 		const snapshot = readSourceFileSnapshot(real);

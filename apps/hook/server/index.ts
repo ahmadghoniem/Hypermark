@@ -69,14 +69,6 @@ import {
   selectAnnotateTokenTarget,
 } from "@hypermark/shared/annotate-target";
 import { resolveAnnotateTarget } from "./annotate-resolution";
-// Bridge sources for live app sessions: the CLI supplies them so
-// @hypermark/server never imports @hypermark/ui (mirrors the existing
-// htmlContent precedent).
-import {
-  ANNOTATION_HIGHLIGHT_CSS,
-  BRIDGE_SCRIPT,
-  LIVE_BRIDGE_BOOTSTRAP,
-} from "@hypermark/ui/components/html-viewer/bridge-script";
 import {
   composeReviewApprovedMessage,
   getReviewDeniedSuffix,
@@ -94,7 +86,6 @@ import {
   runHypermarkUninstall,
 } from "@hypermark/server/uninstall";
 import { detectProjectName } from "@hypermark/server/project";
-import { hostnameOrFallback } from "@hypermark/shared/project";
 import { readImprovementHook } from "@hypermark/shared/improvement-hooks";
 import { composeImproveContext } from "@hypermark/shared/pfm-reminder";
 import { AGENT_CONFIG, type Origin } from "@hypermark/shared/agents";
@@ -174,11 +165,6 @@ if (browserIdx !== -1 && args[browserIdx + 1]) {
   args.splice(browserIdx, 2);
 }
 
-// Global flag: --no-jina (disables Jina Reader for URL annotation)
-const noJinaIdx = args.indexOf("--no-jina");
-const cliNoJina = noJinaIdx !== -1;
-if (cliNoJina) args.splice(noJinaIdx, 1);
-
 // Annotate review-gate flags: --gate adds an Approve button, --json
 // switches stdout to structured decision output, --hook emits hook-native
 // JSON that works directly with Claude Code PostToolUse/Stop
@@ -199,15 +185,6 @@ if (renderHtmlFlag) args.splice(renderHtmlIdx, 1);
 const renderMarkdownIdx = args.indexOf("--markdown");
 const renderMarkdownFlag = renderMarkdownIdx !== -1;
 if (renderMarkdownFlag) args.splice(renderMarkdownIdx, 1);
-// Live app annotation flags (annotate, loopback URLs): --app forces live
-// mode, --static forces the classic conversion pipeline. Transport-shape
-// flags: never echoed in the tolerant handoff's re-run flag list.
-const appFlagIdx = args.indexOf("--app");
-const appFlag = appFlagIdx !== -1;
-if (appFlag) args.splice(appFlagIdx, 1);
-const staticFlagIdx = args.indexOf("--static");
-const staticFlag = staticFlagIdx !== -1;
-if (staticFlag) args.splice(staticFlagIdx, 1);
 
 // Stdout matrix for annotate / annotate-last.
 //
@@ -559,13 +536,9 @@ if (args[0] === "sessions") {
     );
   }
 
-  if (appFlag && staticFlag) {
-    exitAnnotateStartupFailure("--app and --static are mutually exclusive");
-  }
-
   const rawFilePath = args[1];
   if (!rawFilePath) {
-    exitAnnotateStartupFailure("Usage: hypermark annotate <file.md | file.txt | file.html | https://... | folder/>  [--markdown] [--no-jina] [--app] [--static] [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]");
+    exitAnnotateStartupFailure("Usage: hypermark annotate <file.md | file.txt | file.html> [--markdown] [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]");
   }
 
   // Use HYPERMARK_CWD if set (original working directory before script cd'd)
@@ -602,11 +575,7 @@ if (args[0] === "sessions") {
   // did instead of being silently skipped.
   const targetTokens = args.slice(1);
   const tolerantMultiToken = !strictAnnotate && targetTokens.length > 1;
-  // Bare directory names only count as targets when they are the sole
-  // argument; in multi-token mode a stray word matching a directory (or `.`)
-  // must not hijack the fast path.
-  const annotateProbe = (token: string) =>
-    probeAnnotateToken(token, projectRoot, { bareDirectories: false });
+  const annotateProbe = (token: string) => probeAnnotateToken(token, projectRoot);
 
   let resolution: Awaited<ReturnType<typeof resolveAnnotateTarget>> | null =
     tolerantMultiToken
@@ -614,10 +583,7 @@ if (args[0] === "sessions") {
       : await resolveAnnotateTarget({
           rawFilePath,
           projectRoot,
-          noJina: cliNoJina,
           renderMarkdown: renderMarkdownFlag,
-          forceApp: appFlag,
-          forceStatic: staticFlag,
         });
 
   if (tolerantMultiToken) {
@@ -626,10 +592,7 @@ if (args[0] === "sessions") {
       resolution = await resolveAnnotateTarget({
         rawFilePath: selection.candidate.value,
         projectRoot,
-        noJina: cliNoJina,
         renderMarkdown: renderMarkdownFlag,
-        forceApp: appFlag,
-        forceStatic: staticFlag,
       });
     } else if (selection.kind === "multiple") {
       exitAnnotateStartupFailure(buildAmbiguousAnnotateArgsMessage(selection.candidates));
@@ -639,7 +602,6 @@ if (args[0] === "sessions") {
       // to start a blocking interactive gate from a plain re-run.
       const handoffFlags = [
         ...(renderMarkdownFlag ? ["--markdown"] : []),
-        ...(cliNoJina ? ["--no-jina"] : []),
         ...(renderHtmlFlag ? ["--render-html"] : []),
       ];
       const message = buildUnresolvedAnnotateArgsMessage({
@@ -667,10 +629,7 @@ if (args[0] === "sessions") {
     resolution = await resolveAnnotateTarget({
       rawFilePath,
       projectRoot,
-      noJina: cliNoJina,
       renderMarkdown: renderMarkdownFlag,
-      forceApp: appFlag,
-      forceStatic: staticFlag,
     });
   }
 
@@ -682,12 +641,9 @@ if (args[0] === "sessions") {
     markdown,
     rawHtml,
     absolutePath,
-    folderPath,
     annotateMode,
     sourceInfo,
     sourceConverted,
-    isUrl,
-    liveApp: liveAppResolved,
   } = resolution;
 
   const annotateProject = (await detectProjectName()) ?? "_unknown";
@@ -697,16 +653,7 @@ if (args[0] === "sessions") {
     markdown,
     filePath: absolutePath,
     origin: detectedOrigin,
-    mode: liveAppResolved ? "annotate-app" : annotateMode,
-    liveApp: liveAppResolved
-      ? {
-          targetUrl: absolutePath,
-          bridgeScript: BRIDGE_SCRIPT,
-          bridgeBootstrap: LIVE_BRIDGE_BOOTSTRAP,
-          annotationCss: ANNOTATION_HIGHLIGHT_CSS,
-        }
-      : undefined,
-    folderPath,
+    mode: annotateMode,
     sourceInfo,
     sourceConverted,
     gate: gateFlag,
@@ -734,9 +681,7 @@ if (args[0] === "sessions") {
     mode: "annotate",
     project: annotateProject,
     startedAt: new Date().toISOString(),
-    label: folderPath
-      ? `annotate-${path.basename(folderPath)}`
-      : `annotate-${isUrl ? hostnameOrFallback(absolutePath) : path.basename(absolutePath)}`,
+    label: `annotate-${path.basename(absolutePath)}`,
   });
 
   await completeAnnotateCommand({
