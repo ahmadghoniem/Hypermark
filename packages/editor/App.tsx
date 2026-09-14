@@ -3860,7 +3860,6 @@ const AppInner: React.FC = () => {
         ...item,
         onDiscard: item.id === 'plan' ? () => handleDiscardEdits() : undefined,
       })) ?? null}
-      onOtherFileAnnotationsClick={handleFlashAnnotatedFiles}
     />
   );
 
