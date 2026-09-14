@@ -49,7 +49,6 @@ export type FolderAnnotateHistory = Omit<AnnotateHistoryResult, "diffCurrent">;
 export interface HandleDocOptions {
 	rewriteHtml?: (html: string, filepath: string) => string;
 	sourceSaveFilePath?: string;
-	sourceSaveFolderPath?: string;
 	onSourceDocumentServed?: (path: string) => void;
 	rootPaths?: string[];
 	/**
@@ -258,7 +257,7 @@ function applyDocOptions<T extends Record<string, unknown>>(
 		}
 	}
 	if (typeof data.filepath !== "string") {
-		return (options.sourceSaveFolderPath || options.sourceSaveFilePath
+		return (options.sourceSaveFilePath
 			? { ...next, sourceSave: disabledSourceSave("not-local-file") }
 			: next) as DocOptionsResult<T>;
 	}
@@ -278,15 +277,7 @@ function applyDocOptions<T extends Record<string, unknown>>(
 			return { ...next, sourceSave: doc } as DocOptionsResult<T>;
 		}
 	}
-	if (!options.sourceSaveFolderPath) return next as DocOptionsResult<T>;
-	const sourceSave = sourceSnapshot
-		? createSourceSaveCapabilityFromSnapshot("folder-file", data.filepath, sourceSnapshot, options.sourceSaveFolderPath)
-		: createSourceSaveCapability("folder-file", data.filepath, options.sourceSaveFolderPath);
-	if (sourceSave.enabled) options.onSourceDocumentServed?.(sourceSave.path);
-	return {
-		...next,
-		sourceSave,
-	} as DocOptionsResult<T>;
+	return next as DocOptionsResult<T>;
 }
 
 function docJson(data: Record<string, unknown>, options?: HandleDocOptions, sourceSnapshot?: SourceFileSnapshot): Response {
