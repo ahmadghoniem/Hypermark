@@ -70,7 +70,7 @@ describe('buildDecisionSpec state matrix', () => {
     // No gate ⇒ no approve channel ⇒ no Approve-with-notes, capability or not.
     expect(itemIds(nonGate)).toEqual(['note-with-feedback', 'close-session']);
     // Label is free prose; the data is the flow verb and the live count.
-    expect(nonGate.items[1].label).toContain('Close,');
+    expect(nonGate.items[1].label).toContain('Discard');
     expect(nonGate.items[1].label).toContain('3');
     expect(nonGate.items[1].confirm?.confirmText).toBe('Close anyway'); // frozen copy
 
@@ -79,7 +79,7 @@ describe('buildDecisionSpec state matrix', () => {
     });
     expect(itemIds(gate)).toEqual(['note-with-feedback', 'approve-with-notes', 'close-session']);
     expect(gate.items[1].label).toBe('Approve with notes'); // frozen copy, maintainer-approved
-    expect(gate.items[2].label).toContain('Close,');
+    expect(gate.items[2].label).toContain('Discard');
     expect(gate.items[2].label).toContain('3');
     expect(gate.items[2].confirm?.confirmText).toBe('Close anyway'); // frozen copy
 
@@ -266,7 +266,8 @@ describe('buildDecisionSpec invariants', () => {
     });
     const closeOne = one.items.find((item) => item.id === 'close-session')!;
     // The singular form is the data here, not the sentence around it.
-    expect(closeOne.label).toContain('1 annotation…');
+    expect(closeOne.confirm!.title).toContain('1 annotation');
+    expect(closeOne.label).toContain('1');
   });
 
   // Every composer item must actually be a composer and every plain item must
