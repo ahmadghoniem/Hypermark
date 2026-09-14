@@ -28,45 +28,13 @@ import {
 import type { AnnotateHistoryResult } from "@hypermark/shared/annotate-history";
 import { preloadFile } from "@pierre/diffs/ssr";
 
-/**
- * Subset of AnnotateHistoryResult the folder /api/doc path actually needs.
- * `diffCurrent` is omitted: it always equals the request's own `content` and
- * the client never reads it off this response (the single-file /api/plan
- * payload still returns the full AnnotateHistoryResult, `diffCurrent`
- * included, for legacy shape parity — see annotate.ts).
- */
-export type FolderAnnotateHistory = Omit<AnnotateHistoryResult, "diffCurrent">;
-
 // --- Route handlers ---
-
-// History eligibility for folder /api/doc documents is `isAnnotatableTextPath`
-// (ANNOTATABLE_TEXT_REGEX in @hypermark/core/annotatable) — the exact set the
-// single-file pipeline snapshots (.md/.mdx/.txt plus the plain-text config
-// formats; no HTML, no .env). Reusing the canonical predicate keeps cross-mode
-// slug continuity: a .yaml with single-file history must diff when opened via
-// its folder too.
 
 export interface HandleDocOptions {
 	rewriteHtml?: (html: string, filepath: string) => string;
 	sourceSaveFilePath?: string;
 	onSourceDocumentServed?: (path: string) => void;
 	rootPaths?: string[];
-	/**
-	 * When set, /api/doc runs annotate's per-file version-history pipeline for
-	 * eligible markdown-branch documents (local file under an allowed root,
-	 * any annotatable plain-text extension per `isAnnotatableTextPath`, not
-	 * HTML, not a converted doc, under the annotatable size cap already
-	 * enforced above) and merges `previousPlan`/`versionInfo` into the
-	 * response — the same field names the single-file /api/plan payload uses
-	 * (which additionally returns `diffCurrent`; the folder path omits it
-	 * since it always equals the document's own content and the client never
-	 * reads it). `compute` is expected to memoize per resolved path itself
-	 * (the annotate server keys its cache by path in its own closure); this
-	 * module only decides *whether* to call it.
-	 */
-	annotateHistory?: {
-		compute: (resolvedFilePath: string, content: string) => FolderAnnotateHistory | null;
-	};
 	/**
 	 * Single-file rendered-HTML sessions: when /api/doc serves the session's
 	 * ROOT document (`path` equals the resolved root path) as raw HTML, merge
@@ -234,27 +202,6 @@ function applyDocOptions<T extends Record<string, unknown>>(
 		options.rewriteHtml
 	) {
 		next.rawHtml = options.rewriteHtml(next.rawHtml, next.filepath);
-	}
-	// Annotate version history (folder mode only — see HandleDocOptions.annotateHistory).
-	// Independent of the sourceSave branching below: only markdown-branch
-	// documents (not HTML, not converted) with an annotatable plain-text
-	// extension are eligible — the same set the single-file pipeline
-	// snapshots. The 2MB annotatable-file size cap is already enforced by the
-	// caller before any of these responses are built, so no separate check is
-	// needed here.
-	if (
-		options.annotateHistory &&
-		typeof data.filepath === "string" &&
-		data.renderAs === "markdown" &&
-		data.isConverted !== true &&
-		typeof data.markdown === "string" &&
-		isAnnotatableTextPath(data.filepath)
-	) {
-		const history = options.annotateHistory.compute(data.filepath, data.markdown);
-		if (history) {
-			next.previousPlan = history.previousPlan;
-			next.versionInfo = history.versionInfo;
-		}
 	}
 	if (typeof data.filepath !== "string") {
 		return (options.sourceSaveFilePath

@@ -28,7 +28,6 @@ import {
 	isAnnotatableDocPath as isAnnotatableDocPathWith,
 	isAnnotatableTextPath as isAnnotatableTextPathWith,
 	normalizeMarkdownExtensions,
-	shouldStripFrontmatter as shouldStripFrontmatterWith,
 } from "./annotatable";
 import { loadConfig, type HypermarkConfig } from "./config";
 
@@ -90,7 +89,4 @@ export function isAnnotatableDocPath(input: string): boolean {
 	return isAnnotatableDocPathWith(input, getExtraMarkdownExtensions());
 }
 
-/** Frontmatter stripping decision honoring the configured extras (extras are markdown). */
-export function shouldStripFrontmatter(path: string | null | undefined): boolean {
-	return shouldStripFrontmatterWith(path, getExtraMarkdownExtensions());
-}
+
