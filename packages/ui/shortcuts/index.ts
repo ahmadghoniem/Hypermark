@@ -15,7 +15,7 @@ export { documentViewShortcuts, useDocumentViewShortcuts } from './plan-review/d
 export { annotateSidebarShortcuts, useAnnotateSidebarShortcuts } from './plan-review/sidebar.shortcuts';
 
 // code-review scopes
-export { reviewAnnotationToolbarShortcuts, useReviewAnnotationToolbarShortcuts } from './code-review/annotationToolbar.shortcuts';
+export { reviewAnnotationToolbarShortcuts } from './code-review/annotationToolbar.shortcuts';
 export { reviewFileTreeShortcuts } from './code-review/fileTree.shortcuts';
 export { reviewAllFilesDiffShortcuts } from './code-review/allFilesDiff.shortcuts';
 export { reviewChromeShortcuts } from './code-review/reviewChrome.shortcuts';

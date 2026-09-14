@@ -26,6 +26,10 @@ export const HAND_WIRED: Record<string, string> = {
   'review-all-files-diff.nextFile': 'packages/review-editor/components/AllFilesCodeView.tsx',
   'review-all-files-diff.prevFile': 'packages/review-editor/components/AllFilesCodeView.tsx',
 
+  // review-annotation-toolbar (the review line composer is CommentPopover)
+  'review-annotation-toolbar.submitComment': 'packages/ui/components/CommentPopover.tsx',
+  'review-annotation-toolbar.cancel': 'packages/ui/components/CommentPopover.tsx',
+
   // review-chrome (App.tsx: keydown handlers from CHROME constants)
   'review-chrome.searchFiles': 'packages/review-editor/App.tsx',
   'review-chrome.nextSearchMatch': 'packages/review-editor/App.tsx',

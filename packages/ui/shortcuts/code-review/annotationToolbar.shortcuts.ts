@@ -1,5 +1,4 @@
 import { defineShortcutScope } from '../core';
-import { createShortcutScopeHook } from '../runtime';
 
 export const reviewAnnotationToolbarShortcuts = defineShortcutScope({
   id: 'review-annotation-toolbar',
@@ -20,5 +19,3 @@ export const reviewAnnotationToolbarShortcuts = defineShortcutScope({
     },
   },
 });
-
-export const useReviewAnnotationToolbarShortcuts = createShortcutScopeHook(reviewAnnotationToolbarShortcuts);
