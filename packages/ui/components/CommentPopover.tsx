@@ -712,7 +712,11 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
                   : 'pr-[26px] text-[12.5px] leading-[1.45]'
             }
             heightPx={mode === 'popover' ? composerHeight : null}
-            maxHeight={mode === 'popover' && composerHeight === null ? popoverMaxHeightStyle : undefined}
+            maxHeight={
+              mode === 'dialog'
+                ? `calc(${visibleBounds.height}px - 10rem)`
+                : composerHeight === null ? popoverMaxHeightStyle : undefined
+            }
             skillReferences={skillReferences}
             tokens={skillAc.referenceTokens}
             listboxId={skillListboxId}
