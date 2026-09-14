@@ -26,7 +26,7 @@ import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationM
 import { useResizablePanel } from '@hypermark/ui/hooks/useResizablePanel';
 import { useCodeAnnotationDraft } from '@hypermark/ui/hooks/useCodeAnnotationDraft';
 import { useSessionEndedStream } from '@hypermark/ui/hooks/useSessionEndedStream';
-import { generateId } from './utils/generateId';
+import { generateId } from '@hypermark/ui/utils/generateId';
 import { toast, Toaster } from 'sonner';
 import {
   shouldHandleReviewSearchShortcut,
