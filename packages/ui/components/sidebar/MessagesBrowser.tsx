@@ -59,13 +59,9 @@ export const MessagesBrowser: React.FC<MessagesBrowserProps> = ({
 
   return (
     <div className="p-2">
-      <div className="px-2 pt-1 pb-2 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-        Recent messages — newest first
-      </div>
       <div className="space-y-0.5">
-        {messages.map((msg, idx) => {
+        {messages.map((msg) => {
           const isSelected = msg.messageId === selectedMessageId;
-          const isDefault = idx === 0;
           const ts = formatTimestamp(msg.timestamp);
           const annotationCount = annotationCounts?.get(msg.messageId) ?? 0;
           return (
@@ -78,10 +74,6 @@ export const MessagesBrowser: React.FC<MessagesBrowserProps> = ({
                   : "text-foreground hover:bg-muted/50 border border-transparent"
               }`}
             >
-              <span className="font-mono text-[10px] text-muted-foreground pt-0.5 w-8 shrink-0 text-right">
-                #{idx + 1}
-                {isDefault ? " ★" : ""}
-              </span>
               <span className="flex-1 min-w-0">
                 <span className="line-clamp-2 leading-snug">
                   {previewText(msg.text)}
