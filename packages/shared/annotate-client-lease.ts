@@ -22,8 +22,8 @@
  * the grace period for the transport to notice the peer is gone at all,
  * during which this tracker still believes a client is connected.
  *
- * Deliberately dependency-free: no fetch, no DOM, no framework. Bun and Pi
- * servers each wire this to their own SSE transport; the editor never talks
+ * Deliberately dependency-free: no fetch, no DOM, no framework. The Bun
+ * server wires this to its SSE transport; the editor never talks
  * to it directly (see packages/editor/annotateClientLease.ts for the client
  * side of the wire protocol).
  */
@@ -34,7 +34,7 @@ export const ANNOTATE_CLIENT_LEASE_GRACE_MS = 30_000;
 /** Default SSE heartbeat interval used by server transports. */
 export const ANNOTATE_CLIENT_LEASE_HEARTBEAT_MS = 5_000;
 
-/** SSE route path shared by the Bun and Pi annotate servers and the editor client. */
+/** SSE route path shared by the Bun annotate server and the editor client. */
 export const ANNOTATE_CLIENT_LEASE_STREAM_PATH = "/api/annotate/client-lease";
 
 /** First byte written once a client-lease stream is open and has acquired the tracker. */
@@ -187,9 +187,9 @@ export interface AnnotateClientLeaseStreamSession {
  * Wire one connected client-lease stream to a tracker.
  *
  * Runtime-agnostic on purpose: the Bun server passes a `ReadableStream`
- * controller enqueue, the Pi server passes `res.write`, and tests pass a
- * writer that throws. Keeping the acquire/ready/heartbeat/release sequence in
- * one place is what makes the two runtimes provably identical, including the
+ * controller enqueue, and tests pass a writer that throws. Keeping the
+ * acquire/ready/heartbeat/release sequence in one place is what makes
+ * error handling provably consistent, including the case that is otherwise
  * case that is otherwise unreachable from an integration test: a write that
  * fails must close the session, because a stream that can no longer be written
  * to is a client that is no longer present. Leaving the slot held there would

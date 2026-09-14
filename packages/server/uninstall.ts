@@ -464,8 +464,8 @@ async function removeHostPlugins(
   state: MutableUninstallResult,
 ): Promise<void> {
   // Claude Code is the only host this product installs a plugin into, so it is
-  // the only one uninstalled from. The Copilot, Droid, Pi and VS Code entries
-  // this list used to carry belonged to integrations removed in spec 02; a
+  // the only one uninstalled from. Entries for other integrations that
+  // this list used to carry were removed in spec 02; a
   // Hypermark uninstall must not reach into hosts it never wrote to.
   const actions = [
     {
@@ -577,8 +577,8 @@ function removeInstalledFiles(
     state,
   );
 
-  // Claude Code command files only. The Codex, Kiro, Gemini, OpenCode and Amp
-  // sweeps that used to follow removed files this product never writes; they
+  // Claude Code command files only. Sweeps for other agent harnesses
+  // that used to follow removed files this product never writes; they
   // went with the integrations spec 02 deleted. A machine that also ran
   // Hypermark keeps those files — removing them is that product's uninstall
   // to run, not ours (spec 06, decision D5).

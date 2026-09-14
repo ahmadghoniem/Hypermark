@@ -71,8 +71,7 @@ export interface ReviewServerOptions {
   workspace?: LocalWorkspaceReview;
   /**
    * Initial base branch the caller used to compute `rawPatch`. When a caller
-   * overrides the detected default (e.g. Pi's `openCodeReview` accepting a
-   * custom `defaultBranch`), this must be forwarded so the server's internal
+   * overrides the detected default, this must be forwarded so the server's internal
    * `currentBase` state, the `/api/diff` response, and downstream agent
    * prompts stay consistent with the patch that's already on screen.
    */
@@ -100,8 +99,6 @@ export interface ReviewServerOptions {
   project?: string;
   /** Working directory for agent processes. Independent of diff pipeline. */
   agentCwd?: string;
-  /** Cleanup callback invoked when server stops (e.g., remove temp worktree) */
-  onCleanup?: () => void | Promise<void>;
   /**
    * Enable the stale-session reaper (see ./parent-watch.ts). Off by default
    * — see the identical option on AnnotateServerOptions in ./annotate.ts
@@ -175,7 +172,7 @@ export async function startReviewServer(
   // Tracks the base branch the user picked from the UI. Agent review prompts
   // read this (not gitContext.defaultBranch) so they analyze the same diff
   // the reviewer is currently looking at. Honors an explicit initialBase from
-  // the caller — e.g. programmatic Pi callers can request a non-detected base.
+  // the caller when requesting a non-detected base.
   const detectedCompareTarget = (): string => gitContext?.defaultBranch || gitContext?.compareTarget?.fallback || "main";
   let currentBase = options.initialBase || detectedCompareTarget();
   let baseEverSwitched = false;
@@ -311,8 +308,8 @@ export async function startReviewServer(
     // branch — matched as either its local name ("main") or the tracking ref
     // ("origin/main"). Comparing by RESOLVED SHA (not ref-name string) is what
     // makes this correct when currentBase is the bare local name, which is the
-    // case whenever origin/HEAD's local symref isn't set (Pi forwards that
-    // local name as initialBase; the hook upgrades to origin/*).
+    // case whenever origin/HEAD's local symref isn't set (e.g. when initialBase
+    // is a local name and the hook upgrades to origin/*).
     //
     // A local name the user EXPLICITLY picked is exempt: they chose the local
     // ref over origin/* on purpose, and Fetch advances origin/* — the banner
@@ -355,7 +352,7 @@ export async function startReviewServer(
   };
 
   // Two independent startup probes (decoupled so a forwarded initialBase can't
-  // suppress the staleness check — the Pi divergence):
+  // suppress the staleness check):
   //  1. Always probe remote staleness once at boot.
   //  2. Upgrade currentBase to the upstream tracking ref ("origin/main") when
   //     no explicit base was requested, OR when the forwarded base is just the
@@ -866,8 +863,7 @@ export async function startReviewServer(
               }
 
               // Guard against non-string payloads — resolveBaseBranch calls
-              // string methods and would throw a TypeError otherwise. Mirrors
-              // Pi's guard so both runtimes validate identically.
+              // string methods and would throw a TypeError otherwise.
               const requestedBase = typeof body.base === "string" ? body.base : undefined;
               // An explicit pick from the base picker is honored verbatim —
               // the local/remote groups are distinct choices, so "main" must
@@ -1206,13 +1202,6 @@ export async function startReviewServer(
     sessionStream.closeSessions();
     parentWatch?.stop();
     server.stop();
-    // Invoke cleanup callback (e.g., remove temp worktree)
-    if (options.onCleanup) {
-      try {
-        const result = options.onCleanup();
-        if (result instanceof Promise) result.catch(() => {});
-      } catch { /* best effort */ }
-    }
   };
 
   // Stale-session reaper: when the Claude Code process that spawned this

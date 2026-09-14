@@ -25,8 +25,7 @@
  * defaults standing — name matching needs no git. Attributes are read from
  * the working tree at the review cwd, git's default resolution.
  *
- * Runtime-agnostic like review-core (Pi consumes a build-time copy via
- * vendor.sh).
+ * Runtime-agnostic like review-core.
  */
 
 import type { ReviewGitRuntime } from "./review-core";

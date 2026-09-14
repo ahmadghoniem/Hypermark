@@ -350,11 +350,8 @@ function formatAgentName(id: string): string {
   const overrides: Record<string, string> = {
     amp: "Amp",
     claude: "Claude",
-    codex: "Codex",
     copilot: "GitHub Copilot",
     gemini: "Gemini",
-    opencode: "OpenCode",
-    pi: "Pi",
   };
   if (overrides[id]) return overrides[id];
   return id

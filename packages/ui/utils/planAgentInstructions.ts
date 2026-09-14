@@ -1,6 +1,6 @@
 /**
  * Builds the clipboard payload that teaches an external agent (Claude Code,
- * Codex, custom scripts, etc.) how to post annotations into a live Hypermark
+ * custom scripts, etc.) how to post annotations into a live Hypermark
  * **plan-review** session via the /api/external-annotations HTTP API.
  *
  * The body is intentionally short (~110 lines of markdown) so an agent can read
@@ -78,7 +78,7 @@ Both endpoints return \`201 {"ids": ["<uuid>"]}\` on success, \`400 {"error": ".
 
 | Field | Required | Notes |
 |---|---|---|
-| \`source\` | yes | Stable identifier for *you* (e.g. \`"claude-code"\`, \`"codex"\`, \`"my-linter"\`). Reuse the same value for every annotation you post — it lets you clean up your own later. Pick something specific enough that it won't collide with other tools running against the same session. |
+| \`source\` | yes | Stable identifier for *you* (e.g. \`"claude-code"\`, \`"agent-name"\`, \`"my-linter"\`). Reuse the same value for every annotation you post — it lets you clean up your own later. Pick something specific enough that it won't collide with other tools running against the same session. |
 | \`text\` | yes | The comment body the user will read. |
 | \`type\` | yes | \`"COMMENT"\` for inline, \`"GLOBAL_COMMENT"\` for sidebar-only. |
 | \`originalText\` | for \`COMMENT\` | A verbatim substring of the plan body. Required when \`type\` is \`"COMMENT"\`. Omit for \`"GLOBAL_COMMENT"\`. |

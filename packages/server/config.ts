@@ -6,6 +6,4 @@ export {
   resolveAnnotateHistory,
   resolveFeedbackHistory,
   isAgentTerminalSide,
-  type HypermarkConfig,
-  type DiffOptions,
 } from "@hypermark/shared/config";

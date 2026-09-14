@@ -143,7 +143,6 @@ export function formatTopLevelHelp(): string {
     "  hypermark annotate <file.md | file.txt | file.html> [--markdown] [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]",
     "  hypermark annotate-last [--stdin] [--gate] [--json] [--hook]",
     "  hypermark last",
-    "  hypermark archive",
     "  hypermark sessions",
     "  hypermark uninstall [--purge] [--yes] [--dry-run]",
     "  hypermark improve-context",
@@ -205,12 +204,6 @@ export const SUBCOMMAND_HELP: Record<string, string> = {
     "  --gate        Add an Approve button (review-gate UX)",
     "  --json        Emit a structured decision JSON on stdout",
     "  --hook        Emit hook-native JSON (block/pass) for PostToolUse/Stop hooks",
-  ].join("\n"),
-  archive: [
-    "Usage:",
-    "  hypermark archive",
-    "",
-    "Open a read-only browser for saved plan decisions in ~/.hypermark/plans/.",
   ].join("\n"),
   "improve-context": [
     "Usage:",
@@ -285,7 +278,6 @@ export function formatInteractiveNoArgClarification(): string {
     "  hypermark review",
     "  hypermark annotate <file.md | file.txt | file.html>",
     "  hypermark last",
-    "  hypermark archive",
     "  hypermark sessions",
     "  hypermark uninstall",
     "",

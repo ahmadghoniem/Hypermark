@@ -46,13 +46,13 @@ export const THEME_TOKENS = [
 ] as const;
 
 /** Viewer-owned namespace for properties injected into the document. */
-export const PN_TOKEN_PREFIX = "--pn-";
+const PN_TOKEN_PREFIX = "--pn-";
 
 /**
  * Version-diff highlights. htmlDiff tags the <ins>/<del> it generates with
  * this class so author-written <ins>/<del> markup is never restyled.
  */
-export const DIFF_HIGHLIGHT_CSS =
+const DIFF_HIGHLIGHT_CSS =
   "ins.hypermark-diff{background:#e6ffec;color:#0a7d33;text-decoration:none;border-radius:2px;box-shadow:0 0 0 1px #abf2bc inset}" +
   "del.hypermark-diff{background:#ffebe9;color:#b31d28;text-decoration:line-through;border-radius:2px;box-shadow:0 0 0 1px #ffc1bc inset}";
 
@@ -199,7 +199,7 @@ export function buildSrcdocInjection({
 const META_CSP_RE =
   /<meta\s[^>]*http-equiv\s*=\s*["']?\s*content-security-policy\s*["']?[^>]*\/?>/gi;
 
-export function neutralizeMetaCsp(rawHtml: string): string {
+function neutralizeMetaCsp(rawHtml: string): string {
   return rawHtml.replace(META_CSP_RE, "<!-- hypermark: meta CSP removed for annotation -->");
 }
 

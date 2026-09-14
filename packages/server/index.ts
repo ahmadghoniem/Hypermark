@@ -1,7 +1,7 @@
 /**
  * Hypermark Shared Server
  *
- * Provides a consistent server implementation for both Claude Code and OpenCode plugins.
+ * Provides the server implementation for the Claude Code hook.
  *
  * Environment variables:
  *   HYPERMARK_PORT   - Fixed port or inclusive range (default: random)
@@ -44,6 +44,7 @@ export { openBrowser } from "./browser";
 export * from "./storage";
 export { handleServerReady } from "./shared-handlers";
 export { type VaultNode, buildFileTree } from "@hypermark/shared/reference-common";
+export { createDefaultGetParentPid } from "./parent-watch";
 
 // --- Types ---
 
@@ -58,7 +59,6 @@ export interface ServerOptions {
   permissionMode?: string;
   /** Called when server starts with the URL, remote status, and port */
   onReady?: (url: string, port: number) => void | Promise<void>;
-  /** OpenCode client for querying available agents (OpenCode only) */
   /**
    * Enable the stale-session reaper (see ./parent-watch.ts). Off by default
    * — see the identical option on AnnotateServerOptions in ./annotate.ts
@@ -355,8 +355,6 @@ export async function startHypermarkServer(
               if (body.feedback) {
                 feedback = body.feedback;
               }
-
-              // Capture agent switch setting for OpenCode
 
               // Capture permission mode from client request (Claude Code)
               if (body.permissionMode) {

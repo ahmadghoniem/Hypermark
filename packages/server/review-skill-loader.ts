@@ -33,7 +33,7 @@ import { join } from "node:path";
 /** Directories never descended during discovery. */
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist", "build", "__pycache__"]);
 
-export type SkillRoot = "claude" | "universal";
+type SkillRoot = "claude" | "universal";
 
 /** A skill discovered on disk — catalog stage, no body read, no frontmatter read. */
 export interface DiscoveredSkill {
@@ -58,7 +58,7 @@ export interface DiscoveredSkill {
  * Roots that resolve (via realpath) to the same on-disk directory are deduped,
  * keeping the first occurrence.
  */
-export function resolveGlobalSkillRoots(): Array<{ dir: string; root: SkillRoot }> {
+function resolveGlobalSkillRoots(): Array<{ dir: string; root: SkillRoot }> {
   // Prefer $HOME (where the user's dotfiles live, and what every other skill
   // tool keys off), falling back to the OS home. homedir() caches at process
   // start and ignores a later HOME, so $HOME is also what makes this testable.

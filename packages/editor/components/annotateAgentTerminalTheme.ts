@@ -6,7 +6,7 @@ import type { CreateAgentTerminalSessionOptions } from "@plannotator/webtui/brow
 type TerminalOptions = NonNullable<CreateAgentTerminalSessionOptions["terminalOptions"]>;
 export type AnnotateAgentTerminalTheme = NonNullable<TerminalOptions["theme"]>;
 
-export type AnnotateAgentTerminalShellStyle = CSSProperties & {
+type AnnotateAgentTerminalShellStyle = CSSProperties & {
   "--webtui-background": string;
   "--webtui-foreground": string;
   "--webtui-border": string;

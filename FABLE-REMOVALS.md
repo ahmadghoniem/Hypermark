@@ -308,3 +308,16 @@ entries, and unreferenced search-highlight helpers.
 `AGENTS.md` is emptied and committed (`99079e1d`), because its claims had
 drifted from the code. The six `spec/` files are deleted; their lasting content
 is the Foundation section above.
+
+### 30. Final cleanup sweep
+
+Mechanical leftovers across packages after all feature cuts merged:
+
+- **Files deleted:** 27 files, 4,312 lines removed (`packages/review-editor/utils/detectLanguage.ts` and all 26 files under `tests/manual/`).
+- **Dependencies removed:** (filled in by maintainer)
+- **Exports removed or un-exported:** 42 symbols and types un-exported or deleted across `apps/hook`, `packages/editor`, `packages/review-editor`, `packages/server`, `packages/shared`, and `packages/ui` (including dead folder history types in server, unused snapshot types, and unused HTML viewer / quick label helpers).
+- **Process table consolidation:** Consolidated duplicated process-table and parent-PID inspection logic into `packages/server/parent-watch.ts` and removed duplicate copies in `apps/hook/server/session-log.ts`.
+- **Review editor cleanups:** Inlined always-true `isAllFilesActive` and removed unused `handleRevealSearchMatch` handler in `packages/review-editor/App.tsx`, and removed dead `onCleanup` option from `packages/server/review.ts`.
+- **Archive CLI leftovers:** Removed dead `hypermark archive` command remnants from hook server CLI help texts and tests.
+- **Comments rewritten:** 43 comments rewritten across packages and tests to remove references to the removed Pi server mirror, OpenCode/Codex integrations, code navigation, dockview, and temp worktrees.
+

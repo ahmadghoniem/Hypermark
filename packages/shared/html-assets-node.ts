@@ -57,8 +57,8 @@ export function inlineHtmlLocalAssets(html: string, htmlFilePath: string): strin
 
 /**
  * Single source of truth for "is this file inside this root?" containment used
- * by every HTML asset / share-html sink (Bun route handler, share inliner, and
- * the Pi server via the vendored copy). Resolves symlinks on BOTH the root and
+ * by HTML asset and share-html sinks (Bun route handler, share inliner).
+ * Resolves symlinks on BOTH the root and
  * the target so an in-directory symlink pointing outside the root cannot escape.
  * Keep all sinks importing this — duplicating it is how the escape was missed in
  * one runtime before (#927/#929).

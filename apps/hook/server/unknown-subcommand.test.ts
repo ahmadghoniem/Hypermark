@@ -23,7 +23,7 @@ describe("unknown subcommand", () => {
   test("suggests the nearest documented command", () => {
     expect(findClosestSubcommand("annotatte")).toBe("annotate");
     expect(findClosestSubcommand("revieww")).toBe("review");
-    expect(findClosestSubcommand("archiv")).toBe("archive");
+    expect(findClosestSubcommand("uninstal")).toBe("uninstall");
     expect(findClosestSubcommand("annot")).toBe("annotate");
     expect(findClosestSubcommand("a")).toBeNull();
     expect(findClosestSubcommand("xyzzy")).toBeNull();

@@ -50,7 +50,7 @@ export interface AllFilesTarget {
  * to its canonical target, byte-for-byte mirroring `openDiffFile`'s
  * resolution in `App.tsx`: match by `path` OR `oldPath`, then normalize to
  * `file.path`. Every tree selection/reveal call must funnel through this (or
- * `openDiffFile` itself) — the reverse dockview→tree sync matches by `path`
+ * `openDiffFile` itself) — the reverse viewport→tree sync matches by `path`
  * only, so anything that selects a raw `oldPath` without this normalization
  * would silently fail to re-highlight later.
  */

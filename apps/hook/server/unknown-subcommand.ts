@@ -9,7 +9,7 @@ const SUGGESTABLE_SUBCOMMANDS = [
   ...Object.keys(SUBCOMMAND_HELP_ALIASES),
 ];
 
-export const KNOWN_SUBCOMMANDS: ReadonlySet<string> = new Set([
+const KNOWN_SUBCOMMANDS: ReadonlySet<string> = new Set([
   ...SUGGESTABLE_SUBCOMMANDS,
   ...INTERNAL_SUBCOMMANDS,
 ]);

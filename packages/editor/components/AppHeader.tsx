@@ -11,7 +11,7 @@ import { HtmlSurfaceControls } from '@hypermark/ui/components/HtmlSurfaceControl
 
 /** Hypermark's refresh strings for the published control: the document
  * is a file on disk, so the refresh says so. */
-export const HYPERMARK_HTML_REFRESH_LABELS = {
+const HYPERMARK_HTML_REFRESH_LABELS = {
   refreshTitle: 'Refresh HTML from disk',
   refreshingTitle: 'Refreshing HTML from disk',
 } as const;

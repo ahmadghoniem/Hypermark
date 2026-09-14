@@ -65,7 +65,7 @@ export function parseProcessTableCsv(stdout: string): Map<number, number> {
 /**
  * Snapshot the entire process table in a single spawn, platform-aware.
  */
-export function snapshotProcessTable(): Map<number, number> {
+function snapshotProcessTable(): Map<number, number> {
   try {
     if (process.platform === "win32") {
       const result = spawnSync(

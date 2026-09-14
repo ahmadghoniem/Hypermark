@@ -1,8 +1,7 @@
 /**
  * Commit-history rail — backs GET /api/commits and the commitInfo sidecar.
  *
- * Runtime-agnostic like review-core (Pi consumes a build-time copy via
- * vendor.sh). Deliberately separate from review-core: nothing here
+ * Runtime-agnostic like review-core. Deliberately separate from review-core: nothing here
  * participates in the diff-type dispatch — it is the Commits panel's data
  * layer (linear --first-parent pages + one commit's full metadata). The
  * commit:<sha> DIFF plumbing (parseCommitDiffType, the runGitDiff /

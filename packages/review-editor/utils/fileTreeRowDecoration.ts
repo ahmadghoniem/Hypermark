@@ -24,7 +24,7 @@
 import type { DiffFile } from '../types';
 
 /** One colored run inside a row decoration. Mirrors `FileTreeRowDecorationTextPart`. */
-export interface RowDecorationPart {
+interface RowDecorationPart {
   text: string;
   color?: string;
 }
@@ -37,7 +37,7 @@ export interface RowDecoration {
 }
 
 /** Since-base sidecar entry, as `FileTree` already receives it. */
-export interface SectionEntry {
+interface SectionEntry {
   group: 'committed' | 'changes' | 'untracked';
 }
 
