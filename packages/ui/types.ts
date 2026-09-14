@@ -44,7 +44,6 @@ export interface Annotation {
   author?: string; // Tater identity for collaborative sharing
   source?: string; // External tool identifier (e.g., "eslint") — set when annotation comes from external API
   images?: ImageAttachment[]; // Attached images with human-readable names
-  isQuickLabel?: boolean; // true if created via quick label chip
   quickLabelTip?: string; // optional instruction tip from the label definition
   diffContext?: 'added' | 'removed' | 'modified'; // set when annotation created in plan diff view
   mathTargets?: Array<{

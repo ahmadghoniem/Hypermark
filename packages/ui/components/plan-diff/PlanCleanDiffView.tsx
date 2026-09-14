@@ -144,7 +144,6 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
     type: AnnotationType,
     text?: string,
     images?: ImageAttachment[],
-    isQuickLabel?: boolean,
     quickLabelTip?: string,
   ) => {
     const content = getBlockContent(block, diffContext);
@@ -162,7 +161,6 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
       author: getIdentity(),
       images,
       diffContext,
-      ...(isQuickLabel ? { isQuickLabel: true } : {}),
       ...(quickLabelTip ? { quickLabelTip } : {}),
     };
 
@@ -204,7 +202,7 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
     if (!hoveredBlock) return;
     createDiffAnnotation(
       hoveredBlock.block, hoveredBlock.index, hoveredBlock.diffContext,
-      AnnotationType.COMMENT, formatQuickLabel(label), undefined, true, label.tip
+      AnnotationType.COMMENT, formatQuickLabel(label), undefined, label.tip
     );
     setHoveredBlock(null);
     setIsExiting(false);
