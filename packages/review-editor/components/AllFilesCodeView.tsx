@@ -460,6 +460,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   // A range whose toolbar must open only after the ToolbarHost remounts against
   // the newly-activated file (its patch/filePath props changed this render).
   const pendingToolbarRange = useRef<SelectedLineRange | null>(null);
+  const pendingToolbarAnchorRect = useRef<DOMRect | undefined>(undefined);
 
   // File-scoped comment popover anchor (P3). Anchored by the FileHeader button
   // ref handed through the render slot — NOT by querying the recycled/portaled
@@ -599,16 +600,36 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   const activeSearchMatchIdRef = useRef(activeSearchMatchId);
   activeSearchMatchIdRef.current = activeSearchMatchId;
 
+  // Viewport rect of a line's number cell inside the item's own
+  // <diffs-container> (items render into separate shadow roots, and line
+  // numbers repeat across files), so the composer anchors to the selected line.
+  const getLineRect = useCallback((itemId: string | undefined, lineNumber: number, side?: 'additions' | 'deletions'): DOMRect | undefined => {
+    const root = scrollRef.current;
+    if (!root || itemId == null) return undefined;
+    for (const host of root.querySelectorAll<HTMLElement>('diffs-container')) {
+      if (nodeToItemIdRef.current.get(host) !== itemId) continue;
+      const shadow = host.shadowRoot;
+      if (!shadow) return undefined;
+      const sideSelector = side ? `[data-${side}] ` : '';
+      const cell =
+        shadow.querySelector(`${sideSelector}[data-column-number="${lineNumber}"]`) ??
+        shadow.querySelector(`[data-column-number="${lineNumber}"]`);
+      return cell instanceof HTMLElement ? cell.getBoundingClientRect() : undefined;
+    }
+    return undefined;
+  }, []);
+
   // The CodeView callback context gives us the owning item directly, so file
   // identity comes from `item.id` instead of header-geometry inference. If the
   // toolbar is already keyed to this file, open immediately; otherwise activate
   // the file first and defer until ToolbarHost remounts against its patch.
   const routeSelectionToToolbar = useCallback(
-    (range: SelectedLineRange, filePath: string) => {
+    (range: SelectedLineRange, filePath: string, anchorRect?: DOMRect) => {
       if (activeFilePath === filePath) {
-        toolbarHostRef.current?.handleLineSelectionEnd(range);
+        toolbarHostRef.current?.handleLineSelectionEnd(range, anchorRect);
       } else {
         pendingToolbarRange.current = range;
+        pendingToolbarAnchorRect.current = anchorRect;
         setActiveFilePath(filePath);
         // Paint the highlight on the TARGET item directly. The mirror effect
         // below can't be trusted to do this: it no-ops on value-equal ranges
@@ -638,8 +659,12 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   // selection.
   useEffect(() => {
     if (pendingToolbarRange.current && activePatch) {
-      toolbarHostRef.current?.handleLineSelectionEnd(pendingToolbarRange.current);
+      toolbarHostRef.current?.handleLineSelectionEnd(
+        pendingToolbarRange.current,
+        pendingToolbarAnchorRect.current,
+      );
       pendingToolbarRange.current = null;
+      pendingToolbarAnchorRect.current = undefined;
     }
   }, [activeFilePath, activePatch]);
 
@@ -669,7 +694,12 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     if (!ann) return;
     // One surface per anchor: the popup closes as the composer opens.
     gutter.close();
-    toolbarHostRef.current?.startEdit(ann);
+    const anchorRect = getLineRect(
+      filePathToItemId.get(ann.filePath),
+      ann.lineStart,
+      ann.side === 'new' ? 'additions' : 'deletions',
+    );
+    toolbarHostRef.current?.startEdit(ann, anchorRect);
   });
 
   // Every gutter anchor across the whole virtualized list, keyed by
@@ -765,6 +795,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     setActiveFilePath(null);
     setSelectedLines(null);
     pendingToolbarRange.current = null;
+    pendingToolbarAnchorRect.current = undefined;
     visibleFileRef.current = null;
     setFileCommentAnchor(null);
     fileCommentButtonRefs.current.clear();
@@ -1456,7 +1487,8 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       if (range == null || item.type !== 'diff') return;
       const filePath = itemIdToFilePath.get(item.id);
       if (filePath == null) return;
-      routeSelectionToToolbar(range, filePath);
+      const anchorRect = getLineRect(item.id, range.start, range.side);
+      routeSelectionToToolbar(range, filePath, anchorRect);
     },
   );
 

@@ -3,7 +3,7 @@ import { AnnotationType, type Annotation, type Block, type CodeAnnotation } from
 import { ImageThumbnail } from './ImageThumbnail';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { OverlayScrollArea } from './OverlayScrollArea';
-import { Button } from './ui/button';
+import { CommentPopover } from './CommentPopover';
 import { cn } from '../lib/utils';
 import { resolveReplyParents, resolveThreadRootTimestamps } from '@hypermark/core/annotation-threads';
 import { isCurrentUser } from '../utils/identity';
@@ -500,79 +500,21 @@ const AnnotationCard: React.FC<{
   /** The annotation has no live location in the document (host-reported). */
   unanchored?: boolean;
 }> = ({ annotation, isSelected, onSelect, onDelete, onEdit, readOnly = false, footer, unanchored = false }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(annotation.text || '');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (isEditing && textareaRef.current) {
-      textareaRef.current.focus();
-      textareaRef.current.select();
-    }
-  }, [isEditing]);
-
-  // Update editText when annotation.text changes
-  useEffect(() => {
-    if (!isEditing) {
-      setEditText(annotation.text || '');
-    }
-  }, [annotation.text, isEditing]);
 
   const handleStartEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setEditText(annotation.text || '');
     setIsEditing(true);
-  };
-
-  const handleSaveEdit = () => {
-    if (onEdit) {
-      onEdit({ text: editText });
-    }
-    setIsEditing(false);
-  };
-
-  const handleCancelEdit = () => {
-    setEditText(annotation.text || '');
-    setIsEditing(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
-      e.preventDefault();
-      handleSaveEdit();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      handleCancelEdit();
-    }
   };
 
   const typeColor = TYPE_COLOR[annotation.type] ?? 'text-muted-foreground';
   const typeLabel = TYPE_LABEL[annotation.type] ?? 'Note';
   const isGlobal = annotation.type === AnnotationType.GLOBAL_COMMENT;
 
-  // Shared edit textarea — matches the prototype composer primitive
-  const editComposer = (
-    <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-      <textarea
-        data-pn-mobile-editable="true"
-        ref={textareaRef}
-        value={editText}
-        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditText(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Add your comment..."
-        aria-label="Annotation comment"
-        className="w-full resize-none rounded-lg border border-border/50 bg-card px-2.5 py-2 text-base leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary/40 focus:ring-1 focus:ring-primary/20"
-        style={{ fieldSizing: 'content', minHeight: 44 } as React.CSSProperties}
-      />
-      <div className="mt-1.5 flex justify-end gap-1.5">
-        <Button variant="ghost" size="xxs" onClick={handleCancelEdit}>Cancel</Button>
-        <Button size="xxs" disabled={!editText.trim()} onClick={handleSaveEdit}>Save</Button>
-      </div>
-    </div>
-  );
-
   return (
     <div
+      ref={cardRef}
       data-annotation-id={annotation.id}
       role="button"
       tabIndex={0}
@@ -622,7 +564,7 @@ const AnnotationCard: React.FC<{
         </span>
         {!readOnly && (
           <div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100">
-            {onEdit && annotation.type !== AnnotationType.DELETION && !isEditing && (
+            {onEdit && annotation.type !== AnnotationType.DELETION && (
               <button
                 type="button"
                 onClick={handleStartEdit}
@@ -646,13 +588,9 @@ const AnnotationCard: React.FC<{
 
       {/* Global Comment - show text directly */}
       {isGlobal ? (
-        isEditing ? (
-          editComposer
-        ) : (
-          <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/90">
-            {annotation.text}
-          </p>
-        )
+        <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/90">
+          {annotation.text}
+        </p>
       ) : (
         <>
           {/* Quote — the annotated text */}
@@ -661,16 +599,10 @@ const AnnotationCard: React.FC<{
           </p>
 
           {/* Comment/Replacement Text */}
-          {annotation.type !== AnnotationType.DELETION && (
-            isEditing ? (
-              editComposer
-            ) : (
-              annotation.text && (
-                <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/90">
-                  {annotation.text}
-                </p>
-              )
-            )
+          {annotation.type !== AnnotationType.DELETION && annotation.text && (
+            <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/90">
+              {annotation.text}
+            </p>
           )}
         </>
       )}
@@ -703,6 +635,23 @@ const AnnotationCard: React.FC<{
           {footer}
         </div>
       )}
+
+      {isEditing && (
+        <CommentPopover
+          anchorEl={cardRef.current ?? undefined}
+          contextText={annotation.originalText ?? 'Global comment'}
+          isGlobal={annotation.type === AnnotationType.GLOBAL_COMMENT}
+          initialText={annotation.text}
+          initialImages={annotation.images}
+          allowImages
+          draftKey={`edit:${annotation.id}`}
+          onSubmit={(text, images) => {
+            onEdit?.({ text, images });
+            setIsEditing(false);
+          }}
+          onClose={() => setIsEditing(false)}
+        />
+      )}
     </div>
   );
 };
@@ -715,38 +664,17 @@ const CodeAnnotationCard: React.FC<{
   onEdit?: (updates: Partial<CodeAnnotation>) => void;
   readOnly?: boolean;
 }> = ({ annotation, isSelected, onSelect, onDelete, onEdit, readOnly = false }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(annotation.text || '');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (isEditing) {
-      textareaRef.current?.focus();
-      textareaRef.current?.select();
-    }
-  }, [isEditing]);
-
-  useEffect(() => {
-    if (!isEditing) setEditText(annotation.text || '');
-  }, [annotation.text, isEditing]);
-
-  const handleSaveEdit = () => {
-    onEdit?.({ text: editText });
-    setIsEditing(false);
-  };
 
   const lineRange = annotation.lineStart === annotation.lineEnd
     ? `line ${annotation.lineStart}`
     : `lines ${annotation.lineStart}-${annotation.lineEnd}`;
   const fileName = pathFileName(annotation.filePath);
 
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditText(annotation.text || '');
-  };
-
   return (
     <div
+      ref={cardRef}
       data-annotation-id={annotation.id}
       role="button"
       tabIndex={0}
@@ -770,7 +698,7 @@ const CodeAnnotationCard: React.FC<{
         </span>
         {!readOnly && (
           <div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100">
-            {onEdit && !isEditing && (
+            {onEdit && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
@@ -797,38 +725,10 @@ const CodeAnnotationCard: React.FC<{
         {fileName} · {lineRange}
       </div>
 
-      {isEditing ? (
-        <div className="mt-1.5" onClick={(e) => e.stopPropagation()}>
-          <textarea
-            data-pn-mobile-editable="true"
-            ref={textareaRef}
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
-                e.preventDefault();
-                handleSaveEdit();
-              } else if (e.key === 'Escape') {
-                e.preventDefault();
-                handleCancelEdit();
-              }
-            }}
-            placeholder="Add your comment..."
-            aria-label="Annotation comment"
-            className="w-full resize-none rounded-lg border border-border/50 bg-card px-2.5 py-2 text-base leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary/40 focus:ring-1 focus:ring-primary/20"
-            style={{ fieldSizing: 'content', minHeight: 44 } as React.CSSProperties}
-          />
-          <div className="mt-1.5 flex justify-end gap-1.5">
-            <Button variant="ghost" size="xxs" onClick={handleCancelEdit}>Cancel</Button>
-            <Button size="xxs" disabled={!editText.trim()} onClick={handleSaveEdit}>Save</Button>
-          </div>
-        </div>
-      ) : (
-        annotation.text && (
-          <p className="mt-1.5 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/90">
-            {annotation.text}
-          </p>
-        )
+      {annotation.text && (
+        <p className="mt-1.5 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/90">
+          {annotation.text}
+        </p>
       )}
 
       {annotation.images && annotation.images.length > 0 && (
@@ -840,6 +740,23 @@ const CodeAnnotationCard: React.FC<{
             </div>
           ))}
         </div>
+      )}
+
+      {isEditing && (
+        <CommentPopover
+          anchorEl={cardRef.current ?? undefined}
+          contextText={annotation.selectedText ?? `${fileName} · ${lineRange}`}
+          isGlobal={false}
+          initialText={annotation.text}
+          initialImages={annotation.images}
+          allowImages
+          draftKey={`edit:${annotation.id}`}
+          onSubmit={(text, images) => {
+            onEdit?.({ text, images });
+            setIsEditing(false);
+          }}
+          onClose={() => setIsEditing(false)}
+        />
       )}
     </div>
   );

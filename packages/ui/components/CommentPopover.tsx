@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useId } from 'react';
 import { createPortal } from 'react-dom';
 import type { ImageAttachment } from '../types';
-import { AttachmentsButton } from './AttachmentsButton';
-import { AttachmentStrip } from './AttachmentStrip';
 import { CommentAttachShelf } from './CommentAttachShelf';
 import { imageFilesFrom, useAttachmentUploads } from '../hooks/useAttachmentUploads';
 import { submitHint } from '../utils/platform';
@@ -39,6 +37,8 @@ interface CommentPopoverProps {
   isGlobal: boolean;
   /** Pre-filled text (for type-to-comment) */
   initialText?: string;
+  /** Pre-filled attachments (editing an existing annotation). A saved draft wins. */
+  initialImages?: ImageAttachment[];
   /** Called on submit with comment text and optional images */
   onSubmit: (text: string, images?: ImageAttachment[]) => void;
   /**
@@ -179,6 +179,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   contextText,
   isGlobal,
   initialText = '',
+  initialImages,
   onSubmit,
   onQuickAgree,
   onDraftChange,
@@ -200,9 +201,12 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   // geometry FORCED it.
   const [dialogIsForced, setDialogIsForced] = useState(false);
   const forcedDialog = dialogIsForced;
+  // Read at reset time only: a fresh array identity per render must not re-run the reset.
+  const initialImagesRef = useRef(initialImages);
+  initialImagesRef.current = initialImages;
   const initialDraft = draftKey ? draftStore.get(draftKey) : undefined;
   const [text, setText] = useState(initialDraft?.text ?? initialText);
-  const [images, setImages] = useState<ImageAttachment[]>(allowImages ? initialDraft?.images ?? [] : []);
+  const [images, setImages] = useState<ImageAttachment[]>(allowImages ? initialDraft?.images ?? initialImages ?? [] : []);
   const [position, setPosition] = useState<CommentPopoverPosition | null>(null);
   // Direction of an open popover that has scrolled out of view, or null when on-screen.
   const [offscreen, setOffscreen] = useState<'above' | 'below' | null>(null);
@@ -220,13 +224,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   }, []);
   const uploads = useAttachmentUploads({ images, onAdd: addImage, enabled: allowImages });
   const { attachFiles } = uploads;
-
-  /** Focus the attach action once the last thumbnail was removed. */
-  const focusAttachAction = useCallback(() => {
-    popoverRef.current
-      ?.querySelector<HTMLButtonElement>('button[data-comment-attach="true"]')
-      ?.focus();
-  }, []);
 
   // Paste anywhere in the open composer attaches to *this* comment. Capture
   // phase + stopPropagation keeps the document-level handler in the host app
@@ -261,18 +258,8 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       }
     : {};
 
-  const attachmentStrip = allowImages ? (
-    <AttachmentStrip
-      images={images}
-      pending={uploads.pending}
-      onRemove={removeImage}
-      onRemovePending={uploads.removePending}
-      onRetryPending={uploads.retry}
-      onFocusAfterLastRemoved={focusAttachAction}
-      className="mt-2"
-    />
-  ) : null;
   const hasUnsavedContent = hasUnsavedCommentContent(text, allowImages ? images : []);
+
   const hasUnsavedContentRef = useRef(hasUnsavedContent);
   hasUnsavedContentRef.current = hasUnsavedContent;
   const { dragPosition, dragHandleProps, wasDragged, reset: resetDrag } = useDraggable(popoverRef);
@@ -288,7 +275,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   useEffect(() => {
     const nextDraft = draftKey ? draftStore.get(draftKey) : undefined;
     setText(nextDraft?.text ?? initialText);
-    setImages(allowImages ? nextDraft?.images ?? [] : []);
+    setImages(allowImages ? nextDraft?.images ?? initialImagesRef.current ?? [] : []);
   }, [draftKey, initialText, allowImages]);
 
   useCommentDraftSync(draftKey, text, allowImages ? images : []);
@@ -345,24 +332,30 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     anchorEl?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }, [anchorEl]);
 
-  // Arc grip: drag the composer taller in place. The height rides on the
-  // textarea's min-height rather than the container's, so the strip, the
-  // shelf and the action row keep their own heights and only the writing
-  // area grows. Null means "whatever the class says" - which is what
-  // double-click restores.
+  // Arc grip: drag the composer taller and wider in place, double-click to reset.
+  // The height rides on the textarea's min-height while the width applies to
+  // the card container. Null means "whatever the class/position says" - which
+  // is what double-click restores.
   const [composerHeight, setComposerHeight] = useState<number | null>(null);
+  const [composerWidth, setComposerWidth] = useState<number | null>(null);
 
   const beginGripResize = useCallback((event: React.PointerEvent) => {
     // Left button only, and never let the strip's drag handler see it.
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
+    const startX = event.clientX;
     const startY = event.clientY;
     const startHeight = textareaRef.current?.getBoundingClientRect().height ?? 72;
+    const minWidth = position?.width ?? MAX_POPOVER_WIDTH;
+    const startWidth = composerWidth ?? minWidth;
+    const maxWidth = Math.min(720, visibleBounds.width - 32);
+
     const move = (e: PointerEvent) => {
-      // Dragging UP from the top-left corner grows the box, so the delta is
-      // inverted against the pointer's own direction.
+      // Dragging UP from the top-left corner grows height (inverted delta)
       setComposerHeight(Math.max(56, Math.min(480, startHeight + (startY - e.clientY))));
+      // Dragging LEFT from the top-left corner grows width (inverted delta)
+      setComposerWidth(Math.max(minWidth, Math.min(maxWidth, startWidth + (startX - e.clientX))));
     };
     const end = () => {
       window.removeEventListener('pointermove', move);
@@ -370,10 +363,11 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', end);
-  }, []);
+  }, [composerWidth, position?.width, visibleBounds.width]);
 
   const resetGripResize = useCallback(() => {
     setComposerHeight(null);
+    setComposerWidth(null);
   }, []);
 
   // Focus the textarea when it mounts (initial open and popover/dialog switches).
@@ -625,229 +619,36 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     </button>
   ) : null;
 
-  if (mode === 'dialog') {
-    return createPortal(
-      <div
-        data-comment-popover="true"
-        className="pn-visible-viewport-overlay z-[100] flex items-center justify-center"
-      >
-        {/* Backdrop */}
-        <button
-          type="button"
-          aria-label="Dismiss comment"
-          className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-          onClick={() => handleClose()}
-        />
+  const maxAllowedHeight = dragPosition ? visibleBounds.height : position?.maxHeight;
+  const popoverMaxHeightStyle = maxAllowedHeight != null ? `calc(${maxAllowedHeight}px - 8rem)` : undefined;
 
-        {/* Dialog card */}
-        {/* The expanded dialog deliberately does not yield: it is an explicit
-            full-screen compose surface, and its backdrop wrapper (which carries
-            data-comment-popover) spans the viewport, so proximity is
-            meaningless there. */}
+  const composerCard = (
+    <div className="flex min-h-0 flex-col overflow-hidden rounded-xl bg-muted/40">
+      {/* Top strip - the outer tier. Anchor mark, location, collapse/close at the
+          far right end. Draggable by the strip itself in popover mode.
+          When isGlobal, the strip element is not rendered. */}
+      {!isGlobal && (
         <div
-          ref={popoverRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label={isGlobal ? 'Global comment' : 'Comment'}
-          tabIndex={-1}
-          className="relative w-full max-w-xl max-h-full min-h-0 bg-popover border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden"
-          style={{
-            animation: 'comment-dialog-in 0.15s ease-out',
-          }}
-          onPointerDown={(e) => e.stopPropagation()}
-          onKeyDown={(e) => {
-            if (e.key !== 'Escape') return;
-            e.preventDefault();
-            e.stopPropagation();
-            handleClose();
-          }}
+          className="flex items-center gap-2 rounded-t-xl pl-3 pr-1.5 py-1.5"
+          {...(mode === 'popover' ? dragHandleProps : {})}
         >
-          <style>{`
-            @keyframes comment-dialog-in {
-              from { opacity: 0; transform: scale(0.95); }
-              to { opacity: 1; transform: scale(1); }
-            }
-          `}</style>
-
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
-            <span className="text-xs text-muted-foreground truncate max-w-[400px]">
-              {headerLabel}
-            </span>
-            <div className="flex items-center gap-1">
-              {!forcedDialog && (
-                <button
-                  onClick={() => { setDialogIsForced(false); setMode('popover'); }}
-                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                  title="Collapse"
-                >
-                  <CollapseIcon />
-                </button>
-              )}
+          <span className="flex shrink-0 text-primary" aria-hidden="true">
+            <AnchorIcon />
+          </span>
+          <span className="min-w-0 flex-1 truncate text-[11.5px] leading-snug text-muted-foreground">
+            {headerLabel}
+          </span>
+          <div className="flex items-center gap-1">
+            {mode === 'dialog' && !forcedDialog && (
               <button
-                onClick={() => handleClose()}
-                className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                title="Close"
+                onClick={() => { setDialogIsForced(false); setMode('popover'); }}
+                className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                title="Collapse"
+                aria-label="Collapse"
               >
-                <CloseIcon />
+                <CollapseIcon />
               </button>
-            </div>
-          </div>
-
-          {chipsRow}
-
-          {/* Textarea */}
-          <div className="relative px-4 py-3 min-h-0 flex-1 overflow-y-auto" {...composerDropProps}>
-            {skillAc.menu && (
-              <SkillReferenceMenu
-                id={skillListboxId}
-                items={skillAc.menu.items}
-                activeIndex={skillAc.menu.activeIndex}
-                onSelect={skillAc.select}
-              />
             )}
-            <ComposerTextarea
-              textareaRef={focusOnMountRef}
-              value={text}
-              onChange={(e) => { setText(e.target.value); skillAc.onSelect(); }}
-              onKeyDown={handleKeyDown}
-              onSelectCaret={skillAc.onSelect}
-              placeholder={isGlobal ? 'Add a global comment...' : 'Add a comment...'}
-              sizeClassName="min-h-32 max-h-full text-sm"
-              skillReferences={skillReferences}
-              tokens={skillAc.referenceTokens}
-              listboxId={skillListboxId}
-              listboxOpen={skillAc.menu !== null}
-              activeOptionId={activeSkillOptionId}
-            />
-            <HumanOnlySkillNotice skills={skillAc.humanOnlyReferences} />
-            {attachmentStrip}
-          </div>
-
-          {/* Footer — DOM order sets tab order (Save first); row-reverse keeps the visual layout unchanged */}
-          <div className="flex flex-row-reverse flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-border/50">
-            <div className="flex flex-row-reverse flex-wrap items-center gap-3">
-              <button
-                onClick={handleSubmit}
-                disabled={!canSubmit}
-                className="px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-              >
-                {isGlobal ? 'Add' : 'Save'}
-              </button>
-              <span className="text-[10px] text-muted-foreground">{submitHint}</span>
-              {quickLookGoodButton}
-            </div>
-            <div className="flex items-center gap-2">
-              {allowImages && (
-                <AttachmentsButton
-                  images={images}
-                  onAdd={addImage}
-                  onRemove={removeImage}
-                  variant="inline"
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      </div>,
-      document.body
-    );
-  }
-
-  // Popover mode
-  if (!position) return null;
-
-  return createPortal(
-    <>
-      {offscreen && (
-        <button
-          type="button"
-          data-popover-layer="true"
-          onClick={scrollToPopover}
-          title="Scroll back to your open comment"
-          className={`fixed left-1/2 -translate-x-1/2 z-[101] flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-popover border border-border shadow-lg text-xs text-muted-foreground hover:text-foreground transition-colors ${offscreen === 'above' ? 'top-3' : 'bottom-3'}`}
-        >
-          {offscreen === 'above' ? <ChevronUpIcon /> : <ChevronDownIcon />}
-          <span>Open comment</span>
-        </button>
-      )}
-      <div
-        ref={popoverRef}
-        data-comment-popover="true"
-      className={`group/composer fixed z-[100] bg-card border border-border rounded-xl shadow-[0_1px_2px_rgb(0_0_0/0.18),0_25px_50px_-12px_rgb(0_0_0/0.5)] flex flex-col${yieldClass}`}
-      style={dragPosition
-        ? {
-            top: dragPosition.top,
-            left: dragPosition.left,
-            width: position.width,
-          }
-        : {
-            top: position.top,
-            left: position.left,
-            width: position.width,
-            ...(position.flipAbove ? { transform: 'translateY(-100%)' } : {}),
-            animation: position.flipAbove
-              ? 'comment-popover-in-above 0.15s ease-out'
-              : 'comment-popover-in 0.15s ease-out',
-          }
-      }
-      onPointerDown={(e) => e.stopPropagation()}
-    >
-      <style>{`
-        @keyframes comment-popover-in {
-          from { opacity: 0; transform: translateY(-8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes comment-popover-in-above {
-          from { opacity: 0; transform: translateY(-100%) translateY(8px); }
-          to { opacity: 1; transform: translateY(-100%); }
-        }
-      `}</style>
-      {yieldStyleBlock}
-
-      {/* Arc grip - drag the composer taller in place, double-click to reset.
-          The local alternative to Expand, which takes over the whole screen. */}
-      <span
-        onPointerDown={beginGripResize}
-        onDoubleClick={resetGripResize}
-        title="Drag to resize / double-click to reset"
-        className="absolute -left-[9px] -top-[9px] z-[3] grid h-6 w-6 cursor-nwse-resize place-items-center text-muted-foreground/60 opacity-0 transition-opacity group-hover/composer:opacity-100"
-      >
-        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
-          <path d="M1.5 13.5A12 12 0 0 1 13.5 1.5" />
-        </svg>
-      </span>
-
-      {/* The wash tier. It carries the strip's colour for the whole shell, so
-          the notches the body's rounded top corners cut read as strip rather
-          than as the darker card beneath — the seam that otherwise shows as two
-          mismatched pixels at each corner. */}
-      <div
-        className="flex min-h-0 flex-col overflow-y-auto rounded-xl bg-muted/40"
-        style={{
-          maxHeight: dragPosition ? visibleBounds.height : position.maxHeight,
-          overflowY: 'auto',
-        }}
-      >
-
-      {/* Top strip - the outer tier. Anchor mark, the location, close at the
-          far right end. Draggable by the strip itself. */}
-      <div
-        className={
-          isGlobal
-            ? 'rounded-t-xl py-1'
-            : 'flex items-center gap-2 rounded-t-xl pl-3 pr-1.5 py-1.5'
-        }
-        {...dragHandleProps}
-      >
-        {!isGlobal && (
-          <>
-            <span className="flex shrink-0 text-primary" aria-hidden="true">
-              <AnchorIcon />
-            </span>
-            <span className="min-w-0 flex-1 truncate text-[11.5px] leading-snug text-muted-foreground">
-              {headerLabel}
-            </span>
             <button
               onClick={() => handleClose()}
               className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -856,27 +657,38 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             >
               <CloseIcon />
             </button>
-          </>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
 
       {/* Body - the inner tier. A card in its own right: fully rounded, its own
-          hairline, its own near shadow. It sits flush inside the shell (no
-          padding), so its top corners cut back to the strip's wash and the two
-          tiers read as stacked surfaces rather than one box split by a rule. */}
+          hairline, its own near shadow. */}
       <div className="flex min-h-0 flex-col rounded-xl border border-border/50 bg-popover shadow-[0_1px_1px_rgb(0_0_0/0.16),0_2px_4px_-2px_rgb(0_0_0/0.3)]">
         {chipsRow}
 
-        {/* Textarea, with expand parked at its top-right. */}
+        {/* Textarea, with expand parked at its top-right in popover mode (or collapse for global dialog). */}
         <div className="relative px-[13px] pb-0.5 pt-2.5" {...composerDropProps}>
-          <button
-            onClick={() => { setDialogIsForced(false); setMode('dialog'); }}
-            className="absolute right-2.5 top-2 z-[1] grid h-[22px] w-[22px] place-items-center rounded-[7px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            title="Expand"
-            aria-label="Expand"
-          >
-            <ExpandIcon />
-          </button>
+          {mode === 'popover' ? (
+            <button
+              onClick={() => { setDialogIsForced(false); setMode('dialog'); }}
+              className="absolute right-2.5 top-2 z-[1] grid h-[22px] w-[22px] place-items-center rounded-[7px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title="Expand"
+              aria-label="Expand"
+            >
+              <ExpandIcon />
+            </button>
+          ) : (
+            isGlobal && !forcedDialog && (
+              <button
+                onClick={() => { setDialogIsForced(false); setMode('popover'); }}
+                className="absolute right-2.5 top-2 z-[1] grid h-[22px] w-[22px] place-items-center rounded-[7px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                title="Collapse"
+                aria-label="Collapse"
+              >
+                <CollapseIcon />
+              </button>
+            )
+          )}
           {skillAc.menu && (
             <SkillReferenceMenu
               id={skillListboxId}
@@ -893,11 +705,18 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             onSelectCaret={skillAc.onSelect}
             placeholder={isGlobal ? 'Add a global comment...' : 'Add a comment...'}
             sizeClassName={
-              composerHeight === null
-                ? 'max-h-64 min-h-14 pr-[26px] text-[12.5px] leading-[1.45]'
-                : 'pr-[26px] text-[12.5px] leading-[1.45]'
+              mode === 'dialog'
+                ? 'min-h-64 max-h-full pr-[26px] text-[12.5px] leading-[1.45]'
+                : composerHeight === null
+                  ? 'max-h-64 min-h-14 pr-[26px] text-[12.5px] leading-[1.45]'
+                  : 'pr-[26px] text-[12.5px] leading-[1.45]'
             }
-            heightPx={composerHeight}
+            heightPx={mode === 'popover' ? composerHeight : null}
+            maxHeight={
+              mode === 'dialog'
+                ? `calc(${visibleBounds.height}px - 10rem)`
+                : composerHeight === null ? popoverMaxHeightStyle : undefined
+            }
             skillReferences={skillReferences}
             tokens={skillAc.referenceTokens}
             listboxId={skillListboxId}
@@ -919,7 +738,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           />
         )}
 
-        {/* Action row. The attach trigger is deliberately not here. */}
+        {/* Action row. */}
         <div className="flex items-center justify-between gap-3 pb-2 pl-2.5 pr-2 pt-[7px]">
           <div className="flex min-w-0 items-center gap-0.5">
             <button
@@ -955,7 +774,123 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           </div>
         </div>
       </div>
-      </div>
+    </div>
+  );
+
+  if (mode === 'dialog') {
+    return createPortal(
+      <div
+        data-comment-popover="true"
+        className="pn-visible-viewport-overlay z-[100] flex items-center justify-center"
+      >
+        {/* Backdrop */}
+        <button
+          type="button"
+          aria-label="Dismiss comment"
+          className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+          onClick={() => handleClose()}
+        />
+
+        {/* Dialog card */}
+        <div
+          ref={popoverRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={isGlobal ? 'Global comment' : 'Comment'}
+          tabIndex={-1}
+          className="relative w-[min(720px,calc(100vw-2rem))] max-h-full min-h-0 bg-popover border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden"
+          style={{
+            animation: 'comment-dialog-in 0.15s ease-out',
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key !== 'Escape') return;
+            e.preventDefault();
+            e.stopPropagation();
+            handleClose();
+          }}
+        >
+          <style>{`
+            @keyframes comment-dialog-in {
+              from { opacity: 0; transform: scale(0.95); }
+              to { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+          {composerCard}
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
+  // Popover mode
+  if (!position) return null;
+
+  const currentWidth = composerWidth ?? position.width;
+  const widthDelta = currentWidth - position.width;
+  const currentLeft = (dragPosition ? dragPosition.left : position.left) - widthDelta;
+
+  return createPortal(
+    <>
+      {offscreen && (
+        <button
+          type="button"
+          data-popover-layer="true"
+          onClick={scrollToPopover}
+          title="Scroll back to your open comment"
+          className={`fixed left-1/2 -translate-x-1/2 z-[101] flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-popover border border-border shadow-lg text-xs text-muted-foreground hover:text-foreground transition-colors ${offscreen === 'above' ? 'top-3' : 'bottom-3'}`}
+        >
+          {offscreen === 'above' ? <ChevronUpIcon /> : <ChevronDownIcon />}
+          <span>Open comment</span>
+        </button>
+      )}
+      <div
+        ref={popoverRef}
+        data-comment-popover="true"
+        className={`group/composer fixed z-[100] bg-card border border-border rounded-xl shadow-[0_1px_2px_rgb(0_0_0/0.18),0_25px_50px_-12px_rgb(0_0_0/0.5)] flex flex-col${yieldClass}`}
+        style={dragPosition
+          ? {
+              top: dragPosition.top,
+              left: currentLeft,
+              width: currentWidth,
+            }
+          : {
+              top: position.top,
+              left: currentLeft,
+              width: currentWidth,
+              ...(position.flipAbove ? { transform: 'translateY(-100%)' } : {}),
+              animation: position.flipAbove
+                ? 'comment-popover-in-above 0.15s ease-out'
+                : 'comment-popover-in 0.15s ease-out',
+            }
+        }
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <style>{`
+          @keyframes comment-popover-in {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes comment-popover-in-above {
+            from { opacity: 0; transform: translateY(-100%) translateY(8px); }
+            to { opacity: 1; transform: translateY(-100%); }
+          }
+        `}</style>
+        {yieldStyleBlock}
+
+        {/* Arc grip - drag the composer taller and wider in place, double-click to reset. */}
+        <span
+          onPointerDown={beginGripResize}
+          onDoubleClick={resetGripResize}
+          title="Drag to resize"
+          className="absolute -left-[9px] -top-[9px] z-[3] grid h-6 w-6 cursor-nwse-resize place-items-center text-muted-foreground/60 opacity-0 transition-opacity group-hover/composer:opacity-100"
+        >
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
+            <path d="M1.5 13.5A12 12 0 0 1 13.5 1.5" />
+          </svg>
+        </span>
+
+        {composerCard}
       </div>
     </>,
     document.body
@@ -976,6 +911,8 @@ const COMPOSER_TEXT_CLASSES = 'w-full bg-transparent px-1 py-0.5';
 interface ComposerTextareaProps {
   /** Explicit height in px from the resize grip; null keeps the class-driven size. */
   heightPx?: number | null;
+  /** Explicit max-height from positioning constraints. */
+  maxHeight?: string | number | null;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -1009,6 +946,7 @@ interface ComposerTextareaProps {
  */
 const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
   heightPx = null,
+  maxHeight = null,
   value,
   onChange,
   onKeyDown,
@@ -1023,9 +961,12 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
   activeOptionId,
 }) => {
   const overlayRef = useRef<HTMLDivElement>(null);
-  const boxStyle: React.CSSProperties = heightPx === null
-    ? ({ fieldSizing: 'content' } as React.CSSProperties)
-    : { height: heightPx };
+  const boxStyle: React.CSSProperties = {
+    ...(heightPx === null
+      ? ({ fieldSizing: 'content' } as React.CSSProperties)
+      : { height: heightPx }),
+    ...(maxHeight != null ? { maxHeight } : {}),
+  };
   const [composing, setComposing] = useState(false);
 
   const syncScroll = useCallback((el: HTMLTextAreaElement) => {
@@ -1060,7 +1001,7 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
         onKeyDown={onKeyDown}
         onSelect={onSelectCaret}
         placeholder={placeholder}
-        className={`${COMPOSER_TEXT_CLASSES} placeholder:text-muted-foreground resize-none focus:outline-none ${sizeClassName}`}
+        className={`${COMPOSER_TEXT_CLASSES} placeholder:text-muted-foreground resize-none focus:outline-none overflow-y-auto ${sizeClassName}`}
         style={boxStyle}
       />
     );
@@ -1123,7 +1064,7 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
         onCompositionStart={() => setComposing(true)}
         onCompositionEnd={() => setComposing(false)}
         placeholder={placeholder}
-        className={`${COMPOSER_TEXT_CLASSES} placeholder:text-muted-foreground resize-none focus:outline-none relative pn-ref-input ${
+        className={`${COMPOSER_TEXT_CLASSES} placeholder:text-muted-foreground resize-none focus:outline-none overflow-y-auto relative pn-ref-input ${
           composing ? 'pn-ref-composing' : ''
         } ${sizeClassName}`}
         style={boxStyle}
