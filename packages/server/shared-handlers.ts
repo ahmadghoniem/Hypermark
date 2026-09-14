@@ -169,7 +169,7 @@ export function handleApiNotFound(path: string): Response {
 }
 
 /**
- * Serve the app favicon. Used by all 3 servers (plus goal-setup).
+ * Serve the app favicon. Used by all 3 servers.
  *
  * Classic (dark-navy P tile SVG) is the sole offered favicon. The response is
  * SVG with no-cache so a browser tab reflects the correct icon on every load.

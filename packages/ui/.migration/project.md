@@ -35,7 +35,7 @@ Radix deps in `packages/ui/package.json` (6):
 
 | File | Radix usage | Consumers | Notes |
 |---|---|---|---|
-| `components/Popover.tsx` | react-popover | ui: Viewer, PlanCleanDiffView, CodeFilePopout, GoalSetupSurface, HtmlViewer, SearchableSelect; editor: AnnotateAgentTerminalPanel | exports `PopoverAnchor` (zero consumers; Base UI has no Anchor part) |
+| `components/Popover.tsx` | react-popover | ui: Viewer, PlanCleanDiffView, CodeFilePopout, HtmlViewer, SearchableSelect; editor: AnnotateAgentTerminalPanel | exports `PopoverAnchor` (zero consumers; Base UI has no Anchor part) |
 | `components/Tooltip.tsx` | react-tooltip | review-editor: App (Provider), FileRowBits, DiffTypePicker; editor: App (Provider) | custom API (`content`/`delayDuration`/`wide`); Provider re-exported raw |
 | `components/PopoutDialog.tsx` | react-dialog | ui: TablePopout, CodeFilePopout | non-modal, custom backdrop, `onOpenAutoFocus` preventDefault, `onInteractOutside` annotation-selector guard |
 
