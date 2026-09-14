@@ -102,7 +102,6 @@ describe('fromShareable — legacy tuple annotations', () => {
     expect(restored!.author).toBe('tater');
   });
 
-
   test('images decode on every tuple form, in both encodings', () => {
     const [comment, deletion, global] = fromShareable([
       ['C', 'quote', 'see this', null, [['/data/a.png', 'A']]],
