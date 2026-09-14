@@ -71,6 +71,8 @@ export function useAnnotationToolbar({
   const [toolbarState, setToolbarState] = useState<ToolbarState | null>(null);
   const [commentText, setCommentText] = useState('');
   const [editingAnnotationId, setEditingAnnotationId] = useState<string | null>(null);
+  // The edited annotation's attachments, handed to the composer as its starting images.
+  const [editingImages, setEditingImages] = useState<ImageAttachment[] | undefined>(undefined);
 
   // Refs to avoid stale closures in saveDraft
   const commentTextRef = useRef(commentText);
@@ -128,6 +130,7 @@ export function useAnnotationToolbar({
     setToolbarState(null);
     setCommentText('');
     setEditingAnnotationId(null);
+    setEditingImages(undefined);
   }, []);
 
   // Shared: save current draft, restore form for new range, set toolbar state, notify parent
@@ -139,6 +142,7 @@ export function useAnnotationToolbar({
     ) => {
       saveDraft();
       setEditingAnnotationId(null);
+      setEditingImages(undefined);
 
       const draft = draftStore.get(draftKey(filePath, range));
       if (draft) {
@@ -231,6 +235,7 @@ export function useAnnotationToolbar({
     (annotation: CodeAnnotation, anchorRect?: DOMRect) => {
       setEditingAnnotationId(annotation.id);
       setCommentText(annotation.text || '');
+      setEditingImages(annotation.images);
 
       const effectiveAnchorRect =
         anchorRect ??
@@ -347,6 +352,7 @@ export function useAnnotationToolbar({
     commentText,
     setCommentText,
     editingAnnotationId,
+    editingImages,
     // Handlers
     handleLineSelectionEnd,
     openLineAnnotation,

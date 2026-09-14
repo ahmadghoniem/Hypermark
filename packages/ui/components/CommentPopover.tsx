@@ -37,6 +37,8 @@ interface CommentPopoverProps {
   isGlobal: boolean;
   /** Pre-filled text (for type-to-comment) */
   initialText?: string;
+  /** Pre-filled attachments (editing an existing annotation). A saved draft wins. */
+  initialImages?: ImageAttachment[];
   /** Called on submit with comment text and optional images */
   onSubmit: (text: string, images?: ImageAttachment[]) => void;
   /**
@@ -177,6 +179,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   contextText,
   isGlobal,
   initialText = '',
+  initialImages,
   onSubmit,
   onQuickAgree,
   onDraftChange,
@@ -198,9 +201,12 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   // geometry FORCED it.
   const [dialogIsForced, setDialogIsForced] = useState(false);
   const forcedDialog = dialogIsForced;
+  // Read at reset time only: a fresh array identity per render must not re-run the reset.
+  const initialImagesRef = useRef(initialImages);
+  initialImagesRef.current = initialImages;
   const initialDraft = draftKey ? draftStore.get(draftKey) : undefined;
   const [text, setText] = useState(initialDraft?.text ?? initialText);
-  const [images, setImages] = useState<ImageAttachment[]>(allowImages ? initialDraft?.images ?? [] : []);
+  const [images, setImages] = useState<ImageAttachment[]>(allowImages ? initialDraft?.images ?? initialImages ?? [] : []);
   const [position, setPosition] = useState<CommentPopoverPosition | null>(null);
   // Direction of an open popover that has scrolled out of view, or null when on-screen.
   const [offscreen, setOffscreen] = useState<'above' | 'below' | null>(null);
@@ -269,7 +275,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   useEffect(() => {
     const nextDraft = draftKey ? draftStore.get(draftKey) : undefined;
     setText(nextDraft?.text ?? initialText);
-    setImages(allowImages ? nextDraft?.images ?? [] : []);
+    setImages(allowImages ? nextDraft?.images ?? initialImagesRef.current ?? [] : []);
   }, [draftKey, initialText, allowImages]);
 
   useCommentDraftSync(draftKey, text, allowImages ? images : []);

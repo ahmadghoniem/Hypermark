@@ -642,6 +642,7 @@ const AnnotationCard: React.FC<{
           contextText={annotation.originalText ?? 'Global comment'}
           isGlobal={annotation.type === AnnotationType.GLOBAL_COMMENT}
           initialText={annotation.text}
+          initialImages={annotation.images}
           allowImages
           draftKey={`edit:${annotation.id}`}
           onSubmit={(text, images) => {
@@ -747,6 +748,7 @@ const CodeAnnotationCard: React.FC<{
           contextText={annotation.selectedText ?? `${fileName} · ${lineRange}`}
           isGlobal={false}
           initialText={annotation.text}
+          initialImages={annotation.images}
           allowImages
           draftKey={`edit:${annotation.id}`}
           onSubmit={(text, images) => {

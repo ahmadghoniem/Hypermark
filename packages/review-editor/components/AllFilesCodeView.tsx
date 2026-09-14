@@ -600,24 +600,21 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   const activeSearchMatchIdRef = useRef(activeSearchMatchId);
   activeSearchMatchIdRef.current = activeSearchMatchId;
 
-  const getLineRect = useCallback((lineNumber: number): DOMRect | undefined => {
-    const container = scrollRef.current;
-    if (!container) return undefined;
-    const queue: Node[] = [container];
-    while (queue.length > 0) {
-      const node = queue.shift()!;
-      if (node instanceof HTMLElement && node.shadowRoot) {
-        const lineEl =
-          node.shadowRoot.querySelector(`[data-line="${lineNumber}"]`) ??
-          node.shadowRoot.querySelector(`[data-column-number="${lineNumber}"]`);
-        if (lineEl instanceof HTMLElement) {
-          return lineEl.getBoundingClientRect();
-        }
-        queue.push(node.shadowRoot);
-      }
-      for (let i = 0; i < node.childNodes.length; i++) {
-        queue.push(node.childNodes[i]);
-      }
+  // Viewport rect of a line's number cell inside the item's own
+  // <diffs-container> (items render into separate shadow roots, and line
+  // numbers repeat across files), so the composer anchors to the selected line.
+  const getLineRect = useCallback((itemId: string | undefined, lineNumber: number, side?: 'additions' | 'deletions'): DOMRect | undefined => {
+    const root = scrollRef.current;
+    if (!root || itemId == null) return undefined;
+    for (const host of root.querySelectorAll<HTMLElement>('diffs-container')) {
+      if (nodeToItemIdRef.current.get(host) !== itemId) continue;
+      const shadow = host.shadowRoot;
+      if (!shadow) return undefined;
+      const sideSelector = side ? `[data-${side}] ` : '';
+      const cell =
+        shadow.querySelector(`${sideSelector}[data-column-number="${lineNumber}"]`) ??
+        shadow.querySelector(`[data-column-number="${lineNumber}"]`);
+      return cell instanceof HTMLElement ? cell.getBoundingClientRect() : undefined;
     }
     return undefined;
   }, []);
@@ -697,7 +694,11 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     if (!ann) return;
     // One surface per anchor: the popup closes as the composer opens.
     gutter.close();
-    const anchorRect = getLineRect(ann.lineStart);
+    const anchorRect = getLineRect(
+      filePathToItemId.get(ann.filePath),
+      ann.lineStart,
+      ann.side === 'new' ? 'additions' : 'deletions',
+    );
     toolbarHostRef.current?.startEdit(ann, anchorRect);
   });
 
@@ -1486,7 +1487,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       if (range == null || item.type !== 'diff') return;
       const filePath = itemIdToFilePath.get(item.id);
       if (filePath == null) return;
-      const anchorRect = getLineRect(range.start);
+      const anchorRect = getLineRect(item.id, range.start, range.side);
       routeSelectionToToolbar(range, filePath, anchorRect);
     },
   );
