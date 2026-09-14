@@ -68,12 +68,6 @@ import { PlanDiffViewer } from '@hypermark/ui/components/plan-diff/PlanDiffViewe
 import { CodeFilePopout, type CodeFileAnnotationInput } from '@hypermark/ui/components/CodeFilePopout';
 import type { PlanDiffMode } from '@hypermark/ui/components/plan-diff/PlanDiffModeSwitcher';
 import {
-  GoalSetupSurface,
-  type GoalSetupActionState,
-  type GoalSetupSurfaceHandle,
-} from '@hypermark/ui/components/goal-setup/GoalSetupSurface';
-import type { GoalSetupBundle } from '@hypermark/shared/goal-setup';
-import {
   hasSourceSaveConflictSnapshot,
   isSourceSaveFilePath,
   type SourceSaveCapability,
@@ -444,14 +438,6 @@ const AppInner: React.FC = () => {
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const messageStateCacheRef = useRef<Map<string, MessageAnnotationState>>(new Map());
   const [cachedMessageAnnotationCounts, setCachedMessageAnnotationCounts] = useState<Map<string, number>>(new Map());
-  const [goalSetupBundle, setGoalSetupBundle] = useState<GoalSetupBundle | null>(null);
-  const goalSetupSurfaceRef = useRef<GoalSetupSurfaceHandle>(null);
-  const [goalSetupAction, setGoalSetupAction] = useState<GoalSetupActionState>({
-    canSubmit: false,
-    isSubmitting: false,
-    submitted: false,
-    submitLabel: 'Submit',
-  });
   const [sourceInfo, setSourceInfo] = useState<string | undefined>();
   // Server-resolved annotate copy-wrapper templates (config-aware) so
   // clipboard Copy matches Send Feedback instead of the plan-deny wrap (#1107).
@@ -516,8 +502,6 @@ const AppInner: React.FC = () => {
   const wideModeSnapshotRef = useRef<WideModeLayoutSnapshot | null>(null);
   const initialSidebarPreferenceAppliedRef = useRef(false);
   const lastAppliedTocEnabledRef = useRef(uiPrefs.tocEnabled);
-  const goalSetupMode = goalSetupBundle !== null;
-
   useEffect(() => {
     document.title = repoInfo ? `${repoInfo.display} · Hypermark` : "Hypermark";
   }, [repoInfo]);
@@ -540,8 +524,7 @@ const AppInner: React.FC = () => {
   const showAgentTerminalControls =
     annotateMode &&
     annotateSource !== 'message' &&
-    agentTerminalCapability !== null &&
-    !goalSetupMode;
+    agentTerminalCapability !== null;
   const {
     shouldRender: shouldRenderAgentTerminal,
     isVisible: isAgentTerminalVisible,
@@ -1181,7 +1164,6 @@ const AppInner: React.FC = () => {
   // never while a dialog, an overlay, a submission, or a text field owns the
   // keystroke. Annotate-only commands layer their own conditions on top.
   const canHandleDocumentChromeShortcut = useCallback((event: KeyboardEvent) => {
-    if (goalSetupMode) return false;
     if (event.defaultPrevented) return false;
     if (document.querySelector('[data-hypermark-confirm-dialog="true"]')) return false;
     if (showFeedbackPrompt || showClaudeCodeWarning ||
@@ -1193,7 +1175,6 @@ const AppInner: React.FC = () => {
     const tag = target?.tagName;
     return tag !== 'INPUT' && tag !== 'TEXTAREA' && !target?.isContentEditable;
   }, [
-    goalSetupMode,
     showFeedbackPrompt,
     showClaudeCodeWarning,
     showSourceFileEditWarning,
@@ -1581,7 +1562,7 @@ const AppInner: React.FC = () => {
   const activeSection = useActiveSection(planAreaRef, headingCount, scrollViewport);
 
   const { externalAnnotations, updateExternalAnnotation, deleteExternalAnnotation } = useExternalAnnotations<Annotation>({
-    enabled: isApiMode && !goalSetupMode,
+    enabled: isApiMode,
   });
 
   // Drive DOM highlights for SSE-delivered external annotations. Disabled
@@ -1590,7 +1571,7 @@ const AppInner: React.FC = () => {
   const { reset: resetExternalHighlights } = useExternalAnnotationHighlights({
     viewerRef,
     externalAnnotations,
-    enabled: isApiMode && !goalSetupMode && !linkedDocHook.isActive && !isPlanDiffActive && !isEditingMarkdown,
+    enabled: isApiMode && !linkedDocHook.isActive && !isPlanDiffActive && !isEditingMarkdown,
     planKey: markdown,
   });
 
@@ -1744,7 +1725,7 @@ const AppInner: React.FC = () => {
     if (wideModeType !== null) return;
 
     initialSidebarPreferenceAppliedRef.current = true;
-    if (goalSetupMode || annotateSource === 'folder') return;
+    if (annotateSource === 'folder') return;
     // HTML chrome is owned by the surface-transition effect below, which also
     // covers linked .html docs opened from a markdown session.
     if (renderAs === 'html') return;
@@ -1753,7 +1734,6 @@ const AppInner: React.FC = () => {
     }
   }, [
     annotateSource,
-    goalSetupMode,
     hasTocEntries,
     isLoading,
     renderAs,
@@ -1777,7 +1757,7 @@ const AppInner: React.FC = () => {
     const wasHtml = prevHtmlChromeSurfaceRef.current;
     prevHtmlChromeSurfaceRef.current = isHtmlSurface;
     if (!isHtmlSurface || wasHtml) return;
-    if (goalSetupMode || annotateSource === 'folder') return;
+    if (annotateSource === 'folder') return;
     const chrome = getHtmlChromeState();
     skipNextHtmlChromeSaveRef.current = true;
     if (chrome.sidebarOpen) sidebar.open();
@@ -1787,7 +1767,6 @@ const AppInner: React.FC = () => {
     htmlChromeRestoredRef.current = true;
   }, [
     annotateSource,
-    goalSetupMode,
     isHtmlSurface,
     isLoading,
     sidebar.close,
@@ -1862,7 +1841,7 @@ const AppInner: React.FC = () => {
     getEditedMarkdown: getDraftEditedMarkdown,
     getEditedDocuments: editableDocuments.getDraftDocuments,
     getSavedFileChanges: editableDocuments.getDraftSavedFileChanges,
-    isApiMode: isApiMode && !goalSetupMode,
+    isApiMode,
     // No share transport remains, so drafts always persist for a live session.
     isSharedSession: false,
     // isSubmitting counts: a save firing while approve/deny is in flight can
@@ -1873,15 +1852,14 @@ const AppInner: React.FC = () => {
   });
 
   // Markdown edit mode: single consolidated gate. The editor only ever opens on
-  // the main plan/file markdown — never on HTML surfaces, goal-setup
-  // views, linked docs, messages, folder pickers, or diff view.
+  // the main plan/file markdown — never on HTML surfaces,
+  // linked docs, messages, folder pickers, or diff view.
   const canEditMarkdown =
     renderAs !== 'html' &&
     // editStats non-null keeps the toggle available after committing an
     // emptied document, so the user can re-enter and undo. Source-backed files
     // are editable even when they start empty.
     (activeEditableDocument?.sourceSave?.enabled || displayedMarkdown !== '' || editStats !== null) &&
-    !goalSetupMode &&
     (!linkedDocHook.isActive || (annotateSource === 'folder' && activeEditableDocument?.sourceSave?.enabled)) &&
     !isPlanDiffActive &&
     annotateSource !== 'message' &&
@@ -2654,9 +2632,8 @@ const AppInner: React.FC = () => {
   // so there is no input method or annotation mode left to switch.
   const toolstripVisible = useMemo(
     () =>
-      !goalSetupMode && !isPlanDiffActive && !isEditingMarkdown && !isHtmlSurface,
+      !isPlanDiffActive && !isEditingMarkdown && !isHtmlSurface,
     [
-      goalSetupMode,
       isHtmlSurface,
       isEditingMarkdown,
       isPlanDiffActive,
@@ -2695,7 +2672,7 @@ const AppInner: React.FC = () => {
         if (!res.ok) throw new Error('Not in API mode');
         return res.json();
       })
-      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last' | 'annotate-folder' | 'annotate-app' | 'goal-setup'; goalSetup?: GoalSetupBundle; filePath?: string; appUrl?: string; targetUrl?: string; liveToken?: string; sourceInfo?: string; sourceConverted?: boolean; sourceSave?: SourceSaveCapability; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; renderAs?: 'html' | 'markdown'; rawHtml?: string; shareHtml?: string; diffHtml?: string; convertHtml?: boolean; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; projectRoot?: string; markdownExtensions?: string[]; serverConfig?: { displayName?: string; gitUser?: string }; recentMessages?: PickerMessage[]; agentTerminal?: AgentTerminalCapability; feedbackTemplates?: AnnotateFeedbackTemplates }) => {
+      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last' | 'annotate-folder' | 'annotate-app'; filePath?: string; appUrl?: string; targetUrl?: string; liveToken?: string; sourceInfo?: string; sourceConverted?: boolean; sourceSave?: SourceSaveCapability; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; renderAs?: 'html' | 'markdown'; rawHtml?: string; shareHtml?: string; diffHtml?: string; convertHtml?: boolean; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; projectRoot?: string; markdownExtensions?: string[]; serverConfig?: { displayName?: string; gitUser?: string }; recentMessages?: PickerMessage[]; agentTerminal?: AgentTerminalCapability; feedbackTemplates?: AnnotateFeedbackTemplates }) => {
         // Initialize config store with server-provided values (config file > cookie > default)
         configStore.init(data.serverConfig);
         // Extra extensions the user registered as markdown (#1307) — the
@@ -2705,10 +2682,7 @@ const AppInner: React.FC = () => {
         // Session-level force-markdown preference (--markdown); threaded into folder/linked
         // /api/doc requests so on-demand HTML files convert too.
         setConvertHtml(data.convertHtml ?? false);
-        if (data.mode === 'goal-setup' && data.goalSetup) {
-          setGoalSetupBundle(data.goalSetup);
-          setMarkdown('');
-        } else if (data.mode === 'annotate-app' && data.appUrl && data.liveToken) {
+        if (data.mode === 'annotate-app' && data.appUrl && data.liveToken) {
           // Live app annotation: full-viewport live surface on the loopback
           // proxy origin. No rawHtml and no version fields.
           setRenderAs('html');
@@ -2826,10 +2800,7 @@ const AppInner: React.FC = () => {
     flushDraft();
     setSubmitted('exited');
   }, [flushDraft]);
-  // Goal-setup sessions are served by packages/server/goal-setup.ts, which
-  // this spec does not touch (spec 12 removes goal-setup entirely) and
-  // which advertises no /api/session/stream route.
-  useSessionEndedStream(submitted == null && !goalSetupMode, handleSessionEnded);
+  useSessionEndedStream(submitted == null, handleSessionEnded);
 
   // Document-level image paste was removed: global attachments are no longer
   // a writable surface (spec 05 §4.1). A composer that is open claims its own
@@ -3151,23 +3122,6 @@ const AppInner: React.FC = () => {
     }
   }, [withDraftGeneration]);
 
-  const handleGoalSetupSubmit = useCallback(() => {
-    goalSetupSurfaceRef.current?.submit();
-  }, []);
-
-  const handleGoalSetupExit = useCallback(async () => {
-    setIsExiting(true);
-    try {
-      const res = await fetch('/api/exit', { method: 'POST' });
-      if (res.ok) {
-        setSubmitted('exited');
-      } else {
-        throw new Error('Failed to exit');
-      }
-    } catch {
-      setIsExiting(false);
-    }
-  }, []);
 
   const confirmUnsavedSourceFileEdits = useCallback((
     action: SourceFileEditWarningAction,
@@ -3218,7 +3172,7 @@ const AppInner: React.FC = () => {
           showExitWarning) return;
 
       // Don't intercept if already submitted, submitting, or exiting
-      if (submitted || isSubmitting || isExiting || goalSetupAction.isSubmitting) return;
+      if (submitted || isSubmitting || isExiting) return;
 
       // Don't intercept in demo/share mode (no API)
       if (!isApiMode) return;
@@ -3231,15 +3185,7 @@ const AppInner: React.FC = () => {
       // references and should not submit the root plan.
       if (linkedDocHook.isActive && annotateSource !== 'folder') return;
 
-      if (goalSetupMode) {
-        if (document.querySelector('[data-comment-popover="true"]')) return;
-        if (isTextField && !target?.closest('.goal-shell')) return;
-        e.preventDefault();
-        if (goalSetupAction.canSubmit) goalSetupSurfaceRef.current?.submit();
-        return;
-      }
-
-      // Don't intercept if typing in an input/textarea outside goal setup.
+      // Don't intercept if typing in an input/textarea.
       if (isTextField) return;
 
       e.preventDefault();
@@ -3270,8 +3216,8 @@ const AppInner: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning,
-    submitted, isSubmitting, isExiting, goalSetupAction.isSubmitting, isApiMode, isEditingMarkdown, linkedDocHook.isActive, annotations.length, codeAnnotations.length, externalAnnotations.length, annotateMode,
-    hasFeedbackToSend, goalSetupMode, goalSetupAction.canSubmit, isAgentTerminalReady,
+    submitted, isSubmitting, isExiting, isApiMode, isEditingMarkdown, linkedDocHook.isActive, annotations.length, codeAnnotations.length, externalAnnotations.length, annotateMode,
+    hasFeedbackToSend, isAgentTerminalReady,
     annotateSource, origin,
     maybeConfirmUnsavedSourceFileEdits,
   ]);
@@ -4181,10 +4127,6 @@ const AppInner: React.FC = () => {
           onRefreshHtml={htmlRefresh.refresh}
           isApiMode={isApiMode}
           annotateMode={annotateMode}
-          goalSetupMode={goalSetupMode}
-          goalSetupCanSubmit={goalSetupAction.canSubmit}
-          goalSetupIsSubmitting={goalSetupAction.isSubmitting}
-          goalSetupSubmitLabel={goalSetupAction.submitLabel}
           origin={origin}
           isSubmitting={isSubmitting}
           isExiting={isExiting}
@@ -4194,13 +4136,11 @@ const AppInner: React.FC = () => {
           agentName={agentName}
           showAnnotationsWarning={hasFeedbackToSend}
           annotateDecision={annotateMode ? annotateDecision : undefined}
-          onGoalSetupExit={handleGoalSetupExit}
-          onGoalSetupSubmit={handleGoalSetupSubmit}
           onFeedback={handleHeaderFeedback}
           onApprove={handleHeaderApprove}
           onAnnotationPanelToggle={handleAnnotationPanelToggle}
           onCopyAgentInstructions={handleHeaderCopyAgentInstructions}
-          agentInstructionsEnabled={isApiMode && !annotateMode && !goalSetupMode}
+          agentInstructionsEnabled={isApiMode && !annotateMode}
         />
 
         {/* The provider is render-transparent (context only, no DOM), so it can
@@ -4274,7 +4214,7 @@ const AppInner: React.FC = () => {
         <div className={`flex-1 flex overflow-hidden relative z-0 ${isResizing ? 'select-none' : ''}`}>
           {showAgentTerminalOnLeft && agentTerminalPanel}
           {/* Left Sidebar: collapsed tab flags (when sidebar is closed) */}
-          {wideModeType === null && !sidebar.isOpen && !goalSetupMode && !isLeftAgentTerminalVisible && !(isHtmlSurface && htmlToolsHidden) && (
+          {wideModeType === null && !sidebar.isOpen && !isLeftAgentTerminalVisible && !(isHtmlSurface && htmlToolsHidden) && (
             <SidebarTabs
               activeTab={sidebar.activeTab}
               onToggleTab={toggleSidebarTab}
@@ -4293,7 +4233,7 @@ const AppInner: React.FC = () => {
           )}
 
           {/* Left Sidebar: open state (TOC or Version Browser) */}
-          {sidebar.isOpen && !goalSetupMode && (
+          {sidebar.isOpen && (
             <div className="contents group/sidebar">
               {renderPlanSidebar()}
               <ResizeHandle {...tocResize.handleProps} className="hidden lg:block z-[55]" side="left" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={sidebar.close} />
@@ -4303,7 +4243,7 @@ const AppInner: React.FC = () => {
           {/* Document Area */}
           <OverlayScrollArea
             element="main"
-            className={`flex-1 min-w-0 ${isHtmlSurface ? 'bg-background' : `bg-card ${!goalSetupMode && !sidebar.isOpen && !isLeftAgentTerminalVisible && wideModeType === null ? 'lg:pl-[30px]' : ''}`}`}
+            className={`flex-1 min-w-0 ${isHtmlSurface ? 'bg-background' : `bg-card ${!sidebar.isOpen && !isLeftAgentTerminalVisible && wideModeType === null ? 'lg:pl-[30px]' : ''}`}`}
             overflowX="hidden"
             overflowY="auto"
             onViewportReady={handleDocumentViewportReady}
@@ -4316,7 +4256,7 @@ const AppInner: React.FC = () => {
                   sticky actions are disabled. remountToken re-anchors the
                   ResizeObserver when Viewer swaps content (linked docs or
                   message switches). */}
-              {!goalSetupMode && !isPlanDiffActive && !isHtmlSurface && !isEditingMarkdown && uiPrefs.stickyActionsEnabled && (
+              {!isPlanDiffActive && !isHtmlSurface && !isEditingMarkdown && uiPrefs.stickyActionsEnabled && (
                 <StickyHeaderLane
                   inputMethod={inputMethod}
                   onInputMethodChange={handleInputMethodChange}
@@ -4354,19 +4294,7 @@ const AppInner: React.FC = () => {
               )}
 
               {/* Plan Diff View — rendered when diff data exists, hidden when inactive */}
-              {goalSetupBundle && (
-                <div className="w-full flex justify-center">
-                  <GoalSetupSurface
-                    ref={goalSetupSurfaceRef}
-                    bundle={goalSetupBundle}
-                    maxWidth={planMaxWidth}
-                    onActionStateChange={setGoalSetupAction}
-                    onSubmitted={() => setSubmitted('approved')}
-                  />
-                </div>
-              )}
-
-              {planDiff.diffBlocks && planDiff.diffStats && !goalSetupMode && (
+              {planDiff.diffBlocks && planDiff.diffStats && (
                 <div className="w-full flex justify-center" style={{ display: isPlanDiffActive ? undefined : 'none' }}>
                   <PlanDiffViewer
                     diffBlocks={planDiff.diffBlocks}
@@ -4387,11 +4315,11 @@ const AppInner: React.FC = () => {
                 </div>
               )}
               {/* Folder annotation empty state — shown before user picks a file */}
-              {annotateSource === 'folder' && !markdown && !linkedDocHook.isActive && !goalSetupMode && (
+              {annotateSource === 'folder' && !markdown && !linkedDocHook.isActive && (
                 <FolderAnnotationEmptyState />
               )}
               {/* Normal Plan View — always mounted, hidden during diff mode */}
-              <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : `flex justify-center${isEditingMarkdown ? ' flex-1 min-h-0' : ''}`}`} style={{ display: goalSetupMode || (isPlanDiffActive && planDiff.diffBlocks) || (annotateSource === 'folder' && !markdown && !linkedDocHook.isActive) ? 'none' : undefined }}>
+              <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : `flex justify-center${isEditingMarkdown ? ' flex-1 min-h-0' : ''}`}`} style={{ display: (isPlanDiffActive && planDiff.diffBlocks) || (annotateSource === 'folder' && !markdown && !linkedDocHook.isActive) ? 'none' : undefined }}>
                 {(canUseWideMode || canEditMarkdown) && !isPlanDiffActive && !isHtmlSurface && (
                   <div
                     className="absolute -top-5 left-0 right-0 mx-auto w-full flex justify-end pointer-events-none"
@@ -4615,12 +4543,12 @@ const AppInner: React.FC = () => {
               ancestor (`contents` = no layout box). */}
           <div className="contents group/sidebar">
           {/* Resize Handle */}
-          {isRightPanelVisible && wideModeType === null && !goalSetupMode && <ResizeHandle {...panelResize.handleProps} className="hidden md:block z-[55]" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => setIsPanelOpen(false)} />}
+          {isRightPanelVisible && wideModeType === null && <ResizeHandle {...panelResize.handleProps} className="hidden md:block z-[55]" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => setIsPanelOpen(false)} />}
 
           {/* Annotation Panel */}
           {renderAnnotationPanel(
             'panel',
-            isRightPanelVisible && wideModeType === null && !goalSetupMode,
+            isRightPanelVisible && wideModeType === null,
           )}
           </div>
         </div>
@@ -4756,7 +4684,6 @@ const AppInner: React.FC = () => {
           submitted={submitted}
           title={
             submitted === 'exited' ? 'Session Closed'
-            : goalSetupMode ? 'Answers Submitted'
             : submitted === 'approved'
               ? (annotateMode ? 'Approved' : 'Plan Approved')
               : annotateMode ? 'Feedback Sent'
@@ -4765,15 +4692,13 @@ const AppInner: React.FC = () => {
           subtitle={
             submitted === 'exited'
               ? 'Annotation session closed without feedback.'
-              : goalSetupMode
-                  ? `${agentName} will use your answers to continue.`
-                : submitted === 'approved'
-                  ? (annotateMode
-                      ? `${agentName} will proceed.`
-                      : `${agentName} will proceed with the implementation.`)
-                  : annotateMode
-                    ? `${agentName} will address your feedback on the ${annotateSource === 'message' ? 'message' : annotateSource === 'folder' ? 'files' : 'file'}.`
-                    : `${agentName} will revise the plan based on your feedback.`
+              : submitted === 'approved'
+                ? (annotateMode
+                    ? `${agentName} will proceed.`
+                    : `${agentName} will proceed with the implementation.`)
+                : annotateMode
+                  ? `${agentName} will address your feedback on the ${annotateSource === 'message' ? 'message' : annotateSource === 'folder' ? 'files' : 'file'}.`
+                  : `${agentName} will revise the plan based on your feedback.`
           }
           agentLabel={agentName}
         />
