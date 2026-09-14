@@ -32,7 +32,6 @@
   "dependencies": {
     "@pierre/diffs": "1.4.1",
     "diff": "^8.0.4",
-    "dockview-react": "^5.2.0",
     "sonner": "^2.0.7"
   },
   "devDependencies": {
