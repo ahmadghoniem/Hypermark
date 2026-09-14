@@ -8,7 +8,7 @@ import {
 
 const snapshot: WideModeLayoutSnapshot = {
   sidebarIsOpen: true,
-  sidebarTab: 'files',
+  sidebarTab: 'toc',
   panelOpen: true,
 };
 
@@ -69,7 +69,7 @@ describe('resolveWideModeExitLayout', () => {
   test('restores the saved sidebar tab and panel by default', () => {
     expect(resolveWideModeExitLayout(snapshot)).toEqual({
       sidebarOpen: true,
-      sidebarTab: 'files',
+      sidebarTab: 'toc',
       panelOpen: true,
     });
   });

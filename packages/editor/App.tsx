@@ -4079,6 +4079,7 @@ const AppInner: React.FC = () => {
                     mode={effectiveEditorMode}
                   />
                 </div>
+              )}
               {/* Normal Plan View — always mounted, hidden during diff mode */}
               <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : `flex justify-center${isEditingMarkdown ? ' flex-1 min-h-0' : ''}`}`} style={{ display: isPlanDiffActive && planDiff.diffBlocks ? 'none' : undefined }}>
                 {(canUseWideMode || canEditMarkdown) && !isPlanDiffActive && !isHtmlSurface && (
