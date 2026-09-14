@@ -66,9 +66,7 @@ export type FeedbackSurface =
   | "review"
   | "annotate"
   | "annotate-url"
-  | "annotate-app"
-  | "annotate-last"
-  | "annotate-folder";
+  | "annotate-last";
 
 export type FeedbackDecision =
   | "approved"
@@ -302,9 +300,7 @@ const SURFACE_TITLES: Record<FeedbackSurface, string> = {
   review: "Code review feedback",
   annotate: "Annotate feedback",
   "annotate-url": "Annotate feedback (URL)",
-  "annotate-app": "Annotate feedback (live app)",
   "annotate-last": "Annotate feedback (agent message)",
-  "annotate-folder": "Annotate feedback (folder)",
 };
 
 /**

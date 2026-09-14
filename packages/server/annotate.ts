@@ -1,8 +1,8 @@
 /**
  * Annotate Server
  *
- * Provides a server for annotating arbitrary files, URLs, and folders.
- * Follows the same patterns as the review server but serves
+ * Provides a server for annotating a local file (or the last agent
+ * message). Follows the same patterns as the review server but serves
  * annotation-session content via /api/plan so the plan editor UI can
  * render it without separate app bundles.
  *
@@ -15,7 +15,7 @@ import { existsSync, unlinkSync } from "fs";
 import { getRepoInfo } from "./repo";
 import type { Origin } from "@hypermark/shared/agents";
 import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, handleReferenceSkills, handleReferenceSkillContent, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
-import { handleDoc, handleDocExists, handleFileBrowserFiles, resolveAllowedDocPath, type FolderAnnotateHistory } from "./reference-handlers";
+import { handleDoc, handleDocExists, resolveAllowedDocPath } from "./reference-handlers";
 import { closeAllFileBrowserWatchers, handleFileBrowserFilesStream } from "./reference-watch";
 import { getExtraMarkdownExtensions, MAX_ANNOTATABLE_FILE_BYTES, resolveUserPath, warmFileListCache } from "@hypermark/shared/resolve-file";
 import { contentHash, deleteDraft } from "./draft";
@@ -29,8 +29,6 @@ import {
 	createSourceSaveCapability,
 	createSourceSaveCapabilityFromText,
 	readSourceFileSnapshot,
-	resolveFolderSourceFile,
-	resolveFolderSourceFileForSave,
 	saveSourceFileAtomic,
 } from "@hypermark/shared/source-save-node";
 import { createExternalAnnotationHandler } from "./external-annotations";
@@ -53,14 +51,6 @@ import { dirname, resolve as resolvePath } from "path";
 import { isWithinDirectory } from "@hypermark/shared/html-assets-node";
 import { createHtmlAssetRegistry } from "./html-assets";
 import { createBunAgentTerminalBridge } from "./agent-terminal";
-import { startLiveAppProxy, type LiveAppProxy } from "./live-proxy";
-import {
-  buildLiveAppUrl,
-  buildLiveEditorOrigins,
-  composeLiveBridgeJs,
-  liveAppDraftIdentity,
-} from "@hypermark/shared/live-proxy-core";
-import { randomBytes } from "node:crypto";
 import { isAgentTerminalWsRoute, supportsAnnotateAgentTerminalMode } from "@hypermark/shared/agent-terminal";
 
 // Re-export utilities
@@ -78,24 +68,8 @@ export interface AnnotateServerOptions {
   htmlContent: string;
   /** Origin identifier for UI customization */
   origin?: Origin;
-  /** UI mode: "annotate" for files, "annotate-last" for last agent message,
-   *  "annotate-folder" for folders, "annotate-app" for live local apps */
-  mode?: "annotate" | "annotate-last" | "annotate-folder" | "annotate-app";
-  /**
-   * Live local app annotation (mode "annotate-app"): the server starts a
-   * loopback reverse proxy mirroring targetUrl and serves the composed
-   * bridge body from it. The caller supplies the bridge sources (this
-   * package deliberately does not import @hypermark/ui); the server owns
-   * the per-session token. Refused outright in remote mode.
-   */
-  liveApp?: {
-    targetUrl: string;
-    bridgeScript: string;
-    bridgeBootstrap: string;
-    annotationCss: string;
-  };
-  /** Folder path when annotating a directory (used as projectRoot for file browser) */
-  folderPath?: string;
+  /** UI mode: "annotate" for files, "annotate-last" for last agent message */
+  mode?: "annotate" | "annotate-last";
   /**
    * Recent assistant messages for `annotate-last` mode (newest-first). When
    * provided with more than one entry, the editor renders a picker so users
@@ -202,11 +176,6 @@ export function runGuardedShutdown(
   }
 }
 
-// Stable identity for a live app session's annotation draft — moved to the
-// shared live-proxy core so the Pi mirror keys drafts identically; re-exported
-// here for existing import sites.
-export { liveAppDraftIdentity } from "@hypermark/shared/live-proxy-core";
-
 /**
  * Start the Annotate server
  *
@@ -224,7 +193,6 @@ export async function startAnnotateServer(
     htmlContent,
     origin,
     mode = "annotate",
-    folderPath,
     recentMessages,
     sourceInfo,
     sourceConverted,
@@ -237,7 +205,6 @@ export async function startAnnotateServer(
     convertHtml = false,
     agentCwd,
     project,
-    liveApp,
     onReady,
   } = options;
 
@@ -253,12 +220,7 @@ export async function startAnnotateServer(
   const annotateHistoryEnabled = resolveAnnotateHistory(loadConfig());
   // Single local file sessions are the only ones this eager gate covers.
   // URL, agent-message, and live-app sessions never write session content to
-  // the data dir. Folder sessions do participate in per-file version history,
-  // but lazily through /api/doc (see computeFolderAnnotateHistory below), not
-  // here. The durable submit records stay single-local-file only. The
-  // mode === "annotate" check is deliberate and explicit: "annotate-app"
-  // (whose filePath is URL-shaped anyway) must never become history-eligible
-  // by accident.
+  // the data dir. The durable submit records stay single-local-file only.
   const singleFileLocalAnnotate = mode === "annotate" && !/^https?:\/\//i.test(filePath);
   let annotateHistory: AnnotateHistoryResult | null = null;
   {
@@ -276,41 +238,10 @@ export async function startAnnotateServer(
     }
   }
 
-  // Folder annotate: the same per-file version history, but run lazily the
-  // first time a folder file is opened via /api/doc (not eagerly for every
-  // file in the folder) and memoized per resolved absolute path for the life
-  // of this server — reopening the same file in this session never re-snapshots.
-  // The memo drops `diffCurrent` (it always equals the request's own content
-  // and the client never reads it off /api/doc) — only slug/previousPlan/
-  // versionInfo are retained.
-  const folderAnnotateHistoryCache = new Map<string, FolderAnnotateHistory | null>();
-  function computeFolderAnnotateHistory(resolvedFilePath: string, content: string): FolderAnnotateHistory | null {
-    const cached = folderAnnotateHistoryCache.get(resolvedFilePath);
-    if (cached !== undefined) return cached;
-    const full = computeAnnotateHistory(annotateProjectName, resolvedFilePath, content);
-    const result: FolderAnnotateHistory | null = full
-      ? { slug: full.slug, previousPlan: full.previousPlan, versionInfo: full.versionInfo }
-      : null;
-    folderAnnotateHistoryCache.set(resolvedFilePath, result);
-    return result;
-  }
-  // Draft identity. Content-derived for the modes that HAVE content, and
-  // path-derived for the modes that do not.
-  //
-  // A live app session has no document body at all: annotate-app resolves
-  // `markdown` to "" by construction, because the page lives behind the
-  // proxy rather than in a string the server holds. Hashing that empty body
-  // gave EVERY live session on the machine the one hash of "", so two
-  // sessions against different dev servers shared a single draft slot and
-  // deterministically overwrote each other's in-progress annotations. The
-  // session's target is its identity here, exactly as the folder path is the
-  // folder session's identity.
-  const draftSource =
-    mode === "annotate-app" && liveApp
-      ? `annotate-app\0${liveAppDraftIdentity(liveApp.targetUrl)}`
-      : mode === "annotate-folder" && folderPath
-        ? `folder:${resolvePath(folderPath)}`
-        : renderHtml && rawHtml ? rawHtml : markdown;
+  // Draft identity. Content-derived: the target has a document body in
+  // every remaining mode (single local file, its rendered HTML, or a last
+  // agent message).
+  const draftSource = renderHtml && rawHtml ? rawHtml : markdown;
   const draftKey = contentHash(draftSource);
 
   // Durable submit records (#678): the caller consuming waitForDecision() may
@@ -341,26 +272,21 @@ export async function startAnnotateServer(
   // --- Durable feedback archive --------------------------------------------
   //
   // Unlike the legacy #678 record above, the archive covers EVERY annotate
-  // session type (single file, folder, URL, live app, agent message): it
-  // stores what the reviewer submitted, not a copy of the annotated document.
-  // That is a deliberate, release-noted behavior change — with defaults, URL /
-  // annotate-last / live-app / folder submissions now leave a durable record
-  // for the first time.
+  // session type (single file, agent message): it stores what the reviewer
+  // submitted, not a copy of the annotated document. That is a deliberate,
+  // release-noted behavior change — with defaults, annotate-last submissions
+  // now leave a durable record for the first time.
   //
   // Both gates apply. HYPERMARK_ANNOTATE_HISTORY=0 still means "no annotate
   // content in the data dir at all", and submitted feedback quotes that
   // content, so it suppresses archive records for every annotate surface and
   // the documented fully-stateless annotate session stays verbatim true.
   const annotateFeedbackSurface: FeedbackSurface =
-    mode === "annotate-app"
-      ? "annotate-app"
-      : mode === "annotate-last"
-        ? "annotate-last"
-        : mode === "annotate-folder"
-          ? "annotate-folder"
-          : singleFileLocalAnnotate
-            ? "annotate"
-            : "annotate-url";
+    mode === "annotate-last"
+      ? "annotate-last"
+      : singleFileLocalAnnotate
+        ? "annotate"
+        : "annotate-url";
 
   const archiveAnnotateDecision = (
     feedbackText: string,
@@ -377,13 +303,11 @@ export async function startAnnotateServer(
         surface: annotateFeedbackSurface,
         decision,
         target:
-          mode === "annotate-app" && liveApp
-            ? { url: liveApp.targetUrl }
-            : isUrlTarget
-              ? { url: filePath }
-              : mode === "annotate-last"
-                ? { filePath }
-                : { filePath: resolvePath(filePath) },
+          isUrlTarget
+            ? { url: filePath }
+            : mode === "annotate-last"
+              ? { filePath }
+              : { filePath: resolvePath(filePath) },
         feedback: feedbackText,
         annotations: annotationList,
       }) !== null
@@ -517,7 +441,6 @@ export async function startAnnotateServer(
 
   function isAllowedHtmlSharePath(targetPath: string): boolean {
     const roots = new Set<string>([process.cwd()]);
-    if (folderPath) roots.add(folderPath);
     if (!/^https?:\/\//i.test(filePath)) roots.add(dirname(filePath));
     for (const root of roots) {
       if (isWithinDirectory(targetPath, root)) return true;
@@ -539,9 +462,6 @@ export async function startAnnotateServer(
   const getPrimarySource = () => {
     if (mode === "annotate-last") {
       return { plan: markdown, sourceSave: disabledSourceSave("message-mode") };
-    }
-    if (mode === "annotate-folder") {
-      return { plan: markdown, sourceSave: disabledSourceSave("folder-mode") };
     }
     if (renderHtml && rawHtml) {
       return { plan: markdown, sourceSave: disabledSourceSave("html-render") };
@@ -584,7 +504,6 @@ export async function startAnnotateServer(
   const getReferenceRootPaths = () => getAnnotateReferenceRootPaths({
     mode,
     filePath,
-    folderPath,
     initialSingleFileSourcePath,
   });
 
@@ -639,12 +558,6 @@ export async function startAnnotateServer(
   // the parent watcher below detects the *Claude Code process* is gone.
   const sessionStream = createSessionStreamBroadcaster();
 
-  // Live app session state, populated after the annotate port is known (the
-  // editor origins carry the port) and before onReady advertises the URL.
-  let liveProxy: LiveAppProxy | null = null;
-  let liveSessionToken = "";
-  let liveAppUrl = "";
-
   const server = await startBunServerOnAvailablePort((port) =>
     Bun.serve({
         hostname: getServerHostname(),
@@ -667,34 +580,6 @@ export async function startAnnotateServer(
           }
 
           // API: Get plan content (reuse /api/plan so the plan editor UI works)
-          if (url.pathname === "/api/plan" && req.method === "GET" && mode === "annotate-app" && liveApp) {
-            // Live app session: no rawHtml, no renderAs, no version fields.
-            // The client frames appUrl (the loopback proxy) and
-            // authenticates the bridge with liveToken.
-            return Response.json({
-              plan: "",
-              origin,
-              mode,
-              filePath,
-              sourceInfo: sourceInfo ?? liveApp.targetUrl,
-              appUrl: liveAppUrl,
-              targetUrl: liveApp.targetUrl,
-              liveToken: liveSessionToken,
-              gate,
-              approvalNotesSupported,
-              clientLease: { enabled: true as const, reconnectGraceMs: clientLeaseGraceMs },
-              convertHtml: false,
-              repoInfo,
-              projectRoot: process.cwd(),
-              serverConfig: getServerConfig(gitUser),
-              agentTerminal: agentTerminal.capability,
-              feedbackTemplates: {
-                fileFeedback: getAnnotateFileFeedbackTemplate(origin),
-                messageFeedback: getAnnotateMessageFeedbackTemplate(origin),
-              },
-            });
-          }
-
           if (url.pathname === "/api/plan" && req.method === "GET") {
             // Local rendered-HTML roots serve their current bytes (see
             // readRootHtml); every other session serves what it started with.
@@ -743,7 +628,7 @@ export async function startAnnotateServer(
                   }
                 : {}),
               repoInfo,
-              projectRoot: folderPath || process.cwd(),
+              projectRoot: process.cwd(),
               // Extra extensions the user registered as markdown (#1307).
               // The renderer needs them to linkify relative/wiki links to
               // sibling docs the same way it linkifies .md ones.
@@ -870,7 +755,7 @@ export async function startAnnotateServer(
             const docUrl = new URL(req.url);
             let changed = false;
             if (!docUrl.searchParams.has("base") && !/^https?:\/\//i.test(filePath)) {
-              docUrl.searchParams.set("base", mode === "annotate-folder" && folderPath ? folderPath : dirname(filePath));
+              docUrl.searchParams.set("base", dirname(filePath));
               changed = true;
             }
             if (convertHtml && !docUrl.searchParams.has("convert")) {
@@ -883,13 +768,8 @@ export async function startAnnotateServer(
               sourceSaveFilePath: singleFileSourceSaveEligible
                 ? initialSingleFileSourcePath ?? filePath
                 : undefined,
-              sourceSaveFolderPath: mode === "annotate-folder" ? folderPath : undefined,
               onSourceDocumentServed: (path) => openedSourceFilePaths.add(path),
               rootPaths: getReferenceRootPaths(),
-              annotateHistory:
-                mode === "annotate-folder" && annotateHistoryEnabled
-                  ? { compute: computeFolderAnnotateHistory }
-                  : undefined,
               rootHtmlVersionDiff,
             });
           }
@@ -916,18 +796,6 @@ export async function startAnnotateServer(
             if (singleFileSourceSaveEligible) {
               const capability = createSourceSaveCapability("single-file", initialSingleFileSourcePath ?? filePath);
               targetPath = capability.enabled ? capability.path : initialSingleFileSourcePath;
-            } else if (mode === "annotate-folder" && folderPath && typeof body.path === "string") {
-              targetPath = body.allowMissingBase
-                ? resolveFolderSourceFileForSave(body.path, folderPath)
-                : resolveFolderSourceFile(body.path, folderPath);
-              if (
-                body.allowMissingBase &&
-                targetPath &&
-                !existsSync(targetPath) &&
-                !openedSourceFilePaths.has(targetPath)
-              ) {
-                targetPath = null;
-              }
             }
 
             if (!targetPath) {
@@ -940,7 +808,6 @@ export async function startAnnotateServer(
             const result = saveSourceFileAtomic(targetPath, body.text, body.baseHash, {
               allowMissingBase: body.allowMissingBase === true,
               missingBaseEol: body.baseEol,
-              allowedRoot: mode === "annotate-folder" ? folderPath : undefined,
             });
             const status = result.ok
               ? 200
@@ -967,11 +834,6 @@ export async function startAnnotateServer(
           // API: SKILL.md contents for a referenced human-only skill
           if (url.pathname === "/api/skills/content" && req.method === "GET") {
             return handleReferenceSkillContent(req);
-          }
-
-          // API: List markdown files in a directory as a tree
-          if (url.pathname === "/api/reference/files" && req.method === "GET") {
-            return handleFileBrowserFiles(req);
           }
 
           // API: Watch file browser roots and refresh the tree/status snapshot on changes
@@ -1174,30 +1036,6 @@ export async function startAnnotateServer(
   const port = server.port!;
   const serverUrl = buildAdvertisedUrl(port);
 
-  if (liveApp) {
-    // Compose the proxy-served bridge body via the shared assembly (config
-    // prelude with the token this server owns, both editor origin forms
-    // with the localhost one first to match the advertised URL, then the
-    // bootstrap that installs the CSS, then the bridge itself).
-    liveSessionToken = randomBytes(16).toString("hex");
-    const editorOrigins = buildLiveEditorOrigins(port);
-    liveProxy = startLiveAppProxy({
-      targetUrl: liveApp.targetUrl,
-      editorOrigins,
-      bridgeJs: composeLiveBridgeJs({
-        token: liveSessionToken,
-        editorOrigins,
-        annotationCss: liveApp.annotationCss,
-        bridgeBootstrap: liveApp.bridgeBootstrap,
-        bridgeScript: liveApp.bridgeScript,
-      }),
-    });
-    // Advertise the proxy under the LOCALHOST spelling, carrying the target
-    // URL's own path and query (see buildLiveAppUrl in live-proxy-core for
-    // the same-site/cookie rationale).
-    liveAppUrl = buildLiveAppUrl(liveProxy.port, liveApp.targetUrl);
-  }
-
   // The cache warm must never gate the listening socket. Its async filesystem
   // walk yields between directories while requests remain serviceable.
   void warmFileListCache(process.cwd(), "code");
@@ -1207,10 +1045,9 @@ export async function startAnnotateServer(
   const stop = () => {
     // Every disposal step is guarded individually (runGuardedShutdown):
     // agent-terminal teardown is historically fragile (#1314), and in a flat
-    // sequence one throwing step would skip everything after it — notably
-    // liveProxy.stop(), orphaning the live proxy's listener and its upstream
-    // WebSockets. A failed step is reported and the rest still run; the
-    // listener itself closes regardless.
+    // sequence one throwing step would skip everything after it. A failed
+    // step is reported and the rest still run; the listener itself closes
+    // regardless.
     runGuardedShutdown(
       [
         ["file browser watchers", () => closeAllFileBrowserWatchers()],
@@ -1221,7 +1058,6 @@ export async function startAnnotateServer(
         ["session stream", () => sessionStream.closeSessions()],
         ["parent watch", () => parentWatch?.stop()],
         ["agent terminal", () => agentTerminal.dispose()],
-        ["live proxy", () => liveProxy?.stop()],
         ["session uploads", () => {
           for (const uploadPath of sessionUploads) {
             try {

@@ -1,11 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, realpathSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
-import { handleDoc, handleDocExists, handleFileBrowserFiles } from "./reference-handlers";
-import type { VaultNode } from "@hypermark/shared/reference-common";
-import type { WorkspaceStatusPayload } from "@hypermark/shared/workspace-status";
+import { handleDoc, handleDocExists } from "./reference-handlers";
 
 const tempDirs: string[] = [];
 
@@ -20,22 +17,6 @@ function writeTempFile(root: string, relativePath: string, content = "x"): strin
 	mkdirSync(join(full, ".."), { recursive: true });
 	writeFileSync(full, content);
 	return full;
-}
-
-function git(cwd: string, ...args: string[]): void {
-	const result = spawnSync("git", args, { cwd, encoding: "utf8" });
-	if (result.status !== 0) {
-		throw new Error(`git ${args.join(" ")} failed: ${result.stderr}`);
-	}
-}
-
-function flattenTree(nodes: VaultNode[]): string[] {
-	const paths: string[] = [];
-	for (const node of nodes) {
-		if (node.type === "file") paths.push(node.path);
-		else paths.push(...flattenTree(node.children ?? []));
-	}
-	return paths;
 }
 
 async function postDocExists(body: unknown, options: { rootPath?: string; rootPaths?: string[] }) {
@@ -168,117 +149,7 @@ describe("handleDocExists", () => {
 	});
 });
 
-describe("handleFileBrowserFiles", () => {
-	test("returns git workspace status and keeps deleted tracked files in the tree", async () => {
-		const root = makeTempDir("hypermark-files-root-");
-		git(root, "init", "-b", "main");
-		git(root, "config", "user.email", "test@test");
-		git(root, "config", "user.name", "Test");
-		writeTempFile(root, "docs/plan.md", "one\ntwo\n");
-		writeTempFile(root, "docs/gone.md", "remove me\n");
-		git(root, "add", "-A");
-		git(root, "commit", "-m", "init");
-
-		writeTempFile(root, "docs/plan.md", "one\nTWO\nthree\n");
-		unlinkSync(join(root, "docs/gone.md"));
-		writeTempFile(root, "docs/new.md", "new\n");
-
-		const url = new URL("http://localhost/api/reference/files");
-		url.searchParams.set("dirPath", join(root, "docs"));
-		const res = await handleFileBrowserFiles(new Request(url.toString()));
-		const data = await res.json() as { tree: VaultNode[]; workspaceStatus: WorkspaceStatusPayload };
-		const realDocs = realpathSync(join(root, "docs"));
-
-		expect(res.status).toBe(200);
-		expect(flattenTree(data.tree).sort()).toEqual(["gone.md", "new.md", "plan.md"]);
-		expect(data.workspaceStatus.totals.files).toBe(3);
-		expect(data.workspaceStatus.files[join(realDocs, "gone.md")]?.status).toBe("deleted");
-		expect(data.workspaceStatus.files[join(realDocs, "new.md")]?.status).toBe("untracked");
-		expect(data.workspaceStatus.files[join(realDocs, "plan.md")]?.additions).toBe(2);
-	});
-
-	test("does not reintroduce git changes from excluded folders", async () => {
-		const root = makeTempDir("hypermark-files-excluded-");
-		git(root, "init", "-b", "main");
-		git(root, "config", "user.email", "test@test");
-		git(root, "config", "user.name", "Test");
-		writeTempFile(root, "docs/visible.md", "visible\n");
-		writeTempFile(root, "dist/generated.md", "before\n");
-		git(root, "add", "-A");
-		git(root, "commit", "-m", "init");
-
-		writeTempFile(root, "dist/generated.md", "after\n");
-		writeTempFile(root, "packages/app/node_modules/pkg/readme.md", "hidden\n");
-
-		const url = new URL("http://localhost/api/reference/files");
-		url.searchParams.set("dirPath", root);
-		const res = await handleFileBrowserFiles(new Request(url.toString()));
-		const data = await res.json() as { tree: VaultNode[]; workspaceStatus: WorkspaceStatusPayload };
-
-		expect(res.status).toBe(200);
-		expect(flattenTree(data.tree).sort()).toEqual(["docs/visible.md"]);
-		expect(data.workspaceStatus.totals.files).toBe(0);
-		expect(data.workspaceStatus.files).toEqual({});
-	});
-
-	test("caps large folder walks", async () => {
-		const root = makeTempDir("hypermark-files-cap-");
-		writeTempFile(root, "docs/a.md", "a\n");
-		writeTempFile(root, "docs/b.md", "b\n");
-		writeTempFile(root, "docs/c.md", "c\n");
-		const previousLimit = process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
-		process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = "2";
-
-		try {
-			const url = new URL("http://localhost/api/reference/files");
-			url.searchParams.set("dirPath", root);
-			const res = await handleFileBrowserFiles(new Request(url.toString()));
-			const data = await res.json() as {
-				tree: VaultNode[];
-				truncated: boolean;
-				fileLimit: number;
-			};
-
-			expect(res.status).toBe(200);
-			expect(flattenTree(data.tree)).toHaveLength(2);
-			expect(data.truncated).toBe(true);
-			expect(data.fileLimit).toBe(2);
-		} finally {
-			if (previousLimit === undefined) {
-				delete process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
-			} else {
-				process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = previousLimit;
-			}
-		}
-	});
-});
-
 describe("annotatable plain-text files (#1029)", () => {
-	test("file browser lists config formats but not source code or .env", async () => {
-		const root = makeTempDir("hypermark-files-annotatable-");
-		writeTempFile(root, "docs/plan.md", "# plan\n");
-		writeTempFile(root, "config.yaml", "key: value\n");
-		writeTempFile(root, "settings.toml", "[table]\n");
-		writeTempFile(root, "data.csv", "a,b\n1,2\n");
-		writeTempFile(root, ".env.example", "API_KEY=\n");
-		writeTempFile(root, ".env", "API_KEY=secret\n");
-		writeTempFile(root, "app.ts", "export {};\n");
-
-		const url = new URL("http://localhost/api/reference/files");
-		url.searchParams.set("dirPath", root);
-		const res = await handleFileBrowserFiles(new Request(url.toString()));
-		const data = await res.json() as { tree: VaultNode[] };
-
-		expect(res.status).toBe(200);
-		expect(flattenTree(data.tree).sort()).toEqual([
-			".env.example",
-			"config.yaml",
-			"data.csv",
-			"docs/plan.md",
-			"settings.toml",
-		]);
-	});
-
 	test("doc=1 serves a .yaml file as an annotatable markdown document", async () => {
 		const root = makeTempDir("hypermark-doc-yaml-");
 		const file = writeTempFile(root, "config.yaml", "key: value\n");
