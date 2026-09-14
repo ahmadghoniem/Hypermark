@@ -72,7 +72,7 @@ import {
   type SourceSaveResponse,
 } from '@hypermark/shared/source-save';
 import type { AgentTerminalCapability } from '@hypermark/shared/agent-terminal';
-import { observeActionsLabelMode } from './actionsLabelMode';
+import { observeActionsLabelMode } from './utils/actionsLabelMode';
 // Demo content toggle. Default: the original Real-time Collaboration plan.
 // Opt-in diff-engine stress test: `VITE_DIFF_DEMO=1 bun run dev:hook` swaps
 // in the 20-case Auth Service Refactor test plan. dev-mock-api.ts reads the
@@ -127,14 +127,14 @@ import {
 import {
   AGENT_TERMINAL_LG_BREAKPOINT,
   getAgentTerminalLayout,
-} from './agentTerminalLayout';
+} from './utils/agentTerminalLayout';
 import {
   buildAgentTerminalDeliveryRecord,
   isMatchingAgentTerminalDelivery,
   shouldSendAgentTerminalFeedback,
   type AgentTerminalDeliveryRecord,
   type AnnotateFeedbackTarget,
-} from './agentTerminalIntegration';
+} from './utils/agentTerminalIntegration';
 import {
   buildPlanEditPanelItem,
   buildDirectEditsSection,
@@ -142,11 +142,11 @@ import {
   buildSavedFileChangesSection,
   computeEditStats,
   normalizeEditedMarkdown,
-} from './directEdits';
+} from './utils/directEdits';
 import {
   buildAnnotateApprovalBody,
   buildCompleteAnnotateFeedback,
-} from './annotateSubmission';
+} from './utils/annotateSubmission';
 import { buildDecisionSpec, type DecisionActionId } from '@hypermark/ui/utils/decisionSpec';
 import { DecisionNoteDialog, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import { resolveAnnotateDecisionAction } from './annotateDecision';
@@ -160,14 +160,14 @@ import {
   useEditableDocuments,
   type EnabledSourceSaveCapability,
   type SavedFileChangeDraftData,
-} from './editableDocuments';
+} from './utils/editableDocuments';
 import {
   validateSavedFileChanges,
-} from './savedFileChangeValidation';
-import { fetchSourceDocumentSnapshot, probeSourceSave } from './sourceDocumentClient';
-import { reconcileSourceDocuments, type SourceDocumentReconcileEvent } from './sourceDocumentReconciliation';
-import { buildSourceWatchSubscription } from './sourceDocumentPaths';
-import { pickRestoredSingleFileDraftToDisplay } from './draftRestoreSelection';
+} from './utils/savedFileChangeValidation';
+import { fetchSourceDocumentSnapshot, probeSourceSave } from './utils/sourceDocumentClient';
+import { reconcileSourceDocuments, type SourceDocumentReconcileEvent } from './utils/sourceDocumentReconciliation';
+import { buildSourceWatchSubscription } from './utils/sourceDocumentPaths';
+import { pickRestoredSingleFileDraftToDisplay } from './utils/draftRestoreSelection';
 
 type MessageAnnotationState = {
   messageId: string;
