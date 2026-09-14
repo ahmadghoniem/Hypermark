@@ -40,6 +40,10 @@ export function useCodeAnnotationDraft({
   submitted,
   onDraftLoaded,
 }: UseCodeAnnotationDraftOptions): UseCodeAnnotationDraftResult {
+  // Read through a ref: callers pass an inline arrow, and a callback dependency
+  // would re-run the load effect on every render, restoring (and toasting) again.
+  const onDraftLoadedRef = useRef(onDraftLoaded);
+  onDraftLoadedRef.current = onDraftLoaded;
   const draftDataRef = useRef<DraftData | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasMountedRef = useRef(false);
@@ -85,7 +89,7 @@ export function useCodeAnnotationDraft({
 
         if (annotationCount > 0 || hasComposer) {
           draftDataRef.current = data;
-          onDraftLoaded?.(
+          onDraftLoadedRef.current?.(
             { annotations: data?.codeAnnotations ?? [] },
             {
               count: annotationCount,
@@ -98,7 +102,7 @@ export function useCodeAnnotationDraft({
       .catch(() => {
         hasMountedRef.current = true;
       });
-  }, [isApiMode, onDraftLoaded]);
+  }, [isApiMode]);
 
   const persistNow = useCallback((keepalive: boolean) => {
     if (!isApiMode || submitted) return;

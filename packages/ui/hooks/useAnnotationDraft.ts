@@ -315,6 +315,10 @@ export function useAnnotationDraft({
   submitted,
   onDraftLoaded,
 }: UseAnnotationDraftOptions): UseAnnotationDraftResult {
+  // Read through a ref: callers pass an inline arrow, and a callback dependency
+  // would re-run the load effect on every render, restoring (and toasting) again.
+  const onDraftLoadedRef = useRef(onDraftLoaded);
+  onDraftLoadedRef.current = onDraftLoaded;
   const draftDataRef = useRef<RestoredDraft | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasMountedRef = useRef(false);
@@ -428,7 +432,7 @@ export function useAnnotationDraft({
             savedFileChanges: restoredSavedFileChanges,
           };
           draftDataRef.current = restoredDraftData;
-          onDraftLoaded?.(restoredDraftData, {
+          onDraftLoadedRef.current?.(restoredDraftData, {
             count: totalCount,
             timeAgo: formatTimeAgo(data.ts || 0),
             hasEdits,
@@ -439,7 +443,7 @@ export function useAnnotationDraft({
       .catch(() => {
         hasMountedRef.current = true;
       });
-  }, [isApiMode, isSharedSession, onDraftLoaded]);
+  }, [isApiMode, isSharedSession]);
 
   const persistNow = useCallback((keepalive: boolean) => {
     // Re-check: the session may have been submitted while the debounce was
