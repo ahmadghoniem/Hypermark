@@ -8,7 +8,6 @@
 import React from "react";
 import type { SidebarTab } from "../../hooks/useSidebar";
 import { MessagesIcon } from "../icons/MessagesIcon";
-import { ReviewAgentsIcon } from "../ReviewAgentsIcon";
 
 interface SidebarTabsProps {
   activeTab: SidebarTab;
@@ -16,10 +15,6 @@ interface SidebarTabsProps {
   hasDiff: boolean;
   showVersionsTab?: boolean;
   showMessagesTab?: boolean;
-  showAgentTerminalTab?: boolean;
-  isAgentTerminalOpen?: boolean;
-  isAgentTerminalRunning?: boolean;
-  onToggleAgentTerminal?: () => void;
   hasMessageAnnotations?: boolean;
   className?: string;
 }
@@ -30,10 +25,6 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
   hasDiff,
   showVersionsTab,
   showMessagesTab,
-  showAgentTerminalTab,
-  isAgentTerminalOpen,
-  isAgentTerminalRunning,
-  onToggleAgentTerminal,
   hasMessageAnnotations,
   className,
 }) => {
@@ -42,23 +33,6 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
       data-sidebar-tabs="true"
       className={`flex flex-col gap-1 pt-3 pl-0.5 shrink-0 ${className ?? ""}`}
     >
-      {showAgentTerminalTab && onToggleAgentTerminal && (
-        <button
-          onClick={onToggleAgentTerminal}
-          className={`sidebar-tab-flag group relative flex items-center justify-center w-7 h-9 rounded-r-md border border-l-0 border-border/50 bg-card/80 backdrop-blur-sm transition-colors ${
-            isAgentTerminalOpen || isAgentTerminalRunning
-              ? "text-primary"
-              : "text-muted-foreground hover:text-foreground hover:bg-card"
-          }`}
-          title={isAgentTerminalRunning ? "Agent running" : "Agent"}
-          aria-pressed={isAgentTerminalOpen}
-        >
-          <ReviewAgentsIcon className="size-3.5" />
-          {isAgentTerminalRunning && (
-            <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
-          )}
-        </button>
-      )}
 
       {/* TOC tab */}
       <button

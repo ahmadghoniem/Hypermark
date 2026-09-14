@@ -23,11 +23,8 @@ swept in the same commit.
   already returns a `<button>`);
   `onOpenAutoFocus={preventDefault + focus input}` → `initialFocus={inputRef}`
   (identical intent, declarative).
-- `packages/editor/components/AnnotateAgentTerminalPanel.tsx` (consumer sweep)
-  — `PopoverTrigger asChild` → `render` with icon child hoisted;
-  `data-[state=open]:*` trigger classes → `data-[popup-open]:*`.
 
-Leftover scan clean on all three files (`radix-ui|@radix-ui|asChild`): no matches.
+Leftover scan clean on all files (`radix-ui|@radix-ui|asChild`): no matches.
 
 ## Left alone
 
@@ -53,8 +50,6 @@ Leftover scan clean on all three files (`radix-ui|@radix-ui|asChild`): no matche
 - PR selector (review app header): click → popover opens with search input
   FOCUSED, typing filters, ArrowUp/Down + Enter select, Escape closes and
   returns focus to trigger.
-- Terminal display settings (annotate agent terminal): gear opens the panel,
-  gear gets the active tint while open, click-outside closes.
 
 ## Post-QA polish (2026-07-07, second pass)
 

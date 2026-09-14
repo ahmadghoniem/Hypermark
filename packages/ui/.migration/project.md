@@ -29,13 +29,13 @@ Radix deps in `packages/ui/package.json` (6):
 | `ui/button.tsx` | Slot + Slottable | AnnotationPanel, ToolbarButtons | none |
 | `ui/tabs.tsx` | react-tabs | none (published export only) | none |
 | `ui/dialog.tsx` | react-dialog | none (published export only) | none |
-| `ui/dropdown-menu.tsx` | react-dropdown-menu | OpenInAppButton (ui), AnnotateAgentTerminalPanel (editor) | 1 (editor) |
+| `ui/dropdown-menu.tsx` | react-dropdown-menu | OpenInAppButton (ui) | 1 (ui) |
 
 ### (b) hand-rolled wrappers importing Radix directly
 
 | File | Radix usage | Consumers | Notes |
 |---|---|---|---|
-| `components/Popover.tsx` | react-popover | ui: Viewer, PlanCleanDiffView, CodeFilePopout, HtmlViewer, SearchableSelect; editor: AnnotateAgentTerminalPanel | exports `PopoverAnchor` (zero consumers; Base UI has no Anchor part) |
+| `components/Popover.tsx` | react-popover | ui: Viewer, PlanCleanDiffView, CodeFilePopout, HtmlViewer, SearchableSelect | exports `PopoverAnchor` (zero consumers; Base UI has no Anchor part) |
 | `components/Tooltip.tsx` | react-tooltip | review-editor: App (Provider), FileRowBits, DiffTypePicker; editor: App (Provider) | custom API (`content`/`delayDuration`/`wide`); Provider re-exported raw |
 | `components/PopoutDialog.tsx` | react-dialog | ui: TablePopout, CodeFilePopout | non-modal, custom backdrop, `onOpenAutoFocus` preventDefault, `onInteractOutside` annotation-selector guard |
 
@@ -47,7 +47,6 @@ Inside packages/ui:
 
 Cross-package (all imports of @hypermark/ui wrappers — packages/review-editor's
 own `@radix-ui/*` imports are the sibling agent's scope, NOT ours):
-- `packages/editor/components/AnnotateAgentTerminalPanel.tsx:440,525` — `DropdownMenuTrigger asChild`, `PopoverTrigger asChild`
 - `packages/editor/App.tsx:3808` — `<TooltipProvider delayDuration skipDelayDuration disableHoverableContent>`
 - `packages/review-editor/App.tsx:2651` — `<TooltipProvider delayDuration skipDelayDuration>`
 - `packages/review-editor/components/FileRowBits.tsx:21`, `DiffTypePicker.tsx:108` — `Tooltip delayDuration` (custom wrapper prop — API kept, no churn)
@@ -74,7 +73,7 @@ Strict-consumer gate note: `Viewer.tsx` (gate file) transitively pulls
   Peer dep `tailwindcss-animate` removed (zero plugin utilities remain in
   package sources; published styles.css rebuilt without it, 187.4 → 186.0 kB).
 - App-code sweep: `SearchableSelect`, `OpenInAppButton` (ui) and
-  `AnnotateAgentTerminalPanel`, both `App.tsx` TooltipProviders (editor /
+  both `App.tsx` TooltipProviders (editor /
   review-editor — providers unchanged by design, wrapper keeps prop names).
 - Version bumped to `0.23.0`; publish stays owner-gated. HANDOFF.md gained
   the "UI engine: Base UI (0.23.0)" section (deps, 11 breaking/behavior

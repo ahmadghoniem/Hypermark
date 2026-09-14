@@ -15,7 +15,7 @@ import { toast, Toaster } from 'sonner';
 import { type Origin, getAgentName } from '@hypermark/shared/agents';
 import { shouldStripFrontmatter } from '@hypermark/shared/annotatable';
 import { setExtraMarkdownExtensions } from '@hypermark/ui/utils/markdownExtensions';
-import { annotateFileFeedback, annotateMessageFeedback, wrapFeedbackForClipboard, type AnnotateFeedbackTemplates } from '@hypermark/shared/feedback-templates';
+import { wrapFeedbackForClipboard, type AnnotateFeedbackTemplates } from '@hypermark/shared/feedback-templates';
 import { parseMarkdownToBlocks, exportAnnotations, exportLinkedDocAnnotations, exportCodeFileAnnotations, extractFrontmatter, wrapFeedbackForAgent, Frontmatter, type LinkedDocAnnotationEntry, type MessageAnnotationEntry } from '@hypermark/ui/utils/parser';
 import { primeSkillCatalog, primeSkillContentsForExport } from '@hypermark/ui/utils/skillCatalog';
 import { Viewer, ViewerHandle } from '@hypermark/ui/components/Viewer';
@@ -71,7 +71,6 @@ import {
   type SourceSaveCapability,
   type SourceSaveResponse,
 } from '@hypermark/shared/source-save';
-import type { AgentTerminalCapability } from '@hypermark/shared/agent-terminal';
 import { observeActionsLabelMode } from './utils/actionsLabelMode';
 // Demo content toggle. Default: the original Real-time Collaboration plan.
 // Opt-in diff-engine stress test: `VITE_DIFF_DEMO=1 bun run dev:hook` swaps
@@ -86,7 +85,6 @@ import {
   useAnnotateSidebarShortcuts,
   useAnnotationModeShortcuts,
   useDocumentViewShortcuts,
-  useDoubleTapShortcuts,
   useHtmlAnnotateShortcuts,
   useHistoryShortcuts,
 } from '@hypermark/ui/shortcuts';
@@ -116,25 +114,10 @@ import {
 } from './hooks/usePlanDiffViewAutoExit';
 import { AppHeader } from './components/AppHeader';
 import { useAnnotateHtmlRefresh, type HtmlRefreshedDocument } from './hooks/useAnnotateHtmlRefresh';
-import {
-  AnnotateAgentTerminalPanel,
-  type AnnotateAgentTerminalPanelHandle,
-} from './components/AnnotateAgentTerminalPanel';
-import {
-  saveAnnotateAgentTerminalSide,
-  type AnnotateAgentTerminalSide,
-} from '@hypermark/ui/utils/annotateAgentTerminal';
-import {
-  AGENT_TERMINAL_LG_BREAKPOINT,
-  getAgentTerminalLayout,
-} from './utils/agentTerminalLayout';
-import {
-  buildAgentTerminalDeliveryRecord,
-  isMatchingAgentTerminalDelivery,
-  shouldSendAgentTerminalFeedback,
-  type AgentTerminalDeliveryRecord,
-  type AnnotateFeedbackTarget,
-} from './utils/agentTerminalIntegration';
+type AnnotateFeedbackTarget = {
+  fileHeader: 'File' | 'Folder';
+  filePath: string;
+};
 import {
   buildPlanEditPanelItem,
   buildDirectEditsSection,
@@ -403,7 +386,6 @@ const AppInner: React.FC = () => {
   const [editorDirty, setEditorDirty] = useState(false);
   // True while the open editor buffer differs from the as-submitted baseline.
   const [editorDiffersFromBaseline, setEditorDiffersFromBaseline] = useState(false);
-  const [agentFeedbackRevision, setAgentFeedbackRevision] = useState(0);
   // Two-step guard for the "Cancel" (discard edits + exit) action.
   const [confirmCancelEdits, setConfirmCancelEdits] = useState(false);
   const originalMarkdownRef = useRef<string | null>(null);
@@ -471,19 +453,6 @@ const AppInner: React.FC = () => {
   const [submitted, setSubmitted] = useState<'approved' | 'denied' | 'exited' | null>(null);
   const [repoInfo, setRepoInfo] = useState<{ display: string; branch?: string; host?: string } | null>(null);
   const [projectRoot, setProjectRoot] = useState<string | null>(null);
-  const [agentTerminalCapability, setAgentTerminalCapability] = useState<AgentTerminalCapability | null>(null);
-  const [isAgentTerminalOpen, setIsAgentTerminalOpen] = useState(false);
-  // Durable placement preference (server config > cookie > 'left'). Read through
-  // ConfigStore rather than component state so the Settings dialog's copy of the
-  // Position control and the terminal's own popover stay in step.
-  const agentTerminalSide = useConfigValue('agentTerminalSide');
-  const [isAgentTerminalRunning, setIsAgentTerminalRunning] = useState(false);
-  const [isAgentTerminalReady, setIsAgentTerminalReady] = useState(false);
-  const [agentTerminalSessionId, setAgentTerminalSessionId] = useState<number | null>(null);
-  const [agentTerminalDelivery, setAgentTerminalDeliveryState] = useState<AgentTerminalDeliveryRecord | null>(null);
-  const agentTerminalDeliveryRef = useRef<AgentTerminalDeliveryRecord | null>(null);
-  const agentTerminalSessionSeqRef = useRef(0);
-  const agentTerminalRef = useRef<AnnotateAgentTerminalPanelHandle>(null);
   const [wideModeType, setWideModeType] = useState<WideModeType | null>(null);
   const wideModeSnapshotRef = useRef<WideModeLayoutSnapshot | null>(null);
   const initialSidebarPreferenceAppliedRef = useRef(false);
@@ -497,38 +466,9 @@ const AppInner: React.FC = () => {
   const [previousPlan, setPreviousPlan] = useState<string | null>(null);
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const isMobile = useIsMobile();
-  const isBelowAgentTerminalBreakpoint = useIsMobile(AGENT_TERMINAL_LG_BREAKPOINT);
   const effectiveEditorMode: EditorMode = editorMode;
   const effectiveInputMethod = inputMethod;
   const effectivePanelOpen = isPanelOpen;
-
-  // Resolved high, not at render time, because `isRightPanelVisible` is what
-  // decides whether the right-hand annotations surface is actually on screen,
-  // and consumers of that fact read it well before the JSX. Computing it late
-  // let those consumers fall back to `effectivePanelOpen`, which stays true
-  // under a right-docked terminal and so reported an invisible surface as open.
-  const showAgentTerminalControls =
-    annotateMode &&
-    annotateSource !== 'message' &&
-    agentTerminalCapability !== null;
-  const {
-    shouldRender: shouldRenderAgentTerminal,
-    isVisible: isAgentTerminalVisible,
-    isLeftVisible: isLeftAgentTerminalVisible,
-    showOnLeft: showAgentTerminalOnLeft,
-    showOnRight: showAgentTerminalOnRight,
-    isRightPanelVisible,
-    dockClassName: agentTerminalDockClassName,
-    placement: agentTerminalPlacement,
-  } = getAgentTerminalLayout({
-    showControls: showAgentTerminalControls,
-    isOpen: isAgentTerminalOpen,
-    isRunning: isAgentTerminalRunning,
-    isWideMode: wideModeType !== null,
-    isBelowBreakpoint: isBelowAgentTerminalBreakpoint,
-    side: agentTerminalSide,
-    isRightPanelOpen: effectivePanelOpen,
-  });
 
   const viewerRef = useRef<ViewerHandle>(null);
   const historyContext = [
@@ -648,20 +588,7 @@ const AppInner: React.FC = () => {
     // Render-free drag: write the live width to a :root var the panel reads.
     apply: (w) => document.documentElement.style.setProperty('--toc-w', `${w}px`),
   });
-  const agentTerminalResize = useResizablePanel({
-    storageKey: 'hypermark-agent-terminal-width',
-    defaultWidth: 360,
-    minWidth: 280,
-    maxWidth: 640,
-    // The handle follows the edge the panel actually docks against, which for a
-    // 'hidden' preference opened for the session is the left fallback.
-    side: agentTerminalPlacement,
-    onSnapClose: () => hideAgentTerminal(),
-    // Single click on the handle (no drag) collapses it.
-    onClick: () => hideAgentTerminal(),
-    apply: (w) => document.documentElement.style.setProperty('--agent-terminal-w', `${w}px`),
-  });
-  const isResizing = panelResize.isDragging || tocResize.isDragging || agentTerminalResize.isDragging;
+  const isResizing = panelResize.isDragging || tocResize.isDragging;
 
   // Whether the document has any TOC-eligible headings (level <= 3, matching
   // buildTocHierarchy). Drives the empty-doc auto-close behavior below — must
@@ -717,123 +644,13 @@ const AppInner: React.FC = () => {
   }, [exitWideMode, wideModeType, sidebar.toggleTab]);
 
 
-  const hideAgentTerminal = useCallback(() => {
-    setIsAgentTerminalOpen(false);
-  }, []);
-
-  /**
-   * RIGHT-SLOT INVARIANT (see also getAgentTerminalLayout in
-   * ./agentTerminalLayout, and the panel render site below).
-   *
-   * A right-docked Agent TUI and the annotations panel compete for the same
-   * slot, and the coordination between them is deliberately ASYMMETRIC:
-   *
-   *  - Panel wins over terminal, destructively. Asking for annotations is a
-   *    request for that specific surface, so the terminal gives up the slot:
-   *    `isAgentTerminalOpen` goes false. Nothing is lost — a running agent
-   *    stays mounted off-layout, so reopening returns to the same session
-   *    rather than a fresh PTY.
-   *  - Terminal wins over panel, non-destructively. Opening the terminal only
-   *    suppresses the panel visually (`isRightPanelVisible`); `isPanelOpen`
-   *    and the selected tab are left alone, so dismissing the terminal
-   *    restores exactly the surface the user had.
-   *
-   * Making this symmetric (closing the panel outright when the terminal opens)
-   * was considered and rejected: the terminal is frequently a short detour
-   * from an annotation pass, and clearing the panel would make every detour
-   * cost the user their place. The asymmetry is the UX, not an oversight.
-   */
-  const replaceRightAgentTerminalWithPanel = useCallback(() => {
-    hideAgentTerminal();
-    setIsPanelOpen(true);
-  }, [hideAgentTerminal]);
-
   const handleAnnotationPanelToggle = useCallback(() => {
     if (wideModeType !== null) {
       exitWideMode({ restore: false, panelOpen: true });
       return;
     }
-    // Right-slot invariant: only a VISIBLE right-docked terminal is holding the
-    // slot. A collapsed-but-running one is off-layout and must not be evicted.
-    if (agentTerminalPlacement === 'right' && isAgentTerminalVisible) {
-      replaceRightAgentTerminalWithPanel();
-      return;
-    }
     setIsPanelOpen(prev => !prev);
-  }, [agentTerminalPlacement, exitWideMode, isAgentTerminalVisible, replaceRightAgentTerminalWithPanel, wideModeType]);
-
-  /**
-   * Record the durable placement. Writing through ConfigStore is the whole
-   * update: `agentTerminalSide` is a useConfigValue subscriber, so the terminal
-   * popover and the Settings dialog observe the same value.
-   */
-  const handleAgentTerminalSideChange = useCallback((side: AnnotateAgentTerminalSide) => {
-    saveAnnotateAgentTerminalSide(side);
-  }, []);
-
-  const setAgentTerminalDelivery = useCallback((delivery: AgentTerminalDeliveryRecord | null) => {
-    agentTerminalDeliveryRef.current = delivery;
-    setAgentTerminalDeliveryState(delivery);
-  }, []);
-
-  const closeAgentTerminal = useCallback(() => {
-    if (agentTerminalRef.current) {
-      agentTerminalRef.current.stop();
-      return;
-    }
-    setIsAgentTerminalRunning(false);
-    setIsAgentTerminalReady(false);
-    setAgentTerminalSessionId(null);
-    setAgentTerminalDelivery(null);
-    hideAgentTerminal();
-  }, [hideAgentTerminal, setAgentTerminalDelivery]);
-
-  const handleAgentTerminalReadyChange = useCallback((ready: boolean) => {
-    setIsAgentTerminalReady(ready);
-    setAgentTerminalDelivery(null);
-    if (!ready) {
-      setAgentTerminalSessionId(null);
-      return;
-    }
-    agentTerminalSessionSeqRef.current += 1;
-    setAgentTerminalSessionId(agentTerminalSessionSeqRef.current);
-  }, [setAgentTerminalDelivery]);
-
-  /**
-   * Explicit intent to see the terminal now: the rail toggle, Shift Shift, or
-   * a message routed to the agent. Deliberately does NOT rewrite a 'hidden'
-   * preference — asking for the panel once is not the same as asking for it
-   * every session, so the open is session-scoped and the preference survives.
-   */
-  const openAgentTerminal = useCallback(() => {
-    if (wideModeType !== null) {
-      exitWideMode({ restore: false, panelOpen: false });
-    }
-    setIsAgentTerminalOpen(true);
   }, [exitWideMode, wideModeType]);
-
-  const toggleAgentTerminal = useCallback(() => {
-    if (isAgentTerminalOpen) {
-      hideAgentTerminal();
-      return;
-    }
-    openAgentTerminal();
-  }, [hideAgentTerminal, isAgentTerminalOpen, openAgentTerminal]);
-
-  useEffect(() => {
-    if (annotateMode && annotateSource !== 'message' && agentTerminalCapability) return;
-    closeAgentTerminal();
-  }, [agentTerminalCapability, annotateMode, annotateSource, closeAgentTerminal]);
-
-  // Choosing "Hidden" closes the terminal, from either surface that offers the
-  // Position control (the terminal's own popover, which then disappears, and
-  // the Settings dialog, which is how you get it back). Keyed on the preference
-  // alone, so a later explicit open in the same session is not undone: the
-  // effect does not re-run until the preference changes again.
-  useEffect(() => {
-    if (agentTerminalSide !== 'hidden') return;
-    closeAgentTerminal();
-  }, [agentTerminalSide, closeAgentTerminal]);
 
   // Sync sidebar open state when the "Auto-open Sidebar" preference changes in
   // Settings. Deliberately does NOT react to the document or render mode —
@@ -1096,11 +913,10 @@ const AppInner: React.FC = () => {
         panelOpen: isPanelOpen,
       };
     }
-    if (isAgentTerminalOpen) hideAgentTerminal();
     setWideModeType(type);
     sidebar.close();
     setIsPanelOpen(false);
-  }, [canUseWideMode, hideAgentTerminal, isAgentTerminalOpen, isPanelOpen, wideModeType, sidebar.activeTab, sidebar.close, sidebar.isOpen]);
+  }, [canUseWideMode, isPanelOpen, wideModeType, sidebar.activeTab, sidebar.close, sidebar.isOpen]);
 
   const toggleViewMode = useCallback((type: WideModeType) => {
     if (wideModeType === type) {
@@ -1196,19 +1012,6 @@ const AppInner: React.FC = () => {
       toggleContents: {
         when: canHandleAnnotateSidebarShortcut,
         handle: () => toggleSidebarTab('toc'),
-      },
-    },
-  });
-
-  useDoubleTapShortcuts({
-    scope: annotateSidebarShortcuts,
-    handlers: {
-      toggleAgentTui: {
-        when: (event) =>
-          canHandleAnnotateSidebarShortcut(event) &&
-          annotateSource !== 'message' &&
-          agentTerminalCapability !== null,
-        handle: () => toggleAgentTerminal(),
       },
     },
   });
@@ -2087,9 +1890,6 @@ const AppInner: React.FC = () => {
     }
     // Mid-edit keystrokes persist too — a crash loses at most the debounce
     // window. The hook reads the live buffer via getDraftEditedMarkdown.
-    if (agentTerminalDeliveryRef.current) {
-      setAgentFeedbackRevision((version) => version + 1);
-    }
     scheduleDraftSave();
   }, [activeEditableDocument, editableDocuments, scheduleDraftSave]);
 
@@ -2501,7 +2301,7 @@ const AppInner: React.FC = () => {
         if (!res.ok) throw new Error('Not in API mode');
         return res.json();
       })
-      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last'; filePath?: string; sourceInfo?: string; sourceConverted?: boolean; sourceSave?: SourceSaveCapability; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; renderAs?: 'html' | 'markdown'; rawHtml?: string; shareHtml?: string; diffHtml?: string; convertHtml?: boolean; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; projectRoot?: string; markdownExtensions?: string[]; serverConfig?: { displayName?: string; gitUser?: string }; recentMessages?: PickerMessage[]; agentTerminal?: AgentTerminalCapability; feedbackTemplates?: AnnotateFeedbackTemplates }) => {
+      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last'; filePath?: string; sourceInfo?: string; sourceConverted?: boolean; sourceSave?: SourceSaveCapability; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; renderAs?: 'html' | 'markdown'; rawHtml?: string; shareHtml?: string; diffHtml?: string; convertHtml?: boolean; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; projectRoot?: string; markdownExtensions?: string[]; serverConfig?: { displayName?: string; gitUser?: string }; recentMessages?: PickerMessage[]; feedbackTemplates?: AnnotateFeedbackTemplates }) => {
         // Initialize config store with server-provided values (config file > cookie > default)
         configStore.init(data.serverConfig);
         // Extra extensions the user registered as markdown (#1307) — the
@@ -2564,7 +2364,6 @@ const AppInner: React.FC = () => {
         if (data.projectRoot) {
           setProjectRoot(data.projectRoot);
         }
-        setAgentTerminalCapability(data.agentTerminal ?? null);
         // Capture plan version history data
         if (data.previousPlan !== undefined) {
           setPreviousPlan(data.previousPlan);
@@ -2580,7 +2379,6 @@ const AppInner: React.FC = () => {
       .catch(() => {
         // Not in API mode - use default content
         setIsApiMode(false);
-        setAgentTerminalCapability(null);
         // Demo mode still exercises edit mode; baseline is the demo plan.
         originalMarkdownRef.current = DEMO_PLAN_CONTENT;
       })
@@ -2619,13 +2417,6 @@ const AppInner: React.FC = () => {
   // composer open now simply does nothing, rather than filing the image
   // under the document's top-level `globalAttachments`.
 
-  const sendToAgentTerminal = useCallback((message: string) => {
-    const sent = agentTerminalRef.current?.sendMessage(message) ?? false;
-    if (!sent) return false;
-    openAgentTerminal();
-    return true;
-  }, [openAgentTerminal]);
-
   const getAnnotateFeedbackTarget = useCallback((): AnnotateFeedbackTarget => {
     if (linkedDocHook.isActive && linkedDocHook.filepath) {
       return { fileHeader: 'File', filePath: linkedDocHook.filepath };
@@ -2639,14 +2430,6 @@ const AppInner: React.FC = () => {
     linkedDocHook.isActive,
     sourceFilePath,
   ]);
-
-  const buildAnnotateAgentFeedback = useCallback((feedback: string) => {
-    if (annotateSource === 'message') {
-      return annotateMessageFeedback(feedback);
-    }
-
-    return annotateFileFeedback(feedback, getAnnotateFeedbackTarget());
-  }, [annotateSource, getAnnotateFeedbackTarget]);
 
   // Clipboard copy wrapper (#1107): plan review keeps the deliberately forceful
   // plan-deny framing; annotate sessions wrap with the server-resolved template
@@ -2674,40 +2457,12 @@ const AppInner: React.FC = () => {
   }, [annotateMode, annotateSource, feedbackTemplates, getAnnotateFeedbackTarget]);
 
   const currentFeedbackPayload = useMemo(() => getCurrentFeedbackPayload(), [
-    agentFeedbackRevision,
     editableDocuments.version,
     editorDiffersFromBaseline,
     getCurrentFeedbackPayload,
     savedFileChanges,
   ]);
-  const currentAgentFeedbackTarget = useMemo(
-    () => getAnnotateFeedbackTarget(),
-    [getAnnotateFeedbackTarget],
-  );
-  const currentAgentFeedbackDelivery = useMemo(() => {
-    if (agentTerminalSessionId === null) return null;
-    return buildAgentTerminalDeliveryRecord({
-      terminalSessionId: agentTerminalSessionId,
-      feedback: currentFeedbackPayload,
-      targetPath: annotateSource === 'message' ? null : currentAgentFeedbackTarget.filePath,
-    });
-  }, [
-    agentTerminalSessionId,
-    annotateSource,
-    currentFeedbackPayload,
-    currentAgentFeedbackTarget.filePath,
-  ]);
-  const isCurrentFeedbackDeliveredToAgent = isMatchingAgentTerminalDelivery(
-    agentTerminalDelivery,
-    currentAgentFeedbackDelivery,
-  );
-  const showAgentTerminalDeliveryStatus =
-    annotateMode &&
-    agentTerminalDelivery !== null &&
-    isCurrentFeedbackDeliveredToAgent;
-  const hasFeedbackToSend =
-    hasFeedbackContent &&
-    !isCurrentFeedbackDeliveredToAgent;
+  const hasFeedbackToSend = hasFeedbackContent;
 
   // API mode handlers
   const handleApprove = async () => {
@@ -2816,30 +2571,6 @@ const AppInner: React.FC = () => {
       }
       const discard = options?.discardAnnotations === true;
       const feedback = getCurrentFeedbackPayload(checkedSavedFileChanges, options);
-      const agentFeedbackDelivery = agentTerminalSessionId === null
-        ? null
-        : buildAgentTerminalDeliveryRecord({
-            terminalSessionId: agentTerminalSessionId,
-            feedback,
-            targetPath: annotateSource === 'message' ? null : getAnnotateFeedbackTarget().filePath,
-          });
-      if (isAgentTerminalReady) {
-        if (!shouldSendAgentTerminalFeedback(agentTerminalDeliveryRef.current, agentFeedbackDelivery)) {
-          discardDraft();
-          setIsSubmitting(false);
-          return true;
-        }
-        const agentFeedback = buildAnnotateAgentFeedback(feedback);
-        if (agentFeedbackDelivery && sendToAgentTerminal(agentFeedback)) {
-          setAgentTerminalDelivery(agentFeedbackDelivery);
-          discardDraft();
-          annotationHistory.clear();
-          setIsSubmitting(false);
-          return true;
-        }
-        handleAgentTerminalReadyChange(false);
-        toast.error('Agent terminal is not ready. Sending through the original session.');
-      }
 
       const res = await fetch('/api/feedback', {
         method: 'POST',
@@ -2879,8 +2610,6 @@ const AppInner: React.FC = () => {
         return false;
       }
       const discard = options?.discardAnnotations === true;
-      // hasFeedbackToSend (not hasFeedbackContent) so notes already delivered
-      // via the agent terminal are not re-sent on approve.
       const feedback = !discard && hasFeedbackToSend
         ? getCurrentFeedbackPayload(checkedSavedFileChanges)
         : '';
@@ -3017,7 +2746,7 @@ const AppInner: React.FC = () => {
   }, [
     showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning,
     submitted, isSubmitting, isExiting, isApiMode, isEditingMarkdown, linkedDocHook.isActive, annotations.length, codeAnnotations.length, externalAnnotations.length, annotateMode,
-    hasFeedbackToSend, isAgentTerminalReady,
+    hasFeedbackToSend,
     annotateSource, origin,
     maybeConfirmUnsavedSourceFileEdits,
   ]);
@@ -3711,15 +3440,11 @@ const AppInner: React.FC = () => {
     count: feedbackAnnotationCount,
     hasFeedback: hasFeedbackToSend,
     approvalNotesSupported,
-    // M1 ruling: agent-terminal delivered feedback flips the state to empty,
-    // but Done still posts the full payload — the spec adjusts its copy.
-    feedbackDelivered: isCurrentFeedbackDeliveredToAgent,
   }), [
     approvalNotesSupported,
     feedbackAnnotationCount,
     gate,
     hasFeedbackToSend,
-    isCurrentFeedbackDeliveredToAgent,
   ]);
 
   const annotateDecisionHandlers = useMemo<Record<DecisionActionId, DecisionHandler>>(() => ({
@@ -3752,36 +3477,6 @@ const AppInner: React.FC = () => {
     return widths[uiPrefs.planWidth] ?? 832;
   }, [uiPrefs.planWidth]);
   const annotateReaderMaxWidth = canUseWideMode && wideModeType === 'wide' ? null : planMaxWidth;
-  const agentTerminalPanel = shouldRenderAgentTerminal && agentTerminalCapability ? (
-    <div
-      key="agent-terminal"
-      className={agentTerminalDockClassName}
-      aria-hidden={!isAgentTerminalVisible}
-      inert={!isAgentTerminalVisible}
-    >
-      <AnnotateAgentTerminalPanel
-        ref={agentTerminalRef}
-        capability={agentTerminalCapability}
-        width={`var(--agent-terminal-w, ${agentTerminalResize.width}px)`}
-        side={agentTerminalSide}
-        placement={agentTerminalPlacement}
-        onSideChange={handleAgentTerminalSideChange}
-        onSessionActiveChange={setIsAgentTerminalRunning}
-        onSessionReadyChange={handleAgentTerminalReadyChange}
-        onClose={hideAgentTerminal}
-      />
-      {isAgentTerminalVisible && (
-        <ResizeHandle
-          {...agentTerminalResize.handleProps}
-          className="hidden lg:block z-resize"
-          side={agentTerminalPlacement}
-          hideHoverTrack
-          tooltip={RESIZE_HANDLE_TOOLTIP}
-          onCollapse={hideAgentTerminal}
-        />
-      )}
-    </div>
-  ) : null;
   const handleNavigatorTabChange = (tab: SidebarTab) => {
     toggleSidebarTab(tab);
   };
@@ -3801,10 +3496,6 @@ const AppInner: React.FC = () => {
         onTabChange={handleNavigatorTabChange}
         onClose={sidebar.close}
         width={`var(--toc-w, ${tocResize.width}px)`}
-        showAgentTerminalButton={showAgentTerminalControls}
-        isAgentTerminalOpen={isAgentTerminalOpen}
-        isAgentTerminalRunning={isAgentTerminalRunning}
-        onToggleAgentTerminal={toggleAgentTerminal}
         showContentsTab
         blocks={blocks}
         annotations={annotations}
@@ -3897,7 +3588,7 @@ const AppInner: React.FC = () => {
           origin={origin}
           isSubmitting={isSubmitting}
           isExiting={isExiting}
-          isPanelOpen={isRightPanelVisible}
+          isPanelOpen={isPanelOpen}
           annotationCount={feedbackAnnotationCount}
           linkedDocIsActive={linkedDocHook.isActive}
           agentName={agentName}
@@ -3970,28 +3661,16 @@ const AppInner: React.FC = () => {
             </button>
           </div>
         )}
-        {showAgentTerminalDeliveryStatus && (
-          <div className="border-b border-primary/20 bg-primary/5 px-4 py-2 text-xs text-muted-foreground shrink-0">
-            <span className="font-medium text-foreground">Sent to agent.</span>{" "}
-            Keep this window open while it runs. Close Hypermark when you're done.
-          </div>
-        )}
-
         {/* Main Content */}
         <div className={`flex-1 flex overflow-hidden relative z-0 ${isResizing ? 'select-none' : ''}`}>
-          {showAgentTerminalOnLeft && agentTerminalPanel}
           {/* Left Sidebar: collapsed tab flags (when sidebar is closed) */}
-          {wideModeType === null && !sidebar.isOpen && !isLeftAgentTerminalVisible && !(isHtmlSurface && htmlToolsHidden) && (
+          {wideModeType === null && !sidebar.isOpen && !(isHtmlSurface && htmlToolsHidden) && (
             <SidebarTabs
               activeTab={sidebar.activeTab}
               onToggleTab={toggleSidebarTab}
               hasDiff={planDiff.hasPreviousVersion}
               showVersionsTab={!isHtmlSurface && activeDiffVersionInfo !== null && activeDiffVersionInfo.totalVersions > 1}
               showMessagesTab={annotateSource === 'message' && recentMessages.length > 1}
-              showAgentTerminalTab={showAgentTerminalControls}
-              isAgentTerminalOpen={isAgentTerminalOpen}
-              isAgentTerminalRunning={isAgentTerminalRunning}
-              onToggleAgentTerminal={toggleAgentTerminal}
               hasMessageAnnotations={activeMessageAnnotationCounts.size > 0}
               className="hidden lg:flex absolute left-0 top-0 z-20"
             />
@@ -4008,7 +3687,7 @@ const AppInner: React.FC = () => {
           {/* Document Area */}
           <OverlayScrollArea
             element="main"
-            className={`flex-1 min-w-0 ${isHtmlSurface ? 'bg-background' : `bg-card ${!sidebar.isOpen && !isLeftAgentTerminalVisible && wideModeType === null ? 'lg:pl-7.5' : ''}`}`}
+            className={`flex-1 min-w-0 ${isHtmlSurface ? 'bg-background' : `bg-card ${!sidebar.isOpen && wideModeType === null ? 'lg:pl-7.5' : ''}`}`}
             overflowX="hidden"
             overflowY="auto"
             onViewportReady={handleDocumentViewportReady}
@@ -4290,20 +3969,18 @@ const AppInner: React.FC = () => {
             </div>
           </OverlayScrollArea>
 
-          {showAgentTerminalOnRight && agentTerminalPanel}
-
           {/* Right panel region — `group/sidebar` so the collapse button reveals when
               hovering the whole panel, not just the thin handle. The handle and the
               panel(s) are separate sibling conditionals, so they need a shared hover
               ancestor (`contents` = no layout box). */}
           <div className="contents group/sidebar">
           {/* Resize Handle */}
-          {isRightPanelVisible && wideModeType === null && <ResizeHandle {...panelResize.handleProps} className="hidden md:block z-resize" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => setIsPanelOpen(false)} />}
+          {isPanelOpen && wideModeType === null && <ResizeHandle {...panelResize.handleProps} className="hidden md:block z-resize" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => setIsPanelOpen(false)} />}
 
           {/* Annotation Panel */}
           {renderAnnotationPanel(
             'panel',
-            isRightPanelVisible && wideModeType === null,
+            isPanelOpen && wideModeType === null,
           )}
           </div>
         </div>

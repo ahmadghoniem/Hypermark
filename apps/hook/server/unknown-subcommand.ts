@@ -1,8 +1,6 @@
 import { SUBCOMMAND_HELP, SUBCOMMAND_HELP_ALIASES } from "./cli";
 
-const INTERNAL_SUBCOMMANDS = [
-  "install-runtime",
-] as const;
+const INTERNAL_SUBCOMMANDS = [] as const;
 
 const SUGGESTABLE_SUBCOMMANDS = [
   ...Object.keys(SUBCOMMAND_HELP),

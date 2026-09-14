@@ -78,7 +78,6 @@ import {
 import { supportsReviewApprovalNotes } from "./review-output";
 import { registerSession, unregisterSession, listSessions, killSession } from "@hypermark/server/sessions";
 import { openBrowser } from "@hypermark/server/browser";
-import { installAgentTerminalRuntime } from "@hypermark/server/agent-terminal-runtime";
 import {
   createDefaultUninstallEnvironment,
   formatPurgeWarning,
@@ -294,17 +293,6 @@ if (args[0] === "uninstall") {
     console.log(`Local Hypermark data was preserved in ${result.dataDir}.`);
   }
 
-  process.exit(result.ok ? 0 : 1);
-}
-
-if (args[0] === "install-runtime") {
-  const runtime = args[1];
-  if (runtime !== "agent-terminal") {
-    console.error("Usage: hypermark install-runtime <agent-terminal>");
-    process.exit(1);
-  }
-  const result = await installAgentTerminalRuntime();
-  console.log(result.message);
   process.exit(result.ok ? 0 : 1);
 }
 

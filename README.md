@@ -133,7 +133,7 @@ curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts
 irm https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.ps1 | iex
 ```
 
-The installer downloads the binary from GitHub Releases. A full install also contacts GitHub for release resolution and the skills checkout, Ataraxy-Labs/sem for the optional `sem` sidecar, and npm for the extra skills or the managed agent-terminal runtime. Pinning `--version` skips only GitHub API release resolution, not the release download.
+The installer downloads the binary from GitHub Releases. A full install also contacts GitHub for release resolution and the skills checkout, Ataraxy-Labs/sem for the optional `sem` sidecar, and npm for the extra skills. Pinning `--version` skips only GitHub API release resolution, not the release download.
 
 Want just the binary and nothing else? Pass `--minimal` (or export `HYPERMARK_MINIMAL=1`) to install only the `hypermark` binary to `~/.local/bin`, skipping every skill, hook, slash command and hook config:
 
@@ -178,7 +178,7 @@ irreversible outcome require a stronger explicit word, and still give package
 managers and scripts a conventional non-interactive flag.
 
 The command covers the conventional macOS, Linux, WSL, and Windows binary
-locations; the managed `sem` sidecar, agent-terminal and call-flow runtimes;
+locations; the managed `sem` sidecar and call-flow runtimes;
 the skills it installed under `~/.claude/skills` and `~/.agents/skills`; the
 Claude Code commands it replaced with skills; its managed hooks in Claude's
 `settings.json`; and the Claude Code plugin through the `claude` CLI. It

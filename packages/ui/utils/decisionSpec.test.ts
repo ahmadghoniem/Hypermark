@@ -89,24 +89,6 @@ describe('buildDecisionSpec state matrix', () => {
     expect(itemIds(gateNoCap)).toEqual(['note-with-feedback', 'close-session']);
   });
 
-  // M1 ruling fact-guard: in the agent-terminal delivered state the All good
-  // transport still posts the FULL payload, so the copy must never claim
-  // "no feedback" — while the primary label itself stays the frozen 'All good'.
-  it('feedbackDelivered keeps the All good primary but drops the "no feedback" claim', () => {
-    const base = {
-      app: 'annotate' as const, gate: false, count: 0,
-      hasFeedback: false, approvalNotesSupported: false,
-    };
-    const plain = buildDecisionSpec(base);
-    const delivered = buildDecisionSpec({ ...base, feedbackDelivered: true });
-
-    expect(delivered.primary.label).toBe('All good'); // frozen copy, maintainer-approved
-    expect(delivered.primary.title).not.toContain('no feedback');
-    // The two states must actually differ — a regression that ignores the
-    // flag would silently restore the lying tooltip.
-    expect(delivered.primary.title).not.toBe(plain.primary.title);
-    expect(delivered.items.map((item) => item.id)).toEqual(plain.items.map((item) => item.id));
-  });
 
   it('review, no feedback → Approve; phase-1 menu is Request changes only', () => {
     const phase1 = buildDecisionSpec({
@@ -184,10 +166,7 @@ describe('buildDecisionSpec invariants', () => {
   // Maintainer ruling: no user-facing decision-control string carries an em
   // dash. Sweeps every field the control renders, across both arms.
   it('no user-facing string contains an em dash', () => {
-    const inputs: DecisionSpecInput[] = [
-      ...allInputs(),
-      ...allInputs().map((input) => ({ ...input, feedbackDelivered: true })),
-    ];
+    const inputs: DecisionSpecInput[] = allInputs();
     for (const input of inputs) {
       const spec = buildDecisionSpec(input);
       const strings = [

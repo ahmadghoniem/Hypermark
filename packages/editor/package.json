@@ -12,7 +12,6 @@
     "@fontsource-variable/inter": "^5.2.8",
     "@hypermark/shared": "workspace:*",
     "@hypermark/ui": "workspace:*",
-    "@plannotator/webtui": "0.1.0",
     "diff": "^8.0.3",
     "@phosphor-icons/react": "2.1.10",
     "react": "^19.2.3",

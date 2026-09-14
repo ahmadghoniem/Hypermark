@@ -97,16 +97,6 @@ export interface DecisionSpecInput {
   hasFeedback: boolean;
   /** Does the runtime deliver feedback on approve? Gates every approve-carrying item. */
   approvalNotesSupported: boolean;
-  /**
-   * M1 ruling: the session's feedback was already delivered through the
-   * annotate agent terminal, which is why `hasFeedback` reads false. The
-   * empty-flip state keeps its `All good` primary AND its transport (the outer
-   * agent's stdout consumer may never have seen the terminal delivery, so
-   * the full payload still posts) — only the copy changes, because "reviewed
-   * with no feedback" would be a lie in that state. Copy is free prose,
-   * NOT frozen.
-   */
-  feedbackDelivered?: boolean;
 }
 
 export const DECISION_NOTE_PLACEHOLDER = 'Add a note…';
@@ -195,13 +185,7 @@ function buildEmptySpec(input: DecisionSpecInput, approvalFlow: boolean): Decisi
           id: 'primary',
           // Frozen copy (maintainer-approved): 'All good'.
           label: 'All good',
-          // M1 ruling: in the agent-terminal delivered state the transport is
-          // unchanged (the full payload still posts, because the outer agent
-          // on stdout may never have seen the terminal delivery), so the
-          // tooltip must not claim "no feedback". Free prose, NOT frozen.
-          title: input.feedbackDelivered
-            ? 'Finish; feedback already sent from the terminal'
-            : 'Finish with no feedback',
+          title: 'Finish with no feedback',
           // Maintainer ruling (post-demo): All good without a gate is a positive
           // finish, NOT an approval — no success tone, no check icon, so it
           // can never be mistaken for the gate/review Approve.

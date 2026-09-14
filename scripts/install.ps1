@@ -38,7 +38,7 @@ if ($Minimal -and $NoMinimal) {
 }
 
 # Binary-only mode. Installs just the hypermark binary and no persistent state
-# elsewhere - no agent-terminal runtime, skills, hooks, or per-agent
+# elsewhere - no skills, hooks, or per-agent
 # config. Precedence: -Minimal / -NoMinimal switch > HYPERMARK_MINIMAL env var
 # > default (off). Mirrors install.sh's --minimal / --no-minimal.
 $minimal = $false
@@ -194,23 +194,6 @@ if ($configDir -eq "~") {
     $configDir = $env:USERPROFILE
 } elseif ($configDir.StartsWith("~/") -or $configDir.StartsWith('~\')) {
     $configDir = Join-Path $env:USERPROFILE ($configDir.Substring(2))
-}
-
-function Install-AgentTerminalRuntime {
-    if ($env:HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL -match '^(1|true|yes)$') {
-        Write-Host "Skipping agent terminal runtime install (HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL is set)"
-        return
-    }
-
-    $hypermarkPath = Join-Path $installDir "hypermark.exe"
-    try {
-        & $hypermarkPath install-runtime agent-terminal
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "Skipping agent terminal runtime install (hypermark install-runtime failed)"
-        }
-    } catch {
-        Write-Host "Skipping agent terminal runtime install ($($_.Exception.Message))"
-    }
 }
 
 $configPath = Join-Path $configDir "config.json"
@@ -508,10 +491,10 @@ function Show-PathAdvice {
 }
 
 # Binary-only mode stops here (see the $minimal resolution near the top): the
-# binary is installed, so add it to PATH and exit before any runtime install,
+# binary is installed, so add it to PATH and exit before any
 # agent integration, skill checkout, config write, or cleanup runs. Only the
-# binary and its PATH entry are added - none of the agent-terminal
-# runtime, or per-agent skills, hooks, or config.
+# binary and its PATH entry are added - none of the
+# per-agent skills, hooks, or config.
 if ($minimal) {
     Show-PathAdvice
     Write-Host ""
@@ -519,8 +502,6 @@ if ($minimal) {
     Write-Host "No skills, hooks, agent integrations, or config files were written."
     exit 0
 }
-
-Install-AgentTerminalRuntime
 
 Show-PathAdvice
 

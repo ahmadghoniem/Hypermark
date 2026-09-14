@@ -14,17 +14,12 @@ import { VersionBrowser } from "./VersionBrowser";
 import { MessagesBrowser, type PickerMessage } from "./MessagesBrowser";
 import { MessagesIcon } from "../icons/MessagesIcon";
 import { OverlayScrollArea } from "../OverlayScrollArea";
-import { ReviewAgentsIcon } from "../ReviewAgentsIcon";
 
 interface SidebarContainerProps {
   activeTab: SidebarTab;
   onTabChange: (tab: SidebarTab) => void;
   onClose: () => void;
   width: number | string;
-  showAgentTerminalButton?: boolean;
-  isAgentTerminalOpen?: boolean;
-  isAgentTerminalRunning?: boolean;
-  onToggleAgentTerminal?: () => void;
   // TOC props
   showContentsTab?: boolean;
   blocks: Block[];
@@ -59,10 +54,6 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
   onTabChange,
   onClose,
   width,
-  showAgentTerminalButton,
-  isAgentTerminalOpen,
-  isAgentTerminalRunning,
-  onToggleAgentTerminal,
   showContentsTab = true,
   blocks,
   annotations,
@@ -97,15 +88,6 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
     >
       {/* Tab bar */}
       <div className="flex h-10 items-center border-b border-border/50 px-2 gap-0.5 shrink-0 overflow-hidden min-w-0">
-        {showAgentTerminalButton && onToggleAgentTerminal && (
-          <ActionButton
-            active={!!isAgentTerminalOpen}
-            running={!!isAgentTerminalRunning}
-            onClick={onToggleAgentTerminal}
-            icon={<ReviewAgentsIcon className="size-3" />}
-            label="Agent"
-          />
-        )}
         {showContentsTab && (
           <TabButton
             active={activeTab === "toc"}
@@ -227,30 +209,4 @@ const TabButton: React.FC<{
       <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-primary" />
     )}
 </button>
-);
-
-const ActionButton: React.FC<{
-  active: boolean;
-  running?: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}> = ({ active, running, onClick, icon, label }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    aria-pressed={active}
-    title={running ? "Agent running" : label}
-    className={`relative flex items-center gap-1 px-2 py-1 rounded-sm text-xs font-medium transition-colors min-w-0 shrink-0 ${
-      active || running
-        ? "bg-primary/10 text-primary"
-        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-    }`}
-  >
-    {icon}
-    {label}
-    {running && (
-      <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-primary" />
-    )}
-  </button>
 );

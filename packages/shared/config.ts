@@ -24,7 +24,6 @@ import { execSync } from "child_process";
 
 import type { DefaultDiffType, DiffLineBgIntensity, DiffOptions, ThemeConfig } from '@hypermark/core/config-types';
 import { isFaviconStyle, type FaviconStyle } from './favicon';
-import { isAnnotateAgentTerminalSide, type AnnotateAgentTerminalSide } from './agent-terminal';
 export type { DefaultDiffType, DiffLineBgIntensity, DiffOptions, ThemeConfig, FaviconStyle };
 
 export type PromptSectionOverrides = Record<string, string | undefined>;
@@ -94,24 +93,6 @@ export interface HypermarkConfig {
    */
   theme?: ThemeConfig;
   prompts?: PromptConfig;
-  /**
-   * Where the annotate-mode Agent TUI docks: "left" (the historic default),
-   * "right", or "hidden" to keep it out of the layout until the user opens it
-   * for a session. Written by the UI through POST /api/config, because every
-   * annotate session runs on its own random port — a cookie alone would make
-   * the choice per-session rather than per-user.
-   *
-   * Typed from @hypermark/core rather than restating the union, so this
-   * field and `isAgentTerminalSide` cannot disagree with the client-side
-   * placement logic about which sides exist.
-   */
-  agentTerminalSide?: AnnotateAgentTerminalSide;
-  /**
-   * Which agent the annotate-mode Agent TUI preselects (an agent id such as
-   * "claude"). Unset means the first available agent wins. Persisted here for
-   * the same random-port reason as agentTerminalSide.
-   */
-  agentTerminalDefaultAgent?: string;
   /**
    * Enable `gh attestation verify` during CLI installation/upgrade.
    * Read by scripts/install.sh|ps1|cmd on every run (not by any runtime code).
@@ -448,8 +429,6 @@ export function getServerConfig(gitUser: string | null): {
   theme?: ThemeConfig;
   favicon?: FaviconStyle;
   gitUser?: string;
-  agentTerminalSide?: HypermarkConfig["agentTerminalSide"];
-  agentTerminalDefaultAgent?: string;
 } {
   const cfg = loadConfig();
   return {
@@ -458,29 +437,7 @@ export function getServerConfig(gitUser: string | null): {
     ...(cfg.theme !== undefined && { theme: cfg.theme }),
     ...(isFaviconStyle(cfg.favicon) && { favicon: cfg.favicon }),
     gitUser: gitUser ?? undefined,
-    ...(isAgentTerminalSide(cfg.agentTerminalSide) && { agentTerminalSide: cfg.agentTerminalSide }),
-    ...(typeof cfg.agentTerminalDefaultAgent === "string" &&
-      cfg.agentTerminalDefaultAgent !== "" && {
-        agentTerminalDefaultAgent: cfg.agentTerminalDefaultAgent,
-      }),
   };
-}
-
-/**
- * Guard for the annotate Agent TUI placement. config.json is hand-editable, so
- * a bogus value must simply not be advertised — the client then keeps its own
- * resolved default instead of adopting a side that does not exist.
- *
- * The set of sides has exactly one definition, `AnnotateAgentTerminalSide` in
- * @hypermark/core: `HypermarkConfig.agentTerminalSide` IS that type and
- * this predicate delegates to that module's guard, so neither the union nor
- * its membership test can drift on one side of the boundary. Direct import
- * rather than a duplicated literal check keeps the implementation in sync.
- */
-export function isAgentTerminalSide(
-  value: unknown,
-): value is NonNullable<HypermarkConfig["agentTerminalSide"]> {
-  return isAnnotateAgentTerminalSide(value);
 }
 
 /**

@@ -82,10 +82,10 @@ never shows the overlay (the session stream did not deliver `sessionEnded`).
 
 ## 5. Process-tree cleanup (spec 10, "other leaks")
 
-1. Open an annotate session with the agent terminal panel; start Claude in it.
+1. Open an annotate session (`hypermark annotate <file.md>`).
 2. Close the tab and wait for the lease to dismiss (or `--kill`).
-3. `Get-CimInstance Win32_Process | Where-Object { $_.Name -in 'node.exe','claude.exe' }` shows
-   no orphan from the sidecar (the `taskkill /T` path fired).
+3. `Get-CimInstance Win32_Process | Where-Object { $_.Name -in 'hypermark.exe' }` shows
+   no orphan process (the `taskkill /T` path fired).
 4. `Get-ChildItem $env:TEMP\hypermark` is empty after a session that uploaded an image.
 5. `Get-ChildItem ~\.hypermark\drafts\*.deleted.json` contains nothing older than 30 days.
 

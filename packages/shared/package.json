@@ -28,7 +28,6 @@
     "./resolve-file": "./resolve-file.ts",
     "./annotate-reference-roots-node": "./annotate-reference-roots-node.ts",
     "./external-annotation": "./external-annotation.ts",
-    "./agent-terminal": "./agent-terminal.ts",
     "./config": "./config.ts",
     "./data-dir": "./data-dir.ts",
     "./prompts": "./prompts.ts",

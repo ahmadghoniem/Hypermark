@@ -1245,7 +1245,7 @@ describe("annotate server: durable submit records (#678)", () => {
 });
 
 describe("annotate server: guarded shutdown (runGuardedShutdown)", () => {
-  // Agent-terminal teardown is historically fragile (#1314); in a flat
+  // Teardown is historically fragile (#1314); in a flat
   // sequence a throw there would skip every disposal step after it. Each
   // step must run even when an earlier one throws, and the listener close
   // must run regardless.
@@ -1254,18 +1254,18 @@ describe("annotate server: guarded shutdown (runGuardedShutdown)", () => {
     const logged: string[] = [];
     runGuardedShutdown(
       [
-        ["agent terminal", () => {
-          ran.push("agent terminal");
-          throw new Error("pty teardown exploded");
+        ["step-one", () => {
+          ran.push("step-one");
+          throw new Error("teardown exploded");
         }],
         ["live proxy", () => ran.push("live proxy")],
       ],
       () => ran.push("listener"),
       (message) => logged.push(message),
     );
-    expect(ran).toEqual(["agent terminal", "live proxy", "listener"]);
+    expect(ran).toEqual(["step-one", "live proxy", "listener"]);
     // The failure is reported, named after the step that threw.
-    expect(logged.some((line) => line.includes("agent terminal"))).toBe(true);
+    expect(logged.some((line) => line.includes("step-one"))).toBe(true);
   });
 
   test("all steps clean: everything runs once in order, nothing is logged", () => {

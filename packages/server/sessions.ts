@@ -86,9 +86,7 @@ export function unregisterSession(pid: number = process.pid): void {
  * still removed either way — a dead PID has no business staying listed).
  */
 export function killSession(pid: number): boolean {
-  let killed = false;
-  // On Windows a terminated server can't dispose its agent-terminal sidecar,
-  // so kill the whole tree the way agent-terminal.ts does.
+  // On Windows, kill the whole process tree to ensure child processes exit cleanly.
   if (process.platform === "win32") {
     try {
       const result = Bun.spawnSync(["taskkill", "/T", "/F", "/PID", String(pid)], {

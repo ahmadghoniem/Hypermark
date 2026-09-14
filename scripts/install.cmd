@@ -711,8 +711,6 @@ if "!MINIMAL!"=="1" (
     exit /b 0
 )
 
-call :InstallAgentTerminalRuntime
-
 call :PrintPathAdvice
 
 REM Validate plugin hooks.json if plugin is already installed
@@ -1153,30 +1151,6 @@ if !ERRORLEVEL! neq 0 (
 )
 echo.
 echo To uninstall later: hypermark uninstall
-goto :eof
-
-REM ======================================================================
-REM Optional annotate agent terminal runtime install. Non-fatal: Hypermark
-REM remains installed if Node/npm or npm install is unavailable.
-REM ======================================================================
-:InstallAgentTerminalRuntime
-if /i "!HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL!"=="1" (
-    echo Skipping agent terminal runtime install ^(HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL is set^)
-    goto :eof
-)
-if /i "!HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL!"=="true" (
-    echo Skipping agent terminal runtime install ^(HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL is set^)
-    goto :eof
-)
-if /i "!HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL!"=="yes" (
-    echo Skipping agent terminal runtime install ^(HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL is set^)
-    goto :eof
-)
-
-"!INSTALL_PATH!" install-runtime agent-terminal
-if !ERRORLEVEL! neq 0 (
-    echo Skipping agent terminal runtime install ^(hypermark install-runtime failed^)
-)
 goto :eof
 
 REM ======================================================================

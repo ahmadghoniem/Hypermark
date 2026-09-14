@@ -15,7 +15,6 @@
     "./vcs": "./vcs.ts",
     "./repo": "./repo.ts",
     "./review-workspace": "./review-workspace.ts",
-    "./agent-terminal-runtime": "./agent-terminal-runtime.ts",
     "./uninstall": "./uninstall.ts",
     "./sessions": "./sessions.ts",
     "./project": "./project.ts",
@@ -28,7 +27,6 @@
   "dependencies": {
     "@pierre/diffs": "1.4.1",
     "@hypermark/shared": "workspace:*",
-    "@plannotator/webtui": "0.1.0",
     "jsonc-parser": "^3.3.1"
   },
   "peerDependencies": {

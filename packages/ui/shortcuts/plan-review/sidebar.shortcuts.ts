@@ -12,14 +12,6 @@ export const annotateSidebarShortcuts = defineShortcutScope({
       displayOrder: 10,
       preventDefault: true,
     },
-    toggleAgentTui: {
-      description: 'Toggle Agent TUI sidebar',
-      bindings: ['Shift Shift'],
-      section: 'Sidebar',
-      hint: 'Available when the Agent control is shown.',
-      displayOrder: 30,
-      preventDefault: true,
-    },
   },
 });
 

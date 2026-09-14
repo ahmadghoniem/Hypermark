@@ -9,7 +9,6 @@
     "./diff-files": "./diff-files.ts",
     "./annotatable": "./annotatable.ts",
     "./annotation-threads": "./annotation-threads.ts",
-    "./agent-terminal": "./agent-terminal.ts",
     "./browser-paths": "./browser-paths.ts",
     "./code-file": "./code-file.ts",
     "./embed-insert": "./embed-insert.ts",

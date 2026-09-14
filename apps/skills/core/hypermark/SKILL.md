@@ -113,7 +113,7 @@ hypermark improve-context
 ```
 
 - `uninstall` removes Hypermark-installed components (`--purge` also deletes local data; `--yes` is required without a TTY; `--dry-run` previews).
-- `improve-context` and `install-runtime` are internal integration commands (hook plumbing and managed runtime install). Never run `improve-context` directly; `hypermark install-runtime agent-terminal` exists for reinstalling the optional annotate-terminal runtime and is normally run by the installer.
+- `improve-context` is an internal integration command (hook plumbing). Never run `improve-context` directly.
 
 ## Environment variables that change behavior
 

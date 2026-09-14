@@ -44,14 +44,12 @@ import { createAnnotateDecisionSettler } from "@hypermark/shared/annotate-decisi
 import { SESSION_STREAM_PATH } from "@hypermark/shared/session-stream";
 import { createSessionStreamBroadcaster } from "./session-stream";
 import { startParentWatch, type ParentWatcher } from "./parent-watch";
-import { saveConfig, detectGitUser, getServerConfig, isAgentTerminalSide, loadConfig, resolveAnnotateHistory, resolveFeedbackHistory } from "./config";
+import { saveConfig, detectGitUser, getServerConfig, loadConfig, resolveAnnotateHistory, resolveFeedbackHistory } from "./config";
 import { appendFeedbackRecord, type FeedbackDecision, type FeedbackSurface } from "@hypermark/shared/feedback-archive";
 import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
 import { dirname, resolve as resolvePath } from "path";
 import { isWithinDirectory } from "@hypermark/shared/html-assets-node";
 import { createHtmlAssetRegistry } from "./html-assets";
-import { createBunAgentTerminalBridge } from "./agent-terminal";
-import { isAgentTerminalWsRoute, supportsAnnotateAgentTerminalMode } from "@hypermark/shared/agent-terminal";
 
 // Re-export utilities
 export { openBrowser } from "./browser";
@@ -120,8 +118,6 @@ export interface AnnotateServerOptions {
   /** Session-level force-markdown preference (`--markdown`). Exposed in /api/plan so the
    *  frontend appends `&convert=1` when navigating folder/linked HTML files. */
   convertHtml?: boolean;
-  /** CWD where the optional annotate agent terminal should launch. Defaults to process.cwd(). */
-  agentCwd?: string;
   /** Project name for keying per-file version history (powers the annotate version diff). */
   project?: string;
   /** Called when server starts with the URL and port */
@@ -150,8 +146,7 @@ export interface AnnotateServerResult {
 
 /**
  * Run shutdown disposal steps with per-step isolation, then close the
- * listener. One throwing step (agent-terminal teardown is historically
- * fragile, #1314) must never skip the steps after it — before this guard, a
+ * listener. One throwing step must never skip the steps after it — before this guard, a
  * throw mid-sequence orphaned the live proxy's listener and its upstream
  * WebSockets. Failures are reported through `log` (stderr by default) with
  * the step's name; `closeListener` runs unconditionally, even against a
@@ -347,10 +342,6 @@ export async function startAnnotateServer(
   };
   const externalAnnotations = createExternalAnnotationHandler("plan");
   const htmlAssets = createHtmlAssetRegistry();
-  const agentTerminal = await createBunAgentTerminalBridge({
-    enabled: supportsAnnotateAgentTerminalMode(mode),
-    cwd: agentCwd ?? process.cwd(),
-  });
 
   // The fallback is silent to the reviewer, so the reason is logged once per
   // process: a genuine bug in the read must not hide behind the snapshot.
@@ -569,16 +560,6 @@ export async function startAnnotateServer(
         async fetch(req, server) {
           const url = new URL(req.url);
 
-          if (agentTerminal.matches(url.pathname)) {
-            if (agentTerminal.capability.enabled && agentTerminal.upgrade(req, server)) {
-              return;
-            }
-            return new Response("Agent terminal is unavailable", { status: 404 });
-          }
-          if (isAgentTerminalWsRoute(url.pathname)) {
-            return new Response("Agent terminal is unavailable", { status: 404 });
-          }
-
           // API: Get plan content (reuse /api/plan so the plan editor UI works)
           if (url.pathname === "/api/plan" && req.method === "GET") {
             // Local rendered-HTML roots serve their current bytes (see
@@ -634,7 +615,6 @@ export async function startAnnotateServer(
               // sibling docs the same way it linkifies .md ones.
               markdownExtensions: getExtraMarkdownExtensions(),
               serverConfig: getServerConfig(gitUser),
-              agentTerminal: agentTerminal.capability,
               ...(recentMessages ? { recentMessages } : {}),
               // Resolved copy-wrapper templates (config-aware, placeholders
               // intact) so clipboard Copy matches what Send Feedback produces
@@ -724,14 +704,12 @@ export async function startAnnotateServer(
           // API: Update user config (write-back to ~/.hypermark/config.json)
           if (url.pathname === "/api/config" && req.method === "POST") {
             try {
-              const body = (await req.json()) as { displayName?: string; diffOptions?: Record<string, unknown>; theme?: Record<string, unknown>; favicon?: FaviconStyle; agentTerminalSide?: unknown; agentTerminalDefaultAgent?: unknown };
+              const body = (await req.json()) as { displayName?: string; diffOptions?: Record<string, unknown>; theme?: Record<string, unknown>; favicon?: FaviconStyle };
               const toSave: Record<string, unknown> = {};
               if (body.displayName !== undefined) toSave.displayName = body.displayName;
               if (body.diffOptions !== undefined) toSave.diffOptions = body.diffOptions;
               if (body.theme !== undefined) toSave.theme = body.theme;
               if (isFaviconStyle(body.favicon)) toSave.favicon = body.favicon;
-              if (isAgentTerminalSide(body.agentTerminalSide)) toSave.agentTerminalSide = body.agentTerminalSide;
-              if (typeof body.agentTerminalDefaultAgent === "string") toSave.agentTerminalDefaultAgent = body.agentTerminalDefaultAgent;
               if (Object.keys(toSave).length > 0) saveConfig(toSave as Parameters<typeof saveConfig>[0]);
               return Response.json({ ok: true });
             } catch {
@@ -1021,7 +999,6 @@ export async function startAnnotateServer(
             headers: { "Content-Type": "text/html" },
           });
         },
-        websocket: agentTerminal.websocket,
 
         error(err) {
           console.error("[hypermark] Server error:", err);
@@ -1044,8 +1021,7 @@ export async function startAnnotateServer(
 
   const stop = () => {
     // Every disposal step is guarded individually (runGuardedShutdown):
-    // agent-terminal teardown is historically fragile (#1314), and in a flat
-    // sequence one throwing step would skip everything after it. A failed
+    // one throwing step would skip everything after it. A failed
     // step is reported and the rest still run; the listener itself closes
     // regardless.
     runGuardedShutdown(
@@ -1057,7 +1033,6 @@ export async function startAnnotateServer(
         }],
         ["session stream", () => sessionStream.closeSessions()],
         ["parent watch", () => parentWatch?.stop()],
-        ["agent terminal", () => agentTerminal.dispose()],
         ["session uploads", () => {
           for (const uploadPath of sessionUploads) {
             try {

@@ -29,7 +29,6 @@ export const RELEASE_WORKSPACES = [
 export const SBOM_SENTINELS = [
   "@joplin/turndown-plugin-gfm",
   "@pierre/diffs",
-  "@plannotator/webtui",
   "marked",
 ];
 

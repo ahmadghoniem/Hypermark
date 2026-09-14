@@ -5,5 +5,4 @@ export {
   getServerConfig,
   resolveAnnotateHistory,
   resolveFeedbackHistory,
-  isAgentTerminalSide,
 } from "@hypermark/shared/config";

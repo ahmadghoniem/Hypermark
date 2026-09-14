@@ -39,7 +39,7 @@ MODEL_INVOCABLE_FLAG=""
 NON_INTERACTIVE=0
 RECONFIGURE=0
 # Binary-only mode. Installs just the hypermark binary (to $INSTALL_DIR) and
-# no persistent state elsewhere — no agent-terminal runtime, no
+# no persistent state elsewhere — no
 # skills, hooks, slash commands, or Claude configuration. Set by --minimal
 # (1) / --no-minimal (0); -1 = neither flag
 # given (fall through to the HYPERMARK_MINIMAL env var). Resolved after arg
@@ -77,8 +77,7 @@ Options:
                          (e.g. hypermark-review,hypermark-compound), or
                          "none". Skills are user-invoked-only by default.
   --minimal              Install only the hypermark binary (aliased
-                         --binary-only). Skips the agent-terminal runtime
-                         and every
+                         --binary-only). Skips every
                          integration (skills, hooks, slash commands, and the
                          Claude Code configuration). No
                          persistent state is written outside $HOME/.local/bin
@@ -119,11 +118,6 @@ gh login is required. The credential-free path needs one JSON tool on PATH
 (node, python3, or jq) to extract the bundle; without one, and whenever the
 public bundle fetch or bundle verification does not complete, gh's
 authenticated fetch runs as the fallback.
-
-The optional annotate agent terminal runtime is installed after Hypermark
-itself. Skip it by exporting HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL=1. If
-Node/npm is unavailable, Hypermark still installs and annotate mode works
-without the integrated terminal.
 
 Examples:
   curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash
@@ -271,8 +265,7 @@ done
 
 # Resolve binary-only mode. Precedence: --minimal / --no-minimal flag >
 # HYPERMARK_MINIMAL env var > default (off). The env var lets `curl ... | bash`
-# runs opt in without a flag, matching how HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL
-# work; --no-minimal lets a flag override an env var that enables it.
+# runs opt in without a flag; --no-minimal lets a flag override an env var that enables it.
 minimal=0
 case "${HYPERMARK_MINIMAL:-}" in
     1|true|yes|TRUE|YES|True|Yes) minimal=1 ;;
@@ -756,21 +749,6 @@ if [ "$minimal" -eq 1 ]; then
     echo "No skills, hooks, agent integrations, or config files were written."
     exit 0
 fi
-
-install_agent_terminal_runtime() {
-    case "${HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL:-}" in
-        1|true|yes|TRUE|YES|True|Yes)
-            echo "Skipping agent terminal runtime install (HYPERMARK_SKIP_AGENT_TERMINAL_INSTALL is set)"
-            return 0
-            ;;
-    esac
-
-    if ! "$INSTALL_DIR/hypermark" install-runtime agent-terminal; then
-        echo "Skipping agent terminal runtime install (hypermark install-runtime failed)"
-    fi
-}
-
-install_agent_terminal_runtime
 
 print_path_advice
 

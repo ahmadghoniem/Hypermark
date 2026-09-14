@@ -85,7 +85,6 @@ describe("CLI subcommand help", () => {
 
   test("ignores help flags for unknown / internal subcommands", () => {
     expect(isSubcommandHelpInvocation(["opencode-review", "--help"])).toBeNull();
-    expect(isSubcommandHelpInvocation(["install-runtime", "--help"])).toBeNull();
     expect(isSubcommandHelpInvocation(["--help"])).toBeNull();
     expect(isSubcommandHelpInvocation([])).toBeNull();
   });

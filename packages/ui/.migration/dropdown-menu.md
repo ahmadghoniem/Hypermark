@@ -31,14 +31,8 @@ commit; several flagged deltas on the published surface.
   already closes via its controlled `menuOpen` state);
   `Trigger asChild><button>` → `Trigger render={<button …/>}` with children
   hoisted onto the trigger.
-- `packages/editor/components/AnnotateAgentTerminalPanel.tsx` (consumer sweep)
-  — `Trigger asChild` → `render`; `onSelect` → `onClick` (default
-  `closeOnClick` keeps Radix's close-on-select for plain items);
-  `data-[state=open]:*` trigger classes → `data-[popup-open]:*`;
-  `min-w-[var(--radix-dropdown-menu-trigger-width)]` →
-  `min-w-[var(--anchor-width)]`.
 
-Leftover scan clean on all three files: `grep -n "radix-ui\|@radix-ui"` — no matches.
+Leftover scan clean on all files: `grep -n "radix-ui\|@radix-ui"` — no matches.
 
 ## Left alone
 
@@ -71,6 +65,4 @@ Leftover scan clean on all three files: `grep -n "radix-ui\|@radix-ui"` — no m
 - OpenInAppButton (review app file rows): pick an app → menu closes (via
   controlled state) and the app opens; Copy path works; closing the menu does
   NOT paint a focus ring on the chevron (finalFocus={false}).
-- Agent terminal panel (annotate mode): agent select opens, popup is at least
-  trigger-width, picking an agent closes the menu.
 - Typeahead: type a menu item's first letters — highlight jumps.
