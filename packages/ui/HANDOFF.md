@@ -26,7 +26,7 @@ If you read nothing else, read **"The 60-second version"**, **"Supported imports
 
 **New package: `@hypermark/core`** — a browser-safe, zero-dependency package carved out of `@hypermark/shared`. It holds the pure utilities and types `ui` depends on, so `ui` can be installed without dragging in Hypermark's Node/server code. Modules were moved with `git mv` (not copied). CI typechecks it with no `@types/node` so a `node:` import can't sneak in.
 
-Core modules: `agents`, `agent-terminal`, `browser-paths`, `code-file`, `external-annotation`, `extract-code-paths`, `favicon`, `feedback-templates`, `goal-setup`, `open-in-apps`, `project`, `source-save`, plus extracted type files (`config-types`, `storage-types`, `workspace-status-types`, `ai-context`, `types`).
+Core modules: `agents`, `agent-terminal`, `browser-paths`, `code-file`, `external-annotation`, `extract-code-paths`, `favicon`, `feedback-templates`, `open-in-apps`, `project`, `source-save`, plus extracted type files (`config-types`, `storage-types`, `workspace-status-types`, `ai-context`, `types`).
 
 **`@hypermark/shared` re-exports core via one-line shims** — e.g. `packages/shared/project.ts` is just `export * from '@hypermark/core/project';`. This is why none of Hypermark's ~99 internal import sites changed: they still import from `@hypermark/shared/*` and get the moved code transparently.
 
@@ -233,7 +233,6 @@ Don't import these in a host. Each hits hardcoded Hypermark endpoints:
 - `hooks/useArchive`, `components/sidebar/ArchiveBrowser` — `/api/archive/*`.
 - `hooks/useAgents` — `/api/agents`.
 - `components/ExportModal`, `components/OpenInAppButton` — `/api/open-in` (editor integrations).
-- `components/goal-setup/*` — Hypermark's goal-package scaffolding endpoints.
 - `hooks/useEditorAnnotations` — `/api/editor-annotations` (VS Code extension only).
 - `hooks/useLinkedDoc` — `/api/doc` directly (the `docPreviewFetcher` seam covers `InlineMarkdown`'s hover previews, **not** this full linked-doc overlay).
 - `hooks/useValidatedCodePaths` — `/api/doc/exists` (this is what `Viewer`'s `disableCodePathValidation` turns off).

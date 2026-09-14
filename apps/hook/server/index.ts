@@ -29,10 +29,6 @@
  *    - `--clean` removes stale session files
  *    - `--kill [N|all]` terminates a session's process (see sessions.ts)
  *
- * 7. Goal Setup (`hypermark setup-goal interview|facts <bundle.json>`):
- *    - Opens the bundled question or facts acceptance UI
- *    - Outputs structured JSON for setup-goal workflows
- *
  * 8. Improve Context (`hypermark improve-context`):
  *    - Spawned by PreToolUse hook on EnterPlanMode
  *    - Reads improvement hook file from ~/.hypermark/hooks/
@@ -63,17 +59,9 @@ import {
   startAnnotateServer,
   handleAnnotateServerReady,
 } from "@hypermark/server/annotate";
-import {
-  startGoalSetupServer,
-  handleGoalSetupServerReady,
-} from "@hypermark/server/goal-setup";
 import { type DiffType, detectManagedVcs, prepareLocalReviewDiff } from "@hypermark/server/vcs";
 import { loadConfig, resolveDefaultDiffType } from "@hypermark/shared/config";
 import { parseReviewArgs } from "@hypermark/shared/review-args";
-import {
-  normalizeGoalSetupBundle,
-  type GoalSetupStage,
-} from "@hypermark/shared/goal-setup";
 import {
   buildAmbiguousAnnotateArgsMessage,
   buildUnresolvedAnnotateArgsMessage,
@@ -238,17 +226,6 @@ const emitAnnotateOutcome = createAnnotateOutcomeEmitter({
   hook: hookFlag,
   json: jsonFlag,
 });
-
-async function loadGoalSetupBundle(
-  stage: GoalSetupStage,
-  bundlePath: string
-) {
-  const raw =
-    bundlePath === "-"
-      ? await Bun.stdin.text()
-      : await Bun.file(path.resolve(bundlePath)).text();
-  return normalizeGoalSetupBundle(JSON.parse(raw), stage);
-}
 
 if (isVersionInvocation(args)) {
   console.log(formatVersion());
@@ -454,69 +431,6 @@ if (args[0] === "sessions") {
     const age = Math.round((Date.now() - new Date(s.startedAt).getTime()) / 60000);
     const ageStr = age < 60 ? `${age}m` : `${Math.floor(age / 60)}h ${age % 60}m`;
     console.error(`  #${i + 1}  ${s.mode.padEnd(9)} ${s.project.padEnd(20)} ${s.url.padEnd(28)} ${ageStr} ago`);
-  }
-  console.error(`\nReopen with: hypermark sessions --open [N]`);
-  process.exit(0);
-
-} else if (args[0] === "setup-goal") {
-  // ============================================
-  // GOAL SETUP MODE
-  // ============================================
-
-  const stage = args[1] as GoalSetupStage | undefined;
-  const bundlePath = args[2];
-
-  if ((stage !== "interview" && stage !== "facts") || !bundlePath) {
-    console.error(
-      "Usage: hypermark setup-goal <interview|facts> <bundle.json | -> [--json]"
-    );
-    process.exit(1);
-  }
-
-  let bundle: Awaited<ReturnType<typeof loadGoalSetupBundle>>;
-  try {
-    bundle = await loadGoalSetupBundle(stage, bundlePath);
-  } catch (err) {
-    console.error(
-      `Failed to load goal setup bundle: ${err instanceof Error ? err.message : String(err)}`
-    );
-    process.exit(1);
-  }
-
-  const goalProject = (await detectProjectName()) ?? "_unknown";
-
-  const server = await startGoalSetupServer({
-    bundle,
-    origin: detectedOrigin,
-    htmlContent: planHtmlContent,
-    onReady: (url, port) => {
-      handleGoalSetupServerReady(url, port);
-    },
-  });
-
-  registerSession({
-    pid: process.pid,
-    port: server.port,
-    url: server.url,
-    mode: "goal-setup",
-    project: goalProject,
-    startedAt: new Date().toISOString(),
-    label: `goal-setup-${bundle.stage}-${bundle.goalSlug || goalProject}`,
-  });
-
-  const result = await server.waitForDecision();
-  await Bun.sleep(800);
-  server.stop();
-
-  if (result.exit) {
-    console.log(JSON.stringify({ decision: "dismissed", stage: bundle.stage }));
-  } else if (result.result) {
-    const output = {
-      decision: "submitted",
-      stage: result.result.stage,
-      result: result.result,
-    };
-    console.log(jsonFlag ? JSON.stringify(output) : JSON.stringify(output, null, 2));
   }
   process.exit(0);
 

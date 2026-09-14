@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Origin } from '@hypermark/shared/agents';
-import { FeedbackButton, ApproveButton, ExitButton } from '@hypermark/ui/components/ToolbarButtons';
+import { FeedbackButton, ApproveButton } from '@hypermark/ui/components/ToolbarButtons';
 import { DecisionControl, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import type { DecisionActionId, DecisionSpec } from '@hypermark/ui/utils/decisionSpec';
 import { PlanHeaderMenu } from '@hypermark/ui/components/PlanHeaderMenu';
@@ -37,10 +37,6 @@ interface AppHeaderProps {
   // Mode flags (stable after mount)
   isApiMode: boolean;
   annotateMode: boolean;
-  goalSetupMode: boolean;
-  goalSetupCanSubmit: boolean;
-  goalSetupIsSubmitting: boolean;
-  goalSetupSubmitLabel: string;
   origin: Origin | null;
 
   // Dynamic state
@@ -64,8 +60,6 @@ interface AppHeaderProps {
   };
 
   // Handlers — App owns all decision logic, header just calls these
-  onGoalSetupExit: () => void;
-  onGoalSetupSubmit: () => void;
   onFeedback: () => void;
   onApprove: () => void;
   onAnnotationPanelToggle: () => void;
@@ -87,10 +81,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   onRefreshHtml,
   isApiMode,
   annotateMode,
-  goalSetupMode,
-  goalSetupCanSubmit,
-  goalSetupIsSubmitting,
-  goalSetupSubmitLabel,
   origin,
   isSubmitting,
   isExiting,
@@ -100,8 +90,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   agentName,
   showAnnotationsWarning,
   annotateDecision,
-  onGoalSetupExit,
-  onGoalSetupSubmit,
   onFeedback,
   onApprove,
   onAnnotationPanelToggle,
@@ -118,28 +106,7 @@ export const AppHeader = React.memo<AppHeaderProps>(({
       </div>
 
       <div className="flex items-center gap-1 md:gap-2">
-        {isApiMode && !linkedDocIsActive && goalSetupMode && (
-          <>
-            <ExitButton
-              onClick={onGoalSetupExit}
-              disabled={isExiting || goalSetupIsSubmitting}
-              isLoading={isExiting}
-              title="Close goal setup without submitting"
-            />
-            <ApproveButton
-              onClick={onGoalSetupSubmit}
-              disabled={!goalSetupCanSubmit || goalSetupIsSubmitting || isExiting}
-              isLoading={goalSetupIsSubmitting}
-              label={goalSetupSubmitLabel}
-              loadingLabel="Submitting..."
-              mobileLabel="Submit"
-              title={goalSetupSubmitLabel}
-            />
-            <div className="w-px h-5 bg-border/50 mx-1 hidden md:block" />
-          </>
-        )}
-
-        {isApiMode && (!linkedDocIsActive || annotateMode) && !goalSetupMode && (
+        {isApiMode && (!linkedDocIsActive || annotateMode) && (
           <>
             {annotateMode ? (
               annotateDecision && (
@@ -200,26 +167,24 @@ export const AppHeader = React.memo<AppHeaderProps>(({
         )}
 
         {/* Annotations panel toggle */}
-        {!goalSetupMode && (
-          <button
-            onClick={onAnnotationPanelToggle}
-            className={`relative p-1.5 rounded-md text-xs font-medium transition-all ${
-              isPanelOpen
-                ? 'bg-primary/15 text-primary'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            }`}
-            title={isPanelOpen ? 'Hide annotations' : 'Show annotations'}
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-            </svg>
-            {annotationCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-primary text-[8px] font-bold text-primary-foreground px-0.5">
-                {annotationCount > 99 ? '99+' : annotationCount}
-              </span>
-            )}
-          </button>
-        )}
+        <button
+          onClick={onAnnotationPanelToggle}
+          className={`relative p-1.5 rounded-md text-xs font-medium transition-all ${
+            isPanelOpen
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+          }`}
+          title={isPanelOpen ? 'Hide annotations' : 'Show annotations'}
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+          </svg>
+          {annotationCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-primary text-[8px] font-bold text-primary-foreground px-0.5">
+              {annotationCount > 99 ? '99+' : annotationCount}
+            </span>
+          )}
+        </button>
 
         <ThemeModeButton />
 

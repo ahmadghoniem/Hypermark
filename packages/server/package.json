@@ -10,7 +10,6 @@
     "./review": "./review.ts",
     "./annotate": "./annotate.ts",
     "./browser": "./browser.ts",
-    "./goal-setup": "./goal-setup.ts",
     "./storage": "./storage.ts",
     "./git": "./git.ts",
     "./p4": "./p4.ts",

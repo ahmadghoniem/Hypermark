@@ -114,12 +114,10 @@ Lists active Hypermark server sessions. `--open` reopens session N (default 1) i
 ## Other subcommands
 
 ```bash
-hypermark setup-goal <interview|facts> <bundle.json | -> [--json]
 hypermark uninstall [--purge] [--yes] [--dry-run]
 hypermark improve-context
 ```
 
-- `setup-goal` opens the interview or facts-acceptance UI for /goal workflows; it is driven by the `hypermark-setup-goal` skill and takes a bundle JSON (`-` reads stdin). Do not hand-build bundles.
 - `uninstall` removes Hypermark-installed components (`--purge` also deletes local data; `--yes` is required without a TTY; `--dry-run` previews).
 - `improve-context` and `install-runtime` are internal integration commands (hook plumbing and managed runtime install). Never run `improve-context` directly; `hypermark install-runtime agent-terminal` exists for reinstalling the optional annotate-terminal runtime and is normally run by the installer.
 

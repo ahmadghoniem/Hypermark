@@ -7,7 +7,6 @@
     "./components/*": "./components/*.tsx",
     "./components/ui/*": "./components/ui/*.tsx",
     "./components/core/*": "./components/core/*.tsx",
-    "./components/goal-setup/*": "./components/goal-setup/*.tsx",
     "./components/html-viewer": "./components/html-viewer/index.ts",
     "./components/html-viewer/bridge-script": "./components/html-viewer/bridge-script.ts",
     "./components/html-viewer/bridge-script.asset.js": "./components/html-viewer/bridge-script.asset.js",

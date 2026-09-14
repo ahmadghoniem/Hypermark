@@ -8,7 +8,7 @@
  * the retained packages/server source, which is the only way this transport
  * could resurface without a caller anywhere producing sharingEnabled /
  * shareBaseUrl / pasteApiUrl options (those were removed from
- * review.ts/annotate.ts/index.ts/goal-setup.ts).
+ * review.ts/annotate.ts/index.ts).
  */
 import { describe, test, expect } from "bun:test";
 import { readdirSync, readFileSync, existsSync } from "node:fs";

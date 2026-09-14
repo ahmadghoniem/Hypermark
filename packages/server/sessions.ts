@@ -20,7 +20,7 @@ export interface SessionInfo {
   pid: number;
   port: number;
   url: string;
-  mode: "plan" | "review" | "annotate" | "goal-setup";
+  mode: "plan" | "review" | "annotate";
   project: string;
   startedAt: string;
   label: string;
