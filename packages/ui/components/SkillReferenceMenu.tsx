@@ -4,7 +4,6 @@ import type { SkillCatalogEntry } from '../utils/skillReferences';
 /** Which skill root a row came from, shown as the right-aligned source column. */
 const ROOT_LABELS: Record<SkillCatalogEntry['root'], string> = {
   claude: 'Claude',
-  codex: 'Codex',
   universal: 'Agents',
 };
 

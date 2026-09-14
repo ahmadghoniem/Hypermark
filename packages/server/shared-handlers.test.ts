@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
 import {
   handleFavicon,
   handleServerReady,
-  isCodexDesktopHost,
   writeServerReadyMetadata,
 } from "./shared-handlers";
 import { CLASSIC_FAVICON_SVG } from "@hypermark/shared/favicon";
@@ -34,45 +33,27 @@ describe("writeServerReadyMetadata", () => {
 });
 
 describe("handleServerReady", () => {
-  test("detects the Codex Desktop app host", () => {
-    expect(isCodexDesktopHost({ __CFBundleIdentifier: "com.openai.codex" })).toBe(true);
-    expect(isCodexDesktopHost({ __CFBundleIdentifier: "com.apple.Terminal" })).toBe(false);
-  });
-
   test("does not open a browser when host-plugin mode handles it", async () => {
     let opened = false;
-    const originalBundleIdentifier = process.env.__CFBundleIdentifier;
-    process.env.__CFBundleIdentifier = "com.apple.Terminal";
 
-    try {
-      await handleServerReady("http://localhost:12345", 12345, {
-        skipBrowserOpen: true,
-        openBrowser: async () => {
-          opened = true;
-        },
-      });
-    } finally {
-      if (originalBundleIdentifier === undefined) {
-        delete process.env.__CFBundleIdentifier;
-      } else {
-        process.env.__CFBundleIdentifier = originalBundleIdentifier;
-      }
-    }
+    await handleServerReady("http://localhost:12345", 12345, {
+      skipBrowserOpen: true,
+      openBrowser: async () => {
+        opened = true;
+      },
+    });
 
     expect(opened).toBe(false);
   });
-
 
   test("does not print the URL for a local session when the browser opens", async () => {
     const writes: string[] = [];
     let opened = "";
     const original = process.stderr.write.bind(process.stderr);
-    const originalBundleIdentifier = process.env.__CFBundleIdentifier;
     (process.stderr as { write: unknown }).write = (chunk: unknown) => {
       writes.push(String(chunk));
       return true;
     };
-    process.env.__CFBundleIdentifier = "com.apple.Terminal";
     try {
       await handleServerReady("http://localhost:3000", 3000, {
         openBrowser: async (u: string) => {
@@ -82,38 +63,9 @@ describe("handleServerReady", () => {
       });
     } finally {
       (process.stderr as { write: unknown }).write = original;
-      if (originalBundleIdentifier === undefined) {
-        delete process.env.__CFBundleIdentifier;
-      } else {
-        process.env.__CFBundleIdentifier = originalBundleIdentifier;
-      }
     }
     expect(writes.join("")).not.toContain("http://localhost:3000");
     expect(opened).toBe("http://localhost:3000");
-  });
-
-  test("prints the URL for a local Codex Desktop session even when the browser opens", async () => {
-    const writes: string[] = [];
-    const originalWrite = process.stderr.write.bind(process.stderr);
-    const originalBundleIdentifier = process.env.__CFBundleIdentifier;
-    (process.stderr as { write: unknown }).write = (chunk: unknown) => {
-      writes.push(String(chunk));
-      return true;
-    };
-    process.env.__CFBundleIdentifier = "com.openai.codex";
-    try {
-      await handleServerReady("http://localhost:3000", 3000, {
-        openBrowser: async () => true,
-      });
-    } finally {
-      (process.stderr as { write: unknown }).write = originalWrite;
-      if (originalBundleIdentifier === undefined) {
-        delete process.env.__CFBundleIdentifier;
-      } else {
-        process.env.__CFBundleIdentifier = originalBundleIdentifier;
-      }
-    }
-    expect(writes.join("")).toContain("http://localhost:3000");
   });
 
   // Regression: a local session whose browser can't be opened (headless box,

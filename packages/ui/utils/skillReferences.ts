@@ -14,7 +14,7 @@
  * pre-feature behavior byte-for-byte.
  */
 
-export type SkillRootId = 'claude' | 'codex' | 'universal';
+export type SkillRootId = 'claude' | 'universal';
 
 export interface SkillCatalogEntry {
   name: string;
