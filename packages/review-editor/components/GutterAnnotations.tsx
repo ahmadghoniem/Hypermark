@@ -233,10 +233,12 @@ export const GutterAnnotationMarker: React.FC<GutterAnnotationMarkerProps> = ({
         style={{
           position: 'absolute',
           // Sit on the annotated line itself, which is the row above this
-          // zero-height slot.
+          // zero-height slot: bottom 0 already puts the box above the slot, so
+          // no translate (one used to lift it a further row, onto the line
+          // above). The 22px hit box pads the visible marker by 2px vertically
+          // and 4px horizontally; left -2 keeps the marker's edge at 2px.
           bottom: 0,
-          left: 2,
-          transform: 'translateY(-100%)',
+          left: -2,
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
