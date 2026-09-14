@@ -744,14 +744,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             <button
               type="button"
               onClick={() => {}}
-              title="Rewrite the comment"
-              className="rounded-md border border-success/30 bg-success/10 px-[9px] py-[5px] text-[11.5px] font-medium text-success transition-colors hover:bg-success/20"
-            >
-              Improve
-            </button>
-            <button
-              type="button"
-              onClick={() => {}}
               title="Ask about this line"
               className="rounded-md border border-destructive/30 bg-destructive/10 px-[9px] py-[5px] text-[11.5px] font-medium text-destructive transition-colors hover:bg-destructive/20"
             >
