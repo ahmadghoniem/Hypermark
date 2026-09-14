@@ -9,7 +9,7 @@
  */
 
 import { join } from "path";
-import { mkdirSync, writeFileSync, readFileSync, renameSync, unlinkSync, existsSync } from "fs";
+import { mkdirSync, writeFileSync, readFileSync, renameSync, unlinkSync, existsSync, readdirSync, statSync } from "fs";
 import { createHash } from "crypto";
 import { getHypermarkDataDir } from "./data-dir";
 
@@ -149,6 +149,25 @@ export function deleteDraft(key: string, draftGeneration?: number): void {
     if (existsSync(filePath)) unlinkSync(filePath);
     if (generation !== null) writeTombstoneGeneration(key, generation);
     else clearTombstone(key);
+
+    // Prune tombstones older than 30 days in the drafts directory
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    try {
+      const dir = getDraftDir();
+      const files = readdirSync(dir);
+      const now = Date.now();
+      for (const file of files) {
+        if (file.endsWith(".deleted.json")) {
+          const tombstone = join(dir, file);
+          try {
+            const stat = statSync(tombstone);
+            if (now - stat.mtimeMs > THIRTY_DAYS_MS) {
+              unlinkSync(tombstone);
+            }
+          } catch {}
+        }
+      }
+    } catch {}
   } catch {
     // Ignore delete failures
   }

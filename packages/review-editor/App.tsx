@@ -25,6 +25,7 @@ import { configStore, useConfigValue, setReviewPanelView } from '@hypermark/ui/c
 import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, TokenAnnotationMeta, type ImageAttachment } from '@hypermark/ui/types';
 import { useResizablePanel } from '@hypermark/ui/hooks/useResizablePanel';
 import { useCodeAnnotationDraft } from '@hypermark/ui/hooks/useCodeAnnotationDraft';
+import { useSessionEndedStream } from '@hypermark/ui/hooks/useSessionEndedStream';
 import { generateId } from './utils/generateId';
 import { toast, Toaster } from 'sonner';
 import { useCodeNav, type CodeNavRequest } from './hooks/useCodeNav';
@@ -499,18 +500,37 @@ const ReviewAppInner: React.FC = () => {
   const allAnnotationsRef = useRef(allAnnotations);
   allAnnotationsRef.current = allAnnotations;
 
+  const handleRestoreDraftRef = useRef<(draft?: any, meta?: any) => void>(() => {});
   // Auto-save code annotation drafts
-  const { draftBanner, restoreDraft, getDraftGeneration, dismissDraft } = useCodeAnnotationDraft({
+  const { restoreDraft, getDraftGeneration, discardDraft, flushDraft } = useCodeAnnotationDraft({
     annotations: allAnnotations,
     isApiMode: !!origin,
     submitted: !!submitted,
+    onDraftLoaded: (draft, meta) => handleRestoreDraftRef.current(draft, meta),
   });
 
-  const handleRestoreDraft = useCallback(() => {
+  const handleRestoreDraft = useCallback((
+    loadedDraft?: { annotations: CodeAnnotation[] },
+    meta?: { count: number; timeAgo: string },
+  ) => {
     reviewHistory.clear();
-    const restored = restoreDraft();
+    const restored = loadedDraft ?? restoreDraft();
     if (restored.annotations.length > 0) setAnnotations(restored.annotations);
-  }, [restoreDraft, reviewHistory]);
+    const count = meta?.count ?? restored.annotations.length;
+    if (count > 0) {
+      toast(`Restored ${count} annotation${count !== 1 ? 's' : ''} from ${meta?.timeAgo ?? 'earlier'}`, {
+        action: {
+          label: 'Discard',
+          onClick: () => {
+            discardDraft();
+            setAnnotations([]);
+            reviewHistory.clear();
+          },
+        },
+      });
+    }
+  }, [restoreDraft, reviewHistory, discardDraft]);
+  handleRestoreDraftRef.current = handleRestoreDraft;
 
   const codeNav = useCodeNav();
   const handleCodeNavRequest = useCallback((request: CodeNavRequest) => {
@@ -1684,6 +1704,16 @@ const ReviewAppInner: React.FC = () => {
     }
   }, [getDraftGeneration]);
 
+  // Session-ended: the parent watcher (packages/server/parent-watch.ts)
+  // announces when the Claude Code process that owns this session has
+  // exited. Flush the draft first, then show the same "Session Closed"
+  // overlay a manual exit shows. Stops listening once a decision is in.
+  const handleSessionEnded = useCallback(() => {
+    flushDraft();
+    setSubmitted('exited');
+  }, [flushDraft]);
+  useSessionEndedStream(submitted === false, handleSessionEnded);
+
   // Approve — bare (LGTM), with a composer note, or with the live annotations
   // riding along (PR5 delivery, spec §6.4). The old LGTM placeholder is gone:
   // consumers now print approve-time feedback, so a bare approval must send
@@ -2335,16 +2365,6 @@ const ReviewAppInner: React.FC = () => {
                 </div>
               </div>
             )}
-            <ConfirmDialog
-              isOpen={!!draftBanner}
-              onClose={dismissDraft}
-              onConfirm={handleRestoreDraft}
-              title="Draft Recovered"
-              message={draftBanner ? `Found ${draftBanner.count} annotation${draftBanner.count !== 1 ? 's' : ''} from ${draftBanner.timeAgo}. Would you like to restore them?` : ''}
-              confirmText="Restore"
-              cancelText="Dismiss"
-              showCancel
-            />
             {files.length > 0 ? (
               <DockviewReact
                 className={`h-full ${resolvedMode === 'light' ? 'dockview-theme-light' : 'dockview-theme-dark'}`}

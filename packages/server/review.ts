@@ -12,6 +12,7 @@ import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } 
 import type { Origin } from "@hypermark/shared/agents";
 import { type DiffType, type GitContext, runVcsDiff, getVcsFileContentsForDiff, getVcsDiffFingerprint, resolveVcsCwd, validateFilePath, getVcsContext, detectRemoteDefaultCompareTarget, vcsOwnsDiffType, gitRuntime } from "./vcs";
 import { basename } from "node:path";
+import { existsSync, unlinkSync } from "node:fs";
 import { SingleFlight } from "@hypermark/shared/single-flight";
 import {
   isSameCwdCommitSwitch,
@@ -45,6 +46,9 @@ import { appendFeedbackRecord, countChangedFiles, deriveFeedbackProject, type Fe
 import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
 import type { LocalWorkspaceReview, WorkspaceDiffType } from "./review-workspace";
 import { handleCodeNavResolve, extractChangedFiles } from "./code-nav";
+import { SESSION_STREAM_PATH } from "@hypermark/shared/session-stream";
+import { createSessionStreamBroadcaster } from "./session-stream";
+import { startParentWatch, type ParentWatcher } from "./parent-watch";
 
 // Re-export utilities
 export { openBrowser } from "./browser";
@@ -103,6 +107,21 @@ export interface ReviewServerOptions {
   agentCwd?: string;
   /** Cleanup callback invoked when server stops (e.g., remove temp worktree) */
   onCleanup?: () => void | Promise<void>;
+  /**
+   * Enable the stale-session reaper (see ./parent-watch.ts). Off by default
+   * — see the identical option on AnnotateServerOptions in ./annotate.ts
+   * for the full rationale (dozens of tests start this server directly and
+   * must not get a background poller they never asked for). Pass `true`
+   * in production or an overrides object in tests.
+   */
+  parentWatch?:
+    | boolean
+    | {
+        parentPid?: number;
+        pollIntervalMs?: number;
+        graceMs?: number;
+        isAlive?: (pid: number) => boolean;
+      };
 }
 
 export interface ReviewServerResult {
@@ -491,6 +510,7 @@ export async function startReviewServer(
   };
 
   let serverUrl = "";
+  const sessionUploads = new Set<string>();
   const resolveAgentCwd = (): string => {
     if (workspace) return workspace.root;
     return options.agentCwd ?? resolveVcsCwd(currentDiffType as DiffType, gitContext?.cwd) ?? process.cwd();
@@ -617,6 +637,12 @@ export async function startReviewServer(
   }>((resolve) => {
     resolveDecision = resolve;
   });
+
+  // Session-ended stream: announces on /api/session/stream when the parent
+  // watcher below detects the Claude Code process that owns this review is
+  // gone (see ./parent-watch.ts). Review has no client-lease of its own —
+  // this is the only tab-abandonment signal it advertises.
+  const sessionStream = createSessionStreamBroadcaster();
 
   const server = await startBunServerOnAvailablePort((port) =>
     Bun.serve({
@@ -1149,7 +1175,7 @@ export async function startReviewServer(
 
           // API: Upload image -> save to temp -> return path
           if (url.pathname === "/api/upload" && req.method === "POST") {
-            return handleUpload(req);
+            return handleUpload(req, sessionUploads);
           }
 
           // API: Annotation draft persistence
@@ -1160,6 +1186,12 @@ export async function startReviewServer(
           }
 
 
+
+          // API: Session-ended SSE — see packages/shared/session-stream.ts and
+          // ./parent-watch.ts.
+          if (url.pathname === SESSION_STREAM_PATH && req.method === "GET") {
+            return sessionStream.handleRequest();
+          }
 
           // API: External annotations (SSE-based, for any external tool)
           const externalResponse = await externalAnnotations.handle(req, url, {
@@ -1247,7 +1279,16 @@ export async function startReviewServer(
   const port = server.port!;
   serverUrl = buildAdvertisedUrl(port);
 
+  let parentWatch: ParentWatcher | null = null;
+
   const stop = () => {
+    for (const uploadPath of sessionUploads) {
+      try {
+        if (existsSync(uploadPath)) unlinkSync(uploadPath);
+      } catch {}
+    }
+    sessionStream.closeSessions();
+    parentWatch?.stop();
     server.stop();
     // Invoke cleanup callback (e.g., remove temp worktree)
     if (options.onCleanup) {
@@ -1257,6 +1298,24 @@ export async function startReviewServer(
       } catch { /* best effort */ }
     }
   };
+
+  // Stale-session reaper: when the Claude Code process that spawned this
+  // server is gone, announce on the session stream immediately, then settle
+  // the pending decision as dismissed and exit after the grace period.
+  if (options.parentWatch) {
+    const cfg = options.parentWatch === true ? {} : options.parentWatch;
+    parentWatch = startParentWatch({
+      parentPid: cfg.parentPid,
+      pollIntervalMs: cfg.pollIntervalMs,
+      graceMs: cfg.graceMs,
+      isAlive: cfg.isAlive,
+      onParentGone: () => sessionStream.announceSessionEnded(),
+      onGone: () => {
+        resolveDecision({ approved: false, feedback: "", annotations: [], exit: true });
+        stop();
+      },
+    });
+  }
 
   // Notify caller that server is ready. An async ready handler that rejects
   // must stop the server and propagate: firing-and-forgetting it would leave

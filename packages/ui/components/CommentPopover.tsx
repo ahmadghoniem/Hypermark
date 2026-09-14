@@ -85,7 +85,45 @@ const MAX_POPOVER_WIDTH = 384;
 const GAP = 8;
 
 // Module-level draft store: survives popover unmount so reopening the same key restores in-progress text.
-const draftStore = new Map<string, { text: string; images: ImageAttachment[] }>();
+export interface ComposerDraftEntry {
+  key: string;
+  text: string;
+  images: ImageAttachment[];
+}
+
+export type DraftStoreListener = (entry: ComposerDraftEntry | null) => void;
+
+class DraftStore {
+  private entries = new Map<string, { text: string; images: ImageAttachment[] }>();
+  private listeners = new Set<DraftStoreListener>();
+
+  get(key: string): { text: string; images: ImageAttachment[] } | undefined {
+    return this.entries.get(key);
+  }
+
+  set(key: string, value: { text: string; images: ImageAttachment[] }): void {
+    this.entries.set(key, value);
+  }
+
+  delete(key: string): void {
+    this.entries.delete(key);
+  }
+
+  notify(entry: ComposerDraftEntry | null): void {
+    for (const listener of this.listeners) {
+      listener(entry);
+    }
+  }
+
+  subscribe(listener: DraftStoreListener): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+}
+
+export const draftStore = new DraftStore();
 
 /** Mirrors the latest text + images into `draftStore[draftKey]` so they outlive popover unmount. No-op without a key. */
 function useCommentDraftSync(draftKey: string | undefined, text: string, images: ImageAttachment[]) {
@@ -93,8 +131,10 @@ function useCommentDraftSync(draftKey: string | undefined, text: string, images:
     if (!draftKey) return;
     if (hasUnsavedCommentContent(text, images)) {
       draftStore.set(draftKey, { text, images });
+      draftStore.notify({ key: draftKey, text, images });
     } else {
       draftStore.delete(draftKey);
+      draftStore.notify(null);
     }
   }, [draftKey, text, images]);
 }
@@ -396,6 +436,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           draftStore.set(draftKey, { text, images: allowImages ? images : [] });
         } else {
           draftStore.delete(draftKey);
+          draftStore.notify(null);
         }
       }
       onClose();
@@ -532,7 +573,10 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   const handleSubmit = useCallback(() => {
     const canSubmitEmpty = allowEmptySubmit && initialText.trim().length > 0;
     if (hasUnsavedContent || canSubmitEmpty) {
-      if (draftKey) draftStore.delete(draftKey);
+      if (draftKey) {
+        draftStore.delete(draftKey);
+        draftStore.notify(null);
+      }
       onSubmit(text, allowImages && images.length > 0 ? images : undefined);
       restoreOpeningFocus();
     }

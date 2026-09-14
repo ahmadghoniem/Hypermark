@@ -261,10 +261,20 @@ async function startNodeAgentTerminalSidecar(
       dispose() {
         if (didDispose) return;
         didDispose = true;
+        if (process.platform === "win32") {
+          try {
+            Bun.spawnSync(["taskkill", "/T", "/F", "/PID", String(proc.pid)]);
+          } catch {}
+        }
         proc.kill();
       },
     };
   } catch (err) {
+    if (process.platform === "win32") {
+      try {
+        Bun.spawnSync(["taskkill", "/T", "/F", "/PID", String(proc.pid)]);
+      } catch {}
+    }
     proc.kill();
     throw err;
   }

@@ -11,6 +11,7 @@
  */
 
 import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./server-port";
+import { existsSync, unlinkSync } from "fs";
 import { getRepoInfo } from "./repo";
 import type { Origin } from "@hypermark/shared/agents";
 import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, handleReferenceSkills, handleReferenceSkillContent, handleSaveNotes, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
@@ -42,6 +43,9 @@ import {
   type AnnotateClientLeaseStreamSession,
 } from "@hypermark/shared/annotate-client-lease";
 import { createAnnotateDecisionSettler } from "@hypermark/shared/annotate-decision";
+import { SESSION_STREAM_PATH } from "@hypermark/shared/session-stream";
+import { createSessionStreamBroadcaster } from "./session-stream";
+import { startParentWatch, type ParentWatcher } from "./parent-watch";
 import { saveConfig, detectGitUser, getServerConfig, isAgentTerminalSide, loadConfig, resolveAnnotateHistory, resolveFeedbackHistory } from "./config";
 import { appendFeedbackRecord, type FeedbackDecision, type FeedbackSurface } from "@hypermark/shared/feedback-archive";
 import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
@@ -110,18 +114,32 @@ export interface AnnotateServerOptions {
   /** Whether this transport can deliver feedback attached to an approval. */
   approvalNotesSupported?: boolean;
   /**
-   * Whether this transport can safely resolve an abandoned gate automatically.
-   * Only direct structured annotate gates (`--gate --json`, not `--hook`)
-   * qualify — see supportsAnnotateClientLease in
-   * apps/hook/server/annotate-output.ts.
-   */
-  clientLeaseSupported?: boolean;
-  /**
    * @internal Test-only timing overrides for the client-lease grace/heartbeat
    * period. Production always uses the real 30s/5s defaults; tests inject
    * short values so they don't have to sleep for the real grace period.
    */
   clientLeaseTestOverrides?: { graceMs?: number; heartbeatMs?: number };
+  /**
+   * Enable the stale-session reaper (see ./parent-watch.ts): polls the
+   * Claude Code process (or an injected `parentPid`) and settles the
+   * pending decision as dismissed once it's gone. Off by default — pass
+   * `true` (production; resolves its own parent PID and uses the real 5s
+   * poll / 10s grace defaults) or an overrides object (tests: a fixed
+   * `parentPid` and fake `isAlive` so they never depend on real OS process
+   * state, and short timings so they don't sleep for the real grace
+   * period). Defaulting to off means the dozens of tests that start this
+   * server directly never get a background poller or OS process-table
+   * spawn they never asked for; the CLI (apps/hook/server/index.ts) is the
+   * one caller that turns this on for every real session.
+   */
+  parentWatch?:
+    | boolean
+    | {
+        parentPid?: number;
+        pollIntervalMs?: number;
+        graceMs?: number;
+        isAlive?: (pid: number) => boolean;
+      };
   /** Raw HTML content for direct iframe rendering. */
   rawHtml?: string;
   /** Render HTML as-is in an iframe. */
@@ -214,6 +232,7 @@ export async function startAnnotateServer(
     gate = false,
     approvalNotesSupported = false,
     clientLeaseTestOverrides,
+    parentWatch: parentWatchOption,
     rawHtml,
     renderHtml = false,
     convertHtml = false,
@@ -223,11 +242,8 @@ export async function startAnnotateServer(
     onReady,
   } = options;
 
-  // The single decision point both the /api/plan advert and the SSE endpoint
-  // below read.
-  const clientLeaseSupported = options.clientLeaseSupported ?? false;
-
   const gitUser = detectGitUser();
+  const sessionUploads = new Set<string>();
 
   // Per-file version history → powers the native version diff in annotate mode.
   // Unlike the plan flow (slug = first-heading + date), annotate keys history by
@@ -619,6 +635,11 @@ export async function startAnnotateServer(
     { graceMs: clientLeaseGraceMs },
   );
 
+  // Session-ended stream: announces on /api/session/stream (distinct from
+  // the client-lease stream above, which detects the *tab* going away) when
+  // the parent watcher below detects the *Claude Code process* is gone.
+  const sessionStream = createSessionStreamBroadcaster();
+
   // Live app session state, populated after the annotate port is known (the
   // editor origins carry the port) and before onReady advertises the URL.
   let liveProxy: LiveAppProxy | null = null;
@@ -662,9 +683,7 @@ export async function startAnnotateServer(
               liveToken: liveSessionToken,
               gate,
               approvalNotesSupported,
-              clientLease: clientLeaseSupported
-                ? { enabled: true as const, reconnectGraceMs: clientLeaseGraceMs }
-                : { enabled: false as const },
+              clientLease: { enabled: true as const, reconnectGraceMs: clientLeaseGraceMs },
               convertHtml: false,
               repoInfo,
               projectRoot: process.cwd(),
@@ -712,9 +731,7 @@ export async function startAnnotateServer(
               sourceSave: primarySource.sourceSave,
               gate,
               approvalNotesSupported,
-              clientLease: clientLeaseSupported
-                ? { enabled: true as const, reconnectGraceMs: clientLeaseGraceMs }
-                : { enabled: false as const },
+              clientLease: { enabled: true as const, reconnectGraceMs: clientLeaseGraceMs },
               renderAs: displayRawHtml ? 'html' as const : 'markdown' as const,
               ...(displayRawHtml ? { rawHtml: displayRawHtml } : {}),
               ...(diffHtml ? { diffHtml } : {}),
@@ -982,7 +999,7 @@ export async function startAnnotateServer(
 
           // API: Upload image -> save to temp -> return path
           if (url.pathname === "/api/upload" && req.method === "POST") {
-            return handleUpload(req);
+            return handleUpload(req, sessionUploads);
           }
 
           // API: Annotation draft persistence
@@ -997,10 +1014,6 @@ export async function startAnnotateServer(
           // and serve this; other transports get a 404 (idleTimeout is already 0
           // for the whole server above, so no per-connection opt-out is needed).
           if (url.pathname === ANNOTATE_CLIENT_LEASE_STREAM_PATH && req.method === "GET") {
-            if (!clientLeaseSupported) {
-              return new Response("Client lease unavailable", { status: 404 });
-            }
-
             const encoder = new TextEncoder();
             let session: AnnotateClientLeaseStreamSession | null = null;
 
@@ -1025,6 +1038,13 @@ export async function startAnnotateServer(
                 Connection: "keep-alive",
               },
             });
+          }
+
+          // API: Session-ended SSE — see packages/shared/session-stream.ts and
+          // ./parent-watch.ts. Server→client only: announces when the Claude
+          // Code process that owns this session has exited.
+          if (url.pathname === SESSION_STREAM_PATH && req.method === "GET") {
+            return sessionStream.handleRequest();
           }
 
           // API: External annotations (SSE-based, for any external tool)
@@ -1203,6 +1223,8 @@ export async function startAnnotateServer(
   // walk yields between directories while requests remain serviceable.
   void warmFileListCache(process.cwd(), "code");
 
+  let parentWatch: ParentWatcher | null = null;
+
   const stop = () => {
     // Every disposal step is guarded individually (runGuardedShutdown):
     // agent-terminal teardown is historically fragile (#1314), and in a flat
@@ -1217,12 +1239,41 @@ export async function startAnnotateServer(
           clientLease.cancel();
           clientLease.closeSessions();
         }],
+        ["session stream", () => sessionStream.closeSessions()],
+        ["parent watch", () => parentWatch?.stop()],
         ["agent terminal", () => agentTerminal.dispose()],
         ["live proxy", () => liveProxy?.stop()],
+        ["session uploads", () => {
+          for (const uploadPath of sessionUploads) {
+            try {
+              if (existsSync(uploadPath)) unlinkSync(uploadPath);
+            } catch {}
+          }
+        }],
       ],
       () => server.stop(),
     );
   };
+
+  // Stale-session reaper: when the Claude Code process that spawned this
+  // server is gone, announce on the session stream immediately, then settle
+  // the pending decision as dismissed and exit after the grace period (see
+  // ./parent-watch.ts). Keeps a hook whose Claude Code window was closed
+  // from waiting on waitForDecision() forever.
+  if (parentWatchOption) {
+    const cfg = parentWatchOption === true ? {} : parentWatchOption;
+    parentWatch = startParentWatch({
+      parentPid: cfg.parentPid,
+      pollIntervalMs: cfg.pollIntervalMs,
+      graceMs: cfg.graceMs,
+      isAlive: cfg.isAlive,
+      onParentGone: () => sessionStream.announceSessionEnded(),
+      onGone: () => {
+        decision.settle({ feedback: "", annotations: [], exit: true });
+        stop();
+      },
+    });
+  }
 
   // Notify caller that server is ready. An async ready handler that rejects
   // must stop the server and propagate: firing-and-forgetting it would leave

@@ -69,7 +69,7 @@ export async function handleImage(req: Request): Promise<Response> {
 }
 
 /** Upload image to temp dir, return path. Used by all 3 servers. */
-export async function handleUpload(req: Request): Promise<Response> {
+export async function handleUpload(req: Request, sessionUploads?: Set<string>): Promise<Response> {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
@@ -85,6 +85,9 @@ export async function handleUpload(req: Request): Promise<Response> {
     const tempPath = `${UPLOAD_DIR}/${crypto.randomUUID()}.${extResult.ext}`;
 
     await Bun.write(tempPath, file);
+    if (sessionUploads) {
+      sessionUploads.add(tempPath);
+    }
     return Response.json({ path: tempPath, originalName: file.name });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upload failed";

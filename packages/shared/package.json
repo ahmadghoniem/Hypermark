@@ -56,7 +56,8 @@
     "./annotate-client-lease": "./annotate-client-lease.ts",
     "./annotate-decision": "./annotate-decision.ts",
     "./live-proxy-core": "./live-proxy-core.ts",
-    "./live-probe": "./live-probe.ts"
+    "./live-probe": "./live-probe.ts",
+    "./session-stream": "./session-stream.ts"
   },
   "dependencies": {
     "@joplin/turndown-plugin-gfm": "^1.0.64",

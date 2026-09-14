@@ -21,6 +21,7 @@ import type { Annotation, CodeAnnotation, ImageAttachment } from '../types';
 import { fromShareable, parseShareableImages } from '../utils/annotationSerialization';
 import type { ShareableAnnotation } from '../utils/annotationSerialization';
 import { normalizeDocumentAnnotations } from '../utils/attachmentNormalization';
+import { draftStore } from '../components/CommentPopover';
 
 const DEBOUNCE_MS = 500;
 
@@ -142,6 +143,8 @@ interface DraftData {
   editedDocuments?: DraftEditedDocument[];
   /** Source-backed edits that were already saved to disk but not sent yet. */
   savedFileChanges?: DraftSavedFileChange[];
+  /** In-progress open composer draft. */
+  composer?: { key: string; text: string; images: ImageAttachment[]; ts: number } | null;
   /** Client-side generation used to ignore stale saves after a draft delete. */
   draftGeneration?: number;
   ts: number;
@@ -271,6 +274,10 @@ interface UseAnnotationDraftOptions {
   isApiMode: boolean;
   isSharedSession: boolean;
   submitted: boolean;
+  onDraftLoaded?: (
+    draft: RestoredDraft,
+    meta: { count: number; timeAgo: string; hasEdits: boolean },
+  ) => void | Promise<void>;
 }
 
 interface RestoredDraft {
@@ -286,14 +293,14 @@ interface RestoredDraft {
 }
 
 interface UseAnnotationDraftResult {
-  draftBanner: { count: number; timeAgo: string; hasEdits: boolean } | null;
   restoreDraft: () => RestoredDraft;
   /** Debounced save trigger for changes the reactive deps can't see
       (editor keystrokes, edit commit/discard). Stable identity. */
   scheduleDraftSave: () => void;
   scheduleDraftSaveAfterSubmitFailure: () => void;
   getDraftGeneration: () => number;
-  dismissDraft: () => void;
+  discardDraft: () => void;
+  flushDraft: () => void;
 }
 
 export function useAnnotationDraft({
@@ -306,12 +313,13 @@ export function useAnnotationDraft({
   isApiMode,
   isSharedSession,
   submitted,
+  onDraftLoaded,
 }: UseAnnotationDraftOptions): UseAnnotationDraftResult {
-  const [draftBanner, setDraftBanner] = useState<{ count: number; timeAgo: string; hasEdits: boolean } | null>(null);
   const draftDataRef = useRef<RestoredDraft | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasMountedRef = useRef(false);
   const draftGenerationRef = useRef(0);
+  const latestComposerRef = useRef<{ key: string; text: string; images: ImageAttachment[] } | null>(null);
 
   // Latest-values ref so the stable scheduleDraftSave reads current data when
   // the debounce fires, without re-creating callbacks per keystroke.
@@ -336,6 +344,13 @@ export function useAnnotationDraft({
         if (!data) {
           hasMountedRef.current = true;
           return;
+        }
+
+        // Restore open composer into draftStore before annotations are applied
+        if (!isLegacyDraft(data) && (data as DraftData).composer?.key) {
+          const comp = (data as DraftData).composer!;
+          draftStore.set(comp.key, { text: comp.text, images: comp.images || [] });
+          latestComposerRef.current = { key: comp.key, text: comp.text, images: comp.images || [] };
         }
 
         let restoredAnnotations: Annotation[];
@@ -400,8 +415,11 @@ export function useAnnotationDraft({
             : [];
 
         const totalCount = restoredAnnotations.length + restoredCodeAnnotations.length + restoredGlobal.length;
-        if (totalCount > 0 || restoredEdited !== null || restoredEditedDocuments.length > 0 || restoredSavedFileChanges.length > 0) {
-          draftDataRef.current = {
+        const hasEdits = restoredEdited !== null || restoredEditedDocuments.length > 0 || restoredSavedFileChanges.length > 0;
+        const hasComposer = !isLegacyDraft(data) && !!(data as DraftData).composer && (((data as DraftData).composer!.text?.trim().length ?? 0) > 0 || ((data as DraftData).composer!.images?.length ?? 0) > 0);
+
+        if (totalCount > 0 || hasEdits || hasComposer) {
+          const restoredDraftData: RestoredDraft = {
             annotations: restoredAnnotations,
             codeAnnotations: restoredCodeAnnotations,
             globalAttachments: restoredGlobal,
@@ -409,10 +427,11 @@ export function useAnnotationDraft({
             editedDocuments: restoredEditedDocuments,
             savedFileChanges: restoredSavedFileChanges,
           };
-          setDraftBanner({
+          draftDataRef.current = restoredDraftData;
+          onDraftLoaded?.(restoredDraftData, {
             count: totalCount,
             timeAgo: formatTimeAgo(data.ts || 0),
-            hasEdits: restoredEdited !== null || restoredEditedDocuments.length > 0 || restoredSavedFileChanges.length > 0,
+            hasEdits,
           });
         }
         hasMountedRef.current = true;
@@ -420,7 +439,7 @@ export function useAnnotationDraft({
       .catch(() => {
         hasMountedRef.current = true;
       });
-  }, [isApiMode, isSharedSession]);
+  }, [isApiMode, isSharedSession, onDraftLoaded]);
 
   const persistNow = useCallback((keepalive: boolean) => {
     // Re-check: the session may have been submitted while the debounce was
@@ -431,8 +450,12 @@ export function useAnnotationDraft({
     const editedMarkdown = getEditedMarkdown?.() ?? null;
     const editedDocuments = getEditedDocuments?.() ?? [];
     const savedFileChanges = getSavedFileChanges?.() ?? [];
+    const composerEntry = latestComposerRef.current;
+    const composer = composerEntry && (composerEntry.text.trim().length > 0 || composerEntry.images.length > 0)
+      ? { key: composerEntry.key, text: composerEntry.text, images: composerEntry.images, ts: Date.now() }
+      : null;
 
-    if (annotations.length === 0 && codeAnnotations.length === 0 && globalAttachments.length === 0 && editedMarkdown === null && editedDocuments.length === 0 && savedFileChanges.length === 0) {
+    if (annotations.length === 0 && codeAnnotations.length === 0 && globalAttachments.length === 0 && editedMarkdown === null && editedDocuments.length === 0 && savedFileChanges.length === 0 && !composer) {
       // Everything was cleared (last annotation removed, edits discarded).
       // A stale draft left on disk would offer back content the user
       // explicitly threw away.
@@ -451,6 +474,7 @@ export function useAnnotationDraft({
       ...(editedMarkdown !== null ? { editedMarkdown } : {}),
       ...(editedDocuments.length > 0 ? { editedDocuments } : {}),
       ...(savedFileChanges.length > 0 ? { savedFileChanges } : {}),
+      composer,
       draftGeneration,
       ts: Date.now(),
     };
@@ -518,6 +542,14 @@ export function useAnnotationDraft({
     scheduleDraftSave();
   }, [annotations, codeAnnotations, globalAttachments, isApiMode, isSharedSession, scheduleDraftSave]);
 
+  // Subscribe to open-composer changes from CommentPopover's draftStore
+  useEffect(() => {
+    return draftStore.subscribe((entry) => {
+      latestComposerRef.current = entry;
+      scheduleDraftSave();
+    });
+  }, [scheduleDraftSave]);
+
   // Clear any pending save on unmount.
   useEffect(() => {
     return () => {
@@ -525,9 +557,16 @@ export function useAnnotationDraft({
     };
   }, []);
 
+  const flushDraft = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    persistNow(true);
+  }, [persistNow]);
+
   const restoreDraft = useCallback((): RestoredDraft => {
     const data = draftDataRef.current;
-    setDraftBanner(null);
     draftDataRef.current = null;
 
     if (!data) return { annotations: [], codeAnnotations: [], globalAttachments: [], editedMarkdown: null, editedDocuments: [], savedFileChanges: [] };
@@ -535,18 +574,18 @@ export function useAnnotationDraft({
     return data;
   }, []);
 
-  const dismissDraft = useCallback(() => {
+  const discardDraft = useCallback(() => {
     const deletedGeneration = draftGenerationRef.current + 1;
     draftGenerationRef.current = deletedGeneration;
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-    setDraftBanner(null);
     draftDataRef.current = null;
+    latestComposerRef.current = null;
 
     getDraftTransport().remove(deletedGeneration, { keepalive: false }).catch(() => {});
   }, []);
 
-  return { draftBanner, restoreDraft, scheduleDraftSave, scheduleDraftSaveAfterSubmitFailure, getDraftGeneration, dismissDraft };
+  return { restoreDraft, scheduleDraftSave, scheduleDraftSaveAfterSubmitFailure, getDraftGeneration, discardDraft, flushDraft };
 }

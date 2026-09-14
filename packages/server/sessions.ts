@@ -74,6 +74,43 @@ export function unregisterSession(pid: number = process.pid): void {
 }
 
 /**
+ * Terminate a session's process and remove its registry entry.
+ *
+ * `process.kill(pid, 'SIGTERM')` works on Unix as a normal signal the target
+ * can (but does not, here) intercept. On Windows, Bun's `process.kill` sends
+ * a terminate the target cannot intercept, so its own `process.on('exit')`
+ * cleanup may not run — the registry entry is removed here, from the killer
+ * side, rather than relying on the victim to unregister itself.
+ *
+ * Returns false when the process was already gone (the registry entry is
+ * still removed either way — a dead PID has no business staying listed).
+ */
+export function killSession(pid: number): boolean {
+  let killed = false;
+  // On Windows a terminated server can't dispose its agent-terminal sidecar,
+  // so kill the whole tree the way agent-terminal.ts does.
+  if (process.platform === "win32") {
+    try {
+      const result = Bun.spawnSync(["taskkill", "/T", "/F", "/PID", String(pid)], {
+        stdin: "ignore", stdout: "ignore", stderr: "ignore", windowsHide: true,
+      });
+      if (result.exitCode === 0) {
+        unregisterSession(pid);
+        return true;
+      }
+    } catch {}
+  }
+  try {
+    process.kill(pid, "SIGTERM");
+    killed = true;
+  } catch {
+    killed = false;
+  }
+  unregisterSession(pid);
+  return killed;
+}
+
+/**
  * List all active sessions. Automatically removes stale entries.
  */
 export function listSessions(): SessionInfo[] {

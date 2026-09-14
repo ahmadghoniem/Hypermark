@@ -330,6 +330,13 @@ function isSessionRegistered(
   return false;
 }
 
+/** A session log resolved by walking ancestor PIDs, with the PID it matched on. */
+export interface AncestorSessionMatch {
+  logPath: string;
+  /** The ancestor PID whose `~/.claude/sessions/<pid>.json` metadata matched — this is Claude Code's PID. */
+  ancestorPid: number;
+}
+
 /**
  * Resolve a session log path by walking up the PID chain, checking
  * `~/.claude/sessions/<pid>.json` at each hop for a session metadata match.
@@ -339,6 +346,10 @@ function isSessionRegistered(
  * by /clear that was never registered in any metadata file. If so, prefers the
  * ghost (it's the current session). If the newer file belongs to a registered
  * concurrent session, keeps the PID-based result.
+ *
+ * Also returns the matched ancestor PID — that PID is Claude Code's, and the
+ * parent watcher (packages/server/parent-watch.ts) uses the same PID to
+ * detect when that Claude Code process exits.
  */
 export function resolveSessionLogByAncestorPids(
   opts: {
@@ -348,7 +359,7 @@ export function resolveSessionLogByAncestorPids(
     getParentPid?: (pid: number) => number | null;
     maxHops?: number;
   } = {}
-): string | null {
+): AncestorSessionMatch | null {
   const startPid = opts.startPid ?? process.ppid;
   if (!startPid) return null;
   const sessionsDir = opts.sessionsDir ?? DEFAULT_SESSIONS_DIR;
@@ -370,10 +381,10 @@ export function resolveSessionLogByAncestorPids(
       if (candidates[0] !== match) {
         const newestSessionId = basename(candidates[0], ".jsonl");
         if (!isSessionRegistered(newestSessionId, sessionsDir)) {
-          return candidates[0];
+          return { logPath: candidates[0], ancestorPid: pid };
         }
       }
-      return match;
+      return { logPath: match, ancestorPid: pid };
     }
   }
   return null;
