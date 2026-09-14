@@ -27,6 +27,8 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p packages/shared/tsconfig.json && tsc --noEmit -p packages/server/tsconfig.json && tsc --noEmit -p packages/ui/tsconfig.json && tsc --noEmit -p packages/ui/tsconfig.strict-consumer.json",
     "typecheck:editors": "tsc --noEmit -p packages/editor/tsconfig.json && tsc --noEmit -p packages/review-editor/tsconfig.json",
+    "lint:tw": "eslint packages/ui && eslint packages/editor && eslint packages/review-editor && eslint apps/hook && eslint apps/review",
+    "lint:tw:fix": "eslint packages/ui --fix && eslint packages/editor --fix && eslint packages/review-editor --fix && eslint apps/hook --fix && eslint apps/review --fix",
     "build:ui-css": "bun run --cwd packages/ui build:css"
   },
   "dependencies": {
@@ -38,6 +40,9 @@
     "@types/node": "^25.5.2",
     "@types/turndown": "^5.0.6",
     "bun-types": "^1.3.11",
-    "typescript": "~5.8.2"
+    "eslint": "^10.10.0",
+    "eslint-plugin-better-tailwindcss": "^4.7.0",
+    "typescript": "~5.8.2",
+    "typescript-eslint": "^8.70.0"
   }
 }
