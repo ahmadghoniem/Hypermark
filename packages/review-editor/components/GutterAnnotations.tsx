@@ -15,9 +15,9 @@ import { renderInlineMarkdown } from '../utils/renderInlineMarkdown';
  *
  * The marker itself occupies **zero layout height**: it is an absolutely
  * positioned button inside a zero-height row, so the diff's own line layout,
- * selection, and scroll anchoring are untouched. The popup is portaled to the
- * document body, outside the renderer's shadow root, and bound to the visible
- * viewport.
+ * selection, and scroll anchoring are untouched. The popup is portaled to a
+ * pre-mounted container on document body, outside the renderer's shadow root,
+ * and bound to the visible viewport.
  */
 
 /** One anchor's worth of comments — every annotation projected onto one line. */
@@ -32,7 +32,7 @@ export interface GutterAnchor {
 const POPUP_WIDTH = 380;
 const GAP = 8;
 /** Grace period so the pointer can travel from marker to popup. */
-const CLOSE_DELAY_MS = 120;
+const CLOSE_DELAY_MS = 200;
 
 export interface GutterPopupState {
   anchorKey: string;
@@ -55,6 +55,7 @@ interface GutterAnnotationsController {
    * its popup is detached and closes rather than floating over unrelated code.
    */
   releaseMarker: (anchorKey: string) => void;
+  portalRoot: HTMLElement | null;
 }
 
 /**
@@ -70,6 +71,24 @@ export function useGutterAnnotations(): GutterAnnotationsController {
   // A deliberate close hands focus back to the marker, and that focus would
   // otherwise reopen the very preview the reviewer just dismissed.
   const skipFocusOpen = useRef(false);
+
+  // Pre-mount portal container once per file list rather than per open (spec 08 §4).
+  const portalRootRef = useRef<HTMLElement | null>(null);
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const el = document.createElement('div');
+    el.setAttribute('data-gutter-portal-root', 'true');
+    document.body.appendChild(el);
+    portalRootRef.current = el;
+    setPortalRoot(el);
+    return () => {
+      el.remove();
+      portalRootRef.current = null;
+      setPortalRoot(null);
+    };
+  }, []);
 
   useEffect(() => () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -140,7 +159,17 @@ export function useGutterAnnotations(): GutterAnnotationsController {
     }, CLOSE_DELAY_MS);
   }, [cancelClose]);
 
-  return { state, openPreview, pin, closePreview, cancelClose, close, registerMarker, releaseMarker };
+  return {
+    state,
+    openPreview,
+    pin,
+    closePreview,
+    cancelClose,
+    close,
+    registerMarker,
+    releaseMarker,
+    portalRoot: portalRoot ?? portalRootRef.current,
+  };
 }
 
 interface GutterAnnotationMarkerProps {
@@ -197,7 +226,6 @@ export const GutterAnnotationMarker: React.FC<GutterAnnotationMarkerProps> = ({
           e.stopPropagation();
           pin(anchor.key, e.currentTarget);
         }}
-        className={`pn-gutter-marker${isSelected ? ' is-selected' : ''}`}
         // Styled inline, not through a stylesheet: the marker renders inside
         // the diff renderer's shadow root, where the app's CSS does not reach.
         // Custom properties do inherit across that boundary, so theme tokens
@@ -212,30 +240,48 @@ export const GutterAnnotationMarker: React.FC<GutterAnnotationMarkerProps> = ({
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 2,
-          minWidth: 14,
-          height: 14,
-          padding: '0 3px',
-          borderRadius: 4,
-          border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
-          background: isSelected ? 'var(--primary)' : 'var(--popover)',
-          color: isSelected ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
-          font: '600 9px/1 var(--font-sans, sans-serif)',
+          minWidth: 26,
+          height: 22,
+          padding: '2px 4px',
+          background: 'transparent',
+          border: 'none',
           cursor: 'pointer',
+          boxSizing: 'border-box',
         }}
       >
-        <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-          {dot ? (
-            <span
-              className={dot}
-              style={{ width: 5, height: 5, borderRadius: '50%', display: 'inline-block' }}
-            />
-          ) : (
-            <svg width="8" height="8" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" strokeLinejoin="round" />
-            </svg>
-          )}
-          {count > 1 ? count : null}
+        <span
+          className={`pn-gutter-marker${isSelected ? ' is-selected' : ''}`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+            minWidth: 18,
+            height: 18,
+            padding: '0 5px',
+            borderRadius: 5,
+            boxShadow: '0 0 0 2px var(--background)',
+            border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
+            background: isSelected ? 'var(--primary)' : 'var(--popover)',
+            color: isSelected ? 'var(--primary-foreground)' : 'var(--primary)',
+            font: '600 10px/1 var(--font-sans, sans-serif)',
+            boxSizing: 'border-box',
+            pointerEvents: 'none',
+          }}
+        >
+          <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+            {dot ? (
+              <span
+                className={dot}
+                style={{ width: 5, height: 5, borderRadius: '50%', display: 'inline-block' }}
+              />
+            ) : (
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" strokeLinejoin="round" />
+              </svg>
+            )}
+            {count > 1 ? count : null}
+          </span>
         </span>
       </button>
     </div>
@@ -302,6 +348,9 @@ export const GutterAnnotationPopup: React.FC<GutterAnnotationPopupProps> = ({
   const width = Math.min(POPUP_WIDTH, Math.max(240, viewportWidth - 2 * GAP));
   const left = Math.min(Math.max(GAP, state.rect.left), Math.max(GAP, viewportWidth - width - GAP));
 
+  const portalContainer = controller.portalRoot ?? (typeof document !== 'undefined' ? document.body : null);
+  if (!portalContainer) return null;
+
   return createPortal(
     <div
       ref={popupRef}
@@ -348,7 +397,7 @@ export const GutterAnnotationPopup: React.FC<GutterAnnotationPopupProps> = ({
         />
       ))}
     </div>,
-    document.body,
+    portalContainer,
   );
 };
 
