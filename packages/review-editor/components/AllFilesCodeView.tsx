@@ -51,7 +51,7 @@ import {
 } from '../utils/reviewSearchHighlight';
 
 /**
- * AllFilesCodeView (migration phases P1 + P2 + P3 + P4)
+ * AllFilesCodeView (migration phases P1 + P2 + P3 + Phase 4)
  *
  * Renders every changed file through ONE Pierre `CodeView` inside a single
  * scroll container. This IS the all-files surface — the legacy per-file
@@ -63,7 +63,7 @@ import {
  * own APIs. P3 moved collapse + the full Hypermark FileHeader INTO CodeView
  * via the `renderCustomHeader` render slot.
  *
- * P4 (this phase) routes annotations through CodeView item state:
+ * Phase 4 (this phase) routes annotations through CodeView item state:
  *
  *  - CodeView is typed with `<DiffAnnotationMetadata>` so each diff item's
  *    `annotations: DiffLineAnnotation<DiffAnnotationMetadata>[]` and
@@ -155,7 +155,7 @@ export interface AllFilesCodeViewProps {
   expandUnchanged?: boolean;
   fontFamily?: string;
   fontSize?: string;
-  // Annotation state (P4). Mirrors AllFilesDiffView's annotation surface so
+  // Annotation state (Phase 4). Mirrors AllFilesDiffView's annotation surface so
   // line annotations render through CodeView item state.
   annotations: CodeAnnotation[];
   selectedAnnotationId: string | null;
@@ -471,7 +471,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   // refreshes the entry via handleFileComment).
   const fileCommentButtonRefs = useRef<Map<string, HTMLElement>>(new Map());
 
-  // Previous line-card snapshots for the per-item annotation-sync effect (P4).
+  // Previous line-card snapshots for the per-item annotation-sync effect (Phase 4).
   const prevAnnotationsRef = useRef<CodeAnnotation[]>(annotations);
 
   // Order items to mirror whichever left panel is active: 'tree' replays the
@@ -1298,7 +1298,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     return () => cancelAnimationFrame(raf);
   }, [activeSearchMatch, filePathToItemId, isActive, syncAllCollapsedMirror, reportFileCollapsed]);
 
-  // --- Annotations through CodeView item state (P4) ---------------------------
+  // --- Annotations through CodeView item state (Phase 4) ---------------------
 
   // Set an item's review annotations to the current per-file projection, then
   // republish that item only. This preserves CodeView scroll state while

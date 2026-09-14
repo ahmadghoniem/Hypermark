@@ -20,7 +20,6 @@ describe('isCommitDiffType', () => {
       'last-commit',
       'worktree:/tmp/wt:since-base',
       'worktree:/tmp/wt:uncommitted',
-      'gitbutler:workspace',
       'commit:', // no sha
       'commit:xyz!', // non-hex
       'commit:abc', // below the 4-char minimum the parse enforces

@@ -360,7 +360,7 @@ const ReviewAppInner: React.FC = () => {
   }, [reviewHistory, submitted]);
 
   // The Commits view (linear history rail) exists for plain local git
-  // sessions only — workspace/jj/p4 keep their existing panels. Unlike
+  // sessions only — workspace keeps its existing panels. Unlike
   // sections it has NO coupled diff: the review opens on the user's normal
   // default until a commit is clicked, and the clicked sha is never persisted.
   // Declared this early because the global keyboard handler consults it.
@@ -542,18 +542,8 @@ const ReviewAppInner: React.FC = () => {
     if (!sha) return null;
     return { sha, subject: commitInfo?.sha === sha ? commitInfo.subject : undefined };
   }, [activeDiffBase, commitInfo]);
-  const activeGitButlerContext = useMemo(() => {
-    if (!activeDiffBase.startsWith('gitbutler:')) return null;
-    return {
-      diffType: activeDiffBase,
-      label: diffData?.gitRef,
-      base: committedBase ?? undefined,
-      snapshotId,
-    };
-  }, [activeDiffBase, diffData?.gitRef, committedBase, snapshotId]);
   const { withDiffContext } = useAnnotationFactory(
     activeCommitContext,
-    activeGitButlerContext,
   );
 
   // Global keyboard shortcuts
@@ -686,7 +676,7 @@ const ReviewAppInner: React.FC = () => {
         setGeneratedFiles(new Set(data.generatedFiles ?? []));
         setBaseBehindRemote(data.baseBehindRemote === true);
         // First-run: offer the review-view chooser for a plain local git
-        // session (not workspace/jj/p4), once. An unseen reviewer's panel
+        // session (not workspace), once. An unseen reviewer's panel
         // is initialized to Tree while inheriting the resolved diff default;
         // the seen gate leaves returning reviewers' persisted and last-used
         // views untouched. The user's explicit choice in the dialog then
@@ -1031,8 +1021,7 @@ const ReviewAppInner: React.FC = () => {
         clearPendingSelection();
       }
       // Merge only the refreshable/per-cwd fields. This runs for in-place
-      // staleness refreshes too: GitButler stacks and branches can change while
-      // the visible patch stays identical, so preserving the active file must
+      // staleness refreshes too: preserving the active file must
       // not preserve a stale picker. Keep the original `worktrees`,
       // `availableBranches`, and `currentBranch`: the latter labels the launch
       // cwd in WorktreePicker rather than the currently-selected worktree.
@@ -1044,7 +1033,6 @@ const ReviewAppInner: React.FC = () => {
             defaultBranch: data.gitContext!.defaultBranch,
             diffOptions: data.gitContext!.diffOptions,
             compareTarget: data.gitContext!.compareTarget,
-            jjEvologs: data.gitContext!.jjEvologs,
             // HEAD differs per worktree, so refresh the commit-baseline picker.
             recentCommits: data.gitContext!.recentCommits,
           };
@@ -1070,7 +1058,7 @@ const ReviewAppInner: React.FC = () => {
       if (branch === selectedBase) return;
       const previous = selectedBase;
       setSelectedBase(branch);
-      if (activeDiffBase === 'since-base' || activeDiffBase === 'branch' || activeDiffBase === 'merge-base' || activeDiffBase === 'jj-line' || activeDiffBase === 'jj-evolog') {
+      if (activeDiffBase === 'since-base' || activeDiffBase === 'branch' || activeDiffBase === 'merge-base') {
         const ok = await fetchDiffSwitch(diffType, branch, { explicitBase: true });
         if (!ok) setSelectedBase(previous);
       }
@@ -1084,22 +1072,8 @@ const ReviewAppInner: React.FC = () => {
       ? `worktree:${activeWorktreePath}:${baseDiffType}`
       : baseDiffType;
     if (fullDiffType === diffType) return;
-    // For evolog, default to the second entry (previous state of @) so the
-    // server doesn't fall back to the jj bookmark/trunk revset.
-    // When leaving evolog, restore the base to the detected compare target
-    // so other base-dependent modes (jj-line) don't inherit a commit ID.
-    const enteringEvolog =
-      baseDiffType === 'jj-evolog' && gitContext?.jjEvologs && gitContext.jjEvologs.length >= 2;
-    const leavingEvolog =
-      !enteringEvolog && activeDiffBase === 'jj-evolog' && gitContext?.defaultBranch;
-    const baseOverride = enteringEvolog
-      ? gitContext!.jjEvologs![1].commitId
-      : leavingEvolog
-        ? gitContext!.defaultBranch
-        : undefined;
-    if (baseOverride) setSelectedBase(baseOverride);
-    await fetchDiffSwitch(fullDiffType, baseOverride);
-  }, [diffType, activeWorktreePath, fetchDiffSwitch, gitContext]);
+    await fetchDiffSwitch(fullDiffType);
+  }, [diffType, activeWorktreePath, fetchDiffSwitch]);
 
   // Toggling to Sections means "show me the since-base review" — if another
   // mode is active, switch the LIVE diff back along with the view. No writes
@@ -1169,8 +1143,7 @@ const ReviewAppInner: React.FC = () => {
   const handleSelectCommit = useCallback((sha: string) => {
     // Compose the worktree prefix ONCE and use it for both the re-click check
     // and the switch itself (going through handleDiffSwitch would compose it
-    // a second time in a second place — fragile duplication for no benefit;
-    // its evolog base handling never applies to commit diffs).
+    // a second time in a second place — fragile duplication for no benefit).
     const fullDiffType = activeWorktreePath
       ? `worktree:${activeWorktreePath}:commit:${sha}`
       : `commit:${sha}`;
@@ -2141,8 +2114,6 @@ const ReviewAppInner: React.FC = () => {
                 onSelectBase={(base) => handleBaseSelect(base)}
                 compareTarget={gitContext?.compareTarget}
                 recentCommits={gitContext?.recentCommits}
-                jjEvologs={gitContext?.jjEvologs}
-                detectedEvoBase={gitContext?.jjEvologs?.[1]?.commitId}
                 onCopyRawDiff={handleCopyDiff}
                 canCopyRawDiff={!!diffData?.rawPatch}
                 copyRawDiffStatus={copyRawDiffStatus}
@@ -2208,7 +2179,7 @@ const ReviewAppInner: React.FC = () => {
                 scrollTargetAnnotation={scrollTargetAnnotation}
                 pendingSelection={pendingSelection}
                 reviewBase={
-                  (activeDiffBase === 'since-base' || activeDiffBase === 'branch' || activeDiffBase === 'merge-base' || activeDiffBase === 'jj-line' || activeDiffBase === 'jj-evolog')
+                  (activeDiffBase === 'since-base' || activeDiffBase === 'branch' || activeDiffBase === 'merge-base')
                     ? committedBase ?? undefined
                     : undefined
                 }
@@ -2266,18 +2237,10 @@ const ReviewAppInner: React.FC = () => {
                           {activeDiffBase === 'staged' && "No staged changes. Stage some files with git add."}
                           {activeDiffBase === 'unstaged' && "No unstaged changes. All changes are staged."}
                           {activeDiffBase === 'last-commit' && `No changes in the last commit${activeWorktreePath ? ' in this worktree' : ''}.`}
-                          {activeDiffBase === 'jj-current' && "No changes in the current jj change."}
-                          {activeDiffBase === 'jj-last' && "No changes in the last jj change."}
                           {activeDiffBase === 'workspace-current' && "No current changes in the workspace repositories."}
                           {activeDiffBase === 'workspace-staged' && "No staged changes in the workspace repositories."}
                           {activeDiffBase === 'workspace-unstaged' && "No unstaged changes in the workspace repositories."}
                           {activeDiffBase === 'workspace-last' && "No changes in the last change across workspace repositories."}
-                          {activeDiffBase === 'jj-line' && `No changes in your line of work vs ${selectedBase || gitContext?.defaultBranch || '@-'}.`}
-                          {activeDiffBase === 'jj-evolog' && `No changes since evolution ${selectedBase ? selectedBase.slice(0, 8) : 'previous'} — the change looks the same as before.`}
-                          {activeDiffBase === 'jj-all' && "No files at the current jj change."}
-                          {activeDiffBase === 'gitbutler:workspace' && "No applied GitButler workspace changes."}
-                          {activeDiffBase.startsWith('gitbutler:stack:') && "No committed changes in this GitButler stack."}
-                          {activeDiffBase.startsWith('gitbutler:branch:') && "No committed changes in this GitButler branch."}
                           {activeDiffBase === 'branch' && `No changes vs ${selectedBase || gitContext?.defaultBranch || 'main'}${activeWorktreePath ? ' in this worktree' : ''}.`}
                           {activeDiffBase === 'merge-base' && `No changes vs ${selectedBase || gitContext?.defaultBranch || 'main'}${activeWorktreePath ? ' in this worktree' : ''}.`}
                           {activeDiffBase === 'all' && `No tracked files${activeWorktreePath ? ' in this worktree' : ' in this repository'}.`}

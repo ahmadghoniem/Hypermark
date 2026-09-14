@@ -50,26 +50,18 @@ describe("transformReviewInput — scope-aware location requirements", () => {
     expect("error" in r && r.error).toContain("invalid scope");
   });
 
-  test("preserves commit and GitButler attribution", () => {
+  test("preserves commit attribution", () => {
     const [annotation] = ok({
       source: "external-tool",
       scope: "general",
       text: "finding",
       commitSha: "abc1234",
       commitSubject: "Fix the edge case",
-      gitButlerDiffType: "gitbutler:branch:feature",
-      gitButlerDiffLabel: "Branch: feature (committed)",
-      gitButlerBase: "base123",
-      gitButlerSnapshotId: "snapshot-1",
     });
 
     expect(annotation).toMatchObject({
       commitSha: "abc1234",
       commitSubject: "Fix the edge case",
-      gitButlerDiffType: "gitbutler:branch:feature",
-      gitButlerDiffLabel: "Branch: feature (committed)",
-      gitButlerBase: "base123",
-      gitButlerSnapshotId: "snapshot-1",
     });
   });
 });
