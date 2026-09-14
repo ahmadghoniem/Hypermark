@@ -3841,9 +3841,9 @@ const AppInner: React.FC = () => {
       blocks={blocks}
       annotations={allAnnotations}
       selectedId={selectedAnnotationId ?? selectedCodeAnnotationId}
-      onSelect={handleSelectAnnotation}
-      onDelete={handleDeleteAnnotation}
-      onEdit={handleEditAnnotation}
+      onSelectAnnotation={handleSelectAnnotation}
+      onDeleteAnnotation={handleDeleteAnnotation}
+      onEditAnnotation={handleEditAnnotation}
       codeAnnotations={codeAnnotations}
       onSelectCodeAnnotation={handleSelectCodeAnnotation}
       onDeleteCodeAnnotation={handleDeleteCodeAnnotation}

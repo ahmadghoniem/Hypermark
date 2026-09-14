@@ -97,9 +97,9 @@ interface PanelProps {
   isOpen: boolean;
   annotations: Annotation[];
   blocks: Block[];
-  onSelect: (id: string) => void;
-  onDelete: (id: string) => void;
-  onEdit?: (id: string, updates: Partial<Annotation>) => void;
+  onSelectAnnotation: (id: string) => void;
+  onDeleteAnnotation: (id: string) => void;
+  onEditAnnotation?: (id: string, updates: Partial<Annotation>) => void;
   selectedId: string | null;
   codeAnnotations?: CodeAnnotation[];
   onSelectCodeAnnotation?: (id: string) => void;
@@ -138,9 +138,9 @@ interface PanelProps {
 export const AnnotationPanel: React.FC<PanelProps> = ({
   isOpen,
   annotations,
-  onSelect,
-  onDelete,
-  onEdit,
+  onSelectAnnotation,
+  onDeleteAnnotation,
+  onEditAnnotation,
   selectedId,
   codeAnnotations = [],
   onSelectCodeAnnotation,
@@ -282,9 +282,9 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                     <AnnotationCard
                       annotation={entry.annotation}
                       isSelected={selectedId === entry.annotation.id}
-                      onSelect={() => onSelect(entry.annotation.id)}
-                      onDelete={() => onDelete(entry.annotation.id)}
-                      onEdit={onEdit ? (updates: Partial<Annotation>) => onEdit(entry.annotation.id, updates) : undefined}
+                      onSelect={() => onSelectAnnotation(entry.annotation.id)}
+                      onDelete={() => onDeleteAnnotation(entry.annotation.id)}
+                      onEdit={onEditAnnotation ? (updates: Partial<Annotation>) => onEditAnnotation(entry.annotation.id, updates) : undefined}
                       readOnly={readOnly}
                       footer={renderCardFooter?.(entry.annotation)}
                       unanchored={unanchoredIds?.has(entry.annotation.id) ?? false}
@@ -295,9 +295,9 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                   key={entry.annotation.id}
                   annotation={entry.annotation}
                   isSelected={selectedId === entry.annotation.id}
-                  onSelect={() => onSelect(entry.annotation.id)}
-                  onDelete={() => onDelete(entry.annotation.id)}
-                  onEdit={onEdit ? (updates: Partial<Annotation>) => onEdit(entry.annotation.id, updates) : undefined}
+                  onSelect={() => onSelectAnnotation(entry.annotation.id)}
+                  onDelete={() => onDeleteAnnotation(entry.annotation.id)}
+                  onEdit={onEditAnnotation ? (updates: Partial<Annotation>) => onEditAnnotation(entry.annotation.id, updates) : undefined}
                   readOnly={readOnly}
                   footer={renderCardFooter?.(entry.annotation)}
                   unanchored={unanchoredIds?.has(entry.annotation.id) ?? false}
