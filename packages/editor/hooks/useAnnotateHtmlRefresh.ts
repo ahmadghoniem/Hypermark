@@ -4,7 +4,7 @@ import {
   useHtmlRefresh as usePublishedHtmlRefresh,
   type HtmlRefreshSnapshot,
 } from '@hypermark/ui/hooks/useHtmlRefresh';
-import { fetchHtmlDocumentSnapshot, type HtmlVersionDiffFields } from '../sourceDocumentClient';
+import { fetchHtmlDocumentSnapshot, type HtmlVersionDiffFields } from '../utils/sourceDocumentClient';
 
 /** What a refresh hands the app: the bytes plus, for the root document, the
  * version-diff fields the server recomputed against them. */
