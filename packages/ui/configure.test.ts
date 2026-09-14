@@ -5,7 +5,6 @@ import * as InlineMarkdown from './components/InlineMarkdown';
 import * as storage from './utils/storage';
 import * as upload from './utils/upload';
 import * as identity from './utils/identity';
-import * as useFileBrowser from './hooks/useFileBrowser';
 import * as useAnnotationDraft from './hooks/useAnnotationDraft';
 import * as useExternalAnnotations from './hooks/useExternalAnnotations';
 import { configStore } from './config';
@@ -15,7 +14,6 @@ import type { DocPreviewFetcher } from './components/InlineMarkdown';
 import type { StorageBackend } from './utils/storage';
 import type { UploadTransport } from './utils/upload';
 import type { IdentityProvider } from './utils/identity';
-import type { FileTreeBackend } from './hooks/useFileBrowser';
 import type { DraftTransport } from './hooks/useAnnotationDraft';
 import type { ExternalAnnotationTransport } from './hooks/useExternalAnnotations';
 
@@ -33,8 +31,6 @@ const realSetUploadTransport = upload.setUploadTransport;
 const realResetUploadTransport = upload.resetUploadTransport;
 const realSetIdentityProvider = identity.setIdentityProvider;
 const realResetIdentityProvider = identity.resetIdentityProvider;
-const realSetFileTreeBackend = useFileBrowser.setFileTreeBackend;
-const realResetFileTreeBackend = useFileBrowser.resetFileTreeBackend;
 const realSetDraftTransport = useAnnotationDraft.setDraftTransport;
 const realResetDraftTransport = useAnnotationDraft.resetDraftTransport;
 const realSetExternalAnnotationTransport = useExternalAnnotations.setExternalAnnotationTransport;
@@ -46,7 +42,6 @@ const setDocPreviewFetcher = mock((_: DocPreviewFetcher) => {});
 const setStorageBackend = mock((_: StorageBackend) => {});
 const setUploadTransport = mock((_: UploadTransport) => {});
 const setIdentityProvider = mock((_: IdentityProvider) => {});
-const setFileTreeBackend = mock((_: FileTreeBackend) => {});
 const setDraftTransport = mock((_: DraftTransport) => {});
 const setExternalAnnotationTransport = mock((_: ExternalAnnotationTransport<{ id: string; source?: string }>) => {});
 
@@ -61,10 +56,6 @@ const docPreviewFetcher: DocPreviewFetcher = async () => null;
 const storageBackend: StorageBackend = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
 const uploadTransport: UploadTransport = { upload: async () => ({ path: '/tmp/x.png' }) };
 const identityProvider: IdentityProvider = { getIdentity: () => 'tater', isCurrentUser: () => false };
-const fileTreeBackend: FileTreeBackend = {
-  loadTree: async () => new Response('{}'),
-  watchTrees: () => undefined,
-};
 const draftTransport: DraftTransport = {
   load: async () => ({ data: null, generation: null }),
   save: async () => {},
@@ -118,11 +109,6 @@ describe('configureHypermarkUI routing', () => {
       setIdentityProvider,
       resetIdentityProvider: realResetIdentityProvider,
     }));
-    mock.module('./hooks/useFileBrowser', () => ({
-      ...useFileBrowser,
-      setFileTreeBackend,
-      resetFileTreeBackend: realResetFileTreeBackend,
-    }));
     mock.module('./hooks/useAnnotationDraft', () => ({
       ...useAnnotationDraft,
       setDraftTransport,
@@ -164,11 +150,6 @@ describe('configureHypermarkUI routing', () => {
       setIdentityProvider: realSetIdentityProvider,
       resetIdentityProvider: realResetIdentityProvider,
     }));
-    mock.module('./hooks/useFileBrowser', () => ({
-      ...useFileBrowser,
-      setFileTreeBackend: realSetFileTreeBackend,
-      resetFileTreeBackend: realResetFileTreeBackend,
-    }));
     mock.module('./hooks/useAnnotationDraft', () => ({
       ...useAnnotationDraft,
       setDraftTransport: realSetDraftTransport,
@@ -189,7 +170,6 @@ describe('configureHypermarkUI routing', () => {
       storageBackend,
       uploadTransport,
       docPreviewFetcher,
-      fileTreeBackend,
       identityProvider,
       draftTransport,
       externalAnnotationTransport,
@@ -202,7 +182,6 @@ describe('configureHypermarkUI routing', () => {
     expect(setStorageBackend).toHaveBeenCalledWith(storageBackend);
     expect(setUploadTransport).toHaveBeenCalledWith(uploadTransport);
     expect(setIdentityProvider).toHaveBeenCalledWith(identityProvider);
-    expect(setFileTreeBackend).toHaveBeenCalledWith(fileTreeBackend);
     expect(setDraftTransport).toHaveBeenCalledWith(draftTransport);
     expect(setExternalAnnotationTransport).toHaveBeenCalledWith(externalAnnotationTransport);
     expect(setServerSync).toHaveBeenCalledWith(serverSync);
@@ -219,7 +198,7 @@ describe('configureHypermarkUI routing', () => {
 
     [
       setImageSrcResolver, setDocPreviewFetcher, setStorageBackend, setUploadTransport,
-      setIdentityProvider, setFileTreeBackend, setDraftTransport, setExternalAnnotationTransport,
+      setIdentityProvider, setDraftTransport, setExternalAnnotationTransport,
       setServerSync, loadFromBackend,
     ].forEach((m) => m.mockClear());
 

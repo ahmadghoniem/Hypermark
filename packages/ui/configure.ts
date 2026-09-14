@@ -3,7 +3,6 @@ import { setDocPreviewFetcher, type DocPreviewFetcher, type DocPreviewResult } f
 import { setStorageBackend, type StorageBackend } from './utils/storage';
 import { setUploadTransport, type UploadTransport, type UploadResult } from './utils/upload';
 import { setIdentityProvider, type IdentityProvider } from './utils/identity';
-import { setFileTreeBackend, type FileTreeBackend } from './hooks/useFileBrowser';
 import { setDraftTransport, type DraftTransport } from './hooks/useAnnotationDraft';
 import { setExternalAnnotationTransport, type ExternalAnnotationTransport } from './hooks/useExternalAnnotations';
 import { setSkillCatalogTransport, setSkillContentTransport, type SkillCatalogTransport, type SkillContentTransport } from './utils/skillCatalog';
@@ -23,7 +22,6 @@ export type {
   UploadTransport,
   UploadResult,
   IdentityProvider,
-  FileTreeBackend,
   VaultNode,
   DraftTransport,
   ExternalAnnotationTransport,
@@ -43,7 +41,6 @@ export interface HypermarkUIConfig {
   storageBackend?: StorageBackend;
   uploadTransport?: UploadTransport;
   docPreviewFetcher?: DocPreviewFetcher;
-  fileTreeBackend?: FileTreeBackend;
   identityProvider?: IdentityProvider;
   draftTransport?: DraftTransport;
   /**
@@ -82,7 +79,6 @@ export function configureHypermarkUI(config: HypermarkUIConfig): void {
   if (config.storageBackend) setStorageBackend(config.storageBackend);
   if (config.uploadTransport) setUploadTransport(config.uploadTransport);
   if (config.docPreviewFetcher) setDocPreviewFetcher(config.docPreviewFetcher);
-  if (config.fileTreeBackend) setFileTreeBackend(config.fileTreeBackend);
   if (config.identityProvider) setIdentityProvider(config.identityProvider);
   if (config.draftTransport) setDraftTransport(config.draftTransport);
   if (config.externalAnnotationTransport) setExternalAnnotationTransport(config.externalAnnotationTransport);
