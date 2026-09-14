@@ -374,7 +374,7 @@ export const GutterAnnotationPopup: React.FC<GutterAnnotationPopupProps> = ({
         // deletes an in-progress draft — that is Cancel's job in the composer.
         controller.close({ restoreFocus: true });
       }}
-      className="fixed z-[100] flex flex-col gap-2 rounded-xl border border-border bg-popover p-2 shadow-2xl overflow-y-auto"
+      className="fixed z-100 flex flex-col gap-2 rounded-xl border border-border bg-popover p-2 shadow-2xl overflow-y-auto"
       style={{
         left,
         width,
@@ -433,7 +433,7 @@ const GutterAnnotationEntry: React.FC<GutterAnnotationEntryProps> = ({
       {severity && (
         <div className="flex items-center gap-1.5">
           <span
-            className={`w-2 h-2 rounded-full flex-shrink-0 ${severity.dot}`}
+            className={`size-2 rounded-full flex-shrink-0 ${severity.dot}`}
             title={severity.label}
           />
         </div>

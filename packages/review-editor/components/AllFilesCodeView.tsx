@@ -1801,11 +1801,11 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
               e.stopPropagation();
               toggleItemCollapsed(item.id);
             }}
-            className="flex items-center justify-center w-6 h-6 rounded hover:bg-foreground/10 transition-colors flex-shrink-0"
+            className="flex items-center justify-center size-6 rounded hover:bg-foreground/10 transition-colors flex-shrink-0"
             title={collapsed ? 'Expand diff' : 'Collapse diff'}
           >
             <svg
-              className={`w-3 h-3 transition-transform ${collapsed ? '' : 'rotate-90'}`}
+              className={`size-3 transition-transform ${collapsed ? '' : 'rotate-90'}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -1990,7 +1990,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
           the diff. layout.paddingTop (measured height) keeps items below it. */}
       {leadingContent && scrollEl &&
         createPortal(
-          <div ref={attachLeadingEl} className="absolute top-0 left-0 right-0">
+          <div ref={attachLeadingEl} className="absolute top-0 inset-x-0">
             {leadingContent}
           </div>,
           scrollEl,

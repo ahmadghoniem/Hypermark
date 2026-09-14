@@ -535,7 +535,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
           data-decision-popover={popover}
           data-pn-dismissable-popover="true"
           onKeyDown={handlePopoverKeyDown}
-          className="absolute right-0 top-full z-[70] mt-1.5 w-64 rounded-lg border border-border bg-popover shadow-xl"
+          className="absolute right-0 top-full z-70 mt-1.5 w-64 rounded-lg border border-border bg-popover shadow-xl"
         >
           {popover === 'menu' ? (
             <div className="py-1">

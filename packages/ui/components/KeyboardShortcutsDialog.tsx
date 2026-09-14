@@ -20,7 +20,7 @@ export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = (
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-100 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div
@@ -44,7 +44,7 @@ export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = (
             onClick={onClose}
             className="p-1.5 rounded-md bg-muted hover:bg-muted/80 text-foreground transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -75,7 +75,7 @@ export const KeyboardShortcutsButton: React.FC<{
         title="Keyboard shortcuts"
         aria-label="Keyboard shortcuts"
       >
-        <ShortcutsIcon className="w-4 h-4" />
+        <ShortcutsIcon className="size-4" />
       </button>
 
       <KeyboardShortcutsDialog

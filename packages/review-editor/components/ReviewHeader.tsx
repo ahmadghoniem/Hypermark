@@ -77,7 +77,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
           <>
             <button
               onClick={toggleNavigator}
-              className={`h-7 w-7 flex shrink-0 items-center justify-center rounded-md transition-all focus-visible:outline-none ${
+              className={`size-7 flex shrink-0 items-center justify-center rounded-md transition-all focus-visible:outline-none ${
                 isNavigatorOpen
                   ? 'text-primary'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -86,7 +86,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
               aria-label={isNavigatorOpen ? 'Close review navigation' : 'Open review navigation'}
               aria-expanded={isNavigatorOpen}
             >
-              <Tree className="w-3.5 h-3.5" />
+              <Tree className="size-3.5" />
             </button>
             <div className="w-px h-5 bg-border/50 mx-1 hidden lg:block" />
           </>
@@ -102,10 +102,10 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
               </span>
             )}
             <span
-              className="text-xs text-muted-foreground/60 inline-flex items-center gap-1 truncate max-w-[220px]"
+              className="text-xs text-muted-foreground/60 inline-flex items-center gap-1 truncate max-w-55"
               title={repoInfo.display}
             >
-              <RepoIcon className="w-3 h-3 flex-shrink-0" />
+              <RepoIcon className="size-3 flex-shrink-0" />
               {repoInfo.display}
             </span>
           </div>
@@ -121,7 +121,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
           <>
             {reviewMode === 'workspace' && diffError && (
               <div
-                className="text-xs text-amber-700 dark:text-amber-300 px-2 py-1 bg-amber-500/10 rounded border border-amber-500/25 max-w-[240px] truncate"
+                className="text-xs text-amber-700 dark:text-amber-300 px-2 py-1 bg-amber-500/10 rounded border border-amber-500/25 max-w-60 truncate"
                 title={diffError}
               >
                 {files.length > 0 ? 'Some workspace changes could not be loaded' : 'Workspace changes could not be loaded'}
@@ -163,7 +163,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
                 <span className="md:hidden">Base behind</span>
                 {isFetchingBase ? (
                   <span className="flex items-center gap-1.5 font-medium">
-                    <span className="inline-block w-3 h-3 border-[1.5px] border-current border-t-transparent rounded-full animate-spin" aria-hidden />
+                    <span className="inline-block size-3 border-[1.5px] border-current border-t-transparent rounded-full animate-spin" aria-hidden />
                     Fetching…
                   </span>
                 ) : (
@@ -194,14 +194,14 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
           >
             {copyFeedback === 'Feedback copied!' ? (
               <>
-                <svg className="w-3.5 h-3.5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="size-3.5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 <span className="hidden md:inline">Copied!</span>
               </>
             ) : (
               <>
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <span className="hidden md:inline">Copy Feedback</span>
@@ -222,7 +222,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
             }`}
             title="Annotations"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
             </svg>
             {totalAnnotationCount > 0 && (
@@ -241,7 +241,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
           aria-label={allFilesAllCollapsed ? 'Expand all files' : 'Collapse all files'}
         >
           <svg
-            className="w-3.5 h-3.5"
+            className="size-3.5"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -270,12 +270,12 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
           aria-label={(diffStyle ?? 'split') === 'split' ? 'Split diff (switch to unified)' : 'Unified diff (switch to split)'}
         >
           {(diffStyle ?? 'split') === 'split' ? (
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
               <rect x="3" y="4" width="18" height="16" rx="2" />
               <path d="M12 4v16" />
             </svg>
           ) : (
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
               <rect x="3" y="4" width="18" height="16" rx="2" />
               <path d="M7 9h10M7 15h10" strokeLinecap="round" />
             </svg>

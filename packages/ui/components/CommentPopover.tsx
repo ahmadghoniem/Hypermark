@@ -521,7 +521,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           data-target-chip={chip.key}
           data-target-chip-primary={i === 0 ? 'true' : undefined}
           onMouseEnter={() => onHoverTargetChip?.(chip.key)}
-          className={`inline-flex items-center gap-1 shrink-0 max-w-[180px] rounded-full border px-2 py-0.5 text-[10px] ${
+          className={`inline-flex items-center gap-1 shrink-0 max-w-45 rounded-full border px-2 py-0.5 text-[10px] ${
             i === 0
               ? 'border-primary/50 bg-primary/10 text-foreground'
               : 'border-border bg-muted/50 text-muted-foreground'
@@ -537,7 +537,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
               title="Remove this target"
               className="shrink-0 rounded-full p-0.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
             >
-              <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="size-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -612,7 +612,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium rounded-md text-muted-foreground hover:text-foreground hover:bg-green-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       title={hasUnsavedContent ? 'Clear the comment to use Agreed' : 'Add "Agreed" without typing'}
     >
-      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+      <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
       </svg>
       Agreed
@@ -642,7 +642,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             {mode === 'dialog' && !forcedDialog && (
               <button
                 onClick={() => { setDialogIsForced(false); setMode('popover'); }}
-                className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="grid size-[22px] shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 title="Collapse"
                 aria-label="Collapse"
               >
@@ -651,7 +651,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             )}
             <button
               onClick={() => handleClose()}
-              className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="grid size-[22px] shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title="Close"
               aria-label="Close"
             >
@@ -671,7 +671,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           {mode === 'popover' ? (
             <button
               onClick={() => { setDialogIsForced(false); setMode('dialog'); }}
-              className="absolute right-2.5 top-2 z-[1] grid h-[22px] w-[22px] place-items-center rounded-[7px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="absolute right-2.5 top-2 z-1 grid size-[22px] place-items-center rounded-[7px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title="Expand"
               aria-label="Expand"
             >
@@ -681,7 +681,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             isGlobal && !forcedDialog && (
               <button
                 onClick={() => { setDialogIsForced(false); setMode('popover'); }}
-                className="absolute right-2.5 top-2 z-[1] grid h-[22px] w-[22px] place-items-center rounded-[7px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="absolute right-2.5 top-2 z-1 grid size-[22px] place-items-center rounded-[7px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 title="Collapse"
                 aria-label="Collapse"
               >
@@ -773,7 +773,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     return createPortal(
       <div
         data-comment-popover="true"
-        className="pn-visible-viewport-overlay z-[100] flex items-center justify-center"
+        className="pn-visible-viewport-overlay z-100 flex items-center justify-center"
       >
         {/* Backdrop */}
         <button
@@ -830,7 +830,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           data-popover-layer="true"
           onClick={scrollToPopover}
           title="Scroll back to your open comment"
-          className={`fixed left-1/2 -translate-x-1/2 z-[101] flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-popover border border-border shadow-lg text-xs text-muted-foreground hover:text-foreground transition-colors ${offscreen === 'above' ? 'top-3' : 'bottom-3'}`}
+          className={`fixed left-1/2 -translate-x-1/2 z-101 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-popover border border-border shadow-lg text-xs text-muted-foreground hover:text-foreground transition-colors ${offscreen === 'above' ? 'top-3' : 'bottom-3'}`}
         >
           {offscreen === 'above' ? <ChevronUpIcon /> : <ChevronDownIcon />}
           <span>Open comment</span>
@@ -839,7 +839,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       <div
         ref={popoverRef}
         data-comment-popover="true"
-        className={`group/composer fixed z-[100] bg-card border border-border rounded-xl shadow-[0_1px_2px_rgb(0_0_0/0.18),0_25px_50px_-12px_rgb(0_0_0/0.5)] flex flex-col${yieldClass}`}
+        className={`group/composer fixed z-100 bg-card border border-border rounded-xl shadow-[0_1px_2px_rgb(0_0_0/0.18),0_25px_50px_-12px_rgb(0_0_0/0.5)] flex flex-col${yieldClass}`}
         style={dragPosition
           ? {
               top: dragPosition.top,
@@ -875,7 +875,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           onPointerDown={beginGripResize}
           onDoubleClick={resetGripResize}
           title="Drag to resize"
-          className="absolute -left-[9px] -top-[9px] z-[3] grid h-6 w-6 cursor-nwse-resize place-items-center text-muted-foreground/60 opacity-0 transition-opacity group-hover/composer:opacity-100"
+          className="absolute -left-[9px] -top-[9px] z-3 grid size-6 cursor-nwse-resize place-items-center text-muted-foreground/60 opacity-0 transition-opacity group-hover/composer:opacity-100"
         >
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
             <path d="M1.5 13.5A12 12 0 0 1 13.5 1.5" />
@@ -1068,19 +1068,19 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
 // Icons
 
 const ChevronUpIcon = () => (
-  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
   </svg>
 );
 
 const ChevronDownIcon = () => (
-  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
   </svg>
 );
 
 const ExpandIcon = () => (
-  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
   </svg>
 );
@@ -1088,20 +1088,20 @@ const ExpandIcon = () => (
 /** Corner-down-right arrow: "this points at that". Not a quotation mark -
  *  the strip holds a place in a file, and a place is not a quote. */
 const AnchorIcon = () => (
-  <svg className="w-[13px] h-[13px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+  <svg className="size-[13px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <polyline points="15 10 20 15 15 20" />
     <path d="M4 4v7a4 4 0 0 0 4 4h12" />
   </svg>
 );
 
 const CollapseIcon = () => (
-  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
   </svg>
 );
 
 const CloseIcon = () => (
-  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
   </svg>
 );

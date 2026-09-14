@@ -102,7 +102,7 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
             active={!!isAgentTerminalOpen}
             running={!!isAgentTerminalRunning}
             onClick={onToggleAgentTerminal}
-            icon={<ReviewAgentsIcon className="w-3 h-3" />}
+            icon={<ReviewAgentsIcon className="size-3" />}
             label="Agent"
           />
         )}
@@ -112,7 +112,7 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
             onClick={() => onTabChange("toc")}
             icon={
               <svg
-                className="w-3 h-3"
+                className="size-3"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -134,7 +134,7 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
             onClick={() => onTabChange("versions")}
             icon={
               <svg
-                className="w-3 h-3"
+                className="size-3"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -154,7 +154,7 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
           <TabButton
             active={activeTab === "messages"}
             onClick={() => onTabChange("messages")}
-            icon={<MessagesIcon className="w-3 h-3" />}
+            icon={<MessagesIcon className="size-3" />}
             label="Messages"
             badge={messageAnnotationCounts !== undefined && messageAnnotationCounts.size > 0}
           />
@@ -224,7 +224,7 @@ const TabButton: React.FC<{
     {icon}
     {label}
     {badge && (
-      <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-primary" />
+      <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-primary" />
     )}
 </button>
 );
@@ -250,7 +250,7 @@ const ActionButton: React.FC<{
     {icon}
     {label}
     {running && (
-      <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-primary" />
+      <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-primary" />
     )}
   </button>
 );

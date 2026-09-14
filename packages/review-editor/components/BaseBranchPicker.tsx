@@ -171,7 +171,7 @@ export const BaseBranchPicker: React.FC<BaseBranchPickerProps> = ({
           </span>
           <span className="truncate flex-1 text-left">{chipLabel(selectedBase)}</span>
           <svg
-            className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0"
+            className="size-3.5 text-muted-foreground flex-shrink-0"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -304,7 +304,7 @@ const BranchGroup: React.FC<BranchGroupProps> = ({
         >
           <span className="w-3 flex-shrink-0">
             {isSelected && (
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             )}
@@ -343,7 +343,7 @@ const CommitList: React.FC<CommitListProps> = ({ commits, selectedBase, onSelect
         >
           <span className="w-3 flex-shrink-0">
             {isSelected && (
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+              <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             )}

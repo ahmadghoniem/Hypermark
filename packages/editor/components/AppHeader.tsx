@@ -99,7 +99,7 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   return (
     <header
       data-app-header="true"
-      className={`h-12 flex items-center justify-between px-2 md:px-4 border-b border-border/50 bg-card/50 backdrop-blur-xl z-[50] ${sticky ? 'sticky top-0' : 'relative'}`}
+      className={`h-12 flex items-center justify-between px-2 md:px-4 border-b border-border/50 bg-card/50 backdrop-blur-xl z-50 ${sticky ? 'sticky top-0' : 'relative'}`}
     >
       <div className="flex items-center gap-2">
         <AppHeaderLogo />
@@ -176,7 +176,7 @@ export const AppHeader = React.memo<AppHeaderProps>(({
           }`}
           title={isPanelOpen ? 'Hide annotations' : 'Show annotations'}
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
           </svg>
           {annotationCount > 0 && (

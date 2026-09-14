@@ -340,7 +340,7 @@ export const AnnotateAgentTerminalPanel = forwardRef<
             <div className="min-w-0 text-[11px] text-muted-foreground">
               <span className="text-foreground">{formatAgentName(startedAgentId, agents)}</span>
               <span className="mx-1.5 text-muted-foreground/40">in</span>
-              <span className="inline-block max-w-[13rem] truncate align-bottom font-mono" title={capability.cwd}>{capability.cwd}</span>
+              <span className="inline-block max-w-52 truncate align-bottom font-mono" title={capability.cwd}>{capability.cwd}</span>
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <AgentTerminalDisplayPopover
@@ -416,7 +416,7 @@ export const AnnotateAgentTerminalPanel = forwardRef<
               type="checkbox"
               checked={saveAsDefault}
               onChange={(event) => setSaveAsDefault(event.target.checked)}
-              className="h-3.5 w-3.5 accent-primary"
+              className="size-3.5 accent-primary"
             />
             Use as default
           </label>
@@ -426,7 +426,7 @@ export const AnnotateAgentTerminalPanel = forwardRef<
             disabled={!canStart}
             className="mt-1 flex h-8 items-center justify-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Play className="h-3.5 w-3.5" />
+            <Play className="size-3.5" />
             Start
           </button>
           {availableAgents.length === 0 && (
@@ -467,12 +467,12 @@ function AgentSelect({
         <span className="min-w-0 flex-1 truncate text-left">
           {selectedAgent?.name ?? "Select agent"}
         </span>
-        <CaretDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <CaretDown className="size-3.5 shrink-0 text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
         sideOffset={4}
-        className="z-[100] min-w-[var(--anchor-width)]"
+        className="z-100 min-w-[var(--anchor-width)]"
       >
         {agents.map((agent) => {
           const selected = agent.id === selectedAgentId;
@@ -484,8 +484,8 @@ function AgentSelect({
               onClick={() => onSelect(agent.id)}
               className={`h-7 text-xs ${tone}`}
             >
-              <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
-                {selected && <Check className="h-3 w-3" />}
+              <span className="flex size-3.5 shrink-0 items-center justify-center">
+                {selected && <Check className="size-3" />}
               </span>
               <span className="min-w-0 flex-1 truncate">{agent.name}</span>
             </DropdownMenuItem>
@@ -553,11 +553,11 @@ function AgentTerminalDisplayPopover({
             type="button"
             aria-label="Terminal display settings"
             title="Display settings"
-            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground/80 transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring data-[popup-open]:bg-primary/15 data-[popup-open]:text-primary"
+            className="flex size-6 items-center justify-center rounded text-muted-foreground/80 transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring data-[popup-open]:bg-primary/15 data-[popup-open]:text-primary"
           />
         }
       >
-        <SettingsIcon className="h-3.5 w-3.5" />
+        <SettingsIcon className="size-3.5" />
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={6} className="w-64 p-2.5">
         <div className="space-y-2.5">
@@ -573,9 +573,9 @@ function AgentTerminalDisplayPopover({
               type="button"
               aria-label="Reset terminal display settings"
               onClick={() => onChange(DEFAULT_DISPLAY_SETTINGS)}
-              className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+              className="flex size-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
             >
-              <ArrowClockwise className="h-3.5 w-3.5" />
+              <ArrowClockwise className="size-3.5" />
             </button>
           </div>
 
@@ -665,9 +665,9 @@ function TerminalDisplayStepper({
           aria-label={`Decrease ${label}`}
           onClick={() => onChange(clamped - 1)}
           disabled={clamped <= min}
-          className="flex h-6 w-6 items-center justify-center rounded-[5px] text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          className="flex size-6 items-center justify-center rounded-[5px] text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
         >
-          <Minus className="h-3 w-3" />
+          <Minus className="size-3" />
         </button>
         <span className="w-12 text-center text-[11px] tabular-nums text-foreground">
           {clamped}
@@ -678,9 +678,9 @@ function TerminalDisplayStepper({
           aria-label={`Increase ${label}`}
           onClick={() => onChange(clamped + 1)}
           disabled={clamped >= max}
-          className="flex h-6 w-6 items-center justify-center rounded-[5px] text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          className="flex size-6 items-center justify-center rounded-[5px] text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
         >
-          <Plus className="h-3 w-3" />
+          <Plus className="size-3" />
         </button>
       </div>
     </div>

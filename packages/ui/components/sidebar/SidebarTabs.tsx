@@ -53,9 +53,9 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
           title={isAgentTerminalRunning ? "Agent running" : "Agent"}
           aria-pressed={isAgentTerminalOpen}
         >
-          <ReviewAgentsIcon className="w-3.5 h-3.5" />
+          <ReviewAgentsIcon className="size-3.5" />
           {isAgentTerminalRunning && (
-            <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-primary" />
+            <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
           )}
         </button>
       )}
@@ -67,7 +67,7 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
         title="Table of Contents"
       >
         <svg
-          className="w-3.5 h-3.5"
+          className="size-3.5"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -89,7 +89,7 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
           title="Plan Versions"
         >
           <svg
-            className="w-3.5 h-3.5"
+            className="size-3.5"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -103,7 +103,7 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
           </svg>
           {/* Availability indicator dot */}
           {hasDiff && (
-            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" />
+            <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
           )}
         </button>
       )}
@@ -116,7 +116,7 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
         >
           <MessagesIcon />
           {hasMessageAnnotations && (
-            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" />
+            <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
           )}
         </button>
       )}

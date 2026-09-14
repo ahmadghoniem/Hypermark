@@ -16,7 +16,7 @@ const DialogOverlay = React.forwardRef<
     ref={ref}
     data-slot="dialog-overlay"
     className={cn(
-      "fixed inset-0 z-[110] bg-black/55 backdrop-blur-[2px]",
+      "fixed inset-0 z-110 bg-black/55 backdrop-blur-[2px]",
       "transition-opacity duration-200",
       "data-starting-style:opacity-0 data-ending-style:opacity-0",
       className,
@@ -37,11 +37,11 @@ const DialogContent = React.forwardRef<
 >(({ backdropClassName, className, children, hideClose, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay className={backdropClassName} />
-    <div className="pn-visible-viewport-overlay z-[110] pointer-events-none flex items-center justify-center">
+    <div className="pn-visible-viewport-overlay z-110 pointer-events-none flex items-center justify-center">
       <DialogPrimitive.Popup
         ref={ref}
         className={cn(
-          "relative pointer-events-auto z-[110] w-full min-h-0",
+          "relative pointer-events-auto z-110 w-full min-h-0",
           "max-w-4xl max-h-[min(640px,85vh,100%)]",
           "flex flex-col overflow-hidden",
           "rounded-2xl border border-border bg-popover text-popover-foreground",

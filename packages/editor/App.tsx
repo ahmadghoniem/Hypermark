@@ -3773,7 +3773,7 @@ const AppInner: React.FC = () => {
       {isAgentTerminalVisible && (
         <ResizeHandle
           {...agentTerminalResize.handleProps}
-          className="hidden lg:block z-[55]"
+          className="hidden lg:block z-55"
           side={agentTerminalPlacement}
           hideHoverTrack
           tooltip={RESIZE_HANDLE_TOOLTIP}
@@ -4001,7 +4001,7 @@ const AppInner: React.FC = () => {
           {sidebar.isOpen && (
             <div className="contents group/sidebar">
               {renderPlanSidebar()}
-              <ResizeHandle {...tocResize.handleProps} className="hidden lg:block z-[55]" side="left" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={sidebar.close} />
+              <ResizeHandle {...tocResize.handleProps} className="hidden lg:block z-55" side="left" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={sidebar.close} />
             </div>
           )}
 
@@ -4083,10 +4083,10 @@ const AppInner: React.FC = () => {
               <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : `flex justify-center${isEditingMarkdown ? ' flex-1 min-h-0' : ''}`}`} style={{ display: isPlanDiffActive && planDiff.diffBlocks ? 'none' : undefined }}>
                 {(canUseWideMode || canEditMarkdown) && !isPlanDiffActive && !isHtmlSurface && (
                   <div
-                    className="absolute -top-5 left-0 right-0 mx-auto w-full flex justify-end pointer-events-none"
+                    className="absolute -top-5 inset-x-0 mx-auto w-full flex justify-end pointer-events-none"
                     style={annotateReaderMaxWidth === null ? undefined : { maxWidth: annotateReaderMaxWidth ?? 832 }}
                   >
-                    <div className={`pointer-events-auto flex items-center gap-1.5 text-[11px] tracking-wide mr-[4px]`}>
+                    <div className={`pointer-events-auto flex items-center gap-1.5 text-[11px] tracking-wide mr-1`}>
                       {canUseWideMode && (['wide', 'focus'] as const).map((type, i) => (
                         <React.Fragment key={type}>
                           {i > 0 && <span aria-hidden className="text-muted-foreground/30 select-none">|</span>}
@@ -4148,7 +4148,7 @@ const AppInner: React.FC = () => {
                                       button never reflows when edits appear/clear. */}
                                   <span
                                     aria-hidden
-                                    className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors duration-150 ${
+                                    className={`size-1.5 shrink-0 rounded-full transition-colors duration-150 ${
                                       saveFailed ? 'bg-destructive' : emphasizeSave ? 'bg-primary' : 'bg-transparent'
                                     }`}
                                   />
@@ -4298,7 +4298,7 @@ const AppInner: React.FC = () => {
               ancestor (`contents` = no layout box). */}
           <div className="contents group/sidebar">
           {/* Resize Handle */}
-          {isRightPanelVisible && wideModeType === null && <ResizeHandle {...panelResize.handleProps} className="hidden md:block z-[55]" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => setIsPanelOpen(false)} />}
+          {isRightPanelVisible && wideModeType === null && <ResizeHandle {...panelResize.handleProps} className="hidden md:block z-55" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => setIsPanelOpen(false)} />}
 
           {/* Annotation Panel */}
           {renderAnnotationPanel(

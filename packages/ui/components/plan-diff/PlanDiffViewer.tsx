@@ -60,18 +60,18 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
           {repoInfo && (
             <div className="flex items-center gap-1.5">
               <span
-                className="px-1.5 py-0.5 bg-muted/50 rounded truncate max-w-[140px]"
+                className="px-1.5 py-0.5 bg-muted/50 rounded truncate max-w-35"
                 title={repoInfo.display}
               >
                 {repoInfo.display}
               </span>
               {repoInfo.branch && (
                 <span
-                  className="px-1.5 py-0.5 bg-muted/30 rounded max-w-[120px] flex items-center gap-1 overflow-hidden"
+                  className="px-1.5 py-0.5 bg-muted/30 rounded max-w-30 flex items-center gap-1 overflow-hidden"
                   title={repoInfo.branch}
                 >
                   <svg
-                    className="w-2.5 h-2.5 flex-shrink-0"
+                    className="size-2.5 flex-shrink-0"
                     viewBox="0 0 16 16"
                     fill="currentColor"
                   >
@@ -99,7 +99,7 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
           >
             <span className="hidden md:inline text-[10px] font-medium">Exit Diff</span>
             <svg
-              className="w-3.5 h-3.5"
+              className="size-3.5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"

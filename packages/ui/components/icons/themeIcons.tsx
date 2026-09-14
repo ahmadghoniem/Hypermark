@@ -22,14 +22,14 @@ export interface IconProps {
   className?: string;
 }
 
-export const SunIcon: React.FC<IconProps> = ({ className = 'w-3.5 h-3.5' }) => (
+export const SunIcon: React.FC<IconProps> = ({ className = 'size-3.5' }) => (
   <Sun className={className} weight="regular" />
 );
 
-export const MoonIcon: React.FC<IconProps> = ({ className = 'w-3.5 h-3.5' }) => (
+export const MoonIcon: React.FC<IconProps> = ({ className = 'size-3.5' }) => (
   <Moon className={className} weight="regular" />
 );
 
-export const SystemIcon: React.FC<IconProps> = ({ className = 'w-3.5 h-3.5' }) => (
+export const SystemIcon: React.FC<IconProps> = ({ className = 'size-3.5' }) => (
   <Monitor className={className} weight="regular" />
 );

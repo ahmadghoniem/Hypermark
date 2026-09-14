@@ -497,7 +497,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
           established position directly below the "All files" row — above the
           file tree's own scroll/virtualization region, which it owns itself
           once mounted (see below). */}
-      <div className="px-1 py-1 flex-shrink-0">
+      <div className="p-1 flex-shrink-0">
         {onSelectAllFiles && (
           <AllFilesRow
             active={isAllFilesActive}
@@ -514,7 +514,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
       <div ref={treeWrapperRef} className="flex-1 min-h-0 flex flex-col">
         {searchQuery.trim() ? (
           <OverlayScrollArea className="flex-1 min-h-0">
-            <div className="px-1 py-1">
+            <div className="p-1">
               {isSearchPending ? (
                 <div className="py-6 text-center text-xs text-muted-foreground/50">Searching…</div>
               ) : searchGroups.length > 0 ? (
@@ -577,7 +577,7 @@ export const SearchFileGroup: React.FC<{
         onClick={() => setCollapsed((prev) => !prev)}
       >
         <svg
-          className={`w-3 h-3 text-muted-foreground/50 transition-transform flex-shrink-0 ${collapsed ? '' : 'rotate-90'}`}
+          className={`size-3 text-muted-foreground/50 transition-transform flex-shrink-0 ${collapsed ? '' : 'rotate-90'}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -586,7 +586,7 @@ export const SearchFileGroup: React.FC<{
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
         <svg
-          className="w-3.5 h-3.5 text-muted-foreground/60 flex-shrink-0"
+          className="size-3.5 text-muted-foreground/60 flex-shrink-0"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

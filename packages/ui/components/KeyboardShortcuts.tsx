@@ -54,8 +54,8 @@ const ShortcutRow: React.FC<{ shortcut: ShortcutEntry }> = ({ shortcut }) => (
       {shortcut.description}
       {shortcut.hint && (
         <span className="relative group ml-1 inline-flex">
-          <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full text-[9px] font-medium bg-muted-foreground/15 text-muted-foreground/60 cursor-default">?</span>
-          <span className="absolute bottom-full left-0 mb-1.5 px-2.5 py-1.5 rounded bg-foreground text-background text-[11px] leading-snug w-[320px] opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg z-50">
+          <span className="inline-flex items-center justify-center size-3.5 rounded-full text-[9px] font-medium bg-muted-foreground/15 text-muted-foreground/60 cursor-default">?</span>
+          <span className="absolute bottom-full left-0 mb-1.5 px-2.5 py-1.5 rounded bg-foreground text-background text-[11px] leading-snug w-80 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg z-50">
             {shortcut.hint}
           </span>
         </span>

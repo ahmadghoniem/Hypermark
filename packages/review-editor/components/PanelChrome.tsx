@@ -58,7 +58,7 @@ export function PanelControlsRow({
             aria-label="Search diff"
             title="Search diff (Cmd/Ctrl+F)"
           >
-            <MagnifyingGlass className="w-3.5 h-3.5" aria-hidden="true" />
+            <MagnifyingGlass className="size-3.5" aria-hidden="true" />
           </button>
         )}
         {onToggleAllFolders && (
@@ -79,9 +79,9 @@ export function PanelControlsRow({
             }
           >
             {areAllFoldersExpanded ? (
-              <ArrowsInLineVertical className="w-3.5 h-3.5" aria-hidden="true" />
+              <ArrowsInLineVertical className="size-3.5" aria-hidden="true" />
             ) : (
-              <ArrowsOutLineVertical className="w-3.5 h-3.5" aria-hidden="true" />
+              <ArrowsOutLineVertical className="size-3.5" aria-hidden="true" />
             )}
           </button>
         )}
@@ -101,11 +101,11 @@ export function PanelControlsRow({
               }`}
             >
               {copyRawDiffStatus === "success" ? (
-                <Check className="w-3.5 h-3.5" aria-hidden="true" />
+                <Check className="size-3.5" aria-hidden="true" />
               ) : copyRawDiffStatus === "error" ? (
-                <X className="w-3.5 h-3.5" aria-hidden="true" />
+                <X className="size-3.5" aria-hidden="true" />
               ) : (
-                <Copy className="w-3.5 h-3.5" aria-hidden="true" />
+                <Copy className="size-3.5" aria-hidden="true" />
               )}
             </button>
           </Tooltip>
@@ -153,7 +153,7 @@ export function PanelSearchField({
     >
       <div className="relative flex-1">
         <MagnifyingGlass
-          className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60"
+          className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60"
           aria-hidden="true"
         />
         <input
@@ -181,7 +181,7 @@ export function PanelSearchField({
             aria-label={actionLabel}
             title={actionLabel}
           >
-            <X className="h-3 w-3" aria-hidden="true" />
+            <X className="size-3" aria-hidden="true" />
           </button>
         </div>
       </div>

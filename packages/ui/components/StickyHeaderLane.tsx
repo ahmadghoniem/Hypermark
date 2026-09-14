@@ -195,7 +195,7 @@ export const StickyHeaderLane: React.FC<StickyHeaderLaneProps> = ({
       {/* Sentinel — present only for sticky positioning. It sits at the top of
           the column and activates the stuck state after scrolling out of the
           OverlayScrollArea viewport. */}
-      {sticky && <div ref={sentinelRef} aria-hidden="true" className="h-0 w-0" />}
+      {sticky && <div ref={sentinelRef} aria-hidden="true" className="size-0" />}
 
       {/* Zero-height wrapper — sticky by default, relative when sticky is
           disabled so the absolutely positioned lane scrolls in normal flow.
@@ -212,7 +212,7 @@ export const StickyHeaderLane: React.FC<StickyHeaderLaneProps> = ({
       <div
         ref={wrapperRef}
         data-sticky-header-lane="true"
-        className={`${sticky ? 'sticky' : 'relative'} z-[60] w-full self-center pointer-events-none ${
+        className={`${sticky ? 'sticky' : 'relative'} z-60 w-full self-center pointer-events-none ${
           sticky ? (isNarrow ? 'top-[52px] md:top-[60px]' : 'top-3') : ''
         }`}
         style={maxWidth == null ? { height: 0 } : { maxWidth, height: 0 }}

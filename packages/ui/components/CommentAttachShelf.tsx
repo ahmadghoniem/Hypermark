@@ -77,7 +77,7 @@ export const CommentAttachShelf: React.FC<CommentAttachShelfProps> = ({
             onClick={() => onRemove(image.path)}
             aria-label={`Remove ${image.name}`}
             title={`Remove ${image.name}`}
-            className="absolute -right-[5px] -top-[5px] grid h-[15px] w-[15px] place-items-center rounded-full border border-border bg-popover text-muted-foreground transition-colors hover:text-foreground"
+            className="absolute -right-[5px] -top-[5px] grid size-[15px] place-items-center rounded-full border border-border bg-popover text-muted-foreground transition-colors hover:text-foreground"
           >
             <RemoveGlyph />
           </button>
@@ -110,7 +110,7 @@ export const CommentAttachShelf: React.FC<CommentAttachShelfProps> = ({
             onClick={() => onRemovePending?.(item.id)}
             aria-label={`Remove ${item.name}`}
             title={`Remove ${item.name}`}
-            className="absolute -right-[5px] -top-[5px] grid h-[15px] w-[15px] place-items-center rounded-full border border-border bg-popover text-muted-foreground transition-colors hover:text-foreground"
+            className="absolute -right-[5px] -top-[5px] grid size-[15px] place-items-center rounded-full border border-border bg-popover text-muted-foreground transition-colors hover:text-foreground"
           >
             <RemoveGlyph />
           </button>
@@ -136,19 +136,19 @@ export const CommentAttachShelf: React.FC<CommentAttachShelfProps> = ({
 };
 
 const RemoveGlyph: React.FC = () => (
-  <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
+  <svg className="size-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
   </svg>
 );
 
 const PlusGlyph: React.FC = () => (
-  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
   </svg>
 );
 
 const ImageGlyph: React.FC = () => (
-  <svg className="h-[15px] w-[15px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
+  <svg className="size-[15px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
     <rect x="3" y="3" width="18" height="18" rx="2" />
     <circle cx="8.5" cy="8.5" r="1.5" />
     <path strokeLinecap="round" strokeLinejoin="round" d="M21 15l-5-5L5 21" />

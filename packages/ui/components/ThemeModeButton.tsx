@@ -10,19 +10,19 @@ const SEGMENTED_MODES: { id: Mode; label: string }[] = [
   { id: 'dark', label: 'Dark' },
 ];
 
-const ChevronRightIcon: React.FC<{ className?: string }> = ({ className = 'w-3.5 h-3.5' }) => (
+const ChevronRightIcon: React.FC<{ className?: string }> = ({ className = 'size-3.5' }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
   </svg>
 );
 
-const ArrowLeftIcon: React.FC<{ className?: string }> = ({ className = 'w-3.5 h-3.5' }) => (
+const ArrowLeftIcon: React.FC<{ className?: string }> = ({ className = 'size-3.5' }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
   </svg>
 );
 
-const CheckIcon: React.FC<{ className?: string }> = ({ className = 'w-3.5 h-3.5' }) => (
+const CheckIcon: React.FC<{ className?: string }> = ({ className = 'size-3.5' }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
   </svg>
@@ -57,7 +57,7 @@ const ThemePickerPanel: React.FC<{ closeMenu: () => void }> = () => {
             title="Back"
             aria-label="Back"
           >
-            <ArrowLeftIcon className="w-3.5 h-3.5" />
+            <ArrowLeftIcon className="size-3.5" />
           </button>
           <span className="text-xs font-medium text-foreground">{title}</span>
         </div>
@@ -83,7 +83,7 @@ const ThemePickerPanel: React.FC<{ closeMenu: () => void }> = () => {
                       {[colors.primary, colors.secondary, colors.accent, colors.background, colors.foreground].map((color, i) => (
                         <span
                           key={i}
-                          className="w-2 h-2 rounded-full border border-border/50"
+                          className="size-2 rounded-full border border-border/50"
                           style={{ backgroundColor: color }}
                         />
                       ))}
@@ -91,7 +91,7 @@ const ThemePickerPanel: React.FC<{ closeMenu: () => void }> = () => {
                   )}
                   <span className="truncate">{theme.name}</span>
                 </div>
-                {isSelected && <CheckIcon className="w-3.5 h-3.5 flex-shrink-0 text-primary" />}
+                {isSelected && <CheckIcon className="size-3.5 flex-shrink-0 text-primary" />}
               </button>
             );
           })}
@@ -130,7 +130,7 @@ const ThemePickerPanel: React.FC<{ closeMenu: () => void }> = () => {
           <span className="text-muted-foreground">Light theme</span>
           <span className="flex items-center gap-1 font-medium text-foreground">
             <span>{nameOf(lightTheme)}</span>
-            <ChevronRightIcon className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-foreground transition-colors" />
+            <ChevronRightIcon className="size-3.5 text-muted-foreground/70 group-hover:text-foreground transition-colors" />
           </span>
         </button>
 
@@ -142,7 +142,7 @@ const ThemePickerPanel: React.FC<{ closeMenu: () => void }> = () => {
           <span className="text-muted-foreground">Dark theme</span>
           <span className="flex items-center gap-1 font-medium text-foreground">
             <span>{nameOf(darkTheme)}</span>
-            <ChevronRightIcon className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-foreground transition-colors" />
+            <ChevronRightIcon className="size-3.5 text-muted-foreground/70 group-hover:text-foreground transition-colors" />
           </span>
         </button>
       </div>

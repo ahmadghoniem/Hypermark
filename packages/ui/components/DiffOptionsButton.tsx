@@ -123,7 +123,7 @@ function Toggle({ checked, onChange, label }: {
       <span className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
         checked ? 'bg-primary' : 'bg-muted-foreground/25'
       }`}>
-        <span className={`inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${
+        <span className={`inline-block size-3 rounded-full bg-white shadow-sm transition-transform ${
           checked ? 'translate-x-3.5' : 'translate-x-0.5'
         }`} />
       </span>
@@ -156,7 +156,7 @@ export const DiffOptionsButton: React.FC = () => {
           />
         }
       >
-        <OptionsIcon className="w-4 h-4" />
+        <OptionsIcon className="size-4" />
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner align="end" sideOffset={6} className="z-50">

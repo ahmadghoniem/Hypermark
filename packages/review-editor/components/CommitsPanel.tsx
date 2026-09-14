@@ -74,11 +74,11 @@ const CommitRow: React.FC<{
  * as a prominent labeled rule so the split reads at a glance. */
 const BaseBoundary: React.FC<{ base: string }> = ({ base }) => (
   <div
-    className="flex items-center gap-2 px-2 py-2"
+    className="flex items-center gap-2 p-2"
     title={`Commits from here down are already part of ${base} — shared history, not branch work.`}
   >
     <span className="h-px flex-1 bg-foreground/30" />
-    <span className="text-[11px] font-semibold text-foreground/80 truncate max-w-[160px]">
+    <span className="text-[11px] font-semibold text-foreground/80 truncate max-w-40">
       In {base}
     </span>
     <span className="h-px flex-1 bg-foreground/30" />

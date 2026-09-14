@@ -64,12 +64,12 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   const icons = {
     info: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
       </svg>
     ),
     warning: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
       </svg>
     ),
@@ -92,7 +92,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         data-hypermark-confirm-dialog="true"
       >
         <div className="flex items-center gap-3 mb-4">
-          <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${iconColors[variant]}`}>
+          <div className={`size-10 shrink-0 rounded-full flex items-center justify-center ${iconColors[variant]}`}>
             {icons[variant]}
           </div>
           <DialogTitle className="font-semibold tracking-normal">{title}</DialogTitle>

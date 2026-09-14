@@ -31,7 +31,7 @@ interface AttachmentStripProps {
 
 /** Compact remove glyph, sized for the chip's trailing button. */
 const RemoveIcon: React.FC = () => (
-  <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
+  <svg className="size-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
   </svg>
 );
@@ -155,7 +155,7 @@ const RemoveButton: React.FC<RemoveButtonProps> = ({ name, onRemove, registerRem
     }}
     aria-label={`Remove ${name}`}
     title={`Remove ${name}`}
-    className="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center text-muted-foreground/70 hover:text-foreground hover:bg-muted-foreground/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+    className="flex-shrink-0 size-4 rounded flex items-center justify-center text-muted-foreground/70 hover:text-foreground hover:bg-muted-foreground/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
   >
     <RemoveIcon />
   </button>
@@ -177,7 +177,7 @@ const SavedChip: React.FC<SavedChipProps> = ({ image, onRemove, registerRemoveBu
         // Say so explicitly and keep the attachment; never drop it silently.
         <span
           data-attachment-unavailable="true"
-          className="flex-shrink-0 w-4 h-4 rounded-sm bg-muted flex items-center justify-center text-[8px] text-muted-foreground"
+          className="flex-shrink-0 size-4 rounded-sm bg-muted flex items-center justify-center text-[8px] text-muted-foreground"
           aria-label="Image unavailable"
         >
           ?

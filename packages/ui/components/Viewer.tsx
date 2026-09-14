@@ -168,7 +168,7 @@ const FrontmatterCard: React.FC<{ frontmatter: Frontmatter }> = ({ frontmatter }
       <div className="grid gap-2 text-sm">
         {entries.map(([key, value]) => (
           <div key={key} className="flex gap-2">
-            <span className="font-medium text-muted-foreground min-w-[80px]">{key}:</span>
+            <span className="font-medium text-muted-foreground min-w-20">{key}:</span>
             <span className="text-foreground">
               {Array.isArray(value) ? (
                 <span className="flex flex-wrap gap-1">
@@ -248,7 +248,7 @@ const ViewerDocumentHeader: React.FC<ViewerDocumentHeaderProps> = ({
 
   return (
     <>
-      {sticky && <div ref={sentinelRef} className="h-0 w-0" aria-hidden="true" />}
+      {sticky && <div ref={sentinelRef} className="size-0" aria-hidden="true" />}
       <div
         ref={headerRef}
         data-annotation-exclude
@@ -822,7 +822,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors"
           title="Add global comment"
         >
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
           </svg>
           {actionsLabelMode === 'full' && <span>Global comment</span>}
@@ -837,14 +837,14 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
       >
         {copied ? (
           <>
-            <svg className="w-3.5 h-3.5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="size-3.5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
             Copied!
           </>
         ) : (
           <>
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
             </svg>
             {actionsLabelMode === 'full' && <span>{copyLabel || (linkedDocInfo ? 'Copy file' : 'Copy plan')}</span>}
@@ -909,7 +909,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
         ) : (
           <>
             {badgeClearance > 0 && <div style={{ height: badgeClearance }} aria-hidden="true" />}
-            {stickyActions && <div ref={stickySentinelRef} className="h-0 w-0 float-right" aria-hidden="true" />}
+            {stickyActions && <div ref={stickySentinelRef} className="size-0 float-right" aria-hidden="true" />}
             <div data-sticky-actions className={`${stickyActions ? 'sticky top-3' : ''} z-30 float-right flex items-start gap-1 md:gap-2 rounded-lg p-1 md:p-2 transition-colors duration-150 ${isStuck ? 'bg-card/95 backdrop-blur-sm shadow-sm' : ''} -mr-1 md:-mr-2 mt-6 md:-mt-5 lg:-mt-7 xl:-mt-9`}>
               {documentActions}
             </div>
@@ -1190,7 +1190,7 @@ const ImageLightbox: React.FC<{ src: string; alt: string; onClose: () => void }>
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm cursor-zoom-out"
+      className="fixed inset-0 z-200 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm cursor-zoom-out"
       onClick={onClose}
     >
       <img

@@ -5,13 +5,13 @@ import { useAutoClose } from '../hooks/useAutoClose';
 // ---------------------------------------------------------------------------
 
 const CheckIcon = () => (
-  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+  <svg className="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
   </svg>
 );
 
 const ChatBubbleIcon = () => (
-  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+  <svg className="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
     <path
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -39,10 +39,10 @@ export function CompletionOverlay({ submitted, title, subtitle, agentLabel }: Co
   const isApproved = submitted === 'approved';
 
   return (
-    <div className="fixed inset-0 z-[100] bg-background flex items-center justify-center">
+    <div className="fixed inset-0 z-100 bg-background flex items-center justify-center">
       <div className="text-center space-y-6 max-w-md px-8">
         <div
-          className={`mx-auto w-16 h-16 rounded-full flex items-center justify-center ${
+          className={`mx-auto size-16 rounded-full flex items-center justify-center ${
             isApproved ? 'bg-success/20 text-success' : 'bg-accent/20 text-accent'
           }`}
         >

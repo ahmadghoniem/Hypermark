@@ -147,7 +147,7 @@ export const SkillReferenceMenu: React.FC<SkillReferenceMenuProps> = ({
       data-skill-menu="true"
       data-skill-menu-placement={placement.direction}
       data-popover-layer="true"
-      className={`absolute left-0 right-0 z-[110] bg-popover border border-border rounded-xl shadow-2xl overflow-hidden ${
+      className={`absolute inset-x-0 z-110 bg-popover border border-border rounded-xl shadow-2xl overflow-hidden ${
         placement.direction === 'above' ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
       }`}
     >
@@ -197,7 +197,7 @@ export const SkillReferenceMenu: React.FC<SkillReferenceMenuProps> = ({
 
 const SkillIcon: React.FC = () => (
   <svg
-    className="w-4 h-4 shrink-0 text-muted-foreground"
+    className="size-4 shrink-0 text-muted-foreground"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -254,7 +254,7 @@ export const HumanOnlySkillNotice: React.FC<HumanOnlySkillNoticeProps> = ({ skil
 
 const DisclosureChevron: React.FC = () => (
   <svg
-    className="w-2.5 h-2.5 shrink-0 transition-transform group-open:rotate-90"
+    className="size-2.5 shrink-0 transition-transform group-open:rotate-90"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"

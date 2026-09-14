@@ -78,7 +78,7 @@ export const ImageThumbnail: React.FC<ImageThumbnailProps> = ({
           className={`${sizeClass} rounded bg-muted flex items-center justify-center text-muted-foreground`}
         >
           <svg
-            className="w-4 h-4"
+            className="size-4"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -114,9 +114,9 @@ export const ImageThumbnail: React.FC<ImageThumbnailProps> = ({
             e.stopPropagation();
             onRemove();
           }}
-          className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+          className="absolute -top-1 -right-1 size-4 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
         >
-          <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <svg className="size-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>

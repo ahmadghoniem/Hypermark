@@ -140,7 +140,7 @@ const CodeSnippetPreview: React.FC<{
 
   return createPortal(
     <div
-      className="fixed z-[9999] rounded-lg border border-border bg-card shadow-xl flex flex-col"
+      className="fixed z-9999 rounded-lg border border-border bg-card shadow-xl flex flex-col"
       style={{ top, bottom, left, maxWidth: 'min(600px, 90vw)', maxHeight: '300px' }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -301,7 +301,7 @@ function sanitizeLinkUrl(url: string): string | null {
 
 const CodeFileIcon = () => (
   <svg
-    className="w-3 h-3 opacity-50 flex-shrink-0"
+    className="size-3 opacity-50 flex-shrink-0"
     fill="none"
     viewBox="0 0 24 24"
     stroke="currentColor"
@@ -814,7 +814,7 @@ export const InlineMarkdown: React.FC<{
           className="inline-flex items-center gap-1 align-middle"
         >
           <span
-            className="inline-block w-3.5 h-3.5 rounded-sm border border-black/20 dark:border-white/20 flex-shrink-0"
+            className="inline-block size-3.5 rounded-sm border border-black/20 dark:border-white/20 flex-shrink-0"
             style={{ backgroundColor: hex }}
             title={hex}
           />
@@ -929,7 +929,7 @@ export const InlineMarkdown: React.FC<{
           >
             {display}
             <svg
-              className="w-3 h-3 opacity-50 flex-shrink-0"
+              className="size-3 opacity-50 flex-shrink-0"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -1067,7 +1067,7 @@ export const InlineMarkdown: React.FC<{
           >
             {linkText}
             <svg
-              className="w-3 h-3 opacity-50 flex-shrink-0"
+              className="size-3 opacity-50 flex-shrink-0"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"

@@ -73,7 +73,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
 
   // Row layout: single horizontal line. Column layout: stacked rows.
   const outerClass = isHorizontal
-    ? `flex flex-row items-center gap-1.5 text-[9px] text-muted-foreground/70 font-mono ${layout === 'header' ? 'flex-wrap' : ''}`
+    ? `flex items-center gap-1.5 text-[9px] text-muted-foreground/70 font-mono ${layout === 'header' ? 'flex-wrap' : ''}`
     : 'flex flex-col items-start gap-1 text-[9px] text-muted-foreground/50 font-mono';
 
   return (
@@ -85,17 +85,17 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
       {repoInfo && !linkedDocInfo && !isRow && (
         <div className="flex items-center gap-1.5">
           <span
-            className="px-1.5 py-0.5 bg-muted/50 rounded truncate max-w-[140px]"
+            className="px-1.5 py-0.5 bg-muted/50 rounded truncate max-w-35"
             title={repoInfo.display}
           >
             {repoInfo.display}
           </span>
           {repoInfo.branch && (
             <span
-              className="px-1.5 py-0.5 bg-muted/30 rounded max-w-[120px] flex items-center gap-1 overflow-hidden"
+              className="px-1.5 py-0.5 bg-muted/30 rounded max-w-30 flex items-center gap-1 overflow-hidden"
               title={repoInfo.branch}
             >
-              <svg className="w-2.5 h-2.5 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
+              <svg className="size-2.5 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.493 2.493 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Zm-6 0a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Zm8.25-.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z" />
               </svg>
               <span className="truncate">{repoInfo.branch}</span>
@@ -107,7 +107,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
       {sourceInfo && !linkedDocInfo && !isRow && (
         <div className="flex items-center gap-1">
           <span
-            className="px-1.5 py-0.5 bg-muted/30 rounded truncate max-w-[200px]"
+            className="px-1.5 py-0.5 bg-muted/30 rounded truncate max-w-50"
             title={sourceInfo}
           >
             {/^https?:\/\//i.test(sourceInfo)
@@ -147,7 +147,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
               Close
             </button>
             <span
-              className="truncate rounded bg-muted/50 px-1.5 py-0.5 text-[9px] text-muted-foreground max-w-[220px]"
+              className="truncate rounded bg-muted/50 px-1.5 py-0.5 text-[9px] text-muted-foreground max-w-55"
               title={linkedDocInfo.filepath}
             >
               {pathFileName(linkedDocInfo.filepath)}
@@ -160,7 +160,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
               className="px-1.5 py-0.5 bg-primary/10 text-primary rounded hover:bg-primary/20 transition-colors flex items-center gap-1"
             >
               <svg
-                className="w-2.5 h-2.5"
+                className="size-2.5"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -178,7 +178,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
               {linkedDocInfo.label || 'Linked File'}
             </span>
             <span
-              className="px-1.5 py-0.5 bg-muted/50 text-muted-foreground rounded truncate max-w-[200px]"
+              className="px-1.5 py-0.5 bg-muted/50 text-muted-foreground rounded truncate max-w-50"
               title={linkedDocInfo.filepath}
             >
               {pathFileName(linkedDocInfo.filepath)}

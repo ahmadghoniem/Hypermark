@@ -438,7 +438,7 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
     return (
       <div className="my-5 rounded-lg border border-destructive/30 bg-destructive/5 overflow-hidden">
         <div className="px-3 py-2 bg-destructive/10 border-b border-destructive/20 flex items-center gap-2">
-          <svg className="w-4 h-4 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="size-4 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <span className="text-xs text-destructive font-medium">Graphviz Error</span>
@@ -469,11 +469,11 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
         title={showSource ? 'Show diagram' : 'Show source'}
       >
         {showSource ? (
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         ) : (
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
           </svg>
         )}
@@ -489,11 +489,11 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
               aria-label={isExpanded ? 'Exit expanded view' : 'Expand diagram'}
             >
               {isExpanded ? (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 10h4V6M18 10h-4V6M6 14h4v4M18 14h-4v4" />
                 </svg>
               ) : (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
                 </svg>
               )}
@@ -506,7 +506,7 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
               title="Zoom in"
               aria-label="Zoom in"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
               </svg>
             </button>
@@ -517,7 +517,7 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
               title="Fit to view"
               aria-label="Fit to view"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <circle cx="12" cy="12" r="4" strokeLinecap="round" strokeLinejoin="round" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v4M12 18v4M2 12h4M18 12h4" />
               </svg>
@@ -530,7 +530,7 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
               title="Zoom out"
               aria-label="Zoom out"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" />
               </svg>
             </button>
@@ -577,7 +577,7 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
       </div>
 
       {!showSource && svg && isExpanded && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[9999] bg-background/90 backdrop-blur-sm p-4 md:p-6">
+        <div className="fixed inset-0 z-9999 bg-background/90 backdrop-blur-sm p-4 md:p-6">
           <div className="mx-auto flex h-full max-w-[min(96vw,110rem)] flex-col gap-3">
             <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
               <span className="truncate">Graphviz diagram</span>

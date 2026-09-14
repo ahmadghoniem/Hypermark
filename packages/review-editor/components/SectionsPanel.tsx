@@ -135,7 +135,7 @@ const SectionRow: React.FC<{
         {item.group === 'committed' ? (
           <CommittedDot />
         ) : (
-          <span className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+          <span className="size-4 flex-shrink-0" aria-hidden="true" />
         )}
         <ChangeTypeLetter status={file.status} oldPath={file.oldPath} untracked={item.group === 'untracked'} />
         <TruncatedPath path={file.path} />
@@ -356,7 +356,7 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
       className="w-full flex items-center gap-1.5 px-2 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
     >
       <svg
-        className={`w-2.5 h-2.5 transition-transform ${collapsed.has(group) ? '-rotate-90' : ''}`}
+        className={`size-2.5 transition-transform ${collapsed.has(group) ? '-rotate-90' : ''}`}
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -449,7 +449,7 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
       {/* Sections (or search results — same swap the tree view does) */}
       <div ref={scrollportRef} className="flex-1 min-h-0">
         <OverlayScrollArea className="h-full">
-          <div ref={contentRef} className="px-1 py-1">
+          <div ref={contentRef} className="p-1">
             {/* Nav rows — shared with the tree view, same order. */}
             {onSelectAllFiles && (
               <AllFilesRow

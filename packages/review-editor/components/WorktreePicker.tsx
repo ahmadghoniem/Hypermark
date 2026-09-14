@@ -80,7 +80,7 @@ export const WorktreePicker: React.FC<WorktreePickerProps> = ({
             </span>
           )}
           <svg
-            className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0"
+            className="size-3.5 text-muted-foreground flex-shrink-0"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -175,7 +175,7 @@ const WorktreeRow: React.FC<WorktreeRowProps> = ({ label, sublabel, isSelected, 
   >
     <span className="w-3 flex-shrink-0">
       {isSelected && (
-        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+        <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
         </svg>
       )}
