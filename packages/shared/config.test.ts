@@ -13,7 +13,6 @@ import { join } from "node:path";
 import {
   resolveUseGlimpse,
   resolveAnnotateHistory,
-  resolveUseJina,
   resolveTodoProviderEnabled,
   loadConfig,
   saveConfig,
@@ -92,12 +91,6 @@ describe("config.json boolean coercion", () => {
       envVar: "HYPERMARK_ANNOTATE_HISTORY",
       key: "annotateHistory",
       resolve: resolveAnnotateHistory,
-    },
-    {
-      name: "resolveUseJina",
-      envVar: "HYPERMARK_JINA",
-      key: "jina",
-      resolve: (config) => resolveUseJina(false, config),
     },
   ];
 
