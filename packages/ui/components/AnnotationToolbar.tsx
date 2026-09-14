@@ -215,7 +215,7 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
             onClick={() => onQuickLabel(AGREED_LABEL)}
             icon={<AgreedIcon />}
             label="Agreed"
-            className="text-green-500 hover:bg-green-500/10"
+            className="text-success hover:bg-success/10"
           />
         )}
         <div className="w-px h-5 bg-border mx-0.5" />

@@ -57,8 +57,8 @@ export function AllFilesRow({
       <span>All files</span>
       {afterLabel}
       <span className="ml-auto text-[10px] tabular-nums opacity-60">
-        <span className="text-green-500">+{additions}</span>{' '}
-        <span className="text-red-500">-{deletions}</span>
+        <span className="text-success">+{additions}</span>{' '}
+        <span className="text-destructive">-{deletions}</span>
       </span>
     </SidebarActionRow>
   );

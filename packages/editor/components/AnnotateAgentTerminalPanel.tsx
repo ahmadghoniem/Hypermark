@@ -354,7 +354,7 @@ export const AnnotateAgentTerminalPanel = forwardRef<
                 aria-label="Stop agent"
                 onClick={() => requestStop(false)}
                 disabled={status === "stopping" || status === "exited"}
-                className="h-6 shrink-0 rounded-sm px-1.5 text-[11px] font-medium text-muted-foreground/80 transition-colors hover:text-destructive focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-6 shrink-0 rounded-sm px-1.5 text-[11px] font-medium text-muted-foreground/80 transition-colors hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Stop
               </button>
@@ -460,7 +460,7 @@ function AgentSelect({
             type="button"
             aria-label="Select agent"
             disabled={agents.length === 0}
-            className="flex h-8 w-full items-center gap-1.5 rounded-md border border-border/70 bg-muted/50 px-2.5 text-xs text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring data-popup-open:border-primary/50 data-popup-open:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-8 w-full items-center gap-1.5 rounded-md border border-border/70 bg-muted/50 px-2.5 text-xs text-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring data-popup-open:border-primary/50 data-popup-open:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
           />
         }
       >
@@ -553,7 +553,7 @@ function AgentTerminalDisplayPopover({
             type="button"
             aria-label="Terminal display settings"
             title="Display settings"
-            className="flex size-6 items-center justify-center rounded-sm text-muted-foreground/80 transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring data-popup-open:bg-primary/15 data-popup-open:text-primary"
+            className="flex size-6 items-center justify-center rounded-sm text-muted-foreground/80 transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring data-popup-open:bg-primary/15 data-popup-open:text-primary"
           />
         }
       >
@@ -573,7 +573,7 @@ function AgentTerminalDisplayPopover({
               type="button"
               aria-label="Reset terminal display settings"
               onClick={() => onChange(DEFAULT_DISPLAY_SETTINGS)}
-              className="flex size-6 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+              className="flex size-6 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
             >
               <ArrowClockwise className="size-3.5" />
             </button>
@@ -665,7 +665,7 @@ function TerminalDisplayStepper({
           aria-label={`Decrease ${label}`}
           onClick={() => onChange(clamped - 1)}
           disabled={clamped <= min}
-          className="flex size-6 items-center justify-center rounded-[5px] text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          className="flex size-6 items-center justify-center rounded-[5px] text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
         >
           <Minus className="size-3" />
         </button>
@@ -678,7 +678,7 @@ function TerminalDisplayStepper({
           aria-label={`Increase ${label}`}
           onClick={() => onChange(clamped + 1)}
           disabled={clamped >= max}
-          className="flex size-6 items-center justify-center rounded-[5px] text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          className="flex size-6 items-center justify-center rounded-[5px] text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
         >
           <Plus className="size-3" />
         </button>
@@ -708,7 +708,7 @@ function TerminalDisplaySegmented<T extends string>({
             type="button"
             aria-pressed={value === option.value}
             onClick={() => onChange(option.value)}
-            className={`h-6 flex-1 rounded-[5px] px-2 text-[11px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring ${
+            className={`h-6 flex-1 rounded-[5px] px-2 text-[11px] transition-colors focus-visible:outline-2 focus-visible:outline-ring ${
               value === option.value
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"

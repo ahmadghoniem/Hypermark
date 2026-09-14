@@ -476,7 +476,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
           // breakpoint, unlike the labels.
           <span
             data-decision-count="true"
-            className="rounded-full bg-white/25 px-1.5 text-[10px] font-bold leading-4"
+            className="rounded-full bg-current/25 px-1.5 text-[10px] font-bold leading-4"
           >
             {spec.primary.count}
           </span>

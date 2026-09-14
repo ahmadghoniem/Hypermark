@@ -153,7 +153,7 @@ const CodeSnippetPreview: React.FC<{
         <table className="border-collapse w-full">
           <tbody>
             {snippet.split('\n').map((_, i) => (
-              <tr key={start + i} className="hover:bg-white/5">
+              <tr key={start + i} className="hover:bg-foreground/5">
                 <td className="select-none text-muted-foreground/40 text-right px-3 py-0 align-top font-mono w-8 whitespace-nowrap" style={{ userSelect: 'none' }}>{start + i + 1}</td>
                 <td
                   className="font-mono pr-3 py-0 whitespace-pre"

@@ -321,7 +321,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                 setTimeout(() => setCopiedText(false), 2000);
               }}
               className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition-colors ${
-                copiedText ? 'text-green-500' : 'text-muted-foreground hover:bg-surface-1 hover:text-foreground'
+                copiedText ? 'text-success' : 'text-muted-foreground hover:bg-surface-1 hover:text-foreground'
               }`}
             >
               {copiedText ? (

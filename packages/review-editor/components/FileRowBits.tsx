@@ -33,7 +33,7 @@ export const ChangeTypeLetter: React.FC<{
     ) : status === 'deleted' ? (
       <span className="font-semibold text-destructive" title="Deleted file">D</span>
     ) : status === 'renamed' ? (
-      <span className="font-semibold text-[#007aff]" title={oldPath ? `Renamed from ${oldPath}` : 'Renamed file'}>R</span>
+      <span className="font-semibold text-primary" title={oldPath ? `Renamed from ${oldPath}` : 'Renamed file'}>R</span>
     ) : (
       <span className="text-muted-foreground/40" title="Modified file">M</span>
     )}

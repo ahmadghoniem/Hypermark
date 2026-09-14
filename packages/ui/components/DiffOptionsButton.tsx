@@ -123,8 +123,8 @@ function Toggle({ checked, onChange, label }: {
       <span className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
         checked ? 'bg-primary' : 'bg-muted-foreground/25'
       }`}>
-        <span className={`inline-block size-3 rounded-full bg-white shadow-sm transition-transform ${
-          checked ? 'translate-x-3.5' : 'translate-x-0.5'
+        <span className={`inline-block size-3 rounded-full shadow-sm transition-transform ${
+          checked ? 'translate-x-3.5 bg-primary-foreground' : 'translate-x-0.5 bg-background dark:bg-foreground'
         }`} />
       </span>
     </button>

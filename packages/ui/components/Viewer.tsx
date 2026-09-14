@@ -1200,6 +1200,7 @@ const ImageLightbox: React.FC<{ src: string; alt: string; onClose: () => void }>
         onClick={(e) => e.stopPropagation()}
       />
       {alt && (
+        // eslint-disable-next-line better-tailwindcss/no-restricted-classes -- caption sits on the black lightbox scrim in both modes
         <div className="mt-3 text-sm text-white/70 max-w-[90vw] text-center truncate">{alt}</div>
       )}
     </div>

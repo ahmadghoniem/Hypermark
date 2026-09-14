@@ -609,7 +609,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       type="button"
       onClick={onQuickAgree}
       disabled={hasUnsavedContent}
-      className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium rounded-md text-muted-foreground hover:text-foreground hover:bg-green-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium rounded-md text-muted-foreground hover:text-foreground hover:bg-success/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       title={hasUnsavedContent ? 'Clear the comment to use Agreed' : 'Add "Agreed" without typing'}
     >
       <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">

@@ -27,7 +27,7 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p packages/shared/tsconfig.json && tsc --noEmit -p packages/server/tsconfig.json && tsc --noEmit -p packages/ui/tsconfig.json && tsc --noEmit -p packages/ui/tsconfig.strict-consumer.json",
     "typecheck:editors": "tsc --noEmit -p packages/editor/tsconfig.json && tsc --noEmit -p packages/review-editor/tsconfig.json",
-    "lint:tw": "eslint packages/ui && eslint packages/editor && eslint packages/review-editor && eslint apps/hook && eslint apps/review",
+    "lint:tw": "eslint packages/ui --max-warnings 0 && eslint packages/editor --max-warnings 0 && eslint packages/review-editor --max-warnings 0 && eslint apps/hook --max-warnings 0 && eslint apps/review --max-warnings 0",
     "lint:tw:fix": "eslint packages/ui --fix && eslint packages/editor --fix && eslint packages/review-editor --fix && eslint apps/hook --fix && eslint apps/review --fix",
     "build:ui-css": "bun run --cwd packages/ui build:css"
   },
