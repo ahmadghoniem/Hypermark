@@ -314,7 +314,8 @@ is the Foundation section above.
 Mechanical leftovers across packages after all feature cuts merged:
 
 - **Files deleted:** 27 files, 4,312 lines removed (`packages/review-editor/utils/detectLanguage.ts` and all 26 files under `tests/manual/`).
-- **Dependencies removed:** (filled in by maintainer)
+- **Dependencies removed:** `glimpseui` (server; still found on PATH at runtime), `@fontsource-variable/inter` and `@fontsource-variable/geist-mono` from `packages/ui` (the editors that import them already declare them), `tailwindcss` from `apps/review` and `apps/hook`, `@hypermark/ui` from `apps/hook` (reached through a Vite alias). Both app builds pass. `@happy-dom/global-registrator` stays in `packages/ui`: `bridgeAsset.test.ts` resolves it at runtime. The `./code-nav` export entry left in `packages/shared/package.json` is gone.
+- **knip:** config hints applied; `bunx knip --no-progress` exits 0.
 - **Exports removed or un-exported:** 42 symbols and types un-exported or deleted across `apps/hook`, `packages/editor`, `packages/review-editor`, `packages/server`, `packages/shared`, and `packages/ui` (including dead folder history types in server, unused snapshot types, and unused HTML viewer / quick label helpers).
 - **Process table consolidation:** Consolidated duplicated process-table and parent-PID inspection logic into `packages/server/parent-watch.ts` and removed duplicate copies in `apps/hook/server/session-log.ts`.
 - **Review editor cleanups:** Inlined always-true `isAllFilesActive` and removed unused `handleRevealSearchMatch` handler in `packages/review-editor/App.tsx`, and removed dead `onCleanup` option from `packages/server/review.ts`.

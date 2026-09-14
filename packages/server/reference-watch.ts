@@ -43,7 +43,11 @@ export function closeAllFileBrowserWatchers(): void {
 	registry.closeAll();
 }
 
-/** Tests only. See FileBrowserWatchRegistry.diagnostics/configureForTests. */
+/**
+ * Tests only. See FileBrowserWatchRegistry.diagnostics/configureForTests.
+ * Read through a dynamic module cast, so static analysis cannot see it.
+ * @public
+ */
 export const __fileBrowserWatchTestHooks = {
 	diagnostics: () => registry.diagnostics(),
 	configure: (overrides: Parameters<FileBrowserWatchRegistry<ReadableStreamDefaultController>["configureForTests"]>[0]) =>
