@@ -145,11 +145,11 @@ describe("annotate CLI tolerant tiers", () => {
   });
 
   test("an unrecognized flag disables tolerance and errors like base", () => {
-    // --no-jna is a typo'd --no-jina; skipping it would silently fetch the
-    // URL via Jina, exactly what the flag exists to prevent.
-    const result = runAnnotate(["--no-jna", "https://example.invalid/doc"]);
+    // --no-such-flag is unrecognized; skipping it would silently drop an
+    // argument the tolerant handoff should instead treat literally.
+    const result = runAnnotate(["--no-such-flag", "nope.md"]);
     expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain("File not found: --no-jna");
+    expect(result.stderr).toContain("File not found: --no-such-flag");
     expect(result.stdout).toBe("");
   });
 

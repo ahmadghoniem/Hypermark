@@ -2,7 +2,7 @@ import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { resolveAnnotateTarget } from "./annotate-resolution";
+import { ANNOTATE_TAKES_FILE_PATH_MESSAGE, resolveAnnotateTarget } from "./annotate-resolution";
 
 let root: string;
 
@@ -10,7 +10,6 @@ beforeAll(() => {
   root = mkdtempSync(join(tmpdir(), "hypermark-annotate-resolution-"));
   mkdirSync(join(root, "docs"), { recursive: true });
   mkdirSync(join(root, "notes"), { recursive: true });
-  mkdirSync(join(root, "empty"), { recursive: true });
   writeFileSync(join(root, "plan.md"), "# Plan body");
   writeFileSync(join(root, "docs/page.html"), "<p>hi</p>");
   writeFileSync(join(root, "docs/dup.md"), "# A");
@@ -32,7 +31,6 @@ function resolve(
   return resolveAnnotateTarget({
     rawFilePath,
     projectRoot: root,
-    noJina: true,
     renderMarkdown: overrides.renderMarkdown ?? false,
     extraMarkdownExtensions: overrides.extraMarkdownExtensions ?? [],
     log: () => {},
@@ -47,16 +45,24 @@ describe("resolveAnnotateTarget", () => {
       expect(result.absolutePath).toBe(join(root, "plan.md"));
       expect(result.markdown).toBe("# Plan body");
       expect(result.annotateMode).toBe("annotate");
-      expect(result.isUrl).toBe(false);
     }
   });
 
-  test("resolves a folder into folder mode", async () => {
+  test("a URL token fails with the file-path message", async () => {
+    const result = await resolve("https://example.com");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.notFound).toBe(false);
+      expect(result.message).toBe(ANNOTATE_TAKES_FILE_PATH_MESSAGE);
+    }
+  });
+
+  test("a folder token fails with the file-path message", async () => {
     const result = await resolve("docs");
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.annotateMode).toBe("annotate-folder");
-      expect(result.folderPath).toBe(join(root, "docs"));
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.notFound).toBe(false);
+      expect(result.message).toBe(ANNOTATE_TAKES_FILE_PATH_MESSAGE);
     }
   });
 
@@ -76,8 +82,8 @@ describe("resolveAnnotateTarget", () => {
   });
 
   // #1307: an extension listed in config.json's `markdownExtensions` must be
-  // accepted everywhere .md is — single file, folder discovery, and reading.
-  test("a configured extra extension opens as a document and its folder is annotatable", async () => {
+  // accepted everywhere .md is — single file and reading.
+  test("a configured extra extension opens as a document", async () => {
     const configured = { extraMarkdownExtensions: [".livemd"] };
 
     const file = await resolve("notebooks/tour.livemd", configured);
@@ -87,23 +93,15 @@ describe("resolveAnnotateTarget", () => {
       expect(file.markdown).toBe("# Livebook tour");
       expect(file.annotateMode).toBe("annotate");
     }
-
-    const folder = await resolve("notebooks", configured);
-    expect(folder.ok).toBe(true);
-    if (folder.ok) expect(folder.annotateMode).toBe("annotate-folder");
   });
 
-  test("without configuration the same file is an unsupported type and its folder is empty", async () => {
+  test("without configuration the same file is an unsupported type", async () => {
     const file = await resolve("notebooks/tour.livemd");
     expect(file.ok).toBe(false);
     if (!file.ok) {
       expect(file.notFound).toBe(false);
       expect(file.message).toContain("File type not supported: .livemd");
     }
-
-    const folder = await resolve("notebooks");
-    expect(folder.ok).toBe(false);
-    if (!folder.ok) expect(folder.message).toContain("No annotatable files");
   });
 
   test("only the missing-target terminal reports notFound", async () => {
@@ -142,13 +140,6 @@ describe("resolveAnnotateTarget", () => {
     if (!oversized.ok) {
       expect(oversized.notFound).toBe(false);
       expect(oversized.message).toContain("File too large to annotate (max 2MB)");
-    }
-
-    const emptyFolder = await resolve("empty");
-    expect(emptyFolder.ok).toBe(false);
-    if (!emptyFolder.ok) {
-      expect(emptyFolder.notFound).toBe(false);
-      expect(emptyFolder.message).toContain("No annotatable files");
     }
   });
 });

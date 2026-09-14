@@ -575,11 +575,7 @@ if (args[0] === "sessions") {
   // did instead of being silently skipped.
   const targetTokens = args.slice(1);
   const tolerantMultiToken = !strictAnnotate && targetTokens.length > 1;
-  // Bare directory names only count as targets when they are the sole
-  // argument; in multi-token mode a stray word matching a directory (or `.`)
-  // must not hijack the fast path.
-  const annotateProbe = (token: string) =>
-    probeAnnotateToken(token, projectRoot, { bareDirectories: false });
+  const annotateProbe = (token: string) => probeAnnotateToken(token, projectRoot);
 
   let resolution: Awaited<ReturnType<typeof resolveAnnotateTarget>> | null =
     tolerantMultiToken
