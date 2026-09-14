@@ -112,7 +112,6 @@ interface PanelProps {
     *  is treated as success, preserving the original behavior. */
   onQuickCopy?: () => Promise<void | boolean>;
   otherFileAnnotations?: { count: number; files: number };
-  onOtherFileAnnotationsClick?: () => void;
   /** Committed direct edits to one or more documents. Rendered as pinned cards
     *  above the annotation timeline with expandable unified diffs. */
   directEdits?: DirectEditsPanelItem[] | null;
@@ -150,7 +149,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
   onClose,
   onQuickCopy,
   otherFileAnnotations,
-  onOtherFileAnnotationsClick,
   directEdits = null,
   renderCardFooter,
   readOnly = false,
@@ -230,26 +228,17 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
             )}
           </div>
           {otherFileAnnotations && otherFileAnnotations.count > 0 && (
-            <button
-              onClick={onOtherFileAnnotationsClick}
-              className="px-3 pb-2 text-[10px] text-primary/70 hover:text-primary transition-colors cursor-pointer"
-              title="Show annotated files in sidebar"
-            >
+            <p className="px-3 pb-2 text-[10px] text-muted-foreground">
               +{otherFileAnnotations.count} in {otherFileAnnotations.files} other file{otherFileAnnotations.files === 1 ? '' : 's'}
-            </button>
+            </p>
           )}
         </div>
       )}
 
       {embedded && otherFileAnnotations && otherFileAnnotations.count > 0 && (
-        <button
-          type="button"
-          onClick={onOtherFileAnnotationsClick}
-          className="min-h-11 flex-shrink-0 border-b border-border/50 px-3 text-left text-xs text-primary/80 active:bg-muted"
-          title="Show annotated files in navigator"
-        >
+        <p className="flex min-h-11 flex-shrink-0 items-center border-b border-border/50 px-3 text-xs text-muted-foreground">
           {otherFileAnnotations.count} more in {otherFileAnnotations.files} other file{otherFileAnnotations.files === 1 ? '' : 's'}
-        </button>
+        </p>
       )}
 
       {/* List */}
