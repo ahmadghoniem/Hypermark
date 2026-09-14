@@ -34,7 +34,7 @@ interface UseHtmlRefreshResult {
  * session's root document, also carries the recomputed version diff), URL
  * sessions (http(s) paths) cannot refresh, and every outcome toasts.
  */
-export function useHtmlRefresh({
+export function useAnnotateHtmlRefresh({
   enabled,
   activePath,
   onSnapshot,

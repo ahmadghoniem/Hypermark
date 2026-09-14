@@ -115,7 +115,7 @@ import {
   usePlanDiffViewAutoExit,
 } from './hooks/usePlanDiffViewAutoExit';
 import { AppHeader } from './components/AppHeader';
-import { useHtmlRefresh, type HtmlRefreshedDocument } from './hooks/useHtmlRefresh';
+import { useAnnotateHtmlRefresh, type HtmlRefreshedDocument } from './hooks/useAnnotateHtmlRefresh';
 import {
   AnnotateAgentTerminalPanel,
   type AnnotateAgentTerminalPanelHandle,
@@ -1077,7 +1077,7 @@ const AppInner: React.FC = () => {
   useEffect(() => {
     setHtmlUnanchoredIds((prev) => (prev.size === 0 ? prev : new Set()));
   }, [activeHtmlPath]);
-  const htmlRefresh = useHtmlRefresh({
+  const htmlRefresh = useAnnotateHtmlRefresh({
     enabled: isApiMode && annotateMode && isHtmlSurface,
     activePath: activeHtmlPath,
     onSnapshot: applyRefreshedHtml,
