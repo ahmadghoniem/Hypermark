@@ -814,7 +814,7 @@ export const InlineMarkdown: React.FC<{
           className="inline-flex items-center gap-1 align-middle"
         >
           <span
-            className="inline-block size-3.5 rounded-sm border border-black/20 dark:border-white/20 flex-shrink-0"
+            className="inline-block size-3.5 rounded-sm border border-foreground/20 flex-shrink-0"
             style={{ backgroundColor: hex }}
             title={hex}
           />

@@ -130,7 +130,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
 
       {/* Demo badge: only in column (top-of-doc) layout */}
       {!isRow && showDemoBadge && !linkedDocInfo && (
-        <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-amber-500/15 text-amber-600 dark:text-amber-400">
+        <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-warning/15 text-foreground">
           Demo
         </span>
       )}

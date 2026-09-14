@@ -161,7 +161,7 @@ const colorStyles = {
   },
   warning: {
     active: 'bg-background text-foreground shadow-sm',
-    hover: 'text-amber-500/80 bg-amber-500/8',
+    hover: 'text-warning/80 bg-warning/8',
     inactive: 'text-muted-foreground hover:text-foreground',
   },
 } as const;
