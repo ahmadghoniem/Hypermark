@@ -31,7 +31,6 @@ import {
   shouldHandleReviewSearchShortcut,
   isTypingTarget,
   useReviewSearch,
-  type ReviewSearchMatch,
 } from './hooks/useReviewSearch';
 import { useExternalAnnotations } from '@hypermark/ui/hooks/useExternalAnnotations';
 import { useUndoHistory } from '@hypermark/ui/hooks/useUndoHistory';
@@ -169,7 +168,6 @@ const ReviewAppInner: React.FC = () => {
   // comment in the diff sets selectedAnnotationId but NOT this — so it never
   // moves the viewport.
   const [scrollTargetAnnotation, setScrollTargetAnnotation] = useState<AnnotationScrollTarget | null>(null);
-  const isAllFilesActive = true;
   // All-files collapse-all: the view registers its toggle here; the header
   // button invokes it and reflects the flag.
   const allFilesCollapseToggleRef = useRef<(() => void) | null>(null);
@@ -397,11 +395,6 @@ const ReviewAppInner: React.FC = () => {
   // The all-files view is the only surface now, so "All files" is already active.
   const handleSelectAllFiles = useCallback(() => {}, []);
 
-  const handleRevealSearchMatch = useCallback((_match: ReviewSearchMatch) => {
-    // Respect the surface the user is in. AllFilesCodeView reveals IN PLACE —
-    // scrolls to + highlights the active match via its activeSearchMatch prop.
-  }, []);
-
   const {
     searchQuery,
     debouncedSearchQuery,
@@ -421,7 +414,6 @@ const ReviewAppInner: React.FC = () => {
   } = useReviewSearch({
     files,
     activeFilePath: files[activeFileIndex]?.path ?? null,
-    onRevealMatch: handleRevealSearchMatch,
   });
 
   const hasSearchableFiles = files.length > 0;
@@ -903,15 +895,6 @@ const ReviewAppInner: React.FC = () => {
     options?: {
       preserveFile?: boolean;
       explicitBase?: boolean;
-      /**
-       * Re-fetch of the SAME diff selection, where a per-path patch delta is a
-       * real content change. Set ONLY by the staleness refresh and the
-       * post-fetch base refresh: it is what licenses auto-mark-viewed's Rule 5
-       * to drop a checkmark. Never set by the whitespace toggle (its deltas
-       * are a presentation choice) nor by any switch that changes what is
-       * being compared, including a commit detour.
-       */
-      contentRefresh?: boolean;
     },
   ): Promise<boolean> => {
     setIsLoadingDiff(true);
@@ -1298,7 +1281,7 @@ const ReviewAppInner: React.FC = () => {
       setBaseBehindRemote(data.baseBehindRemote === true);
       const now = liveSelectionRef.current;
       if (now.diffType === captured.diffType && now.selectedBase === captured.selectedBase) {
-        await fetchDiffSwitch(captured.diffType, captured.selectedBase ?? undefined, { preserveFile: true, contentRefresh: true });
+        await fetchDiffSwitch(captured.diffType, captured.selectedBase ?? undefined, { preserveFile: true });
       }
     } catch {
       // Best-effort: the banner stays and the user can retry.
@@ -1309,18 +1292,13 @@ const ReviewAppInner: React.FC = () => {
 
   const handleRefreshStaleDiff = useCallback(() => {
     // Same params, fresh snapshot. preserveFile keeps the reviewer on the
-    // file they were reading; contentRefresh licenses Rule 5, because here a
-    // per-path patch delta really is the content having changed underneath.
-    void fetchDiffSwitch(diffType, selectedBase, { preserveFile: true, contentRefresh: true });
+    // file they were reading.
+    void fetchDiffSwitch(diffType, selectedBase, { preserveFile: true });
     // New commits are part of what went stale — bring the rail along.
     if (showCommitsPanel) commitsView.refresh();
   }, [fetchDiffSwitch, diffType, selectedBase, showCommitsPanel, commitsView.refresh]);
 
-  // Select annotation - switches file if needed and scrolls to it.
-  // isAllFilesActive is read through the ref (declared with the state): this
-  // handler is baked into Pierre slot portals, which only republish on item
-  // version bumps — a stale captured value would yank the user out of the
-  // all-files tab into the single-file panel when they click an annotation.
+  // Select annotation.
   // Inline-card selection: toggle the highlight + ring only. No scroll, no file
   // switch — the clicked card is already on screen. Clicking the selected card
   // again (or a null id) clears it.
@@ -1832,8 +1810,8 @@ const ReviewAppInner: React.FC = () => {
                 files={files}
                 sections={sections!}
                 width={fileTreeResize.width}
-                activeFileIndex={isAllFilesActive ? -1 : activeFileIndex}
-                scrollHighlightIndex={isAllFilesActive && allFilesVisibleFile ? files.findIndex(f => f.path === allFilesVisibleFile) : undefined}
+                activeFileIndex={-1}
+                scrollHighlightIndex={allFilesVisibleFile ? files.findIndex(f => f.path === allFilesVisibleFile) : undefined}
                 onSelectFile={(index) => handleFilePreview(index)}
                 onDoubleClickFile={(index) => handleFilePinned(index)}
                 enableKeyboardNav={hasSearchableFiles}
@@ -1848,7 +1826,7 @@ const ReviewAppInner: React.FC = () => {
                 onSelectPanelView={handlePanelViewSelect}
                 showCommitsOption={commitsCapable}
                 onSelectAllFiles={handleSelectAllFiles}
-                isAllFilesActive={isAllFilesActive}
+                isAllFilesActive={true}
                 onCopyRawDiff={handleCopyDiff}
                 canCopyRawDiff={!!diffData?.rawPatch}
                 copyRawDiffStatus={copyRawDiffStatus}
@@ -1899,8 +1877,8 @@ const ReviewAppInner: React.FC = () => {
                 files={files}
                 activeFileIndex={activeFileIndex}
                 onSelectAllFiles={handleSelectAllFiles}
-                isAllFilesActive={isAllFilesActive}
-                scrollHighlightIndex={isAllFilesActive && allFilesVisibleFile ? files.findIndex(f => f.path === allFilesVisibleFile) : undefined}
+                isAllFilesActive={true}
+                scrollHighlightIndex={allFilesVisibleFile ? files.findIndex(f => f.path === allFilesVisibleFile) : undefined}
                 onSelectFile={(index) => handleFilePreview(index)}
                 onDoubleClickFile={(index) => handleFilePinned(index)}
                 annotations={allAnnotations}
