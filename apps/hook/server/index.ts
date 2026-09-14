@@ -27,6 +27,7 @@
  *    - Lists active Hypermark server sessions
  *    - `--open [N]` reopens a session in the browser
  *    - `--clean` removes stale session files
+ *    - `--kill [N|all]` terminates a session's process (see sessions.ts)
  *
  * 7. Goal Setup (`hypermark setup-goal interview|facts <bundle.json>`):
  *    - Opens the bundled question or facts acceptance UI
@@ -95,7 +96,7 @@ import {
   getPlanToolName,
 } from "@hypermark/shared/prompts";
 import { supportsReviewApprovalNotes } from "./review-output";
-import { registerSession, unregisterSession, listSessions } from "@hypermark/server/sessions";
+import { registerSession, unregisterSession, listSessions, killSession } from "@hypermark/server/sessions";
 import { openBrowser } from "@hypermark/server/browser";
 import { installAgentTerminalRuntime } from "@hypermark/server/agent-terminal-runtime";
 import {
@@ -391,6 +392,39 @@ if (args[0] === "sessions") {
     process.exit(0);
   }
 
+  const killIdx = args.indexOf("--kill");
+  if (killIdx !== -1) {
+    const sessionsBeforeKill = listSessions();
+    if (sessionsBeforeKill.length === 0) {
+      console.error("No active Hypermark sessions.");
+      process.exit(0);
+    }
+
+    const killArg = args[killIdx + 1];
+    if (killArg === "all") {
+      let count = 0;
+      for (const session of sessionsBeforeKill) {
+        if (killSession(session.pid)) count++;
+      }
+      console.error(`Killed ${count} of ${sessionsBeforeKill.length} active session(s).`);
+      process.exit(0);
+    }
+
+    const n = killArg ? parseInt(killArg, 10) : 1;
+    const session = sessionsBeforeKill[n - 1];
+    if (!session) {
+      console.error(`Session #${n} not found. ${sessionsBeforeKill.length} active session(s).`);
+      process.exit(1);
+    }
+    const killed = killSession(session.pid);
+    console.error(
+      killed
+        ? `Killed ${session.mode} session #${n} (pid ${session.pid}).`
+        : `Session #${n} (pid ${session.pid}) was already gone. Removed its registry entry.`,
+    );
+    process.exit(0);
+  }
+
   const sessions = listSessions();
 
   if (sessions.length === 0) {
@@ -552,6 +586,7 @@ if (args[0] === "sessions") {
     // this CLI's origins may see approve-carrying menu items (spec §6.4).
     approvalNotesSupported: supportsReviewApprovalNotes(detectedOrigin),
     htmlContent: reviewHtmlContent,
+    parentWatch: true,
     onReady: async (url, port) => {
       handleReviewServerReady(url, port);
     },
@@ -772,6 +807,7 @@ if (args[0] === "sessions") {
     agentCwd: projectRoot,
     project: annotateProject,
     htmlContent: planHtmlContent,
+    parentWatch: true,
     onReady: async (url, port) => {
       handleAnnotateServerReady(url, port);
     },
@@ -868,8 +904,8 @@ if (args[0] === "sessions") {
     }
 
     // 1. Walk ancestor PIDs for a matching session metadata file
-    const ancestorLog = resolveSessionLogByAncestorPids();
-    tryLogCandidates("Ancestor PID session metadata", () => ancestorLog ? [ancestorLog] : []);
+    const ancestorMatch = resolveSessionLogByAncestorPids();
+    tryLogCandidates("Ancestor PID session metadata", () => ancestorMatch ? [ancestorMatch.logPath] : []);
 
     // 2. Scan all session metadata files for one whose cwd matches
     const cwdScanLog = resolveSessionLogByCwdScan({ cwd: projectRoot });
@@ -915,6 +951,7 @@ if (args[0] === "sessions") {
     }),
     htmlContent: planHtmlContent,
     recentMessages: pickerMessages,
+    parentWatch: true,
     onReady: async (url, port) => {
       handleAnnotateServerReady(url, port);
     },
@@ -1005,6 +1042,7 @@ if (args[0] === "sessions") {
     origin: detectedOrigin,
     permissionMode,
     htmlContent: planHtmlContent,
+    parentWatch: true,
     onReady: async (url, port) => {
       handleServerReady(url, port);
     },

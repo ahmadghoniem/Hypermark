@@ -237,13 +237,17 @@ export const SUBCOMMAND_HELP: Record<string, string> = {
   ].join("\n"),
   sessions: [
     "Usage:",
-    "  hypermark sessions [--open [N]] [--clean]",
+    "  hypermark sessions [--open [N]] [--clean] [--kill [N|all]]",
     "",
     "List active Hypermark server sessions.",
     "",
     "Options:",
     "  --open [N]    Reopen session #N (default 1) in the browser",
     "  --clean       Remove stale session entries",
+    "  --kill [N|all]",
+    "                Terminate session #N (default 1), or every active session",
+    "                with 'all'. Use when a session's Claude Code process was",
+    "                closed in a way the parent watcher didn't catch.",
   ].join("\n"),
   uninstall: [
     "Usage:",
