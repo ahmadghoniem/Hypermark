@@ -462,17 +462,6 @@ describe("review-workspace", () => {
       expect(workspace.rawPatch).toContain("diff --git a/backend/README.md b/backend/README.md");
     });
 
-    it("discovers a symlinked JJ repo using its logical workspace path", () => {
-      const root = makeTempDir("hypermark-workspace-symlink-jj-");
-      const targetRoot = makeTempDir("hypermark-workspace-symlink-jj-target-");
-      const targetRepo = join(targetRoot, "jj-service");
-      const alias = join(root, "frontend");
-      mkdirSync(join(targetRepo, ".jj"), { recursive: true });
-      linkDirectory(targetRepo, alias);
-
-      expect(discoverWorkspaceRepoPaths(root)).toEqual([alias]);
-    });
-
     it("discovers repos nested below a symlinked directory", () => {
       const root = makeTempDir("hypermark-workspace-symlink-nested-");
       const targetRoot = makeTempDir("hypermark-workspace-symlink-nested-target-");
@@ -609,16 +598,6 @@ describe("review-workspace", () => {
       expect(repos).toHaveLength(1);
       expect(repos).toContain(parentRepo);
       expect(repos).not.toContain(grandchildRepo);
-    });
-
-    it("discovers nested jj repos", () => {
-      const root = makeTempDir("hypermark-workspace-jj-");
-      const jjRepo = join(root, "jj-app");
-      mkdirSync(join(jjRepo, ".jj"), { recursive: true });
-
-      const repos = discoverWorkspaceRepoPaths(root);
-
-      expect(repos).toEqual([jjRepo]);
     });
 
     it("skips ignored directories", () => {
@@ -788,129 +767,6 @@ describe("review-workspace", () => {
       }
     });
 
-    it("maps one workspace mode across mixed Git and JJ repos", async () => {
-      const root = makeTempDir("hypermark-workspace-mixed-vcs-");
-      const gitRepo = join(root, "api");
-      const jjRepo = join(root, "web");
-      mkdirSync(join(gitRepo, ".git"), { recursive: true });
-      mkdirSync(join(jjRepo, ".jj"), { recursive: true });
-      const calls: Array<{ cwd?: string; diffType: DiffType }> = [];
-
-      const runtime = {
-        async getVcsContext(cwd?: string): Promise<GitContext> {
-          const isJj = cwd === jjRepo;
-          return {
-            vcsType: isJj ? "jj" : "git",
-            currentBranch: "main",
-            defaultBranch: "main",
-            cwd: cwd ?? root,
-            worktrees: [],
-            availableBranches: { local: [], remote: [] },
-            diffOptions: isJj
-              ? [{ id: "jj-current", label: "Current change" }, { id: "jj-last", label: "Last change" }]
-              : [{ id: "uncommitted", label: "Uncommitted changes" }, { id: "last-commit", label: "Last commit" }],
-          };
-        },
-        async runVcsDiff(diffType: DiffType, _defaultBranch?: string, cwd?: string) {
-          calls.push({ cwd, diffType });
-          return {
-            patch: [
-              "diff --git a/file.txt b/file.txt",
-              "--- a/file.txt",
-              "+++ b/file.txt",
-              "@@ -1 +1 @@",
-              "-old",
-              "+new",
-            ].join("\n"),
-            label: diffType,
-          };
-        },
-        async getVcsFileContentsForDiff() {
-          return { oldContent: null, newContent: null };
-        },
-      };
-
-      const workspace = await WorkspaceReviewSession.create(runtime, root, {
-        requestedDiffType: "staged",
-      });
-
-      expect(workspace.diffType).toBe("workspace-current");
-      expect(workspace.diffOptions.map((option) => option.id)).toEqual([
-        "workspace-current",
-        "workspace-last",
-      ]);
-      expect(calls).toEqual(
-        expect.arrayContaining([
-          { cwd: gitRepo, diffType: "uncommitted" },
-          { cwd: jjRepo, diffType: "jj-current" },
-        ]),
-      );
-      expect(workspace.rawPatch).toContain("diff --git a/api/file.txt b/api/file.txt");
-      expect(workspace.rawPatch).toContain("diff --git a/web/file.txt b/web/file.txt");
-
-      calls.length = 0;
-      await workspace.rebuild({ diffType: "workspace-last" });
-      expect(calls).toEqual(
-        expect.arrayContaining([
-          { cwd: gitRepo, diffType: "last-commit" },
-          { cwd: jjRepo, diffType: "jj-last" },
-        ]),
-      );
-      await expect(workspace.rebuild({ diffType: "workspace-staged" })).rejects.toThrow(
-        "Workspace diff mode is not available",
-      );
-    });
-
-    it("limits mixed GitButler workspaces to the safe aggregate-current mode", async () => {
-      const root = makeTempDir("hypermark-workspace-gitbutler-");
-      const gitRepo = join(root, "api");
-      const gitButlerRepo = join(root, "web");
-      mkdirSync(join(gitRepo, ".git"), { recursive: true });
-      mkdirSync(join(gitButlerRepo, ".git"), { recursive: true });
-      const calls: Array<{ cwd?: string; diffType: DiffType }> = [];
-
-      const runtime = {
-        async getVcsContext(cwd?: string): Promise<GitContext> {
-          const isGitButler = cwd === gitButlerRepo;
-          return {
-            vcsType: isGitButler ? "gitbutler" : "git",
-            currentBranch: isGitButler ? "GitButler Workspace" : "main",
-            defaultBranch: "abc1234",
-            cwd: cwd ?? root,
-            worktrees: [],
-            availableBranches: { local: [], remote: [] },
-            diffOptions: isGitButler
-              ? [{ id: "gitbutler:workspace", label: "Workspace (all applied changes)" }]
-              : [{ id: "uncommitted", label: "Uncommitted changes" }],
-          };
-        },
-        async runVcsDiff(diffType: DiffType, _defaultBranch?: string, cwd?: string) {
-          calls.push({ cwd, diffType });
-          return {
-            patch: "diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n",
-            label: diffType,
-          };
-        },
-        async getVcsFileContentsForDiff() {
-          return { oldContent: null, newContent: null };
-        },
-      };
-
-      const workspace = await WorkspaceReviewSession.create(runtime, root, {
-        requestedDiffType: "last-commit",
-      });
-
-      expect(workspace.diffType).toBe("workspace-current");
-      expect(workspace.diffOptions.map((option) => option.id)).toEqual(["workspace-current"]);
-      expect(calls).toEqual(expect.arrayContaining([
-        { cwd: gitRepo, diffType: "uncommitted" },
-        { cwd: gitButlerRepo, diffType: "gitbutler:workspace" },
-      ]));
-      await expect(workspace.rebuild({ diffType: "workspace-last" })).rejects.toThrow(
-        "Workspace diff mode is not available",
-      );
-    });
-
     it("normalizes agent annotation paths to workspace-prefixed paths", async () => {
       const root = makeTempDir("hypermark-workspace-agent-path-");
       const api = join(root, "api");
@@ -1013,50 +869,6 @@ describe("review-workspace", () => {
         expect.objectContaining({ label: "api", changed: true }),
         expect.objectContaining({ label: "broken", changed: false, error: "broken repo" }),
       ]);
-    });
-
-    it("preserves a failed GitButler child's identity and never falls back to Git operations", async () => {
-      const root = makeTempDir("hypermark-workspace-failed-gitbutler-");
-      const api = join(root, "api");
-      const broken = join(root, "broken");
-      mkdirSync(join(api, ".git"), { recursive: true });
-      mkdirSync(join(broken, ".git"), { recursive: true });
-      const fileContentDiffTypes: DiffType[] = [];
-
-      const runtime = {
-        async detectVcsType(cwd?: string) {
-          return cwd === broken ? "gitbutler" : "git";
-        },
-        async getVcsContext(cwd?: string): Promise<GitContext> {
-          if (cwd === broken) throw new Error("GitButler CLI missing");
-          return {
-            vcsType: "git",
-            currentBranch: "main",
-            defaultBranch: "main",
-            cwd: cwd ?? api,
-            worktrees: [],
-            availableBranches: { local: [], remote: [] },
-            diffOptions: [{ id: "uncommitted", label: "Uncommitted changes" }],
-          };
-        },
-        async runVcsDiff() {
-          return { patch: "", label: "No changes" };
-        },
-        async getVcsFileContentsForDiff(diffType: DiffType) {
-          fileContentDiffTypes.push(diffType);
-          return { oldContent: null, newContent: null };
-        },
-      };
-
-      const workspace = await WorkspaceReviewSession.create(runtime, root, {
-        requestedDiffType: "staged",
-      });
-
-      expect(workspace.diffType).toBe("workspace-current");
-      expect(workspace.diffOptions.map((option) => option.id)).toEqual(["workspace-current"]);
-      expect(workspace.error).toContain("GitButler CLI missing");
-      await workspace.getFileContents("broken/file.txt");
-      expect(fileContentDiffTypes).toEqual(["gitbutler:workspace"]);
     });
 
     it("passes hide-whitespace through child repo diffs", async () => {

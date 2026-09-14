@@ -187,7 +187,7 @@ describe("getGitDiffFingerprint", () => {
   });
 
   test("unknown diff type returns null (treated as always-fresh)", async () => {
-    const result = await getGitDiffFingerprint(runtime, "p4-default" as never, "main", repo);
+    const result = await getGitDiffFingerprint(runtime, "unknown-diff-type" as never, "main", repo);
     expect(result).toBeNull();
   });
 });

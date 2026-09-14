@@ -16,7 +16,6 @@ import {
   OVERSIZED_REVIEW_STUB_MARKER,
 } from "./diff-paths";
 
-export const JJ_TRUNK_REVSET = "trunk()";
 /** Maximum regular-file payload accepted for Git diff expansion. */
 export const MAX_REVIEW_FILE_CONTENT_BYTES = 5 * 1024 * 1024;
 
@@ -32,19 +31,11 @@ export type DiffType =
   | "staged"
   | "unstaged"
   | "last-commit"
-  | "jj-current"
-  | "jj-last"
-  | "jj-line"
-  | "jj-all"
-  | "jj-evolog"
   | "branch"
   | "merge-base"
   | "all"
   | `commit:${string}`
-  | `worktree:${string}`
-  | `gitbutler:${string}`
-  | "p4-default"
-  | `p4-changelist:${string}`;
+  | `worktree:${string}`;
 
 export interface DiffOption {
   id: string;
@@ -82,15 +73,6 @@ export interface RepositoryContext {
   displayFallback?: string;
 }
 
-export interface JjEvoLogEntry {
-  /** Short commit ID (12 hex chars) */
-  commitId: string;
-  /** First line of the commit message */
-  description: string;
-  /** Human-readable age string, e.g. "2 hours ago" */
-  age?: string;
-}
-
 export interface RecentCommit {
   /** Full SHA — sent back as the diff base. */
   sha: string;
@@ -113,11 +95,7 @@ export interface GitContext {
   compareTarget?: CompareTargetConfig;
   repository?: RepositoryContext;
   cwd?: string;
-  vcsType?: "git" | "gitbutler" | "jj" | "p4";
-  /** Hash of the exact GitButler branch/commit topology used for this context. */
-  gitButlerRevision?: string;
-  /** Evolution log entries for the current jj change (jj only). */
-  jjEvologs?: JjEvoLogEntry[];
+  vcsType?: "git";
   /** HEAD ancestry, newest first. Powers the commit-based baseline picker (#709). */
   recentCommits?: RecentCommit[];
 }
@@ -315,40 +293,6 @@ export function parseRemoteBookmark(target: string): { name: string; remote: str
   return { name: target.slice(0, at), remote: target.slice(at + 1) };
 }
 
-// A full `commit_id`: 40 hex digits for a SHA-1 repo, 64 for SHA-256. Matching
-// the full length only is deliberate, so an ordinary bookmark whose name
-// happens to be hex (`cafebabe`) is still treated as a bookmark.
-const JJ_FULL_COMMIT_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
-
-export function jjCompareTargetRevset(target: string): string {
-  const remoteBookmark = parseRemoteBookmark(target);
-  if (remoteBookmark) {
-    return `remote_bookmarks(exact:${quoteJjString(remoteBookmark.name)}, exact:${quoteJjString(remoteBookmark.remote)})`;
-  }
-
-  // The resolved line base is a bare commit id whenever its fork point carries
-  // no usable bookmark. It has no separators, so it would otherwise read as a
-  // local bookmark name and build `bookmarks(exact:"<sha>")`, which resolves to
-  // no revisions at all and makes the whole Line of work diff fail.
-  if (JJ_FULL_COMMIT_ID.test(target)) return target;
-
-  const localBookmark = parseJjBookmarkName(target);
-  return localBookmark ? `bookmarks(exact:${quoteJjString(localBookmark)})` : target;
-}
-
-export function jjLineBaseRevset(target: string): string {
-  const compareTarget = jjCompareTargetRevset(target);
-  return `heads(::@ & ::(${compareTarget}))`;
-}
-
-function parseJjBookmarkName(target: string): string | null {
-  if (!target || target.startsWith("@") || /[()\s]/.test(target)) return null;
-  return target;
-}
-
-function quoteJjString(value: string): string {
-  return JSON.stringify(value);
-}
 
 export async function getCurrentBranch(
   runtime: ReviewGitRuntime,
@@ -2322,20 +2266,6 @@ export function validateFilePath(filePath: string): void {
   if (filePath.includes("..") || filePath.startsWith("/")) {
     throw new Error("Invalid file path");
   }
-}
-
-export function parseP4DiffType(
-  diffType: string,
-): { changelist: string | "default" } | null {
-  if (diffType === "p4-default") return { changelist: "default" };
-  if (diffType.startsWith("p4-changelist:")) {
-    return { changelist: diffType.slice("p4-changelist:".length) };
-  }
-  return null;
-}
-
-export function isP4DiffType(diffType: string): boolean {
-  return parseP4DiffType(diffType) !== null;
 }
 
 /**

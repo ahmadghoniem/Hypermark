@@ -7,7 +7,7 @@
  *     land exactly as git resolves them — refining the built-in name defaults
  *     in both directions.
  *  2. Sessions without local git access (piped patches, and by the same gate
- *     workspace/PR/jj/GitButler/P4) still emit the sidecar from the built-in
+ *     workspace/PR) still emit the sidecar from the built-in
  *     name defaults alone (name matching needs no git), and omit it when no
  *     served path matches.
  *  3. The built-in defaults apply in git sessions with no `.gitattributes`

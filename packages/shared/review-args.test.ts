@@ -14,11 +14,6 @@ describe("parseReviewArgs", () => {
     });
   });
 
-  test("parses --gitbutler", () => {
-    expect(parseReviewArgs("--gitbutler")).toEqual({
-      vcsType: "gitbutler",
-    });
-  });
 
   test("accepts argv arrays from the compiled CLI", () => {
     expect(parseReviewArgs(["--git"])).toEqual({

@@ -74,89 +74,27 @@ const gitRuntime: ReviewGitRuntime = {
 };
 
 describe("createVcsApi", () => {
-  test("detects the first matching provider so jj wins colocated workspaces", async () => {
-    const jj = provider("jj", true, ["jj-current"], {}, "/repo");
-    const git = provider("git", true, ["uncommitted"], {}, "/repo");
-    const api = createVcsApi([jj, git]);
+  test("detects the nearest VCS root so nested repos beat outer workspaces", async () => {
+    const outerGit = provider("git", true, ["uncommitted"], { cwd: "/repo" }, "/repo");
+    const innerGit = provider("git", true, ["uncommitted"], { cwd: "/repo/packages/tool" }, "/repo/packages/tool");
+    const api = createVcsApi([outerGit, innerGit]);
 
-    await expect(api.detectVcs("/repo")).resolves.toBe(jj);
-    await expect(api.getVcsContext("/repo")).resolves.toMatchObject({ vcsType: "jj" });
-  });
-
-  test("selects GitButler ahead of Git without changing JJ precedence", async () => {
-    const jj = provider("jj", false, ["jj-current"], {}, "/repo");
-    const gitButler = provider("gitbutler", true, ["gitbutler:workspace"], {}, "/repo");
-    const git = provider("git", true, ["uncommitted"], {}, "/repo");
-    const api = createVcsApi([jj, gitButler, git]);
-
-    await expect(api.detectVcs("/repo")).resolves.toBe(gitButler);
-    await expect(api.getVcsContext("/repo")).resolves.toMatchObject({ vcsType: "gitbutler" });
-
-    const colocatedJj = provider("jj", true, ["jj-current"], {}, "/repo");
-    const jjApi = createVcsApi([colocatedJj, gitButler, git]);
-    await expect(jjApi.detectVcs("/repo")).resolves.toBe(colocatedJj);
-    expect(api.vcsOwnsDiffType("gitbutler", "gitbutler:workspace")).toBe(true);
-    expect(api.vcsOwnsDiffType("gitbutler", "uncommitted")).toBe(false);
-  });
-
-  test("re-detects Git to GitButler to Git transitions in a long-lived runtime", async () => {
-    let gitButlerActive = false;
-    const gitButler = provider(
-      "gitbutler",
-      () => gitButlerActive,
-      ["gitbutler:workspace"],
-      { diffOptions: [{ id: "gitbutler:workspace", label: "Workspace" }] },
-      "/repo",
-    );
-    const git = provider("git", true, ["uncommitted"], {
-      diffOptions: [{ id: "uncommitted", label: "Uncommitted" }],
-    }, "/repo");
-    const api = createVcsApi([gitButler, git]);
-    const prepare = () => api.prepareLocalReviewDiff({
-      cwd: "/repo",
-      configuredDiffType: "since-base",
-    });
-
-    await expect(prepare()).resolves.toMatchObject({ gitContext: { vcsType: "git" } });
-    gitButlerActive = true;
-    await expect(prepare()).resolves.toMatchObject({
-      gitContext: { vcsType: "gitbutler" },
-      diffType: "gitbutler:workspace",
-    });
-    gitButlerActive = false;
-    await expect(prepare()).resolves.toMatchObject({ gitContext: { vcsType: "git" } });
-  });
-
-  test("detects the nearest VCS root so nested Git repos beat outer JJ workspaces", async () => {
-    const jj = provider("jj", true, ["jj-current"], { cwd: "/repo" }, "/repo");
-    const git = provider("git", true, ["uncommitted"], { cwd: "/repo/packages/tool" }, "/repo/packages/tool");
-    const api = createVcsApi([jj, git]);
-
-    await expect(api.detectVcs("/repo/packages/tool")).resolves.toBe(git);
+    await expect(api.detectVcs("/repo/packages/tool")).resolves.toBe(innerGit);
     await expect(api.getVcsContext("/repo/packages/tool")).resolves.toMatchObject({ vcsType: "git" });
-  });
-
-  test("detects the nearest VCS root so nested JJ workspaces beat outer Git repos", async () => {
-    const jj = provider("jj", true, ["jj-current"], { cwd: "/repo/packages/tool" }, "/repo/packages/tool");
-    const git = provider("git", true, ["uncommitted"], { cwd: "/repo" }, "/repo");
-    const api = createVcsApi([jj, git]);
-
-    await expect(api.detectVcs("/repo/packages/tool")).resolves.toBe(jj);
-    await expect(api.getVcsContext("/repo/packages/tool")).resolves.toMatchObject({ vcsType: "jj" });
   });
 
   test("continues probing providers when root detection throws", async () => {
     const brokenGit = {
-      ...provider("git", true, ["uncommitted"]),
+      ...provider("broken", true, ["uncommitted"]),
       async getRoot() {
         throw new Error("git failed");
       },
     };
-    const p4 = provider("p4", true, ["p4-default"], {}, "/repo");
-    const api = createVcsApi([brokenGit, p4]);
+    const git = provider("git", true, ["merge-base"], {}, "/repo");
+    const api = createVcsApi([brokenGit, git]);
 
-    await expect(api.detectVcs("/repo")).resolves.toBe(p4);
-    await expect(api.getVcsContext("/repo")).resolves.toMatchObject({ vcsType: "p4" });
+    await expect(api.detectVcs("/repo")).resolves.toBe(git);
+    await expect(api.getVcsContext("/repo")).resolves.toMatchObject({ vcsType: "git" });
   });
 
   test("detectManagedVcs returns null instead of falling back when no provider detects a workspace", async () => {
@@ -168,12 +106,10 @@ describe("createVcsApi", () => {
   });
 
   test("detectManagedVcs respects forced VCS selection without throwing", async () => {
-    const jj = provider("jj", true, ["jj-current"], {}, "/repo");
-    const git = provider("git", false, ["uncommitted"]);
-    const api = createVcsApi([jj, git]);
+    const git = provider("git", true, ["uncommitted"], {}, "/repo");
+    const api = createVcsApi([git]);
 
-    await expect(api.detectManagedVcs("/repo", "git")).resolves.toBeNull();
-    await expect(api.detectManagedVcs("/repo", "jj")).resolves.toBe(jj);
+    await expect(api.detectManagedVcs("/repo", "git")).resolves.toBe(git);
   });
 
   test("detectManagedVcs returns null when forced provider detection throws", async () => {
@@ -189,12 +125,12 @@ describe("createVcsApi", () => {
   });
 
   test("routes operations by diff type before falling back to detection", async () => {
-    const jj = provider("jj", false, ["jj-current"]);
+    const custom = provider("custom", false, ["custom-diff"]);
     const git = provider("git", true, ["uncommitted"]);
-    const api = createVcsApi([jj, git]);
+    const api = createVcsApi([custom, git]);
 
-    await expect(api.runVcsDiff("jj-current", "trunk()", "/repo")).resolves.toMatchObject({
-      patch: "jj:jj-current:trunk()",
+    await expect(api.runVcsDiff("custom-diff" as any, "main", "/repo")).resolves.toMatchObject({
+      patch: "custom:custom-diff:main",
     });
     await expect(api.runVcsDiff("uncommitted", "main", "/repo")).resolves.toMatchObject({
       patch: "git:uncommitted:main",
@@ -207,83 +143,36 @@ describe("createVcsApi", () => {
     expect(git.ownsDiffType("worktree:/repo:commit:abc1234")).toBe(true);
   });
 
-  test("prepares JJ local reviews by ignoring Git-shaped requested options", async () => {
-    const jj = provider("jj", true, ["jj-current", "jj-line"], {
-      defaultBranch: "trunk()",
-      diffOptions: [
-        { id: "jj-current", label: "Current change" },
-        { id: "jj-line", label: "Line of work" },
-      ],
-      vcsType: "jj",
-    });
-    const git = provider("git", true, ["merge-base", "uncommitted"]);
-    const api = createVcsApi([jj, git]);
-
-    await expect(api.prepareLocalReviewDiff({
-      cwd: "/repo",
-      requestedDiffType: "merge-base",
-      requestedBase: "main",
-      configuredDiffType: "unstaged",
-    })).resolves.toMatchObject({
-      diffType: "jj-current",
-      base: "trunk()",
-      rawPatch: "jj:jj-current:trunk()",
-    });
-  });
-
-  test("prepares local reviews by preserving valid requested diff types for the detected VCS", async () => {
-    const jj = provider("jj", true, ["jj-current", "jj-line"], {
-      defaultBranch: "trunk()",
-      diffOptions: [
-        { id: "jj-current", label: "Current change" },
-        { id: "jj-line", label: "Line of work" },
-      ],
-      vcsType: "jj",
-    });
-    const api = createVcsApi([jj]);
-
-    await expect(api.prepareLocalReviewDiff({
-      cwd: "/repo",
-      requestedDiffType: "jj-line",
-      requestedBase: "feature@origin",
-      configuredDiffType: "unstaged",
-    })).resolves.toMatchObject({
-      diffType: "jj-line",
-      base: "feature@origin",
-      rawPatch: "jj:jj-line:feature@origin",
-    });
-  });
-
   test("uses provider context captured atomically with the prepared patch", async () => {
     const initialContext = context({
-      vcsType: "gitbutler",
+      vcsType: "git",
       defaultBranch: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      diffOptions: [{ id: "gitbutler:workspace", label: "Workspace" }],
+      diffOptions: [{ id: "uncommitted", label: "Uncommitted" }],
     });
     const patchContext = context({
-      vcsType: "gitbutler",
+      vcsType: "git",
       defaultBranch: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      diffOptions: [{ id: "gitbutler:workspace", label: "Workspace" }],
+      diffOptions: [{ id: "uncommitted", label: "Uncommitted" }],
     });
-    const gitButler: VcsProvider = {
-      ...provider("gitbutler", true, ["gitbutler:workspace"]),
+    const git: VcsProvider = {
+      ...provider("git", true, ["uncommitted"]),
       async getContext() {
         return initialContext;
       },
       async runDiff() {
         return {
           patch: "atomic patch",
-          label: "Workspace",
+          label: "Uncommitted",
           gitContext: patchContext,
           fingerprint: "atomic fingerprint",
         };
       },
     };
-    const api = createVcsApi([gitButler]);
+    const api = createVcsApi([git]);
 
     await expect(api.prepareLocalReviewDiff({
       cwd: "/repo",
-      configuredDiffType: "since-base",
+      configuredDiffType: "uncommitted",
     })).resolves.toMatchObject({
       gitContext: patchContext,
       base: patchContext.defaultBranch,
@@ -292,13 +181,13 @@ describe("createVcsApi", () => {
     });
   });
 
-  test("prepares Git local reviews by honoring valid requested base and ignoring JJ diff modes", async () => {
+  test("prepares Git local reviews by honoring valid requested base and ignoring invalid diff modes", async () => {
     const git = provider("git", true, ["uncommitted", "merge-base"]);
     const api = createVcsApi([git]);
 
     await expect(api.prepareLocalReviewDiff({
       cwd: "/repo",
-      requestedDiffType: "jj-line",
+      requestedDiffType: "invalid-diff" as any,
       requestedBase: "develop",
       configuredDiffType: "merge-base",
     })).resolves.toMatchObject({
@@ -308,58 +197,9 @@ describe("createVcsApi", () => {
     });
   });
 
-  test("can force Git for local review startup in colocated JJ workspaces", async () => {
-    const jj = provider("jj", true, ["jj-current"], {
-      defaultBranch: "trunk()",
-      diffOptions: [{ id: "jj-current", label: "Current change" }],
-      vcsType: "jj",
-    });
-    const git = provider("git", true, ["uncommitted", "merge-base"]);
-    const api = createVcsApi([jj, git]);
-
-    await expect(api.prepareLocalReviewDiff({
-      cwd: "/repo",
-      vcsType: "git",
-      configuredDiffType: "merge-base",
-    })).resolves.toMatchObject({
-      gitContext: { vcsType: "git" },
-      diffType: "merge-base",
-      base: "main",
-      rawPatch: "git:merge-base:main",
-    });
-  });
-
-  test("can force GitButler and ignores Git-shaped saved defaults and bases", async () => {
-    const gitButler = provider("gitbutler", true, ["gitbutler:workspace"], {
-      defaultBranch: "abc1234",
-      diffOptions: [{ id: "gitbutler:workspace", label: "Workspace" }],
-      vcsType: "gitbutler",
-    });
-    const git = provider("git", true, ["uncommitted", "merge-base"]);
-    const api = createVcsApi([gitButler, git]);
-
-    await expect(api.prepareLocalReviewDiff({
-      cwd: "/repo",
-      vcsType: "gitbutler",
-      requestedDiffType: "merge-base",
-      requestedBase: "main",
-      configuredDiffType: "unstaged",
-    })).resolves.toMatchObject({
-      gitContext: { vcsType: "gitbutler" },
-      diffType: "gitbutler:workspace",
-      base: "abc1234",
-      rawPatch: "gitbutler:gitbutler:workspace:abc1234",
-    });
-  });
-
   test("reports a clear error when forced Git is unavailable", async () => {
-    const jj = provider("jj", true, ["jj-current"], {
-      defaultBranch: "trunk()",
-      diffOptions: [{ id: "jj-current", label: "Current change" }],
-      vcsType: "jj",
-    });
     const git = provider("git", false, ["uncommitted", "merge-base"]);
-    const api = createVcsApi([jj, git]);
+    const api = createVcsApi([git]);
 
     await expect(api.prepareLocalReviewDiff({
       cwd: "/repo",
@@ -369,16 +209,11 @@ describe("createVcsApi", () => {
   });
 
   test("refreshes context and remote defaults with the forced VCS", async () => {
-    const jj = provider("jj", true, ["jj-current"], {
-      defaultBranch: "trunk()",
-      diffOptions: [{ id: "jj-current", label: "Current change" }],
-      vcsType: "jj",
-    });
     const git = {
       ...provider("git", true, ["uncommitted", "merge-base"]),
       detectRemoteDefaultCompareTarget: async () => "origin/main",
     };
-    const api = createVcsApi([jj, git]);
+    const api = createVcsApi([git]);
 
     await expect(api.getVcsContext("/repo", "git")).resolves.toMatchObject({
       vcsType: "git",
@@ -393,27 +228,7 @@ describe("resolveInitialDiffType", () => {
     expect(resolveInitialDiffType(context({}), "merge-base")).toBe("merge-base");
   });
 
-  test("uses p4-default for P4 contexts", () => {
-    expect(resolveInitialDiffType(context({ vcsType: "p4" }), "merge-base")).toBe("p4-default");
-  });
-
-  test("ignores saved Git defaults for jj contexts", () => {
-    const jjContext = context({
-      defaultBranch: "trunk()",
-      diffOptions: [
-        { id: "jj-current", label: "Current change" },
-        { id: "jj-line", label: "Line of work" },
-        { id: "jj-all", label: "All files" },
-      ],
-      vcsType: "jj",
-    });
-
-    expect(resolveInitialDiffType(jjContext, "all")).toBe("jj-current");
-    expect(resolveInitialDiffType(jjContext, "merge-base")).toBe("jj-current");
-    expect(resolveInitialDiffType(jjContext, "unstaged")).toBe("jj-current");
-  });
-
-  test("falls back to the first available option for unknown non-jj modes", () => {
-    expect(resolveInitialDiffType(context({}), "jj-current")).toBe("uncommitted");
+  test("falls back to the first available option for unknown diff modes", () => {
+    expect(resolveInitialDiffType(context({}), "invalid-mode" as any)).toBe("uncommitted");
   });
 });
