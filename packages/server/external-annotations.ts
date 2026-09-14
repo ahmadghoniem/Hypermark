@@ -16,6 +16,7 @@ import {
   validateReplyTarget,
   type AnnotationStore,
   type StorableAnnotation,
+  type ExternalAnnotationEvent,
 } from "@hypermark/shared/external-annotation";
 
 // ---------------------------------------------------------------------------
