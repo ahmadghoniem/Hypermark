@@ -324,7 +324,7 @@ export const AnnotateAgentTerminalPanel = forwardRef<
   return (
     <aside
       data-annotate-agent-terminal="true"
-      className={`hidden lg:flex h-full flex-shrink-0 flex-col bg-card ${sideBorderClass}`}
+      className={`hidden lg:flex h-full shrink-0 flex-col bg-card ${sideBorderClass}`}
       style={{ width }}
     >
       {!capability.enabled ? (
@@ -460,7 +460,7 @@ function AgentSelect({
             type="button"
             aria-label="Select agent"
             disabled={agents.length === 0}
-            className="flex h-8 w-full items-center gap-1.5 rounded-md border border-border/70 bg-muted/50 px-2.5 text-xs text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring data-[popup-open]:border-primary/50 data-[popup-open]:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-8 w-full items-center gap-1.5 rounded-md border border-border/70 bg-muted/50 px-2.5 text-xs text-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring data-popup-open:border-primary/50 data-popup-open:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
           />
         }
       >
@@ -472,7 +472,7 @@ function AgentSelect({
       <DropdownMenuContent
         align="start"
         sideOffset={4}
-        className="z-100 min-w-[var(--anchor-width)]"
+        className="z-100 min-w-(--anchor-width)"
       >
         {agents.map((agent) => {
           const selected = agent.id === selectedAgentId;
@@ -553,7 +553,7 @@ function AgentTerminalDisplayPopover({
             type="button"
             aria-label="Terminal display settings"
             title="Display settings"
-            className="flex size-6 items-center justify-center rounded text-muted-foreground/80 transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring data-[popup-open]:bg-primary/15 data-[popup-open]:text-primary"
+            className="flex size-6 items-center justify-center rounded text-muted-foreground/80 transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring data-popup-open:bg-primary/15 data-popup-open:text-primary"
           />
         }
       >

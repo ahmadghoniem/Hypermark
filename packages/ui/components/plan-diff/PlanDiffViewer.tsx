@@ -71,7 +71,7 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
                   title={repoInfo.branch}
                 >
                   <svg
-                    className="size-2.5 flex-shrink-0"
+                    className="size-2.5 shrink-0"
                     viewBox="0 0 16 16"
                     fill="currentColor"
                   >
@@ -115,7 +115,7 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
         </div>
 
         {/* Diff mode switcher + version label + VS Code button */}
-        <div className="mt-6 mb-6 flex items-center gap-3">
+        <div className="my-6 flex items-center gap-3">
           <PlanDiffModeSwitcher mode={diffMode} onChange={onDiffModeChange} />
           {baseVersionLabel && (
             <span className="text-[10px] text-muted-foreground">

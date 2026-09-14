@@ -642,7 +642,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             {mode === 'dialog' && !forcedDialog && (
               <button
                 onClick={() => { setDialogIsForced(false); setMode('popover'); }}
-                className="grid size-[22px] shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="grid size-5.5 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 title="Collapse"
                 aria-label="Collapse"
               >
@@ -651,7 +651,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             )}
             <button
               onClick={() => handleClose()}
-              className="grid size-[22px] shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="grid size-5.5 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title="Close"
               aria-label="Close"
             >
@@ -667,11 +667,11 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
         {chipsRow}
 
         {/* Textarea, with expand parked at its top-right in popover mode (or collapse for global dialog). */}
-        <div className="relative px-[13px] pb-0.5 pt-2.5" {...composerDropProps}>
+        <div className="relative px-3.25 pb-0.5 pt-2.5" {...composerDropProps}>
           {mode === 'popover' ? (
             <button
               onClick={() => { setDialogIsForced(false); setMode('dialog'); }}
-              className="absolute right-2.5 top-2 z-1 grid size-[22px] place-items-center rounded-[7px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="absolute right-2.5 top-2 z-1 grid size-5.5 place-items-center rounded-[7px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title="Expand"
               aria-label="Expand"
             >
@@ -681,7 +681,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             isGlobal && !forcedDialog && (
               <button
                 onClick={() => { setDialogIsForced(false); setMode('popover'); }}
-                className="absolute right-2.5 top-2 z-1 grid size-[22px] place-items-center rounded-[7px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="absolute right-2.5 top-2 z-1 grid size-5.5 place-items-center rounded-[7px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 title="Collapse"
                 aria-label="Collapse"
               >
@@ -739,13 +739,13 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
         )}
 
         {/* Action row. */}
-        <div className="flex items-center justify-between gap-3 pb-2 pl-2.5 pr-2 pt-[7px]">
+        <div className="flex items-center justify-between gap-3 pb-2 pl-2.5 pr-2 pt-1.75">
           <div className="flex min-w-0 items-center gap-0.5">
             <button
               type="button"
               onClick={() => {}}
               title="Ask about this line"
-              className="rounded-md border border-destructive/30 bg-destructive/10 px-[9px] py-[5px] text-[11.5px] font-medium text-destructive transition-colors hover:bg-destructive/20"
+              className="rounded-md border border-destructive/30 bg-destructive/10 px-2.25 py-1.25 text-[11.5px] font-medium text-destructive transition-colors hover:bg-destructive/20"
             >
               Ask
             </button>
@@ -875,7 +875,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           onPointerDown={beginGripResize}
           onDoubleClick={resetGripResize}
           title="Drag to resize"
-          className="absolute -left-[9px] -top-[9px] z-3 grid size-6 cursor-nwse-resize place-items-center text-muted-foreground/60 opacity-0 transition-opacity group-hover/composer:opacity-100"
+          className="absolute -left-2.25 -top-2.25 z-3 grid size-6 cursor-nwse-resize place-items-center text-muted-foreground/60 opacity-0 transition-opacity group-hover/composer:opacity-100"
         >
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
             <path d="M1.5 13.5A12 12 0 0 1 13.5 1.5" />
@@ -1033,7 +1033,7 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
         aria-hidden="true"
         data-skill-ref-overlay="true"
         data-pn-mobile-editable-mirror="true"
-        className={`${COMPOSER_TEXT_CLASSES} ${sizeClassName} pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words`}
+        className={`${COMPOSER_TEXT_CLASSES} ${sizeClassName} pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap wrap-break-word`}
         style={composing ? { visibility: 'hidden' } : undefined}
       >
         {segments}
@@ -1088,7 +1088,7 @@ const ExpandIcon = () => (
 /** Corner-down-right arrow: "this points at that". Not a quotation mark -
  *  the strip holds a place in a file, and a place is not a quote. */
 const AnchorIcon = () => (
-  <svg className="size-[13px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+  <svg className="size-3.25" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <polyline points="15 10 20 15 15 20" />
     <path d="M4 4v7a4 4 0 0 0 4 4h12" />
   </svg>

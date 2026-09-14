@@ -81,7 +81,7 @@ export const PlanRawDiffView: React.FC<PlanRawDiffViewProps> = ({ blocks }) => {
             }`}
           >
             {/* Gutter: +/- prefix */}
-            <div className="w-5 flex-shrink-0 select-none opacity-60 text-right pr-2">
+            <div className="w-5 shrink-0 select-none opacity-60 text-right pr-2">
               {line.type === "added"
                 ? "+"
                 : line.type === "removed"
@@ -89,11 +89,11 @@ export const PlanRawDiffView: React.FC<PlanRawDiffViewProps> = ({ blocks }) => {
                   : " "}
             </div>
             {/* Line number */}
-            <div className="w-8 flex-shrink-0 select-none text-muted-foreground/40 text-right pr-3 text-[11px]">
+            <div className="w-8 shrink-0 select-none text-muted-foreground/40 text-right pr-3 text-[11px]">
               {line.lineNumber ?? ""}
             </div>
             {/* Content */}
-            <div className="whitespace-pre-wrap break-words min-w-0">{line.content || " "}</div>
+            <div className="whitespace-pre-wrap wrap-break-word min-w-0">{line.content || " "}</div>
           </div>
         ))}
       </div>

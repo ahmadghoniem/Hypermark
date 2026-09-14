@@ -213,7 +213,7 @@ export const StickyHeaderLane: React.FC<StickyHeaderLaneProps> = ({
         ref={wrapperRef}
         data-sticky-header-lane="true"
         className={`${sticky ? 'sticky' : 'relative'} z-60 w-full self-center pointer-events-none ${
-          sticky ? (isNarrow ? 'top-[52px] md:top-[60px]' : 'top-3') : ''
+          sticky ? (isNarrow ? 'top-13 md:top-15' : 'top-3') : ''
         }`}
         style={maxWidth == null ? { height: 0 } : { maxWidth, height: 0 }}
       >
@@ -253,7 +253,7 @@ export const StickyHeaderLane: React.FC<StickyHeaderLaneProps> = ({
             willChange: 'opacity, transform',
           }}
         >
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <AnnotationToolstrip
               inputMethod={inputMethod}
               onInputMethodChange={onInputMethodChange}

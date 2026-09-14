@@ -195,8 +195,8 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
     <aside
       data-annotation-panel="true"
       data-plan-sidebar="right"
-      className={`bg-card flex flex-col ${embedded ? 'h-full min-h-0 w-full flex-1' : 'flex-shrink-0 border-l border-border/50'} ${
-        mobilePanel ? 'fixed top-12 bottom-0 right-0 z-[60] w-full max-w-sm shadow-2xl bg-card' : ''
+      className={`bg-card flex flex-col ${embedded ? 'size-full min-h-0 flex-1' : 'shrink-0 border-l border-border/50'} ${
+        mobilePanel ? 'fixed top-12 bottom-0 right-0 z-60 w-full max-w-sm shadow-2xl' : ''
       }`}
       style={embedded || mobilePanel ? undefined : { width: width ?? 288 }}
     >
@@ -209,7 +209,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                 Annotations
               </h2>
               {totalCount > 0 && (
-                <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary/10 px-1 font-mono text-[10px] font-medium tabular-nums text-primary">
+                <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary/10 px-1 font-mono text-[10px] font-medium tabular-nums text-primary">
                   {totalCount}
                 </span>
               )}
@@ -236,7 +236,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
       )}
 
       {embedded && otherFileAnnotations && otherFileAnnotations.count > 0 && (
-        <p className="flex min-h-11 flex-shrink-0 items-center border-b border-border/50 px-3 text-xs text-muted-foreground">
+        <p className="flex min-h-11 shrink-0 items-center border-b border-border/50 px-3 text-xs text-muted-foreground">
           {otherFileAnnotations.count} more in {otherFileAnnotations.files} other file{otherFileAnnotations.files === 1 ? '' : 's'}
         </p>
       )}

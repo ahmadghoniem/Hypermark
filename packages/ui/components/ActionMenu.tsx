@@ -42,7 +42,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
       {isOpen && (
         <div
           data-pn-dismissable-popover="true"
-          className={panelClassName ?? `absolute top-full right-0 mt-1 ${panelWidth === 'wide' ? 'w-64' : 'w-56'} rounded-lg border border-border bg-popover py-1 shadow-xl z-[70]`}
+          className={panelClassName ?? `absolute top-full right-0 mt-1 ${panelWidth === 'wide' ? 'w-64' : 'w-56'} rounded-lg border border-border bg-popover py-1 shadow-xl z-70`}
         >
           {children({ closeMenu: () => setIsOpen(false) })}
         </div>

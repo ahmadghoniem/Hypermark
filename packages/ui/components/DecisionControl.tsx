@@ -155,7 +155,7 @@ export const DecisionNoteField: React.FC<DecisionNoteFieldProps> = ({
       data-decision-note-input="true"
       data-pn-mobile-editable
       disabled={disabled}
-      className="block w-full resize-none overflow-y-auto rounded-md border border-border bg-background px-2.5 py-1.5 text-sm leading-snug text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring/40"
+      className="block w-full resize-none overflow-y-auto rounded-md border border-border bg-background px-2.5 py-1.5 text-sm/snug text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring/40"
       style={{ maxHeight: NOTE_MAX_HEIGHT_PX }}
     />
   );

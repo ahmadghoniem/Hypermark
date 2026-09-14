@@ -135,7 +135,7 @@ const SectionRow: React.FC<{
         {item.group === 'committed' ? (
           <CommittedDot />
         ) : (
-          <span className="size-4 flex-shrink-0" aria-hidden="true" />
+          <span className="size-4 shrink-0" aria-hidden="true" />
         )}
         <ChangeTypeLetter status={file.status} oldPath={file.oldPath} untracked={item.group === 'untracked'} />
         <TruncatedPath path={file.path} />
@@ -412,7 +412,7 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
   return (
     <aside
       ref={asideRef}
-      className="border-r border-border/50 bg-card/30 flex flex-col flex-shrink-0 overflow-hidden"
+      className="border-r border-border/50 bg-card/30 flex flex-col shrink-0 overflow-hidden"
       style={{ width: width ?? 256 }}
     >
       {/* Header — the view toggle owns the entire top row (full width);
@@ -420,7 +420,7 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
           The controls that used to share it render as PanelControlsRow below
           the All files entry. */}
       <div
-        className="px-3 flex items-center border-b border-border/50 flex-shrink-0"
+        className="px-3 flex items-center border-b border-border/50 shrink-0"
         style={{ height: 'var(--panel-header-h)' }}
       >
         <PanelViewToggle view="sections" onSelect={onSelectPanelView} showCommits={showCommitsOption} />
@@ -430,8 +430,8 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
           view IS the since-base comparison; other diff modes live in the tree
           view's dropdown, and the header toggle is the path between them. */}
       {onSelectBase && selectedBase && detectedBase && availableBranches && compareTarget && (
-        <div className="px-2 py-1.5 border-b border-border/30 flex items-center gap-2 flex-shrink-0">
-          <span className="text-[10px] uppercase tracking-wide text-muted-foreground flex-shrink-0">vs</span>
+        <div className="px-2 py-1.5 border-b border-border/30 flex items-center gap-2 shrink-0">
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0">vs</span>
           <div className="flex-1 min-w-0">
             <BaseBranchPicker
               availableBranches={availableBranches}

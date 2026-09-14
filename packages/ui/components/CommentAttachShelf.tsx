@@ -53,7 +53,7 @@ export const CommentAttachShelf: React.FC<CommentAttachShelfProps> = ({
   };
 
   return (
-    <div className="flex h-10 items-center gap-[7px] overflow-x-auto px-[13px]">
+    <div className="flex h-10 items-center gap-1.75 overflow-x-auto px-3.25">
       <input
         ref={inputRef}
         type="file"
@@ -77,7 +77,7 @@ export const CommentAttachShelf: React.FC<CommentAttachShelfProps> = ({
             onClick={() => onRemove(image.path)}
             aria-label={`Remove ${image.name}`}
             title={`Remove ${image.name}`}
-            className="absolute -right-[5px] -top-[5px] grid size-[15px] place-items-center rounded-full border border-border bg-popover text-muted-foreground transition-colors hover:text-foreground"
+            className="absolute -right-1.25 -top-1.25 grid size-3.75 place-items-center rounded-full border border-border bg-popover text-muted-foreground transition-colors hover:text-foreground"
           >
             <RemoveGlyph />
           </button>
@@ -110,7 +110,7 @@ export const CommentAttachShelf: React.FC<CommentAttachShelfProps> = ({
             onClick={() => onRemovePending?.(item.id)}
             aria-label={`Remove ${item.name}`}
             title={`Remove ${item.name}`}
-            className="absolute -right-[5px] -top-[5px] grid size-[15px] place-items-center rounded-full border border-border bg-popover text-muted-foreground transition-colors hover:text-foreground"
+            className="absolute -right-1.25 -top-1.25 grid size-3.75 place-items-center rounded-full border border-border bg-popover text-muted-foreground transition-colors hover:text-foreground"
           >
             <RemoveGlyph />
           </button>
@@ -126,7 +126,7 @@ export const CommentAttachShelf: React.FC<CommentAttachShelfProps> = ({
         className={
           filled
             ? `${TILE} grid place-items-center border border-dashed border-muted-foreground/45 text-muted-foreground transition-colors hover:border-muted-foreground/70 hover:text-foreground`
-            : 'grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
+            : 'grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
         }
       >
         {filled ? <PlusGlyph /> : <ImageGlyph />}
@@ -148,7 +148,7 @@ const PlusGlyph: React.FC = () => (
 );
 
 const ImageGlyph: React.FC = () => (
-  <svg className="size-[15px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
+  <svg className="size-3.75" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden="true">
     <rect x="3" y="3" width="18" height="18" rx="2" />
     <circle cx="8.5" cy="8.5" r="1.5" />
     <path strokeLinecap="round" strokeLinejoin="round" d="M21 15l-5-5L5 21" />

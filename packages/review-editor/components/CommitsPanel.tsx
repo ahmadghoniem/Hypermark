@@ -52,11 +52,11 @@ const CommitRow: React.FC<{
     <div className="flex items-center gap-1.5 min-w-0">
       <span className="text-xs truncate flex-1">{commit.subject}</span>
       {commit.isHead && (
-        <span className="text-[9px] leading-none px-1 py-0.5 rounded bg-primary/15 text-primary font-medium flex-shrink-0">
+        <span className="text-[9px] leading-none px-1 py-0.5 rounded bg-primary/15 text-primary font-medium shrink-0">
           HEAD
         </span>
       )}
-      <span className="text-[10px] text-muted-foreground/70 tabular-nums flex-shrink-0">
+      <span className="text-[10px] text-muted-foreground/70 tabular-nums shrink-0">
         {formatRelativeTime(commit.committedAt)}
       </span>
     </div>
@@ -65,7 +65,7 @@ const CommitRow: React.FC<{
       <Avatar src={commit.avatarUrl} name={commit.author} size={14} />
       <span className="text-[11px] text-muted-foreground truncate">{commit.author}</span>
       <span className="flex-1" />
-      <span className="font-mono text-[10px] text-muted-foreground/70 flex-shrink-0">{commit.shortSha}</span>
+      <span className="font-mono text-[10px] text-muted-foreground/70 shrink-0">{commit.shortSha}</span>
     </div>
   </button>
 );
@@ -86,7 +86,7 @@ const BaseBoundary: React.FC<{ base: string }> = ({ base }) => (
 );
 
 const GroupHeader: React.FC<{ label: string; title: string }> = ({ label, title }) => (
-  <div className="px-2 pt-1 pb-1 text-[11px] font-medium text-muted-foreground" title={title}>
+  <div className="px-2 py-1 text-[11px] font-medium text-muted-foreground" title={title}>
     {label}
   </div>
 );
@@ -113,13 +113,13 @@ export const CommitsPanel: React.FC<CommitsPanelProps> = ({
 
   return (
     <aside
-      className="border-r border-border/50 bg-card/30 flex flex-col flex-shrink-0 overflow-hidden"
+      className="border-r border-border/50 bg-card/30 flex flex-col shrink-0 overflow-hidden"
       style={{ width: width ?? 256 }}
     >
       {/* Header — the view toggle owns the entire top row (full width), same
           layout as the other panel views. The loaded-commit count moves to its
           own sub-row since nothing else shares the toggle row. */}
-      <div className="px-3 flex items-center border-b border-border/50 flex-shrink-0" style={{ height: 'var(--panel-header-h)' }}>
+      <div className="px-3 flex items-center border-b border-border/50 shrink-0" style={{ height: 'var(--panel-header-h)' }}>
         <PanelViewToggle
           view="commits"
           onSelect={onSelectPanelView}
@@ -128,7 +128,7 @@ export const CommitsPanel: React.FC<CommitsPanelProps> = ({
         />
       </div>
       {commits.length > 0 && (
-        <div className="px-3 py-1 border-b border-border/30 flex items-center justify-end flex-shrink-0">
+        <div className="px-3 py-1 border-b border-border/30 flex items-center justify-end shrink-0">
           <span className="text-xs text-muted-foreground tabular-nums">
             {commits.length} {commits.length === 1 ? 'commit' : 'commits'}
           </span>
@@ -142,7 +142,7 @@ export const CommitsPanel: React.FC<CommitsPanelProps> = ({
             // with a populated list renders inline below it instead, so a
             // failed page/refresh never wipes the rail the user is reading.
             <div className="px-2 py-4 text-center space-y-2">
-              <div className="text-xs text-destructive break-words">{error}</div>
+              <div className="text-xs text-destructive wrap-break-word">{error}</div>
               <button
                 onClick={onRetry}
                 className="text-[11px] text-primary/80 underline underline-offset-2 decoration-primary/40 hover:text-primary transition-colors"
@@ -186,7 +186,7 @@ export const CommitsPanel: React.FC<CommitsPanelProps> = ({
                   <span className="truncate flex-1" title={error}>{error}</span>
                   <button
                     onClick={onRetry}
-                    className="flex-shrink-0 text-primary/80 underline underline-offset-2 decoration-primary/40 hover:text-primary transition-colors"
+                    className="shrink-0 text-primary/80 underline underline-offset-2 decoration-primary/40 hover:text-primary transition-colors"
                   >
                     Retry
                   </button>

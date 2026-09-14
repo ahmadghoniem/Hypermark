@@ -40,7 +40,7 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
   return (
     <div
       data-sidebar-tabs="true"
-      className={`flex flex-col gap-1 pt-3 pl-0.5 flex-shrink-0 ${className ?? ""}`}
+      className={`flex flex-col gap-1 pt-3 pl-0.5 shrink-0 ${className ?? ""}`}
     >
       {showAgentTerminalTab && onToggleAgentTerminal && (
         <button

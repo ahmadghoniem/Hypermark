@@ -28,8 +28,8 @@ export const CommitDescriptionHeader: React.FC<{ info: CommitDiffInfo }> = ({ in
 
   return (
     <div className="border-b border-border/50 bg-card/30">
-      <div className="px-4 pt-3 pb-3">
-        <div className="text-sm font-semibold leading-snug break-words">{info.subject}</div>
+      <div className="px-4 py-3">
+        <div className="text-sm/snug font-semibold wrap-break-word">{info.subject}</div>
         <div className="mt-1.5 flex items-center gap-2 min-w-0 text-xs text-muted-foreground">
           <Avatar src={info.avatarUrl} name={info.author} size={18} />
           <span className="truncate">{info.author}</span>
@@ -41,7 +41,7 @@ export const CommitDescriptionHeader: React.FC<{ info: CommitDiffInfo }> = ({ in
             <div
               className={`mt-3 ${
                 clamped
-                  ? 'max-h-48 overflow-hidden [mask-image:linear-gradient(to_bottom,black_72%,transparent)]'
+                  ? 'max-h-48 overflow-hidden mask-[linear-gradient(to_bottom,black_72%,transparent)]'
                   : ''
               }`}
             >

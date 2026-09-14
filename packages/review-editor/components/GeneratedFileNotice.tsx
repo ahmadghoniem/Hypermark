@@ -35,7 +35,7 @@ export const GeneratedFileNotice: React.FC<{
         e.stopPropagation();
         onExpand();
       }}
-      className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs leading-relaxed text-muted-foreground border-b border-border bg-muted/30 hover:bg-muted/60 transition-colors cursor-pointer"
+      className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs/relaxed text-muted-foreground border-b border-border bg-muted/30 hover:bg-muted/60 transition-colors cursor-pointer"
       title="Expand diff"
     >
       <span>Generated file collapsed</span>

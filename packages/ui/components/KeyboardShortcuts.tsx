@@ -11,9 +11,9 @@ import {
 
 const Kbd: React.FC<{ children: React.ReactNode; wide?: boolean }> = ({ children, wide }) => (
   <kbd
-    className={`inline-flex items-center justify-center h-[22px] ${
-      wide ? 'min-w-[22px] px-1.5' : 'min-w-[22px]'
-    } rounded bg-muted border border-border/60 border-b-[2px] text-[11px] font-mono leading-none text-foreground/80 shadow-sm`}
+    className={`inline-flex items-center justify-center h-5.5 ${
+      wide ? 'min-w-5.5 px-1.5' : 'min-w-5.5'
+    } rounded bg-muted border border-border/60 border-b-2 text-[11px] font-mono leading-none text-foreground/80 shadow-sm`}
   >
     {children}
   </kbd>

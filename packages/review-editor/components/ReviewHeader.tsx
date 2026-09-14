@@ -105,7 +105,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
               className="text-xs text-muted-foreground/60 inline-flex items-center gap-1 truncate max-w-55"
               title={repoInfo.display}
             >
-              <RepoIcon className="size-3 flex-shrink-0" />
+              <RepoIcon className="size-3 shrink-0" />
               {repoInfo.display}
             </span>
           </div>
@@ -226,7 +226,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
             </svg>
             {totalAnnotationCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] flex items-center justify-center rounded-full bg-primary text-[8px] font-bold text-primary-foreground px-0.5">
+              <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 flex items-center justify-center rounded-full bg-primary text-[8px] font-bold text-primary-foreground px-0.5">
                 {totalAnnotationCount > 99 ? '99+' : totalAnnotationCount}
               </span>
             )}

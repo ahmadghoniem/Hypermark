@@ -92,11 +92,11 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
 
   return (
     <aside
-      className="hidden lg:flex flex-col sticky top-12 h-[calc(100vh-3rem)] flex-shrink-0 bg-card border-r border-border"
+      className="hidden lg:flex flex-col sticky top-12 h-[calc(100vh-3rem)] shrink-0 bg-card border-r border-border"
       style={{ width }}
     >
       {/* Tab bar */}
-      <div className="flex h-10 items-center border-b border-border/50 px-2 gap-0.5 flex-shrink-0 overflow-hidden min-w-0">
+      <div className="flex h-10 items-center border-b border-border/50 px-2 gap-0.5 shrink-0 overflow-hidden min-w-0">
         {showAgentTerminalButton && onToggleAgentTerminal && (
           <ActionButton
             active={!!isAgentTerminalOpen}

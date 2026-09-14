@@ -1801,7 +1801,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
               e.stopPropagation();
               toggleItemCollapsed(item.id);
             }}
-            className="flex items-center justify-center size-6 rounded hover:bg-foreground/10 transition-colors flex-shrink-0"
+            className="flex items-center justify-center size-6 rounded hover:bg-foreground/10 transition-colors shrink-0"
             title={collapsed ? 'Expand diff' : 'Collapse diff'}
           >
             <svg
@@ -1969,7 +1969,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       // overflow-anchor:none disables the BROWSER's scroll anchoring, which
       // otherwise fights CodeView's own anchor resolution whenever item
       // heights change (our augmentation applies).
-      className={`relative h-full overflow-y-auto overflow-x-clip overscroll-contain [contain:strict] [overflow-anchor:none] [will-change:scroll-position] [&_diffs-container]:overflow-clip [&_diffs-container]:[contain:layout_paint_style]`}
+      className={`relative h-full overflow-y-auto overflow-x-clip overscroll-contain contain-strict [overflow-anchor:none] will-change-scroll [&_diffs-container]:overflow-clip [&_diffs-container]:contain-[layout_paint_style]`}
       initialItems={identity.items}
       options={options}
       selectedLines={selectedLines}

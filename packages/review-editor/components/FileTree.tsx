@@ -414,7 +414,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
 
   return (
     <aside
-      className="border-r border-border/50 bg-card/30 flex flex-col flex-shrink-0 overflow-hidden"
+      className="border-r border-border/50 bg-card/30 flex flex-col shrink-0 overflow-hidden"
       style={{ width: width ?? 256 }}
     >
       {/* Header — the view toggle owns the entire top row (full width). The
@@ -476,7 +476,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
         activeDiffType &&
         compareTarget?.diffTypes.includes(activeDiffType) && (
           <div className="px-2 py-1.5 border-b border-border/30 flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground flex-shrink-0">
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0">
               {compareTarget.picker.rowLabel}
             </span>
             <div className="flex-1 min-w-0">
@@ -497,7 +497,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
           established position directly below the "All files" row — above the
           file tree's own scroll/virtualization region, which it owns itself
           once mounted (see below). */}
-      <div className="p-1 flex-shrink-0">
+      <div className="p-1 shrink-0">
         {onSelectAllFiles && (
           <AllFilesRow
             active={isAllFilesActive}
@@ -577,7 +577,7 @@ export const SearchFileGroup: React.FC<{
         onClick={() => setCollapsed((prev) => !prev)}
       >
         <svg
-          className={`size-3 text-muted-foreground/50 transition-transform flex-shrink-0 ${collapsed ? '' : 'rotate-90'}`}
+          className={`size-3 text-muted-foreground/50 transition-transform shrink-0 ${collapsed ? '' : 'rotate-90'}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -586,7 +586,7 @@ export const SearchFileGroup: React.FC<{
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
         <svg
-          className="size-3.5 text-muted-foreground/60 flex-shrink-0"
+          className="size-3.5 text-muted-foreground/60 shrink-0"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -600,7 +600,7 @@ export const SearchFileGroup: React.FC<{
         </svg>
         <span className="truncate text-foreground font-medium">{fileName}</span>
         {dirPath && <span className="truncate text-muted-foreground/50 text-[10px]">{dirPath}</span>}
-        <span className="ml-auto flex-shrink-0 text-[10px] text-muted-foreground/50 bg-muted rounded px-1.5 py-0.5">
+        <span className="ml-auto shrink-0 text-[10px] text-muted-foreground/50 bg-muted rounded px-1.5 py-0.5">
           {group.matches.length}
         </span>
       </button>
@@ -646,8 +646,8 @@ const SearchMatchRow: React.FC<{
       }`}
       onClick={onSelect}
     >
-      <span className="flex-shrink-0 text-muted-foreground/40 w-7 text-right tabular-nums">{match.lineNumber}</span>
-      <span className={`flex-shrink-0 w-6 text-[10px] font-semibold uppercase ${sideColor}`}>{sideLabel}</span>
+      <span className="shrink-0 text-muted-foreground/40 w-7 text-right tabular-nums">{match.lineNumber}</span>
+      <span className={`shrink-0 w-6 text-[10px] font-semibold uppercase ${sideColor}`}>{sideLabel}</span>
       <span className="truncate leading-relaxed">{highlightQuery(match.snippet, searchQuery)}</span>
     </button>
   );

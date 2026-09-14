@@ -73,7 +73,7 @@ export const FileCommentCard: React.FC<{
 
   return (
     <div
-      className={`review-comment group${isSelected ? ' is-selected' : ''}`}
+      className={`review-comment group${isSelected ? 'is-selected' : ''}`}
       data-annotation-id={comment.id}
       onClick={() => onSelect(comment.id)}
     >
@@ -108,7 +108,7 @@ export const FileCommentCard: React.FC<{
               if (e.key === 'Escape') { e.preventDefault(); setIsEditing(false); }
               else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveEdit(); }
             }}
-            className="w-full min-h-20 resize-y rounded border border-border bg-background p-2 text-xs leading-relaxed focus:outline-none focus:ring-1 focus:ring-primary/40"
+            className="w-full min-h-20 resize-y rounded border border-border bg-background p-2 text-xs/relaxed focus:outline-none focus:ring-1 focus:ring-primary/40"
             placeholder="File comment (markdown supported)…"
           />
           <div className="mt-1 flex items-center justify-end gap-2">
@@ -154,7 +154,7 @@ export const FileCommentBanner: React.FC<FileCommentBannerProps> = ({
 }) => {
   if (comments.length === 0) return null;
   return (
-    <div className="file-comment-banner flex flex-col px-4 pt-1 pb-1">
+    <div className="file-comment-banner flex flex-col px-4 py-1">
       {comments.map((comment) => (
         <FileCommentCard
           key={comment.id}

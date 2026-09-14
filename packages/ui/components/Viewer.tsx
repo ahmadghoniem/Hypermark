@@ -269,7 +269,7 @@ const ViewerDocumentHeader: React.FC<ViewerDocumentHeaderProps> = ({
               narrow ? 'w-full' : 'flex-1'
             }`}
           >
-            <div className="flex-shrink-0">
+            <div className="shrink-0">
               <AnnotationToolstrip
                 inputMethod={inputMethod}
                 onInputMethodChange={config.onInputMethodChange}
@@ -284,7 +284,7 @@ const ViewerDocumentHeader: React.FC<ViewerDocumentHeaderProps> = ({
           <div
             ref={actionsRef}
             data-sticky-actions
-            className={`flex flex-shrink-0 items-start gap-1 rounded-lg p-1 md:gap-2 md:p-2 ${
+            className={`flex shrink-0 items-start gap-1 rounded-lg p-1 md:gap-2 md:p-2 ${
               narrow ? 'self-end' : ''
             }`}
           >

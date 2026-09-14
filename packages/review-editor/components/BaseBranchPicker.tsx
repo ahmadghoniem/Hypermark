@@ -166,12 +166,12 @@ export const BaseBranchPicker: React.FC<BaseBranchPickerProps> = ({
           />
         }
       >
-          <span className="text-[10px] uppercase tracking-wide opacity-60 flex-shrink-0">
+          <span className="text-[10px] uppercase tracking-wide opacity-60 shrink-0">
             {copy.triggerLabel}
           </span>
           <span className="truncate flex-1 text-left">{chipLabel(selectedBase)}</span>
           <svg
-            className="size-3.5 text-muted-foreground flex-shrink-0"
+            className="size-3.5 text-muted-foreground shrink-0"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -183,7 +183,7 @@ export const BaseBranchPicker: React.FC<BaseBranchPickerProps> = ({
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="start" sideOffset={4} className="z-50">
           <Popover.Popup
-            className="w-80 bg-popover text-popover-foreground border border-border rounded shadow-lg overflow-hidden origin-[var(--transform-origin)] transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0"
+            className="w-80 bg-popover text-popover-foreground border border-border rounded shadow-lg overflow-hidden origin-(--transform-origin) transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0"
             initialFocus={() => searchRef.current}
           >
           <div className="p-2 border-b border-border/50">
@@ -302,7 +302,7 @@ const BranchGroup: React.FC<BranchGroupProps> = ({
             isSelected ? 'text-foreground font-medium' : 'text-foreground/80'
           }`}
         >
-          <span className="w-3 flex-shrink-0">
+          <span className="w-3 shrink-0">
             {isSelected && (
               <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -341,16 +341,16 @@ const CommitList: React.FC<CommitListProps> = ({ commits, selectedBase, onSelect
             isSelected ? 'text-foreground font-medium' : 'text-foreground/80'
           }`}
         >
-          <span className="w-3 flex-shrink-0">
+          <span className="w-3 shrink-0">
             {isSelected && (
               <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             )}
           </span>
-          <span className="font-mono text-muted-foreground flex-shrink-0">{c.shortSha}</span>
+          <span className="font-mono text-muted-foreground shrink-0">{c.shortSha}</span>
           <span className="truncate flex-1">{c.subject}</span>
-          <span className="text-[10px] text-muted-foreground flex-shrink-0">{c.relativeDate}</span>
+          <span className="text-[10px] text-muted-foreground shrink-0">{c.relativeDate}</span>
         </button>
       );
     })}

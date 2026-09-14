@@ -3920,7 +3920,7 @@ const AppInner: React.FC = () => {
 
 
         {linkedDocHook.error && (
-          <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 flex items-center gap-2 flex-shrink-0">
+          <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 flex items-center gap-2 shrink-0">
             <span className="text-xs text-destructive">{linkedDocHook.error}</span>
             <button
               onClick={linkedDocHook.dismissError}
@@ -3932,7 +3932,7 @@ const AppInner: React.FC = () => {
         )}
 
         {activeEditableDocument?.diskConflict && (
-          <div className="bg-warning/10 border-b border-warning/25 px-4 py-2 flex items-center gap-3 flex-shrink-0">
+          <div className="bg-warning/10 border-b border-warning/25 px-4 py-2 flex items-center gap-3 shrink-0">
             <span className="min-w-0 flex-1 text-xs text-foreground">
               {activeEditableDocument.basename} changed on disk{isEditingMarkdown ? ' while you were editing' : ''}.
             </span>
@@ -3956,7 +3956,7 @@ const AppInner: React.FC = () => {
         )}
 
         {activeEditableDocument?.missingOnDisk && !activeEditableDocument.diskConflict && (
-          <div className="bg-warning/10 border-b border-warning/25 px-4 py-2 flex items-center gap-3 flex-shrink-0">
+          <div className="bg-warning/10 border-b border-warning/25 px-4 py-2 flex items-center gap-3 shrink-0">
             <span className="min-w-0 flex-1 text-xs text-foreground">
               {activeEditableDocument.basename} no longer exists on disk. Save to recreate it.
             </span>
@@ -3971,7 +3971,7 @@ const AppInner: React.FC = () => {
           </div>
         )}
         {showAgentTerminalDeliveryStatus && (
-          <div className="border-b border-primary/20 bg-primary/5 px-4 py-2 text-xs text-muted-foreground flex-shrink-0">
+          <div className="border-b border-primary/20 bg-primary/5 px-4 py-2 text-xs text-muted-foreground shrink-0">
             <span className="font-medium text-foreground">Sent to agent.</span>{" "}
             Keep this window open while it runs. Close Hypermark when you're done.
           </div>
@@ -4008,7 +4008,7 @@ const AppInner: React.FC = () => {
           {/* Document Area */}
           <OverlayScrollArea
             element="main"
-            className={`flex-1 min-w-0 ${isHtmlSurface ? 'bg-background' : `bg-card ${!sidebar.isOpen && !isLeftAgentTerminalVisible && wideModeType === null ? 'lg:pl-[30px]' : ''}`}`}
+            className={`flex-1 min-w-0 ${isHtmlSurface ? 'bg-background' : `bg-card ${!sidebar.isOpen && !isLeftAgentTerminalVisible && wideModeType === null ? 'lg:pl-7.5' : ''}`}`}
             overflowX="hidden"
             overflowY="auto"
             onViewportReady={handleDocumentViewportReady}
@@ -4080,7 +4080,7 @@ const AppInner: React.FC = () => {
                 </div>
               )}
               {/* Normal Plan View — always mounted, hidden during diff mode */}
-              <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : `flex justify-center${isEditingMarkdown ? ' flex-1 min-h-0' : ''}`}`} style={{ display: isPlanDiffActive && planDiff.diffBlocks ? 'none' : undefined }}>
+              <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : `flex justify-center${isEditingMarkdown ? 'flex-1 min-h-0' : ''}`}`} style={{ display: isPlanDiffActive && planDiff.diffBlocks ? 'none' : undefined }}>
                 {(canUseWideMode || canEditMarkdown) && !isPlanDiffActive && !isHtmlSurface && (
                   <div
                     className="absolute -top-5 inset-x-0 mx-auto w-full flex justify-end pointer-events-none"

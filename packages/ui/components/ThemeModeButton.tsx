@@ -79,7 +79,7 @@ const ThemePickerPanel: React.FC<{ closeMenu: () => void }> = () => {
               >
                 <div className="flex items-center gap-2 min-w-0">
                   {colors && (
-                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                    <div className="flex items-center gap-0.5 shrink-0">
                       {[colors.primary, colors.secondary, colors.accent, colors.background, colors.foreground].map((color, i) => (
                         <span
                           key={i}
@@ -91,7 +91,7 @@ const ThemePickerPanel: React.FC<{ closeMenu: () => void }> = () => {
                   )}
                   <span className="truncate">{theme.name}</span>
                 </div>
-                {isSelected && <CheckIcon className="size-3.5 flex-shrink-0 text-primary" />}
+                {isSelected && <CheckIcon className="size-3.5 shrink-0 text-primary" />}
               </button>
             );
           })}

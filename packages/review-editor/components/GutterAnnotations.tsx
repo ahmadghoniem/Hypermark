@@ -252,7 +252,7 @@ export const GutterAnnotationMarker: React.FC<GutterAnnotationMarkerProps> = ({
         }}
       >
         <span
-          className={`pn-gutter-marker${isSelected ? ' is-selected' : ''}`}
+          className={`pn-gutter-marker${isSelected ? 'is-selected' : ''}`}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -427,13 +427,13 @@ const GutterAnnotationEntry: React.FC<GutterAnnotationEntryProps> = ({
     <div
       data-annotation-id={metadata.annotationId}
       data-gutter-entry="true"
-      className={`review-comment${isSelected ? ' is-selected' : ''}`}
+      className={`review-comment${isSelected ? 'is-selected' : ''}`}
       onClick={() => interactive && onSelect(metadata.annotationId)}
     >
       {severity && (
         <div className="flex items-center gap-1.5">
           <span
-            className={`size-2 rounded-full flex-shrink-0 ${severity.dot}`}
+            className={`size-2 rounded-full shrink-0 ${severity.dot}`}
             title={severity.label}
           />
         </div>

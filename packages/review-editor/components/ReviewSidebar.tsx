@@ -253,7 +253,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
 
   return (
     <aside
-      className="border-l border-border/50 bg-card/30 backdrop-blur-sm flex flex-col flex-shrink-0"
+      className="border-l border-border/50 bg-card/30 backdrop-blur-sm flex flex-col shrink-0"
       style={{ width: width ?? 288 }}
     >
         {/* Header */}

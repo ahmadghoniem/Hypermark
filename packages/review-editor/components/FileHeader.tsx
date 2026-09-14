@@ -124,13 +124,13 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
   return (
     <div
       ref={headerRef}
-      className={`flex-shrink-0 border-b border-border/50 flex items-center justify-between gap-2 transition-colors duration-150 hover:bg-muted/30 px-3`}
+      className={`shrink-0 border-b border-border/50 flex items-center justify-between gap-2 transition-colors duration-150 hover:bg-muted/30 px-3`}
       style={{ height: 'var(--panel-header-h)'}}
     >
       <div className="min-w-0 flex flex-1 items-center" onClick={onCollapseToggle} style={onCollapseToggle ? { cursor: 'pointer' } : undefined}>
         {collapseToggle}
         <span
-          className={`min-w-0 flex items-center text-xs font-semibold leading-normal whitespace-nowrap`}
+          className={`min-w-0 flex items-center text-xs/normal font-semibold whitespace-nowrap`}
           title={status === 'renamed' && oldPath ? `${oldPath} → ${filePath}` : filePath}
         >
           {/* Rename: dimmed old path → new path (diffshub treatment). Dropped
@@ -163,7 +163,7 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
           </span>
         </span>
       </div>
-      <div className={`flex flex-shrink-0 items-center pl-2 ${isCompact ? 'gap-1' : 'gap-2'}`}>
+      <div className={`flex shrink-0 items-center pl-2 ${isCompact ? 'gap-1' : 'gap-2'}`}>
         {onFileComment && (
           <button
             ref={(el) => {

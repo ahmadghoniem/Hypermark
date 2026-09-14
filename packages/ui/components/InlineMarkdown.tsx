@@ -145,7 +145,7 @@ const CodeSnippetPreview: React.FC<{
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      <div className="px-3 py-1.5 border-b border-border/50 text-[10px] text-muted-foreground font-mono flex items-center justify-between gap-4 flex-shrink-0">
+      <div className="px-3 py-1.5 border-b border-border/50 text-[10px] text-muted-foreground font-mono flex items-center justify-between gap-4 shrink-0">
         <span>{pathFileName(filepath)}</span>
         <span className="opacity-60">{lineEnd && lineEnd !== line ? `lines ${line}–${lineEnd}` : `line ${line}`}</span>
       </div>
@@ -154,7 +154,7 @@ const CodeSnippetPreview: React.FC<{
           <tbody>
             {snippet.split('\n').map((_, i) => (
               <tr key={start + i} className="hover:bg-white/5">
-                <td className="select-none text-muted-foreground/40 text-right pr-3 pl-3 py-0 align-top font-mono w-8 whitespace-nowrap" style={{ userSelect: 'none' }}>{start + i + 1}</td>
+                <td className="select-none text-muted-foreground/40 text-right px-3 py-0 align-top font-mono w-8 whitespace-nowrap" style={{ userSelect: 'none' }}>{start + i + 1}</td>
                 <td
                   className="font-mono pr-3 py-0 whitespace-pre"
                   dangerouslySetInnerHTML={{ __html: highlightedLines[i] ?? '' }}
@@ -301,7 +301,7 @@ function sanitizeLinkUrl(url: string): string | null {
 
 const CodeFileIcon = () => (
   <svg
-    className="size-3 opacity-50 flex-shrink-0"
+    className="size-3 opacity-50 shrink-0"
     fill="none"
     viewBox="0 0 24 24"
     stroke="currentColor"
@@ -814,7 +814,7 @@ export const InlineMarkdown: React.FC<{
           className="inline-flex items-center gap-1 align-middle"
         >
           <span
-            className="inline-block size-3.5 rounded-sm border border-foreground/20 flex-shrink-0"
+            className="inline-block size-3.5 rounded-sm border border-foreground/20 shrink-0"
             style={{ backgroundColor: hex }}
             title={hex}
           />
@@ -929,7 +929,7 @@ export const InlineMarkdown: React.FC<{
           >
             {display}
             <svg
-              className="size-3 opacity-50 flex-shrink-0"
+              className="size-3 opacity-50 shrink-0"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -1067,7 +1067,7 @@ export const InlineMarkdown: React.FC<{
           >
             {linkText}
             <svg
-              className="size-3 opacity-50 flex-shrink-0"
+              className="size-3 opacity-50 shrink-0"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
