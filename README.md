@@ -78,9 +78,7 @@ Review local changes or remote PRs. Comment on diffs, suggest code. Your comment
 
 ```
 /hypermark-annotate README.md                  # Local markdown file
-/hypermark-annotate src/                       # Browse and annotate files in a folder
-/hypermark-annotate https://docs.rs/…          # Fetch and annotate any URL
-/hypermark-annotate report.html --render-html  # Render HTML as-is instead of converting
+/hypermark-annotate report.html                # Local HTML file
 /hypermark-last                                # Annotate the agent's last message
 ```
 
@@ -253,7 +251,7 @@ The fastest way to see what Hypermark does is to invoke it yourself, right now, 
 ```
 /hypermark-last                   # annotate the agent's last reply
 /hypermark-review                 # review your current diff, PR-style
-/hypermark-annotate report.html   # annotate any file, folder, or URL
+/hypermark-annotate report.html   # annotate any local file
 ```
 
 

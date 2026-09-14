@@ -18,9 +18,6 @@ This skill is the knowledge layer. The `hypermark-review`, `hypermark-annotate`,
 | Review current code changes | `hypermark review` |
 | Review a GitHub PR or GitLab MR | `hypermark review <PR_URL>` |
 | Annotate a markdown, text, config, or HTML file | `hypermark annotate <file>` |
-| Annotate a web page | `hypermark annotate <https-url>` |
-| Annotate a running local app (dev server) | `hypermark annotate <http://localhost:PORT/>` |
-| Pick a file to annotate from a folder | `hypermark annotate <folder/>` |
 | Annotate your latest assistant message | `hypermark last` |
 | Reopen or list live sessions | `hypermark sessions` |
 
@@ -50,10 +47,10 @@ Reviews local VCS changes. Feedback and annotations come back on stdout when the
 ## hypermark annotate
 
 ```bash
-hypermark annotate <target> [--markdown] [--no-jina] [--app | --static] [--render-html] [--gate] [--json] [--hook]
+hypermark annotate <target> [--markdown] [--render-html] [--gate] [--json] [--hook]
 ```
 
-Opens one document, page, or app in the annotation UI and returns the human's annotations on stdout.
+Opens one document in the annotation UI and returns the human's annotations on stdout.
 
 Plain `annotate` is feedback-only: it shows **Close** but no **Approve** button. When the user asks to review, approve, accept, or gate a generated plan/spec/document saved as a file, always add `--gate --json`. Do not tell the user they can approve a plain `annotate` session. If the plan is being handed off through the host agent's native plan flow, do not launch `annotate`; let the plan-exit hook open the approval UI automatically.
 
@@ -62,13 +59,10 @@ Targets:
 - Markdown and text files: `.md`, `.mdx`, `.txt`.
 - Plain-text config and data files, rendered as text: `.yaml`, `.yml`, `.json`, `.jsonc`, `.json5`, `.toml`, `.ini`, `.cfg`, `.conf`, `.properties`, `.csv`, `.tsv`, `.log`, `.xml`, `.env.example`. `.env` itself is deliberately refused (it commonly holds secrets, and annotate history copies file contents). Source-code files belong to `hypermark review`, not annotate.
 - HTML files (`.html`, `.htm`): rendered as the raw page by default; `--markdown` converts to markdown instead. `--render-html` is accepted for compatibility; raw rendering is already the default.
-- URLs (`https://...`): fetched and converted via Jina Reader by default; `--no-jina` uses plain fetch plus Turndown instead.
-- Running local apps: a loopback `http://localhost:PORT/` URL whose probe returns HTML opens in live-app mode (annotate the real running page). `--app` forces live mode and fails loudly when it cannot apply; `--static` forces the classic conversion pipeline. Non-loopback URLs always use the conversion pipeline.
-- Folders: `hypermark annotate docs/` opens a file browser over the folder's supported files.
 
 Single files are capped at 2MB. Files are read from disk at stable project paths; keep the reviewed source where it lives.
 
-Argument tolerance: extra words are fine (`hypermark annotate look at notes.md please` opens `notes.md`), but two resolvable targets is an error naming both, and an unrecognized dashed token disables the tolerance so flag typos fail loudly. When nothing resolves in a plain multi-word invocation, the CLI prints an agent-addressed handoff on stdout and exits 0: read it, work out the concrete target, and re-run with that exact path or URL.
+Argument tolerance: extra words are fine (`hypermark annotate look at notes.md please` opens `notes.md`), but two resolvable targets is an error naming both, and an unrecognized dashed token disables the tolerance so flag typos fail loudly. When nothing resolves in a plain multi-word invocation, the CLI prints an agent-addressed handoff on stdout and exits 0: read it, work out the concrete target, and re-run with that exact path.
 
 ### Strict gates and exit codes
 
