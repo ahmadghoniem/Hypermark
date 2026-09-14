@@ -47,6 +47,8 @@ const IGNORED_DIRS = [
 	"build/",
 	".next/",
 	"__pycache__/",
+	".obsidian/",
+	".trash/",
 ];
 
 const CODE_IGNORED_DIRS = [

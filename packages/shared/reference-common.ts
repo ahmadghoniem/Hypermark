@@ -9,6 +9,8 @@ export const FILE_BROWSER_EXCLUDED = [
 	"build/",
 	".next/",
 	"__pycache__/",
+	".obsidian/",
+	".trash/",
 	".venv/",
 	"vendor/",
 	"target/",
