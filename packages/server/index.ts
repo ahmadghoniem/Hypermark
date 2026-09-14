@@ -45,6 +45,9 @@ import { handleDoc, handleDocExists, handleObsidianVaults, handleObsidianFiles, 
 import { closeAllFileBrowserWatchers, handleFileBrowserFilesStream } from "./reference-watch";
 import { warmFileListCache } from "@hypermark/shared/resolve-file";
 import { createExternalAnnotationHandler } from "./external-annotations";
+import { SESSION_STREAM_PATH } from "@hypermark/shared/session-stream";
+import { createSessionStreamBroadcaster } from "./session-stream";
+import { startParentWatch, type ParentWatcher } from "./parent-watch";
 
 // Re-export utilities
 export { openBrowser } from "./browser";
@@ -67,6 +70,21 @@ export interface ServerOptions {
   /** Called when server starts with the URL, remote status, and port */
   onReady?: (url: string, port: number) => void | Promise<void>;
   /** OpenCode client for querying available agents (OpenCode only) */
+  /**
+   * Enable the stale-session reaper (see ./parent-watch.ts). Off by default
+   * — see the identical option on AnnotateServerOptions in ./annotate.ts
+   * for the full rationale (dozens of tests start this server directly and
+   * must not get a background poller they never asked for). Pass `true`
+   * in production or an overrides object in tests.
+   */
+  parentWatch?:
+    | boolean
+    | {
+        parentPid?: number;
+        pollIntervalMs?: number;
+        graceMs?: number;
+        isAlive?: (pid: number) => boolean;
+      };
 }
 
 export interface ServerResult {
@@ -105,6 +123,10 @@ export async function startHypermarkServer(
   // --- Plan review setup ---
   const draftKey = contentHash(plan);
   const externalAnnotations = createExternalAnnotationHandler("plan");
+  // Session-ended stream: announces on /api/session/stream when the parent
+  // watcher below detects the Claude Code process that owns this plan is
+  // gone (see ./parent-watch.ts).
+  const sessionStream = createSessionStreamBroadcaster();
   const slug = generateSlug(plan);
 
   // Plan-specific: repo info, version history, decision promise
@@ -360,6 +382,12 @@ export async function startHypermarkServer(
 
           // API: Editor annotations (VS Code extension)
 
+          // API: Session-ended SSE — see packages/shared/session-stream.ts and
+          // ./parent-watch.ts.
+          if (url.pathname === SESSION_STREAM_PATH && req.method === "GET") {
+            return sessionStream.handleRequest();
+          }
+
           // API: External annotations (SSE-based, for any external tool)
           const externalResponse = await externalAnnotations?.handle(req, url, {
             disableIdleTimeout: () => server.timeout(req, 0),
@@ -495,10 +523,13 @@ export async function startHypermarkServer(
   const port = server.port!;
   const serverUrl = buildAdvertisedUrl(port);
   let stopPromise: Promise<void> | undefined;
+  let parentWatch: ParentWatcher | null = null;
   const stop = () => {
     stopPromise ??= (async () => {
       try {
         closeAllFileBrowserWatchers();
+        sessionStream.closeSessions();
+        parentWatch?.stop();
         for (const uploadPath of sessionUploads) {
           try {
             if (existsSync(uploadPath)) unlinkSync(uploadPath);
@@ -510,6 +541,25 @@ export async function startHypermarkServer(
     })();
     return stopPromise;
   };
+
+  // Stale-session reaper: when the Claude Code process that spawned this
+  // server is gone, announce on the session stream immediately, then settle
+  // the pending decision as denied (a closed plan session is a deny the
+  // hook protocol needs answered) and exit after the grace period.
+  if (options.parentWatch) {
+    const cfg = options.parentWatch === true ? {} : options.parentWatch;
+    parentWatch = startParentWatch({
+      parentPid: cfg.parentPid,
+      pollIntervalMs: cfg.pollIntervalMs,
+      graceMs: cfg.graceMs,
+      isAlive: cfg.isAlive,
+      onParentGone: () => sessionStream.announceSessionEnded(),
+      onGone: () => {
+        resolveDecision({ approved: false, feedback: "Session closed" });
+        void stop();
+      },
+    });
+  }
 
   // The cache warm must never gate the listening socket. Its async filesystem
   // walk yields between directories while requests remain serviceable.
