@@ -1155,8 +1155,7 @@ checkout_failed=0
     # failure instead of the fallback.
     if ! LC_ALL=C LANGUAGE=C git clone --depth 1 --filter=blob:none --sparse \
         "https://github.com/${REPO}.git" --branch "$latest_tag" repo 2>"$git_err"; then
-        # Capability probe, not a version parse (same philosophy as the
-        # GitButler flag probing in packages/shared/gitbutler-core.ts):
+        # Capability probe, not a version parse:
         # `git clone --sparse` needs git >= 2.25, and an older git (macOS
         # with stale Xcode CLT ships 2.23) rejects the flag instantly with
         # "error: unknown option `sparse'" before any network call (#1238).
