@@ -109,7 +109,7 @@ export interface DecisionSpecInput {
   feedbackDelivered?: boolean;
 }
 
-export const DECISION_NOTE_PLACEHOLDER = 'Add a note...';
+export const DECISION_NOTE_PLACEHOLDER = 'Add a note…';
 
 function annotationNoun(count: number): string {
   return count === 1 ? 'annotation' : 'annotations';
@@ -132,12 +132,12 @@ function buildEmptySpec(input: DecisionSpecInput, approvalFlow: boolean): Decisi
     ? {
         id: 'note-with-approval',
         label: 'Approve with a note…',
-        subtitle: 'Approve and send a short note with it',
+        subtitle: 'A short note rides along',
         tone: 'success',
         icon: 'check',
         composer: {
           title: 'Approve with a note',
-          actionLabel: 'Approve and send note',
+          actionLabel: 'Approve',
           tone: 'success',
           icon: 'check',
           placeholder: DECISION_NOTE_PLACEHOLDER,
@@ -150,13 +150,13 @@ function buildEmptySpec(input: DecisionSpecInput, approvalFlow: boolean): Decisi
         id: 'request-changes',
         // Frozen copy (maintainer-approved): 'Request changes…'.
         label: 'Request changes…',
-        subtitle: 'Write overall feedback, sent as a change request',
+        subtitle: 'Sent as a change request',
         tone: 'primary',
         icon: 'send',
         dividerBefore: positive !== null,
         composer: {
           title: 'Request changes',
-          actionLabel: 'Send as feedback',
+          actionLabel: 'Send',
           tone: 'primary',
           icon: 'send',
           placeholder: DECISION_NOTE_PLACEHOLDER,
@@ -168,13 +168,13 @@ function buildEmptySpec(input: DecisionSpecInput, approvalFlow: boolean): Decisi
         // no approval framing) — only the copy is new. Free prose, NOT frozen.
         id: 'request-changes',
         label: 'Send a note…',
-        subtitle: 'Write a note and send it as feedback',
+        subtitle: 'Sent as feedback',
         tone: 'primary',
         icon: 'send',
         dividerBefore: false,
         composer: {
           title: 'Send a note',
-          actionLabel: 'Send as feedback',
+          actionLabel: 'Send',
           tone: 'primary',
           icon: 'send',
           placeholder: DECISION_NOTE_PLACEHOLDER,
@@ -187,7 +187,7 @@ function buildEmptySpec(input: DecisionSpecInput, approvalFlow: boolean): Decisi
           id: 'primary',
           // Frozen copy (maintainer-approved): 'Approve'.
           label: 'Approve',
-          title: 'Approve: no changes requested',
+          title: 'Approve, no changes',
           tone: 'success',
           icon: 'check',
         }
@@ -200,8 +200,8 @@ function buildEmptySpec(input: DecisionSpecInput, approvalFlow: boolean): Decisi
           // on stdout may never have seen the terminal delivery), so the
           // tooltip must not claim "no feedback". Free prose, NOT frozen.
           title: input.feedbackDelivered
-            ? 'Finish: sends the session record (feedback already shared in the terminal)'
-            : 'Finish: records that you reviewed with no feedback',
+            ? 'Finish; feedback already sent from the terminal'
+            : 'Finish with no feedback',
           // Maintainer ruling (post-demo): All good without a gate is a positive
           // finish, NOT an approval — no success tone, no check icon, so it
           // can never be mistaken for the gate/review Approve.
@@ -226,15 +226,12 @@ function buildFeedbackSpec(input: DecisionSpecInput, approvalFlow: boolean): Dec
     {
       id: 'note-with-feedback',
       label: 'Send with a note…',
-      subtitle:
-        count > 0
-          ? `Add an overall note on top of your ${count} ${noun}`
-          : 'Add an overall note on top of your feedback',
+      subtitle: 'Add an overall note',
       tone: 'primary',
       icon: 'send',
       composer: {
         title: 'Send with a note',
-        actionLabel: 'Send feedback with note',
+        actionLabel: 'Send',
         tone: 'primary',
         icon: 'send',
         placeholder: DECISION_NOTE_PLACEHOLDER,
@@ -257,8 +254,8 @@ function buildFeedbackSpec(input: DecisionSpecInput, approvalFlow: boolean): Dec
       label: 'Approve with notes',
       subtitle:
         count > 0
-          ? `Approve; your ${count} ${noun} ride along as non-blocking guidance`
-          : 'Approve; your edits and attachments ride along as non-blocking guidance',
+          ? `${count} ${noun} as guidance`
+          : 'Edits as guidance',
       tone: 'success',
       icon: 'check',
       dividerBefore: dividerPending,
@@ -275,7 +272,7 @@ function buildFeedbackSpec(input: DecisionSpecInput, approvalFlow: boolean): Dec
       label: 'Send Feedback',
       shortLabel: 'Send',
       mobileLabel: 'Send feedback',
-      title: 'Send your feedback to the agent',
+      title: 'Send feedback to the agent',
       tone: 'primary',
       icon: 'send',
       count: count > 0 ? count : undefined,
@@ -298,11 +295,8 @@ function buildCloseItem(count: number, dividerBefore: boolean): DecisionMenuItem
   const noun = annotationNoun(count);
   return {
     id: 'close-session',
-    label: count > 0 ? `Close, discard ${count} ${noun}…` : 'Close session',
-    subtitle:
-      count > 0
-        ? 'Leaves without sending; the agent is told you dismissed the session'
-        : 'Leaves without sending anything',
+    label: count > 0 ? `Discard ${count} and close…` : 'Close session',
+    subtitle: count > 0 ? 'Nothing is sent' : 'Sends nothing',
     tone: count > 0 ? 'destructive' : 'neutral',
     dividerBefore,
     ...(count > 0
@@ -310,7 +304,7 @@ function buildCloseItem(count: number, dividerBefore: boolean): DecisionMenuItem
           confirm: {
             title: `Discard ${count} ${noun} and close?`,
             message:
-              'These annotations are not sent, and the agent is told you dismissed the session rather than approving it.',
+              'They are not sent. The agent is told you dismissed the session.',
             confirmText: 'Close anyway',
           },
         }
