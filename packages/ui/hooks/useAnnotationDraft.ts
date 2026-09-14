@@ -23,7 +23,7 @@ import type { ShareableAnnotation } from '../utils/annotationSerialization';
 import { normalizeDocumentAnnotations } from '../utils/attachmentNormalization';
 import { draftStore } from '../components/CommentPopover';
 
-const DEBOUNCE_MS = 500;
+export const DEBOUNCE_MS = 500;
 
 /**
  * Transport for persisting annotation/edit drafts. The default reproduces
@@ -242,11 +242,11 @@ function isDraftSourceSaveCapability(value: unknown): value is DraftSourceSaveCa
   );
 }
 
-function readDraftGeneration(value: unknown): number | null {
+export function readDraftGeneration(value: unknown): number | null {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null;
 }
 
-function formatTimeAgo(ts: number): string {
+export function formatTimeAgo(ts: number): string {
   const seconds = Math.floor((Date.now() - ts) / 1000);
   if (seconds < 60) return 'just now';
   const minutes = Math.floor(seconds / 60);

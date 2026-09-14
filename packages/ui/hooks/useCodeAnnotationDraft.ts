@@ -7,31 +7,14 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 import type { CodeAnnotation, ImageAttachment } from '../types';
-import { getDraftTransport } from './useAnnotationDraft';
+import { getDraftTransport, readDraftGeneration, formatTimeAgo, DEBOUNCE_MS } from './useAnnotationDraft';
 import { draftStore } from '../components/CommentPopover';
-
-const DEBOUNCE_MS = 500;
 
 interface DraftData {
   codeAnnotations: CodeAnnotation[];
   composer?: { key: string; text: string; images: ImageAttachment[]; ts: number } | null;
   draftGeneration?: number;
   ts: number;
-}
-
-function readDraftGeneration(value: unknown): number | null {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null;
-}
-
-function formatTimeAgo(ts: number): string {
-  const seconds = Math.floor((Date.now() - ts) / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days !== 1 ? 's' : ''} ago`;
 }
 
 interface UseCodeAnnotationDraftOptions {

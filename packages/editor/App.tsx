@@ -72,7 +72,7 @@ import {
   type SourceSaveResponse,
 } from '@hypermark/shared/source-save';
 import type { AgentTerminalCapability } from '@hypermark/shared/agent-terminal';
-import { observeActionsLabelMode } from './actionsLabelMode';
+import { observeActionsLabelMode } from './utils/actionsLabelMode';
 // Demo content toggle. Default: the original Real-time Collaboration plan.
 // Opt-in diff-engine stress test: `VITE_DIFF_DEMO=1 bun run dev:hook` swaps
 // in the 20-case Auth Service Refactor test plan. dev-mock-api.ts reads the
@@ -115,7 +115,7 @@ import {
   usePlanDiffViewAutoExit,
 } from './hooks/usePlanDiffViewAutoExit';
 import { AppHeader } from './components/AppHeader';
-import { useHtmlRefresh, type HtmlRefreshedDocument } from './hooks/useHtmlRefresh';
+import { useAnnotateHtmlRefresh, type HtmlRefreshedDocument } from './hooks/useAnnotateHtmlRefresh';
 import {
   AnnotateAgentTerminalPanel,
   type AnnotateAgentTerminalPanelHandle,
@@ -127,14 +127,14 @@ import {
 import {
   AGENT_TERMINAL_LG_BREAKPOINT,
   getAgentTerminalLayout,
-} from './agentTerminalLayout';
+} from './utils/agentTerminalLayout';
 import {
   buildAgentTerminalDeliveryRecord,
   isMatchingAgentTerminalDelivery,
   shouldSendAgentTerminalFeedback,
   type AgentTerminalDeliveryRecord,
   type AnnotateFeedbackTarget,
-} from './agentTerminalIntegration';
+} from './utils/agentTerminalIntegration';
 import {
   buildPlanEditPanelItem,
   buildDirectEditsSection,
@@ -142,11 +142,11 @@ import {
   buildSavedFileChangesSection,
   computeEditStats,
   normalizeEditedMarkdown,
-} from './directEdits';
+} from './utils/directEdits';
 import {
   buildAnnotateApprovalBody,
   buildCompleteAnnotateFeedback,
-} from './annotateSubmission';
+} from './utils/annotateSubmission';
 import { buildDecisionSpec, type DecisionActionId } from '@hypermark/ui/utils/decisionSpec';
 import { DecisionNoteDialog, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import { resolveAnnotateDecisionAction } from './annotateDecision';
@@ -160,14 +160,14 @@ import {
   useEditableDocuments,
   type EnabledSourceSaveCapability,
   type SavedFileChangeDraftData,
-} from './editableDocuments';
+} from './utils/editableDocuments';
 import {
   validateSavedFileChanges,
-} from './savedFileChangeValidation';
-import { fetchSourceDocumentSnapshot, probeSourceSave } from './sourceDocumentClient';
-import { reconcileSourceDocuments, type SourceDocumentReconcileEvent } from './sourceDocumentReconciliation';
-import { buildSourceWatchSubscription } from './sourceDocumentPaths';
-import { pickRestoredSingleFileDraftToDisplay } from './draftRestoreSelection';
+} from './utils/savedFileChangeValidation';
+import { fetchSourceDocumentSnapshot, probeSourceSave } from './utils/sourceDocumentClient';
+import { reconcileSourceDocuments, type SourceDocumentReconcileEvent } from './utils/sourceDocumentReconciliation';
+import { buildSourceWatchSubscription } from './utils/sourceDocumentPaths';
+import { pickRestoredSingleFileDraftToDisplay } from './utils/draftRestoreSelection';
 
 type MessageAnnotationState = {
   messageId: string;
@@ -1077,7 +1077,7 @@ const AppInner: React.FC = () => {
   useEffect(() => {
     setHtmlUnanchoredIds((prev) => (prev.size === 0 ? prev : new Set()));
   }, [activeHtmlPath]);
-  const htmlRefresh = useHtmlRefresh({
+  const htmlRefresh = useAnnotateHtmlRefresh({
     enabled: isApiMode && annotateMode && isHtmlSurface,
     activePath: activeHtmlPath,
     onSnapshot: applyRefreshedHtml,
@@ -3841,9 +3841,9 @@ const AppInner: React.FC = () => {
       blocks={blocks}
       annotations={allAnnotations}
       selectedId={selectedAnnotationId ?? selectedCodeAnnotationId}
-      onSelect={handleSelectAnnotation}
-      onDelete={handleDeleteAnnotation}
-      onEdit={handleEditAnnotation}
+      onSelectAnnotation={handleSelectAnnotation}
+      onDeleteAnnotation={handleDeleteAnnotation}
+      onEditAnnotation={handleEditAnnotation}
       codeAnnotations={codeAnnotations}
       onSelectCodeAnnotation={handleSelectCodeAnnotation}
       onDeleteCodeAnnotation={handleDeleteCodeAnnotation}
