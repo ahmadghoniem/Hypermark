@@ -36,7 +36,7 @@ import { configStore, useConfigValue } from '@hypermark/ui/config';
 import { CompletionOverlay } from '@hypermark/ui/components/CompletionOverlay';
 import { getUIPreferences, type PlanWidth } from '@hypermark/ui/utils/uiPreferences';
 import { getEditorMode, saveEditorMode } from '@hypermark/ui/utils/editorMode';
-import { getInputMethod, refreshInputMethodStamp, saveInputMethod } from '@hypermark/ui/utils/inputMethod';
+import { getInputMethod, saveInputMethod } from '@hypermark/ui/utils/inputMethod';
 import { getHtmlChromeState, saveHtmlChromeState } from '@hypermark/ui/utils/htmlChrome';
 import { useInputMethodSwitch } from '@hypermark/ui/hooks/useInputMethodSwitch';
 import { usePrintMode } from '@hypermark/ui/hooks/usePrintMode';
@@ -3303,7 +3303,6 @@ const AppInner: React.FC = () => {
     // the input method and chrome records so they only expire for users who
     // have not annotated HTML within the staleness TTL (see preferenceTtl.ts).
     if (isHtmlSurface) {
-      refreshInputMethodStamp(inputMethod);
       if (htmlChromeRestoredRef.current) {
         saveHtmlChromeState({ sidebarOpen: sidebar.isOpen, panelOpen: isPanelOpen, toolsHidden: htmlToolsHidden });
       }
