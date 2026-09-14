@@ -52,7 +52,7 @@ const CommitRow: React.FC<{
     <div className="flex items-center gap-1.5 min-w-0">
       <span className="text-xs truncate flex-1">{commit.subject}</span>
       {commit.isHead && (
-        <span className="text-[9px] leading-none px-1 py-0.5 rounded bg-primary/15 text-primary font-medium shrink-0">
+        <span className="text-[9px] leading-none px-1 py-0.5 rounded-sm bg-primary/15 text-primary font-medium shrink-0">
           HEAD
         </span>
       )}

@@ -43,7 +43,7 @@ export const PlanDiffBadge: React.FC<PlanDiffBadgeProps> = ({
   return (
     <button
       onClick={onToggle}
-      className={`px-1.5 py-0.5 rounded text-[9px] font-mono transition-colors cursor-pointer ${
+      className={`px-1.5 py-0.5 rounded-sm text-[9px] font-mono transition-colors cursor-pointer ${
         isActive
           ? "bg-primary/15"
           : "bg-muted/50 hover:bg-muted"

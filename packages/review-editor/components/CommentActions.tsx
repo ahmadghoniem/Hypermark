@@ -11,7 +11,7 @@ interface CommentActionsProps {
   onDelete?: () => void;
 }
 
-const ACTION_BTN = 'p-1 rounded text-muted-foreground transition-colors';
+const ACTION_BTN = 'p-1 rounded-sm text-muted-foreground transition-colors';
 
 /**
  * The single hover-revealed action row shared by every comment card (inline

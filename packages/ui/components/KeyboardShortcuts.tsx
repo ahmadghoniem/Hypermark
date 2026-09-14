@@ -13,7 +13,7 @@ const Kbd: React.FC<{ children: React.ReactNode; wide?: boolean }> = ({ children
   <kbd
     className={`inline-flex items-center justify-center h-5.5 ${
       wide ? 'min-w-5.5 px-1.5' : 'min-w-5.5'
-    } rounded bg-muted border border-border/60 border-b-2 text-[11px] font-mono leading-none text-foreground/80 shadow-sm`}
+    } rounded-sm bg-muted border border-border/60 border-b-2 text-[11px] font-mono leading-none text-foreground/80 shadow-sm`}
   >
     {children}
   </kbd>
@@ -55,7 +55,7 @@ const ShortcutRow: React.FC<{ shortcut: ShortcutEntry }> = ({ shortcut }) => (
       {shortcut.hint && (
         <span className="relative group ml-1 inline-flex">
           <span className="inline-flex items-center justify-center size-3.5 rounded-full text-[9px] font-medium bg-muted-foreground/15 text-muted-foreground/60 cursor-default">?</span>
-          <span className="absolute bottom-full left-0 mb-1.5 px-2.5 py-1.5 rounded bg-foreground text-background text-[11px] leading-snug w-80 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg z-50">
+          <span className="absolute bottom-full left-0 mb-1.5 px-2.5 py-1.5 rounded-sm bg-foreground text-background text-[11px] leading-snug w-80 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg z-50">
             {shortcut.hint}
           </span>
         </span>

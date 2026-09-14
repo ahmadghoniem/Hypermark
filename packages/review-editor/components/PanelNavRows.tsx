@@ -22,7 +22,7 @@ export function SidebarActionRow({
     <button
       onClick={onClick}
       title={title}
-      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors mb-0.5 ${
+      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-xs transition-colors mb-0.5 ${
         active
           ? 'bg-primary/15 text-primary font-medium'
           : 'text-muted-foreground hover:bg-muted hover:text-foreground'

@@ -76,7 +76,7 @@ export function getAgentTerminalLayout({
   const isRightVisible = isVisible && !isLeft;
   const hiddenPositionClass = isLeft ? 'left-0' : 'right-0';
   const wrapperClassName = isVisible
-    ? 'flex h-full flex-shrink-0 group/agent-terminal'
+    ? 'flex h-full shrink-0 group/agent-terminal'
     : `absolute ${hiddenPositionClass} top-0 h-full w-0 overflow-hidden pointer-events-none group/agent-terminal`;
   const directionClassName = isLeft ? 'flex-row' : 'flex-row-reverse';
 

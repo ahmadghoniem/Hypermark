@@ -92,7 +92,7 @@ const GeneralCommentComposer: React.FC<{
         aria-expanded={open}
         aria-haspopup="dialog"
         title="Add a review-level comment"
-        className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        className="inline-flex items-center rounded-sm px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
         + General comment
       </button>
@@ -208,7 +208,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
       <div
         key={annotation.id}
         onClick={() => onNavigateToAnnotation(annotation.id)}
-        className={`group relative p-2.5 rounded border cursor-pointer transition-colors duration-150 ${
+        className={`group relative p-2.5 rounded-sm border cursor-pointer transition-colors duration-150 ${
           isSelected
             ? 'bg-primary/5 border-primary/30'
             : 'border-transparent hover:bg-muted/30'
@@ -217,7 +217,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
         <CommentMeta
           leading={
             isGeneralScope ? (
-              <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+              <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary">
                 general
               </span>
             ) : isFileScope ? (
@@ -266,7 +266,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
               Annotations
             </h2>
             {totalCount > 0 && (
-              <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+              <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded-sm text-muted-foreground">
                 {totalCount}
               </span>
             )}
@@ -349,7 +349,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
           <div className="p-2 border-t border-border/50">
             <button
               onClick={handleQuickCopy}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded text-xs font-medium transition-all text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-sm text-xs font-medium transition-all text-muted-foreground hover:text-foreground hover:bg-muted/50"
             >
               {copied ? (
                 <>

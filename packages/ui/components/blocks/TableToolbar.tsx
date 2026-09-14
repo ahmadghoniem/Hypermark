@@ -103,7 +103,7 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
         <button
           onClick={handleCopyMarkdown}
           title={copiedMd ? 'Copied!' : 'Copy as markdown'}
-          className={`p-1 rounded transition-colors ${
+          className={`p-1 rounded-sm transition-colors ${
             copiedMd ? 'text-success' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
           }`}
         >
@@ -112,7 +112,7 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
         <button
           onClick={handleCopyCsv}
           title={copiedCsv ? 'Copied as CSV!' : 'Copy as CSV'}
-          className={`px-1.5 py-1 rounded text-[10px] font-bold tracking-tight uppercase leading-none transition-colors ${
+          className={`px-1.5 py-1 rounded-sm text-[10px] font-bold tracking-tight uppercase leading-none transition-colors ${
             copiedCsv ? 'text-success' : 'text-primary hover:bg-primary/10'
           }`}
         >
@@ -122,7 +122,7 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
           <button
             onClick={onExpand}
             title="Expand table"
-            className="p-1 rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="p-1 rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <ExpandIcon />
           </button>

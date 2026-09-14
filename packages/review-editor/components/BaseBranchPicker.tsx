@@ -158,7 +158,7 @@ export const BaseBranchPicker: React.FC<BaseBranchPickerProps> = ({
             type="button"
             disabled={disabled}
             title={`${copy.triggerTitlePrefix}: ${selectedBase}`}
-            className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed ${
               isCustom
                 ? 'bg-primary/10 border border-primary/30 text-foreground'
                 : 'bg-muted border border-transparent text-foreground'
@@ -183,7 +183,7 @@ export const BaseBranchPicker: React.FC<BaseBranchPickerProps> = ({
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="start" sideOffset={4} className="z-50">
           <Popover.Popup
-            className="w-80 bg-popover text-popover-foreground border border-border rounded shadow-lg overflow-hidden origin-(--transform-origin) transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0"
+            className="w-80 bg-popover text-popover-foreground border border-border rounded-sm shadow-lg overflow-hidden origin-(--transform-origin) transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0"
             initialFocus={() => searchRef.current}
           >
           <div className="p-2 border-b border-border/50">
@@ -201,7 +201,7 @@ export const BaseBranchPicker: React.FC<BaseBranchPickerProps> = ({
                   handleSelect(trimmedQuery);
                 }
               }}
-              className="w-full px-2 py-1.5 bg-muted rounded text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+              className="w-full px-2 py-1.5 bg-muted rounded-sm text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
             />
           </div>
           {showUseAsBase && (
@@ -214,7 +214,7 @@ export const BaseBranchPicker: React.FC<BaseBranchPickerProps> = ({
                 <span className="flex-1 truncate">
                   Use <span className="font-mono">{trimmedQuery}</span> as base
                 </span>
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground px-1 py-0.5 rounded bg-muted">
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground px-1 py-0.5 rounded-sm bg-muted">
                   commit
                 </span>
               </button>
@@ -238,7 +238,7 @@ export const BaseBranchPicker: React.FC<BaseBranchPickerProps> = ({
               <button
                 type="button"
                 onClick={handleReset}
-                className="w-full text-left px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded"
+                className="w-full text-left px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-sm"
               >
                 Reset to detected ({detectedBase})
               </button>
@@ -311,7 +311,7 @@ const BranchGroup: React.FC<BranchGroupProps> = ({
           </span>
           <span className="truncate flex-1">{branch}</span>
           {isDetected && (
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground px-1 py-0.5 rounded bg-muted">
+            <span className="text-[10px] uppercase tracking-wide text-muted-foreground px-1 py-0.5 rounded-sm bg-muted">
               detected
             </span>
           )}

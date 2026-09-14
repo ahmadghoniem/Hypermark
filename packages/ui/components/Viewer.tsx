@@ -173,7 +173,7 @@ const FrontmatterCard: React.FC<{ frontmatter: Frontmatter }> = ({ frontmatter }
               {Array.isArray(value) ? (
                 <span className="flex flex-wrap gap-1">
                   {value.map((v, i) => (
-                    <span key={i} className="px-1.5 py-0.5 bg-primary/10 text-primary rounded text-xs">
+                    <span key={i} className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-sm text-xs">
                       {v}
                     </span>
                   ))}

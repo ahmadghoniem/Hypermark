@@ -70,12 +70,12 @@ export const ImageThumbnail: React.FC<ImageThumbnailProps> = ({
   return (
     <div className={`group relative ${sizeClass} ${className}`}>
       {loading && !error && (
-        <div className={`absolute inset-0 bg-muted rounded animate-pulse`} />
+        <div className={`absolute inset-0 bg-muted rounded-sm animate-pulse`} />
       )}
 
       {error ? (
         <div
-          className={`${sizeClass} rounded bg-muted flex items-center justify-center text-muted-foreground`}
+          className={`${sizeClass} rounded-sm bg-muted flex items-center justify-center text-muted-foreground`}
         >
           <svg
             className="size-4"
@@ -102,7 +102,7 @@ export const ImageThumbnail: React.FC<ImageThumbnailProps> = ({
             setError(true);
             setLoading(false);
           }}
-          className={`${sizeClass} rounded object-cover border border-border ${onClick ? 'cursor-pointer hover:opacity-80' : ''}`}
+          className={`${sizeClass} rounded-sm object-cover border border-border ${onClick ? 'cursor-pointer hover:opacity-80' : ''}`}
         />
       )}
 

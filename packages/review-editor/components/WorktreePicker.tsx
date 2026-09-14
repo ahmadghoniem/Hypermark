@@ -65,7 +65,7 @@ export const WorktreePicker: React.FC<WorktreePickerProps> = ({
             type="button"
             disabled={disabled}
             title={active ? `${activeLabel} — ${active.path}` : mainLabel}
-            className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs font-medium transition-colors focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed ${
               isCustom
                 ? 'bg-primary/10 border border-primary/30 text-foreground'
                 : 'bg-muted border border-transparent text-foreground'
@@ -92,7 +92,7 @@ export const WorktreePicker: React.FC<WorktreePickerProps> = ({
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="start" sideOffset={4} className="z-50">
           <Popover.Popup
-            className="w-72 bg-popover text-popover-foreground border border-border rounded shadow-lg overflow-hidden origin-(--transform-origin) transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0"
+            className="w-72 bg-popover text-popover-foreground border border-border rounded-sm shadow-lg overflow-hidden origin-(--transform-origin) transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0"
             initialFocus={() => {
               // Only override the default focus when the search input is
               // actually rendered — otherwise arrow keys would bubble out to
@@ -111,7 +111,7 @@ export const WorktreePicker: React.FC<WorktreePickerProps> = ({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search worktrees…"
-                className="w-full px-2 py-1.5 bg-muted rounded text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+                className="w-full px-2 py-1.5 bg-muted rounded-sm text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
               />
             </div>
           )}
@@ -169,7 +169,7 @@ const WorktreeRow: React.FC<WorktreeRowProps> = ({ label, sublabel, isSelected, 
   <button
     type="button"
     onClick={onClick}
-    className={`w-full flex items-center gap-2 mx-1 px-2 py-1.5 text-xs text-left rounded hover:bg-muted focus:outline-none focus:bg-muted ${
+    className={`w-full flex items-center gap-2 mx-1 px-2 py-1.5 text-xs text-left rounded-sm hover:bg-muted focus:outline-none focus:bg-muted ${
       isSelected ? 'text-foreground font-medium' : 'text-foreground/80'
     }`}
   >

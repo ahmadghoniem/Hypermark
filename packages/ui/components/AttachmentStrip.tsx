@@ -37,7 +37,7 @@ const RemoveIcon: React.FC = () => (
 );
 
 /** The image standing in for itself, at favicon size. */
-const PREVIEW = 'w-4 h-4 rounded-sm object-cover flex-shrink-0';
+const PREVIEW = 'size-4 rounded-sm object-cover shrink-0';
 
 const CHIP =
   'group inline-flex items-center gap-1.5 h-6 pl-1 pr-0.5 rounded-md border border-border bg-muted/40 text-[11px] leading-none text-muted-foreground max-w-[12rem]';
@@ -155,7 +155,7 @@ const RemoveButton: React.FC<RemoveButtonProps> = ({ name, onRemove, registerRem
     }}
     aria-label={`Remove ${name}`}
     title={`Remove ${name}`}
-    className="shrink-0 size-4 rounded flex items-center justify-center text-muted-foreground/70 hover:text-foreground hover:bg-muted-foreground/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+    className="shrink-0 size-4 rounded-sm flex items-center justify-center text-muted-foreground/70 hover:text-foreground hover:bg-muted-foreground/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors"
   >
     <RemoveIcon />
   </button>
@@ -232,7 +232,7 @@ const PendingChip: React.FC<PendingChipProps> = ({ item, onRemove, onRetry, regi
               }}
               aria-label={`Retry upload of ${item.name}`}
               title={item.error ? `${item.error} — retry` : 'Retry upload'}
-              className="shrink-0 px-1 rounded text-[10px] underline underline-offset-2 hover:bg-destructive/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="shrink-0 px-1 rounded-sm text-[10px] underline underline-offset-2 hover:bg-destructive/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Retry
             </button>

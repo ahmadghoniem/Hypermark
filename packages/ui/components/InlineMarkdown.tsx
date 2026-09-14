@@ -232,7 +232,7 @@ const CodeFileLink: React.FC<{
 
   if (gate.render === 'plain') {
     return (
-      <code className="px-1.5 py-0.5 rounded bg-muted text-sm font-mono">
+      <code className="px-1.5 py-0.5 rounded-sm bg-muted text-sm font-mono">
         {display}
       </code>
     );
@@ -261,7 +261,7 @@ const CodeFileLink: React.FC<{
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(); } }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className="code-file-link px-1.5 py-0.5 rounded bg-muted text-sm font-mono cursor-pointer hover:text-primary inline-flex items-center gap-1 transition-colors"
+        className="code-file-link px-1.5 py-0.5 rounded-sm bg-muted text-sm font-mono cursor-pointer hover:text-primary inline-flex items-center gap-1 transition-colors"
         title={isAmbiguous ? `${display} — multiple matches` : `View: ${display}`}
       >
         {display}
@@ -791,7 +791,7 @@ export const InlineMarkdown: React.FC<{
         parts.push(
           <code
             key={key++}
-            className="px-1.5 py-0.5 rounded bg-muted text-sm font-mono"
+            className="px-1.5 py-0.5 rounded-sm bg-muted text-sm font-mono"
           >
             {codeContent}
           </code>,
@@ -818,7 +818,7 @@ export const InlineMarkdown: React.FC<{
             style={{ backgroundColor: hex }}
             title={hex}
           />
-          <code className="px-1.5 py-0.5 rounded bg-muted text-sm font-mono">
+          <code className="px-1.5 py-0.5 rounded-sm bg-muted text-sm font-mono">
             {hex}
           </code>
         </span>,
@@ -969,7 +969,7 @@ export const InlineMarkdown: React.FC<{
           key={key++}
           src={imgSrc}
           alt={alt}
-          className="max-w-full rounded my-2 cursor-zoom-in"
+          className="max-w-full rounded-sm my-2 cursor-zoom-in"
           loading="lazy"
           onClick={(e) => {
             e.stopPropagation();

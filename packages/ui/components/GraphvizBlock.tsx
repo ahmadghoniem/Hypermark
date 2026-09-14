@@ -484,7 +484,7 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
           <div className="flex w-10 flex-col items-center gap-0.5 bg-muted/85 rounded-md p-0.5">
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+              className="p-1 rounded-sm hover:bg-muted text-muted-foreground hover:text-foreground"
               title={isExpanded ? 'Exit expanded view' : 'Expand diagram'}
               aria-label={isExpanded ? 'Exit expanded view' : 'Expand diagram'}
             >
@@ -502,7 +502,7 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
             <button
               ref={zoomInBtnRef}
               onClick={handleZoomIn}
-              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-1 rounded-sm hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
               title="Zoom in"
               aria-label="Zoom in"
             >
@@ -513,7 +513,7 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
 
             <button
               onClick={handleFitToScreen}
-              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+              className="p-1 rounded-sm hover:bg-muted text-muted-foreground hover:text-foreground"
               title="Fit to view"
               aria-label="Fit to view"
             >
@@ -526,7 +526,7 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
             <button
               ref={zoomOutBtnRef}
               onClick={handleZoomOut}
-              className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-1 rounded-sm hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
               title="Zoom out"
               aria-label="Zoom out"
             >
@@ -539,7 +539,7 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
           <span
             ref={zoomDisplayRef}
             hidden
-            className="min-w-10 rounded bg-muted/85 px-1 py-0.5 text-[10px] text-center text-muted-foreground tabular-nums leading-tight"
+            className="min-w-10 rounded-sm bg-muted/85 px-1 py-0.5 text-[10px] text-center text-muted-foreground tabular-nums leading-tight"
           />
         </>
       )}

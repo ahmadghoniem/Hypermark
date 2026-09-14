@@ -53,7 +53,7 @@ const ThemePickerPanel: React.FC<{ closeMenu: () => void }> = () => {
           <button
             type="button"
             onClick={() => setActiveHalf(null)}
-            className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="p-1 rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             title="Back"
             aria-label="Back"
           >

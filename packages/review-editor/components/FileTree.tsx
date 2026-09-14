@@ -573,7 +573,7 @@ export const SearchFileGroup: React.FC<{
     <div className="mb-1">
       {/* File header */}
       <button
-        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded text-xs hover:bg-muted transition-colors group"
+        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-xs hover:bg-muted transition-colors group"
         onClick={() => setCollapsed((prev) => !prev)}
       >
         <svg
@@ -600,7 +600,7 @@ export const SearchFileGroup: React.FC<{
         </svg>
         <span className="truncate text-foreground font-medium">{fileName}</span>
         {dirPath && <span className="truncate text-muted-foreground/50 text-[10px]">{dirPath}</span>}
-        <span className="ml-auto shrink-0 text-[10px] text-muted-foreground/50 bg-muted rounded px-1.5 py-0.5">
+        <span className="ml-auto shrink-0 text-[10px] text-muted-foreground/50 bg-muted rounded-sm px-1.5 py-0.5">
           {group.matches.length}
         </span>
       </button>

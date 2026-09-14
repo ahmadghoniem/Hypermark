@@ -215,7 +215,7 @@ const TabButton: React.FC<{
   <button
     type="button"
     onClick={onClick}
-    className={`relative flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors min-w-0 shrink-0 ${
+    className={`relative flex items-center gap-1 px-2 py-1 rounded-sm text-xs font-medium transition-colors min-w-0 shrink-0 ${
       active
         ? "bg-primary/10 text-primary"
         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -241,7 +241,7 @@ const ActionButton: React.FC<{
     onClick={onClick}
     aria-pressed={active}
     title={running ? "Agent running" : label}
-    className={`relative flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors min-w-0 shrink-0 ${
+    className={`relative flex items-center gap-1 px-2 py-1 rounded-sm text-xs font-medium transition-colors min-w-0 shrink-0 ${
       active || running
         ? "bg-primary/10 text-primary"
         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"

@@ -85,14 +85,14 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
       {repoInfo && !linkedDocInfo && !isRow && (
         <div className="flex items-center gap-1.5">
           <span
-            className="px-1.5 py-0.5 bg-muted/50 rounded truncate max-w-35"
+            className="px-1.5 py-0.5 bg-muted/50 rounded-sm truncate max-w-35"
             title={repoInfo.display}
           >
             {repoInfo.display}
           </span>
           {repoInfo.branch && (
             <span
-              className="px-1.5 py-0.5 bg-muted/30 rounded max-w-30 flex items-center gap-1 overflow-hidden"
+              className="px-1.5 py-0.5 bg-muted/30 rounded-sm max-w-30 flex items-center gap-1 overflow-hidden"
               title={repoInfo.branch}
             >
               <svg className="size-2.5 shrink-0" viewBox="0 0 16 16" fill="currentColor">
@@ -107,7 +107,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
       {sourceInfo && !linkedDocInfo && !isRow && (
         <div className="flex items-center gap-1">
           <span
-            className="px-1.5 py-0.5 bg-muted/30 rounded truncate max-w-50"
+            className="px-1.5 py-0.5 bg-muted/30 rounded-sm truncate max-w-50"
             title={sourceInfo}
           >
             {/^https?:\/\//i.test(sourceInfo)
@@ -130,7 +130,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
 
       {/* Demo badge: only in column (top-of-doc) layout */}
       {!isRow && showDemoBadge && !linkedDocInfo && (
-        <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-warning/15 text-foreground">
+        <span className="px-1.5 py-0.5 rounded-sm text-[9px] font-mono bg-warning/15 text-foreground">
           Demo
         </span>
       )}
@@ -147,7 +147,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
               Close
             </button>
             <span
-              className="truncate rounded bg-muted/50 px-1.5 py-0.5 text-[9px] text-muted-foreground max-w-55"
+              className="truncate rounded-sm bg-muted/50 px-1.5 py-0.5 text-[9px] text-muted-foreground max-w-55"
               title={linkedDocInfo.filepath}
             >
               {pathFileName(linkedDocInfo.filepath)}
@@ -157,7 +157,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
           <div className="flex items-center gap-1.5">
             <button
               onClick={linkedDocInfo.onBack}
-              className="px-1.5 py-0.5 bg-primary/10 text-primary rounded hover:bg-primary/20 transition-colors flex items-center gap-1"
+              className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-sm hover:bg-primary/20 transition-colors flex items-center gap-1"
             >
               <svg
                 className="size-2.5"
@@ -174,11 +174,11 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
               </svg>
               {linkedDocInfo.backLabel || 'plan'}
             </button>
-            <span className="px-1.5 py-0.5 bg-primary/10 text-primary/80 rounded">
+            <span className="px-1.5 py-0.5 bg-primary/10 text-primary/80 rounded-sm">
               {linkedDocInfo.label || 'Linked File'}
             </span>
             <span
-              className="px-1.5 py-0.5 bg-muted/50 text-muted-foreground rounded truncate max-w-50"
+              className="px-1.5 py-0.5 bg-muted/50 text-muted-foreground rounded-sm truncate max-w-50"
               title={linkedDocInfo.filepath}
             >
               {pathFileName(linkedDocInfo.filepath)}

@@ -60,7 +60,7 @@ export const DiffTypePicker: React.FC<DiffTypePickerProps> = ({
           <button
             type="button"
             disabled={isLoading}
-            className="w-full flex items-center gap-1.5 px-2.5 py-1.5 bg-muted rounded text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-wait"
+            className="w-full flex items-center gap-1.5 px-2.5 py-1.5 bg-muted rounded-sm text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-wait"
           />
         }
       >
@@ -78,7 +78,7 @@ export const DiffTypePicker: React.FC<DiffTypePickerProps> = ({
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner side="bottom" align="start" sideOffset={4} className="z-50">
-          <Menu.Popup className="min-w-(--anchor-width) bg-popover text-popover-foreground border border-border rounded shadow-lg overflow-hidden py-1 origin-(--transform-origin) transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0">
+          <Menu.Popup className="min-w-(--anchor-width) bg-popover text-popover-foreground border border-border rounded-sm shadow-lg overflow-hidden py-1 origin-(--transform-origin) transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0">
           {options.map((opt) => {
             const hint = OPTION_HINTS[opt.id];
             const isActive = opt.id === activeDiffType;
@@ -86,7 +86,7 @@ export const DiffTypePicker: React.FC<DiffTypePickerProps> = ({
               <Menu.Item
                 key={opt.id}
                 onClick={() => onSelect(opt.id)}
-                className={`flex items-center gap-2 mx-1 px-2 py-1.5 text-xs rounded cursor-pointer outline-none data-highlighted:bg-muted ${
+                className={`flex items-center gap-2 mx-1 px-2 py-1.5 text-xs rounded-sm cursor-pointer outline-none data-highlighted:bg-muted ${
                   isActive ? 'text-foreground font-medium' : 'text-foreground/80'
                 }`}
               >

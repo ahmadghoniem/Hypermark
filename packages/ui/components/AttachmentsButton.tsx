@@ -77,20 +77,20 @@ export const AttachmentsButton: React.FC<AttachmentsButtonProps> = ({
               {images.slice(0, 3).map((img, idx) => (
                 <div
                   key={img.path}
-                  className="relative size-5 rounded border border-background"
+                  className="relative size-5 rounded-sm border border-background"
                   style={{ marginLeft: idx > 0 ? '-6px' : 0, zIndex: 3 - idx }}
                 >
                   <img
                     src={getImageSrc(img.path)}
                     alt={img.name}
                     loading="lazy"
-                    className="size-5 rounded object-cover"
+                    className="size-5 rounded-sm object-cover"
                   />
                 </div>
               ))}
               {images.length > 3 && (
                 <div
-                  className="relative size-5 rounded bg-muted border border-background flex items-center justify-center text-[9px] font-medium"
+                  className="relative size-5 rounded-sm bg-muted border border-background flex items-center justify-center text-[9px] font-medium"
                   style={{ marginLeft: '-6px', zIndex: 0 }}
                 >
                   +{images.length - 3}

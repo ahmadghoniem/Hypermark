@@ -426,7 +426,7 @@ const DirectEditsCard: React.FC<{
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="cursor-pointer rounded px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-surface-1 hover:text-foreground"
+            className="cursor-pointer rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-surface-1 hover:text-foreground"
             aria-expanded={expanded}
           >
             {expanded ? 'Hide diff' : 'Diff'}
@@ -443,7 +443,7 @@ const DirectEditsCard: React.FC<{
                 }
               }}
               className={cn(
-                'cursor-pointer rounded px-1.5 py-0.5 text-[10px] transition-colors',
+                'cursor-pointer rounded-sm px-1.5 py-0.5 text-[10px] transition-colors',
                 confirmDiscard
                   ? 'bg-destructive/15 text-destructive hover:bg-destructive/25'
                   : 'text-muted-foreground hover:bg-surface-1 hover:text-destructive',
@@ -523,13 +523,13 @@ const AnnotationCard: React.FC<{
       <div className="mb-1.5 flex items-center gap-1.5">
         <span className={cn('text-[11px] font-medium', typeColor)}>{typeLabel}</span>
         {annotation.diffContext && (
-          <span className="text-[9px] px-1.5 py-0.5 rounded font-medium bg-muted text-muted-foreground">
+          <span className="text-[9px] px-1.5 py-0.5 rounded-sm font-medium bg-muted text-muted-foreground">
             diff
           </span>
         )}
         {annotation.pageUrl && (
           <span
-            className="text-[9px] px-1.5 py-0.5 rounded font-medium bg-muted text-muted-foreground truncate max-w-40"
+            className="text-[9px] px-1.5 py-0.5 rounded-sm font-medium bg-muted text-muted-foreground truncate max-w-40"
             title={annotation.pageUrl}
           >
             {annotation.pageUrl}
@@ -538,7 +538,7 @@ const AnnotationCard: React.FC<{
         {unanchored && (
           <span
             data-annotation-unanchored="true"
-            className="text-[9px] px-1.5 py-0.5 rounded font-medium bg-muted text-muted-foreground"
+            className="text-[9px] px-1.5 py-0.5 rounded-sm font-medium bg-muted text-muted-foreground"
             title="This comment no longer matches a location in the document"
           >
             Unanchored
@@ -710,7 +710,7 @@ const CodeAnnotationCard: React.FC<{
       </div>
 
       {/* File / line meta */}
-      <div className="rounded px-2 py-1 bg-surface-1 font-mono text-[11px] text-muted-foreground truncate" title={annotation.filePath}>
+      <div className="rounded-sm px-2 py-1 bg-surface-1 font-mono text-[11px] text-muted-foreground truncate" title={annotation.filePath}>
         {fileName} · {lineRange}
       </div>
 

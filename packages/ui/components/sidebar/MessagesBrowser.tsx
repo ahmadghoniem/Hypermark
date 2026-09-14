@@ -68,7 +68,7 @@ export const MessagesBrowser: React.FC<MessagesBrowserProps> = ({
             <button
               key={msg.messageId}
               onClick={() => onSelect(msg.messageId)}
-              className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors flex items-start gap-2 ${
+              className={`w-full text-left px-2 py-1.5 rounded-sm text-xs transition-colors flex items-start gap-2 ${
                 isSelected
                   ? "bg-primary/10 text-primary border border-primary/30"
                   : "text-foreground hover:bg-muted/50 border border-transparent"

@@ -176,7 +176,7 @@ const CodeInlineAnnotation: React.FC<{
     >
       <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-muted-foreground">
         <span className="font-semibold text-primary">Comment</span>
-        <span className="rounded bg-muted px-1.5 py-0.5 font-mono normal-case text-foreground">
+        <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono normal-case text-foreground">
           {lineLabel(annotation.lineStart, annotation.lineEnd)}
         </span>
         {annotation.author && <span className="truncate normal-case">by {annotation.author}</span>}
@@ -188,7 +188,7 @@ const CodeInlineAnnotation: React.FC<{
                 e.stopPropagation();
                 setIsEditing(true);
               }}
-              className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="rounded-sm p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
               title="Edit comment"
             >
               <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -203,7 +203,7 @@ const CodeInlineAnnotation: React.FC<{
                 e.stopPropagation();
                 onDelete(annotation.id);
               }}
-              className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              className="rounded-sm p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
               title="Delete comment"
             >
               <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -232,7 +232,7 @@ const CodeInlineAnnotation: React.FC<{
               }
             }}
             rows={Math.min(editText.split('\n').length + 1, 8)}
-            className="w-full resize-none rounded border border-border bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+            className="w-full resize-none rounded-sm border border-border bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
           <div className="flex items-center gap-2">
             <button
@@ -241,7 +241,7 @@ const CodeInlineAnnotation: React.FC<{
                 e.stopPropagation();
                 save();
               }}
-              className="rounded bg-primary px-2 py-1 text-[10px] font-medium text-primary-foreground hover:opacity-90"
+              className="rounded-sm bg-primary px-2 py-1 text-[10px] font-medium text-primary-foreground hover:opacity-90"
             >
               Save
             </button>
@@ -252,7 +252,7 @@ const CodeInlineAnnotation: React.FC<{
                 setIsEditing(false);
                 setEditText(annotation.text ?? '');
               }}
-              className="rounded bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted/80"
+              className="rounded-sm bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted/80"
             >
               Cancel
             </button>

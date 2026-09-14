@@ -354,7 +354,7 @@ export const AnnotateAgentTerminalPanel = forwardRef<
                 aria-label="Stop agent"
                 onClick={() => requestStop(false)}
                 disabled={status === "stopping" || status === "exited"}
-                className="h-6 shrink-0 rounded px-1.5 text-[11px] font-medium text-muted-foreground/80 transition-colors hover:text-destructive focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-6 shrink-0 rounded-sm px-1.5 text-[11px] font-medium text-muted-foreground/80 transition-colors hover:text-destructive focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Stop
               </button>
@@ -362,7 +362,7 @@ export const AnnotateAgentTerminalPanel = forwardRef<
           </div>
           <div className="relative min-h-0 flex-1" style={terminalTheme.shellStyle}>
             {status === "starting" && (
-              <div className="pointer-events-none absolute left-3 top-3 z-10 rounded border border-border/50 bg-card/95 px-2 py-1 text-[11px] text-muted-foreground shadow-sm">
+              <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-sm border border-border/50 bg-card/95 px-2 py-1 text-[11px] text-muted-foreground shadow-sm">
                 Starting terminal...
               </div>
             )}
@@ -553,7 +553,7 @@ function AgentTerminalDisplayPopover({
             type="button"
             aria-label="Terminal display settings"
             title="Display settings"
-            className="flex size-6 items-center justify-center rounded text-muted-foreground/80 transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring data-popup-open:bg-primary/15 data-popup-open:text-primary"
+            className="flex size-6 items-center justify-center rounded-sm text-muted-foreground/80 transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring data-popup-open:bg-primary/15 data-popup-open:text-primary"
           />
         }
       >
@@ -573,7 +573,7 @@ function AgentTerminalDisplayPopover({
               type="button"
               aria-label="Reset terminal display settings"
               onClick={() => onChange(DEFAULT_DISPLAY_SETTINGS)}
-              className="flex size-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+              className="flex size-6 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
             >
               <ArrowClockwise className="size-3.5" />
             </button>

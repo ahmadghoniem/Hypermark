@@ -83,7 +83,7 @@ export const FileCommentCard: React.FC<{
             {/* Collapse toggle — always visible (primary affordance for reclaiming
                 space from a long comment), unlike the hover-revealed actions. */}
             <button
-              className="flex-none -ml-0.5 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="flex-none -ml-0.5 rounded-sm p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               onClick={(e) => { e.stopPropagation(); setCollapsed((c) => !c); }}
               title={collapsed ? 'Expand comment' : 'Collapse comment'}
             >
@@ -108,14 +108,14 @@ export const FileCommentCard: React.FC<{
               if (e.key === 'Escape') { e.preventDefault(); setIsEditing(false); }
               else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveEdit(); }
             }}
-            className="w-full min-h-20 resize-y rounded border border-border bg-background p-2 text-xs/relaxed focus:outline-none focus:ring-1 focus:ring-primary/40"
+            className="w-full min-h-20 resize-y rounded-sm border border-border bg-background p-2 text-xs/relaxed focus:outline-none focus:ring-1 focus:ring-primary/40"
             placeholder="File comment (markdown supported)…"
           />
           <div className="mt-1 flex items-center justify-end gap-2">
-            <button className="text-xs px-2 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted" onClick={() => setIsEditing(false)}>
+            <button className="text-xs px-2 py-1 rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted" onClick={() => setIsEditing(false)}>
               Cancel
             </button>
-            <button className="text-xs px-2 py-1 rounded bg-primary/15 text-primary hover:bg-primary/25" onClick={saveEdit}>
+            <button className="text-xs px-2 py-1 rounded-sm bg-primary/15 text-primary hover:bg-primary/25" onClick={saveEdit}>
               Save
             </button>
           </div>

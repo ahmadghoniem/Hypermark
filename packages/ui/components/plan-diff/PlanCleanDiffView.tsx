@@ -344,8 +344,8 @@ const DiffBlockRenderer: React.FC<DiffBlockRendererProps> = ({
     hoveredIndex === index && hoveredDiffContext === diffContext;
 
   const ringClass = (diffContext: Annotation['diffContext']) => {
-    if (isHovered(diffContext)) return 'ring-1 ring-primary/30 rounded';
-    if (isBlockAnnotated(index)) return 'ring-2 ring-accent rounded outline-offset-2';
+    if (isHovered(diffContext)) return 'ring-1 ring-primary/30 rounded-sm';
+    if (isBlockAnnotated(index)) return 'ring-2 ring-accent rounded-sm outline-offset-2';
     return '';
   };
 
@@ -777,7 +777,7 @@ const InlineMarkdown: React.FC<{ text: string }> = ({ text }) => {
       parts.push(
         <code
           key={key++}
-          className="px-1.5 py-0.5 rounded bg-muted text-sm font-mono"
+          className="px-1.5 py-0.5 rounded-sm bg-muted text-sm font-mono"
         >
           {match[1]}
         </code>

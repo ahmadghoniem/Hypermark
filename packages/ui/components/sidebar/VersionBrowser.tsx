@@ -110,7 +110,7 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
                     <button
                       key={v.version}
                       onClick={() => onSelectBaseVersion(v.version)}
-                      className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${
+                      className={`w-full text-left px-2 py-1.5 rounded-sm text-xs transition-colors ${
                         isSelected
                           ? "bg-primary/10 text-primary border border-primary/30"
                           : "text-foreground hover:bg-muted/50 border border-transparent"

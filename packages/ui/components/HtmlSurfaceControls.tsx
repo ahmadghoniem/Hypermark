@@ -100,7 +100,7 @@ export function HtmlSurfaceControls({
               // dedups in-flight requests, so an extra click is harmless.
               onClick={isRefreshing ? undefined : onRefresh}
               aria-disabled={isRefreshing}
-              className="flex items-center gap-1.5 rounded px-1.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground aria-disabled:cursor-wait aria-disabled:opacity-70"
+              className="flex items-center gap-1.5 rounded-sm px-1.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground aria-disabled:cursor-wait aria-disabled:opacity-70"
               title={isRefreshing ? text.refreshingTitle : text.refreshTitle}
               aria-label={isRefreshing ? text.refreshingTitle : text.refreshTitle}
             >

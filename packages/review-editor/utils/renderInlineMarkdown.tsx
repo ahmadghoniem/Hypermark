@@ -62,7 +62,7 @@ function renderInline(text: string, startKey: number): React.ReactNode[] {
             src={match[3]}
             alt={match[2]}
             loading="lazy"
-            className="max-w-full h-auto rounded my-1"
+            className="max-w-full h-auto rounded-sm my-1"
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
           />
         );

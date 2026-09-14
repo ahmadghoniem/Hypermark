@@ -563,7 +563,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
                 type="button"
                 data-decision-composer-back="true"
                 onClick={backToMenu}
-                className="mb-1.5 flex items-center gap-1 rounded px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                className="mb-1.5 flex items-center gap-1 rounded-sm px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
               >
                 <CaretDown className="size-3 rotate-90" aria-hidden="true" />
                 {activeItem.composer.title}

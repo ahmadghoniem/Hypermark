@@ -1801,7 +1801,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
               e.stopPropagation();
               toggleItemCollapsed(item.id);
             }}
-            className="flex items-center justify-center size-6 rounded hover:bg-foreground/10 transition-colors shrink-0"
+            className="flex items-center justify-center size-6 rounded-sm hover:bg-foreground/10 transition-colors shrink-0"
             title={collapsed ? 'Expand diff' : 'Collapse diff'}
           >
             <svg

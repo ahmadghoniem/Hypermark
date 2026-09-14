@@ -54,7 +54,7 @@ export function PanelControlsRow({
           <button
             type="button"
             onClick={onOpenSearch}
-            className={`panel-utility-button p-1 rounded transition-colors ${isSearchVisible ? "bg-primary/15 text-primary" : "hover:bg-muted text-muted-foreground"}`}
+            className={`panel-utility-button p-1 rounded-sm transition-colors ${isSearchVisible ? "bg-primary/15 text-primary" : "hover:bg-muted text-muted-foreground"}`}
             aria-label="Search diff"
             title="Search diff (Cmd/Ctrl+F)"
           >
@@ -66,7 +66,7 @@ export function PanelControlsRow({
             type="button"
             onClick={onToggleAllFolders}
             disabled={collapseDisabled}
-            className="panel-utility-button p-1 rounded transition-colors hover:bg-muted text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+            className="panel-utility-button p-1 rounded-sm transition-colors hover:bg-muted text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label={
               areAllFoldersExpanded
                 ? "Collapse all folders"
@@ -92,7 +92,7 @@ export function PanelControlsRow({
               onClick={onCopyRawDiff}
               disabled={!canCopyRawDiff}
               aria-label={copyLabel}
-              className={`panel-utility-button p-1 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+              className={`panel-utility-button p-1 rounded-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                 copyRawDiffStatus === "success"
                   ? "text-success"
                   : copyRawDiffStatus === "error"
@@ -166,7 +166,7 @@ export function PanelSearchField({
           aria-label="Search diff"
           autoComplete="off"
           spellCheck={false}
-          className="w-full rounded bg-muted py-1.5 px-7 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
+          className="w-full rounded-sm bg-muted py-1.5 px-7 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
         />
         <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
           {hasQuery && !isPending && (
@@ -177,7 +177,7 @@ export function PanelSearchField({
           <button
             type="button"
             onClick={hasQuery ? onClear : onClose}
-            className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-background/50 hover:text-foreground"
+            className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:bg-background/50 hover:text-foreground"
             aria-label={actionLabel}
             title={actionLabel}
           >

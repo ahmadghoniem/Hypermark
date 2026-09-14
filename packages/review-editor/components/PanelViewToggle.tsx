@@ -32,7 +32,7 @@ export const PanelViewToggle: React.FC<{
   );
 
   return (
-    <div className="flex w-full items-center bg-muted/50 rounded p-0.5" role="group" aria-label="Panel view">
+    <div className="flex w-full items-center bg-muted/50 rounded-sm p-0.5" role="group" aria-label="Panel view">
       {segment('tree', 'Tree', 'Tree view')}
       {showSections && segment('sections', 'Git status', 'Git status view (Committed / Changes / Untracked)')}
       {showCommits && segment('commits', 'Commits', 'Commit history — click a commit to review its diff')}

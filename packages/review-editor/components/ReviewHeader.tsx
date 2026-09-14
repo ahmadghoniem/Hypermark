@@ -121,7 +121,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
           <>
             {reviewMode === 'workspace' && diffError && (
               <div
-                className="text-xs text-foreground px-2 py-1 bg-warning/10 rounded border border-warning/25 max-w-60 truncate"
+                className="text-xs text-foreground px-2 py-1 bg-warning/10 rounded-sm border border-warning/25 max-w-60 truncate"
                 title={diffError}
               >
                 {files.length > 0 ? 'Some workspace changes could not be loaded' : 'Workspace changes could not be loaded'}
@@ -132,7 +132,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
                 was computed (agent editing mid-review). Non-blocking; the
                 user refreshes when ready. */}
             {diffFreshness.isStale && !isLoadingDiff && (
-              <div className="flex items-center gap-2 text-xs text-foreground px-2 py-1 bg-warning/10 rounded border border-warning/25">
+              <div className="flex items-center gap-2 text-xs text-foreground px-2 py-1 bg-warning/10 rounded-sm border border-warning/25">
                 <span className="hidden md:inline">Diff out of date</span>
                 <span className="md:hidden">Stale</span>
                 <button
@@ -158,7 +158,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
                 GitHub state. Fetch catches the tracking ref up and
                 recomputes the diff in place. */}
             {baseBehindRemote && !isLoadingDiff && (
-              <div className="flex items-center gap-2 text-xs text-foreground px-2 py-1 bg-warning/10 rounded border border-warning/25">
+              <div className="flex items-center gap-2 text-xs text-foreground px-2 py-1 bg-warning/10 rounded-sm border border-warning/25">
                 <span className="hidden md:inline">Baseline is behind GitHub</span>
                 <span className="md:hidden">Base behind</span>
                 {isFetchingBase ? (
