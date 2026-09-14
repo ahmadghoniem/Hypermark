@@ -876,8 +876,7 @@ try {
         if (-not (Test-Path "$skillsTmp\repo")) {
             $cloneErr = ""
             if (Test-Path $gitErrFile) { $cloneErr = [System.IO.File]::ReadAllText($gitErrFile) }
-            # Capability probe, not a version parse (same philosophy as the
-            # GitButler flag probing in packages/shared/gitbutler-core.ts):
+            # Capability probe, not a version parse:
             # `git clone --sparse` needs git >= 2.25, and an older git rejects
             # the flag instantly with "error: unknown option `sparse'" before
             # any network call (#1238). Fall back to a plain shallow clone -

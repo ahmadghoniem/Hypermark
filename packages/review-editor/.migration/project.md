@@ -14,7 +14,7 @@
 | Component | Files | Report |
 |---|---|---|
 | checkbox | tour/QAChecklist.tsx | checkbox.md |
-| popover | SemanticFileBadge, EvoLogPicker, DiffOptionsPopover, WorktreePicker, StackedPRLabel, BaseBranchPicker, PRCommentsTab (+ index.css trigger selector) | popover.md |
+| popover | SemanticFileBadge, DiffOptionsPopover, WorktreePicker, StackedPRLabel, BaseBranchPicker, PRCommentsTab (+ index.css trigger selector) | popover.md |
 | dropdown-menu → Menu | DiffTypePicker.tsx | dropdown-menu.md |
 | context-menu | FileTreeNode.tsx | context-menu.md |
 

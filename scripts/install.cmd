@@ -960,8 +960,7 @@ if !ERRORLEVEL! equ 0 set "CLONE_OK=1"
 set "LC_ALL=!HYPERMARK_SAVED_LC_ALL!"
 set "HYPERMARK_SAVED_LC_ALL="
 
-REM Capability probe, not a version parse (same philosophy as the GitButler
-REM flag probing in packages/shared/gitbutler-core.ts): `git clone --sparse`
+REM Capability probe, not a version parse: `git clone --sparse`
 REM needs git >= 2.25, and an older git rejects the flag instantly with
 REM "error: unknown option `sparse'" before any network call (#1238). Fall
 REM back to a plain shallow clone - it costs download size, not correctness:

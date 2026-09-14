@@ -66,14 +66,6 @@ describe("exportReviewFeedback", () => {
     expect(result).toContain("**Diff:** Committed changes vs `release/v2`");
   });
 
-  it("local mode with jj line of work: labels compare target in the header", () => {
-    const result = exportReviewFeedback([ann()], {
-      mode: "jj-line",
-      base: "main",
-    });
-    expect(result).toContain("**Diff:** Line of work vs `main`");
-  });
-
   it("local mode with worktree path: appends worktree info", () => {
     const result = exportReviewFeedback([ann()], {
       mode: "uncommitted",
@@ -207,34 +199,6 @@ describe("exportReviewFeedback", () => {
       { mode: `commit:${sha}` },
     );
     expect(result).not.toContain("anchored");
-  });
-
-  it("renders readable GitButler targets and preserves annotation provenance", () => {
-    const result = exportReviewFeedback(
-      [ann({
-        gitButlerDiffType: "gitbutler:branch:feature%2Fapi",
-        gitButlerDiffLabel: "Branch: feature/api (committed changes)",
-        gitButlerBase: "abc123",
-        gitButlerSnapshotId: "snapshot-a",
-      })],
-      { mode: "gitbutler:branch:feature%2Fweb", base: "abc123", snapshotId: "snapshot-b" },
-    );
-
-    expect(result).toContain("**Diff:** GitButler branch `feature/web` (committed changes)");
-    expect(result).toContain("_Made on Branch: feature/api (committed changes) — anchored to that GitButler diff, not the diff above._");
-  });
-
-  it("labels GitButler annotations after the same target refreshes to a new snapshot", () => {
-    const result = exportReviewFeedback(
-      [ann({
-        gitButlerDiffType: "gitbutler:workspace",
-        gitButlerDiffLabel: "GitButler workspace (all applied changes)",
-        gitButlerBase: "abc123",
-        gitButlerSnapshotId: "snapshot-a",
-      })],
-      { mode: "gitbutler:workspace", base: "abc123", snapshotId: "snapshot-b" },
-    );
-    expect(result).toContain("anchored to that GitButler diff");
   });
 });
 

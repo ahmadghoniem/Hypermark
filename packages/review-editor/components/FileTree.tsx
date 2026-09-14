@@ -4,7 +4,6 @@ import type {
   AvailableBranches,
   CompareTargetConfig,
   DiffOption,
-  JjEvoLogEntry,
   RecentCommit,
   SinceBaseSections,
   WorktreeInfo,
@@ -22,7 +21,6 @@ import {
 } from '../utils/fileTreeAdapter';
 import { buildRowDecoration } from '../utils/fileTreeRowDecoration';
 import { BaseBranchPicker } from './BaseBranchPicker';
-import { EvoLogPicker } from './EvoLogPicker';
 import { DiffTypePicker } from './DiffTypePicker';
 import { WorktreePicker } from './WorktreePicker';
 import { PanelViewToggle, type ReviewPanelView } from './PanelViewToggle';
@@ -49,7 +47,7 @@ interface FileTreeProps {
   activeWorktreePath?: string | null;
   onSelectWorktree?: (path: string | null) => void;
   currentBranch?: string;
-  /** Compare target picker — base branch for Git, bookmark/revision for jj. */
+  /** Compare target picker — base branch for Git. */
   availableBranches?: AvailableBranches;
   selectedBase?: string;
   detectedBase?: string;
@@ -57,10 +55,6 @@ interface FileTreeProps {
   compareTarget?: CompareTargetConfig;
   /** HEAD ancestry for the commit-baseline picker (git only, #709). */
   recentCommits?: RecentCommit[];
-  /** Evolution log entries for the current jj change (jj-evolog mode only). */
-  jjEvologs?: JjEvoLogEntry[];
-  /** Default evolog commit ID to compare against (second evolog entry). */
-  detectedEvoBase?: string;
   onCopyRawDiff?: () => void;
   canCopyRawDiff?: boolean;
   copyRawDiffStatus?: 'idle' | 'success' | 'error';
@@ -119,8 +113,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
   onSelectBase,
   compareTarget,
   recentCommits,
-  jjEvologs,
-  detectedEvoBase,
   onCopyRawDiff,
   canCopyRawDiff = false,
   copyRawDiffStatus = 'idle',
@@ -476,32 +468,8 @@ export const FileTree: React.FC<FileTreeProps> = ({
         </div>
       )}
 
-      {/* Evolog picker — only shown when jj-evolog diff type is active */}
-      {activeDiffType === 'jj-evolog' &&
-        onSelectBase &&
-        selectedBase &&
-        jjEvologs &&
-        jjEvologs.length >= 2 &&
-        detectedEvoBase && (
-          <div className="px-2 py-1.5 border-b border-border/30 flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground flex-shrink-0">
-              from evolution
-            </span>
-            <div className="flex-1 min-w-0">
-              <EvoLogPicker
-                entries={jjEvologs}
-                selectedCommitId={selectedBase}
-                detectedCommitId={detectedEvoBase}
-                onSelect={onSelectBase}
-                disabled={isLoadingDiff}
-              />
-            </div>
-          </div>
-        )}
-
-      {/* Compare target picker — only relevant for base-dependent diff types (not evolog) */}
-      {activeDiffType !== 'jj-evolog' &&
-        onSelectBase &&
+      {/* Compare target picker — only relevant for base-dependent diff types */}
+      {onSelectBase &&
         selectedBase &&
         detectedBase &&
         availableBranches &&

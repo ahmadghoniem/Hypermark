@@ -17,9 +17,6 @@ export function parseReviewArgs(input: string | string[]): ParsedReviewArgs {
       case "--git":
         vcsType = "git";
         break;
-      case "--gitbutler":
-        vcsType = "gitbutler";
-        break;
       default:
         break;
     }

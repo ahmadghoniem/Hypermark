@@ -16,7 +16,7 @@ export type WorkspaceDiffType =
   | "workspace-unstaged"
   | "workspace-last";
 
-export type WorkspaceChildVcsType = "git" | "gitbutler" | "jj";
+export type WorkspaceChildVcsType = "git";
 
 export interface WorkspaceRepoState {
   id: string;
@@ -113,28 +113,13 @@ function isWorkspaceDiffType(value: string | undefined): value is WorkspaceDiffT
 }
 
 function normalizeVcsType(value: string | undefined): WorkspaceChildVcsType | undefined {
-  return value === "git" || value === "gitbutler" || value === "jj" ? value : undefined;
+  return value === "git" ? value : undefined;
 }
 
 export function mapWorkspaceModeToRepoDiffType(
   workspaceDiffType: WorkspaceDiffType,
   vcsType: WorkspaceChildVcsType | undefined,
 ): DiffType | null {
-  if (vcsType === "jj") {
-    switch (workspaceDiffType) {
-      case "workspace-current":
-        return "jj-current";
-      case "workspace-last":
-        return "jj-last";
-      default:
-        return null;
-    }
-  }
-
-  if (vcsType === "gitbutler") {
-    return workspaceDiffType === "workspace-current" ? "gitbutler:workspace" : null;
-  }
-
   if (vcsType === "git") {
     switch (workspaceDiffType) {
       case "workspace-current":
@@ -157,15 +142,12 @@ export function mapRepoDiffTypeToWorkspaceMode(
   if (isWorkspaceDiffType(diffType)) return diffType;
   switch (diffType) {
     case "uncommitted":
-    case "jj-current":
-    case "gitbutler:workspace":
       return "workspace-current";
     case "staged":
       return "workspace-staged";
     case "unstaged":
       return "workspace-unstaged";
     case "last-commit":
-    case "jj-last":
       return "workspace-last";
     default:
       return undefined;
@@ -196,7 +178,7 @@ export function workspaceModeAvailable(
     return detectedRepos.length > 0 && detectedRepos.every((repo) => repo.vcsType === "git");
   }
   if (diffType === "workspace-last") {
-    return repos.every((repo) => repo.vcsType !== "gitbutler");
+    return true;
   }
   return true;
 }

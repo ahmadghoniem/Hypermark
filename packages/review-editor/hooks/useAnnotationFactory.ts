@@ -9,29 +9,15 @@ export interface CommitAnnotationContext {
   subject?: string;
 }
 
-export interface GitButlerAnnotationContext {
-  diffType: string;
-  label?: string;
-  base?: string;
-  snapshotId?: string;
-}
-
 export function useAnnotationFactory(
   commitContext?: CommitAnnotationContext | null,
-  gitButlerContext?: GitButlerAnnotationContext | null,
 ) {
   const diffContext = useMemo(() => ({
     ...(commitContext ? {
       commitSha: commitContext.sha,
       ...(commitContext.subject ? { commitSubject: commitContext.subject } : {}),
     } : {}),
-    ...(gitButlerContext ? {
-      gitButlerDiffType: gitButlerContext.diffType,
-      ...(gitButlerContext.label ? { gitButlerDiffLabel: gitButlerContext.label } : {}),
-      ...(gitButlerContext.base ? { gitButlerBase: gitButlerContext.base } : {}),
-      ...(gitButlerContext.snapshotId ? { gitButlerSnapshotId: gitButlerContext.snapshotId } : {}),
-    } : {}),
-  }), [commitContext, gitButlerContext]);
+  }), [commitContext]);
 
   const withDiffContext = useCallback(
     (annotation: CodeAnnotation): CodeAnnotation => ({ ...annotation, ...diffContext }),

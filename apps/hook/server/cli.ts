@@ -139,7 +139,7 @@ export function formatTopLevelHelp(): string {
     "  hypermark --help",
     "  hypermark --version, -v",
     "  hypermark [--browser <name>]",
-    "  hypermark review [--git | --gitbutler]",
+    "  hypermark review [--git]",
     "  hypermark annotate <file.md | file.txt | file.html | https://... | folder/>  [--markdown] [--no-jina] [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]",
     "  hypermark annotate-last [--stdin] [--gate] [--json] [--hook]",
     "  hypermark last",
@@ -165,18 +165,16 @@ export function formatTopLevelHelp(): string {
 export const SUBCOMMAND_HELP: Record<string, string> = {
   review: [
     "Usage:",
-    "  hypermark review [--git | --gitbutler]",
+    "  hypermark review [--git]",
     "",
     "Review local VCS changes in the browser.",
     "",
     "Options:",
     "  --git         Force git as the VCS (skip auto-detection)",
-    "  --gitbutler   Force GitButler as the VCS (requires but 0.21.0+)",
     "",
     "Examples:",
     "  hypermark review",
     "  hypermark review --git",
-    "  hypermark review --gitbutler",
   ].join("\n"),
   annotate: [
     "Usage:",

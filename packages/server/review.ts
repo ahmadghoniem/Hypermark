@@ -27,10 +27,6 @@ import {
   type SinceBaseSections,
 } from "@hypermark/shared/review-core";
 import {
-  getGitButlerContextRevision,
-  getGitButlerPatchFingerprint,
-} from "@hypermark/shared/gitbutler-core";
-import {
   getCommitDiffInfo,
   listCommitHistory,
   type CommitDiffInfo,
@@ -182,8 +178,6 @@ export async function startReviewServer(
   // the caller — e.g. programmatic Pi callers can request a non-detected base.
   const detectedCompareTarget = (): string => gitContext?.defaultBranch || gitContext?.compareTarget?.fallback || "main";
   let currentBase = options.initialBase || detectedCompareTarget();
-  const isGitButlerCommittedView = (diffType: string = currentDiffType as string): boolean =>
-    diffType.startsWith("gitbutler:stack:") || diffType.startsWith("gitbutler:branch:");
   let baseEverSwitched = false;
   // True once the user picks a base from the picker (explicitBase on the
   // switch body). Disables the bare-local-name → origin/* canonicalization:
@@ -198,11 +192,7 @@ export async function startReviewServer(
   // "diff out of date — refresh" notice when files change mid-review (e.g. an
   // agent editing/committing while the user reviews). Best-effort everywhere:
   // null means "cannot fingerprint" and is reported as fresh, never stale.
-  let currentFingerprint = options.initialFingerprint ?? getGitButlerPatchFingerprint(
-      currentDiffType as DiffType,
-      currentPatch,
-      clientGitContext,
-    );
+  let currentFingerprint = options.initialFingerprint ?? null;
   const computeDiffFingerprint = async (): Promise<string | null> => {
     try {
       if (workspace) return await workspace.getFingerprint();
@@ -486,8 +476,8 @@ export async function startReviewServer(
   // un-marks even a built-in name, unspecified keeps the default).
   // Presentation-layer only: the patch is never filtered and snapshot/
   // fingerprint semantics are untouched. Attribute refinement runs for plain
-  // local Git sessions only — workspace multi-repo, jj,
-  // GitButler, and P4 get the name-based defaults alone rather than guessing
+  // local Git sessions only — workspace multi-repo gets
+  // the name-based defaults alone rather than guessing
   // attributes for a tree git can't authoritatively resolve here. Patch and
   // diff type are parameterized for the same pin-before-await discipline as
   // buildSectionsSidecar.
@@ -517,12 +507,6 @@ export async function startReviewServer(
   const resolveAgentCwdReady = async (): Promise<string> => {
     return resolveAgentCwd();
   };
-  // GitButler's picker topology is live session state: stacks and branches can
-  // change without changing the currently-rendered patch. Carry a compact
-  // revision in the snapshot id so another tab cannot rebaseline the shared
-  // fingerprint and make an old picker look fresh. Ordinary Git/JJ/P4 snapshot
-  // ids remain byte-for-byte unchanged.
-  let currentContextRevision = getGitButlerContextRevision(clientGitContext) ?? "";
 
   // The "changes under review" context for Ask AI, built from the CURRENT view
   // by the SAME machine the launchable review jobs use (buildCommand above) —
@@ -541,7 +525,7 @@ export async function startReviewServer(
   // banner-silent. draftKey itself stays a pure content hash — drafts survive
   // content-identical mode round-trips.
   const currentSnapshotId = (): string =>
-    `${draftKey}:${currentDiffType}${currentContextRevision ? `:${currentContextRevision}` : ""}`;
+    `${draftKey}:${currentDiffType}`;
 
   // --- Durable feedback archive --------------------------------------------
   //
@@ -778,7 +762,7 @@ export async function startReviewServer(
           }
 
           // API: Linear commit history for the Commits panel. Git-local
-          // sessions only — workspace/jj/p4 don't offer the view (same
+          // sessions only — workspace reviews don't offer the view (same
           // gate the client's commitsCapable applies). Computed against the
           // same cwd as the active diff so worktree sessions list the
           // worktree's history, and against the active base so the divider
@@ -903,10 +887,7 @@ export async function startReviewServer(
               const result = await runVcsDiff(newDiffType as DiffType, base, defaultCwd, {
                 hideWhitespace: effectiveHideWhitespace,
               });
-              const resultContext = sessionVcsType === "gitbutler" && result.gitContext?.vcsType === "gitbutler"
-                ? result.gitContext
-                : undefined;
-              const resultBase = resultContext?.defaultBranch ?? base;
+              const resultBase = base;
 
               // A newer switch started while we computed — abandon before
               // touching shared state so we never clobber the latest request.
@@ -917,7 +898,7 @@ export async function startReviewServer(
               // Stage every field locally. No shared review state is written
               // until the final epoch guard, so a newer invalid request cannot
               // strand a patch/fingerprint from this request beside the prior
-              // GitButler context revision.
+              // snapshot state.
               const previousDiffType = currentDiffType;
 
               // Recompute gitContext for the effective cwd so the client's
@@ -930,15 +911,11 @@ export async function startReviewServer(
               // hot path (three git enumerations dominated click latency; a
               // historical commit's diff can't change any of it). The client
               // keeps its existing context when the field is absent.
-              let updatedContext = resultContext;
-              let updatedContextRevision = resultContext
-                ? getGitButlerContextRevision(resultContext) ?? ""
-                : undefined;
-              if (!updatedContext && gitContext && !isSameCwdCommitSwitch(previousDiffType as string, newDiffType as string)) {
+              let updatedContext: GitContext | undefined;
+              if (gitContext && !isSameCwdCommitSwitch(previousDiffType as string, newDiffType as string)) {
                 try {
                   const effectiveCwd = resolveVcsCwd(newDiffType as DiffType, gitContext.cwd);
                   updatedContext = await getVcsContext(effectiveCwd, sessionVcsType);
-                  updatedContextRevision = getGitButlerContextRevision(updatedContext) ?? "";
                 } catch {
                   /* best-effort */
                 }
@@ -950,9 +927,7 @@ export async function startReviewServer(
               // freshly-recomputed baseBehindRemote — otherwise the banner lags a
               // poll cycle switching INTO a base-relative mode, or lingers stale
               // switching AWAY from one. Local rev-parse only; cheap.
-              const nextBase = updatedContext && sessionVcsType === "gitbutler"
-                ? updatedContext.defaultBranch
-                : resultBase;
+              const nextBase = resultBase;
               const nextBaseBehindRemote = await computeBaseBehindRemote(
                 nextBase,
                 newDiffType as string,
@@ -977,10 +952,6 @@ export async function startReviewServer(
               baseBehindRemote = nextBaseBehindRemote;
               currentError = result.error;
               draftKey = contentHash(currentPatch);
-              if (updatedContext && sessionVcsType === "gitbutler") {
-                clientGitContext = updatedContext;
-                currentContextRevision = updatedContextRevision ?? "";
-              }
               captureDiffFingerprint(result.fingerprint);
               return Response.json({
                 rawPatch: currentPatch,

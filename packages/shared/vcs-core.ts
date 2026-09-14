@@ -17,27 +17,6 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { rmSync } from "node:fs";
-import {
-  type ReviewJjRuntime,
-  detectJjWorkspace,
-  getJjContext,
-  getJjSnapshotRevsets,
-  getJjDiffFingerprint,
-  getJjFileContentsForDiff,
-  isJjSnapshotDiffType,
-  resolveJjSnapshotEndpoint,
-  runJjDiff,
-} from "./jj-core";
-import {
-  type ReviewGitButlerRuntime,
-  detectGitButlerWorkspace,
-  getGitButlerContext,
-  getGitButlerDiffFingerprint,
-  getGitButlerFileContentsForDiff,
-  parseGitButlerDiffType,
-  runGitButlerDiff,
-} from "./gitbutler-core";
-
 export type {
   DiffOption,
   DiffResult,
@@ -48,9 +27,6 @@ export type {
 } from "./review-core";
 
 export {
-  JJ_TRUNK_REVSET,
-  jjCompareTargetRevset,
-  jjLineBaseRevset,
   parseCommitDiffType,
   parseRemoteBookmark,
   parseWorktreeDiffType,
@@ -71,8 +47,8 @@ export interface VcsProvider {
     oldPath?: string,
     cwd?: string,
   ): Promise<{ oldContent: string | null; newContent: string | null }>;
-  /** Cheap staleness fingerprint for a diff (see review-core/jj-core). Providers
-   * without an implementation (e.g. p4) are treated as always-fresh. */
+  /** Cheap staleness fingerprint for a diff. Providers
+   * without an implementation are treated as always-fresh. */
   getDiffFingerprint?(
     diffType: DiffType,
     defaultBranch: string,
@@ -102,7 +78,7 @@ export interface VcsSnapshot {
   cleanup(): void;
 }
 
-export type VcsSelection = "auto" | "git" | "gitbutler" | "jj" | "p4";
+export type VcsSelection = "auto" | "git";
 
 export interface VcsApi {
   detectVcs(cwd?: string): Promise<VcsProvider>;
@@ -161,7 +137,6 @@ export interface PreparedLocalReviewDiff {
 }
 
 const GIT_DIFF_TYPES = new Set(["since-base", "local-vs-remote", "uncommitted", "staged", "unstaged", "last-commit", "branch", "merge-base", "all"]);
-const JJ_DIFF_TYPES = new Set(["jj-current", "jj-last", "jj-line", "jj-evolog", "jj-all"]);
 
 function selectNearestProvider(
   candidates: Array<{ provider: VcsProvider; root: string | null; order: number }>,
@@ -253,81 +228,6 @@ export function createGitProvider(runtime: ReviewGitRuntime): VcsProvider {
   };
 }
 
-export function createJjProvider(runtime: ReviewJjRuntime, gitRuntime: ReviewGitRuntime): VcsProvider {
-  return {
-    id: "jj",
-
-    async detect(cwd?: string): Promise<boolean> {
-      return (await detectJjWorkspace(runtime, cwd)) !== null;
-    },
-
-    getRoot(cwd?: string): Promise<string | null> {
-      return detectJjWorkspace(runtime, cwd);
-    },
-
-    ownsDiffType(diffType: string): boolean {
-      return JJ_DIFF_TYPES.has(diffType);
-    },
-
-    getContext(cwd?: string): Promise<GitContext> {
-      return getJjContext(runtime, cwd);
-    },
-
-    runDiff(diffType: DiffType, defaultBranch: string, cwd?: string, options?: GitDiffOptions): Promise<DiffResult> {
-      return runJjDiff(runtime, diffType, defaultBranch, cwd, options);
-    },
-
-    getFileContents(diffType, defaultBranch, filePath, oldPath?, cwd?) {
-      return getJjFileContentsForDiff(runtime, diffType, defaultBranch, filePath, oldPath, cwd);
-    },
-
-    getDiffFingerprint(diffType, defaultBranch, cwd?) {
-      return getJjDiffFingerprint(runtime, diffType, defaultBranch, cwd);
-    },
-
-    supportsSnapshot: isJjSnapshotDiffType,
-
-    materializeSnapshot(options: VcsSnapshotOptions): Promise<VcsSnapshot> {
-      return materializeJjSnapshot(runtime, gitRuntime, options);
-    },
-  };
-}
-
-/** Create the provider for an actively checked-out GitButler workspace. */
-export function createGitButlerProvider(runtime: ReviewGitButlerRuntime): VcsProvider {
-  return {
-    id: "gitbutler",
-
-    async detect(cwd?: string): Promise<boolean> {
-      return (await detectGitButlerWorkspace(runtime, cwd)) !== null;
-    },
-
-    getRoot(cwd?: string): Promise<string | null> {
-      return detectGitButlerWorkspace(runtime, cwd);
-    },
-
-    ownsDiffType(diffType: string): boolean {
-      return parseGitButlerDiffType(diffType) !== null;
-    },
-
-    getContext(cwd?: string): Promise<GitContext> {
-      return getGitButlerContext(runtime, cwd);
-    },
-
-    runDiff(diffType: DiffType, _defaultBranch: string, cwd?: string, options?: GitDiffOptions): Promise<DiffResult> {
-      return runGitButlerDiff(runtime, diffType, cwd, options);
-    },
-
-    getFileContents(diffType, _defaultBranch, filePath, oldPath?, cwd?) {
-      return getGitButlerFileContentsForDiff(runtime, diffType, filePath, oldPath, cwd);
-    },
-
-    getDiffFingerprint(diffType, _defaultBranch, cwd?, options?) {
-      return getGitButlerDiffFingerprint(runtime, diffType, cwd, options);
-    },
-  };
-}
-
 export function createVcsApi(providers: readonly VcsProvider[]): VcsApi {
   const providerList = [...providers];
   const defaultProvider = providerList.find((provider) => provider.id === "git") ?? providerList[0];
@@ -377,9 +277,8 @@ export function createVcsApi(providers: readonly VcsProvider[]): VcsApi {
 
   async function detectVcs(cwd?: string): Promise<VcsProvider> {
     // OpenCode and Pi keep this module alive across review sessions. Always
-    // re-detect at the session boundary so `but setup`/`but teardown`, JJ
-    // colocating, or nested-repo changes cannot leave a stale provider with
-    // the wrong staging semantics cached for this cwd.
+    // re-detect at the session boundary so nested-repo changes cannot leave
+    // a stale provider with the wrong staging semantics cached for this cwd.
     return (await detectManagedVcs(cwd)) ?? defaultProvider;
   }
 
@@ -400,12 +299,6 @@ export function createVcsApi(providers: readonly VcsProvider[]): VcsApi {
     switch (id) {
       case "git":
         return "Git";
-      case "gitbutler":
-        return "GitButler";
-      case "jj":
-        return "JJ";
-      case "p4":
-        return "P4";
     }
   }
 
@@ -458,12 +351,6 @@ export function createVcsApi(providers: readonly VcsProvider[]): VcsApi {
     requestedBase: string | undefined,
     ownsRequestedDiffType: boolean,
   ): string {
-    if (gitContext.vcsType === "jj" || gitContext.vcsType === "gitbutler") {
-      if (diffType === "jj-line" && ownsRequestedDiffType && requestedBase) {
-        return requestedBase;
-      }
-      return gitContext.defaultBranch;
-    }
     return requestedBase ?? gitContext.defaultBranch;
   }
 
@@ -575,12 +462,6 @@ export function resolveInitialDiffType(
   gitContext: GitContext,
   configuredDiffType: DiffType,
 ): DiffType {
-  if (gitContext.vcsType === "p4") {
-    return "p4-default";
-  }
-  if (gitContext.vcsType === "jj") {
-    return "jj-current";
-  }
   if (gitContext.diffOptions.some((option) => option.id === configuredDiffType)) {
     return configuredDiffType;
   }
@@ -590,7 +471,6 @@ export function resolveInitialDiffType(
 }
 
 const SNAPSHOT_TIMEOUT_MS = 20_000;
-const MAX_JJ_SNAPSHOT_PATCH_BYTES = 64 * 1024 * 1024;
 
 async function git(runtime: ReviewGitRuntime, cwd: string, args: string[], stdin?: string): Promise<string> {
   const result = await runtime.runGit(args, { cwd, stdin, timeoutMs: SNAPSHOT_TIMEOUT_MS });
@@ -748,101 +628,4 @@ async function materializeGitSnapshot(
   }
   const stagedPatch = await git(runtime, cwd, ["diff", "--cached", "--binary", "--full-index", "--no-ext-diff"]);
   return createSyntheticSnapshot(runtime, cwd, head, [stagedPatch, patch]);
-}
-
-/**
- * One `jj diff` between two revisions, bounded and stripped of the entries
- * `git apply` cannot replay.
- *
- * The byte cap is passed to the runtime so it stops READING at the limit; the
- * post-check only covers runtimes that ignore the option, so a 64 MB tree can
- * never be fully buffered just to be rejected afterwards.
- */
-async function jjSnapshotPatch(
-  runtime: ReviewJjRuntime,
-  options: VcsSnapshotOptions,
-  from: string,
-  to: string,
-  filesets: readonly string[],
-): Promise<string> {
-  if (options.signal?.aborted) throw new Error("Snapshot materialization was superseded by a newer review snapshot.");
-  if (filesets.length === 0) return "";
-
-  const result = await runtime.runJj([
-    "--ignore-working-copy",
-    "diff",
-    "--git",
-    "--from",
-    from,
-    "--to",
-    to,
-    ...filesets,
-  ], { cwd: options.cwd, timeoutMs: SNAPSHOT_TIMEOUT_MS, maxOutputBytes: MAX_JJ_SNAPSHOT_PATCH_BYTES });
-
-  if (result.truncated || Buffer.byteLength(result.stdout, "utf8") > MAX_JJ_SNAPSHOT_PATCH_BYTES) {
-    throw new Error("Jujutsu snapshot exceeded the 64 MB materialization limit.");
-  }
-  if (result.exitCode !== 0) {
-    throw new Error((result.stderr.trim() || "Jujutsu diff failed.").slice(0, 2_000));
-  }
-  return result.stdout
-    .split(/(?=^diff --git )/m)
-    .filter((chunk) => !/^Binary files /m.test(chunk))
-    .join("");
-}
-
-async function materializeJjSnapshot(
-  jjRuntime: ReviewJjRuntime,
-  gitRuntime: ReviewGitRuntime,
-  options: VcsSnapshotOptions,
-): Promise<VcsSnapshot> {
-  const endpoints = getJjSnapshotRevsets(options.diffType, options.base);
-  if (!endpoints) throw new Error(`Snapshot materialization does not support the ${options.diffType} Jujutsu review mode.`);
-
-  // Parent hops resolve against the repo before any diff runs, so a merge
-  // revision cannot hand `jj diff` an ambiguous `--to`.
-  const fromRevision = await resolveJjSnapshotEndpoint(jjRuntime, endpoints.from, options.cwd);
-  const toRevision = await resolveJjSnapshotEndpoint(jjRuntime, endpoints.to, options.cwd);
-
-  // `root-glob-i:`, not `glob-i:`: plain filesets are relative to the INVOCATION
-  // directory, so reviewing from a subdirectory would silently drop every source
-  // file above it and hand CallDiff a partial repository call graph.
-  const filesets = options.includedExtensions.map((extension) => `root-glob-i:"**/*${extension}"`);
-
-  const tempRoot = await mkdtemp(join(tmpdir(), "hypermark-review-jj-snapshot-"));
-  const snapshotCwd = join(tempRoot, "repo");
-  const cleanup = () => removeDirectoryBestEffort(tempRoot);
-  try {
-    await git(gitRuntime, tempRoot, ["init", "--quiet", "--", snapshotCwd]);
-    const emptyCommit = await commitIndex(gitRuntime, snapshotCwd, undefined, "Hypermark review empty snapshot");
-
-    // Only the base side materializes the whole parseable tree.
-    const basePatch = await jjSnapshotPatch(jjRuntime, options, "root()", fromRevision, filesets);
-    await git(gitRuntime, snapshotCwd, ["read-tree", "--empty"]);
-    await applyPatchToIndex(gitRuntime, snapshotCwd, basePatch);
-    const fromCommit = await commitIndex(gitRuntime, snapshotCwd, emptyCommit, "Hypermark review Jujutsu snapshot");
-
-    // The second side is the base tree plus the CHANGED files, so materialization
-    // cost scales with the review instead of with the repository. Falling back to
-    // a second whole-tree pass keeps a patch git cannot replay from failing the
-    // analysis outright.
-    let toCommit: string;
-    try {
-      const deltaPatch = await jjSnapshotPatch(jjRuntime, options, fromRevision, toRevision, filesets);
-      await git(gitRuntime, snapshotCwd, ["read-tree", fromCommit]);
-      await applyPatchToIndex(gitRuntime, snapshotCwd, deltaPatch);
-      toCommit = await commitIndex(gitRuntime, snapshotCwd, fromCommit, "Hypermark review Jujutsu snapshot");
-    } catch (error) {
-      if (options.signal?.aborted) throw error;
-      const wholePatch = await jjSnapshotPatch(jjRuntime, options, "root()", toRevision, filesets);
-      await git(gitRuntime, snapshotCwd, ["read-tree", "--empty"]);
-      await applyPatchToIndex(gitRuntime, snapshotCwd, wholePatch);
-      toCommit = await commitIndex(gitRuntime, snapshotCwd, emptyCommit, "Hypermark review Jujutsu snapshot");
-    }
-
-    return { cwd: snapshotCwd, from: fromCommit, to: toCommit, cleanup };
-  } catch (error) {
-    cleanup();
-    throw error;
-  }
 }

@@ -15,7 +15,6 @@ import { getFileBrowserMaxFiles } from "./resolve-file";
 
 const SKIP_DIRS = new Set([
   ".git",
-  ".jj",
   "node_modules",
   ".turbo",
   ".next",
@@ -24,7 +23,7 @@ const SKIP_DIRS = new Set([
   "coverage",
 ]);
 
-const VCS_MARKERS = [".jj", ".git"] as const;
+const VCS_MARKERS = [".git"] as const;
 
 export interface WorkspacePathEntry {
   label: string;
@@ -212,7 +211,7 @@ function collectWorkspaceRepos(
 }
 
 /**
- * Discovers the first Git, GitButler, or JJ repository below each workspace path.
+ * Discovers the first Git repository below each workspace path.
  *
  * Directory symlinks and junctions are followed while their logical paths are
  * retained for labels and file routing. Each canonical directory is traversed

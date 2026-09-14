@@ -30,20 +30,6 @@ function describeDiff(ctx: FeedbackDiffContext): string {
     const subject = ctx.commitSubject ? ` — ${ctx.commitSubject}` : '';
     return `Commit \`${commitSha.slice(0, 7)}\`${subject} (diff vs its parent)${worktreePath ? ` _(worktree: ${worktreePath})_` : ''}`;
   }
-  if (mode === 'gitbutler:workspace') {
-    label = 'GitButler workspace (all applied changes)';
-    return worktreePath ? `${label} _(worktree: ${worktreePath})_` : label;
-  }
-  for (const [prefix, kind] of [
-    ['gitbutler:stack:', 'stack'],
-    ['gitbutler:branch:', 'branch'],
-  ] as const) {
-    if (!mode.startsWith(prefix)) continue;
-    let target = mode.slice(prefix.length);
-    try { target = decodeURIComponent(target); } catch { /* keep encoded fallback */ }
-    label = `GitButler ${kind} \`${target}\` (committed changes)`;
-    return worktreePath ? `${label} _(worktree: ${worktreePath})_` : label;
-  }
   switch (mode) {
     case "uncommitted":  label = "Uncommitted changes"; break;
     case "local-vs-remote": label = "Local vs remote branch (committed + uncommitted + untracked)"; break;
@@ -54,15 +40,11 @@ function describeDiff(ctx: FeedbackDiffContext): string {
     case "workspace-staged":   label = "Workspace staged changes"; break;
     case "workspace-unstaged": label = "Workspace unstaged changes"; break;
     case "workspace-last":     label = "Workspace last change"; break;
-    case "jj-current":   label = "Current change"; break;
-    case "jj-last":      label = "Last change"; break;
-    case "jj-line":      label = base ? `Line of work vs \`${base}\`` : "Line of work"; break;
-    case "jj-all":       label = "All files"; break;
     case "since-base":   label = base ? `All changes since \`${base}\` (committed + uncommitted + untracked)` : "All changes since base (committed + uncommitted + untracked)"; break;
     case "branch":       label = base ? `Branch diff vs \`${base}\`` : "Branch diff"; break;
     case "merge-base":   label = base ? `Committed changes vs \`${base}\`` : "Committed changes"; break;
     case "all":          label = "All files"; break;
-    default:             label = mode; // p4-* or anything else — show raw
+    default:             label = mode; // show raw
   }
   return worktreePath ? `${label} _(worktree: ${worktreePath})_` : label;
 }
@@ -82,17 +64,6 @@ function commitMismatchNote(ann: CodeAnnotation, currentCommitSha?: string): str
     return `_Made on a working-tree diff, not commit \`${currentCommitSha.slice(0, 7)}\` — anchored there._\n`;
   }
   return '';
-}
-
-function gitButlerMismatchNote(ann: CodeAnnotation, current?: FeedbackDiffContext): string {
-  if (!ann.gitButlerDiffType) return '';
-  const sameSnapshot = !ann.gitButlerSnapshotId || ann.gitButlerSnapshotId === current?.snapshotId;
-  if (ann.gitButlerDiffType === current?.mode && ann.gitButlerBase === current.base && sameSnapshot) return '';
-  const source = ann.gitButlerDiffLabel ?? describeDiff({
-    mode: ann.gitButlerDiffType,
-    base: ann.gitButlerBase,
-  });
-  return `_Made on ${source} — anchored to that GitButler diff, not the diff above._\n`;
 }
 
 function formatAttachedImages(images?: ImageAttachment[]): string {
@@ -122,7 +93,6 @@ function formatFileAnnotations(fileAnnotations: CodeAnnotation[], headingLevel =
     if (scope === 'file') {
       output += `${headingLevel} File Comment\n`;
       output += commitMismatchNote(ann, commitShaFromMode(currentDiff?.mode));
-      output += gitButlerMismatchNote(ann, currentDiff);
       if (ann.text) {
         output += `${ann.text}\n`;
       }
@@ -139,7 +109,6 @@ function formatFileAnnotations(fileAnnotations: CodeAnnotation[], headingLevel =
       : '';
     output += `${headingLevel} ${lineRange} (${ann.side})${tokenSuffix}\n`;
     output += commitMismatchNote(ann, commitShaFromMode(currentDiff?.mode));
-    output += gitButlerMismatchNote(ann, currentDiff);
 
     if (ann.text) {
       output += `${ann.text}\n`;

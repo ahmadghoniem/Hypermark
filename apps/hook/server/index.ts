@@ -8,7 +8,7 @@
  *    - Reads hook event from stdin, extracts plan content
  *    - Serves UI, returns approve/deny decision to stdout
  *
- * 2. Code Review (`hypermark review`, `hypermark review --git`, `hypermark review --gitbutler`):
+ * 2. Code Review (`hypermark review`, `hypermark review --git`):
  *    - Triggered by /review slash command
  *    - Runs git diff, opens review UI
  *    - Outputs feedback to stdout (captured by slash command)
@@ -472,7 +472,7 @@ if (args[0] === "sessions") {
       hideWhitespace: config.diffOptions?.hideWhitespace ?? false,
     });
     if (workspace.repos.length === 0) {
-      console.error("Not in a VCS repo and no nested Git/JJ/GitButler repositories were found.");
+      console.error("Not in a Git repo and no nested Git repositories were found.");
       process.exit(1);
     }
     rawPatch = workspace.rawPatch;

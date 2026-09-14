@@ -30,7 +30,7 @@ describe("CLI top-level help", () => {
     expect(output).toContain("hypermark --help");
     expect(output).toContain("hypermark --version, -v");
     expect(output).toContain("hypermark [--browser <name>]");
-    expect(output).toContain("hypermark review [--git | --gitbutler]");
+    expect(output).toContain("hypermark review [--git]");
     expect(output).toContain("hypermark annotate <file.md | file.txt | file.html | https://... | folder/>");
     expect(output).toContain("[--markdown] [--no-jina]");
     expect(output).toContain("hypermark annotate-last [--stdin]");
@@ -61,7 +61,6 @@ describe("CLI subcommand help", () => {
   test("does not treat a real review invocation as help", () => {
     expect(isSubcommandHelpInvocation(["review"])).toBeNull();
     expect(isSubcommandHelpInvocation(["review", "--git"])).toBeNull();
-    expect(isSubcommandHelpInvocation(["review", "--gitbutler"])).toBeNull();
   });
 
   test("resolves the `last` alias to annotate-last help", () => {
@@ -94,9 +93,9 @@ describe("CLI subcommand help", () => {
 
   test("renders subcommand-specific usage", () => {
     expect(formatSubcommandHelp("review")).toContain(
-      "hypermark review [--git | --gitbutler]",
+      "hypermark review [--git]",
     );
-    expect(formatSubcommandHelp("review")).toContain("--gitbutler");
+    expect(formatSubcommandHelp("review")).toContain("--git");
     expect(formatSubcommandHelp("annotate")).toContain("--no-jina");
     expect(formatSubcommandHelp("annotate")).toContain("--require-approval");
     expect(formatSubcommandHelp("annotate")).toContain("--result-file <path>");

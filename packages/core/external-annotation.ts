@@ -197,10 +197,6 @@ interface ReviewAnnotation {
   reasoning?: string; // Validation chain explaining how the issue was confirmed
   commitSha?: string;
   commitSubject?: string;
-  gitButlerDiffType?: string;
-  gitButlerDiffLabel?: string;
-  gitButlerBase?: string;
-  gitButlerSnapshotId?: string;
 }
 
 const VALID_REVIEW_TYPES = ["comment", "suggestion", "concern"];
@@ -334,10 +330,6 @@ export function transformReviewInput(
       ...(typeof obj.reasoning === "string" && { reasoning: obj.reasoning }),
       ...(typeof obj.commitSha === "string" && { commitSha: obj.commitSha }),
       ...(typeof obj.commitSubject === "string" && { commitSubject: obj.commitSubject }),
-      ...(typeof obj.gitButlerDiffType === "string" && { gitButlerDiffType: obj.gitButlerDiffType }),
-      ...(typeof obj.gitButlerDiffLabel === "string" && { gitButlerDiffLabel: obj.gitButlerDiffLabel }),
-      ...(typeof obj.gitButlerBase === "string" && { gitButlerBase: obj.gitButlerBase }),
-      ...(typeof obj.gitButlerSnapshotId === "string" && { gitButlerSnapshotId: obj.gitButlerSnapshotId }),
     });
   }
 

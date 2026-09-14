@@ -50,7 +50,7 @@ Annotate plans, specs, messages, html, then send the feedback to your agent.
 
 ### Code Review
 
-Review local changes or remote PRs. Comment on diffs, suggest code. Your comments go back to the agent. Works with Git, GitButler, Jujutsu (`jj`), Perforce (`p4`), GitHub, and GitLab.
+Review local changes or remote PRs. Comment on diffs, suggest code. Your comments go back to the agent. Works with Git, GitHub, and GitLab.
 
 </td>
 <td width="60%">
@@ -90,10 +90,7 @@ Need a realistic document to try? Any markdown file works — try one of your ow
 
 ```
 /hypermark-review                    # Review uncommitted changes
-hypermark review --gitbutler         # Review an active GitButler workspace
 ```
-
-GitButler users can review the whole workspace, one stack, or one branch layer.
 
 ### Plan mode
 

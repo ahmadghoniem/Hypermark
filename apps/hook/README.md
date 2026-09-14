@@ -89,6 +89,6 @@ Hypermark's slash commands are installed as Claude Code skills in `~/.claude/ski
 
 | Command | Description |
 |---------|-------------|
-| `/hypermark-review [--git \| --gitbutler]` | Open code review UI for current changes or a GitHub PR; optionally force the Git or GitButler provider |
+| `/hypermark-review [--git]` | Open code review UI for current changes or a GitHub PR; optionally force the Git provider |
 | `/hypermark-annotate <file.md \| file.html \| https://... \| folder/>` | Annotate a file, URL, or folder |
 | `/hypermark-last` | Annotate the agent's last message |

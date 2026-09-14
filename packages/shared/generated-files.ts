@@ -77,8 +77,7 @@ const DEFAULT_SUFFIXES = DEFAULT_GENERATED_PATTERNS.filter((p) =>
 /**
  * Does the path's LAST segment match a built-in generated default? Pure and
  * git-free, so it also serves the non-git degrade modes (piped patches,
- * workspace multi-repo folder-prefixed paths, PR worktrees, jj, GitButler,
- * P4) where attribute lookup is unavailable.
+ * workspace multi-repo folder-prefixed paths, PR worktrees) where attribute lookup is unavailable.
  */
 export function isDefaultGeneratedPath(path: string): boolean {
   const name = path.slice(path.lastIndexOf("/") + 1);
