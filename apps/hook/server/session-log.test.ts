@@ -1164,7 +1164,7 @@ describe("resolveSessionLogByAncestorPids", () => {
         sessionsDir,
         projectsDir,
       });
-      expect(result).toBe(logPath);
+      expect(result?.logPath).toBe(logPath);
     } finally {
       cleanup();
     }
@@ -1187,7 +1187,7 @@ describe("resolveSessionLogByAncestorPids", () => {
         sessionsDir,
         projectsDir,
       });
-      expect(result).toBe(logPath);
+      expect(result?.logPath).toBe(logPath);
     } finally {
       cleanup();
     }
@@ -1259,7 +1259,7 @@ describe("resolveSessionLogByAncestorPids", () => {
       });
 
       // Should prefer the ghost session (newer, unregistered)
-      expect(result).toBe(newLog);
+      expect(result?.logPath).toBe(newLog);
     } finally {
       cleanup();
     }
@@ -1300,7 +1300,7 @@ describe("resolveSessionLogByAncestorPids", () => {
       });
 
       // Should keep the PID-based result (session B is registered, not a ghost)
-      expect(result).toBe(logA);
+      expect(result?.logPath).toBe(logA);
     } finally {
       cleanup();
     }
