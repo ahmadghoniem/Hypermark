@@ -140,12 +140,12 @@ const CodeSnippetPreview: React.FC<{
 
   return createPortal(
     <div
-      className="fixed z-9999 rounded-lg border border-border bg-card shadow-xl flex flex-col"
+      className="fixed z-overlay rounded-lg border border-border bg-card shadow-xl flex flex-col"
       style={{ top, bottom, left, maxWidth: 'min(600px, 90vw)', maxHeight: '300px' }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      <div className="px-3 py-1.5 border-b border-border/50 text-[10px] text-muted-foreground font-mono flex items-center justify-between gap-4 shrink-0">
+      <div className="px-3 py-1.5 border-b border-border/50 text-3xs text-muted-foreground font-mono flex items-center justify-between gap-4 shrink-0">
         <span>{pathFileName(filepath)}</span>
         <span className="opacity-60">{lineEnd && lineEnd !== line ? `lines ${line}–${lineEnd}` : `line ${line}`}</span>
       </div>
@@ -267,7 +267,7 @@ const CodeFileLink: React.FC<{
         {display}
         <CodeFileIcon />
         {isAmbiguous && (
-          <sup className="text-[0.6rem] opacity-70 -ml-0.5">{(gate as { matches: string[] }).matches.length}</sup>
+          <sup className="text-4xs opacity-70 -ml-0.5">{(gate as { matches: string[] }).matches.length}</sup>
         )}
       </code>
       {hoverPreview && hasLineRef && (

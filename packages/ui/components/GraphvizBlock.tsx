@@ -436,7 +436,7 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
 
   if (error) {
     return (
-      <div className="my-5 rounded-lg border border-destructive/30 bg-destructive/5 overflow-hidden">
+      <div className="my-plan-wide rounded-lg border border-destructive/30 bg-destructive/5 overflow-hidden">
         <div className="px-3 py-2 bg-destructive/10 border-b border-destructive/20 flex items-center gap-2">
           <svg className="size-4 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -539,7 +539,7 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
           <span
             ref={zoomDisplayRef}
             hidden
-            className="min-w-10 rounded-sm bg-muted/85 px-1 py-0.5 text-[10px] text-center text-muted-foreground tabular-nums leading-tight"
+            className="min-w-10 rounded-sm bg-muted/85 px-1 py-0.5 text-3xs/tight text-center text-muted-foreground tabular-nums"
           />
         </>
       )}
@@ -571,13 +571,13 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
 
   return (
     <>
-      <div className="my-5 group relative" data-block-id={block.id}>
+      <div className="my-plan-wide group relative" data-block-id={block.id}>
         {!isExpanded && controls}
         {showSource || !svg ? inlineSource : !isExpanded ? diagramBody : <div className="rounded-xl border border-border/30 bg-muted/10" style={{ height: naturalHeight }} />}
       </div>
 
       {!showSource && svg && isExpanded && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-9999 bg-background/90 backdrop-blur-sm p-4 md:p-6">
+        <div className="fixed inset-0 z-overlay bg-background/90 backdrop-blur-sm p-4 md:p-6">
           <div className="mx-auto flex h-full max-w-[min(96vw,110rem)] flex-col gap-3">
             <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
               <span className="truncate">Graphviz diagram</span>

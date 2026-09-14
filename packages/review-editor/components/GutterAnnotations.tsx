@@ -374,7 +374,7 @@ export const GutterAnnotationPopup: React.FC<GutterAnnotationPopupProps> = ({
         // deletes an in-progress draft — that is Cancel's job in the composer.
         controller.close({ restoreFocus: true });
       }}
-      className="fixed z-100 flex flex-col gap-2 rounded-xl border border-border bg-popover p-2 shadow-2xl overflow-y-auto"
+      className="fixed z-popover flex flex-col gap-2 rounded-xl border border-border bg-popover p-2 shadow-2xl overflow-y-auto"
       style={{
         left,
         width,
@@ -442,7 +442,7 @@ const GutterAnnotationEntry: React.FC<GutterAnnotationEntryProps> = ({
         <div className="review-comment-body">{renderInlineMarkdown(metadata.text)}</div>
       )}
       {metadata.reasoning && (
-        <div className="review-comment-reasoning text-[11px] text-muted-foreground/60 leading-relaxed mt-1.5">
+        <div className="review-comment-reasoning text-2xs/relaxed text-muted-foreground/60 mt-1.5">
           {metadata.reasoning}
         </div>
       )}
@@ -454,7 +454,7 @@ const GutterAnnotationEntry: React.FC<GutterAnnotationEntryProps> = ({
               e.stopPropagation();
               onEdit(metadata.annotationId);
             }}
-            className="px-2 py-1 text-[11px] font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90"
+            className="px-2 py-1 text-2xs font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90"
           >
             Edit
           </button>
@@ -464,7 +464,7 @@ const GutterAnnotationEntry: React.FC<GutterAnnotationEntryProps> = ({
               e.stopPropagation();
               onDelete(metadata.annotationId);
             }}
-            className="px-2 py-1 text-[11px] rounded-md text-muted-foreground hover:text-destructive hover:bg-muted"
+            className="px-2 py-1 text-2xs rounded-md text-muted-foreground hover:text-destructive hover:bg-muted"
           >
             Delete
           </button>

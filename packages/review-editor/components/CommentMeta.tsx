@@ -29,13 +29,13 @@ export const CommentMeta: React.FC<CommentMetaProps> = ({
     <div className="flex min-w-0 items-center gap-1.5">
       {leading}
       {author && (
-        <span className="text-[10px] truncate max-w-30 text-muted-foreground/70">
+        <span className="text-3xs truncate max-w-30 text-muted-foreground/70">
           {author}
         </span>
       )}
     </div>
     {createdAt != null && (
-      <span className="ml-auto flex-none text-[10px] text-muted-foreground/50">
+      <span className="ml-auto flex-none text-3xs text-muted-foreground/50">
         {formatRelativeTime(createdAt)}
       </span>
     )}

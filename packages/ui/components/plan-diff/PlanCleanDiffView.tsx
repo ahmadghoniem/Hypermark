@@ -430,7 +430,7 @@ const HEADING_STYLE_FALLBACK = "text-base font-semibold mb-2 mt-4";
 const headingStyleFor = (level: number): string =>
   HEADING_STYLE_BY_LEVEL[level] || HEADING_STYLE_FALLBACK;
 
-const PARAGRAPH_CLASS = "mb-4 leading-relaxed text-foreground/90 text-[15px]";
+const PARAGRAPH_CLASS = "mb-plan text-plan text-foreground/90";
 const LIST_ITEM_ROW_CLASS = "flex items-start gap-3 my-1.5";
 const listItemIndentRem = (level: number): string => `${level * 1.25}rem`;
 const listItemTextClass = (isCheckbox: boolean, checked?: boolean): string =>
@@ -576,7 +576,7 @@ const SimpleBlockRenderer: React.FC<{ block: Block; orderedIndex?: number | null
       // renders as two <p> children instead of collapsing to one line.
       const paragraphs = block.content.split(/\n\n+/);
       return (
-        <blockquote className="border-l-2 border-primary/50 pl-4 my-4 text-muted-foreground italic">
+        <blockquote className="border-l-2 border-primary/50 pl-4 my-plan text-muted-foreground italic">
           {paragraphs.map((para, i) => (
             <p key={i} className={i > 0 ? "mt-2" : ""}>
               <InlineMarkdown text={para} />
@@ -611,7 +611,7 @@ const SimpleBlockRenderer: React.FC<{ block: Block; orderedIndex?: number | null
       return <SimpleCodeBlock block={block} />;
 
     case "hr":
-      return <hr className="border-border/30 my-8" />;
+      return <hr className="border-border/30 my-plan-rule" />;
 
     case "table": {
       const lines = block.content.split('\n').filter(line => line.trim());
@@ -626,7 +626,7 @@ const SimpleBlockRenderer: React.FC<{ block: Block; orderedIndex?: number | null
         rows.push(parseRow(line));
       }
       return (
-        <div className="my-4 overflow-x-auto">
+        <div className="my-plan overflow-x-auto">
           <table className="min-w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-border">
@@ -675,14 +675,14 @@ const SimpleCodeBlock: React.FC<{ block: Block }> = ({ block }) => {
   }, [block.content, block.language, fenceTheme]);
 
   return (
-    <div className="relative group my-5">
+    <div className="relative group my-plan-wide">
       <pre className="bg-muted/50 border border-border/30 rounded-lg overflow-x-auto">
         <code ref={codeRef} className={codeBlockClassName(block.language)}>
           {block.content}
         </code>
       </pre>
       {block.language && (
-        <span className="absolute top-2 right-2 text-[9px] font-mono text-muted-foreground/50">
+        <span className="absolute top-2 right-2 text-4xs font-mono text-muted-foreground/50">
           {block.language}
         </span>
       )}

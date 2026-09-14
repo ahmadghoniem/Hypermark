@@ -13,7 +13,7 @@ const Kbd: React.FC<{ children: React.ReactNode; wide?: boolean }> = ({ children
   <kbd
     className={`inline-flex items-center justify-center h-5.5 ${
       wide ? 'min-w-5.5 px-1.5' : 'min-w-5.5'
-    } rounded-sm bg-muted border border-border/60 border-b-2 text-[11px] font-mono leading-none text-foreground/80 shadow-sm`}
+    } rounded-sm bg-muted border border-border/60 border-b-2 text-2xs font-mono leading-none text-foreground/80 shadow-sm`}
   >
     {children}
   </kbd>
@@ -39,7 +39,7 @@ const Bindings: React.FC<{ bindings: string[] }> = ({ bindings }) => (
   <span className="inline-flex items-center gap-1.5">
     {bindings.map((binding, i) => (
       <React.Fragment key={binding}>
-        {i > 0 && <span className="text-[10px] text-muted-foreground/50">or</span>}
+        {i > 0 && <span className="text-3xs text-muted-foreground/50">or</span>}
         <Keys keys={formatShortcutBindingTokens(binding)} />
       </React.Fragment>
     ))}
@@ -54,8 +54,8 @@ const ShortcutRow: React.FC<{ shortcut: ShortcutEntry }> = ({ shortcut }) => (
       {shortcut.description}
       {shortcut.hint && (
         <span className="relative group ml-1 inline-flex">
-          <span className="inline-flex items-center justify-center size-3.5 rounded-full text-[9px] font-medium bg-muted-foreground/15 text-muted-foreground/60 cursor-default">?</span>
-          <span className="absolute bottom-full left-0 mb-1.5 px-2.5 py-1.5 rounded-sm bg-foreground text-background text-[11px] leading-snug w-80 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg z-50">
+          <span className="inline-flex items-center justify-center size-3.5 rounded-full text-4xs font-medium bg-muted-foreground/15 text-muted-foreground/60 cursor-default">?</span>
+          <span className="absolute bottom-full left-0 mb-1.5 px-2.5 py-1.5 rounded-sm bg-foreground text-background text-2xs/snug w-80 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg z-chrome">
             {shortcut.hint}
           </span>
         </span>
@@ -69,7 +69,7 @@ const ShortcutRow: React.FC<{ shortcut: ShortcutEntry }> = ({ shortcut }) => (
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <div className="space-y-0.5">
-    <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 mb-1.5">
+    <div className="text-3xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-1.5">
       {title}
     </div>
     {children}

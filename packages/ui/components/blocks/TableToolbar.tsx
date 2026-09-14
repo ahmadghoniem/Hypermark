@@ -83,7 +83,7 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
   return createPortal(
     <div
       ref={toolbarRef}
-      className="fixed z-100 bg-popover border border-border rounded-md shadow-md"
+      className="fixed z-popover bg-popover border border-border rounded-md shadow-md"
       style={style}
       onMouseDown={(e) => e.stopPropagation()}
       onMouseEnter={onMouseEnter}
@@ -112,7 +112,7 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
         <button
           onClick={handleCopyCsv}
           title={copiedCsv ? 'Copied as CSV!' : 'Copy as CSV'}
-          className={`px-1.5 py-1 rounded-sm text-[10px] font-bold tracking-tight uppercase leading-none transition-colors ${
+          className={`px-1.5 py-1 rounded-sm text-3xs font-bold tracking-tight uppercase leading-none transition-colors ${
             copiedCsv ? 'text-success' : 'text-primary hover:bg-primary/10'
           }`}
         >

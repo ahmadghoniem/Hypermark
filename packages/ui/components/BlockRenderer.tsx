@@ -63,7 +63,7 @@ export const BlockRenderer: React.FC<{
       const paragraphs = block.content.split(/\n\n+/);
       return (
         <blockquote
-          className="border-l-2 border-primary/50 pl-4 my-4 text-muted-foreground italic"
+          className="border-l-2 border-primary/50 pl-4 my-plan text-muted-foreground italic"
           data-block-id={block.id}
         >
           {paragraphs.map((para, i) => (
@@ -125,7 +125,7 @@ export const BlockRenderer: React.FC<{
       return <MathBlock block={block} />;
 
     case 'hr':
-      return <hr className="border-border/30 my-8" data-block-id={block.id} />;
+      return <hr className="border-border/30 my-plan-rule" data-block-id={block.id} />;
 
     case 'html':
       return <HtmlBlock block={block} imageBaseDir={imageBaseDir} onOpenLinkedDoc={onOpenLinkedDoc} onOpenCodeFile={onOpenCodeFile} onNavigateAnchor={onNavigateAnchor} />;
@@ -137,7 +137,7 @@ export const BlockRenderer: React.FC<{
           blockId={block.id}
           kind={kind}
           body={block.content}
-          containerClassName={`directive directive-${kind} my-4 px-4 py-3 rounded-md border`}
+          containerClassName={`directive directive-${kind} my-plan px-4 py-3 rounded-md border`}
           blockType="directive"
           kindAttribute={kind}
           onOpenLinkedDoc={onOpenLinkedDoc}
@@ -153,7 +153,7 @@ export const BlockRenderer: React.FC<{
     default:
       return (
         <p
-          className="mb-4 leading-relaxed text-foreground/90 text-[15px]"
+          className="mb-plan text-plan text-foreground/90"
           data-block-id={block.id}
         >
           <InlineMarkdown imageBaseDir={imageBaseDir} onImageClick={onImageClick} text={block.content} onOpenLinkedDoc={onOpenLinkedDoc} onOpenCodeFile={onOpenCodeFile} githubRepo={githubRepo} onNavigateAnchor={onNavigateAnchor} />

@@ -3773,7 +3773,7 @@ const AppInner: React.FC = () => {
       {isAgentTerminalVisible && (
         <ResizeHandle
           {...agentTerminalResize.handleProps}
-          className="hidden lg:block z-55"
+          className="hidden lg:block z-resize"
           side={agentTerminalPlacement}
           hideHoverTrack
           tooltip={RESIZE_HANDLE_TOOLTIP}
@@ -4001,7 +4001,7 @@ const AppInner: React.FC = () => {
           {sidebar.isOpen && (
             <div className="contents group/sidebar">
               {renderPlanSidebar()}
-              <ResizeHandle {...tocResize.handleProps} className="hidden lg:block z-55" side="left" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={sidebar.close} />
+              <ResizeHandle {...tocResize.handleProps} className="hidden lg:block z-resize" side="left" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={sidebar.close} />
             </div>
           )}
 
@@ -4086,7 +4086,7 @@ const AppInner: React.FC = () => {
                     className="absolute -top-5 inset-x-0 mx-auto w-full flex justify-end pointer-events-none"
                     style={annotateReaderMaxWidth === null ? undefined : { maxWidth: annotateReaderMaxWidth ?? 832 }}
                   >
-                    <div className={`pointer-events-auto flex items-center gap-1.5 text-[11px] tracking-wide mr-1`}>
+                    <div className={`pointer-events-auto flex items-center gap-1.5 text-2xs tracking-wide mr-1`}>
                       {canUseWideMode && (['wide', 'focus'] as const).map((type, i) => (
                         <React.Fragment key={type}>
                           {i > 0 && <span aria-hidden className="text-muted-foreground/30 select-none">|</span>}
@@ -4298,7 +4298,7 @@ const AppInner: React.FC = () => {
               ancestor (`contents` = no layout box). */}
           <div className="contents group/sidebar">
           {/* Resize Handle */}
-          {isRightPanelVisible && wideModeType === null && <ResizeHandle {...panelResize.handleProps} className="hidden md:block z-55" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => setIsPanelOpen(false)} />}
+          {isRightPanelVisible && wideModeType === null && <ResizeHandle {...panelResize.handleProps} className="hidden md:block z-resize" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => setIsPanelOpen(false)} />}
 
           {/* Annotation Panel */}
           {renderAnnotationPanel(

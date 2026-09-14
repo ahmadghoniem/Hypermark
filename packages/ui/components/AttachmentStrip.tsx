@@ -40,7 +40,7 @@ const RemoveIcon: React.FC = () => (
 const PREVIEW = 'size-4 rounded-sm object-cover shrink-0';
 
 const CHIP =
-  'group inline-flex items-center gap-1.5 h-6 pl-1 pr-0.5 rounded-md border border-border bg-muted/40 text-[11px] leading-none text-muted-foreground max-w-[12rem]';
+  'group inline-flex items-center gap-1.5 h-6 pl-1 pr-0.5 rounded-md border border-border bg-muted/40 text-2xs leading-none text-muted-foreground max-w-[12rem]';
 
 /**
  * Image attachments as chips, inside the comment composer and below the
@@ -177,7 +177,7 @@ const SavedChip: React.FC<SavedChipProps> = ({ image, onRemove, registerRemoveBu
         // Say so explicitly and keep the attachment; never drop it silently.
         <span
           data-attachment-unavailable="true"
-          className="shrink-0 size-4 rounded-sm bg-muted flex items-center justify-center text-[8px] text-muted-foreground"
+          className="shrink-0 size-4 rounded-sm bg-muted flex items-center justify-center text-4xs text-muted-foreground"
           aria-label="Image unavailable"
         >
           ?
@@ -232,7 +232,7 @@ const PendingChip: React.FC<PendingChipProps> = ({ item, onRemove, onRetry, regi
               }}
               aria-label={`Retry upload of ${item.name}`}
               title={item.error ? `${item.error} — retry` : 'Retry upload'}
-              className="shrink-0 px-1 rounded-sm text-[10px] underline underline-offset-2 hover:bg-destructive/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="shrink-0 px-1 rounded-sm text-3xs underline underline-offset-2 hover:bg-destructive/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Retry
             </button>

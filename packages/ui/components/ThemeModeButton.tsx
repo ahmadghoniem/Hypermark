@@ -156,7 +156,7 @@ const ThemePickerPanel: React.FC<{ closeMenu: () => void }> = () => {
           setHalfTheme('light', DEFAULT_COLOR_THEME);
           setHalfTheme('dark', DEFAULT_COLOR_THEME);
         }}
-        className="w-full px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors text-center"
+        className="w-full px-2 py-1 text-2xs text-muted-foreground hover:text-foreground transition-colors text-center"
       >
         Reset to default themes
       </button>
@@ -170,7 +170,7 @@ export const ThemeModeButton: React.FC = () => {
 
   return (
     <ActionMenu
-      panelClassName="absolute top-full right-0 mt-1 w-64 rounded-xl border border-border bg-popover p-1.5 shadow-xl z-[70]"
+      panelClassName="absolute top-full right-0 mt-1 w-64 rounded-xl border border-border bg-popover p-1.5 shadow-xl z-menu"
       renderTrigger={({ isOpen, toggleMenu }) => (
         <button
           type="button"

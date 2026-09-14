@@ -99,7 +99,7 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   return (
     <header
       data-app-header="true"
-      className={`h-12 flex items-center justify-between px-2 md:px-4 border-b border-border/50 bg-card/50 backdrop-blur-xl z-50 ${sticky ? 'sticky top-0' : 'relative'}`}
+      className={`h-12 flex items-center justify-between px-2 md:px-4 border-b border-border/50 bg-card/50 backdrop-blur-xl z-chrome ${sticky ? 'sticky top-0' : 'relative'}`}
     >
       <div className="flex items-center gap-2">
         <AppHeaderLogo />
@@ -137,7 +137,7 @@ export const AppHeader = React.memo<AppHeaderProps>(({
                   dimmed={showAnnotationsWarning}
                 />
                 {showAnnotationsWarning && (
-                  <div className="absolute top-full right-0 mt-2 px-3 py-2 bg-popover border border-border rounded-lg shadow-xl text-xs text-foreground w-56 text-center opacity-0 invisible group-hover/approve:opacity-100 group-hover/approve:visible transition-all pointer-events-none z-50">
+                  <div className="absolute top-full right-0 mt-2 px-3 py-2 bg-popover border border-border rounded-lg shadow-xl text-xs text-foreground w-56 text-center opacity-0 invisible group-hover/approve:opacity-100 group-hover/approve:visible transition-all pointer-events-none z-chrome">
                     <div className="absolute bottom-full right-4 border-4 border-transparent border-b-border" />
                     <div className="absolute bottom-full right-4 mt-px border-4 border-transparent border-b-popover" />
                     {agentName} doesn't support feedback on approval. Your feedback won't be seen.
@@ -180,7 +180,7 @@ export const AppHeader = React.memo<AppHeaderProps>(({
             <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
           </svg>
           {annotationCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 flex items-center justify-center rounded-full bg-primary text-[8px] font-bold text-primary-foreground px-0.5">
+            <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 flex items-center justify-center rounded-full bg-primary text-4xs font-bold text-primary-foreground px-0.5">
               {annotationCount > 99 ? '99+' : annotationCount}
             </span>
           )}

@@ -92,7 +92,7 @@ const GeneralCommentComposer: React.FC<{
         aria-expanded={open}
         aria-haspopup="dialog"
         title="Add a review-level comment"
-        className="inline-flex items-center rounded-sm px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        className="inline-flex items-center rounded-sm px-1.5 py-0.5 text-2xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
         + General comment
       </button>
@@ -111,7 +111,7 @@ const GeneralCommentComposer: React.FC<{
             placeholder="Add a general comment..."
           />
           <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="text-[10px] leading-snug text-muted-foreground">{submitHint}</span>
+            <span className="text-3xs/snug text-muted-foreground">{submitHint}</span>
             <Button size="xs" data-general-comment-add onClick={submit} title="Add the comment to this review">
               Add comment
             </Button>
@@ -217,7 +217,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
         <CommentMeta
           leading={
             isGeneralScope ? (
-              <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary">
+              <span className="text-4xs font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary">
                 general
               </span>
             ) : isFileScope ? (
@@ -225,7 +225,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
                 <FileNameChip path={annotation.filePath} />
               </span>
             ) : (
-              <span className="text-[10px] font-mono text-muted-foreground">
+              <span className="text-3xs font-mono text-muted-foreground">
                 {annotation.lineStart === annotation.lineEnd
                   ? `L${annotation.lineStart}`
                   : `L${annotation.lineStart}-${annotation.lineEnd}`}
@@ -266,7 +266,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
               Annotations
             </h2>
             {totalCount > 0 && (
-              <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded-sm text-muted-foreground">
+              <span className="text-3xs font-mono bg-muted px-1.5 py-0.5 rounded-sm text-muted-foreground">
                 {totalCount}
               </span>
             )}

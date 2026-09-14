@@ -73,8 +73,8 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
 
   // Row layout: single horizontal line. Column layout: stacked rows.
   const outerClass = isHorizontal
-    ? `flex items-center gap-1.5 text-[9px] text-muted-foreground/70 font-mono ${layout === 'header' ? 'flex-wrap' : ''}`
-    : 'flex flex-col items-start gap-1 text-[9px] text-muted-foreground/50 font-mono';
+    ? `flex items-center gap-1.5 text-4xs text-muted-foreground/70 font-mono ${layout === 'header' ? 'flex-wrap' : ''}`
+    : 'flex flex-col items-start gap-1 text-4xs text-muted-foreground/50 font-mono';
 
   return (
     <div className={outerClass}>
@@ -130,7 +130,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
 
       {/* Demo badge: only in column (top-of-doc) layout */}
       {!isRow && showDemoBadge && !linkedDocInfo && (
-        <span className="px-1.5 py-0.5 rounded-sm text-[9px] font-mono bg-warning/15 text-foreground">
+        <span className="px-1.5 py-0.5 rounded-sm text-4xs font-mono bg-warning/15 text-foreground">
           Demo
         </span>
       )}
@@ -142,12 +142,12 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
             <button
               type="button"
               onClick={linkedDocInfo.onBack}
-              className="rounded-sm text-[9px] font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="rounded-sm text-4xs font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               Close
             </button>
             <span
-              className="truncate rounded-sm bg-muted/50 px-1.5 py-0.5 text-[9px] text-muted-foreground max-w-55"
+              className="truncate rounded-sm bg-muted/50 px-1.5 py-0.5 text-4xs text-muted-foreground max-w-55"
               title={linkedDocInfo.filepath}
             >
               {pathFileName(linkedDocInfo.filepath)}

@@ -476,7 +476,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
         activeDiffType &&
         compareTarget?.diffTypes.includes(activeDiffType) && (
           <div className="px-2 py-1.5 border-b border-border/30 flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0">
+            <span className="text-3xs uppercase tracking-wide text-muted-foreground shrink-0">
               {compareTarget.picker.rowLabel}
             </span>
             <div className="flex-1 min-w-0">
@@ -599,8 +599,8 @@ export const SearchFileGroup: React.FC<{
           />
         </svg>
         <span className="truncate text-foreground font-medium">{fileName}</span>
-        {dirPath && <span className="truncate text-muted-foreground/50 text-[10px]">{dirPath}</span>}
-        <span className="ml-auto shrink-0 text-[10px] text-muted-foreground/50 bg-muted rounded-sm px-1.5 py-0.5">
+        {dirPath && <span className="truncate text-muted-foreground/50 text-3xs">{dirPath}</span>}
+        <span className="ml-auto shrink-0 text-3xs text-muted-foreground/50 bg-muted rounded-sm px-1.5 py-0.5">
           {group.matches.length}
         </span>
       </button>
@@ -647,7 +647,7 @@ const SearchMatchRow: React.FC<{
       onClick={onSelect}
     >
       <span className="shrink-0 text-muted-foreground/40 w-7 text-right tabular-nums">{match.lineNumber}</span>
-      <span className={`shrink-0 w-6 text-[10px] font-semibold uppercase ${sideColor}`}>{sideLabel}</span>
+      <span className={`shrink-0 w-6 text-3xs font-semibold uppercase ${sideColor}`}>{sideLabel}</span>
       <span className="truncate leading-relaxed">{highlightQuery(match.snippet, searchQuery)}</span>
     </button>
   );

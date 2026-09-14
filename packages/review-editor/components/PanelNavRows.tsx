@@ -56,7 +56,7 @@ export function AllFilesRow({
       </svg>
       <span>All files</span>
       {afterLabel}
-      <span className="ml-auto text-[10px] tabular-nums opacity-60">
+      <span className="ml-auto text-3xs tabular-nums opacity-60">
         <span className="text-success">+{additions}</span>{' '}
         <span className="text-destructive">-{deletions}</span>
       </span>

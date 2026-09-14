@@ -97,7 +97,7 @@ export const PinpointOverlay: React.FC<PinpointOverlayProps> = ({ target, contai
           transition: 'all 100ms ease-out',
         }}
       >
-        <span className="inline-block text-[10px] leading-4 px-1.5 rounded-sm bg-primary text-primary-foreground font-mono truncate max-w-55">
+        <span className="inline-block text-3xs/4 px-1.5 rounded-sm bg-primary text-primary-foreground font-mono truncate max-w-55">
           {target.label}
         </span>
       </div>

@@ -200,10 +200,10 @@ export const StickyHeaderLane: React.FC<StickyHeaderLaneProps> = ({
       {/* Zero-height wrapper — sticky by default, relative when sticky is
           disabled so the absolutely positioned lane scrolls in normal flow.
           It never pushes document content down.
-          The Viewer's outer wrapper uses z-50, so the sticky lane must
+          The Viewer's outer wrapper uses z-chrome, so the sticky lane must
           sit above that to paint over the card.
 
-          Narrow: the bar pins at top-[52px] / md:top-[60px] on its OWN
+          Narrow: the bar pins at top-13 / md:top-15 on its OWN
           full-width row BELOW the card's sticky action buttons. Stacked
           horizontal lanes, no horizontal collision possible.
 
@@ -212,7 +212,7 @@ export const StickyHeaderLane: React.FC<StickyHeaderLaneProps> = ({
       <div
         ref={wrapperRef}
         data-sticky-header-lane="true"
-        className={`${sticky ? 'sticky' : 'relative'} z-60 w-full self-center pointer-events-none ${
+        className={`${sticky ? 'sticky' : 'relative'} z-panel w-full self-center pointer-events-none ${
           sticky ? (isNarrow ? 'top-13 md:top-15' : 'top-3') : ''
         }`}
         style={maxWidth == null ? { height: 0 } : { maxWidth, height: 0 }}

@@ -77,7 +77,7 @@ export const DiffTypePicker: React.FC<DiffTypePickerProps> = ({
           )}
       </Menu.Trigger>
       <Menu.Portal>
-        <Menu.Positioner side="bottom" align="start" sideOffset={4} className="z-50">
+        <Menu.Positioner side="bottom" align="start" sideOffset={4} className="z-chrome">
           <Menu.Popup className="min-w-(--anchor-width) bg-popover text-popover-foreground border border-border rounded-sm shadow-lg overflow-hidden py-1 origin-(--transform-origin) transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0">
           {options.map((opt) => {
             const hint = OPTION_HINTS[opt.id];

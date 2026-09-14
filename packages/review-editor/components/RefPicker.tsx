@@ -55,7 +55,7 @@ export function RefPicker({
         </svg>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Positioner side="bottom" align="start" sideOffset={4} className="z-50">
+        <Popover.Positioner side="bottom" align="start" sideOffset={4} className="z-chrome">
           <Popover.Popup
             className={`${widthClassName} bg-popover text-popover-foreground border border-border rounded-sm shadow-lg overflow-hidden origin-(--transform-origin) transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0`}
             initialFocus={initialFocus}
@@ -70,7 +70,7 @@ export function RefPicker({
 
 /** Small uppercase label inside the trigger chip (`BASE`, `worktree`). */
 export function RefPickerTriggerLabel({ children }: { children: React.ReactNode }) {
-  return <span className="text-[10px] uppercase tracking-wide opacity-60 shrink-0">{children}</span>;
+  return <span className="text-3xs uppercase tracking-wide opacity-60 shrink-0">{children}</span>;
 }
 
 export function RefPickerSearch({
@@ -106,7 +106,7 @@ export function RefPickerList({ children }: { children: React.ReactNode }) {
 }
 
 export function RefPickerGroupLabel({ children }: { children: React.ReactNode }) {
-  return <div className="px-3 pb-1 text-[10px] uppercase tracking-wide text-muted-foreground">{children}</div>;
+  return <div className="px-3 pb-1 text-3xs uppercase tracking-wide text-muted-foreground">{children}</div>;
 }
 
 export function RefPickerEmpty({ children }: { children: React.ReactNode }) {
@@ -116,7 +116,7 @@ export function RefPickerEmpty({ children }: { children: React.ReactNode }) {
 /** Trailing badge on a row (`detected`, `commit`). */
 export function RefPickerTag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-[10px] uppercase tracking-wide text-muted-foreground px-1 py-0.5 rounded-sm bg-muted">
+    <span className="text-3xs uppercase tracking-wide text-muted-foreground px-1 py-0.5 rounded-sm bg-muted">
       {children}
     </span>
   );

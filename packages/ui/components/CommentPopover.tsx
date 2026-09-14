@@ -521,7 +521,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           data-target-chip={chip.key}
           data-target-chip-primary={i === 0 ? 'true' : undefined}
           onMouseEnter={() => onHoverTargetChip?.(chip.key)}
-          className={`inline-flex items-center gap-1 shrink-0 max-w-45 rounded-full border px-2 py-0.5 text-[10px] ${
+          className={`inline-flex items-center gap-1 shrink-0 max-w-45 rounded-full border px-2 py-0.5 text-3xs ${
             i === 0
               ? 'border-primary/50 bg-primary/10 text-foreground'
               : 'border-border bg-muted/50 text-muted-foreground'
@@ -635,7 +635,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           <span className="flex shrink-0 text-primary" aria-hidden="true">
             <AnchorIcon />
           </span>
-          <span className="min-w-0 flex-1 truncate text-[11.5px] leading-snug text-muted-foreground">
+          <span className="min-w-0 flex-1 truncate text-2xs/snug text-muted-foreground">
             {headerLabel}
           </span>
           <div className="flex items-center gap-1">
@@ -745,14 +745,14 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
               type="button"
               onClick={() => {}}
               title="Ask about this line"
-              className="rounded-md border border-destructive/30 bg-destructive/10 px-2.25 py-1.25 text-[11.5px] font-medium text-destructive transition-colors hover:bg-destructive/20"
+              className="rounded-md border border-destructive/30 bg-destructive/10 px-2.25 py-1.25 text-2xs font-medium text-destructive transition-colors hover:bg-destructive/20"
             >
               Ask
             </button>
           </div>
           <div className="flex shrink-0 items-center gap-2.5">
             {quickLookGoodButton}
-            <span className="flex items-center gap-1 text-[10px] text-muted-foreground/60" title={submitHint}>
+            <span className="flex items-center gap-1 text-3xs text-muted-foreground/60" title={submitHint}>
               <span>Ctrl</span>
               <span aria-hidden="true">↵</span>
             </span>
@@ -773,7 +773,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     return createPortal(
       <div
         data-comment-popover="true"
-        className="pn-visible-viewport-overlay z-100 flex items-center justify-center"
+        className="pn-visible-viewport-overlay z-popover flex items-center justify-center"
       >
         {/* Backdrop */}
         <button
@@ -830,7 +830,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           data-popover-layer="true"
           onClick={scrollToPopover}
           title="Scroll back to your open comment"
-          className={`fixed left-1/2 -translate-x-1/2 z-101 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-popover border border-border shadow-lg text-xs text-muted-foreground hover:text-foreground transition-colors ${offscreen === 'above' ? 'top-3' : 'bottom-3'}`}
+          className={`fixed left-1/2 -translate-x-1/2 z-popover-hint flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-popover border border-border shadow-lg text-xs text-muted-foreground hover:text-foreground transition-colors ${offscreen === 'above' ? 'top-3' : 'bottom-3'}`}
         >
           {offscreen === 'above' ? <ChevronUpIcon /> : <ChevronDownIcon />}
           <span>Open comment</span>
@@ -839,7 +839,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       <div
         ref={popoverRef}
         data-comment-popover="true"
-        className={`group/composer fixed z-100 bg-card border border-border rounded-xl shadow-[0_1px_2px_rgb(0_0_0/0.18),0_25px_50px_-12px_rgb(0_0_0/0.5)] flex flex-col${yieldClass}`}
+        className={`group/composer fixed z-popover bg-card border border-border rounded-xl shadow-[0_1px_2px_rgb(0_0_0/0.18),0_25px_50px_-12px_rgb(0_0_0/0.5)] flex flex-col${yieldClass}`}
         style={dragPosition
           ? {
               top: dragPosition.top,

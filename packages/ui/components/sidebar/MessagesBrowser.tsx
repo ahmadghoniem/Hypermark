@@ -79,14 +79,14 @@ export const MessagesBrowser: React.FC<MessagesBrowserProps> = ({
                   {previewText(msg.text)}
                 </span>
                 {ts && (
-                  <span className="block text-[10px] text-muted-foreground mt-0.5">
+                  <span className="block text-3xs text-muted-foreground mt-0.5">
                     {ts}
                   </span>
                 )}
               </span>
               {annotationCount > 0 && (
                 <span
-                  className="shrink-0 min-w-5 h-5 px-1 rounded-full bg-primary/10 text-primary border border-primary/30 text-[10px] font-semibold inline-flex items-center justify-center"
+                  className="shrink-0 min-w-5 h-5 px-1 rounded-full bg-primary/10 text-primary border border-primary/30 text-3xs font-semibold inline-flex items-center justify-center"
                   title={`${annotationCount} annotation${annotationCount === 1 ? "" : "s"}`}
                 >
                   {annotationCount}

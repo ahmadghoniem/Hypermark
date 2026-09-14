@@ -42,7 +42,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
       {isOpen && (
         <div
           data-pn-dismissable-popover="true"
-          className={panelClassName ?? `absolute top-full right-0 mt-1 ${panelWidth === 'wide' ? 'w-64' : 'w-56'} rounded-lg border border-border bg-popover py-1 shadow-xl z-70`}
+          className={panelClassName ?? `absolute top-full right-0 mt-1 ${panelWidth === 'wide' ? 'w-64' : 'w-56'} rounded-lg border border-border bg-popover py-1 shadow-xl z-menu`}
         >
           {children({ closeMenu: () => setIsOpen(false) })}
         </div>
@@ -87,7 +87,7 @@ export const ActionMenuItem: React.FC<ActionMenuItemProps> = ({
     {subtitle ? (
       <span className="flex flex-1 flex-col gap-0.5">
         <span>{label}</span>
-        <span className="text-[10px] text-muted-foreground">{subtitle}</span>
+        <span className="text-3xs text-muted-foreground">{subtitle}</span>
       </span>
     ) : (
       <span className="flex-1">{label}</span>
@@ -101,7 +101,7 @@ export const ActionMenuDivider: React.FC = () => (
 );
 
 export const ActionMenuSectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+  <div className="text-3xs font-semibold uppercase tracking-wider text-muted-foreground">
     {children}
   </div>
 );

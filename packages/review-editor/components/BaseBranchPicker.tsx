@@ -291,7 +291,7 @@ const CommitList: React.FC<CommitListProps> = ({ commits, selectedBase, onSelect
       >
         <span className="font-mono text-muted-foreground shrink-0">{c.shortSha}</span>
         <span className="truncate flex-1">{c.subject}</span>
-        <span className="text-[10px] text-muted-foreground shrink-0">{c.relativeDate}</span>
+        <span className="text-3xs text-muted-foreground shrink-0">{c.relativeDate}</span>
       </RefPickerRow>
     ))}
   </div>

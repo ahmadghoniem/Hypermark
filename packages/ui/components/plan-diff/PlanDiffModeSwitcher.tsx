@@ -47,7 +47,7 @@ export const PlanDiffModeSwitcher: React.FC<PlanDiffModeSwitcherProps> = ({
           />
         </svg>
         Rendered
-        <span className="text-[9px] uppercase tracking-wider opacity-60 ml-0.5">
+        <span className="text-4xs uppercase tracking-wider opacity-60 ml-0.5">
           exp
         </span>
       </button>

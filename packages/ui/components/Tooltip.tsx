@@ -60,9 +60,9 @@ export const Tooltip: React.FC<TooltipProps> = ({
     <BaseTooltip.Root disableHoverablePopup={disableHoverablePopup}>
       <BaseTooltip.Trigger render={children} delay={delayDuration} />
       <BaseTooltip.Portal>
-        <BaseTooltip.Positioner side={side} align={align} sideOffset={sideOffset} className="isolate z-50">
+        <BaseTooltip.Positioner side={side} align={align} sideOffset={sideOffset} className="isolate z-chrome">
           <BaseTooltip.Popup
-            className={`z-50 px-2 py-1 text-xs bg-popover text-popover-foreground border border-border rounded-sm shadow-md origin-(--transform-origin) transition-[opacity,scale] duration-150 ease-out data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95 ${
+            className={`z-chrome px-2 py-1 text-xs bg-popover text-popover-foreground border border-border rounded-sm shadow-md origin-(--transform-origin) transition-[opacity,scale] duration-150 ease-out data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95 ${
               wide
                 ? 'max-w-[min(260px,calc(100vw-1rem))] leading-snug whitespace-normal wrap-anywhere'
                 : 'whitespace-nowrap'

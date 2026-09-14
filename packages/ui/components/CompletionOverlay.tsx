@@ -39,7 +39,7 @@ export function CompletionOverlay({ submitted, title, subtitle, agentLabel }: Co
   const isApproved = submitted === 'approved';
 
   return (
-    <div className="fixed inset-0 z-100 bg-background flex items-center justify-center">
+    <div className="fixed inset-0 z-popover bg-background flex items-center justify-center">
       <div className="text-center space-y-6 max-w-md px-8">
         <div
           className={`mx-auto size-16 rounded-full flex items-center justify-center ${

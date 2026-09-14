@@ -74,7 +74,7 @@ export function MarkdownBody({ markdown, textClassName = 'text-xs' }: { markdown
           }
           case 'code':
             return (
-              <pre key={block.id} className="bg-muted/50 rounded-md p-2 text-[11px] font-mono overflow-x-auto whitespace-pre-wrap">
+              <pre key={block.id} className="bg-muted/50 rounded-md p-2 text-2xs font-mono overflow-x-auto whitespace-pre-wrap">
                 <code>{block.content}</code>
               </pre>
             );
@@ -140,7 +140,7 @@ export function MarkdownBody({ markdown, textClassName = 'text-xs' }: { markdown
                     href={video.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-1 block text-[11px] text-muted-foreground hover:text-foreground truncate"
+                    className="mt-1 block text-2xs text-muted-foreground hover:text-foreground truncate"
                   >
                     {video.label}
                   </a>

@@ -70,7 +70,7 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
     <div className="p-3">
       {/* Current version info */}
       <div className="mb-3">
-        <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">
+        <div className="text-3xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
           Current Plan
         </div>
         <div className="text-xs text-foreground">
@@ -91,7 +91,7 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
       {/* Version list */}
       {totalVersions > 1 && (
         <div className="mb-3">
-          <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
+          <div className="text-3xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
             Compare Against
           </div>
 
@@ -125,7 +125,7 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
                             </span>
                           )}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-3xs text-muted-foreground">
                           {fetchingVersion === v.version ? "Loading..." : relativeTime(v.timestamp)}
                         </span>
                       </div>

@@ -43,7 +43,7 @@ export const AlertBlock: React.FC<AlertBlockProps> = ({
 }) => {
   return (
     <div
-      className={`alert alert-${kind} my-4 pl-4 pr-3 py-2 border-l-[3px]`}
+      className={`alert alert-${kind} my-plan pl-4 pr-3 py-2 border-l-[3px]`}
       data-block-id={blockId}
       data-block-type="alert"
       data-alert-kind={kind}

@@ -147,7 +147,7 @@ export const SkillReferenceMenu: React.FC<SkillReferenceMenuProps> = ({
       data-skill-menu="true"
       data-skill-menu-placement={placement.direction}
       data-popover-layer="true"
-      className={`absolute inset-x-0 z-110 bg-popover border border-border rounded-xl shadow-2xl overflow-hidden ${
+      className={`absolute inset-x-0 z-dialog bg-popover border border-border rounded-xl shadow-2xl overflow-hidden ${
         placement.direction === 'above' ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
       }`}
     >
@@ -231,11 +231,11 @@ export const HumanOnlySkillNotice: React.FC<HumanOnlySkillNoticeProps> = ({ skil
   const names = skills.map((s) => s.name).join(', ');
   return (
     <details data-skill-human-only-notice="true" className="group mt-1 px-1">
-      <summary className="list-none [&::-webkit-details-marker]:hidden inline-flex cursor-pointer select-none items-center gap-1 rounded-sm text-[10px] text-muted-foreground/80 transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+      <summary className="list-none [&::-webkit-details-marker]:hidden inline-flex cursor-pointer select-none items-center gap-1 rounded-sm text-3xs text-muted-foreground/80 transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
         <DisclosureChevron />
         Includes skill instructions
       </summary>
-      <p className="mt-0.5 pl-3.5 text-[11px] leading-snug text-muted-foreground">
+      <p className="mt-0.5 pl-3.5 text-2xs/snug text-muted-foreground">
         {skills.length === 1 ? (
           <>
             <span className="font-mono">{names}</span> cannot be invoked by a model, so

@@ -52,20 +52,20 @@ const CommitRow: React.FC<{
     <div className="flex items-center gap-1.5 min-w-0">
       <span className="text-xs truncate flex-1">{commit.subject}</span>
       {commit.isHead && (
-        <span className="text-[9px] leading-none px-1 py-0.5 rounded-sm bg-primary/15 text-primary font-medium shrink-0">
+        <span className="text-4xs leading-none px-1 py-0.5 rounded-sm bg-primary/15 text-primary font-medium shrink-0">
           HEAD
         </span>
       )}
-      <span className="text-[10px] text-muted-foreground/70 tabular-nums shrink-0">
+      <span className="text-3xs text-muted-foreground/70 tabular-nums shrink-0">
         {formatRelativeTime(commit.committedAt)}
       </span>
     </div>
     {/* Meta — avatar + author (always shown) + sha. */}
     <div className="mt-0.5 flex items-center gap-1.5 min-w-0">
       <Avatar src={commit.avatarUrl} name={commit.author} size={14} />
-      <span className="text-[11px] text-muted-foreground truncate">{commit.author}</span>
+      <span className="text-2xs text-muted-foreground truncate">{commit.author}</span>
       <span className="flex-1" />
-      <span className="font-mono text-[10px] text-muted-foreground/70 shrink-0">{commit.shortSha}</span>
+      <span className="font-mono text-3xs text-muted-foreground/70 shrink-0">{commit.shortSha}</span>
     </div>
   </button>
 );
@@ -78,7 +78,7 @@ const BaseBoundary: React.FC<{ base: string }> = ({ base }) => (
     title={`Commits from here down are already part of ${base} — shared history, not branch work.`}
   >
     <span className="h-px flex-1 bg-foreground/30" />
-    <span className="text-[11px] font-semibold text-foreground/80 truncate max-w-40">
+    <span className="text-2xs font-semibold text-foreground/80 truncate max-w-40">
       In {base}
     </span>
     <span className="h-px flex-1 bg-foreground/30" />
@@ -86,7 +86,7 @@ const BaseBoundary: React.FC<{ base: string }> = ({ base }) => (
 );
 
 const GroupHeader: React.FC<{ label: string; title: string }> = ({ label, title }) => (
-  <div className="px-2 py-1 text-[11px] font-medium text-muted-foreground" title={title}>
+  <div className="px-2 py-1 text-2xs font-medium text-muted-foreground" title={title}>
     {label}
   </div>
 );
@@ -145,7 +145,7 @@ export const CommitsPanel: React.FC<CommitsPanelProps> = ({
               <div className="text-xs text-destructive wrap-break-word">{error}</div>
               <button
                 onClick={onRetry}
-                className="text-[11px] text-primary/80 underline underline-offset-2 decoration-primary/40 hover:text-primary transition-colors"
+                className="text-2xs text-primary/80 underline underline-offset-2 decoration-primary/40 hover:text-primary transition-colors"
               >
                 Retry
               </button>
@@ -176,13 +176,13 @@ export const CommitsPanel: React.FC<CommitsPanelProps> = ({
                 <button
                   onClick={onShowMore}
                   disabled={isLoadingMore}
-                  className="w-full text-left px-2 py-1 text-[11px] text-primary/80 underline underline-offset-2 decoration-primary/40 hover:text-primary hover:decoration-primary transition-colors disabled:opacity-50"
+                  className="w-full text-left px-2 py-1 text-2xs text-primary/80 underline underline-offset-2 decoration-primary/40 hover:text-primary hover:decoration-primary transition-colors disabled:opacity-50"
                 >
                   {isLoadingMore ? 'Loading…' : 'Show more'}
                 </button>
               )}
               {error && (
-                <div className="px-2 py-1.5 flex items-center gap-2 text-[11px] text-destructive">
+                <div className="px-2 py-1.5 flex items-center gap-2 text-2xs text-destructive">
                   <span className="truncate flex-1" title={error}>{error}</span>
                   <button
                     onClick={onRetry}

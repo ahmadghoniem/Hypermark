@@ -100,7 +100,7 @@ export const CommentAttachShelf: React.FC<CommentAttachShelfProps> = ({
               onClick={() => onRetryPending(item.id)}
               aria-label={`Retry ${item.name}`}
               title={item.error ? `${item.error} — retry` : 'Retry'}
-              className="absolute inset-0 grid place-items-center rounded-md text-[9px] font-semibold text-destructive"
+              className="absolute inset-0 grid place-items-center rounded-md text-4xs font-semibold text-destructive"
             >
               Retry
             </button>

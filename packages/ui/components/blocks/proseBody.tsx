@@ -22,8 +22,8 @@ export function renderProseBody(args: {
 }): React.ReactNode {
   const {
     body,
-    paragraphClassName = 'text-[15px] leading-relaxed text-foreground/90',
-    listClassName = 'text-[15px] leading-relaxed text-foreground/90',
+    paragraphClassName = 'text-plan text-foreground/90',
+    listClassName = 'text-plan text-foreground/90',
     imageBaseDir,
     onImageClick,
     onOpenLinkedDoc,

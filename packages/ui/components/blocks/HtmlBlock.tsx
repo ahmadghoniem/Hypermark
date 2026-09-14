@@ -106,7 +106,7 @@ const HtmlBlockImpl: React.FC<HtmlBlockProps> = ({ block, imageBaseDir, onOpenLi
       ref={ref}
       data-block-id={block.id}
       data-block-type="html"
-      className="html-block my-4 text-[15px] leading-relaxed text-foreground/90"
+      className="html-block my-plan text-plan text-foreground/90"
     />
   );
 };

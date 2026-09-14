@@ -857,7 +857,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
 
   return (
     <CodePathValidationContext.Provider value={codePathValidation}>
-    <div className="relative z-50 w-full" style={maxWidth === null ? undefined : { maxWidth: maxWidth ?? 832 }}>
+    <div className="relative z-chrome w-full" style={maxWidth === null ? undefined : { maxWidth: maxWidth ?? 832 }}>
       <article
         ref={containerRef}
         className={`w-full bg-card rounded-xl py-5 md:py-8 lg:py-10 xl:py-12 relative ${inputMethod === 'pinpoint' ? 'cursor-pointer' : ''}`}
@@ -1190,7 +1190,7 @@ const ImageLightbox: React.FC<{ src: string; alt: string; onClose: () => void }>
 
   return (
     <div
-      className="fixed inset-0 z-200 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm cursor-zoom-out"
+      className="fixed inset-0 z-overlay flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm cursor-zoom-out"
       onClick={onClose}
     >
       <img

@@ -225,7 +225,7 @@ export const DecisionNoteDialog: React.FC<{
           autoFocus
         />
         <div className="mt-3 flex items-center justify-between gap-2">
-          <span className="text-[11px] leading-snug text-muted-foreground">{submitHint}</span>
+          <span className="text-2xs/snug text-muted-foreground">{submitHint}</span>
           <Button
             variant={toneButtonVariant(composer.tone)}
             size="xs"
@@ -476,7 +476,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
           // breakpoint, unlike the labels.
           <span
             data-decision-count="true"
-            className="rounded-full bg-current/25 px-1.5 text-[10px] font-bold leading-4"
+            className="rounded-full bg-current/25 px-1.5 text-3xs/4 font-bold"
           >
             {spec.primary.count}
           </span>
@@ -535,7 +535,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
           data-decision-popover={popover}
           data-pn-dismissable-popover="true"
           onKeyDown={handlePopoverKeyDown}
-          className="absolute right-0 top-full z-70 mt-1.5 w-64 rounded-lg border border-border bg-popover shadow-xl"
+          className="absolute right-0 top-full z-menu mt-1.5 w-64 rounded-lg border border-border bg-popover shadow-xl"
         >
           {popover === 'menu' ? (
             <div className="py-1">
@@ -578,7 +578,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
                 placeholder={activeItem.composer.placeholder}
               />
               <div className="mt-2 flex items-center justify-between gap-2 px-0.5">
-                <span className="text-[11px] leading-snug text-muted-foreground">
+                <span className="text-2xs/snug text-muted-foreground">
                   {submitHint} send · Esc back, note kept
                 </span>
                 <Button

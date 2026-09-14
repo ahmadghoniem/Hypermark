@@ -712,50 +712,16 @@ diffs-container {
   }
 }
 
-/* =====================================================
-   Compact markdown (PR Overview)
-   The shared BlockRenderer is sized for full-page plans —
-   24px headings, 15px body, wide margins. `.md-compact` shrinks it to fit the
-   dense PR panel by overriding those inline utilities via specificity, so no
-   changes to the shared renderer components are needed.
-   ===================================================== */
-.md-compact {
-  font-size: 0.8125rem; /* 13px base */
-  line-height: 1.55;
-}
-.md-compact > :first-child { margin-top: 0; }
-.md-compact h1 { font-size: 0.9375rem; line-height: 1.35; margin: 0.75rem 0 0.375rem; letter-spacing: normal; } /* 15px */
-.md-compact h2 { font-size: 0.875rem;  line-height: 1.35; margin: 0.75rem 0 0.25rem; }  /* 14px */
-.md-compact h3 { font-size: 0.8125rem; line-height: 1.4;  margin: 0.625rem 0 0.25rem; } /* 13px */
-.md-compact h4,
-.md-compact h5,
-.md-compact h6 { font-size: 0.8125rem; line-height: 1.4; margin: 0.5rem 0 0.25rem; }
-.md-compact p  { font-size: 0.8125rem; line-height: 1.6; margin-bottom: 0.5rem; } /* 13px */
-/* list items (and other text-sm prose) render at the plan's 14px — bring them
-   down to the 13px body and give a matching line-height. */
-.md-compact .text-sm { font-size: 0.8125rem; line-height: 1.55; }
-.md-compact hr { margin: 0.875rem 0; }
-.md-compact blockquote { margin: 0.5rem 0; }
-/* Code blocks: the plan-sized CodeBlock keeps text-[13px] + a 20px my-5 margin,
-   so it reads bulky next to the 13px body. Shrink the font below the body and
-   tighten the box. `.my-5` is unique to the code-block wrapper in this renderer. */
-.md-compact .my-5 { margin-top: 0.625rem; margin-bottom: 0.625rem; } /* was 20px */
-.md-compact pre { font-size: 0.75rem; }                              /* 12px, under the body */
-.md-compact pre code.pn-code { padding: 0.5rem 0.625rem; }           /* tighter than the 1rem default */
-
 /* PR description + comment media: cap wide screenshots/videos to the card width
    (GitHub embeds them at their natural size, e.g. width="1440"), and wrap long
    unbroken tokens (Vercel bot hashes, long URLs) so content never bleeds past
    the card edge. */
-.md-compact img,
-.md-compact video,
 .review-comment-markdown img,
 .review-comment-markdown video {
   max-width: 100%;
   height: auto;
   border-radius: 6px;
 }
-.md-compact,
 .review-comment-markdown {
   overflow-wrap: anywhere;
 }

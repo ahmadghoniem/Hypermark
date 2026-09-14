@@ -196,7 +196,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
       data-annotation-panel="true"
       data-plan-sidebar="right"
       className={`bg-card flex flex-col ${embedded ? 'size-full min-h-0 flex-1' : 'shrink-0 border-l border-border/50'} ${
-        mobilePanel ? 'fixed top-12 bottom-0 right-0 z-60 w-full max-w-sm shadow-2xl' : ''
+        mobilePanel ? 'fixed top-12 bottom-0 right-0 z-panel w-full max-w-sm shadow-2xl' : ''
       }`}
       style={embedded || mobilePanel ? undefined : { width: width ?? 288 }}
     >
@@ -209,7 +209,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                 Annotations
               </h2>
               {totalCount > 0 && (
-                <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary/10 px-1 font-mono text-[10px] font-medium tabular-nums text-primary">
+                <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary/10 px-1 font-mono text-3xs font-medium tabular-nums text-primary">
                   {totalCount}
                 </span>
               )}
@@ -228,7 +228,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
             )}
           </div>
           {otherFileAnnotations && otherFileAnnotations.count > 0 && (
-            <p className="px-3 pb-2 text-[10px] text-muted-foreground">
+            <p className="px-3 pb-2 text-3xs text-muted-foreground">
               +{otherFileAnnotations.count} in {otherFileAnnotations.files} other file{otherFileAnnotations.files === 1 ? '' : 's'}
             </p>
           )}
@@ -253,7 +253,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
               <p className="text-xs text-muted-foreground/60">
                 No annotations yet
               </p>
-              <p className="mt-1 text-[11px] text-muted-foreground/40">
+              <p className="mt-1 text-2xs text-muted-foreground/40">
                 Select text to annotate
               </p>
             </div>
@@ -350,7 +350,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
     return (
       <>
         <div
-          className="fixed inset-0 z-59 bg-background/60 backdrop-blur-sm"
+          className="fixed inset-0 z-panel-scrim bg-background/60 backdrop-blur-sm"
           onClick={onClose}
         />
         {panel}
@@ -411,13 +411,13 @@ const DirectEditsCard: React.FC<{
   return (
     <div className="w-full rounded-lg px-3 py-2.5 bg-surface-1/40 ring-1 ring-border/40">
       <div className="flex items-center gap-1.5">
-        <span className="text-[11px] font-medium text-primary">{title}</span>
+        <span className="text-2xs font-medium text-primary">{title}</span>
         {label && (
-          <span className="min-w-0 truncate text-[10px] text-muted-foreground" title={label}>
+          <span className="min-w-0 truncate text-3xs text-muted-foreground" title={label}>
             {label}
           </span>
         )}
-        <span className="font-mono text-[10px] tabular-nums">
+        <span className="font-mono text-3xs tabular-nums">
           <span className="text-success">+{added}</span>
           <span className="text-muted-foreground/40">/</span>
           <span className="text-destructive">-{removed}</span>
@@ -426,7 +426,7 @@ const DirectEditsCard: React.FC<{
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
-            className="cursor-pointer rounded-sm px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-surface-1 hover:text-foreground"
+            className="cursor-pointer rounded-sm px-1.5 py-0.5 text-3xs text-muted-foreground transition-colors hover:bg-surface-1 hover:text-foreground"
             aria-expanded={expanded}
           >
             {expanded ? 'Hide diff' : 'Diff'}
@@ -443,7 +443,7 @@ const DirectEditsCard: React.FC<{
                 }
               }}
               className={cn(
-                'cursor-pointer rounded-sm px-1.5 py-0.5 text-[10px] transition-colors',
+                'cursor-pointer rounded-sm px-1.5 py-0.5 text-3xs transition-colors',
                 confirmDiscard
                   ? 'bg-destructive/15 text-destructive hover:bg-destructive/25'
                   : 'text-muted-foreground hover:bg-surface-1 hover:text-destructive',
@@ -454,11 +454,11 @@ const DirectEditsCard: React.FC<{
           )}
         </div>
       </div>
-      <p className="mt-1 text-[10px] leading-snug text-muted-foreground/60">
+      <p className="mt-1 text-3xs/snug text-muted-foreground/60">
         {description ?? 'Your text changes — sent with the feedback as a diff.'}
       </p>
       {expanded && (
-        <pre className="mt-2 max-h-56 overflow-auto rounded-md bg-muted/40 p-2 font-mono text-[10px] leading-relaxed">
+        <pre className="mt-2 max-h-56 overflow-auto rounded-md bg-muted/40 p-2 font-mono text-3xs/relaxed">
           {diffLines.map((line, i) => (
             <div
               key={i}
@@ -521,15 +521,15 @@ const AnnotationCard: React.FC<{
     >
       {/* Header: type word + author · time + actions */}
       <div className="mb-1.5 flex items-center gap-1.5">
-        <span className={cn('text-[11px] font-medium', typeColor)}>{typeLabel}</span>
+        <span className={cn('text-2xs font-medium', typeColor)}>{typeLabel}</span>
         {annotation.diffContext && (
-          <span className="text-[9px] px-1.5 py-0.5 rounded-sm font-medium bg-muted text-muted-foreground">
+          <span className="text-4xs px-1.5 py-0.5 rounded-sm font-medium bg-muted text-muted-foreground">
             diff
           </span>
         )}
         {annotation.pageUrl && (
           <span
-            className="text-[9px] px-1.5 py-0.5 rounded-sm font-medium bg-muted text-muted-foreground truncate max-w-40"
+            className="text-4xs px-1.5 py-0.5 rounded-sm font-medium bg-muted text-muted-foreground truncate max-w-40"
             title={annotation.pageUrl}
           >
             {annotation.pageUrl}
@@ -538,13 +538,13 @@ const AnnotationCard: React.FC<{
         {unanchored && (
           <span
             data-annotation-unanchored="true"
-            className="text-[9px] px-1.5 py-0.5 rounded-sm font-medium bg-muted text-muted-foreground"
+            className="text-4xs px-1.5 py-0.5 rounded-sm font-medium bg-muted text-muted-foreground"
             title="This comment no longer matches a location in the document"
           >
             Unanchored
           </span>
         )}
-        <span className="text-[10px] text-muted-foreground/50 truncate">
+        <span className="text-3xs text-muted-foreground/50 truncate">
           {/* Your own name is noise: Hypermark is a single-annotator app and
               the generated identity says nothing you did not already know.
               Someone else's — an agent, a host-stamped account — is the whole
@@ -583,7 +583,7 @@ const AnnotationCard: React.FC<{
       ) : (
         <>
           {/* Quote — the annotated text */}
-          <p className="mb-1.5 line-clamp-2 whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-muted-foreground/80">
+          <p className="mb-1.5 line-clamp-2 whitespace-pre-wrap font-mono text-2xs/relaxed text-muted-foreground/80">
             "{annotation.originalText}"
           </p>
 
@@ -606,7 +606,7 @@ const AnnotationCard: React.FC<{
                 size="sm"
                 showRemove={false}
               />
-              <div className="text-[9px] text-muted-foreground truncate max-w-12" title={img.name}>{img.name}</div>
+              <div className="text-4xs text-muted-foreground truncate max-w-12" title={img.name}>{img.name}</div>
             </div>
           ))}
         </div>
@@ -681,8 +681,8 @@ const CodeAnnotationCard: React.FC<{
     >
       {/* Header: type word + author · time + actions */}
       <div className="mb-1.5 flex items-center gap-1.5">
-        <span className="text-[11px] font-medium text-primary">Code</span>
-        <span className="text-[10px] text-muted-foreground/50 truncate">
+        <span className="text-2xs font-medium text-primary">Code</span>
+        <span className="text-3xs text-muted-foreground/50 truncate">
           {annotation.author ? `${annotation.author} · ` : ''}{formatTimestamp(annotation.createdAt)}
         </span>
         {!readOnly && (
@@ -710,7 +710,7 @@ const CodeAnnotationCard: React.FC<{
       </div>
 
       {/* File / line meta */}
-      <div className="rounded-sm px-2 py-1 bg-surface-1 font-mono text-[11px] text-muted-foreground truncate" title={annotation.filePath}>
+      <div className="rounded-sm px-2 py-1 bg-surface-1 font-mono text-2xs text-muted-foreground truncate" title={annotation.filePath}>
         {fileName} · {lineRange}
       </div>
 
@@ -725,7 +725,7 @@ const CodeAnnotationCard: React.FC<{
           {annotation.images.map((img) => (
             <div key={img.path} className="text-center">
               <ImageThumbnail path={img.path} size="sm" showRemove={false} />
-              <div className="text-[9px] text-muted-foreground truncate max-w-12" title={img.name}>{img.name}</div>
+              <div className="text-4xs text-muted-foreground truncate max-w-12" title={img.name}>{img.name}</div>
             </div>
           ))}
         </div>

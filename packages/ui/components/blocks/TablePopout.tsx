@@ -191,7 +191,7 @@ const TablePopoutImpl: React.FC<TablePopoutProps> = ({
                   ? 'Copy as CSV'
                   : `Copy ${visibleRows.length} row${visibleRows.length === 1 ? '' : 's'} as CSV`
             }
-            className={`px-2 py-1 rounded-md text-[10px] font-bold tracking-tight uppercase leading-none transition-colors ${
+            className={`px-2 py-1 rounded-md text-3xs font-bold tracking-tight uppercase leading-none transition-colors ${
               copiedCsv ? 'text-success' : 'text-primary hover:bg-primary/10'
             }`}
           >
@@ -270,7 +270,7 @@ const SortIndicator: React.FC<{ dir: false | 'asc' | 'desc' }> = ({ dir }) => {
   const activeUp = dir === 'asc';
   const activeDown = dir === 'desc';
   return (
-    <span className="inline-flex flex-col leading-none text-[9px]">
+    <span className="inline-flex flex-col leading-none text-4xs">
       <span className={activeUp ? 'text-foreground' : 'text-muted-foreground/40'}>▲</span>
       <span className={activeDown ? 'text-foreground' : 'text-muted-foreground/40'}>▼</span>
     </span>

@@ -90,7 +90,7 @@ export const AttachmentsButton: React.FC<AttachmentsButtonProps> = ({
               ))}
               {images.length > 3 && (
                 <div
-                  className="relative size-5 rounded-sm bg-muted border border-background flex items-center justify-center text-[9px] font-medium"
+                  className="relative size-5 rounded-sm bg-muted border border-background flex items-center justify-center text-4xs font-medium"
                   style={{ marginLeft: '-6px', zIndex: 0 }}
                 >
                   +{images.length - 3}

@@ -174,7 +174,7 @@ const CodeInlineAnnotation: React.FC<{
         opacity: 1,
       }}
     >
-      <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+      <div className="flex items-center gap-2 text-3xs uppercase tracking-wide text-muted-foreground">
         <span className="font-semibold text-primary">Comment</span>
         <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono normal-case text-foreground">
           {lineLabel(annotation.lineStart, annotation.lineEnd)}
@@ -241,7 +241,7 @@ const CodeInlineAnnotation: React.FC<{
                 e.stopPropagation();
                 save();
               }}
-              className="rounded-sm bg-primary px-2 py-1 text-[10px] font-medium text-primary-foreground hover:opacity-90"
+              className="rounded-sm bg-primary px-2 py-1 text-3xs font-medium text-primary-foreground hover:opacity-90"
             >
               Save
             </button>
@@ -252,7 +252,7 @@ const CodeInlineAnnotation: React.FC<{
                 setIsEditing(false);
                 setEditText(annotation.text ?? '');
               }}
-              className="rounded-sm bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted/80"
+              className="rounded-sm bg-muted px-2 py-1 text-3xs font-medium text-muted-foreground hover:bg-muted/80"
             >
               Cancel
             </button>
@@ -271,7 +271,7 @@ const CodeInlineAnnotation: React.FC<{
           {annotation.images.map((img) => (
             <div key={img.path} className="text-center">
               <ImageThumbnail path={img.path} size="sm" showRemove={false} />
-              <div className="max-w-12 truncate text-[9px] text-muted-foreground" title={img.name}>
+              <div className="max-w-12 truncate text-4xs text-muted-foreground" title={img.name}>
                 {img.name}
               </div>
             </div>

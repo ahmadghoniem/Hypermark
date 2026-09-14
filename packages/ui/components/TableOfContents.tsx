@@ -115,11 +115,11 @@ export function TableOfContents({
         {linkedDocFilepath && (
           <div className="mb-2 px-0.5 pb-1.5 border-b border-border/50">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-medium text-primary/80">Viewing</span>
+              <span className="text-3xs font-medium text-primary/80">Viewing</span>
               {onLinkedDocBack && (
                 <button
                   onClick={onLinkedDocBack}
-                  className="flex items-center gap-0.5 text-[10px] font-medium text-primary hover:text-primary/80 transition-colors"
+                  className="flex items-center gap-0.5 text-3xs font-medium text-primary hover:text-primary/80 transition-colors"
                 >
                   <svg className="size-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -128,7 +128,7 @@ export function TableOfContents({
                 </button>
               )}
             </div>
-            <p className="text-[11px] text-foreground/70 truncate mt-0.5" title={linkedDocFilepath}>
+            <p className="text-2xs text-foreground/70 truncate mt-0.5" title={linkedDocFilepath}>
               {pathFileName(linkedDocFilepath)}
             </p>
           </div>
@@ -142,14 +142,14 @@ export function TableOfContents({
                 type="button"
                 onClick={() => handleNavigate(item.id)}
                 aria-current={isActive ? 'location' : undefined}
-                className={`flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] font-medium leading-snug transition-colors ${itemClasses(
+                className={`flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-2xs/snug font-medium  transition-colors ${itemClasses(
                   item.level,
                   isActive
                 )}`}
               >
                 <span className="line-clamp-2">{item.content}</span>
                 {item.annotationCount > 0 && (
-                  <span className="ml-1 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-primary/10 px-1 font-mono text-[9px] text-primary">
+                  <span className="ml-1 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-primary/10 px-1 font-mono text-4xs text-primary">
                     {item.annotationCount}
                   </span>
                 )}

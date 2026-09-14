@@ -137,7 +137,7 @@ const WorktreeRow: React.FC<WorktreeRowProps> = ({ label, sublabel, isSelected, 
     <div className="min-w-0 flex-1">
       <div className="truncate" title={label}>{label}</div>
       {sublabel && (
-        <div className="truncate text-[10px] text-muted-foreground" title={sublabel}>{sublabel}</div>
+        <div className="truncate text-3xs text-muted-foreground" title={sublabel}>{sublabel}</div>
       )}
     </div>
   </RefPickerRow>

@@ -89,7 +89,7 @@ export const PlanRawDiffView: React.FC<PlanRawDiffViewProps> = ({ blocks }) => {
                   : " "}
             </div>
             {/* Line number */}
-            <div className="w-8 shrink-0 select-none text-muted-foreground/40 text-right pr-3 text-[11px]">
+            <div className="w-8 shrink-0 select-none text-muted-foreground/40 text-right pr-3 text-2xs">
               {line.lineNumber ?? ""}
             </div>
             {/* Content */}

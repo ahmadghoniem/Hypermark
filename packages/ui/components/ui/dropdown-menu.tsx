@@ -21,7 +21,7 @@ function DropdownMenuTrigger({ ...props }: MenuPrimitive.Trigger.Props) {
 }
 
 const dropdownMenuPopupClassName =
-  "z-50 min-w-32 overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground origin-(--transform-origin) transition-[opacity,scale] duration-150 data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95";
+  "z-chrome min-w-32 overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground origin-(--transform-origin) transition-[opacity,scale] duration-150 data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95";
 
 function DropdownMenuContent({
   className,
@@ -35,7 +35,7 @@ function DropdownMenuContent({
   return (
     <MenuPrimitive.Portal>
       <MenuPrimitive.Positioner
-        className="isolate z-50 outline-none"
+        className="isolate z-chrome outline-none"
         side={side}
         sideOffset={sideOffset}
         align={align}
@@ -166,7 +166,7 @@ function DropdownMenuShortcut({
   return (
     <span
       data-slot="dropdown-menu-shortcut"
-      className={cn("ml-auto flex items-center gap-1 text-[11px] text-muted-foreground", className)}
+      className={cn("ml-auto flex items-center gap-1 text-2xs text-muted-foreground", className)}
       {...props}
     >
       {keys
@@ -219,7 +219,7 @@ function DropdownMenuSubContent({
   return (
     <MenuPrimitive.Portal>
       <MenuPrimitive.Positioner
-        className="isolate z-50 outline-none"
+        className="isolate z-chrome outline-none"
         side={side}
         sideOffset={sideOffset}
         align={align}

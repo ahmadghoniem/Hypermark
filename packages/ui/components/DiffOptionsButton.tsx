@@ -61,7 +61,7 @@ function Segmented<T extends string>({ options, value, onChange }: {
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`flex-1 px-2 py-1 text-[11px] rounded-[5px] transition-colors ${
+          className={`flex-1 px-2 py-1 text-2xs rounded-[5px] transition-colors ${
             value === opt.value
               ? 'bg-background text-foreground shadow-sm font-medium'
               : 'text-muted-foreground hover:text-foreground'
@@ -84,21 +84,21 @@ function Stepper({ value, min, max, onChange, label }: {
   const clamp = (n: number) => Math.max(min, Math.min(max, n));
   return (
     <div className="w-full flex items-center justify-between py-1">
-      <span className="text-[11px] text-muted-foreground">{label}</span>
+      <span className="text-2xs text-muted-foreground">{label}</span>
       <div className="flex items-center gap-px bg-muted/60 rounded-md p-px">
         <button
           type="button"
           onClick={() => onChange(clamp(value - 1))}
           disabled={value <= min}
-          className="px-1.5 py-0.5 text-[11px] rounded-[5px] text-muted-foreground hover:text-foreground hover:bg-background disabled:opacity-40 disabled:hover:bg-transparent"
+          className="px-1.5 py-0.5 text-2xs rounded-[5px] text-muted-foreground hover:text-foreground hover:bg-background disabled:opacity-40 disabled:hover:bg-transparent"
           aria-label={`Decrease ${label}`}
         >−</button>
-        <span className="px-2 text-[11px] tabular-nums w-5 text-center">{value}</span>
+        <span className="px-2 text-2xs tabular-nums w-5 text-center">{value}</span>
         <button
           type="button"
           onClick={() => onChange(clamp(value + 1))}
           disabled={value >= max}
-          className="px-1.5 py-0.5 text-[11px] rounded-[5px] text-muted-foreground hover:text-foreground hover:bg-background disabled:opacity-40 disabled:hover:bg-transparent"
+          className="px-1.5 py-0.5 text-2xs rounded-[5px] text-muted-foreground hover:text-foreground hover:bg-background disabled:opacity-40 disabled:hover:bg-transparent"
           aria-label={`Increase ${label}`}
         >+</button>
       </div>
@@ -119,7 +119,7 @@ function Toggle({ checked, onChange, label }: {
       onClick={() => onChange(!checked)}
       className="w-full flex items-center justify-between py-1 group"
     >
-      <span className="text-[11px] text-muted-foreground group-hover:text-foreground transition-colors">{label}</span>
+      <span className="text-2xs text-muted-foreground group-hover:text-foreground transition-colors">{label}</span>
       <span className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
         checked ? 'bg-primary' : 'bg-muted-foreground/25'
       }`}>
@@ -159,16 +159,16 @@ export const DiffOptionsButton: React.FC = () => {
         <OptionsIcon className="size-4" />
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Positioner align="end" sideOffset={6} className="z-50">
+        <Popover.Positioner align="end" sideOffset={6} className="z-chrome">
           <Popover.Popup className="w-[min(18rem,calc(100vw-1rem))] max-h-[calc(var(--pn-viewport-height,100vh)-2rem-var(--pn-safe-top)-var(--pn-safe-bottom))] overflow-y-auto bg-popover text-popover-foreground border border-border rounded-lg shadow-lg origin-(--transform-origin) transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0">
             <div className="p-2.5 space-y-2">
               <div className="space-y-1.5">
                 <div>
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-1">Code font</div>
+                  <div className="text-3xs uppercase tracking-wide text-muted-foreground/70 mb-1">Code font</div>
                   <select
                     value={diffFontFamily}
                     onChange={(e) => configStore.set('diffFontFamily', e.target.value)}
-                    className="w-full px-2 py-1 text-[11px] rounded-md bg-muted/60 border border-border text-foreground"
+                    className="w-full px-2 py-1 text-2xs rounded-md bg-muted/60 border border-border text-foreground"
                     style={diffFontFamily ? { fontFamily: `'${diffFontFamily}', monospace` } : undefined}
                     aria-label="Code font"
                   >
@@ -178,7 +178,7 @@ export const DiffOptionsButton: React.FC = () => {
                   </select>
                 </div>
                 <div className="w-full flex items-center justify-between py-1 gap-2">
-                  <span className="text-[11px] text-muted-foreground flex-none">Font size</span>
+                  <span className="text-2xs text-muted-foreground flex-none">Font size</span>
                   <input
                     type="range"
                     min={8}
@@ -189,20 +189,20 @@ export const DiffOptionsButton: React.FC = () => {
                     className="flex-1 min-w-0 h-1.5 accent-primary cursor-pointer"
                     aria-label="Code font size"
                   />
-                  <span className="text-[11px] tabular-nums text-muted-foreground w-[4ch] text-right flex-none">
+                  <span className="text-2xs tabular-nums text-muted-foreground w-[4ch] text-right flex-none">
                     {diffFontSize ? parseInt(diffFontSize, 10) : 'Auto'}
                   </span>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-1">Long lines</div>
+                  <div className="text-3xs uppercase tracking-wide text-muted-foreground/70 mb-1">Long lines</div>
                   <Segmented options={OVERFLOW_OPTIONS} value={diffOverflow} onChange={(v) => configStore.set('diffOverflow', v)} />
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-1">Indicators</div>
+                  <div className="text-3xs uppercase tracking-wide text-muted-foreground/70 mb-1">Indicators</div>
                   <Segmented options={INDICATOR_OPTIONS} value={diffIndicators} onChange={(v) => configStore.set('diffIndicators', v)} />
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-wide text-muted-foreground/70 mb-1">Inline diff</div>
+                  <div className="text-3xs uppercase tracking-wide text-muted-foreground/70 mb-1">Inline diff</div>
                   <Segmented options={LINE_DIFF_OPTIONS} value={diffLineDiffType} onChange={(v) => configStore.set('diffLineDiffType', v)} />
                 </div>
               </div>

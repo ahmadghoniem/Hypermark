@@ -364,7 +364,7 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
       >
         <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
       </svg>
-      <span className="text-[11px] font-medium">{SECTION_META[group].label}</span>
+      <span className="text-2xs font-medium">{SECTION_META[group].label}</span>
     </button>
   );
 
@@ -431,7 +431,7 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
           view's dropdown, and the header toggle is the path between them. */}
       {onSelectBase && selectedBase && detectedBase && availableBranches && compareTarget && (
         <div className="px-2 py-1.5 border-b border-border/30 flex items-center gap-2 shrink-0">
-          <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0">vs</span>
+          <span className="text-3xs uppercase tracking-wide text-muted-foreground shrink-0">vs</span>
           <div className="flex-1 min-w-0">
             <BaseBranchPicker
               availableBranches={availableBranches}
@@ -490,7 +490,7 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
                         {committedVisibleCount < items.committed.length && (
                           <button
                             onClick={() => setCommittedExpanded(true)}
-                            className="w-full text-left px-2 py-1 text-[11px] text-primary/80 underline underline-offset-2 decoration-primary/40 hover:text-primary hover:decoration-primary transition-colors"
+                            className="w-full text-left px-2 py-1 text-2xs text-primary/80 underline underline-offset-2 decoration-primary/40 hover:text-primary hover:decoration-primary transition-colors"
                           >
                             {items.committed.length - committedVisibleCount} more files
                           </button>
@@ -498,7 +498,7 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
                         {committedExpanded && items.committed.length > MIN_COMMITTED_ROWS && (
                           <button
                             onClick={() => setCommittedExpanded(false)}
-                            className="w-full text-left px-2 py-1 text-[11px] text-primary/80 underline underline-offset-2 decoration-primary/40 hover:text-primary hover:decoration-primary transition-colors"
+                            className="w-full text-left px-2 py-1 text-2xs text-primary/80 underline underline-offset-2 decoration-primary/40 hover:text-primary hover:decoration-primary transition-colors"
                           >
                             Show fewer
                           </button>
@@ -515,7 +515,7 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
                     (items.changes.length > 0 ? (
                       renderRows(items.changes)
                     ) : (
-                      <div className="px-2 py-1 text-[11px] text-muted-foreground/50">No working-tree changes</div>
+                      <div className="px-2 py-1 text-2xs text-muted-foreground/50">No working-tree changes</div>
                     ))}
                 </div>
 

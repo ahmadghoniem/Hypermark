@@ -330,14 +330,14 @@ export const AnnotateAgentTerminalPanel = forwardRef<
       {!capability.enabled ? (
         <div className="flex flex-1 flex-col justify-center gap-2 px-4 text-center">
           <p className="text-xs font-medium text-foreground">Agent unavailable</p>
-          <p className="text-[11px] leading-5 text-muted-foreground">
+          <p className="text-2xs/5 text-muted-foreground">
             {('message' in capability ? capability.message : undefined) ?? "WebTUI is not available in this session."}
           </p>
         </div>
       ) : startedAgentId && backend ? (
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex h-10 items-center justify-between gap-2 border-b border-border/40 px-3">
-            <div className="min-w-0 text-[11px] text-muted-foreground">
+            <div className="min-w-0 text-2xs text-muted-foreground">
               <span className="text-foreground">{formatAgentName(startedAgentId, agents)}</span>
               <span className="mx-1.5 text-muted-foreground/40">in</span>
               <span className="inline-block max-w-52 truncate align-bottom font-mono" title={capability.cwd}>{capability.cwd}</span>
@@ -354,7 +354,7 @@ export const AnnotateAgentTerminalPanel = forwardRef<
                 aria-label="Stop agent"
                 onClick={() => requestStop(false)}
                 disabled={status === "stopping" || status === "exited"}
-                className="h-6 shrink-0 rounded-sm px-1.5 text-[11px] font-medium text-muted-foreground/80 transition-colors hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-6 shrink-0 rounded-sm px-1.5 text-2xs font-medium text-muted-foreground/80 transition-colors hover:text-destructive focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Stop
               </button>
@@ -362,7 +362,7 @@ export const AnnotateAgentTerminalPanel = forwardRef<
           </div>
           <div className="relative min-h-0 flex-1" style={terminalTheme.shellStyle}>
             {status === "starting" && (
-              <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-sm border border-border/50 bg-card/95 px-2 py-1 text-[11px] text-muted-foreground shadow-sm">
+              <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-sm border border-border/50 bg-card/95 px-2 py-1 text-2xs text-muted-foreground shadow-sm">
                 Starting terminal...
               </div>
             )}
@@ -396,7 +396,7 @@ export const AnnotateAgentTerminalPanel = forwardRef<
             />
           </div>
           {exitLabel && (
-            <div className="border-t border-border/40 px-3 py-2 text-[11px] text-muted-foreground">
+            <div className="border-t border-border/40 px-3 py-2 text-2xs text-muted-foreground">
               {exitLabel}
             </div>
           )}
@@ -404,7 +404,7 @@ export const AnnotateAgentTerminalPanel = forwardRef<
       ) : (
         <div className="flex flex-1 flex-col gap-3 p-3">
           <div className="flex flex-col gap-1.5">
-            <span className="text-[11px] font-medium text-muted-foreground">Agent</span>
+            <span className="text-2xs font-medium text-muted-foreground">Agent</span>
             <AgentSelect
               agents={availableAgents}
               selectedAgentId={selectedAgentId}
@@ -430,7 +430,7 @@ export const AnnotateAgentTerminalPanel = forwardRef<
             Start
           </button>
           {availableAgents.length === 0 && (
-            <p className="text-[11px] leading-5 text-muted-foreground">
+            <p className="text-2xs/5 text-muted-foreground">
               No supported agent CLI was found on PATH.
             </p>
           )}
@@ -472,7 +472,7 @@ function AgentSelect({
       <DropdownMenuContent
         align="start"
         sideOffset={4}
-        className="z-100 min-w-(--anchor-width)"
+        className="z-popover min-w-(--anchor-width)"
       >
         {agents.map((agent) => {
           const selected = agent.id === selectedAgentId;
@@ -602,13 +602,13 @@ function AgentTerminalDisplayPopover({
           />
 
           <label className="flex items-center justify-between gap-3 py-1">
-            <span className="text-[11px] text-muted-foreground">Font</span>
+            <span className="text-2xs text-muted-foreground">Font</span>
             <select
               value={settings.fontFamily}
               onChange={(event) =>
                 onChange({ fontFamily: event.target.value as AgentTerminalFontFamily })
               }
-              className="h-7 w-32 rounded-md border border-border bg-background px-2 text-[11px] text-foreground outline-none transition-colors focus:border-primary"
+              className="h-7 w-32 rounded-md border border-border bg-background px-2 text-2xs text-foreground outline-none transition-colors focus:border-primary"
             >
               {FONT_FAMILY_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -658,7 +658,7 @@ function TerminalDisplayStepper({
   const clamped = clampNumber(value, min, max);
   return (
     <div className="flex items-center justify-between gap-3 py-1">
-      <span className="text-[11px] text-muted-foreground">{label}</span>
+      <span className="text-2xs text-muted-foreground">{label}</span>
       <div className="flex items-center gap-px rounded-md bg-muted/60 p-px">
         <button
           type="button"
@@ -669,7 +669,7 @@ function TerminalDisplayStepper({
         >
           <Minus className="size-3" />
         </button>
-        <span className="w-12 text-center text-[11px] tabular-nums text-foreground">
+        <span className="w-12 text-center text-2xs tabular-nums text-foreground">
           {clamped}
           {suffix}
         </span>
@@ -700,7 +700,7 @@ function TerminalDisplaySegmented<T extends string>({
 }) {
   return (
     <div className="space-y-1">
-      <div className="text-[11px] text-muted-foreground">{label}</div>
+      <div className="text-2xs text-muted-foreground">{label}</div>
       <div className="flex items-center gap-px rounded-md bg-muted/60 p-px">
         {options.map((option) => (
           <button
@@ -708,7 +708,7 @@ function TerminalDisplaySegmented<T extends string>({
             type="button"
             aria-pressed={value === option.value}
             onClick={() => onChange(option.value)}
-            className={`h-6 flex-1 rounded-[5px] px-2 text-[11px] transition-colors focus-visible:outline-2 focus-visible:outline-ring ${
+            className={`h-6 flex-1 rounded-[5px] px-2 text-2xs transition-colors focus-visible:outline-2 focus-visible:outline-ring ${
               value === option.value
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"

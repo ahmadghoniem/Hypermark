@@ -53,10 +53,10 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
 }) => {
 
   return (
-    <div className="relative z-50 w-full" style={maxWidth ? { maxWidth } : { maxWidth: 832 }}>
+    <div className="relative z-chrome w-full" style={maxWidth ? { maxWidth } : { maxWidth: 832 }}>
       <article className="w-full bg-card border border-border/50 rounded-xl shadow-xl p-5 md:p-8 lg:p-10 xl:p-12 relative">
         {/* Top-left: repo info + diff badge — matches Viewer layout (flex-col) so badge doesn't jump position */}
-        <div className="absolute top-3 left-3 md:top-4 md:left-5 flex flex-col items-start gap-1 text-[9px] text-muted-foreground/50 font-mono">
+        <div className="absolute top-3 left-3 md:top-4 md:left-5 flex flex-col items-start gap-1 text-4xs text-muted-foreground/50 font-mono">
           {repoInfo && (
             <div className="flex items-center gap-1.5">
               <span
@@ -97,7 +97,7 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
             className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             title="Back to plan view"
           >
-            <span className="hidden md:inline text-[10px] font-medium">Exit Diff</span>
+            <span className="hidden md:inline text-3xs font-medium">Exit Diff</span>
             <svg
               className="size-3.5"
               fill="none"
@@ -118,7 +118,7 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
         <div className="my-6 flex items-center gap-3">
           <PlanDiffModeSwitcher mode={diffMode} onChange={onDiffModeChange} />
           {baseVersionLabel && (
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-3xs text-muted-foreground">
               vs {baseVersionLabel}
             </span>
           )}

@@ -49,6 +49,19 @@ const tailwindRules = {
         fix: "$1$2h-dvh",
         message: "h-screen ignores mobile browser chrome. Use h-dvh.",
       },
+      {
+        // Sizes below 12px have named steps in theme.css.
+        pattern: `${variant}text-\\[(8|9|9\\.5|10|10\\.5|11|11\\.5)px\\]$`,
+        message: "Use the named micro sizes: text-2xs (11px), text-3xs (10px), text-4xs (9px).",
+      },
+      {
+        pattern: `${variant}z-(\\[.*\\]|5[0-9]|[6-9][0-9]|[1-9][0-9]{2,})$`,
+        message: "Page-level stacking uses the named layers in theme.css (z-chrome, z-panel, z-menu, z-popover, z-dialog, z-overlay, ...). Local stacking stays at z-1 … z-40.",
+      },
+      {
+        pattern: `${variant}text-\\[15px\\]$`,
+        message: "Plan body text uses text-plan (driven by --plan-size / --plan-leading).",
+      },
     ],
   }],
 };

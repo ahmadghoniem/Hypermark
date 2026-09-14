@@ -47,7 +47,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ block, onHover, onLeave })
   return (
     <div
       ref={containerRef}
-      className="relative group my-5"
+      className="relative group my-plan-wide"
       data-block-id={block.id}
       onMouseEnter={onHover ? handleMouseEnter : undefined}
       onMouseLeave={onLeave}

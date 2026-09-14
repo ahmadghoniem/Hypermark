@@ -170,7 +170,7 @@ export function PanelSearchField({
         />
         <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
           {hasQuery && !isPending && (
-            <span className="text-[10px] tabular-nums text-muted-foreground/40">
+            <span className="text-3xs tabular-nums text-muted-foreground/40">
               {resultCount}
             </span>
           )}
