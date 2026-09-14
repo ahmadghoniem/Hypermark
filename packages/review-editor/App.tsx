@@ -2170,6 +2170,35 @@ const ReviewAppInner: React.FC = () => {
             <div className="w-px h-5 bg-border/50 mx-1 hidden lg:block" />
             <button
               type="button"
+              onClick={onToggleAllFilesCollapsed}
+              className="flex h-7 items-center justify-center rounded-md px-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title={allFilesAllCollapsed ? 'Expand all files' : 'Collapse all files'}
+              aria-label={allFilesAllCollapsed ? 'Expand all files' : 'Collapse all files'}
+            >
+              <svg
+                className="w-3.5 h-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                {allFilesAllCollapsed ? (
+                  <>
+                    <path d="M7 9l5-5 5 5" />
+                    <path d="M7 15l5 5 5-5" />
+                  </>
+                ) : (
+                  <>
+                    <path d="M7 4l5 5 5-5" />
+                    <path d="M7 20l5-5 5 5" />
+                  </>
+                )}
+              </svg>
+            </button>
+            <button
+              type="button"
               onClick={() => configStore.set('diffStyle', (diffStyle ?? 'split') === 'split' ? 'unified' : 'split')}
               className="flex h-7 items-center justify-center rounded-md px-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title={(diffStyle ?? 'split') === 'split' ? 'Split diff (switch to unified)' : 'Unified diff (switch to split)'}
