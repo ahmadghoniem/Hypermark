@@ -451,12 +451,39 @@ body:has([data-pn-browser-canvas="background"]) {
   scrollbar-color: var(--border) transparent;
 }
 
-/* Windows Chromium paints stepper arrows at both ends of every scrollbar.
-   Hide the buttons only; the rail width stays the standard `thin` (#354). */
-::-webkit-scrollbar-button {
-  display: none;
-  width: 0;
-  height: 0;
+/* Windows Chromium paints stepper arrows at both ends of every scrollbar, and
+   ignores every ::-webkit-scrollbar rule on an element whose scrollbar-width or
+   scrollbar-color is set. So on Windows (ThemeProvider sets data-platform) and
+   only in engines with ::-webkit-scrollbar, reset the standard properties and
+   draw the same thin rail with the pseudo-elements, buttons hidden. The 11px
+   rail matches `thin` and stays grabbable (#354). Firefox keeps the rule above. */
+@supports selector(::-webkit-scrollbar) {
+  html[data-platform="windows"] * {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+  html[data-platform="windows"] ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+  html[data-platform="windows"] ::-webkit-scrollbar-track,
+  html[data-platform="windows"] ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  html[data-platform="windows"] ::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    background-clip: padding-box;
+    border: 3px solid transparent;
+    border-radius: 9999px;
+  }
+  html[data-platform="windows"] ::-webkit-scrollbar-thumb:hover {
+    border-width: 2px;
+  }
+  html[data-platform="windows"] ::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }
 
 /* Selection */

@@ -96,6 +96,16 @@ interface ThemeProviderProps {
   manageFavicon?: boolean;
 }
 
+/** Tags <html> on Windows so theme.css can hide Chromium's scrollbar stepper arrows. */
+function markWindowsPlatform() {
+  const platform =
+    (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform
+    ?? navigator.userAgent;
+  if (/windows|win32|win64/i.test(platform)) {
+    document.documentElement.dataset.platform = 'windows';
+  }
+}
+
 export function ThemeProvider({
   children,
   defaultTheme = 'dark',
@@ -166,6 +176,7 @@ export function ThemeProvider({
   // without this the first frame has no valid --background/--foreground.
   if (typeof window !== 'undefined') {
     applyThemeClasses(colorTheme, resolvedMode);
+    markWindowsPlatform();
   }
 
   // Keep class in sync after state changes
