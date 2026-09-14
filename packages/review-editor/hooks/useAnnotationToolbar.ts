@@ -1,6 +1,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { CodeAnnotation, SelectedLineRange, CodeAnnotationType, TokenAnnotationMeta, ImageAttachment } from '@hypermark/ui/types';
-import { useDismissOnOutsideAndEscape } from '@hypermark/ui/hooks/useDismissOnOutsideAndEscape';
+import type {
+  CodeAnnotation,
+  SelectedLineRange,
+  CodeAnnotationType,
+  TokenAnnotationMeta,
+  ImageAttachment,
+} from '@hypermark/ui/types';
 import { useVisibleViewportBounds } from '@hypermark/ui/hooks/useViewportEnvironment';
 import type { DiffTokenEventBaseProps } from '@pierre/diffs';
 
@@ -18,7 +23,7 @@ export interface TokenSelection {
 }
 
 export interface ToolbarState {
-  position: { top: number; left: number };
+  anchorRect?: DOMRect;
   range: SelectedLineRange;
   tokenSelection?: TokenSelection;
 }
@@ -27,16 +32,20 @@ interface UseAnnotationToolbarArgs {
   filePath: string;
   isFocused: boolean;
   onLineSelection: (range: SelectedLineRange | null) => void;
-  onAddAnnotation: (type: CodeAnnotationType, text?: string, tokenMeta?: TokenAnnotationMeta, images?: ImageAttachment[]) => void;
+  onAddAnnotation: (
+    type: CodeAnnotationType,
+    text?: string,
+    tokenMeta?: TokenAnnotationMeta,
+    images?: ImageAttachment[],
+  ) => void;
   onEditAnnotation: (id: string, text?: string, images?: ImageAttachment[]) => void;
 }
 
 // Per-range draft storage (survives component remounts, e.g. file switches)
 interface Draft {
   commentText: string;
-  images: ImageAttachment[];
   range: SelectedLineRange;
-  position: { top: number; left: number };
+  anchorRect?: DOMRect;
   tokenSelection?: TokenSelection;
 }
 
@@ -49,25 +58,23 @@ function draftKey(filePath: string, range: SelectedLineRange): string {
   return `${filePath}:${range.side}:${start}-${end}`;
 }
 
-export function useAnnotationToolbar({ filePath, isFocused, onLineSelection, onAddAnnotation, onEditAnnotation }: UseAnnotationToolbarArgs) {
+export function useAnnotationToolbar({
+  filePath,
+  isFocused,
+  onLineSelection,
+  onAddAnnotation,
+  onEditAnnotation,
+}: UseAnnotationToolbarArgs) {
   const visibleBounds = useVisibleViewportBounds(16);
-  const toolbarRef = useRef<HTMLDivElement>(null);
-  const lastMousePosition = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const tokenAnchorRef = useRef<TokenMeta | null>(null);
 
   const [toolbarState, setToolbarState] = useState<ToolbarState | null>(null);
   const [commentText, setCommentText] = useState('');
-  const [showCommentModal, setShowCommentModal] = useState(false);
-  const [modalLayout, setModalLayout] = useState<'horizontal' | 'vertical'>('horizontal');
   const [editingAnnotationId, setEditingAnnotationId] = useState<string | null>(null);
-  // Spec 05 §3.2/§4.1.5: images live on the same per-range draft as commentText,
-  // survive save/restore across remounts, and are forwarded to onAddAnnotation /
-  // onEditAnnotation exactly like the other composer fields.
-  const [images, setImages] = useState<ImageAttachment[]>([]);
 
   // Refs to avoid stale closures in saveDraft
-  const formRef = useRef({ commentText, images });
-  formRef.current = { commentText, images };
+  const commentTextRef = useRef(commentText);
+  commentTextRef.current = commentText;
   const toolbarStateRef = useRef(toolbarState);
   toolbarStateRef.current = toolbarState;
   const editingRef = useRef(editingAnnotationId);
@@ -78,13 +85,13 @@ export function useAnnotationToolbar({ filePath, isFocused, onLineSelection, onA
   const saveDraft = useCallback(() => {
     const range = toolbarStateRef.current?.range;
     if (!range || editingRef.current) return;
-    const form = formRef.current;
+    const text = commentTextRef.current;
     const key = draftKey(filePath, range);
-    if (form.commentText.trim() || form.images.length > 0) {
+    if (text.trim()) {
       draftStore.set(key, {
-        ...form,
+        commentText: text,
         range,
-        position: toolbarStateRef.current?.position ?? { top: 0, left: 0 },
+        anchorRect: toolbarStateRef.current?.anchorRect,
         tokenSelection: toolbarStateRef.current?.tokenSelection,
       });
       currentDraftKeyRef.current = key;
@@ -120,129 +127,131 @@ export function useAnnotationToolbar({ filePath, isFocused, onLineSelection, onA
   const resetForm = useCallback(() => {
     setToolbarState(null);
     setCommentText('');
-    setShowCommentModal(false);
     setEditingAnnotationId(null);
-    setImages([]);
-  }, []);
-
-  // Track mouse position continuously for toolbar placement.
-  // Structural type so the same handler accepts both React synthetic events
-  // (parent JSX onMouseMove) and native MouseEvents (ToolbarHost window listener).
-  const handleMouseMove = useCallback((e: { clientX: number; clientY: number }) => {
-    lastMousePosition.current = { x: e.clientX, y: e.clientY };
   }, []);
 
   // Shared: save current draft, restore form for new range, set toolbar state, notify parent
-  const openToolbar = useCallback((
-    range: SelectedLineRange,
-    position: { top: number; left: number },
-    tokenSelection?: TokenSelection,
-  ) => {
-    saveDraft();
-    setEditingAnnotationId(null);
-    setShowCommentModal(false);
+  const openToolbar = useCallback(
+    (
+      range: SelectedLineRange,
+      anchorRect?: DOMRect,
+      tokenSelection?: TokenSelection,
+    ) => {
+      saveDraft();
+      setEditingAnnotationId(null);
 
-    const draft = draftStore.get(draftKey(filePath, range));
-    if (draft) {
-      setCommentText(draft.commentText);
-      setImages(draft.images);
-    } else {
-      setCommentText('');
-      setImages([]);
-    }
+      const draft = draftStore.get(draftKey(filePath, range));
+      if (draft) {
+        setCommentText(draft.commentText);
+      } else {
+        setCommentText('');
+      }
 
-    setToolbarState({ position, range, tokenSelection });
-    currentDraftKeyRef.current = draftKey(filePath, range);
-    restoreDraftKeyByFilePath.delete(filePath);
+      const effectiveAnchorRect =
+        anchorRect ??
+        new DOMRect(
+          visibleBounds.left + visibleBounds.width / 2,
+          visibleBounds.top + 64,
+          1,
+          1,
+        );
 
-    onLineSelection(range);
-  }, [filePath, onLineSelection, saveDraft]);
+      setToolbarState({ anchorRect: effectiveAnchorRect, range, tokenSelection });
+      currentDraftKeyRef.current = draftKey(filePath, range);
+      restoreDraftKeyByFilePath.delete(filePath);
+
+      onLineSelection(range);
+    },
+    [filePath, onLineSelection, saveDraft, visibleBounds],
+  );
 
   // Handle line selection end (gutter clicks)
-  const handleLineSelectionEnd = useCallback((range: SelectedLineRange | null) => {
-    tokenAnchorRef.current = null;
+  const handleLineSelectionEnd = useCallback(
+    (range: SelectedLineRange | null, anchorRect?: DOMRect) => {
+      tokenAnchorRef.current = null;
 
-    if (!range) {
-      setToolbarState(null);
-      onLineSelection(null);
-      return;
-    }
+      if (!range) {
+        setToolbarState(null);
+        onLineSelection(null);
+        return;
+      }
 
-    const mousePos = lastMousePosition.current;
-    const hasPointerPosition = mousePos.x > 0 || mousePos.y > 0;
-    openToolbar(range, hasPointerPosition
-      ? { top: mousePos.y + 10, left: mousePos.x }
-      : {
-          top: visibleBounds.top + visibleBounds.height / 2,
-          left: visibleBounds.left + visibleBounds.width / 2,
-        }
-    );
-  }, [onLineSelection, openToolbar, visibleBounds]);
+      openToolbar(range, anchorRect);
+    },
+    [onLineSelection, openToolbar],
+  );
 
   /** Open the ordinary code-review composer for a selection requested elsewhere. */
-  const openLineAnnotation = useCallback((range: SelectedLineRange) => {
-    tokenAnchorRef.current = null;
-    openToolbar(range, {
-      top: Math.max(visibleBounds.top + 64, visibleBounds.top + visibleBounds.height / 2 - 80),
-      left: visibleBounds.left + visibleBounds.width / 2,
-    });
-  }, [openToolbar, visibleBounds]);
+  const openLineAnnotation = useCallback(
+    (range: SelectedLineRange, anchorRect?: DOMRect) => {
+      tokenAnchorRef.current = null;
+      openToolbar(range, anchorRect);
+    },
+    [openToolbar],
+  );
 
   // Handle annotation submission (create or update)
-  const handleSubmitAnnotation = useCallback(() => {
-    const hasComment = commentText.trim().length > 0;
-    const hasImages = images.length > 0;
-    // Spec 05 §3.2.1: an image-only comment must be submittable — text is no
-    // longer the only qualifying content.
-    if (!toolbarState || (!hasComment && !hasImages)) return;
+  const submit = useCallback(
+    (text: string, images?: ImageAttachment[]) => {
+      const hasComment = text.trim().length > 0;
+      const hasImages = (images?.length ?? 0) > 0;
+      if (!toolbarState || (!hasComment && !hasImages)) return;
 
-    const text = hasComment ? commentText.trim() : undefined;
+      const trimmedText = hasComment ? text.trim() : undefined;
 
-    if (editingAnnotationId) {
-      // Edit path: the composer always tracks a concrete image list, so it is
-      // sent unconditionally (unlike the has-content checks above) — an edit
-      // that removed every image must clear the annotation's saved list too,
-      // not leave it untouched the way "not provided" would.
-      onEditAnnotation(editingAnnotationId, text, images);
-    } else {
-      const submittedImages = hasImages ? images : undefined;
-      const tokenSel = toolbarState.tokenSelection;
-      const tokenMeta = tokenSel ? {
-        charStart: tokenSel.anchor.charStart,
-        charEnd: tokenSel.anchor.charEnd,
-        tokenText: tokenSel.fullText,
-      } : undefined;
-      onAddAnnotation('comment', text, tokenMeta, submittedImages);
-    }
+      if (editingAnnotationId) {
+        onEditAnnotation(editingAnnotationId, trimmedText, images);
+      } else {
+        const tokenSel = toolbarState.tokenSelection;
+        const tokenMeta = tokenSel
+          ? {
+              charStart: tokenSel.anchor.charStart,
+              charEnd: tokenSel.anchor.charEnd,
+              tokenText: tokenSel.fullText,
+            }
+          : undefined;
+        onAddAnnotation('comment', trimmedText, tokenMeta, images);
+      }
 
-    clearDraft();
-    resetForm();
-  }, [toolbarState, commentText, images, editingAnnotationId, onAddAnnotation, onEditAnnotation, clearDraft, resetForm]);
+      clearDraft();
+      resetForm();
+    },
+    [
+      toolbarState,
+      editingAnnotationId,
+      onAddAnnotation,
+      onEditAnnotation,
+      clearDraft,
+      resetForm,
+    ],
+  );
 
   // Start editing an existing annotation
-  const startEdit = useCallback((annotation: CodeAnnotation) => {
-    setEditingAnnotationId(annotation.id);
-    setCommentText(annotation.text || '');
-    setShowCommentModal(false);
-    setImages(annotation.images || []);
+  const startEdit = useCallback(
+    (annotation: CodeAnnotation, anchorRect?: DOMRect) => {
+      setEditingAnnotationId(annotation.id);
+      setCommentText(annotation.text || '');
 
-    // Position toolbar near the annotation using last known mouse position
-    const mousePos = lastMousePosition.current;
-    const hasPointerPosition = mousePos.x > 0 || mousePos.y > 0;
-    setToolbarState({
-      position: hasPointerPosition
-        ? { top: mousePos.y + 10, left: mousePos.x }
-        : {
-            top: visibleBounds.top + visibleBounds.height / 2,
-            left: visibleBounds.left + visibleBounds.width / 2,
-          },
-      range: {
-        start: annotation.lineStart,
-        end: annotation.lineEnd,
-        side: annotation.side === 'new' ? 'additions' : 'deletions',
-      },
-    });
-  }, [visibleBounds]);
+      const effectiveAnchorRect =
+        anchorRect ??
+        new DOMRect(
+          visibleBounds.left + visibleBounds.width / 2,
+          visibleBounds.top + 64,
+          1,
+          1,
+        );
+
+      setToolbarState({
+        anchorRect: effectiveAnchorRect,
+        range: {
+          start: annotation.lineStart,
+          end: annotation.lineEnd,
+          side: annotation.side === 'new' ? 'additions' : 'deletions',
+        },
+      });
+    },
+    [visibleBounds],
+  );
 
   // Dismiss: save draft and hide toolbar
   const handleDismiss = useCallback(() => {
@@ -257,12 +266,6 @@ export function useAnnotationToolbar({ filePath, isFocused, onLineSelection, onA
     resetForm();
     onLineSelection(null);
   }, [onLineSelection, clearDraft, resetForm]);
-
-  useDismissOnOutsideAndEscape({
-    enabled: !!toolbarState && !showCommentModal,
-    ref: toolbarRef,
-    onDismiss: handleDismiss,
-  });
 
   useEffect(() => {
     const wasFocused = wasFocusedRef.current;
@@ -282,11 +285,9 @@ export function useAnnotationToolbar({ filePath, isFocused, onLineSelection, onA
       if (!draft) return;
 
       setCommentText(draft.commentText);
-      setImages(draft.images);
       setEditingAnnotationId(null);
-      setShowCommentModal(false);
       setToolbarState({
-        position: draft.position,
+        anchorRect: draft.anchorRect,
         range: draft.range,
         tokenSelection: draft.tokenSelection,
       });
@@ -298,54 +299,59 @@ export function useAnnotationToolbar({ filePath, isFocused, onLineSelection, onA
   }, [filePath, isFocused, onLineSelection]);
 
   // Handle single token click — opens toolbar for one token
-  const handleTokenClick = useCallback((props: DiffTokenEventBaseProps, event: MouseEvent) => {
-    const clickedToken: TokenMeta = {
-      lineNumber: props.lineNumber,
-      charStart: props.lineCharStart,
-      charEnd: props.lineCharEnd,
-      tokenText: props.tokenText,
-      side: props.side,
-    };
+  const handleTokenClick = useCallback(
+    (props: DiffTokenEventBaseProps, event: MouseEvent) => {
+      const clickedToken: TokenMeta = {
+        lineNumber: props.lineNumber,
+        charStart: props.lineCharStart,
+        charEnd: props.lineCharEnd,
+        tokenText: props.tokenText,
+        side: props.side,
+      };
 
-    // Same token clicked twice → deselect
-    const anchor = tokenAnchorRef.current;
-    if (anchor && anchor.lineNumber === clickedToken.lineNumber
-      && anchor.charStart === clickedToken.charStart
-      && anchor.side === clickedToken.side) {
-      tokenAnchorRef.current = null;
-      setToolbarState(null);
-      onLineSelection(null);
-      return;
-    }
+      // Same token clicked twice → deselect
+      const anchor = tokenAnchorRef.current;
+      if (
+        anchor &&
+        anchor.lineNumber === clickedToken.lineNumber &&
+        anchor.charStart === clickedToken.charStart &&
+        anchor.side === clickedToken.side
+      ) {
+        tokenAnchorRef.current = null;
+        setToolbarState(null);
+        onLineSelection(null);
+        return;
+      }
 
-    tokenAnchorRef.current = clickedToken;
-    openToolbar(
-      { start: clickedToken.lineNumber, end: clickedToken.lineNumber, side: clickedToken.side },
-      { top: event.clientY + 10, left: event.clientX },
-      { anchor: clickedToken, fullText: clickedToken.tokenText },
-    );
-  }, [onLineSelection, openToolbar]);
+      tokenAnchorRef.current = clickedToken;
+      const anchorRect =
+        event.target instanceof HTMLElement
+          ? event.target.getBoundingClientRect()
+          : undefined;
+      openToolbar(
+        {
+          start: clickedToken.lineNumber,
+          end: clickedToken.lineNumber,
+          side: clickedToken.side,
+        },
+        anchorRect,
+        { anchor: clickedToken, fullText: clickedToken.tokenText },
+      );
+    },
+    [onLineSelection, openToolbar],
+  );
 
   return {
     // State
     toolbarState,
     commentText,
     setCommentText,
-    showCommentModal,
-    setShowCommentModal,
-    modalLayout,
-    setModalLayout,
     editingAnnotationId,
-    images,
-    setImages,
-    // Refs
-    toolbarRef,
     // Handlers
-    handleMouseMove,
     handleLineSelectionEnd,
     openLineAnnotation,
     handleTokenClick,
-    handleSubmitAnnotation,
+    submit,
     handleDismiss,
     handleCancel,
     startEdit,
