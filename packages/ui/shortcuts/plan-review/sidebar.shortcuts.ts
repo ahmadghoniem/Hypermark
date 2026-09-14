@@ -12,14 +12,6 @@ export const annotateSidebarShortcuts = defineShortcutScope({
       displayOrder: 10,
       preventDefault: true,
     },
-    toggleFiles: {
-      description: 'Toggle Files sidebar',
-      bindings: ['Mod+Shift+B'],
-      section: 'Sidebar',
-      hint: 'Available when the Files tab is shown.',
-      displayOrder: 20,
-      preventDefault: true,
-    },
     toggleAgentTui: {
       description: 'Toggle Agent TUI sidebar',
       bindings: ['Shift Shift'],
