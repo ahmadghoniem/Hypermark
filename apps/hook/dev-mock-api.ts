@@ -551,6 +551,8 @@ This change lands in section 3 of the contributor guide alongside the updated re
 // `VITE_DIFF_DEMO=true` both work. App.tsx does the symmetric check for V3.
 const USE_DIFF_DEMO =
   process.env.VITE_DIFF_DEMO === "1" ||
+  process.env.VITE_DIFF_DEMO === "true";
+
 const PLAN_V1 = USE_DIFF_DEMO ? PLAN_V1_DIFF_TEST : PLAN_V1_DEFAULT;
 const PLAN_V2 = USE_DIFF_DEMO ? PLAN_V2_DIFF_TEST : PLAN_V2_DEFAULT;
 
