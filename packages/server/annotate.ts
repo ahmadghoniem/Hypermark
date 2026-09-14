@@ -77,9 +77,9 @@ export interface AnnotateServerOptions {
    * and matches the legacy "last message" behavior.
    */
   recentMessages?: { messageId: string; text: string; timestamp?: string }[];
-  /** Source attribution: original URL or filename (e.g. "https://..." or "index.html") */
+  /** Source attribution: original filename (e.g. "index.html") */
   sourceInfo?: string;
-  /** True when `markdown` was produced by Turndown/Jina (HTML or URL) —
+  /** True when `markdown` was produced by Turndown (HTML) —
    *  feedback line numbers won't match the original source. */
   sourceConverted?: boolean;
   /** Enable review-gate UX: adds an Approve button alongside Close/Send Annotations */
