@@ -86,7 +86,8 @@ export function unregisterSession(pid: number = process.pid): void {
  * still removed either way — a dead PID has no business staying listed).
  */
 export function killSession(pid: number): boolean {
-  // On Windows, kill the whole process tree to ensure child processes exit cleanly.
+  let killed = false;
+  // On Windows, kill the whole process tree so child processes exit too.
   if (process.platform === "win32") {
     try {
       const result = Bun.spawnSync(["taskkill", "/T", "/F", "/PID", String(pid)], {

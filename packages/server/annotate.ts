@@ -198,7 +198,6 @@ export async function startAnnotateServer(
     rawHtml,
     renderHtml = false,
     convertHtml = false,
-    agentCwd,
     project,
     onReady,
   } = options;

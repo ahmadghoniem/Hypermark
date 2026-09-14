@@ -653,7 +653,6 @@ if (args[0] === "sessions") {
     rawHtml,
     renderHtml: !!rawHtml,
     convertHtml: renderMarkdownFlag,
-    agentCwd: projectRoot,
     project: annotateProject,
     htmlContent: planHtmlContent,
     parentWatch: true,
