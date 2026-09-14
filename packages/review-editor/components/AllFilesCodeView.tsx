@@ -12,7 +12,6 @@ import type {
   SelectedLineRange,
 } from '@pierre/diffs';
 import { CodeView, type CodeViewHandle, useStableCallback } from '@pierre/diffs/react';
-import type { DiffTokenEventBaseProps } from '@pierre/diffs';
 import type {
   CodeAnnotation,
   CodeAnnotationType,
@@ -24,7 +23,6 @@ import { usePierreTheme } from '../hooks/usePierreTheme';
 import { useIsWorkerPoolReadyOrDisabled, useWorkerPoolThemeSync } from '../workerPool';
 import type { DiffFile, AnnotationScrollTarget } from '../types';
 import { buildFileTree, getVisualFileOrder } from '../utils/buildFileTree';
-import { buildCodeNavRequest } from '../utils/buildCodeNavRequest';
 import { getDiffSelection, getLineNumberFromNode, getSideFromNode } from '../utils/diffSelection';
 import { isContentConsistentWithPatch } from '../utils/patchConsistency';
 import { hashString } from '../utils/hashString';
@@ -133,11 +131,6 @@ import {
  *    split is meaningless (new/deleted files). Split columns use Pierre's
  *    default even 1fr/1fr layout; the single-file DiffViewer keeps its
  *    per-file dragger.
- *  - Token code navigation: Cmd/Ctrl-click a token routes through
- *    `onCodeNavRequest` (parity with the single-file DiffViewer and the legacy
- *    all-files view), with the `pn-token-nav` affordance. File identity
- *    comes from the CodeView callback context's owning item, never an
- *    active-file side channel.
  *  - Safari scroll guardian: NOT carried forward. The old DiffViewer guardian
  *    targeted the OverlayScrollbars viewport wrapping many separate FileDiff
  *    shadow nodes and restored scrollTop on a ">200 -> 0" jump heuristic.
@@ -203,8 +196,6 @@ export interface AllFilesCodeViewProps {
   searchMatches?: ReviewSearchMatch[];
   activeSearchMatchId?: string | null;
   activeSearchMatch?: ReviewSearchMatch | null;
-  // Token code navigation (P7). Cmd/Ctrl-click a token resolves symbol defs/refs.
-  onCodeNavRequest?: (request: import('@hypermark/shared/code-nav').CodeNavRequest) => void;
   /**
    * Token hover cards. Absent (the default) means the feature is not wired at
    * all. Deliberately raw: the view reports the token event and its file, and
@@ -394,7 +385,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   searchMatches = [],
   activeSearchMatchId = null,
   activeSearchMatch = null,
-  onCodeNavRequest,
   onVisibleFileChange,
   fileScrollTarget,
   fileOrder,
@@ -1482,33 +1472,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     },
   );
 
-  // --- Token code navigation (P7) ---------------------------------------------
-  // Cmd/Ctrl-click a token resolves symbol defs/refs (parity with DiffViewer and
-  // the legacy all-files view). File identity comes from the owning item, not an
-  // active-file side channel. Only wired when onCodeNavRequest is provided.
-  const handleTokenClick = useStableCallback(
-    (props: DiffTokenEventBaseProps, event: MouseEvent, item: CodeViewItem<DiffAnnotationMetadata>) => {
-      if (!onCodeNavRequest || item.type !== 'diff') return;
-      // Alt is an unadvertised alias for the same References-panel path; the
-      // meta/ctrl branch itself is unchanged.
-      if (!(event.metaKey || event.ctrlKey || event.altKey)) return;
-      const filePath = itemIdToFilePath.get(item.id);
-      if (filePath == null) return;
-      onCodeNavRequest(buildCodeNavRequest(props, filePath));
-    },
-  );
-
-  const handleTokenEnter = useStableCallback(
-    (props: DiffTokenEventBaseProps, event: PointerEvent, _item: CodeViewItem<DiffAnnotationMetadata>) => {
-      if (onCodeNavRequest && (event.metaKey || event.ctrlKey)) {
-        props.tokenElement.classList.add('pn-token-nav');
-      }
-    },
-  );
-
-  const handleTokenLeave = useStableCallback((props: DiffTokenEventBaseProps) => {
-    props.tokenElement.classList.remove('pn-token-nav');
-  });
 
   // --- Active-file tracking via CodeView rendered items (no header geometry) ---
 
@@ -1927,25 +1890,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       onGutterUtilityClick(range, context) {
         handleGutterUtilityClick(range, context.item);
       },
-      // P7: token code navigation. CodeView appends the owning-item context as
-      // the final arg to every shared callback (same as the selection/gutter
-      // callbacks), so file identity comes from context.item — no geometry or
-      // active-file inference. Only wired when onCodeNavRequest is provided.
-      ...(onCodeNavRequest && {
-        // Pierre's renderer-options builder drops onToken* before it evaluates
-        // shouldUseTokenTransformer, so the handlers alone never wrap tokens
-        // (no data-char) and token events never fire. Enable it explicitly.
-        useTokenTransformer: true,
-        onTokenClick(props, event, context) {
-          handleTokenClick(props, event, context.item);
-        },
-        onTokenEnter(props, event, context) {
-          handleTokenEnter(props, event, context.item);
-        },
-        onTokenLeave(props, _event, _context) {
-          handleTokenLeave(props);
-        },
-      }),
       // P5: lazily augment an item with full file content when it enters the
       // rendered window. P6: (re)apply / clear search marks per item so they
       // survive recycling. CodeView appends the item context as the final arg.
@@ -1968,10 +1912,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
       leadingHeight,
       handleLineSelectionEnd,
       handleGutterUtilityClick,
-      onCodeNavRequest,
-      handleTokenClick,
-      handleTokenEnter,
-      handleTokenLeave,
       handlePostRender,
     ],
   );

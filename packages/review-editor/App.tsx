@@ -28,7 +28,6 @@ import { useCodeAnnotationDraft } from '@hypermark/ui/hooks/useCodeAnnotationDra
 import { useSessionEndedStream } from '@hypermark/ui/hooks/useSessionEndedStream';
 import { generateId } from './utils/generateId';
 import { toast, Toaster } from 'sonner';
-import { useCodeNav, type CodeNavRequest } from './hooks/useCodeNav';
 import {
   shouldHandleReviewSearchShortcut,
   isTypingTarget,
@@ -64,7 +63,6 @@ import {
 } from '@hypermark/ui/utils/undoHistory';
 import { ResizeHandle } from '@hypermark/ui/components/ResizeHandle';
 import { IconContext, Tree } from '@phosphor-icons/react';
-import { DockviewReact, type DockviewReadyEvent, type DockviewApi } from 'dockview-react';
 import { ThemeModeButton } from '@hypermark/ui/components/ThemeModeButton';
 import { DiffOptionsButton } from '@hypermark/ui/components/DiffOptionsButton';
 import { KeyboardShortcutsButton } from '@hypermark/ui/components/KeyboardShortcutsDialog';
@@ -77,20 +75,9 @@ import { useAnnotationFactory } from './hooks/useAnnotationFactory';
 import { DEMO_DIFF } from './demoData';
 import { exportReviewFeedback, commitShaFromMode } from './utils/exportFeedback';
 import { parseDiffToFiles } from './utils/diffParser';
-import {
-  ReviewStateProvider,
-  type LineAnnotationComposeRequest,
-  type ReviewState,
-} from './dock/ReviewStateContext';
-import { reviewPanelComponents } from './dock/reviewPanelComponents';
-import { ReviewDockTabRenderer } from './dock/ReviewDockTabRenderer';
-import { ReviewDockRightActions } from './dock/ReviewDockRightActions';
-import {
-  REVIEW_PANEL_TYPES,
-  REVIEW_ALL_FILES_PANEL_ID,
-  REVIEW_CODE_NAV_PANEL_ID,
-} from './dock/reviewPanelTypes';
-import type { DiffFile, AnnotationScrollTarget } from './types';
+import { AllFilesCodeView } from './components/AllFilesCodeView';
+import { CommitDescriptionHeader } from './components/CommitDescriptionHeader';
+import type { DiffFile, AnnotationScrollTarget, LineAnnotationComposeRequest } from './types';
 import type { DiffOption, GitContext, SinceBaseSections, CommitDiffInfo } from '@hypermark/shared/types';
 import { SectionsPanel } from './components/SectionsPanel';
 import { CommitsPanel } from './components/CommitsPanel';
@@ -185,9 +172,9 @@ const ReviewAppInner: React.FC = () => {
   // comment in the diff sets selectedAnnotationId but NOT this — so it never
   // moves the viewport.
   const [scrollTargetAnnotation, setScrollTargetAnnotation] = useState<AnnotationScrollTarget | null>(null);
-  const [isAllFilesActive, setIsAllFilesActive] = useState(false);
-  // All-files collapse-all: the view registers its toggle here; the dock tab
-  // strip's button (ReviewDockRightActions) invokes it and reflects the flag.
+  const isAllFilesActive = true;
+  // All-files collapse-all: the view registers its toggle here; the header
+  // button invokes it and reflects the flag.
   const allFilesCollapseToggleRef = useRef<(() => void) | null>(null);
   const [allFilesAllCollapsed, setAllFilesAllCollapsed] = useState(false);
   const registerAllFilesCollapseToggle = useCallback((toggle: (() => void) | null) => {
@@ -196,11 +183,6 @@ const ReviewAppInner: React.FC = () => {
   const onToggleAllFilesCollapsed = useCallback(() => {
     allFilesCollapseToggleRef.current?.();
   }, []);
-  // Mirror ref: handlers captured by Pierre slot portals (which only republish
-  // on item version bumps) and early-declared callbacks read the CURRENT value
-  // at call time instead of a stale closure capture.
-  const isAllFilesActiveRef = useRef(isAllFilesActive);
-  isAllFilesActiveRef.current = isAllFilesActive;
   const apiModeRef = useRef(false);
   const [fileScrollTarget, setFileScrollTarget] = useState<{ filePath: string; token: number } | null>(null);
   const fileScrollTokenRef = useRef(0);
@@ -402,50 +384,26 @@ const ReviewAppInner: React.FC = () => {
   // External annotations (SSE-based, for any external tool)
   const { externalAnnotations, updateExternalAnnotation, deleteExternalAnnotation } = useExternalAnnotations<CodeAnnotation>({ enabled: !!origin });
 
-  // Dockview center panel API for the review workspace.
-  const [dockApi, setDockApi] = useState<DockviewApi | null>(null);
-  const needsInitialDiffPanel = useRef(true);
-
-  // Sync activeFileIndex from dockview's active panel (wired in handleDockReady)
-
-  const openAllFilesPanel = useCallback(() => {
-    if (!dockApi) return;
-    const existing = dockApi.getPanel(REVIEW_ALL_FILES_PANEL_ID);
-    if (existing) { existing.api.setActive(); return; }
-    dockApi.addPanel({
-      id: REVIEW_ALL_FILES_PANEL_ID,
-      component: REVIEW_PANEL_TYPES.ALL_FILES,
-      title: 'All files',
-    });
-  }, [dockApi]);
-
   const openDiffFile = useCallback((filePath: string) => {
     const file = files.find(candidate => candidate.path === filePath || candidate.oldPath === filePath);
     if (!file) return;
     const resolvedFilePath = file.path;
     clearPendingSelection();
-    openAllFilesPanel();
     fileScrollTokenRef.current += 1;
     setFileScrollTarget({ filePath: resolvedFilePath, token: fileScrollTokenRef.current });
     const fileIndex = files.findIndex(candidate => candidate.path === resolvedFilePath);
     if (fileIndex !== -1) {
       setActiveFileIndex(fileIndex);
     }
-  }, [clearPendingSelection, files, openAllFilesPanel]);
+  }, [clearPendingSelection, files]);
 
-  const handleRevealSearchMatch = useCallback((match: ReviewSearchMatch) => {
-    // Respect the surface the user is in. When the all-files panel is active,
-    // reveal IN PLACE — AllFilesCodeView scrolls to + highlights the active
-    // match via its activeSearchMatch prop. Otherwise (no dock yet, or another
-    // panel such as Code nav holds the group) scroll the all-files view to the
-    // match's file. Unconditionally activating that panel here would teleport
-    // the user out of their tab just for typing a query — reveal also fires on
-    // first-match auto-activation, not only on explicit clicks.
-    if (dockApi && isAllFilesActiveRef.current) {
-      return;
-    }
-    openDiffFile(match.filePath);
-  }, [dockApi, openDiffFile]);
+  // The all-files view is the only surface now, so "All files" is already active.
+  const handleSelectAllFiles = useCallback(() => {}, []);
+
+  const handleRevealSearchMatch = useCallback((_match: ReviewSearchMatch) => {
+    // Respect the surface the user is in. AllFilesCodeView reveals IN PLACE —
+    // scrolls to + highlights the active match via its activeSearchMatch prop.
+  }, []);
 
   const {
     searchQuery,
@@ -532,36 +490,6 @@ const ReviewAppInner: React.FC = () => {
   }, [restoreDraft, reviewHistory, discardDraft]);
   handleRestoreDraftRef.current = handleRestoreDraft;
 
-  const codeNav = useCodeNav();
-  const handleCodeNavRequest = useCallback((request: CodeNavRequest) => {
-    if (!gitContext && !agentCwd) {
-      toast('Code navigation requires a local checkout', {
-        description: 'Re-run with --local for PR reviews',
-        duration: 4000,
-      });
-      return;
-    }
-    codeNav.resolve(request);
-    if (!dockApi) return;
-    const existing = dockApi.getPanel(REVIEW_CODE_NAV_PANEL_ID);
-    if (existing) {
-      existing.api.setTitle(`References: ${request.symbol}`);
-      existing.api.setActive();
-    } else {
-      const refPanel = REVIEW_ALL_FILES_PANEL_ID;
-      dockApi.addPanel({
-        id: REVIEW_CODE_NAV_PANEL_ID,
-        component: REVIEW_PANEL_TYPES.CODE_NAV,
-        title: `References: ${request.symbol}`,
-        // Open beside the code, not under it: a below-split steals vertical
-        // room from the diff being read, and the references list is a narrow
-        // column that reads naturally at the right edge.
-        position: { direction: 'right', referencePanel: refPanel },
-        initialWidth: 420,
-      });
-    }
-  }, [codeNav.resolve, dockApi, gitContext, agentCwd]);
-
   // Resizable panels
   const panelResize = useResizablePanel({
     storageKey: 'hypermark-review-panel-width',
@@ -577,29 +505,6 @@ const ReviewAppInner: React.FC = () => {
     onClick: () => setIsFileTreeOpen(false),
   });
   const isResizing = panelResize.isDragging || fileTreeResize.isDragging;
-
-  // Dockview ready handler — stores API and wires active panel tracking.
-  // Initial panel creation happens in the effect below once dockApi is set.
-  const handleDockReady = useCallback((event: DockviewReadyEvent) => {
-    setDockApi(event.api);
-
-    // Sync active state when user switches between dock tabs
-    event.api.onDidActivePanelChange((panel) => {
-      if (!panel) {
-        setIsAllFilesActive(false);
-        return;
-      }
-      setIsAllFilesActive(panel.id === REVIEW_ALL_FILES_PANEL_ID);
-    });
-
-    // Note: we intentionally no longer hide the tab header for a lone diff /
-    // all-files / semantic panel. The Split/Unified toggle lives in the tab
-    // strip's right-actions slot (ReviewDockRightActions), so the header must
-    // stay visible in single-panel diff views — otherwise the toggle would
-    // vanish exactly when it's most needed. The trade is a single tab showing
-    // in those views, which is acceptable.
-  }, []);
-
 
   // Derive worktree path and base diff type from the composite diffType
   // string. Hand-parsed rather than via shared/review-core's
@@ -646,23 +551,10 @@ const ReviewAppInner: React.FC = () => {
       snapshotId,
     };
   }, [activeDiffBase, diffData?.gitRef, committedBase, snapshotId]);
-  const canUseLiveWorkspaceActions = !activeDiffBase.startsWith('gitbutler:stack:') &&
-    !activeDiffBase.startsWith('gitbutler:branch:');
-  useEffect(() => {
-    if (canUseLiveWorkspaceActions) return;
-    codeNav.clear();
-    dockApi?.getPanel(REVIEW_CODE_NAV_PANEL_ID)?.api.close();
-  }, [canUseLiveWorkspaceActions, codeNav.clear, dockApi]);
   const { withDiffContext } = useAnnotationFactory(
     activeCommitContext,
     activeGitButlerContext,
   );
-
-  useEffect(() => {
-    if (!dockApi || !needsInitialDiffPanel.current || files.length === 0) return;
-    needsInitialDiffPanel.current = false;
-    openAllFilesPanel();
-  }, [dockApi, files, openAllFilesPanel]);
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -983,14 +875,6 @@ const ReviewAppInner: React.FC = () => {
     const file = files[index];
     if (!file) return;
     openDiffFile(file.path);
-  }, [files, openDiffFile]);
-
-  // Legacy file switch (used by handleSelectAnnotation, diff switch, etc.)
-  const handleFileSwitch = useCallback((index: number) => {
-    const file = files[index];
-    if (file) {
-      openDiffFile(file.path);
-    }
   }, [files, openDiffFile]);
 
   const handleAllFilesVisibleFileChange = useCallback(
@@ -1486,9 +1370,8 @@ const ReviewAppInner: React.FC = () => {
   }, []);
 
   // Sidebar navigation: select AND scroll-to the comment (DiffsHub "set +
-  // scroll"). The token bump re-fires the panels' scroll effect even when the
-  // same comment is clicked twice; in single-file mode it switches to the
-  // owning file first so the scroll target exists.
+  // scroll"). The token bump re-fires the view's scroll effect even when the
+  // same comment is clicked twice.
   const handleNavigateToAnnotation = useCallback((id: string | null) => {
     if (!id) {
       setSelectedAnnotationId(null);
@@ -1499,13 +1382,9 @@ const ReviewAppInner: React.FC = () => {
       setSelectedAnnotationId(null);
       return;
     }
-    if (!isAllFilesActiveRef.current) {
-      const fileIndex = files.findIndex(f => f.path === annotation.filePath);
-      if (fileIndex !== -1) handleFileSwitch(fileIndex);
-    }
     setSelectedAnnotationId(id);
     setScrollTargetAnnotation(prev => ({ id, token: (prev?.token ?? 0) + 1 }));
-  }, [files, handleFileSwitch]);
+  }, []);
 
   // Diff context bundled into local-mode feedback headers so the receiving
   // agent knows which diff the annotations are anchored to. Uses committedBase
@@ -1528,75 +1407,17 @@ const ReviewAppInner: React.FC = () => {
     [activeDiffBase, committedBase, activeWorktreePath, activeCommitContext, snapshotId],
   );
 
-  // Build ReviewState value for dock panel context
-  const reviewStateValue = useMemo<ReviewState>(() => ({
-    files,
-    diffStyle: diffStyle,
-    diffOverflow,
-    diffIndicators,
-    lineDiffType: diffLineDiffType,
-    disableLineNumbers: !diffShowLineNumbers,
-    disableBackground: !diffShowBackground,
-    expandUnchanged: diffExpandUnchanged,
-    fontFamily: diffFontFamily || undefined,
-    fontSize: diffFontSize || undefined,
-    // Only propagate base for modes where it affects old/new content. Avoids
-    // needless file-content re-fetches when switching to uncommitted/staged/etc.
-    // Uses committedBase (not selectedBase) so file-content queries wait for
-    // the new patch to arrive before refetching — otherwise the viewer can
-    // briefly pair an old patch with the new base's content.
-    reviewBase:
-        (activeDiffBase === 'since-base' || activeDiffBase === 'branch' || activeDiffBase === 'merge-base' || activeDiffBase === 'jj-line' || activeDiffBase === 'jj-evolog')
-        ? committedBase ?? undefined
-        : undefined,
-    feedbackDiffContext,
-    allAnnotations,
-    selectedAnnotationId,
-    scrollTargetAnnotation,
-    pendingSelection,
-    onLineSelection: handleLineSelection,
-    onAddAnnotationForFile: handleAddAnnotationForFile,
-    onAddFileCommentForFile: handleAddFileCommentForFile,
-    onEditAnnotation: handleEditAnnotation,
-    onSelectAnnotation: handleSelectAnnotation,
-    onDeleteAnnotation: handleDeleteAnnotation,
-    generatedFiles,
-    expandedGeneratedFiles,
-    onGeneratedFileCollapsedChange: handleGeneratedFileCollapsedChange,
-    searchQuery: isSearchPending ? '' : debouncedSearchQuery,
-    isSearchPending,
-    debouncedSearchQuery,
-    fileScrollTarget,
-    activeSearchMatchId,
-    searchMatches,
-    allFilesActiveSearchMatch: activeSearchMatch,
-    onAllFilesVisibleFileChange: handleAllFilesVisibleFileChange,
-    isAllFilesActive,
-    allFilesOrder,
-    allFilesAllCollapsed,
-    onToggleAllFilesCollapsed,
-    registerAllFilesCollapseToggle,
-    onAllFilesCollapsedChange: setAllFilesAllCollapsed,
-    commitInfo,
-    onCodeNavRequest: canUseLiveWorkspaceActions ? handleCodeNavRequest : undefined,
-    codeNavResult: codeNav.result,
-    codeNavIsLoading: codeNav.isLoading,
-    codeNavActiveSymbol: codeNav.activeSymbol,
-  }), [
-    files, diffStyle, diffOverflow, diffIndicators,
-    diffLineDiffType, diffShowLineNumbers, diffShowBackground,
-    diffExpandUnchanged, diffFontFamily, diffFontSize, activeDiffBase, committedBase, feedbackDiffContext,
-    allAnnotations,
-    selectedAnnotationId, scrollTargetAnnotation, pendingSelection, handleLineSelection,
-    handleAddAnnotationForFile, handleAddFileCommentForFile, handleEditAnnotation,
-    handleSelectAnnotation, handleDeleteAnnotation,
-    generatedFiles, expandedGeneratedFiles, handleGeneratedFileCollapsedChange,
-    isSearchPending, debouncedSearchQuery,
-    fileScrollTarget, activeSearchMatchId, activeSearchMatch, searchMatches,
-    handleAllFilesVisibleFileChange,
-    isAllFilesActive, allFilesOrder, allFilesAllCollapsed, onToggleAllFilesCollapsed, registerAllFilesCollapseToggle, commitInfo,
-    handleCodeNavRequest, codeNav.result, codeNav.isLoading, codeNav.activeSymbol,
-  ]);
+  // A commit diff heads the surface with the full commit message and opens
+  // its files folded — the description gives the "what/why", the collapsed
+  // file list the shape, and each file expands on demand. The card rides
+  // INSIDE the scroller (leadingContent), so it scrolls away with the diff.
+  // Stable element identity per commit — an inline JSX literal would be a new
+  // object every render and churn the measuring ResizeObserver in
+  // AllFilesCodeView (leadingContent is in its effect deps).
+  const leadingContent = useMemo(
+    () => (commitInfo ? <CommitDescriptionHeader key={commitInfo.sha} info={commitInfo} /> : undefined),
+    [commitInfo],
+  );
 
   // Copy raw diff to clipboard
   const handleCopyDiff = useCallback(async () => {
@@ -2000,7 +1821,6 @@ const ReviewAppInner: React.FC = () => {
   return (
     <ThemeProvider defaultTheme="dark" manageFavicon>
       <TooltipProvider delayDuration={200} skipDelayDuration={100}>
-      <ReviewStateProvider value={reviewStateValue}>
       <div
         className="pn-app-viewport flex flex-col bg-background overflow-hidden"
         data-pn-browser-canvas="background"
@@ -2170,6 +1990,35 @@ const ReviewAppInner: React.FC = () => {
             <div className="w-px h-5 bg-border/50 mx-1 hidden lg:block" />
             <button
               type="button"
+              onClick={onToggleAllFilesCollapsed}
+              className="flex h-7 items-center justify-center rounded-md px-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title={allFilesAllCollapsed ? 'Expand all files' : 'Collapse all files'}
+              aria-label={allFilesAllCollapsed ? 'Expand all files' : 'Collapse all files'}
+            >
+              <svg
+                className="w-3.5 h-3.5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                {allFilesAllCollapsed ? (
+                  <>
+                    <path d="M7 9l5-5 5 5" />
+                    <path d="M7 15l5 5 5-5" />
+                  </>
+                ) : (
+                  <>
+                    <path d="M7 4l5 5 5-5" />
+                    <path d="M7 20l5-5 5 5" />
+                  </>
+                )}
+              </svg>
+            </button>
+            <button
+              type="button"
               onClick={() => configStore.set('diffStyle', (diffStyle ?? 'split') === 'split' ? 'unified' : 'split')}
               className="flex h-7 items-center justify-center rounded-md px-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title={(diffStyle ?? 'split') === 'split' ? 'Split diff (switch to unified)' : 'Unified diff (switch to split)'}
@@ -2223,7 +2072,7 @@ const ReviewAppInner: React.FC = () => {
                 recentCommits={gitContext?.recentCommits}
                 onSelectPanelView={handlePanelViewSelect}
                 showCommitsOption={commitsCapable}
-                onSelectAllFiles={() => openAllFilesPanel()}
+                onSelectAllFiles={handleSelectAllFiles}
                 isAllFilesActive={isAllFilesActive}
                 onCopyRawDiff={handleCopyDiff}
                 canCopyRawDiff={!!diffData?.rawPatch}
@@ -2274,7 +2123,7 @@ const ReviewAppInner: React.FC = () => {
               <FileTree
                 files={files}
                 activeFileIndex={activeFileIndex}
-                onSelectAllFiles={() => openAllFilesPanel()}
+                onSelectAllFiles={handleSelectAllFiles}
                 isAllFilesActive={isAllFilesActive}
                 scrollHighlightIndex={isAllFilesActive && allFilesVisibleFile ? files.findIndex(f => f.path === allFilesVisibleFile) : undefined}
                 onSelectFile={(index) => handleFilePreview(index)}
@@ -2347,13 +2196,48 @@ const ReviewAppInner: React.FC = () => {
               </div>
             )}
             {files.length > 0 ? (
-              <DockviewReact
-                className={`h-full ${resolvedMode === 'light' ? 'dockview-theme-light' : 'dockview-theme-dark'}`}
-                components={reviewPanelComponents}
-                defaultTabComponent={ReviewDockTabRenderer}
-                rightHeaderActionsComponent={ReviewDockRightActions}
-                onReady={handleDockReady}
-                disableFloatingGroups
+              <AllFilesCodeView
+                files={files}
+                diffStyle={diffStyle}
+                diffOverflow={diffOverflow}
+                diffIndicators={diffIndicators}
+                lineDiffType={diffLineDiffType}
+                disableLineNumbers={!diffShowLineNumbers}
+                disableBackground={!diffShowBackground}
+                expandUnchanged={diffExpandUnchanged}
+                fontFamily={diffFontFamily || undefined}
+                fontSize={diffFontSize || undefined}
+                annotations={allAnnotations}
+                selectedAnnotationId={selectedAnnotationId}
+                scrollTargetAnnotation={scrollTargetAnnotation}
+                pendingSelection={pendingSelection}
+                reviewBase={
+                  (activeDiffBase === 'since-base' || activeDiffBase === 'branch' || activeDiffBase === 'merge-base' || activeDiffBase === 'jj-line' || activeDiffBase === 'jj-evolog')
+                    ? committedBase ?? undefined
+                    : undefined
+                }
+                reviewSnapshotId={feedbackDiffContext?.snapshotId}
+                onLineSelection={handleLineSelection}
+                onAddAnnotationForFile={handleAddAnnotationForFile}
+                onEditAnnotation={handleEditAnnotation}
+                onSelectAnnotation={handleSelectAnnotation}
+                onDeleteAnnotation={handleDeleteAnnotation}
+                onAddFileCommentForFile={handleAddFileCommentForFile}
+                generatedFiles={generatedFiles}
+                expandedGeneratedFiles={expandedGeneratedFiles}
+                onGeneratedFileCollapsedChange={handleGeneratedFileCollapsedChange}
+                fileScrollTarget={fileScrollTarget}
+                searchQuery={isSearchPending ? '' : debouncedSearchQuery}
+                searchMatches={searchMatches}
+                activeSearchMatchId={activeSearchMatchId}
+                activeSearchMatch={activeSearchMatch}
+                onVisibleFileChange={handleAllFilesVisibleFileChange}
+                fileOrder={allFilesOrder}
+                registerCollapseAllToggle={registerAllFilesCollapseToggle}
+                onAllCollapsedChange={setAllFilesAllCollapsed}
+                isActive={true}
+                defaultCollapsed={!!commitInfo}
+                leadingContent={leadingContent}
               />
             ) : (
               <div className="h-full flex items-center justify-center">
@@ -2525,7 +2409,6 @@ const ReviewAppInner: React.FC = () => {
         } as React.CSSProperties,
       }}
     />
-    </ReviewStateProvider>
     </TooltipProvider>
     </ThemeProvider>
   );};

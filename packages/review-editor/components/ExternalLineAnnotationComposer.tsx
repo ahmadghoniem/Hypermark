@@ -2,21 +2,24 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import type {
   CodeAnnotationType,
   ImageAttachment,
+  SelectedLineRange,
   TokenAnnotationMeta,
 } from '@hypermark/ui/types';
-import type { DiffFile } from '../types';
-import type {
-  LineAnnotationComposeRequest,
-  ReviewState,
-} from '../dock/ReviewStateContext';
+import type { DiffFile, LineAnnotationComposeRequest } from '../types';
 import { ToolbarHost, type ToolbarHostHandle } from './ToolbarHost';
 
 interface ExternalLineAnnotationComposerProps {
   readonly request: LineAnnotationComposeRequest;
   readonly file: DiffFile;
-  readonly onLineSelection: ReviewState['onLineSelection'];
-  readonly onAddAnnotationForFile: ReviewState['onAddAnnotationForFile'];
-  readonly onEditAnnotation: ReviewState['onEditAnnotation'];
+  readonly onLineSelection: (range: SelectedLineRange | null) => void;
+  readonly onAddAnnotationForFile: (
+    filePath: string,
+    type: CodeAnnotationType,
+    text?: string,
+    tokenMeta?: TokenAnnotationMeta,
+    images?: ImageAttachment[],
+  ) => void;
+  readonly onEditAnnotation: (id: string, text?: string, images?: ImageAttachment[]) => void;
 }
 
 /**
