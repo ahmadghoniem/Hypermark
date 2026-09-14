@@ -125,7 +125,9 @@ describe("discoverSkills — root resolution", () => {
 
   test("two roots resolving to the same path dedupe (no double discovery)", () => {
     writeSkill(join(home, ".claude", "skills"), "shared-skill");
-    symlinkSync(join(home, ".claude"), join(home, ".config", "agents"));
+    // ~/.agents is a symlink to ~/.claude, so the universal root realpaths to
+    // the Claude root and must collapse to one discovery.
+    symlinkSync(join(home, ".claude"), join(home, ".agents"));
 
     const matches = discoverSkills().filter((s) => s.name === "shared-skill");
     expect(matches).toHaveLength(1);

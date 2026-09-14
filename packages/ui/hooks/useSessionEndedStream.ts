@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { SESSION_STREAM_PATH } from "@hypermark/shared/session-stream";
+import { SESSION_STREAM_PATH } from "@hypermark/core/session-stream";
 
 /**
  * Opens `/api/session/stream` while `active` is true and calls

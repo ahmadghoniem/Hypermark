@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { CodeAnnotation, SelectedLineRange, CodeAnnotationType, TokenAnnotationMeta, ImageAttachment } from '@hypermark/ui/types';
 import { useDismissOnOutsideAndEscape } from '@hypermark/ui/hooks/useDismissOnOutsideAndEscape';
+import { useVisibleViewportBounds } from '@hypermark/ui/hooks/useViewportEnvironment';
 import type { DiffTokenEventBaseProps } from '@pierre/diffs';
 
 export interface TokenMeta {
@@ -49,6 +50,7 @@ function draftKey(filePath: string, range: SelectedLineRange): string {
 }
 
 export function useAnnotationToolbar({ filePath, isFocused, onLineSelection, onAddAnnotation, onEditAnnotation }: UseAnnotationToolbarArgs) {
+  const visibleBounds = useVisibleViewportBounds(16);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const lastMousePosition = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const tokenAnchorRef = useRef<TokenMeta | null>(null);
@@ -138,7 +140,7 @@ export function useAnnotationToolbar({ filePath, isFocused, onLineSelection, onA
   ) => {
     saveDraft();
     setEditingAnnotationId(null);
-    setShowCommentModal(expandedComposerRequired);
+    setShowCommentModal(false);
 
     const draft = draftStore.get(draftKey(filePath, range));
     if (draft) {
@@ -154,7 +156,7 @@ export function useAnnotationToolbar({ filePath, isFocused, onLineSelection, onA
     restoreDraftKeyByFilePath.delete(filePath);
 
     onLineSelection(range);
-  }, [expandedComposerRequired, filePath, onLineSelection, saveDraft]);
+  }, [filePath, onLineSelection, saveDraft]);
 
   // Handle line selection end (gutter clicks)
   const handleLineSelectionEnd = useCallback((range: SelectedLineRange | null) => {
@@ -221,7 +223,7 @@ export function useAnnotationToolbar({ filePath, isFocused, onLineSelection, onA
   const startEdit = useCallback((annotation: CodeAnnotation) => {
     setEditingAnnotationId(annotation.id);
     setCommentText(annotation.text || '');
-    setShowCommentModal(expandedComposerRequired);
+    setShowCommentModal(false);
     setImages(annotation.images || []);
 
     // Position toolbar near the annotation using last known mouse position
@@ -240,7 +242,7 @@ export function useAnnotationToolbar({ filePath, isFocused, onLineSelection, onA
         side: annotation.side === 'new' ? 'additions' : 'deletions',
       },
     });
-  }, [expandedComposerRequired, visibleBounds]);
+  }, [visibleBounds]);
 
   // Dismiss: save draft and hide toolbar
   const handleDismiss = useCallback(() => {
@@ -263,12 +265,6 @@ export function useAnnotationToolbar({ filePath, isFocused, onLineSelection, onA
   });
 
   useEffect(() => {
-    if (toolbarState && expandedComposerRequired) {
-      setShowCommentModal(true);
-    }
-  }, [expandedComposerRequired, toolbarState]);
-
-  useEffect(() => {
     const wasFocused = wasFocusedRef.current;
     wasFocusedRef.current = isFocused;
 
@@ -288,7 +284,7 @@ export function useAnnotationToolbar({ filePath, isFocused, onLineSelection, onA
       setCommentText(draft.commentText);
       setImages(draft.images);
       setEditingAnnotationId(null);
-      setShowCommentModal(expandedComposerRequired);
+      setShowCommentModal(false);
       setToolbarState({
         position: draft.position,
         range: draft.range,
@@ -299,7 +295,7 @@ export function useAnnotationToolbar({ filePath, isFocused, onLineSelection, onA
 
       onLineSelection(draft.range);
     }
-  }, [expandedComposerRequired, filePath, isFocused, onLineSelection]);
+  }, [filePath, isFocused, onLineSelection]);
 
   // Handle single token click — opens toolbar for one token
   const handleTokenClick = useCallback((props: DiffTokenEventBaseProps, event: MouseEvent) => {
@@ -337,7 +333,6 @@ export function useAnnotationToolbar({ filePath, isFocused, onLineSelection, onA
     setCommentText,
     showCommentModal,
     setShowCommentModal,
-    expandedComposerRequired,
     modalLayout,
     setModalLayout,
     editingAnnotationId,

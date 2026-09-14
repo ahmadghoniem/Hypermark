@@ -87,12 +87,8 @@ export const ToolbarHost = forwardRef<ToolbarHostHandle, ToolbarHostProps>(funct
   );
 
   const handleCollapseCommentModal = useCallback(() => {
-    if (toolbar.expandedComposerRequired) {
-      toolbar.handleDismiss();
-      return;
-    }
     toolbar.setShowCommentModal(false);
-  }, [toolbar.expandedComposerRequired, toolbar.handleDismiss, toolbar.setShowCommentModal]);
+  }, [toolbar.setShowCommentModal]);
   const handleCancelCommentModal = useCallback(() => {
     toolbar.setShowCommentModal(false);
     toolbar.handleCancel();
@@ -140,8 +136,8 @@ export const ToolbarHost = forwardRef<ToolbarHostHandle, ToolbarHostProps>(funct
           onSubmit={toolbar.handleSubmitAnnotation}
           onCollapse={handleCollapseCommentModal}
           onCancel={handleCancelCommentModal}
-          autoFocus={!toolbar.expandedComposerRequired}
-          collapsible={!toolbar.expandedComposerRequired}
+          autoFocus
+          collapsible
           images={toolbar.images}
           pendingAttachments={uploads.pending}
           onRemoveImage={removeImage}

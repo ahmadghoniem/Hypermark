@@ -286,10 +286,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   );
 
   useEffect(() => {
-    if (prefersExpandedComposer && mode === 'popover') setMode('dialog');
-  }, [mode, prefersExpandedComposer]);
-
-  useEffect(() => {
     const nextDraft = draftKey ? draftStore.get(draftKey) : undefined;
     setText(nextDraft?.text ?? initialText);
     setImages(allowImages ? nextDraft?.images ?? [] : []);
@@ -589,7 +585,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
         // Collapsing a forced dialog is geometrically impossible, so Escape
         // closes it (draft-preserving) instead of being swallowed by the
         // re-expand.
-        if (prefersExpandedComposer || forcedDialog) handleClose();
+        if (forcedDialog) handleClose();
         else setMode('popover');
       } else {
         handleClose();
@@ -679,7 +675,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
               {headerLabel}
             </span>
             <div className="flex items-center gap-1">
-              {!prefersExpandedComposer && !forcedDialog && (
+              {!forcedDialog && (
                 <button
                   onClick={() => { setDialogIsForced(false); setMode('popover'); }}
                   className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
