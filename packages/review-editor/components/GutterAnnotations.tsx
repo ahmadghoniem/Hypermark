@@ -197,7 +197,6 @@ export const GutterAnnotationMarker: React.FC<GutterAnnotationMarkerProps> = ({
           e.stopPropagation();
           pin(anchor.key, e.currentTarget);
         }}
-        className={`pn-gutter-marker${isSelected ? ' is-selected' : ''}`}
         // Styled inline, not through a stylesheet: the marker renders inside
         // the diff renderer's shadow root, where the app's CSS does not reach.
         // Custom properties do inherit across that boundary, so theme tokens
@@ -212,30 +211,48 @@ export const GutterAnnotationMarker: React.FC<GutterAnnotationMarkerProps> = ({
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 2,
-          minWidth: 14,
-          height: 14,
-          padding: '0 3px',
-          borderRadius: 4,
-          border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
-          background: isSelected ? 'var(--primary)' : 'var(--popover)',
-          color: isSelected ? 'var(--primary-foreground)' : 'var(--muted-foreground)',
-          font: '600 9px/1 var(--font-sans, sans-serif)',
+          minWidth: 26,
+          height: 22,
+          padding: '2px 4px',
+          background: 'transparent',
+          border: 'none',
           cursor: 'pointer',
+          boxSizing: 'border-box',
         }}
       >
-        <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-          {dot ? (
-            <span
-              className={dot}
-              style={{ width: 5, height: 5, borderRadius: '50%', display: 'inline-block' }}
-            />
-          ) : (
-            <svg width="8" height="8" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" strokeLinejoin="round" />
-            </svg>
-          )}
-          {count > 1 ? count : null}
+        <span
+          className={`pn-gutter-marker${isSelected ? ' is-selected' : ''}`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+            minWidth: 18,
+            height: 18,
+            padding: '0 5px',
+            borderRadius: 5,
+            boxShadow: '0 0 0 2px var(--background)',
+            border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
+            background: isSelected ? 'var(--primary)' : 'var(--popover)',
+            color: isSelected ? 'var(--primary-foreground)' : 'var(--primary)',
+            font: '600 10px/1 var(--font-sans, sans-serif)',
+            boxSizing: 'border-box',
+            pointerEvents: 'none',
+          }}
+        >
+          <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+            {dot ? (
+              <span
+                className={dot}
+                style={{ width: 5, height: 5, borderRadius: '50%', display: 'inline-block' }}
+              />
+            ) : (
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" strokeLinejoin="round" />
+              </svg>
+            )}
+            {count > 1 ? count : null}
+          </span>
         </span>
       </button>
     </div>
