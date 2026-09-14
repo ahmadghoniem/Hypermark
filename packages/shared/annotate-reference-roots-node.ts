@@ -5,7 +5,6 @@ import { resolveUserPath } from "./resolve-file";
 export interface AnnotateReferenceRootOptions {
 	mode?: string;
 	filePath: string;
-	folderPath?: string;
 	initialSingleFileSourcePath?: string | null;
 }
 
@@ -23,16 +22,7 @@ export function getAnnotateReferenceRootPaths(options: AnnotateReferenceRootOpti
 		}
 	};
 
-	if (options.mode === "annotate-folder" && options.folderPath) {
-		addRoot(options.folderPath);
-		return roots;
-	}
-
 	addRoot(process.cwd());
-	if (/^https?:\/\//i.test(options.filePath)) {
-		return roots;
-	}
-
 	addRoot(dirname(options.filePath));
 	addRoot(options.initialSingleFileSourcePath ? dirname(options.initialSingleFileSourcePath) : null);
 	return roots;
