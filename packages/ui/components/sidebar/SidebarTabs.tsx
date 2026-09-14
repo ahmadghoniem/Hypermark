@@ -15,13 +15,11 @@ interface SidebarTabsProps {
   onToggleTab: (tab: SidebarTab) => void;
   hasDiff: boolean;
   showVersionsTab?: boolean;
-  showFilesTab?: boolean;
   showMessagesTab?: boolean;
   showAgentTerminalTab?: boolean;
   isAgentTerminalOpen?: boolean;
   isAgentTerminalRunning?: boolean;
   onToggleAgentTerminal?: () => void;
-  hasFileAnnotations?: boolean;
   hasMessageAnnotations?: boolean;
   className?: string;
 }
@@ -31,13 +29,11 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
   onToggleTab,
   hasDiff,
   showVersionsTab,
-  showFilesTab,
   showMessagesTab,
   showAgentTerminalTab,
   isAgentTerminalOpen,
   isAgentTerminalRunning,
   onToggleAgentTerminal,
-  hasFileAnnotations,
   hasMessageAnnotations,
   className,
 }) => {
@@ -120,32 +116,6 @@ export const SidebarTabs: React.FC<SidebarTabsProps> = ({
         >
           <MessagesIcon />
           {hasMessageAnnotations && (
-            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" />
-          )}
-        </button>
-      )}
-
-      {/* Files tab */}
-      {showFilesTab && (
-        <button
-          onClick={() => onToggleTab("files")}
-          className="sidebar-tab-flag group relative flex items-center justify-center w-7 h-9 rounded-r-md border border-l-0 border-border/50 bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-foreground hover:bg-card transition-colors"
-          title="File Browser"
-        >
-          <svg
-            className="w-3.5 h-3.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
-          {hasFileAnnotations && (
             <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-primary" />
           )}
         </button>

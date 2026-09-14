@@ -1,7 +1,7 @@
 /**
  * SidebarContainer — Shared sidebar shell
  *
- * Houses the Table of Contents, Version Browser and File Browser views.
+ * Houses the Table of Contents, Version Browser and Messages Browser views.
  * Tab bar at top switches between them.
  */
 
@@ -9,10 +9,8 @@ import React from "react";
 import type { SidebarTab } from "../../hooks/useSidebar";
 import type { Block, Annotation } from "../../types";
 import type { VersionInfo, VersionEntry } from "../../hooks/usePlanDiff";
-import type { UseFileBrowserReturn } from "../../hooks/useFileBrowser";
 import { TableOfContents } from "../TableOfContents";
 import { VersionBrowser } from "./VersionBrowser";
-import { FileBrowser, type FileEditStatus } from "./FileBrowser";
 import { MessagesBrowser, type PickerMessage } from "./MessagesBrowser";
 import { MessagesIcon } from "../icons/MessagesIcon";
 import { OverlayScrollArea } from "../OverlayScrollArea";
@@ -36,15 +34,6 @@ interface SidebarContainerProps {
   linkedDocFilepath?: string | null;
   onLinkedDocBack?: () => void;
   backLabel?: string;
-  // File Browser props
-  showFilesTab?: boolean;
-  fileAnnotationCounts?: Map<string, number>;
-  highlightedFiles?: Set<string>;
-  fileEditStatuses?: Map<string, FileEditStatus>;
-  fileBrowser?: UseFileBrowserReturn;
-  onFilesSelectFile?: (absolutePath: string, dirPath: string) => void;
-  onFilesFetchAll?: () => void;
-  /** Compact-only file activation feedback; desktop does not pass this. */
   // Version Browser props
   showVersionsTab?: boolean;
   versionInfo: VersionInfo | null;
@@ -58,8 +47,6 @@ interface SidebarContainerProps {
   isSelectingVersion: boolean;
   fetchingVersion: number | null;
   onFetchVersions: () => void;
-  // Annotation indicators
-  hasFileAnnotations?: boolean;
   showMessagesTab?: boolean;
   messages?: PickerMessage[];
   selectedMessageId?: string | null;
@@ -84,13 +71,6 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
   linkedDocFilepath,
   onLinkedDocBack,
   backLabel,
-  showFilesTab,
-  fileAnnotationCounts,
-  highlightedFiles,
-  fileEditStatuses,
-  fileBrowser,
-  onFilesSelectFile,
-  onFilesFetchAll,
   showVersionsTab,
   versionInfo,
   versions,
@@ -103,7 +83,6 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
   isSelectingVersion,
   fetchingVersion,
   onFetchVersions,
-  hasFileAnnotations,
   showMessagesTab,
   messages,
   selectedMessageId,
@@ -180,29 +159,6 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
             badge={messageAnnotationCounts !== undefined && messageAnnotationCounts.size > 0}
           />
         )}
-        {showFilesTab && (
-          <TabButton
-            active={activeTab === "files"}
-            onClick={() => onTabChange("files")}
-            icon={
-              <svg
-                className="w-3 h-3"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-            }
-            label="Files"
-            badge={hasFileAnnotations}
-          />
-        )}
         {/* No header close button — the sidebar collapses via the resize-handle
             hover button (see ResizeHandle onCollapse). */}
       </div>
@@ -234,21 +190,6 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
             isSelectingVersion={isSelectingVersion}
             fetchingVersion={fetchingVersion}
             onFetchVersions={onFetchVersions}
-          />
-        )}
-        {activeTab === "files" && showFilesTab && fileBrowser && (
-          <FileBrowser
-            dirs={fileBrowser.dirs}
-            expandedFolders={fileBrowser.expandedFolders}
-            onToggleFolder={fileBrowser.toggleFolder}
-            collapsedDirs={fileBrowser.collapsedDirs}
-            onToggleCollapse={fileBrowser.toggleCollapse}
-            onSelectFile={onFilesSelectFile ?? (() => {})}
-            activeFile={fileBrowser.activeFile}
-            onFetchAll={onFilesFetchAll ?? (() => {})}
-            annotationCounts={fileAnnotationCounts}
-            highlightedFiles={highlightedFiles}
-            editStatuses={fileEditStatuses}
           />
         )}
         {activeTab === "messages" && showMessagesTab && messages && onSelectMessage && (
