@@ -371,3 +371,17 @@ menu went with it.
 
 **Commits:** `9e7d31a5` (35 files, ~1,900 lines); `17dd3ee5` restored the
 `CommitDescriptionHeader` import the cut deleted.
+
+### 35. Markdown edit mode and source-file saving
+
+An Edit toggle swapped the rendered plan or file for a CodeMirror live-preview
+editor (`@plannotator/markdown-editor`, `@plannotator/atomic-editor`). In plan
+review the edits went to the agent as a "direct edits" diff section; in annotate
+mode a Save action wrote the text straight back to the file on disk, with
+conflict detection, a watch on the source file, saved-edit drafts and a
+"saved file changes" feedback section. Both went: the user annotates, the agent
+edits. HTML annotate refresh, linked docs and the version diffs stay.
+
+**Commits:** `845a3a4d` (42 files, ~5,400 lines); the follow-up fixed the
+viewer key that still read the removed edit counter, restored the note's
+`createdA` field, and dropped the editor's unused `diff` dependency.

@@ -1057,7 +1057,7 @@ const AppInner: React.FC = () => {
     ? `doc:${linkedDocHook.filepath}`
     : annotateSource === 'message' && selectedMessageId
       ? `msg:${selectedMessageId}`
-      : `plan:${editGeneration}`;
+      : 'plan';
 
   // Track active section for TOC highlighting
   const headingCount = useMemo(() => blocks.filter(b => b.type === 'heading').length, [blocks]);
@@ -2122,7 +2122,7 @@ const AppInner: React.FC = () => {
       type: AnnotationType.GLOBAL_COMMENT,
       text: trimmed,
       originalText: '',
-      createdAt: Date.now(),
+      createdA: Date.now(),
       author: getIdentity(),
     };
     annotationsRef.current = [...annotationsRef.current, note];
