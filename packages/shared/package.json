@@ -46,7 +46,7 @@
     "./session-stream": "./session-stream.ts"
   },
   "dependencies": {
-    "@joplin/turndown-plugin-gfm": "^1.0.64",
+    "@joplin/turndown-plugin-gfm": "^1.0.68",
     "@hypermark/core": "workspace:*",
     "chokidar": "^5.0.0",
     "parse5": "^7.3.0",
