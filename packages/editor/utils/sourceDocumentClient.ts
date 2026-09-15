@@ -1,12 +1,3 @@
-import type { SourceSaveCapability } from '@hypermark/shared/source-save';
-
-type EnabledSourceSaveCapability = Extract<SourceSaveCapability, { enabled: true }>;
-
-export type SourceSaveProbeResult =
-  | { status: 'ok'; sourceSave: EnabledSourceSaveCapability }
-  | { status: 'missing' }
-  | { status: 'unavailable' };
-
 export interface HtmlVersionDiffFields {
   /** The previous-version page rendered with inline ins/del highlights. */
   diffHtml?: string;
@@ -18,22 +9,11 @@ interface SourceDocumentResponse extends HtmlVersionDiffFields {
   markdown?: string;
   rawHtml?: string;
   filepath?: string;
-  sourceSave?: SourceSaveCapability;
   renderAs?: 'markdown' | 'html';
 }
 
 type SourceDocumentFetchResult =
   | { status: 'ok'; data: SourceDocumentResponse }
-  | { status: 'missing' }
-  | { status: 'unavailable' };
-
-interface SourceDocumentSnapshot {
-  markdown: string;
-  sourceSave: EnabledSourceSaveCapability;
-}
-
-export type SourceDocumentSnapshotResult =
-  | { status: 'ok'; snapshot: SourceDocumentSnapshot }
   | { status: 'missing' }
   | { status: 'unavailable' };
 
@@ -63,30 +43,6 @@ async function fetchSourceDocument(path: string): Promise<SourceDocumentFetchRes
   }
 }
 
-export async function probeSourceSave(path: string): Promise<SourceSaveProbeResult> {
-  const result = await fetchSourceDocument(path);
-  if (result.status !== 'ok') return { status: result.status };
-
-  const { sourceSave } = result.data;
-  if (sourceSave?.enabled) return { status: 'ok', sourceSave };
-  if (sourceSave?.enabled === false && sourceSave.reason === 'missing-file') {
-    return { status: 'missing' };
-  }
-  return { status: 'unavailable' };
-}
-
-export async function fetchSourceDocumentSnapshot(path: string): Promise<SourceDocumentSnapshotResult> {
-  const result = await fetchSourceDocument(path);
-  if (result.status !== 'ok') return { status: result.status };
-
-  const { markdown, renderAs, sourceSave } = result.data;
-  if (sourceSave?.enabled === false && sourceSave.reason === 'missing-file') {
-    return { status: 'missing' };
-  }
-  if (renderAs === 'html' || typeof markdown !== 'string' || !sourceSave?.enabled) return { status: 'unavailable' };
-  return { status: 'ok', snapshot: { markdown, sourceSave } };
-}
-
 export async function fetchHtmlDocumentSnapshot(path: string): Promise<HtmlDocumentSnapshotResult> {
   const result = await fetchSourceDocument(path);
   if (result.status !== 'ok') return { status: result.status };
@@ -106,3 +62,4 @@ export async function fetchHtmlDocumentSnapshot(path: string): Promise<HtmlDocum
     },
   };
 }
+

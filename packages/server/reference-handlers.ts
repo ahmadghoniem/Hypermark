@@ -18,13 +18,6 @@ import {
 	isAnnotatableTextPath,
 } from "@hypermark/shared/resolve-file";
 import { htmlToMarkdown } from "@hypermark/shared/html-to-markdown";
-import { disabledSourceSave, type SourceFileSnapshot, type SourceSaveCapability } from "@hypermark/shared/source-save";
-import {
-	createSourceSaveCapability,
-	createSourceSaveCapabilityFromSnapshot,
-	readSourceFileSnapshot,
-	resolveExistingSourceSaveFile,
-} from "@hypermark/shared/source-save-node";
 import type { AnnotateHistoryResult } from "@hypermark/shared/annotate-history";
 import { preloadFile } from "@pierre/diffs/ssr";
 
@@ -32,8 +25,6 @@ import { preloadFile } from "@pierre/diffs/ssr";
 
 export interface HandleDocOptions {
 	rewriteHtml?: (html: string, filepath: string) => string;
-	sourceSaveFilePath?: string;
-	onSourceDocumentServed?: (path: string) => void;
 	rootPaths?: string[];
 	/**
 	 * Single-file rendered-HTML sessions: when /api/doc serves the session's
@@ -174,7 +165,6 @@ function resolveMarkdownFileFromAllowedRoots(input: string, roots: string[]): Ro
 }
 
 type DocOptionsResult<T> = T & {
-	sourceSave?: SourceSaveCapability;
 	previousPlan?: string | null;
 	versionInfo?: AnnotateHistoryResult["versionInfo"];
 };
@@ -182,7 +172,6 @@ type DocOptionsResult<T> = T & {
 function applyDocOptions<T extends Record<string, unknown>>(
 	data: T,
 	options: HandleDocOptions = {},
-	sourceSnapshot?: SourceFileSnapshot,
 ): DocOptionsResult<T> {
 	const next: Record<string, unknown> = { ...data };
 	// Root-document version diff (see HandleDocOptions.rootHtmlVersionDiff):
@@ -203,32 +192,11 @@ function applyDocOptions<T extends Record<string, unknown>>(
 	) {
 		next.rawHtml = options.rewriteHtml(next.rawHtml, next.filepath);
 	}
-	if (typeof data.filepath !== "string") {
-		return (options.sourceSaveFilePath
-			? { ...next, sourceSave: disabledSourceSave("not-local-file") }
-			: next) as DocOptionsResult<T>;
-	}
-	if (data.renderAs === "html") {
-		return { ...next, sourceSave: disabledSourceSave("html-render") } as DocOptionsResult<T>;
-	}
-	if (data.isConverted === true) {
-		return { ...next, sourceSave: disabledSourceSave("converted-source") } as DocOptionsResult<T>;
-	}
-	if (options.sourceSaveFilePath) {
-		const sourcePath = resolveExistingSourceSaveFile("single-file", options.sourceSaveFilePath);
-		const doc = sourceSnapshot
-			? createSourceSaveCapabilityFromSnapshot("single-file", data.filepath, sourceSnapshot)
-			: createSourceSaveCapability("single-file", data.filepath);
-		if (sourcePath && doc.enabled && sourcePath === doc.path) {
-			options.onSourceDocumentServed?.(doc.path);
-			return { ...next, sourceSave: doc } as DocOptionsResult<T>;
-		}
-	}
 	return next as DocOptionsResult<T>;
 }
 
-function docJson(data: Record<string, unknown>, options?: HandleDocOptions, sourceSnapshot?: SourceFileSnapshot): Response {
-	return Response.json(applyDocOptions(data, options, sourceSnapshot));
+function docJson(data: Record<string, unknown>, options?: HandleDocOptions): Response {
+	return Response.json(applyDocOptions(data, options));
 }
 
 /** Serve a linked markdown document. Resolves absolute, relative, or bare filename paths. */
@@ -276,8 +244,7 @@ export async function handleDoc(req: Request, options: HandleDocOptions = {}): P
 				if (file.size > MAX_ANNOTATABLE_FILE_BYTES) {
 					return Response.json({ error: "File too large (max 2MB)" }, { status: 413 });
 				}
-				const snapshot = readSourceFileSnapshot(fromBase);
-				const raw = snapshot.text;
+				const raw = await file.text();
 				const isHtml = /\.html?$/i.test(requestedPath);
 				if (isHtml && !convert) {
 					return docJson({ rawHtml: raw, renderAs: "html", filepath: fromBase }, options);
@@ -286,7 +253,6 @@ export async function handleDoc(req: Request, options: HandleDocOptions = {}): P
 				return docJson(
 					{ markdown, filepath: fromBase, isConverted: isHtml, renderAs: "markdown" },
 					options,
-					isHtml ? undefined : snapshot,
 				);
 			}
 		} catch {
@@ -410,11 +376,12 @@ export async function handleDoc(req: Request, options: HandleDocOptions = {}): P
 	}
 
 	try {
-		if (Bun.file(result.path).size > MAX_ANNOTATABLE_FILE_BYTES) {
+		const file = Bun.file(result.path);
+		if (file.size > MAX_ANNOTATABLE_FILE_BYTES) {
 			return Response.json({ error: "File too large (max 2MB)" }, { status: 413 });
 		}
-		const snapshot = readSourceFileSnapshot(result.path);
-		return docJson({ markdown: snapshot.text, filepath: result.path, renderAs: "markdown" }, options, snapshot);
+		const markdown = await file.text();
+		return docJson({ markdown, filepath: result.path, renderAs: "markdown" }, options);
 	} catch {
 		return Response.json({ error: "Failed to read file" }, { status: 500 });
 	}

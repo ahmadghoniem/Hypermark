@@ -32,14 +32,13 @@ async function postDocExists(body: unknown, options: { rootPath?: string; rootPa
 	}>;
 }
 
-async function getDoc(path: string, options: { base?: string; rootPaths?: string[]; sourceSaveFilePath?: string; doc?: boolean }) {
+async function getDoc(path: string, options: { base?: string; rootPaths?: string[]; doc?: boolean }) {
 	const url = new URL("http://localhost/api/doc");
 	url.searchParams.set("path", path);
 	if (options.base) url.searchParams.set("base", options.base);
 	if (options.doc) url.searchParams.set("doc", "1");
 	return handleDoc(new Request(url.toString()), {
 		rootPaths: options.rootPaths,
-		sourceSaveFilePath: options.sourceSaveFilePath,
 	});
 }
 
@@ -112,40 +111,6 @@ describe("handleDocExists", () => {
 		const res = await getDoc("secret.md", { base: outside, rootPaths: [root] });
 
 		expect(res.status).toBe(404);
-	});
-
-	test("single-file source document returns current source-save metadata", async () => {
-		const root = makeTempDir("hypermark-doc-root-");
-		const source = writeTempFile(root, "docs/source.md", "source\n");
-
-		const res = await getDoc(source, {
-			rootPaths: [root],
-			sourceSaveFilePath: source,
-		});
-		const data = await res.json() as { markdown?: string; sourceSave?: { enabled: boolean; scope?: string; path?: string; hash?: string } };
-
-		expect(res.status).toBe(200);
-		expect(data.markdown).toBe("source\n");
-		expect(data.sourceSave?.enabled).toBe(true);
-		expect(data.sourceSave?.scope).toBe("single-file");
-		expect(data.sourceSave?.path).toBe(realpathSync(source));
-		expect(data.sourceSave?.hash).toStartWith("sha256:");
-	});
-
-	test("single-file source-save metadata is not added to other linked documents", async () => {
-		const root = makeTempDir("hypermark-doc-root-");
-		const source = writeTempFile(root, "docs/source.md", "source\n");
-		const linked = writeTempFile(root, "docs/linked.md", "linked\n");
-
-		const res = await getDoc(linked, {
-			rootPaths: [root],
-			sourceSaveFilePath: source,
-		});
-		const data = await res.json() as { markdown?: string; sourceSave?: unknown };
-
-		expect(res.status).toBe(200);
-		expect(data.markdown).toBe("linked\n");
-		expect(data.sourceSave).toBeUndefined();
 	});
 });
 

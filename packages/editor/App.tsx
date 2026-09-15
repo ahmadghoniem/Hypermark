@@ -19,7 +19,6 @@ import { wrapFeedbackForClipboard, type AnnotateFeedbackTemplates } from '@hyper
 import { parseMarkdownToBlocks, exportAnnotations, exportLinkedDocAnnotations, exportCodeFileAnnotations, extractFrontmatter, wrapFeedbackForAgent, Frontmatter, type LinkedDocAnnotationEntry, type MessageAnnotationEntry } from '@hypermark/ui/utils/parser';
 import { Viewer, ViewerHandle } from '@hypermark/ui/components/Viewer';
 import { HtmlViewer } from '@hypermark/ui/components/html-viewer';
-import { MarkdownEditor, type MarkdownEditorHandle } from '@hypermark/ui/components/MarkdownEditor';
 import { AnnotationPanel } from '@hypermark/ui/components/AnnotationPanel';
 import { ConfirmDialog } from '@hypermark/ui/components/ConfirmDialog';
 import { Annotation, AnnotationType, Block, EditorMode, type CodeAnnotation, type InputMethod, type ImageAttachment, type ActionsLabelMode } from '@hypermark/ui/types';
@@ -51,7 +50,7 @@ import { useSidebar, type SidebarTab } from '@hypermark/ui/hooks/useSidebar';
 import { usePlanDiff, type VersionInfo, type VersionEntry, type PlanDiffFetchers } from '@hypermark/ui/hooks/usePlanDiff';
 import { useLinkedDoc, type LinkedDocSessionState } from '@hypermark/ui/hooks/useLinkedDoc';
 import { useCodeFilePopout } from '@hypermark/ui/hooks/useCodeFilePopout';
-import { useAnnotationDraft, type DraftEditedDocument } from '@hypermark/ui/hooks/useAnnotationDraft';
+import { useAnnotationDraft } from '@hypermark/ui/hooks/useAnnotationDraft';
 import { useSessionEndedStream } from '@hypermark/ui/hooks/useSessionEndedStream';
 import { useUndoHistory } from '@hypermark/ui/hooks/useUndoHistory';
 import { generateId } from '@hypermark/ui/utils/generateId';
@@ -61,12 +60,6 @@ import type { PickerMessage } from '@hypermark/ui/components/sidebar/MessagesBro
 import { PlanDiffViewer } from '@hypermark/ui/components/plan-diff/PlanDiffViewer';
 import { CodeFilePopout, type CodeFileAnnotationInput } from '@hypermark/ui/components/CodeFilePopout';
 import type { PlanDiffMode } from '@hypermark/ui/components/plan-diff/PlanDiffModeSwitcher';
-import {
-  hasSourceSaveConflictSnapshot,
-  isSourceSaveFilePath,
-  type SourceSaveCapability,
-  type SourceSaveResponse,
-} from '@hypermark/shared/source-save';
 import { observeActionsLabelMode } from './utils/actionsLabelMode';
 // Demo content toggle. Default: the original Real-time Collaboration plan.
 // Opt-in diff-engine stress test: `VITE_DIFF_DEMO=1 bun run dev:hook` swaps
@@ -115,14 +108,6 @@ type AnnotateFeedbackTarget = {
   filePath: string;
 };
 import {
-  buildPlanEditPanelItem,
-  buildDirectEditsSection,
-  buildSavedFileChangePanelItems,
-  buildSavedFileChangesSection,
-  computeEditStats,
-  normalizeEditedMarkdown,
-} from './utils/directEdits';
-import {
   buildAnnotateApprovalBody,
   buildCompleteAnnotateFeedback,
 } from './utils/annotateSubmission';
@@ -134,19 +119,6 @@ import {
   shouldConnectAnnotateClientLease,
   type AnnotateClientLeaseConfig,
 } from './annotateClientLease';
-import {
-  editableDocumentKey,
-  useEditableDocuments,
-  type EnabledSourceSaveCapability,
-  type SavedFileChangeDraftData,
-} from './utils/editableDocuments';
-import {
-  validateSavedFileChanges,
-} from './utils/savedFileChangeValidation';
-import { fetchSourceDocumentSnapshot, probeSourceSave } from './utils/sourceDocumentClient';
-import { reconcileSourceDocuments, type SourceDocumentReconcileEvent } from './utils/sourceDocumentReconciliation';
-import { buildSourceWatchSubscription } from './utils/sourceDocumentPaths';
-import { pickRestoredSingleFileDraftToDisplay } from './utils/draftRestoreSelection';
 
 type MessageAnnotationState = {
   messageId: string;
@@ -224,15 +196,8 @@ const buildMessageAnnotationCounts = (
   return counts;
 };
 
-const feedbackLossDescription = (annotationCount: number, hasDirectEdits: boolean): string => {
-  const parts = [
-    annotationCount > 0 ? `${annotationCount} annotation${annotationCount !== 1 ? 's' : ''}` : '',
-    hasDirectEdits ? 'direct edits' : '',
-  ].filter(Boolean);
-  return parts.length > 0 ? parts.join(' and ') : 'feedback';
-};
-
-type SourceFileEditWarningAction = 'send-feedback' | 'approve' | 'close';
+const feedbackLossDescription = (annotationCount: number): string =>
+  annotationCount > 0 ? `${annotationCount} annotation${annotationCount !== 1 ? 's' : ''}` : 'feedback';
 
 interface HistorySelection {
   annotationId: string | null;
@@ -287,9 +252,7 @@ const AppInner: React.FC = () => {
   selectionRef.current = { annotationId: selectedAnnotationId, codeAnnotationId: selectedCodeAnnotationId };
   const restoreCheckboxOverridesRef = useRef<(snapshot: CheckboxOverrideSnapshot) => void>(() => {});
   const checkboxSelectionBeforeRef = useRef<HistorySelection | null>(null);
-  const editableDocuments = useEditableDocuments();
-  const activeEditableDocument = editableDocuments.activeDocument;
-  const displayedMarkdown = activeEditableDocument?.currentText ?? markdown;
+  const displayedMarkdown = markdown;
   const [sourceFilePath, setSourceFilePath] = useState<string | undefined>();
   // Mirrors linkedDocHook.filepath (declared later) so the parse memos below
   // can key frontmatter behavior off the ACTIVE document's path. Kept in sync
@@ -314,10 +277,6 @@ const AppInner: React.FC = () => {
   );
   const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false);
   const [showClaudeCodeWarning, setShowClaudeCodeWarning] = useState(false);
-  const [showExitWarning, setShowExitWarning] = useState(false);
-  const [showSourceFileEditWarning, setShowSourceFileEditWarning] = useState(false);
-  const [sourceFileEditWarningAction, setSourceFileEditWarningAction] = useState<SourceFileEditWarningAction>('send-feedback');
-  const sourceFileEditWarningContinuationRef = useRef<(() => void | Promise<void>) | null>(null);
   // The decision-control note flow (#1436 mechanism): the note is committed
   // into `annotations` as a GLOBAL_COMMENT and submitted one render later,
   // because the payload builders close over `allAnnotations`. The route is
@@ -361,33 +320,6 @@ const AppInner: React.FC = () => {
   const [actionsLabelMode, setActionsLabelMode] = useState<ActionsLabelMode>('full');
   const [isApiMode, setIsApiMode] = useState(false);
   const [origin, setOrigin] = useState<Origin | null>(null);
-  // Markdown edit mode (prototype): CM6 live-preview editor over the raw plan
-  // text. originalMarkdownRef is the as-submitted baseline for the edit diff —
-  // set once at plan load, never by linked-doc navigation or edit commits.
-  const [isEditingMarkdown, setIsEditingMarkdown] = useState(false);
-  const isEditingMarkdownRef = useRef(isEditingMarkdown);
-  useEffect(() => {
-    isEditingMarkdownRef.current = isEditingMarkdown;
-  }, [isEditingMarkdown]);
-  const [editStats, setEditStats] = useState<{ added: number; removed: number } | null>(null);
-  // Bumped on every edit commit so the Viewer remounts: web-highlighter mutates
-  // the Viewer DOM, and reconciling changed blocks against the old subtree throws.
-  const [editGeneration, setEditGeneration] = useState(0);
-  // True while the open editor buffer differs from what it mounted with.
-  const [editorDirty, setEditorDirty] = useState(false);
-  // True while the open editor buffer differs from the as-submitted baseline.
-  const [editorDiffersFromBaseline, setEditorDiffersFromBaseline] = useState(false);
-  // Two-step guard for the "Cancel" (discard edits + exit) action.
-  const [confirmCancelEdits, setConfirmCancelEdits] = useState(false);
-  const originalMarkdownRef = useRef<string | null>(null);
-  // Last COMMITTED editor text (null = no edits). The Direct Edits diff reads
-  // this — never the shared `markdown` state, which linked-doc navigation,
-  // message switching, and checkbox toggles repurpose.
-  const editedMarkdownRef = useRef<string | null>(null);
-  // What the current edit session mounted with, for live dirty tracking.
-  const editSessionBaseRef = useRef<string>('');
-  const markdownEditorHandleRef = useRef<MarkdownEditorHandle | null>(null);
-  const suspendedRootEditableKeyRef = useRef<string | null>(null);
   // Legacy, read-only (spec 05 §4.1): the toolbar Images action and the
   // document-level paste handler that used to write here are gone. This stays
   // at [] for the life of a session — restore-time normalization folds any
@@ -698,40 +630,9 @@ const AppInner: React.FC = () => {
     toggleSidebarTab,
   ]);
 
-  const snapshotActiveEditableDocument = useCallback(() => {
-    if (!activeEditableDocument) return;
-    if (isEditingMarkdown) {
-      const live = markdownEditorHandleRef.current?.getMarkdown();
-      if (live != null) editableDocuments.updateActiveText(live, { forceNotify: true });
-      return;
-    }
-    editableDocuments.updateActiveText(displayedMarkdown, { forceNotify: true });
-  }, [activeEditableDocument, displayedMarkdown, editableDocuments, isEditingMarkdown]);
-
-  const getLinkedDocumentMarkdown = useCallback((filepath: string, fallback?: string) => {
-    return editableDocuments.getCurrentText(`file:${filepath}`) ?? fallback;
-  }, [editableDocuments]);
-
-  const restoreLinkedDocumentEditableKey = useCallback(() => {
-    const restoreKey = suspendedRootEditableKeyRef.current;
-    suspendedRootEditableKeyRef.current = null;
-    editableDocuments.setActiveKey(restoreKey);
-  }, [editableDocuments]);
-
-  const handleLinkedDocumentLoaded = useCallback((_doc: { markdown?: string; filepath?: string; renderAs?: 'markdown' | 'html'; sourceSave?: SourceSaveCapability }) => {
-    if (activeEditableDocument?.sourceSave?.enabled) {
-      suspendedRootEditableKeyRef.current = activeEditableDocument.key;
-      editableDocuments.setActiveKey(null);
-    }
-    return undefined;
-  }, [activeEditableDocument, editableDocuments]);
-
-  const handleLinkedDocumentActivated = useCallback(() => {}, []);
-
   const handleBeforeDocumentNavigation = useCallback(() => {
     annotationHistory.clear();
-    snapshotActiveEditableDocument();
-  }, [annotationHistory, snapshotActiveEditableDocument]);
+  }, [annotationHistory]);
 
   // Linked document navigation
   const linkedDocHook = useLinkedDoc({
@@ -740,10 +641,6 @@ const AppInner: React.FC = () => {
     renderAs, rawHtml, shareHtml, setRenderAs, setRawHtml, setShareHtml,
     viewerRef, sidebar: linkedDocSidebar, sourceFilePath, sourceConverted,
     onBeforeNavigate: handleBeforeDocumentNavigation,
-    onDocumentLoaded: handleLinkedDocumentLoaded,
-    onDocumentActivated: handleLinkedDocumentActivated,
-    getDocumentMarkdown: getLinkedDocumentMarkdown,
-    onAfterBack: restoreLinkedDocumentEditableKey,
   });
 
   // Active document's version-diff baseline: the root document's own
@@ -807,27 +704,12 @@ const AppInner: React.FC = () => {
     sidebar.activeTab === 'toc',
     exitPlanDiffView,
   );
-  const warnFinishEditingFirst = useCallback((target: 'versions' | 'diff') => {
-    toast('Finish editing first', {
-      description: target === 'versions'
-        ? 'Use "Done editing" before changing the comparison version.'
-        : 'Use "Done editing" before opening the version diff.',
-    });
-  }, []);
   const handleSelectBaseVersion = useCallback((version: number) => {
-    if (isEditingMarkdown) {
-      warnFinishEditingFirst('versions');
-      return Promise.resolve();
-    }
     return planDiff.selectBaseVersion(version);
-  }, [isEditingMarkdown, planDiff.selectBaseVersion, warnFinishEditingFirst]);
+  }, [planDiff.selectBaseVersion]);
   const handleActivatePlanDiff = useCallback(() => {
-    if (isEditingMarkdown) {
-      warnFinishEditingFirst('diff');
-      return;
-    }
     setIsPlanDiffActive(true);
-  }, [isEditingMarkdown, warnFinishEditingFirst]);
+  }, []);
 
   // Keep the early parse-path mirror in sync with the active linked doc so
   // the blocks/frontmatter memos (declared before this hook) parse with the
@@ -929,10 +811,8 @@ const AppInner: React.FC = () => {
   const canHandleDocumentChromeShortcut = useCallback((event: KeyboardEvent) => {
     if (event.defaultPrevented) return false;
     if (document.querySelector('[data-hypermark-confirm-dialog="true"]')) return false;
-    if (showFeedbackPrompt || showClaudeCodeWarning ||
-        showSourceFileEditWarning ||
-        showExitWarning) return false;
-    if (submitted || isSubmitting || isExiting || isEditingMarkdown) return false;
+    if (showFeedbackPrompt || showClaudeCodeWarning) return false;
+    if (submitted || isSubmitting || isExiting) return false;
 
     const target = event.target as HTMLElement | null;
     const tag = target?.tagName;
@@ -940,12 +820,9 @@ const AppInner: React.FC = () => {
   }, [
     showFeedbackPrompt,
     showClaudeCodeWarning,
-    showSourceFileEditWarning,
-    showExitWarning,
     submitted,
     isSubmitting,
     isExiting,
-    isEditingMarkdown,
   ]);
 
   const canHandleAnnotateSidebarShortcut = useCallback(
@@ -955,9 +832,9 @@ const AppInner: React.FC = () => {
 
   const canHandleAnnotationHistoryShortcut = useCallback((event: KeyboardEvent) => {
     if (event.defaultPrevented || submitted || isSubmitting || isExiting) return false;
-    if (isEditingMarkdown || isNativeHistoryOwner(event)) return false;
+    if (isNativeHistoryOwner(event)) return false;
     return !hasActiveHistoryOverlay(document);
-  }, [isEditingMarkdown, isExiting, isSubmitting, submitted]);
+  }, [isExiting, isSubmitting, submitted]);
 
   useHistoryShortcuts({
     handlers: {
@@ -1141,12 +1018,7 @@ const AppInner: React.FC = () => {
   // Wrap linked doc back
   const handleLinkedDocBack = React.useCallback(() => {
     linkedDocHook.back();
-    if (isEditingMarkdown) {
-      setIsEditingMarkdown(false);
-      setEditorDirty(false);
-      setEditorDiffersFromBaseline(false);
-    }
-  }, [linkedDocHook, isEditingMarkdown]);
+  }, [linkedDocHook]);
 
   // Derive annotation counts per file from linked doc cache (includes active doc's live state)
   const allAnnotationCounts = useMemo(() => {
@@ -1355,38 +1227,12 @@ const AppInner: React.FC = () => {
     });
   }, [isLoading]);
 
-  // The user's current direct-edit text: the open editor buffer, else the
-  // last commit; null when there is none or it matches the baseline. Never
-  // the shared `markdown` state, which linked docs, message switching, and
-  // checkbox toggles legitimately mutate. Feeds both the draft auto-save and
-  // the Direct Edits feedback section.
-  const getEditedMarkdown = useCallback((): string | null => {
-    const activeDocument = editableDocuments.getActiveDocumentLive();
-    if (activeDocument?.sourceSave?.enabled) {
-      const live = isEditingMarkdown ? markdownEditorHandleRef.current?.getMarkdown() : null;
-      return normalizeEditedMarkdown(activeDocument.diskBaseline, live ?? activeDocument.currentText);
-    }
-
-    const base = originalMarkdownRef.current;
-    if (base === null) return null;
-    const live = isEditingMarkdown ? markdownEditorHandleRef.current?.getMarkdown() : null;
-    return normalizeEditedMarkdown(base, live ?? editedMarkdownRef.current);
-  }, [editableDocuments, isEditingMarkdown]);
-
-  const getDraftEditedMarkdown = useCallback((): string | null => {
-    if (editableDocuments.getActiveDocumentLive()?.sourceSave?.enabled) return null;
-    return getEditedMarkdown();
-  }, [editableDocuments, getEditedMarkdown]);
-
   // Auto-save annotation drafts
-  const handleRestoreDraftRef = useRef<(loadedDraft?: any, meta?: any) => Promise<void>>(() => Promise.resolve());
+  const handleRestoreDraftRef = useRef<(loadedDraft?: any, meta?: any) => void>(() => {});
   const { restoreDraft, scheduleDraftSave, scheduleDraftSaveAfterSubmitFailure, getDraftGeneration, discardDraft, flushDraft } = useAnnotationDraft({
     annotations: allAnnotations,
     codeAnnotations,
     globalAttachments,
-    getEditedMarkdown: getDraftEditedMarkdown,
-    getEditedDocuments: editableDocuments.getDraftDocuments,
-    getSavedFileChanges: editableDocuments.getDraftSavedFileChanges,
     isApiMode,
     // No share transport remains, so drafts always persist for a live session.
     isSharedSession: false,
@@ -1397,351 +1243,16 @@ const AppInner: React.FC = () => {
     onDraftLoaded: (draft, meta) => handleRestoreDraftRef.current(draft, meta),
   });
 
-  // Markdown edit mode: single consolidated gate. The editor only ever opens on
-  // the main plan/file markdown — never on HTML surfaces,
-  // linked docs, messages, folder pickers, or diff view.
-  const canEditMarkdown =
-    renderAs !== 'html' &&
-    // editStats non-null keeps the toggle available after committing an
-    // emptied document, so the user can re-enter and undo. Source-backed files
-    // are editable even when they start empty.
-    (activeEditableDocument?.sourceSave?.enabled || displayedMarkdown !== '' || editStats !== null) &&
-    !linkedDocHook.isActive &&
-    !isPlanDiffActive &&
-    annotateSource !== 'message' &&
-    !submitted;
-
-  // Swap the document to `next` and re-resolve annotation block anchors against
-  // the new parse so exported line labels don't point at stale content.
-  // Annotations whose text no longer exists get blockId '' — exportAnnotations
-  // omits the line label instead of emitting a wrong one. Returns the remapped
-  // objects so callers repaint THOSE, not the pre-remap ones (whose stale
-  // startMeta/endMeta would let fromStore() silently highlight wrong content).
-  // `list` defaults to current state; draft restore passes the restored set,
-  // which isn't in state yet when the remap runs.
-  const applyEditedDocument = useCallback((next: string, list?: Annotation[]): Annotation[] => {
-    annotationHistory.clear();
-    const sourceAnnotations = list ?? annotationsRef.current;
-    // Match the display parse (blocks memo) — the active document's
-    // frontmatter rule must apply here too or the remapped blockIds drift.
-    const newBlocks = parseMarkdownToBlocks(next, { frontmatter: parseFrontmatterRef.current });
-    const remapped = sourceAnnotations.map((a) => {
-      if (a.diffContext || a.type === AnnotationType.GLOBAL_COMMENT || a.id.startsWith('ann-checkbox-')) return a;
-      const blk = newBlocks.find((b) => b.content.includes(a.originalText));
-      if ((blk?.id ?? '') === a.blockId) return a;
-      // Block moved: also strip startMeta/endMeta — fromStore() anchors by
-      // positional parent index without validating text. Text-search is safe.
-      return { ...a, blockId: blk?.id ?? '', startMeta: undefined, endMeta: undefined };
-    });
-    setMarkdown(next);
-    setEditGeneration((g) => g + 1);
-    annotationsRef.current = remapped;
-    setAnnotations(remapped);
-    return remapped;
-  }, [annotationHistory]);
-
-  // The Viewer is remounted after every edit-mode exit (it was unmounted while
-  // editing), so highlight DOM is rebuilt from scratch. Re-anchor via the same
-  // text-search restore used by draft/share/linked-doc flows, then report
-  // annotations whose text vanished.
-  const repaintHighlights = useCallback((list: Annotation[]) => {
-    const planAnnotations = list.filter(
-      (a) => !a.diffContext && a.type !== AnnotationType.GLOBAL_COMMENT && !a.id.startsWith('ann-checkbox-')
-    );
-    if (planAnnotations.length === 0) return;
-    setTimeout(() => {
-      viewerRef.current?.applySharedAnnotations(planAnnotations);
-      // web-highlighter restores use data-highlight-id; manual code-block
-      // wraps use data-bind-id. Either counts as present.
-      const missing = planAnnotations.filter(
-        (a) => !document.querySelector(`[data-bind-id="${a.id}"], [data-highlight-id="${a.id}"]`)
-      );
-      if (missing.length > 0) {
-        toast(`${missing.length} annotation${missing.length === 1 ? '' : 's'} no longer match the text`, {
-          description: 'The highlighted text was edited. They remain listed in the panel.',
-          duration: 5000,
-        });
-      }
-    }, 120);
-  }, []);
-
-  // Commits the open editor buffer: updates markdown state, records the edit
-  // for the Direct Edits diff, re-anchors annotations, repaints highlights.
-  const commitMarkdownEdits = useCallback(() => {
-    if (!isEditingMarkdown) return;
-    const edited = markdownEditorHandleRef.current?.getMarkdown();
-    setIsEditingMarkdown(false);
-    setEditorDirty(false);
-    setEditorDiffersFromBaseline(false);
-
-    const base = originalMarkdownRef.current;
-    if (edited != null) {
-      if (activeEditableDocument?.sourceSave?.enabled) {
-        editableDocuments.updateActiveText(edited, { forceNotify: true });
-        const sourceEdited = normalizeEditedMarkdown(activeEditableDocument.diskBaseline, edited);
-        editedMarkdownRef.current = null;
-        setEditStats(sourceEdited !== null ? computeEditStats(activeEditableDocument.diskBaseline, sourceEdited) : null);
-        if (sourceEdited !== null && window.innerWidth >= 768) {
-          setIsPanelOpen(true);
-        }
-      } else {
-        const normalizedEdited = normalizeEditedMarkdown(base, edited);
-        editedMarkdownRef.current = normalizedEdited;
-        setEditStats(base !== null && normalizedEdited !== null ? computeEditStats(base, normalizedEdited) : null);
-        // Surface the Direct Edits card so the user sees where their changes went.
-        if (base !== null && normalizedEdited !== null && window.innerWidth >= 768) {
-          setIsPanelOpen(true);
-        }
-      }
-    }
-
-    const renderedBaseline = activeEditableDocument?.sourceSave?.enabled ? markdown : displayedMarkdown;
-    const remapped = edited != null && edited !== renderedBaseline ? applyEditedDocument(edited) : annotations;
-    repaintHighlights(remapped);
-    scheduleDraftSave();
-  }, [activeEditableDocument, displayedMarkdown, editableDocuments, isEditingMarkdown, annotations, markdown, applyEditedDocument, repaintHighlights, scheduleDraftSave]);
-
-  // Discards direct edits for one document. Source-backed folder edits are
-  // file-scoped; normal plan-review edits still have a single document.
-  const handleDiscardEdits = useCallback((sourceKey?: string) => {
-    const targetKey = sourceKey ?? activeEditableDocument?.key;
-    const targetIsActive = !!targetKey && editableDocuments.getActiveKey() === targetKey;
-    const targetRecord = targetKey ? editableDocuments.getDocument(targetKey) : null;
-    if (sourceKey && !targetRecord?.sourceSave?.enabled) return;
-
-    if (targetKey && targetRecord?.sourceSave?.enabled) {
-      const discarded = editableDocuments.discardDocument(targetKey);
-      if (!discarded) return;
-      if (!targetIsActive) {
-        scheduleDraftSave();
-        return;
-      }
-
-      setIsEditingMarkdown(false);
-      setEditorDirty(false);
-      setEditorDiffersFromBaseline(false);
-      editedMarkdownRef.current = null;
-      setEditStats(null);
-      if (discarded.missingOnDisk) {
-        if (linkedDocHook.isActive) {
-          linkedDocHook.back();
-        } else {
-          const remapped = displayedMarkdown !== ''
-            ? applyEditedDocument('')
-            : annotations;
-          repaintHighlights(remapped);
-          originalMarkdownRef.current = '';
-        }
-        scheduleDraftSave();
-        return;
-      }
-      const remapped = displayedMarkdown !== discarded.diskBaseline
-        ? applyEditedDocument(discarded.diskBaseline)
-        : annotations;
-      repaintHighlights(remapped);
-      scheduleDraftSave();
-      return;
-    }
-
-    const base = originalMarkdownRef.current;
-    if (base === null) return;
-    setIsEditingMarkdown(false);
-    setEditorDirty(false);
-    setEditorDiffersFromBaseline(false);
-    editedMarkdownRef.current = null;
-    setEditStats(null);
-    const remapped = markdown !== base ? applyEditedDocument(base) : annotations;
-    repaintHighlights(remapped);
-    scheduleDraftSave();
-  }, [activeEditableDocument, editableDocuments, displayedMarkdown, markdown, annotations, applyEditedDocument, repaintHighlights, linkedDocHook, scheduleDraftSave]);
-
-  // Restores a recovered draft: annotations always; direct edits when present
-  // and the baseline exists. Edits flow through the same helpers
-  // commitMarkdownEdits uses, with the RESTORED annotations remapped against
-  // the edited document (they aren't in state yet when the remap runs).
-  const resolveSavedFileChangeSource = useCallback((
-    change: SavedFileChangeDraftData,
-  ) => {
-    return probeSourceSave(change.path);
-  }, []);
-
-  const validateDraftSavedFileChanges = useCallback(async (
-    changes: SavedFileChangeDraftData[],
-  ): Promise<{ kept: SavedFileChangeDraftData[]; changedOrMissing: SavedFileChangeDraftData[]; unverified: SavedFileChangeDraftData[] }> => {
-    if (changes.length === 0) return { kept: [], changedOrMissing: [], unverified: [] };
-    const result = await validateSavedFileChanges(changes, resolveSavedFileChangeSource);
-    const changedOrMissing = result.dropped
-      .filter((entry) => entry.reason === 'changed' || entry.reason === 'missing')
-      .map((entry) => entry.change);
-
-    if (changedOrMissing.length > 0) {
-      toast('Some saved edit context was not restored', {
-        description: 'Those files changed or disappeared after Hypermark saved them.',
-        duration: 5000,
-      });
-    }
-    if (result.unverified.length > 0) {
-      toast('Some saved edit context could not be verified', {
-        description: 'Hypermark kept it for now and will check again before sending feedback.',
-        duration: 5000,
-      });
-    }
-
-    return {
-      kept: [...result.valid, ...result.unverified],
-      changedOrMissing,
-      unverified: result.unverified,
-    };
-  }, [resolveSavedFileChangeSource]);
-
-  const handleRestoreDraft = React.useCallback(async (
+  const handleRestoreDraft = React.useCallback((
     loadedDraft?: ReturnType<typeof restoreDraft>,
-    meta?: { count: number; timeAgo: string; hasEdits: boolean },
+    meta?: { count: number; timeAgo: string },
   ) => {
     annotationHistory.clear();
     const {
       annotations: restored,
       codeAnnotations: restoredCode,
-      // Legacy top-level images arrive already folded into a GLOBAL_COMMENT
-      // inside `restored` by useAnnotationDraft's restore-time normalizer
-      // (spec 05 §4.1) — `globalAttachments` here is always empty and has no
-      // write path left.
-      editedMarkdown,
-      editedDocuments,
-      savedFileChanges,
     } = loadedDraft ?? restoreDraft();
     if (restoredCode.length > 0) setCodeAnnotations(restoredCode);
-
-    const showRestoredToast = () => {
-      if (meta) {
-        const parts = [
-          meta.count > 0 ? `${meta.count} annotation${meta.count !== 1 ? 's' : ''}` : '',
-          meta.hasEdits ? 'unsent direct edits' : '',
-        ].filter(Boolean);
-        const desc = parts.length > 0 ? parts.join(' and ') : 'draft content';
-        toast(`Restored ${desc} from ${meta.timeAgo}`, {
-          action: {
-            label: 'Discard',
-            onClick: () => {
-              discardDraft();
-              setAnnotations([]);
-              setCodeAnnotations([]);
-              annotationHistory.clear();
-              viewerRef.current?.applySharedAnnotations([]);
-            },
-          },
-        });
-      }
-    };
-
-    const nestedSavedFileChanges = editedDocuments
-      .map((doc) => doc.savedChange)
-      .filter((change): change is SavedFileChangeDraftData => !!change);
-    const savedChangeCandidates = new Map<string, SavedFileChangeDraftData>();
-    for (const change of [...savedFileChanges, ...nestedSavedFileChanges]) {
-      savedChangeCandidates.set(change.key, change);
-    }
-    const validatedSaved = await validateDraftSavedFileChanges([...savedChangeCandidates.values()]);
-    const validSavedChangeByKey = new Map(validatedSaved.kept.map((change) => [change.key, change]));
-    const editedDocumentKeys = new Set(editedDocuments.map((doc) => doc.key));
-    const cleanSavedFileChanges = validatedSaved.kept.filter((change) => !editedDocumentKeys.has(change.key));
-    const editedDocumentsForRestore: DraftEditedDocument[] = editedDocuments.map((doc) =>
-      doc.savedChange
-        ? { ...doc, savedChange: validSavedChangeByKey.get(doc.savedChange.key) }
-        : doc
-    );
-
-    if (cleanSavedFileChanges.length > 0) {
-      editableDocuments.restoreSavedFileChanges(cleanSavedFileChanges);
-      if (window.innerWidth >= 768) {
-        setIsPanelOpen(true);
-      }
-    }
-
-    if (editedDocumentsForRestore.length > 0) {
-      if (isEditingMarkdown) {
-        toast('Draft file edits were not restored', {
-          description: 'You already have edits in this session — those take precedence.',
-          duration: 5000,
-        });
-      } else {
-        const restoredDocumentKeys = editableDocuments.restoreDraftDocuments(editedDocumentsForRestore);
-        if (restoredDocumentKeys.length < editedDocumentsForRestore.length) {
-          toast('Some draft file edits were not restored', {
-            description: 'You already have edits in this session — those take precedence.',
-            duration: 5000,
-          });
-        }
-        const restoredSingleFileDraft = pickRestoredSingleFileDraftToDisplay(
-          editedDocumentsForRestore,
-          restoredDocumentKeys,
-          editableDocuments.getActiveKey(),
-        );
-        if (restoredSingleFileDraft) {
-          editableDocuments.setActiveKey(restoredSingleFileDraft.key);
-          const restoredDocument = editableDocuments.getDocument(restoredSingleFileDraft.key);
-          if (restoredDocument?.sourceSave?.enabled) {
-            const remapped = applyEditedDocument(restoredDocument.currentText, restored);
-            repaintHighlights(remapped);
-            if (restoredDocument.currentText !== restoredDocument.diskBaseline) {
-              setEditStats(computeEditStats(restoredDocument.diskBaseline, restoredDocument.currentText));
-              if (window.innerWidth >= 768) {
-                setIsPanelOpen(true);
-              }
-            }
-            scheduleDraftSave();
-            showRestoredToast();
-            return;
-          }
-        }
-        const activeRestoredDocument = editableDocuments.getActiveDocumentLive();
-        const activeDraft = activeRestoredDocument?.sourceSave?.enabled && restoredDocumentKeys.includes(activeRestoredDocument.key)
-          ? editedDocumentsForRestore.find((doc) => doc.key === activeRestoredDocument.key)
-          : undefined;
-        if (activeDraft && activeRestoredDocument) {
-          const remapped = applyEditedDocument(activeRestoredDocument.currentText, restored);
-          repaintHighlights(remapped);
-          if (activeRestoredDocument.currentText !== activeRestoredDocument.diskBaseline) {
-            setEditStats(computeEditStats(activeRestoredDocument.diskBaseline, activeRestoredDocument.currentText));
-            if (window.innerWidth >= 768) {
-              setIsPanelOpen(true);
-            }
-          }
-          scheduleDraftSave();
-          showRestoredToast();
-          return;
-        }
-      }
-    }
-
-    // CRLF normalize is insurance against a hand-edited draft file — a \r
-    // here would fabricate a whole-document diff against the LF baseline.
-    const base = originalMarkdownRef.current;
-    const edited = editedMarkdown !== null ? editedMarkdown.replace(/\r\n?/g, '\n') : null;
-    // editStats/isEditingMarkdown guards are defensive: the restore dialog is
-    // modal on load, so live edits can't exist yet — but if they ever do,
-    // the user's current work wins over the draft.
-    if (edited !== null && base !== null && edited !== base && editStats === null && !isEditingMarkdown) {
-      editedMarkdownRef.current = edited;
-      setEditorDiffersFromBaseline(false);
-      setEditStats(computeEditStats(base, edited));
-      if (window.innerWidth >= 768) {
-        setIsPanelOpen(true);
-      }
-      const remapped = applyEditedDocument(edited, restored);
-      repaintHighlights(remapped);
-      scheduleDraftSave();
-      showRestoredToast();
-      return;
-    }
-    if (edited !== null && (editStats !== null || isEditingMarkdown)) {
-      // Skipped, not silently dropped: the user started editing before the
-      // (late) draft banner was answered. Their live work wins.
-      toast('Draft edits were not restored', {
-        description: 'You already have edits in this session — those take precedence.',
-        duration: 5000,
-      });
-    }
 
     if (restored.length > 0) {
       setAnnotations(restored);
@@ -1751,193 +1262,36 @@ const AppInner: React.FC = () => {
       }, 100);
     }
     scheduleDraftSave();
-    showRestoredToast();
-  }, [annotationHistory, restoreDraft, validateDraftSavedFileChanges, editStats, isEditingMarkdown, editableDocuments, activeEditableDocument, markdown, applyEditedDocument, repaintHighlights, scheduleDraftSave, discardDraft]);
+
+    if (meta) {
+      const parts = [
+        meta.count > 0 ? `${meta.count} annotation${meta.count !== 1 ? 's' : ''}` : '',
+      ].filter(Boolean);
+      const desc = parts.length > 0 ? parts.join(' and ') : 'draft content';
+      toast(`Restored ${desc} from ${meta.timeAgo}`, {
+        action: {
+          label: 'Discard',
+          onClick: () => {
+            discardDraft();
+            setAnnotations([]);
+            setCodeAnnotations([]);
+            annotationHistory.clear();
+            viewerRef.current?.applySharedAnnotations([]);
+          },
+        },
+      });
+    }
+  }, [annotationHistory, restoreDraft, scheduleDraftSave, discardDraft]);
   handleRestoreDraftRef.current = handleRestoreDraft;
 
-  const handleEditToggle = useCallback(() => {
-    if (isEditingMarkdown) {
-      commitMarkdownEdits();
-      return;
-    }
-    // Normalize CRLF before it becomes a baseline (e.g. share-imported content) —
-    // CM6 emits \n-joined text, and a CRLF baseline would fabricate a full diff.
-    const normalized = displayedMarkdown.includes('\r') ? displayedMarkdown.replace(/\r\n?/g, '\n') : displayedMarkdown;
-    if (normalized !== displayedMarkdown) {
-      if (activeEditableDocument?.sourceSave?.enabled) {
-        editableDocuments.updateActiveText(normalized, { forceNotify: true });
-      } else {
-        setMarkdown(normalized);
-      }
-    }
-    // Safety net for paths that loaded content without setting the baseline.
-    if (originalMarkdownRef.current === null) originalMarkdownRef.current = normalized;
-    const base = originalMarkdownRef.current;
-    editSessionBaseRef.current = normalized;
-    if (activeEditableDocument?.sourceSave?.enabled) {
-      editableDocuments.beginEdit(normalized);
-    }
-    setEditorDirty(false);
-    setEditorDiffersFromBaseline(
-      activeEditableDocument?.sourceSave?.enabled
-        ? normalized !== activeEditableDocument.diskBaseline
-        : base !== null && normalized !== base
-    );
-    setIsEditingMarkdown(true);
-  }, [activeEditableDocument, displayedMarkdown, editableDocuments, isEditingMarkdown, commitMarkdownEdits]);
-
-  // Live dirty tracking for the open editor session. String compare per
-  // keystroke is fine at plan sizes; setState bails out on unchanged values.
-  const handleEditorChange = useCallback((md: string) => {
-    setEditorDirty(md !== editSessionBaseRef.current);
-    if (activeEditableDocument?.sourceSave?.enabled) {
-      editableDocuments.updateActiveText(md);
-      setEditorDiffersFromBaseline(md !== activeEditableDocument.diskBaseline);
-    } else {
-      const base = originalMarkdownRef.current;
-      setEditorDiffersFromBaseline(base !== null && md !== base);
-    }
-    // Mid-edit keystrokes persist too — a crash loses at most the debounce
-    // window. The hook reads the live buffer via getDraftEditedMarkdown.
-    scheduleDraftSave();
-  }, [activeEditableDocument, editableDocuments, scheduleDraftSave]);
-
-  const unsavedEditableDocuments = useMemo(
-    () => editableDocuments.getUnsavedDocuments(),
-    [editableDocuments, editableDocuments.version],
-  );
-  const savedFileChanges = useMemo(
-    () => editableDocuments.getSavedFileChanges(),
-    [editableDocuments, editableDocuments.version],
-  );
-  const openSourceDocuments = useMemo(
-    () => editableDocuments.getSourceDocuments(),
-    [editableDocuments, editableDocuments.version],
-  );
-  const savedFileChangesForValidation = useMemo(() => {
-    const sourceByKey = new Map(openSourceDocuments.map((doc) => [doc.key, doc.sourceSave]));
-    return savedFileChanges
-      .map((change): SavedFileChangeDraftData | null => {
-        const sourceSave = sourceByKey.get(change.key);
-        return sourceSave ? { ...change, sourceSave } : null;
-      })
-      .filter((change): change is SavedFileChangeDraftData => change !== null);
-  }, [openSourceDocuments, savedFileChanges]);
-  const activeSourceSave = activeEditableDocument?.sourceSave?.enabled
-    ? activeEditableDocument.sourceSave
-    : null;
-
-  // Save-button display is driven by the editableDocuments state machine — one
-  // source of truth for dirty/saving/saved, rather than a parallel flag.
-  const activeSaveStatus = activeEditableDocument?.saveStatus;
-  const hasUnsavedDiskChanges =
-    activeSaveStatus === 'dirty' || activeSaveStatus === 'conflict' || activeSaveStatus === 'error' || activeSaveStatus === 'missing';
-  // Emphasize the Save control (dot + primary text) whenever there is work to
-  // persist or a save is in flight — one predicate drives both so they can't diverge.
-  const emphasizeSave = hasUnsavedDiskChanges || activeSaveStatus === 'saving';
-  // A rejected save (disk conflict or write error) — surfaced as a destructive
-  // dot/label so it reads as "save failed, retry" rather than ordinary unsaved.
-  const saveFailed = activeSaveStatus === 'conflict' || activeSaveStatus === 'error';
-  const activeSourceBufferDirty =
-    activeEditableDocument?.sourceSave?.enabled === true &&
-    activeEditableDocument.currentText !== activeEditableDocument.diskBaseline;
-  const canOverwriteDiskConflict =
-    activeEditableDocument?.sourceSave?.enabled === true &&
-    !!activeEditableDocument.diskConflict &&
-    activeEditableDocument.currentText !== activeEditableDocument.diskConflict.text;
-
-  // Editing exit control: a source-backed session with unsaved edits gets a
-  // two-step "Cancel" (discard + exit). Plan mode and clean source sessions keep
-  // the plain "Done" (commit edits + exit), so plan-mode keep behavior is unchanged.
-  const cancelMode = isEditingMarkdown && !!activeSourceSave && (
-    activeSourceBufferDirty ||
-    activeSaveStatus === 'conflict' ||
-    activeSaveStatus === 'error'
-  );
-  const handleEditExitClick = useCallback(() => {
-    if (!isEditingMarkdown) { handleEditToggle(); return; }      // enter edit mode
-    if (cancelMode) {                                            // discard flow (two-step)
-      if (confirmCancelEdits) { setConfirmCancelEdits(false); handleDiscardEdits(); }
-      else setConfirmCancelEdits(true);
-      return;
-    }
-    handleEditToggle();                                          // commit edits + exit
-  }, [isEditingMarkdown, cancelMode, confirmCancelEdits, handleEditToggle, handleDiscardEdits]);
-  // Drop the discard confirmation once it no longer applies — exited the editor,
-  // or the doc went clean (e.g. the user saved).
-  useEffect(() => {
-    if (!cancelMode && confirmCancelEdits) setConfirmCancelEdits(false);
-  }, [cancelMode, confirmCancelEdits]);
-  // Each file owns its edit state: switching the active file (folder mode keeps
-  // the editor open across files) starts the discard confirmation fresh, so an
-  // armed "Discard?" on one file can never drop another file's edits on first click.
-  useEffect(() => {
-    setConfirmCancelEdits(false);
-  }, [activeEditableDocument?.key]);
-
-  const hasUnsavedSourceFileBuffers = unsavedEditableDocuments.length > 0;
-
-  // True when the feedback payload carries unsaved direct edits. Source-backed
-  // file buffers are ordinary dirty editor state; they only become review
-  // context once saved to disk and tracked through savedFileChanges.
-  const hasDirectEdits =
-    !activeSourceSave &&
-    !hasUnsavedSourceFileBuffers &&
-    (isEditingMarkdown ? editorDiffersFromBaseline : editedMarkdownRef.current !== null);
-  const hasSavedFileChanges = savedFileChanges.length > 0;
-  const hasFeedbackContent = hasAnyAnnotations || hasDirectEdits || hasSavedFileChanges;
-  const feedbackLoss = feedbackLossDescription(feedbackAnnotationCount, hasDirectEdits);
-  const hasUnsentFeedback = feedbackAnnotationCount > 0 || hasDirectEdits;
-  const hasOnlySavedFileChanges = hasSavedFileChanges && !hasUnsentFeedback;
-  const savedFileChangesLabel = savedFileChanges.length === 1 ? 'saved file change' : 'saved file changes';
-  const savedFileChangesVerb = savedFileChanges.length === 1 ? 'is' : 'are';
-  const savedFileChangesPronoun = savedFileChanges.length === 1 ? 'it' : 'them';
-  const savedFileChangesOnDiskMessage = <>Your {savedFileChangesLabel} {savedFileChangesVerb} already on disk.</>;
-  const savedFileAwarenessOnlyMessage = <>{savedFileChangesOnDiskMessage} The agent won't be told about {savedFileChangesPronoun}.</>;
-  const savedFileAwarenessMixedMessage = hasSavedFileChanges
-    ? <> Your {savedFileChangesLabel} will stay on disk, but the agent won't be told about {savedFileChangesPronoun}.</>
-    : null;
-
-  // Pinned "Direct edits" card data for the annotation sidebar. Source-backed
-  // documents show saved-to-disk changes only; dirty buffers stay in the editor
-  // and file tree until the user explicitly saves.
-  const directEditsPanelInfo = useMemo(() => {
-    if (savedFileChanges.length > 0) {
-      return buildSavedFileChangePanelItems(savedFileChanges);
-    }
-
-    if (activeEditableDocument?.sourceSave?.enabled) return null;
-    if (!editStats) return null;
-    const base = originalMarkdownRef.current;
-    const edited = editedMarkdownRef.current;
-    if (base === null || edited === null) return null;
-    return [buildPlanEditPanelItem(base, edited)];
-  }, [activeEditableDocument, editStats, savedFileChanges]);
-
-  // "Direct Edits" feedback section: unified diff of user edits vs the
-  // as-submitted baseline. getEditedMarkdown owns the read discipline.
-  const buildEditsSection = useCallback((): string => {
-    if (activeSourceSave || hasUnsavedSourceFileBuffers) return '';
-    const base = originalMarkdownRef.current;
-    return buildDirectEditsSection(base, getEditedMarkdown(), sourceConverted);
-  }, [activeSourceSave, getEditedMarkdown, hasUnsavedSourceFileBuffers, sourceConverted]);
-
-  const buildSavedChangesSection = useCallback((changes = savedFileChanges): string => {
-    return buildSavedFileChangesSection(
-      changes.map((change) => ({
-        path: change.path,
-        basename: change.basename,
-        beforeText: change.beforeText,
-        afterText: change.afterText,
-      })),
-    );
-  }, [savedFileChanges]);
+  const hasFeedbackContent = hasAnyAnnotations;
+  const feedbackLoss = feedbackLossDescription(feedbackAnnotationCount);
+  const hasUnsentFeedback = feedbackAnnotationCount > 0;
 
   const getCurrentFeedbackPayload = useCallback((
-    checkedSavedFileChanges = savedFileChanges,
     options?: {
       /** Discard flow: every annotation source is dropped, so the builder
-       *  emits the legacy zero payload (plus any direct-edit sections). */
+       *  emits the legacy zero payload. */
       discardAnnotations?: boolean;
       /** Positive-finish framing for the non-gated discard (spec §3.1). */
       approvalFraming?: boolean;
@@ -1961,8 +1315,6 @@ const AppInner: React.FC = () => {
           : 'Plan Feedback',
       subject: annotateSource ?? 'plan',
       sourceConverted: activeConverted,
-      directEditsSection: buildEditsSection(),
-      savedFileChangesSection: buildSavedChangesSection(checkedSavedFileChanges),
       ...(messageMultiSelectMode && !discard
         ? { messageEntries: buildMessageAnnotationEntries() }
         : {}),
@@ -1972,16 +1324,13 @@ const AppInner: React.FC = () => {
     allAnnotations,
     annotateSource,
     blocks,
-    buildEditsSection,
     buildMessageAnnotationEntries,
-    buildSavedChangesSection,
     codeAnnotations,
     globalAttachments,
     linkedDocHook.filepath,
     linkedDocHook.getDocAnnotations,
     linkedDocHook.isActive,
     messageMultiSelectMode,
-    savedFileChanges,
     sourceConverted,
   ]);
 
@@ -1989,148 +1338,6 @@ const AppInner: React.FC = () => {
     const separator = path.includes('?') ? '&' : '?';
     return `${path}${separator}draftGeneration=${getDraftGeneration()}`;
   }, [getDraftGeneration]);
-
-  const validateSavedFileChangesBeforeSubmit = useCallback(async (): Promise<SavedFileChangeDraftData[] | null> => {
-    if (savedFileChangesForValidation.length === 0) return [];
-    const result = await validateSavedFileChanges(savedFileChangesForValidation, resolveSavedFileChangeSource);
-    const stale = result.dropped.filter((entry) => entry.reason === 'changed' || entry.reason === 'missing');
-
-    if (stale.length > 0) {
-      editableDocuments.clearSavedFileChanges(stale.map((entry) => entry.change.key));
-      scheduleDraftSave();
-      toast.error('Saved edits changed on disk', {
-        description: 'Hypermark removed the stale edit context. Nothing was sent.',
-      });
-      return null;
-    }
-
-    if (result.unverified.length > 0) {
-      toast.error('Saved edits could not be verified', {
-        description: 'Check the file tree and try sending feedback again.',
-      });
-      return null;
-    }
-
-    return result.valid;
-  }, [editableDocuments, resolveSavedFileChangeSource, savedFileChangesForValidation, scheduleDraftSave]);
-
-  const sourceReconcileSeqRef = useRef<Map<string, number>>(new Map());
-
-  const reconcileOpenSourceDocuments = useCallback(async (changedDir?: string) => {
-    const activeKey = editableDocuments.getActiveKey();
-    if (isEditingMarkdownRef.current && activeKey) {
-      const live = markdownEditorHandleRef.current?.getMarkdown();
-      if (live != null) editableDocuments.updateActiveText(live, { forceNotify: true });
-    }
-
-    const handleReconcileEvent = (event: SourceDocumentReconcileEvent) => {
-      if (event.type === 'file-missing') {
-        const { result } = event;
-        if (!result.alreadyMissing && result.record.key === editableDocuments.getActiveKey()) {
-          setEditorDiffersFromBaseline(result.record.currentText !== result.record.diskBaseline);
-          if (isEditingMarkdownRef.current) {
-            setEditorDirty(result.record.currentText !== editSessionBaseRef.current);
-            setEditStats(
-              result.record.currentText !== result.record.diskBaseline
-                ? computeEditStats(result.record.diskBaseline, result.record.currentText)
-                : null,
-            );
-          }
-          toast('File no longer exists on disk', {
-            description: `Save ${result.record.basename} to recreate it.`,
-            duration: 5000,
-          });
-        }
-        return;
-      }
-
-      if (event.type === 'clean-updated') {
-        const { result } = event;
-        if (result.record.key === editableDocuments.getActiveKey()) {
-          const remapped = applyEditedDocument(result.record.currentText);
-          repaintHighlights(remapped);
-          editSessionBaseRef.current = result.record.currentText;
-          setEditorDirty(false);
-          setEditorDiffersFromBaseline(false);
-          setEditStats(null);
-        }
-        if (result.clearedSavedChange) {
-          toast('File updated from disk', {
-            description: `${result.record.basename} changed outside Hypermark, so its old Edits card was cleared.`,
-          });
-        }
-      } else if (event.type === 'conflict') {
-        const { result } = event;
-        if (result.record.key === editableDocuments.getActiveKey()) {
-          setEditorDirty(true);
-          setEditorDiffersFromBaseline(true);
-          setEditStats(computeEditStats(result.record.diskBaseline, result.record.currentText));
-          toast.error('File changed on disk', {
-            description: 'Choose whether to overwrite disk or reload the file.',
-          });
-        }
-      }
-    };
-
-    const changed = await reconcileSourceDocuments({
-      changedDir,
-      documents: editableDocuments.getSourceDocuments(),
-      sequenceByKey: sourceReconcileSeqRef.current,
-      getDocument: editableDocuments.getDocument,
-      fetchSnapshot: fetchSourceDocumentSnapshot,
-      markFileMissing: editableDocuments.markFileMissing,
-      reconcileDiskSnapshot: editableDocuments.reconcileDiskSnapshot,
-      onEvent: handleReconcileEvent,
-    });
-    if (changed) scheduleDraftSave();
-  }, [applyEditedDocument, editableDocuments, repaintHighlights, scheduleDraftSave]);
-  const reconcileOpenSourceDocumentsRef = useRef(reconcileOpenSourceDocuments);
-  useEffect(() => {
-    reconcileOpenSourceDocumentsRef.current = reconcileOpenSourceDocuments;
-  }, [reconcileOpenSourceDocuments]);
-
-  const sourceWatchSubscription = useMemo(
-    () => buildSourceWatchSubscription(openSourceDocuments.map((doc) => doc.sourceSave.path)),
-    [openSourceDocuments],
-  );
-
-  useEffect(() => {
-    if (!sourceWatchSubscription.key || typeof EventSource === 'undefined') return;
-
-    const dirs = sourceWatchSubscription.dirs;
-    const timers = new Map<string, ReturnType<typeof setTimeout>>();
-    const source = new EventSource(`/api/reference/files/stream?${sourceWatchSubscription.query}`);
-
-    const schedule = (dir?: string) => {
-      const key = dir ?? '*';
-      const existing = timers.get(key);
-      if (existing) clearTimeout(existing);
-      timers.set(key, setTimeout(() => {
-        timers.delete(key);
-        void reconcileOpenSourceDocumentsRef.current(dir);
-      }, 120));
-    };
-
-    source.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data) as { type?: string; dirPath?: string };
-        const dir = typeof data.dirPath === 'string' && dirs.includes(data.dirPath) ? data.dirPath : undefined;
-        if (data.type === 'ready') {
-          schedule(dir);
-          return;
-        }
-        if (data.type !== 'changed') return;
-        schedule(dir);
-      } catch {
-        return;
-      }
-    };
-
-    return () => {
-      for (const timer of timers.values()) clearTimeout(timer);
-      source.close();
-    };
-  }, [sourceWatchSubscription.key]);
 
   const handleEditorModeChange = (mode: EditorMode) => {
     setEditorMode(mode);
@@ -2170,10 +1377,9 @@ const AppInner: React.FC = () => {
   // so there is no input method or annotation mode left to switch.
   const toolstripVisible = useMemo(
     () =>
-      !isPlanDiffActive && !isEditingMarkdown && !isHtmlSurface,
+      !isPlanDiffActive && !isHtmlSurface,
     [
       isHtmlSurface,
-      isEditingMarkdown,
       isPlanDiffActive,
     ],
   );
@@ -2210,7 +1416,7 @@ const AppInner: React.FC = () => {
         if (!res.ok) throw new Error('Not in API mode');
         return res.json();
       })
-      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last'; filePath?: string; sourceInfo?: string; sourceConverted?: boolean; sourceSave?: SourceSaveCapability; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; renderAs?: 'html' | 'markdown'; rawHtml?: string; shareHtml?: string; diffHtml?: string; convertHtml?: boolean; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; projectRoot?: string; markdownExtensions?: string[]; serverConfig?: { displayName?: string; gitUser?: string }; recentMessages?: PickerMessage[]; feedbackTemplates?: AnnotateFeedbackTemplates }) => {
+      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last'; filePath?: string; sourceInfo?: string; sourceConverted?: boolean; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; renderAs?: 'html' | 'markdown'; rawHtml?: string; shareHtml?: string; diffHtml?: string; convertHtml?: boolean; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; projectRoot?: string; markdownExtensions?: string[]; serverConfig?: { displayName?: string; gitUser?: string }; recentMessages?: PickerMessage[]; feedbackTemplates?: AnnotateFeedbackTemplates }) => {
         // Initialize config store with server-provided values (config file > cookie > default)
         configStore.init(data.serverConfig);
         // Extra extensions the user registered as markdown (#1307) — the
@@ -2227,15 +1433,8 @@ const AppInner: React.FC = () => {
           setHtmlDiffHtml(data.diffHtml ?? null);
           setMarkdown('');
         } else if (typeof data.plan === 'string') {
-          // CM6 joins lines with \n; CRLF input would make an untouched
-          // edit round-trip fabricate a whole-document diff. Normalize once.
           const normalizedPlan = data.plan.replace(/\r\n?/g, '\n');
           setMarkdown(normalizedPlan);
-          originalMarkdownRef.current = normalizedPlan;
-          if (data.mode === 'annotate' && data.sourceSave?.enabled) {
-            const key = editableDocumentKey(data.sourceSave, `file:${data.sourceSave.path}`);
-            editableDocuments.openDocument({ key, text: normalizedPlan, sourceSave: data.sourceSave });
-          }
         }
         setIsApiMode(true);
         if (data.mode === 'annotate' || data.mode === 'annotate-last') {
@@ -2288,8 +1487,6 @@ const AppInner: React.FC = () => {
       .catch(() => {
         // Not in API mode - use default content
         setIsApiMode(false);
-        // Demo mode still exercises edit mode; baseline is the demo plan.
-        originalMarkdownRef.current = DEMO_PLAN_CONTENT;
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -2366,10 +1563,7 @@ const AppInner: React.FC = () => {
   }, [annotateMode, annotateSource, feedbackTemplates, getAnnotateFeedbackTarget]);
 
   const currentFeedbackPayload = useMemo(() => getCurrentFeedbackPayload(), [
-    editableDocuments.version,
-    editorDiffersFromBaseline,
     getCurrentFeedbackPayload,
-    savedFileChanges,
   ]);
   const hasFeedbackToSend = hasFeedbackContent;
 
@@ -2377,12 +1571,6 @@ const AppInner: React.FC = () => {
   const handleApprove = async () => {
     setIsSubmitting(true);
     try {
-      // Integrations must describe the same document the feedback diff does —
-      // mid-edit submits read the live editor buffer, not stale markdown state.
-      const currentMarkdown = isEditingMarkdown
-        ? markdownEditorHandleRef.current?.getMarkdown() ?? displayedMarkdown
-        : displayedMarkdown;
-      // Build request body - include integrations if enabled
       const body: { draftGeneration: number; feedback?: string; permissionMode?: string } = {
         draftGeneration: getDraftGeneration(),
       };
@@ -2392,21 +1580,11 @@ const AppInner: React.FC = () => {
         body.permissionMode = PLAN_APPROVAL_PERMISSION_MODE;
       }
 
-      // Annotations and direct edits ride the approval as feedback.
-      // Direct edits count as feedback too — without the editsSection check here,
-      // an edit-only approval would silently drop the user's changes.
       const hasDocAnnotations = Array.from(linkedDocHook.getDocAnnotations().values()).some(
         (d) => d.annotations.length > 0 || d.globalAttachments.length > 0
       );
-      const checkedSavedFileChanges = await validateSavedFileChangesBeforeSubmit();
-      if (checkedSavedFileChanges === null) {
-        setIsSubmitting(false);
-        return;
-      }
-      const editsSection = buildEditsSection();
-      const savedChangesSection = buildSavedChangesSection(checkedSavedFileChanges);
-      if (allAnnotations.length > 0 || codeAnnotations.length > 0 || globalAttachments.length > 0 || hasDocAnnotations || editsSection || savedChangesSection) {
-        body.feedback = getCurrentFeedbackPayload(checkedSavedFileChanges);
+      if (allAnnotations.length > 0 || codeAnnotations.length > 0 || globalAttachments.length > 0 || hasDocAnnotations) {
+        body.feedback = getCurrentFeedbackPayload();
       }
 
       await fetch('/api/approve', {
@@ -2423,17 +1601,12 @@ const AppInner: React.FC = () => {
   const handleDeny = async () => {
     setIsSubmitting(true);
     try {
-      const checkedSavedFileChanges = await validateSavedFileChangesBeforeSubmit();
-      if (checkedSavedFileChanges === null) {
-        setIsSubmitting(false);
-        return;
-      }
       await fetch('/api/deny', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           draftGeneration: getDraftGeneration(),
-          feedback: getCurrentFeedbackPayload(checkedSavedFileChanges),
+          feedback: getCurrentFeedbackPayload(),
         })
       });
       setSubmitted('denied');
@@ -2472,14 +1645,8 @@ const AppInner: React.FC = () => {
   }): Promise<boolean> => {
     setIsSubmitting(true);
     try {
-      snapshotActiveEditableDocument();
-      const checkedSavedFileChanges = await validateSavedFileChangesBeforeSubmit();
-      if (checkedSavedFileChanges === null) {
-        setIsSubmitting(false);
-        return false;
-      }
       const discard = options?.discardAnnotations === true;
-      const feedback = getCurrentFeedbackPayload(checkedSavedFileChanges, options);
+      const feedback = getCurrentFeedbackPayload(options);
 
       const res = await fetch('/api/feedback', {
         method: 'POST',
@@ -2512,15 +1679,9 @@ const AppInner: React.FC = () => {
   }): Promise<boolean> => {
     setIsSubmitting(true);
     try {
-      snapshotActiveEditableDocument();
-      const checkedSavedFileChanges = await validateSavedFileChangesBeforeSubmit();
-      if (checkedSavedFileChanges === null) {
-        setIsSubmitting(false);
-        return false;
-      }
       const discard = options?.discardAnnotations === true;
       const feedback = !discard && hasFeedbackToSend
-        ? getCurrentFeedbackPayload(checkedSavedFileChanges)
+        ? getCurrentFeedbackPayload()
         : '';
       const res = await fetch('/api/approve', {
         method: 'POST',
@@ -2545,7 +1706,6 @@ const AppInner: React.FC = () => {
     }
   };
 
-
   // Exit annotation session without sending feedback
   const handleAnnotateExit = useCallback(async () => {
     setIsExiting(true);
@@ -2561,37 +1721,6 @@ const AppInner: React.FC = () => {
     }
   }, [withDraftGeneration]);
 
-
-  const confirmUnsavedSourceFileEdits = useCallback((
-    action: SourceFileEditWarningAction,
-    continueAction: () => void | Promise<void>,
-  ) => {
-    sourceFileEditWarningContinuationRef.current = continueAction;
-    setSourceFileEditWarningAction(action);
-    setShowSourceFileEditWarning(true);
-  }, []);
-
-  const maybeConfirmUnsavedSourceFileEdits = useCallback((
-    action: SourceFileEditWarningAction,
-    continueAction: () => void | Promise<void>,
-  ): boolean => {
-    if (!hasUnsavedSourceFileBuffers) return false;
-    confirmUnsavedSourceFileEdits(action, continueAction);
-    return true;
-  }, [confirmUnsavedSourceFileEdits, hasUnsavedSourceFileBuffers]);
-
-  const closeSourceFileEditWarning = useCallback(() => {
-    sourceFileEditWarningContinuationRef.current = null;
-    setShowSourceFileEditWarning(false);
-  }, []);
-
-  const confirmSourceFileEditWarning = useCallback(() => {
-    const continuation = sourceFileEditWarningContinuationRef.current;
-    sourceFileEditWarningContinuationRef.current = null;
-    setShowSourceFileEditWarning(false);
-    void continuation?.();
-  }, []);
-
   // Global keyboard shortcuts (Cmd/Ctrl+Enter to submit)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -2606,19 +1735,13 @@ const AppInner: React.FC = () => {
       if (document.querySelector('[data-hypermark-confirm-dialog="true"]')) return;
 
       // Don't intercept if any modal is open
-      if (showFeedbackPrompt || showClaudeCodeWarning ||
-          showSourceFileEditWarning ||
-          showExitWarning) return;
+      if (showFeedbackPrompt || showClaudeCodeWarning) return;
 
       // Don't intercept if already submitted, submitting, or exiting
       if (submitted || isSubmitting || isExiting) return;
 
       // Don't intercept in demo/share mode (no API)
       if (!isApiMode) return;
-
-      // While the markdown editor is open, submit shortcuts belong to editing,
-      // not the review session.
-      if (isEditingMarkdown) return;
 
       // Linked docs are side references and should not submit the root plan.
       if (linkedDocHook.isActive) return;
@@ -2637,15 +1760,8 @@ const AppInner: React.FC = () => {
 
       // No feedback → Approve, otherwise → Send Feedback
       if (!hasFeedbackToSend) {
-        const approve = () => {
-          handleApprove();
-        };
-        if (maybeConfirmUnsavedSourceFileEdits('approve', approve)) return;
-        approve();
+        handleApprove();
       } else {
-        // Direct edits route through deny too: on Claude Code, deny is the only
-        // channel whose output carries feedback to the agent.
-        if (maybeConfirmUnsavedSourceFileEdits('send-feedback', () => handleDeny())) return;
         handleDeny();
       }
     };
@@ -2653,11 +1769,10 @@ const AppInner: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-    showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning,
-    submitted, isSubmitting, isExiting, isApiMode, isEditingMarkdown, linkedDocHook.isActive, annotations.length, codeAnnotations.length, annotateMode,
+    showFeedbackPrompt, showClaudeCodeWarning,
+    submitted, isSubmitting, isExiting, isApiMode, linkedDocHook.isActive, annotations.length, codeAnnotations.length, annotateMode,
     hasFeedbackToSend,
     annotateSource, origin,
-    maybeConfirmUnsavedSourceFileEdits,
   ]);
 
   const handleAddAnnotation = (ann: Annotation) => {
@@ -2895,216 +2010,6 @@ const AppInner: React.FC = () => {
     // This is just a placeholder for future custom logic
   };
 
-  const handleSaveEditedSourceFile = useCallback(async (options?: { overwriteDiskConflict?: boolean }): Promise<boolean> => {
-    const activeDocument = editableDocuments.getActiveDocumentLive();
-    const activeSourceSave = activeDocument?.sourceSave;
-    if (!activeDocument || !activeSourceSave?.enabled) {
-      toast.error('This document cannot be saved to a file');
-      return true;
-    }
-
-    const edited = isEditingMarkdown
-      ? markdownEditorHandleRef.current?.getMarkdown()
-      : activeDocument.currentText;
-    if (edited == null) {
-      toast.error('Editor is not ready');
-      return true;
-    }
-
-    if (activeDocument.diskConflict && !options?.overwriteDiskConflict) {
-      toast.error('Resolve the disk conflict first', {
-        description: 'Choose Overwrite disk or Reload from disk.',
-      });
-      return true;
-    }
-
-    const saveBaseSource = options?.overwriteDiskConflict && activeDocument.diskConflict
-      ? activeDocument.diskConflict.sourceSave
-      : activeSourceSave;
-    const savedChangeBaseText = options?.overwriteDiskConflict
-      ? activeDocument.diskConflict?.text
-      : undefined;
-    const savedChangeBaseHash = options?.overwriteDiskConflict
-      ? activeDocument.diskConflict?.sourceSave.hash
-      : undefined;
-
-    editableDocuments.updateActiveText(edited);
-    editableDocuments.markSaving(activeDocument.key);
-    try {
-      const res = await fetch('/api/source/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          path: saveBaseSource.scope === 'folder-file' ? saveBaseSource.path : undefined,
-          text: edited,
-          baseHash: saveBaseSource.hash,
-          baseMtimeMs: saveBaseSource.mtimeMs,
-          baseEol: saveBaseSource.eol,
-          allowMissingBase: true,
-        }),
-      });
-      const data = (await res.json()) as SourceSaveResponse;
-
-      if (!res.ok || !data.ok) {
-        if (data.ok === false) {
-          const message = data.message;
-          if (data.code === 'conflict') {
-            const hasConflictSnapshot = hasSourceSaveConflictSnapshot(data);
-            if (hasConflictSnapshot) {
-              const conflictSourceSave: EnabledSourceSaveCapability = {
-                ...saveBaseSource,
-                hash: data.currentHash,
-                mtimeMs: data.currentMtimeMs,
-                size: data.currentSize,
-                eol: data.currentEol,
-              };
-              const result = editableDocuments.reconcileDiskSnapshot({
-                key: activeDocument.key,
-                text: data.currentText,
-                sourceSave: conflictSourceSave,
-              });
-              if (result.type === 'conflict' && editableDocuments.getActiveKey() === activeDocument.key) {
-                setEditorDirty(true);
-                setEditorDiffersFromBaseline(true);
-                setEditStats(computeEditStats(result.record.diskBaseline, result.record.currentText));
-                scheduleDraftSave();
-                toast.error('File changed on disk', {
-                  description: 'Choose whether to overwrite disk or reload the file.',
-                });
-              } else if (result.type === 'conflict') {
-                scheduleDraftSave();
-                toast.error('File changed on disk', {
-                  description: 'Choose whether to overwrite disk or reload the file.',
-                });
-              } else if (result.type === 'clean-updated') {
-                if (editableDocuments.getActiveKey() === activeDocument.key) {
-                  const remapped = applyEditedDocument(result.record.currentText);
-                  repaintHighlights(remapped);
-                  editSessionBaseRef.current = result.record.currentText;
-                  setEditorDirty(false);
-                  setEditorDiffersFromBaseline(false);
-                  setEditStats(null);
-                }
-                scheduleDraftSave();
-                toast('File updated from disk', {
-                  description: `${result.record.basename} changed outside Hypermark, so it was reloaded instead of saved.`,
-                });
-              } else if (!editableDocuments.getDocument(activeDocument.key)?.diskConflict) {
-                editableDocuments.markError(activeDocument.key, message);
-                toast.error('File changed on disk', {
-                  description: 'Hypermark could not load the latest disk version. Try saving again.',
-                });
-              }
-            } else {
-              editableDocuments.markError(activeDocument.key, message);
-              toast.error('File changed on disk', {
-                description: 'Hypermark could not load the latest disk version. Try saving again.',
-              });
-            }
-          } else {
-            editableDocuments.markError(activeDocument.key, message);
-            toast.error(message);
-          }
-        } else {
-          const message = 'Save failed';
-          editableDocuments.markError(activeDocument.key, message);
-          toast.error(message);
-        }
-        return true;
-      }
-
-      const nextSourceSave = {
-        ...saveBaseSource,
-        hash: data.hash,
-        mtimeMs: data.mtimeMs,
-        size: data.size,
-        eol: data.eol,
-      };
-      editableDocuments.markSaved({
-        key: activeDocument.key,
-        text: edited,
-        sourceSave: nextSourceSave,
-        savedChangeBaseText,
-        savedChangeBaseHash,
-      });
-      const normalizedEdited = edited.replace(/\r\n?/g, '\n');
-      const savedChangedFromOpen = normalizedEdited !== activeDocument.sessionOpenText;
-      editedMarkdownRef.current = null;
-      if (editableDocuments.getActiveKey() === activeDocument.key) {
-        const live = isEditingMarkdown ? markdownEditorHandleRef.current?.getMarkdown() : null;
-        const normalizedLive = live?.replace(/\r\n?/g, '\n');
-        editSessionBaseRef.current = normalizedEdited;
-        const currentText = normalizedLive ?? editableDocuments.getDocument(activeDocument.key)?.currentText ?? normalizedEdited;
-        if (currentText === normalizedEdited) {
-          setEditorDirty(false);
-          setEditorDiffersFromBaseline(false);
-          setEditStats(null);
-        } else {
-          editableDocuments.updateActiveText(currentText, { forceNotify: true });
-          setEditorDirty(true);
-          setEditorDiffersFromBaseline(true);
-          setEditStats(computeEditStats(normalizedEdited, currentText));
-        }
-      }
-      if (savedChangedFromOpen && window.innerWidth >= 768) {
-        setIsPanelOpen(true);
-      }
-      scheduleDraftSave();
-      toast.success(`Saved ${activeSourceSave.basename}`);
-      return true;
-    } catch {
-      editableDocuments.markError(activeDocument.key, 'Save failed');
-      toast.error('Save failed');
-      return true;
-    }
-  }, [applyEditedDocument, editableDocuments, isEditingMarkdown, repaintHighlights, scheduleDraftSave]);
-
-  const handleOverwriteDiskConflict = useCallback(() => {
-    void handleSaveEditedSourceFile({ overwriteDiskConflict: true });
-  }, [handleSaveEditedSourceFile]);
-
-  const handleReloadDiskConflict = useCallback(() => {
-    const activeDocument = editableDocuments.getActiveDocumentLive();
-    if (!activeDocument?.diskConflict) return;
-    const reloaded = editableDocuments.reloadDiskConflict(activeDocument.key);
-    if (!reloaded) return;
-    const remapped = applyEditedDocument(reloaded.currentText);
-    repaintHighlights(remapped);
-    editSessionBaseRef.current = reloaded.currentText;
-    setEditorDirty(false);
-    setEditorDiffersFromBaseline(false);
-    setEditStats(null);
-    scheduleDraftSave();
-    toast.success(`Reloaded ${reloaded.basename} from disk`);
-  }, [applyEditedDocument, editableDocuments, repaintHighlights, scheduleDraftSave]);
-
-  // Cmd/Ctrl+S keyboard shortcut — saves the active source file while editing.
-  useEffect(() => {
-    const handleSaveShortcut = (e: KeyboardEvent) => {
-      if (e.key !== 's' || !(e.metaKey || e.ctrlKey)) return;
-
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-
-      if (showFeedbackPrompt || showClaudeCodeWarning ||
-          showSourceFileEditWarning ||
-          showExitWarning) return;
-
-      if (submitted || !isApiMode) return;
-
-      if (isEditingMarkdown && editableDocuments.getActiveDocumentLive()?.sourceSave?.enabled) {
-        e.preventDefault();
-        void handleSaveEditedSourceFile();
-      }
-    };
-
-    window.addEventListener('keydown', handleSaveShortcut);
-    return () => window.removeEventListener('keydown', handleSaveShortcut);
-  }, [
-    showFeedbackPrompt, showClaudeCodeWarning, showSourceFileEditWarning, showExitWarning,
-    submitted, isApiMode, isEditingMarkdown, handleSaveEditedSourceFile, displayedMarkdown, annotationsOutput,
-  ]);
-
   const agentName = useMemo(() => getAgentName(origin), [origin]);
 
   // Header handlers ref — stores latest handler references so the stable
@@ -3128,32 +2033,20 @@ const AppInner: React.FC = () => {
   };
 
   const handleHeaderFeedback = useCallback(() => {
-    const sendFeedback = () => {
-      const h = headerHandlersRef.current;
-      // Direct edits count as feedback — deny is the only Claude Code channel
-      // whose output carries feedback to the agent.
-      if (!hasFeedbackToSend) {
-        setShowFeedbackPrompt(true);
-      } else {
-        h.handleDeny();
-      }
-    };
-    if (maybeConfirmUnsavedSourceFileEdits('send-feedback', sendFeedback)) return;
-    sendFeedback();
-  }, [hasFeedbackToSend, maybeConfirmUnsavedSourceFileEdits]);
+    if (!hasFeedbackToSend) {
+      setShowFeedbackPrompt(true);
+    } else {
+      headerHandlersRef.current.handleDeny();
+    }
+  }, [hasFeedbackToSend]);
 
   const handleHeaderApprove = useCallback(() => {
-    const approve = () => {
-      const h = headerHandlersRef.current;
-      if (origin === 'claude-code' && hasFeedbackToSend) {
-        setShowClaudeCodeWarning(true);
-        return;
-      }
-      h.handleApprove();
-    };
-    if (maybeConfirmUnsavedSourceFileEdits('approve', approve)) return;
-    approve();
-  }, [hasFeedbackToSend, maybeConfirmUnsavedSourceFileEdits, origin]);
+    if (origin === 'claude-code' && hasFeedbackToSend) {
+      setShowClaudeCodeWarning(true);
+      return;
+    }
+    headerHandlersRef.current.handleApprove();
+  }, [hasFeedbackToSend, origin]);
 
   // --- The unified annotate decision control (spec §3.1/§4) ----------------
   // One primary, one callback: the header's left segment, the global
@@ -3184,9 +2077,8 @@ const AppInner: React.FC = () => {
         pendingDispatchInFlightRef.current = false;
       }
     };
-    if (maybeConfirmUnsavedSourceFileEdits(route === 'approve' ? 'approve' : 'send-feedback', run)) return;
     void run();
-  }, [maybeConfirmUnsavedSourceFileEdits]);
+  }, []);
 
   const submitPrimaryDecision = useCallback(() => {
     if (isSubmitting || isExiting) return; // double-submit guard while in flight
@@ -3200,21 +2092,16 @@ const AppInner: React.FC = () => {
       return;
     }
     if (gate && !hasFeedbackToSend) {
-      const approve = () => { void headerHandlersRef.current.handleAnnotateApprove(); };
-      if (maybeConfirmUnsavedSourceFileEdits('approve', approve)) return;
-      approve();
+      void headerHandlersRef.current.handleAnnotateApprove();
       return;
     }
-    const sendFeedback = () => { void headerHandlersRef.current.handleAnnotateFeedback(); };
-    if (maybeConfirmUnsavedSourceFileEdits('send-feedback', sendFeedback)) return;
-    sendFeedback();
+    void headerHandlersRef.current.handleAnnotateFeedback();
   }, [
     dispatchPendingDecision,
     gate,
     hasFeedbackToSend,
     isExiting,
     isSubmitting,
-    maybeConfirmUnsavedSourceFileEdits,
     pendingDecisionSubmit,
   ]);
   submitPrimaryDecisionRef.current = submitPrimaryDecision;
@@ -3235,7 +2122,7 @@ const AppInner: React.FC = () => {
       type: AnnotationType.GLOBAL_COMMENT,
       text: trimmed,
       originalText: '',
-      createdA: Date.now(),
+      createdAt: Date.now(),
       author: getIdentity(),
     };
     annotationsRef.current = [...annotationsRef.current, note];
@@ -3284,32 +2171,16 @@ const AppInner: React.FC = () => {
         queueNoteDecision(note, action.route, action.approvalFraming);
         return;
       case 'approve-with-notes': {
-        const approve = () => { void headerHandlersRef.current.handleAnnotateApprove(); };
-        if (maybeConfirmUnsavedSourceFileEdits('approve', approve)) return;
-        approve();
+        void headerHandlersRef.current.handleAnnotateApprove();
         return;
       }
       case 'close': {
-        // Same in-flight guard as the primary path: a confirm left open across
-        // an in-flight decision POST must not produce a second one.
         if (submitted || isSubmitting || isExiting) return;
-        // The spec's own confirm already ran when annotations would be lost.
-        // Direct edits and saved-file changes are feedback the spec cannot
-        // count, so that case still routes through the richer exit warning —
-        // and the two never both fire, because the spec confirms only at
-        // count > 0.
-        const close = () => {
-          if (feedbackAnnotationCount === 0 && hasFeedbackToSend) {
-            setShowExitWarning(true);
-            return;
-          }
-          void headerHandlersRef.current.handleAnnotateExit();
-        };
-        if (maybeConfirmUnsavedSourceFileEdits('close', close)) return;
-        close();
+        void headerHandlersRef.current.handleAnnotateExit();
+        return;
       }
     }
-  }, [feedbackAnnotationCount, gate, hasFeedbackToSend, isExiting, isSubmitting, maybeConfirmUnsavedSourceFileEdits, queueNoteDecision, submitPrimaryDecision, submitted]);
+  }, [gate, isExiting, isSubmitting, queueNoteDecision, submitPrimaryDecision, submitted]);
 
   const annotateDecisionSpec = useMemo(() => buildDecisionSpec({
     app: 'annotate',
@@ -3422,10 +2293,6 @@ const AppInner: React.FC = () => {
         return copyTextToClipboard(wrapCopiedFeedback(output));
       }}
       otherFileAnnotations={otherFileAnnotations}
-      directEdits={directEditsPanelInfo?.map((item) => ({
-        ...item,
-        onDiscard: item.id === 'plan' ? () => handleDiscardEdits() : undefined,
-      })) ?? null}
     />
   );
 
@@ -3495,45 +2362,6 @@ const AppInner: React.FC = () => {
           </div>
         )}
 
-        {activeEditableDocument?.diskConflict && (
-          <div className="bg-warning/10 border-b border-warning/25 px-4 py-2 flex items-center gap-3 shrink-0">
-            <span className="min-w-0 flex-1 text-xs text-foreground">
-              {activeEditableDocument.basename} changed on disk{isEditingMarkdown ? ' while you were editing' : ''}.
-            </span>
-            {canOverwriteDiskConflict && (
-              <button
-                type="button"
-                onClick={handleOverwriteDiskConflict}
-                className="text-xs font-medium text-primary hover:text-primary/80"
-              >
-                Overwrite disk
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleReloadDiskConflict}
-              className="text-xs font-medium text-muted-foreground hover:text-foreground"
-            >
-              Reload from disk
-            </button>
-          </div>
-        )}
-
-        {activeEditableDocument?.missingOnDisk && !activeEditableDocument.diskConflict && (
-          <div className="bg-warning/10 border-b border-warning/25 px-4 py-2 flex items-center gap-3 shrink-0">
-            <span className="min-w-0 flex-1 text-xs text-foreground">
-              {activeEditableDocument.basename} no longer exists on disk. Save to recreate it.
-            </span>
-            <button
-              type="button"
-              onClick={() => { void handleSaveEditedSourceFile(); }}
-              disabled={activeSaveStatus === 'saving'}
-              className="text-xs font-medium text-primary hover:text-primary/80 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Save
-            </button>
-          </div>
-        )}
         {/* Main Content */}
         <div className={`flex-1 flex overflow-hidden relative z-0 ${isResizing ? 'select-none' : ''}`}>
           {/* Left Sidebar: collapsed tab flags (when sidebar is closed) */}
@@ -3573,7 +2401,7 @@ const AppInner: React.FC = () => {
                   sticky actions are disabled. remountToken re-anchors the
                   ResizeObserver when Viewer swaps content (linked docs or
                   message switches). */}
-              {!isPlanDiffActive && !isHtmlSurface && !isEditingMarkdown && uiPrefs.stickyActionsEnabled && (
+              {!isPlanDiffActive && !isHtmlSurface && uiPrefs.stickyActionsEnabled && (
                 <StickyHeaderLane
                   inputMethod={inputMethod}
                   onInputMethodChange={handleInputMethodChange}
@@ -3632,14 +2460,14 @@ const AppInner: React.FC = () => {
                 </div>
               )}
               {/* Normal Plan View — always mounted, hidden during diff mode */}
-              <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : `flex justify-center${isEditingMarkdown ? 'flex-1 min-h-0' : ''}`}`} style={{ display: isPlanDiffActive && planDiff.diffBlocks ? 'none' : undefined }}>
-                {(canUseWideMode || canEditMarkdown) && !isPlanDiffActive && !isHtmlSurface && (
+              <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : 'flex justify-center'}`} style={{ display: isPlanDiffActive && planDiff.diffBlocks ? 'none' : undefined }}>
+                {canUseWideMode && !isPlanDiffActive && !isHtmlSurface && (
                   <div
                     className="absolute -top-5 inset-x-0 mx-auto w-full flex justify-end pointer-events-none"
                     style={annotateReaderMaxWidth === null ? undefined : { maxWidth: annotateReaderMaxWidth ?? 832 }}
                   >
-                    <div className={`pointer-events-auto flex items-center gap-1.5 text-2xs tracking-wide mr-1`}>
-                      {canUseWideMode && (['wide', 'focus'] as const).map((type, i) => (
+                    <div className="pointer-events-auto flex items-center gap-1.5 text-2xs tracking-wide mr-1">
+                      {(['wide', 'focus'] as const).map((type, i) => (
                         <React.Fragment key={type}>
                           {i > 0 && <span aria-hidden className="text-muted-foreground/30 select-none">|</span>}
                           <Tooltip
@@ -3662,87 +2490,6 @@ const AppInner: React.FC = () => {
                           </Tooltip>
                         </React.Fragment>
                       ))}
-                      {canEditMarkdown && (
-                        <>
-                          {canUseWideMode && <span aria-hidden className="text-muted-foreground/30 select-none">|</span>}
-                          {isEditingMarkdown && activeSourceSave && (
-                            <>
-                              <Tooltip
-                                side="top"
-                                align="end"
-                                content={`Save changes to ${activeSourceSave.basename}`}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => { void handleSaveEditedSourceFile(); }}
-                                  disabled={activeSaveStatus === 'saving'}
-                                  className={`flex items-center gap-1 cursor-pointer rounded-sm transition-colors duration-150 outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:opacity-80 disabled:cursor-not-allowed disabled:opacity-50 ${
-                                    saveFailed
-                                      ? 'text-destructive'
-                                      : emphasizeSave
-                                        ? 'text-primary'
-                                        : 'text-muted-foreground/50 hover:text-muted-foreground'
-                                  }`}
-                                >
-                                  {/* Invisible widest label reserves the width so Save/Saving/Saved
-                                      swap without nudging neighbors (font-agnostic, no fixed px). */}
-                                  <span className="grid justify-items-start">
-                                    <span aria-hidden className="invisible col-start-1 row-start-1">Saving</span>
-                                    <span className="col-start-1 row-start-1">
-                                      {activeSaveStatus === 'saving'
-                                        ? 'Saving'
-                                        : hasUnsavedDiskChanges
-                                          ? 'Save'
-                                          : 'Saved'}
-                                    </span>
-                                  </span>
-                                  {/* Dot slot is always present — only its color changes — so the
-                                      button never reflows when edits appear/clear. */}
-                                  <span
-                                    aria-hidden
-                                    className={`size-1.5 shrink-0 rounded-full transition-colors duration-150 ${
-                                      saveFailed ? 'bg-destructive' : emphasizeSave ? 'bg-primary' : 'bg-transparent'
-                                    }`}
-                                  />
-                                </button>
-                              </Tooltip>
-                              <span aria-hidden className="text-muted-foreground/30 select-none">|</span>
-                            </>
-                          )}
-                          <Tooltip
-                            side="top"
-                            align="end"
-                            content={
-                              !isEditingMarkdown
-                                ? 'Edit the document text directly'
-                                : cancelMode
-                                  ? 'Discard your edits and stop editing'
-                                  : 'Commit your edits and return to annotating'
-                            }
-                          >
-                            <button
-                              type="button"
-                              onClick={handleEditExitClick}
-                              aria-pressed={isEditingMarkdown}
-                              className={`cursor-pointer rounded-sm transition-colors duration-150 outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:opacity-80 ${
-                                cancelMode
-                                  ? (confirmCancelEdits
-                                      ? 'text-destructive'
-                                      : 'text-muted-foreground/70 hover:text-foreground')
-                                  : isEditingMarkdown
-                                    ? 'text-primary'
-                                    : 'text-muted-foreground/50 hover:text-muted-foreground'
-                              }`}
-                            >
-                              {!isEditingMarkdown
-                                ? 'Edit'
-                                : cancelMode
-                                  ? (confirmCancelEdits ? 'Discard?' : 'Cancel')
-                                  : 'Done'}
-                            </button>
-                          </Tooltip>
-                        </>
-                      )}
                     </div>
                   </div>
                 )}
@@ -3773,14 +2520,6 @@ const AppInner: React.FC = () => {
                     diffActive={isPlanDiffActive && !!htmlDiffHtml}
                     onToggleDiff={() => setIsPlanDiffActive((v) => !v)}
                     onUnanchoredChange={htmlRefresh.reportAnnotationRestore}
-                  />
-                ) : isEditingMarkdown ? (
-                  <MarkdownEditor
-                    markdown={displayedMarkdown}
-                    documentId={`edit:${activeEditableDocument?.key ?? 'root'}:${editGeneration}`}
-                    editorHandleRef={markdownEditorHandleRef}
-                    onMarkdownChange={handleEditorChange}
-                    maxWidth={annotateReaderMaxWidth}
                   />
                 ) : (
                   <Viewer
@@ -3880,36 +2619,8 @@ const AppInner: React.FC = () => {
           isOpen={showFeedbackPrompt}
           onClose={() => setShowFeedbackPrompt(false)}
           title="Add Feedback First"
-          message={
-            canEditMarkdown
-              ? `To provide feedback, add annotations or direct edits. ${agentName} will use your feedback to revise the ${annotateMode ? 'document' : 'plan'}.`
-              : `To provide feedback, select text and add annotations. ${agentName} will use your annotations to revise the ${annotateMode ? 'document' : 'plan'}.`
-          }
+          message={`To provide feedback, select text and add annotations. ${agentName} will use your annotations to revise the ${annotateMode ? 'document' : 'plan'}.`}
           variant="info"
-        />
-
-        {/* Unsaved source-file edit warning dialog */}
-        <ConfirmDialog
-          isOpen={showSourceFileEditWarning}
-          onClose={closeSourceFileEditWarning}
-          onConfirm={confirmSourceFileEditWarning}
-          title={sourceFileEditWarningAction === 'close' ? 'Unsaved File Edits' : "File Edits Won't Be Sent"}
-          message={
-            sourceFileEditWarningAction === 'close'
-              ? <>You have unsaved file edits. They are not saved to disk and will be lost if you close this session.</>
-              : <>You have unsaved file edits. They are not saved to disk, and {agentName} won't get them if you {sourceFileEditWarningAction === 'approve' ? 'approve' : 'send feedback'}.</>
-          }
-          subMessage="Save or discard the file edits first if you want Hypermark to keep them."
-          confirmText={
-            sourceFileEditWarningAction === 'approve'
-              ? 'Approve Anyway'
-              : sourceFileEditWarningAction === 'close'
-                ? 'Close Anyway'
-                : 'Send Anyway'
-          }
-          cancelText="Cancel"
-          variant="warning"
-          showCancel
         />
 
         {/* Claude Code feedback warning dialog */}
@@ -3921,11 +2632,7 @@ const AppInner: React.FC = () => {
             handleApprove();
           }}
           title="Feedback Won't Be Sent"
-          message={
-            hasOnlySavedFileChanges
-              ? <>{agentName} doesn't yet support feedback on approval. {savedFileAwarenessOnlyMessage}</>
-              : <>{agentName} doesn't yet support feedback on approval. Your {feedbackLoss} will be lost.{savedFileAwarenessMixedMessage}</>
-          }
+          message={<>{agentName} doesn't yet support feedback on approval. Your annotations will be lost.</>}
           subMessage={
             <>
               To send feedback, use <strong>Send Feedback</strong> instead.
@@ -3938,29 +2645,6 @@ const AppInner: React.FC = () => {
             </>
           }
           confirmText="Approve Anyway"
-          cancelText="Cancel"
-          variant="warning"
-          showCancel
-        />
-
-        {/* Unsent feedback warning dialog — raised by the Close menu item for
-            the feedback the decision spec cannot count (direct edits, saved
-            file changes). Annotations get the spec's own confirm instead. */}
-        <ConfirmDialog
-          isOpen={showExitWarning}
-          onClose={() => setShowExitWarning(false)}
-          onConfirm={() => {
-            setShowExitWarning(false);
-            handleAnnotateExit();
-          }}
-          title="Feedback Won't Be Sent"
-          message={
-            hasOnlySavedFileChanges
-              ? <>{savedFileChangesOnDiskMessage} The agent will not get that context if you close.</>
-              : <>You have {feedbackLoss} that will be lost if you close.{savedFileAwarenessMixedMessage}</>
-          }
-          subMessage={hasOnlySavedFileChanges ? 'To tell the agent what changed, use Send Feedback instead.' : 'To send this feedback, use Send Feedback instead.'}
-          confirmText="Close Anyway"
           cancelText="Cancel"
           variant="warning"
           showCancel

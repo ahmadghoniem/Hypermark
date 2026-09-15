@@ -10,7 +10,6 @@ import { useState, useCallback, useRef } from "react";
 import type { Annotation, ImageAttachment } from "../types";
 import type { ViewerHandle } from "../components/Viewer";
 import type { SidebarTab } from "./useSidebar";
-import type { SourceSaveCapability } from "@hypermark/core/source-save";
 import type { VersionInfo } from "./usePlanDiff";
 
 export interface LinkedDocLoadData {
@@ -20,7 +19,6 @@ export interface LinkedDocLoadData {
   renderAs?: 'markdown' | 'html';
   rawHtml?: string;
   shareHtml?: string;
-  sourceSave?: SourceSaveCapability;
   /**
    * Per-file version-diff baseline (annotate folder sessions only) — the same
    * field names/shapes /api/plan already returns for single-file sessions.
@@ -91,16 +89,6 @@ export interface UseLinkedDocOptions {
   sourceConverted?: boolean;
   /** Snapshot live editor state before linked/folder navigation swaps documents. */
   onBeforeNavigate?: () => void;
-  /** Let the host initialize/restore editable document state and optionally
-   *  override the markdown displayed for this file. */
-  onDocumentLoaded?: (doc: LinkedDocLoadData) => string | undefined;
-  /** Notify the host after any fetched or already-loaded destination has been
-   *  activated, including HTML documents and backlinks to the source. */
-  onDocumentActivated?: (doc: LinkedDocLoadData & { filepath: string }) => void;
-  /** Read current host-owned text when caching a linked doc. */
-  getDocumentMarkdown?: (filepath: string, fallback?: string) => string | undefined;
-  /** Let the host restore any state that was suspended while a linked doc was active. */
-  onAfterBack?: () => void;
 }
 
 interface SavedPlanState {
@@ -193,10 +181,6 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
     sourceFilePath,
     sourceConverted,
     onBeforeNavigate,
-    onDocumentLoaded,
-    onDocumentActivated,
-    getDocumentMarkdown,
-    onAfterBack,
   } = options;
 
   const [linkedDoc, setLinkedDoc] = useState<{
@@ -233,7 +217,7 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
       docCache.current.set(linkedDoc.filepath, {
         annotations: [...annotations],
         globalAttachments: [...globalAttachments],
-        markdown: getDocumentMarkdown?.(linkedDoc.filepath, linkedDoc.markdown) ?? linkedDoc.markdown,
+        markdown: linkedDoc.markdown,
         isConverted: linkedDoc.isConverted,
         previousPlan: linkedDoc.previousPlan,
         versionInfo: linkedDoc.versionInfo,
@@ -258,7 +242,6 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
     setLinkedDoc(null);
     setError(null);
     savedPlanState.current = null;
-    onAfterBack?.();
 
     // Re-apply plan annotation highlights after DOM settles
     if (saved.annotations.length) {
@@ -280,8 +263,6 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
     setShareHtml,
     viewerRef,
     onBeforeNavigate,
-    getDocumentMarkdown,
-    onAfterBack,
   ]);
 
   const activateDocument = useCallback((
@@ -302,7 +283,6 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
     // annotations intact.
     if (sourceFilePath && data.filepath === sourceFilePath && savedPlanState.current) {
       back();
-      onDocumentActivated?.(data);
       return;
     }
 
@@ -331,7 +311,7 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
       docCache.current.set(linkedDoc.filepath, {
         annotations: [...annotations],
         globalAttachments: [...globalAttachments],
-        markdown: getDocumentMarkdown?.(linkedDoc.filepath, linkedDoc.markdown) ?? linkedDoc.markdown,
+        markdown: linkedDoc.markdown,
         isConverted: linkedDoc.isConverted,
         previousPlan: linkedDoc.previousPlan,
         versionInfo: linkedDoc.versionInfo,
@@ -354,10 +334,7 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
     // file parses to blocks (Viewer). Drive renderAs/rawHtml per file so the
     // App's renderAs === 'html' ? HtmlViewer : Viewer switch flips automatically.
     const docRenderAs = data.renderAs === 'html' ? 'html' : 'markdown';
-    const hostMarkdown = docRenderAs === 'html' || !notifyDocumentLoaded ? undefined : onDocumentLoaded?.(data);
-    const nextMarkdown = notifyDocumentLoaded
-      ? hostMarkdown ?? cached?.markdown ?? data.markdown ?? ''
-      : data.markdown ?? cached?.markdown ?? '';
+    const nextMarkdown = data.markdown ?? cached?.markdown ?? '';
     setRenderAs(docRenderAs);
     setRawHtml(docRenderAs === 'html' ? (data.rawHtml ?? '') : '');
     setShareHtml(docRenderAs === 'html' ? (data.shareHtml ?? '') : '');
@@ -375,7 +352,6 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
     });
     setError(null);
     sidebar.open(targetTab ?? "toc");
-    onDocumentActivated?.(data);
 
     // Re-apply cached annotations after DOM settles
     if (cached?.annotations.length) {
@@ -404,20 +380,15 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
     sidebar,
     sourceFilePath,
     onBeforeNavigate,
-    onDocumentLoaded,
-    onDocumentActivated,
-    getDocumentMarkdown,
     back,
   ]);
 
   const openLoaded = useCallback((
     doc: LinkedDocLoadData & { filepath: string },
     targetTab?: SidebarTab,
-    options?: { notifyDocumentLoaded?: boolean },
   ) => {
     activateDocument(doc, targetTab, {
       snapshotCurrent: true,
-      notifyDocumentLoaded: options?.notifyDocumentLoaded,
     });
   }, [activateDocument]);
 
@@ -465,7 +436,7 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
       docs.set(linkedDoc.filepath, {
         annotations: [...annotations],
         globalAttachments: [...globalAttachments],
-        markdown: getDocumentMarkdown?.(linkedDoc.filepath, linkedDoc.markdown) ?? linkedDoc.markdown,
+        markdown: linkedDoc.markdown,
         isConverted: linkedDoc.isConverted,
         previousPlan: linkedDoc.previousPlan,
         versionInfo: linkedDoc.versionInfo,
@@ -493,7 +464,7 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
         };
 
     return { root, docs };
-  }, [linkedDoc, annotations, globalAttachments, markdown, renderAs, rawHtml, shareHtml, selectedAnnotationId, getDocumentMarkdown]);
+  }, [linkedDoc, annotations, globalAttachments, markdown, renderAs, rawHtml, shareHtml, selectedAnnotationId]);
 
   const restoreSession = useCallback((state: LinkedDocSessionState) => {
     viewerRef.current?.clearAllHighlights();
@@ -548,12 +519,12 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
       result.set(linkedDoc.filepath, {
         annotations: [...annotations],
         globalAttachments: [...globalAttachments],
-        markdown: getDocumentMarkdown?.(linkedDoc.filepath, linkedDoc.markdown) ?? linkedDoc.markdown,
+        markdown: linkedDoc.markdown,
         isConverted: linkedDoc.isConverted,
       });
     }
     return result;
-  }, [linkedDoc, annotations, globalAttachments, sourceFilePath, sourceConverted, getDocumentMarkdown]);
+  }, [linkedDoc, annotations, globalAttachments, sourceFilePath, sourceConverted]);
 
   return {
     isActive: linkedDoc !== null,

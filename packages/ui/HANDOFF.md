@@ -26,7 +26,7 @@ If you read nothing else, read **"The 60-second version"**, **"Supported imports
 
 **New package: `@hypermark/core`** — a browser-safe, zero-dependency package carved out of `@hypermark/shared`. It holds the pure utilities and types `ui` depends on, so `ui` can be installed without dragging in Hypermark's Node/server code. Modules were moved with `git mv` (not copied). CI typechecks it with no `@types/node` so a `node:` import can't sneak in.
 
-Core modules: `agents`, `browser-paths`, `code-file`, `extract-code-paths`, `favicon`, `feedback-templates`, `open-in-apps`, `project`, `source-save`, plus extracted type files (`config-types`, `storage-types`, `workspace-status-types`, `ai-context`, `types`).
+Core modules: `agents`, `browser-paths`, `code-file`, `extract-code-paths`, `favicon`, `feedback-templates`, `open-in-apps`, `project`, plus extracted type files (`config-types`, `storage-types`, `workspace-status-types`, `ai-context`, `types`).
 
 **`@hypermark/shared` re-exports core via one-line shims** — e.g. `packages/shared/project.ts` is just `export * from '@hypermark/core/project';`. This is why none of Hypermark's ~99 internal import sites changed: they still import from `@hypermark/shared/*` and get the moved code transparently.
 
@@ -190,8 +190,6 @@ We deliberately did **not** restructure the exports map in this PR (move-don't-r
 | `components/BlockRenderer` + the block components it renders (`TableBlock`, `HtmlBlock`, `Callout`, `MermaidBlock`, `MathBlock`, …) | Pure rendering. |
 | `components/InlineMarkdown` | Code-file hover previews route through the `docPreviewFetcher` seam. Wiki-link rendering takes the sync `resolveLinkedDoc` prop (live labels + deleted-doc treatment; see "Wiki-link seams (0.27.0)"). |
 | `components/Viewer` | The full annotatable document. Required prop: `markdown`. **Pass `disableCodePathValidation` unless you implement `/api/doc/exists`** — code-path validation is a prop-level opt-out, not a `configure` seam. `annotationHeader={{ onInputMethodChange, onModeChange }}` opts into one Viewer-owned, in-flow header containing the compact annotation controls and existing document actions. It reserves its measured responsive height, preserves all document badges, and follows `stickyActions` as one unit; omit it for the legacy action bar. Compact mode contains no help link. A host-owned scroll element must be supplied through `ScrollViewportProvider` (`hooks/useScrollViewport`) so stuck chrome and anchor clearance use the real scroller. |
-| `components/MarkdownEditor` | Theme-bridging wrapper over `@plannotator/markdown-editor`. Takes CM6 extensions via the `extensions` prop (captured ONCE per `documentId` — see "Wiki-link seams (0.27.0)") and re-exports `wikiLinks`, `embedPicker`, `embedSlashItem`, `planEmbedInsert`, and their public types. |
-| `components/MarkdownDiff` | Theme-bridging wrapper over `@plannotator/markdown-editor`'s frozen two-revision diff. Same shim pattern as `components/MarkdownEditor` (ThemeProvider bridge, `extensions` passthrough, grid card chrome); never editable. See "Frozen markdown diff (0.28.0)". |
 | `components/CommentPopover` | Anchor capture + comment entry. |
 | `components/AnnotationPanel` | Renders from your annotation state; no fetches of its own. |
 | `components/AnnotationToolstrip` | The annotation mode toolstrip (Select / Pinpoint / Markup / Comment / Redline). **Pass `showHelpLink={false}` in a host** — the default help modal embeds Hypermark's own YouTube walkthroughs. `hideInputMethodSwitch` likewise omits the pinpoint/drag switch. *(Blessed in 0.35.0.)* |
@@ -290,8 +288,6 @@ interface Annotation {
 
 3. **Module-level singletons, not a Provider.** Covered above — safe because Workspaces is client-side, not SSR. Only revisit if SSR is added.
 
-4. **~~The markdown editor can't take live-collab extensions yet.~~ RESOLVED in 0.27.0.** The plan of record shipped exactly as written: `@plannotator/atomic-editor` ≥0.7.0 and `@plannotator/markdown-editor` ≥0.3.2 thread an optional `extensions?` prop through to the CM6 editor, and the ui shim now declares and forwards it (see "Wiki-link seams (0.27.0)"). You can thread `y-codemirror.next` — or any CM6 extension, e.g. `wikiLinks` — through `components/MarkdownEditor`. Mind the capture-once-per-`documentId` caveat.
-
 None of these block adoption. They're the honest "here's what we'd polish next" list.
 
 ---
@@ -374,17 +370,9 @@ Two additive changes; every default reproduces 0.25.0 behavior.
 
 ## Wiki-link seams (0.27.0)
 
-Consumer-enablement round for wiki-links (Workspaces' `[[doc_01XYZ|label]]` links over opaque doc ids). Three additive seams plus a housekeeping fix; every default reproduces 0.26.0 behavior.
+Consumer-enablement round for wiki-links (Workspaces' `[[doc_01XYZ|label]]` links over opaque doc ids).
 
-1. **`MarkdownEditor` `extensions` passthrough.** The shim (`components/MarkdownEditor`) now declares `extensions?: readonly Extension[]` (`Extension` from `@codemirror/state`) and forwards it through `@plannotator/markdown-editor` into the CM6 engine, appended after the built-ins. This is the seam for `wikiLinks(config)`, `y-codemirror.next` collab bindings, custom keymaps (wrap in `Prec.high` to beat built-ins), etc.
-
-   > **⚠️ Captured ONCE per `documentId` — not reactive.** The engine reads the array a single time, when it mounts the document. Swapping in a different array later is **silently ignored** until the next remount (a `documentId` change). Pass a stable reference (module constant or `useMemo` keyed on `documentId`), and never encode changing data in the array itself — extension config callbacks may close over live state (refs/getters); that is the supported way to feed dynamic data into a mounted editor.
-
-   Build extensions against **your own** `@codemirror/*` install: both editor packages declare `@codemirror/state` as a peer, so there is one shared copy — a second copy breaks the editor. Seam pinned end-to-end by `components/MarkdownEditor.extensions.test.tsx` (a facet-based probe mounted through the shim reaches the engine DOM).
-
-2. **`wikiLinks` re-exported through the ui surface.** Hosts must not import `@plannotator/atomic-editor` (outside the import allowlist); `@hypermark/ui` is the single contract. `components/MarkdownEditor` re-exports `wikiLinks` and its types — `WikiLinksConfig`, `WikiLinkSuggestion`, `WikiLinkResolvedTarget`, `WikiLinkStatus`. Usage: build `wikiLinks(config)` and pass it via the `extensions` prop. The config callbacks (`suggest`, `resolve`, `onOpen`) may close over live state — see the capture-once caveat above. Engine 0.7.0's `preferResolvedLabel?: boolean` flag (labeled `[[target|label]]` links opt into showing the resolved title instead of the stored label) is part of the re-exported `WikiLinksConfig`.
-
-3. **`InlineMarkdown` `resolveLinkedDoc`.** Synchronous host resolution of wiki-links in the *viewer*:
+1. **`InlineMarkdown` `resolveLinkedDoc`.** Synchronous host resolution of wiki-links in the *viewer*:
 
    ```ts
    resolveLinkedDoc?: (target: string) => { label?: string; status?: 'active' | 'deleted' } | null;
@@ -398,52 +386,7 @@ Consumer-enablement round for wiki-links (Workspaces' `[[doc_01XYZ|label]]` link
 
    Behavior pinned by `components/InlineMarkdown.resolveLinkedDoc.test.tsx`, including `null` → byte-identical `innerHTML`.
 
-4. **H-ask-1 retired.** The two one-line TS6133 fixes Workspaces carried against `components/html-viewer` (unused `React` default import in `HtmlViewer.tsx`; unused `annotations` destructured binding in `useHtmlAnnotation.ts`) are applied at source. The shipped html-viewer files pass `tsc` under the strict-consumer flags (`--noUnusedLocals` included) — **delete your patch on adoption.**
-
-**Dependency note:** 0.27.0 requires `@plannotator/markdown-editor ^0.3.2` (adds `extensions`) and `@plannotator/atomic-editor ^0.7.0` (adds `wikiLinks` + `preferResolvedLabel`).
-
----
-
-## Embed media picker (0.31.0)
-
-The package now owns the reusable two-stage `/embed` authoring flow. The host still owns its target catalog, serialized embed grammar, and upload UI/API. This is a per-editor extension seam, not a `configureHypermarkUI()` backend seam.
-
-1. **Single supported import.** `components/MarkdownEditor` re-exports `embedSlashItem()`, `embedPicker(config)`, `EmbedKind`, `EmbedTarget`, `EmbedPickerConfig`, `planEmbedInsert()`, and `EmbedInsertPlan`. Do not import the nested picker module, `@plannotator/atomic-editor`, or `@hypermark/core` directly from a host.
-
-2. **Compose both stages.** Add the static item to `slashCommands()` and register the picker beside it:
-
-   ```tsx
-   import {
-     MarkdownEditor,
-     embedPicker,
-     embedSlashItem,
-     slashCommands,
-   } from "@hypermark/ui/components/MarkdownEditor";
-
-   const editorExtensions = [
-     slashCommands({ items: [embedSlashItem()] }),
-     embedPicker({
-       getTargets: () => currentTargets,
-       buildInsertLine: (target) => buildHostEmbedLine(target),
-       uploadTarget: async (kind) => uploadHostTarget(kind),
-       getNotice: (docBody) => currentEmbedNotice(docBody),
-     }),
-   ];
-
-   <MarkdownEditor extensions={editorExtensions} {...editorProps} />;
-   ```
-
-   The static item rewrites `/query` to `/embed ` and reopens completion. The picker then performs case-insensitive substring matching over target titles and paths. It deliberately returns `filter: false` so multi-word titles remain in the session.
-
-3. **Captured once, callbacks stay live.** The `extensions` array is still captured once per `documentId`. Keep the extension reference stable and close `getTargets`, `buildInsertLine`, `uploadTarget`, and `getNotice` over live refs or route state. Do not rebuild the array merely because target data changed.
-
-4. **Grammar belongs to the host; splicing belongs to the package.** `buildInsertLine(target)` returns the exact line the host wants stored. `planEmbedInsert()` then normalizes that line into its own blank-line-delimited paragraph and places the caret on the following line. Host-specific path resolution, label escaping, and embed-fragment grammar stay outside the package.
-
-5. **Upload is optional and single-flight.** When `uploadTarget` is absent, no upload row is rendered. When present, every picker state includes `Upload HTML...`. While its promise is pending, the typed `/embed` text stays visible and a reopened picker shows an inert `Uploading...` row. Resolving with a target inserts it through `buildInsertLine` and the same splice as an existing target; resolving `null` or rejecting leaves the typed command untouched. The package maps the anchor through CodeMirror transactions and silently drops the insert if the command was edited away. The host owns all failure UI.
-
-6. **One CodeMirror dependency graph.** The picker imports `@codemirror/autocomplete`, `@codemirror/state`, and `@codemirror/view` from `@hypermark/ui`'s declared dependencies. `@plannotator/atomic-editor` declares these as peers, so a consumer must resolve one shared copy. A second live copy of `@codemirror/state` breaks extensions just as it does for `wikiLinks`.
-
-Behavior is pinned by `components/MarkdownEditor.embedPicker.test.ts`, the supported re-export by `components/MarkdownEditor.embedPicker.reexport.test.ts`, and the pure splice planner by `../core/embed-insert.test.ts`.
+2. **H-ask-1 retired.** The two one-line TS6133 fixes Workspaces carried against `components/html-viewer` (unused `React` default import in `HtmlViewer.tsx`; unused `annotations` destructured binding in `useHtmlAnnotation.ts`) are applied at source. The shipped html-viewer files pass `tsc` under the strict-consumer flags (`--noUnusedLocals` included) — **delete your patch on adoption.**
 
 ---
 
@@ -562,24 +505,6 @@ The `find` is anchored on purpose (0.34.0; 0.33.0 documented `/\/bridge-script$/
 Under that alias an `HtmlViewer` rendered WITHOUT `bridgeScriptUrl` throws at render (`buildBridgeScriptTag` refuses to emit an empty inline script), so the misconfiguration cannot ship as a silently dead surface. Measured on the proof harness (PR #1398's description): the viewer chunk shrinks by the size of the literal, 557 kB to 371 kB (168 kB to 118 kB gzip).
 
 Pinned by `components/html-viewer/bridgeAsset.test.ts` (generator bytes, manifest wiring, the single injection point, no CSP meta, the real bridge's stamped ready), and `components/html-viewer/HtmlViewer.bridgeAsset.test.tsx` (URL srcdoc, stale-asset warning and banner, timeout and late ready, inline path unchanged). The bridge marker count in `tests/entry-assets.test.ts` is gone from this fork.
-
----
-
-## Frozen markdown diff (0.28.0)
-
-One additive component for the Workspaces versions/approvals surface: `components/MarkdownDiff`, a theme-bridging shim over `@plannotator/markdown-editor@0.4.0`'s `MarkdownDiff` — a **frozen two-revision markdown comparison**. The newer revision renders as the real document (uncollapsed, full length); deletions are projected struck-through at their original positions; changed spans get character/word emphasis; a toolbar shows the change count with prev/next navigation; a clickable, keyboard-accessible overview rail and a changed-line gutter complete the review chrome. Every 0.27.0 surface is unchanged.
-
-1. **Same shim pattern as `MarkdownEditor`.** Import from `@hypermark/ui/components/MarkdownDiff` — never `AtomicDiffEditor` or `@plannotator/atomic-editor` directly (outside the import allowlist). The shim resolves the color mode from `ThemeProvider` (hosts without the provider pass `mode` directly), imports the same `@plannotator/markdown-editor/themes/plannotator.css` theme the editor shim imports, and maps `gridEnabled` to the identical design-system card chrome — so toggling editor ↔ diff over the same document doesn't jump.
-
-2. **The byte contract lives on the handle.** `editorHandleRef` receives a `MarkdownDiffHandle`: `getMarkdown()` returns the exact `modifiedMarkdown` supplied and `getOriginalMarkdown()` the exact `originalMarkdown` — **byte-identical, including CRLF and trailing whitespace** (the handle returns the caller's strings, not a CM6 read-back). Navigation rides the same handle: `getChangeCount()`, `goToNextChange()`, `goToPreviousChange()`, plus `getContentDOM()` for host-level inspection.
-
-3. **Frozen means frozen.** The surface is never editable: document-changing transactions are rejected at both the state and view dispatch boundaries, and the content DOM is `contenteditable="false"`. Rendered links still work (`onLinkClick`).
-
-4. **`extensions` composes like the editor's.** Same seam, same calling convention: build `wikiLinks(config)` (still re-exported from `components/MarkdownEditor`) and pass it through `extensions` — wiki-links render inside the frozen view. Captured ONCE per mounted comparison (keyed on `documentId` + both document strings): pass a stable array, feed changing data through callbacks that close over live state, and build against your own `@codemirror/*` copies (one shared `@codemirror/state`, as ever).
-
-Seam pinned end-to-end by `components/MarkdownDiff.reexport.test.tsx` (public surface + types) and `components/MarkdownDiff.frozen.test.tsx` (byte preservation incl. CRLF/trailing-space fixtures, `contenteditable="false"`, change navigation, wiki-link composition through the shim, theme/host-class forwarding).
-
-**Dependency note:** 0.28.0 requires `@plannotator/markdown-editor ^0.4.0` (adds `MarkdownDiff`) and `@plannotator/atomic-editor ^0.8.0` (adds the frozen diff engine; new required peer `@codemirror/merge`, which `@hypermark/ui` now declares — single-copy discipline unchanged).
 
 ---
 

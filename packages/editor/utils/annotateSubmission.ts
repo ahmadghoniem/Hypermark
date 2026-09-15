@@ -14,7 +14,6 @@ import {
   type MessageAnnotationEntry,
 } from "@hypermark/ui/utils/parser";
 import { shouldStripFrontmatter } from "@hypermark/shared/annotatable";
-import { composeFeedbackWithEditSections } from "./directEdits";
 
 export interface AnnotateApprovalBodyInput {
   supported: boolean;
@@ -74,8 +73,6 @@ export interface CompleteAnnotateFeedbackInput {
   title: string;
   subject: string;
   sourceConverted: boolean;
-  directEditsSection: string;
-  savedFileChangesSection: string;
   messageEntries?: MessageAnnotationEntry[];
   /**
    * Positive-finish framing. Non-gated annotate has no approve channel —
@@ -150,9 +147,6 @@ export function buildCompleteAnnotateFeedback(
     annotationsText = `${ANNOTATE_NO_FEEDBACK_SENTENCE}\n\n${annotationsText}`;
   }
 
-  return composeFeedbackWithEditSections(
-    annotationsText,
-    input.directEditsSection,
-    input.savedFileChangesSection,
-  );
+  return annotationsText;
 }
+

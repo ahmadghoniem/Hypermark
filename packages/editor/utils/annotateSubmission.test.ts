@@ -116,17 +116,13 @@ describe("annotate approval submission", () => {
       title: "File Feedback",
       subject: "file",
       sourceConverted: false,
-      directEditsSection: "# Direct Edits\n\nBound the retry loop.",
-      savedFileChangesSection: "# Saved File Changes\n\n## /docs/retry.md",
     });
 
     expect(feedback).toContain("retry-diagram");
     expect(feedback).toContain("global-reference");
     expect(feedback).not.toContain("Reference Images");
     expect(feedback).toContain("# Code File Feedback");
-    expect(feedback).toContain("# Direct Edits");
     expect(feedback).toContain("# Linked Document Feedback");
-    expect(feedback).toContain("# Saved File Changes");
 
     expect(buildAnnotateApprovalBody({
       supported: true,
@@ -182,8 +178,6 @@ describe("annotate approval submission", () => {
       title: "File Feedback",
       subject: "file",
       sourceConverted: false,
-      directEditsSection: "",
-      savedFileChangesSection: "",
     });
 
     expect(feedback).toContain("(lines 2–3) ");
@@ -223,8 +217,6 @@ describe("annotate approval submission", () => {
       title: "File Feedback",
       subject: "file",
       sourceConverted: false,
-      directEditsSection: "",
-      savedFileChangesSection: "",
     });
 
     expect(feedback).toContain("(line 5) ");
@@ -254,8 +246,6 @@ describe("annotate approval submission", () => {
       title: "File Feedback",
       subject: "file",
       sourceConverted: false,
-      directEditsSection: "",
-      savedFileChangesSection: "",
     };
 
     const changeRequest = buildCompleteAnnotateFeedback(base);

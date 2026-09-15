@@ -217,9 +217,6 @@ export interface NormalizedDraftResult {
   annotations: Annotation[];
   codeAnnotations: CodeAnnotation[];
   globalAttachments: ImageAttachment[];
-  editedMarkdown?: string | null;
-  editedDocuments?: unknown[];
-  savedFileChanges?: unknown[];
   draftGeneration?: number;
   ts?: number;
 }
@@ -262,9 +259,6 @@ export function normalizeDraftPayload(data: unknown, docKey?: string): Normalize
     annotations?: Annotation[];
     codeAnnotations?: CodeAnnotation[];
     globalAttachments?: unknown[];
-    editedMarkdown?: string | null;
-    editedDocuments?: unknown[];
-    savedFileChanges?: unknown[];
     draftGeneration?: number;
     ts?: number;
   };
@@ -283,9 +277,6 @@ export function normalizeDraftPayload(data: unknown, docKey?: string): Normalize
     annotations,
     codeAnnotations: rawCodeAnns,
     globalAttachments: [],
-    ...(typeof modern.editedMarkdown === 'string' ? { editedMarkdown: modern.editedMarkdown } : {}),
-    ...(Array.isArray(modern.editedDocuments) ? { editedDocuments: modern.editedDocuments } : {}),
-    ...(Array.isArray(modern.savedFileChanges) ? { savedFileChanges: modern.savedFileChanges } : {}),
     ...(modern.draftGeneration !== undefined ? { draftGeneration: modern.draftGeneration } : {}),
     ...(modern.ts !== undefined ? { ts: modern.ts } : {}),
   };

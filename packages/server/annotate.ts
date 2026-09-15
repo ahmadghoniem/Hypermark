@@ -22,15 +22,8 @@ import { contentHash, deleteDraft } from "./draft";
 import { getPlanVersion, getVersionCount, listVersions } from "@hypermark/shared/storage";
 import { computeAnnotateHistory, deriveAnnotateHistorySlug, persistAnnotateSubmission, type AnnotateHistoryResult } from "@hypermark/shared/annotate-history";
 import { htmlDiff } from "@hypermark/shared/html-diff";
-import { disabledSourceSave, type SourceSaveRequest } from "@hypermark/shared/source-save";
 import { getAnnotateReferenceRootPaths } from "@hypermark/shared/annotate-reference-roots-node";
 import { getAnnotateFileFeedbackTemplate, getAnnotateMessageFeedbackTemplate } from "@hypermark/shared/prompts";
-import {
-	createSourceSaveCapability,
-	createSourceSaveCapabilityFromText,
-	readSourceFileSnapshot,
-	saveSourceFileAtomic,
-} from "@hypermark/shared/source-save-node";
 import {
   ANNOTATE_CLIENT_LEASE_GRACE_MS,
   ANNOTATE_CLIENT_LEASE_HEARTBEAT_MS,
@@ -436,58 +429,7 @@ export async function startAnnotateServer(
     return false;
   }
 
-  const singleFileSourceSaveEligible = mode === "annotate" && !sourceConverted && !(renderHtml && rawHtml) && !/^https?:\/\//i.test(filePath);
-  const initialSingleFileSourceSave = singleFileSourceSaveEligible
-    ? createSourceSaveCapability("single-file", filePath)
-    : null;
-  const initialSingleFileSourcePath = singleFileSourceSaveEligible
-    ? initialSingleFileSourceSave?.enabled
-      ? initialSingleFileSourceSave.path
-      : resolveUserPath(filePath)
-    : null;
-  const openedSourceFilePaths = new Set<string>();
-  if (initialSingleFileSourcePath) openedSourceFilePaths.add(initialSingleFileSourcePath);
-  const getPrimarySource = () => {
-    if (mode === "annotate-last") {
-      return { plan: markdown, sourceSave: disabledSourceSave("message-mode") };
-    }
-    if (renderHtml && rawHtml) {
-      return { plan: markdown, sourceSave: disabledSourceSave("html-render") };
-    }
-    if (sourceConverted) {
-      return { plan: markdown, sourceSave: disabledSourceSave("converted-source") };
-    }
-    if (/^https?:\/\//i.test(filePath)) {
-      return { plan: markdown, sourceSave: disabledSourceSave("not-local-file") };
-    }
-
-    const sourceSave = createSourceSaveCapability("single-file", initialSingleFileSourcePath ?? filePath);
-    if (!sourceSave.enabled) {
-      if (sourceSave.reason === "missing-file" && initialSingleFileSourcePath) {
-        const missingSourceSave = createSourceSaveCapabilityFromText("single-file", initialSingleFileSourcePath, markdown);
-        if (missingSourceSave.enabled) {
-          return { plan: markdown, sourceSave: missingSourceSave };
-        }
-      }
-      return { plan: markdown, sourceSave };
-    }
-
-    try {
-      const snapshot = readSourceFileSnapshot(sourceSave.path);
-      return {
-        plan: snapshot.text,
-        sourceSave: {
-          ...sourceSave,
-          hash: snapshot.hash,
-          mtimeMs: snapshot.mtimeMs,
-          size: snapshot.size,
-          eol: snapshot.eol,
-        },
-      };
-    } catch {
-      return { plan: markdown, sourceSave: disabledSourceSave("unreadable-file") };
-    }
-  };
+  const initialSingleFileSourcePath = !/^https?:\/\//i.test(filePath) ? resolveUserPath(filePath) : null;
 
   const getReferenceRootPaths = () => getAnnotateReferenceRootPaths({
     mode,
@@ -582,15 +524,13 @@ export async function startAnnotateServer(
               renderHtml && servedHtml && annotateHistory?.previousPlan
                 ? htmlAssets.rewriteHtml(htmlDiff(annotateHistory.previousPlan, servedHtml), filePath)
                 : undefined;
-            const primarySource = getPrimarySource();
             return Response.json({
-              plan: primarySource.plan,
+              plan: markdown,
               origin,
               mode,
               filePath,
               sourceInfo,
               sourceConverted: sourceConverted ?? false,
-              sourceSave: primarySource.sourceSave,
               gate,
               approvalNotesSupported,
               clientLease: { enabled: true as const, reconnectGraceMs: clientLeaseGraceMs },
@@ -740,60 +680,9 @@ export async function startAnnotateServer(
             const docReq = changed ? new Request(docUrl.toString()) : req;
             return handleDoc(docReq, {
               rewriteHtml: htmlAssets.rewriteHtml,
-              sourceSaveFilePath: singleFileSourceSaveEligible
-                ? initialSingleFileSourcePath ?? filePath
-                : undefined,
-              onSourceDocumentServed: (path) => openedSourceFilePaths.add(path),
               rootPaths: getReferenceRootPaths(),
               rootHtmlVersionDiff,
             });
-          }
-
-          if (url.pathname === "/api/source/save" && req.method === "POST") {
-            let body: SourceSaveRequest;
-            try {
-              body = (await req.json()) as SourceSaveRequest;
-            } catch {
-              return Response.json(
-                { ok: false, code: "invalid-request", message: "Invalid JSON body." },
-                { status: 400 },
-              );
-            }
-
-            if (typeof body.text !== "string" || typeof body.baseHash !== "string") {
-              return Response.json(
-                { ok: false, code: "invalid-request", message: "Expected text and baseHash." },
-                { status: 400 },
-              );
-            }
-
-            let targetPath: string | null = null;
-            if (singleFileSourceSaveEligible) {
-              const capability = createSourceSaveCapability("single-file", initialSingleFileSourcePath ?? filePath);
-              targetPath = capability.enabled ? capability.path : initialSingleFileSourcePath;
-            }
-
-            if (!targetPath) {
-              return Response.json(
-                { ok: false, code: "not-writable", message: "This document cannot be saved to a file." },
-                { status: 403 },
-              );
-            }
-
-            const result = saveSourceFileAtomic(targetPath, body.text, body.baseHash, {
-              allowMissingBase: body.allowMissingBase === true,
-              missingBaseEol: body.baseEol,
-            });
-            const status = result.ok
-              ? 200
-              : result.code === "conflict"
-                ? 409
-                : result.code === "invalid-request"
-                  ? 400
-                  : result.code === "not-writable"
-                    ? 403
-                    : 500;
-            return Response.json(result, { status });
           }
 
           // API: Batch existence check for code-file paths the renderer detected

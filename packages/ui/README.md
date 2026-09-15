@@ -55,39 +55,9 @@ The Mermaid runtime, the Graphviz engine, KaTeX and the username dictionary are 
 
 Hypermark's own entries import the eager modules (`math-eager` and `identity-tater` in both `packages/editor/App.tsx` and `packages/review-editor/App.tsx`; `mermaid-eager` in the plan editor only, since the review editor never renders a Mermaid block), which is what keeps its single-file builds byte-identical and its portal entry chunk shaped as before. The `tests/entry-assets.test.ts` guard that failed when one of them was dropped is gone from this fork, so dropping an eager import now fails silently. See HANDOFF.md "Lazy renderers and eager entries".
 
-### Markdown editor extensions + wiki links (`MarkdownEditor` / `InlineMarkdown`)
+### Wiki links in the viewer (`InlineMarkdown`)
 
-- **`MarkdownEditor` takes CM6 extensions.** `extensions?: readonly Extension[]` (from `@codemirror/state`) is forwarded verbatim into the underlying editor — the seam for `wikiLinks(config)`, `y-codemirror.next` collab bindings, custom keymaps.
-
-  > **⚠️ Captured once per `documentId` — not reactive.** The engine reads the array a single time at document mount; swapping the array later is silently ignored until a `documentId` change remounts. Pass a stable reference, and feed changing data through extension config callbacks that close over live state (refs/getters) — never through new arrays.
-
-- **`wikiLinks` is re-exported from `@hypermark/ui/components/MarkdownEditor`** together with `WikiLinksConfig`, `WikiLinkSuggestion`, `WikiLinkResolvedTarget`, `WikiLinkStatus`. Import it from there — `@plannotator/atomic-editor` stays off the supported-import list:
-  ```tsx
-  import { MarkdownEditor, wikiLinks } from "@hypermark/ui/components/MarkdownEditor";
-
-  const editorExtensions = [wikiLinks({ suggest, resolve, onOpen })]; // stable reference!
-  <MarkdownEditor markdown={md} documentId={docId} editorHandleRef={ref} extensions={editorExtensions} />
-  ```
-- **`embedPicker(config)` and `embedSlashItem()` are re-exported from the same surface.** Compose the static item into `slashCommands({ items: [...] })` and pass the picker beside it in the stable `extensions` array. `getTargets`, `buildInsertLine`, optional `uploadTarget`, and optional `getNotice` stay live through callbacks. The host owns embed grammar and upload error UI; the package owns filtering, async anchor mapping, single-flight upload state, and paragraph-safe insertion through the re-exported `planEmbedInsert()`.
 - **The viewer resolves wiki-links synchronously.** `InlineMarkdown` takes `resolveLinkedDoc?: (target) => { label?; status?: 'active' | 'deleted' } | null` — called with the raw stored target (opaque ids like `doc_01XYZ`, no `.md` normalization). Return a `label` to display live titles (stored label is the fallback, target the last resort); return `status: 'deleted'` for a muted non-link ("Document deleted") instead of a live link. Absent or `null` → rendering is unchanged. Sync-only by design: back it with an in-memory cache.
-
-Requires `@plannotator/markdown-editor ^0.3.2` and `@plannotator/atomic-editor ^0.7.0`. See HANDOFF.md § "Wiki-link seams (0.27.0)".
-
-### Frozen markdown diff (`MarkdownDiff`)
-
-- **`MarkdownDiff` renders two markdown revisions as a frozen, themed comparison** — the newer revision as the real (uncollapsed) document, deletions projected struck-through in place, char/word change emphasis, a change-count toolbar with prev/next, a clickable keyboard-accessible overview rail, and a changed-line gutter. The surface is never editable (edits are rejected at the state and view boundaries; the content DOM is `contenteditable="false"`).
-- **Same shim pattern as `MarkdownEditor`:** theme resolves from `ThemeProvider` (or pass `mode` directly), `gridEnabled` applies the identical card chrome, and `extensions` composes CM6 extensions — `wikiLinks` included — into the frozen view, with the same captured-once, stable-reference calling convention:
-  ```tsx
-  import { MarkdownDiff } from "@hypermark/ui/components/MarkdownDiff";
-  import { wikiLinks } from "@hypermark/ui/components/MarkdownEditor";
-
-  const diffExtensions = [wikiLinks({ resolve, onOpen })]; // stable reference!
-  <MarkdownDiff originalMarkdown={older} modifiedMarkdown={newer} documentId={docId}
-                editorHandleRef={ref} extensions={diffExtensions} />
-  ```
-- **Bytes are the contract:** `ref.current.getMarkdown()` / `.getOriginalMarkdown()` return the exact input strings (CRLF and trailing whitespace included); `getChangeCount()` / `goToNextChange()` / `goToPreviousChange()` drive review navigation.
-
-Requires `@plannotator/markdown-editor ^0.4.0` and `@plannotator/atomic-editor ^0.8.0` (which adds a `@codemirror/merge` peer — declared by this package). See HANDOFF.md § "Frozen markdown diff (0.28.0)".
 
 ### Raw-HTML annotation viewer (`HtmlViewer`)
 

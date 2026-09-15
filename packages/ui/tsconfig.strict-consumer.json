@@ -30,8 +30,6 @@
     "components/InlineMarkdown.tsx",
     "components/Viewer.tsx",
     "test-consumer/viewer-document-header.tsx",
-    "components/MarkdownEditor.tsx",
-    "components/MarkdownEditor/embedPicker.ts",
     "components/CommentPopover.tsx",
     "components/AnnotationPanel.tsx",
     "components/HtmlSurfaceControls.tsx",
