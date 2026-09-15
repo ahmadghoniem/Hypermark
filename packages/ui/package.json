@@ -62,7 +62,7 @@
     "dompurify": "^3.3.3",
     "katex": "^0.16.47",
     "@phosphor-icons/react": "2.1.10",
-    "marked": "^17.0.6",
+    "marked": "^18.0.12",
     "mermaid": "^11.12.2",
     "tailwind-merge": "^3.6.0",
     "unique-username-generator": "^1.5.1"
