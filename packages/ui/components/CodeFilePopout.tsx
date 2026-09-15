@@ -581,7 +581,6 @@ export const CodeFilePopout: React.FC<CodeFilePopoutProps> = ({
           anchorRect={pendingComment.anchorRect}
           contextText={pendingComment.contextText}
           isGlobal={false}
-          skillReferences
           onSubmit={(text, images) => {
             onAddAnnotation({
               filePath: filepath,

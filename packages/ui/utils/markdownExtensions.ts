@@ -8,7 +8,7 @@
  * plain external link. Without it, `[notes](notes.livemd)` renders as a dead
  * external link even though the server would happily serve it.
  *
- * Module-level registry seam, like `skillReferences.ts`: a host (or the app's
+ * Module-level registry seam: a host (or the app's
  * own boot code) registers the list once, everything else reads it. Empty by
  * default, so nothing changes for a user with no config.
  *

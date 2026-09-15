@@ -1145,7 +1145,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               onSubmit={hookCommentSubmit}
               onClose={hookCommentClose}
               allowImages={allowImages}
-              skillReferences
             />
           )}
         {!readOnly && viewerCommentPopover && (
@@ -1162,7 +1161,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
             onSubmit={handleViewerCommentSubmit}
             onClose={handleViewerCommentClose}
             allowImages={allowImages}
-            skillReferences
           />
         )}
 

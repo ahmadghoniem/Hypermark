@@ -14,7 +14,7 @@ import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } 
 import { existsSync, unlinkSync } from "fs";
 import { getRepoInfo } from "./repo";
 import type { Origin } from "@hypermark/shared/agents";
-import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, handleReferenceSkills, handleReferenceSkillContent, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
+import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
 import { handleDoc, handleDocExists, resolveAllowedDocPath } from "./reference-handlers";
 import { closeAllFileBrowserWatchers, handleFileBrowserFilesStream } from "./reference-watch";
 import { getExtraMarkdownExtensions, MAX_ANNOTATABLE_FILE_BYTES, resolveUserPath, warmFileListCache } from "@hypermark/shared/resolve-file";
@@ -801,16 +801,6 @@ export async function startAnnotateServer(
           // API: Batch existence check for code-file paths the renderer detected
           if (url.pathname === "/api/doc/exists" && req.method === "POST") {
             return handleDocExists(req, { rootPaths: getReferenceRootPaths() });
-          }
-
-          // API: Global skill catalog for comment skill references
-          if (url.pathname === "/api/skills" && req.method === "GET") {
-            return handleReferenceSkills();
-          }
-
-          // API: SKILL.md contents for a referenced human-only skill
-          if (url.pathname === "/api/skills/content" && req.method === "GET") {
-            return handleReferenceSkillContent(req);
           }
 
           // API: Watch file browser roots and refresh the tree/status snapshot on changes

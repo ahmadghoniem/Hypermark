@@ -5,7 +5,6 @@ import { setUploadTransport, type UploadTransport, type UploadResult } from './u
 import { setIdentityProvider, type IdentityProvider } from './utils/identity';
 import { setDraftTransport, type DraftTransport } from './hooks/useAnnotationDraft';
 import { setExternalAnnotationTransport, type ExternalAnnotationTransport } from './hooks/useExternalAnnotations';
-import { setSkillCatalogTransport, setSkillContentTransport, type SkillCatalogTransport, type SkillContentTransport } from './utils/skillCatalog';
 import { setMathRendererLoader, type MathRenderer, type MathRendererLoader } from './utils/math';
 import { setIdentityGenerator, type IdentityGenerator } from './utils/generateIdentity';
 import { configStore } from './config';
@@ -26,8 +25,6 @@ export type {
   DraftTransport,
   ExternalAnnotationTransport,
   ExternalAnnotationEvent,
-  SkillCatalogTransport,
-  SkillContentTransport,
   ServerSyncFn,
   MathRenderer,
   MathRendererLoader,
@@ -50,10 +47,6 @@ export interface HypermarkUIConfig {
    * this front-door field intentionally pins the base constraint for ergonomics.
    */
   externalAnnotationTransport?: ExternalAnnotationTransport<ExternalAnnotationBase>;
-  /** Skill-reference catalog request. Default: `GET /api/skills` on the page origin. */
-  skillCatalogTransport?: SkillCatalogTransport;
-  /** Human-only skill contents request for feedback injection. Default: `GET /api/skills/content?name=` on the page origin. */
-  skillContentTransport?: SkillContentTransport;
   serverSync?: ServerSyncFn;
   /**
    * How the math renderer is loaded when no renderer is registered before the
@@ -82,8 +75,6 @@ export function configureHypermarkUI(config: HypermarkUIConfig): void {
   if (config.identityProvider) setIdentityProvider(config.identityProvider);
   if (config.draftTransport) setDraftTransport(config.draftTransport);
   if (config.externalAnnotationTransport) setExternalAnnotationTransport(config.externalAnnotationTransport);
-  if (config.skillCatalogTransport) setSkillCatalogTransport(config.skillCatalogTransport);
-  if (config.skillContentTransport) setSkillContentTransport(config.skillContentTransport);
   if (config.serverSync) configStore.setServerSync(config.serverSync);
   if (config.mathRendererLoader) setMathRendererLoader(config.mathRendererLoader);
   if (config.identityGenerator) setIdentityGenerator(config.identityGenerator);

@@ -23,8 +23,6 @@ configureHypermarkUI({
   fileTreeBackend,
   draftTransport,
   externalAnnotationTransport, // live/agent comments
-  skillCatalogTransport,       // skill-reference catalog for comment composers
-  skillContentTransport,       // human-only skill contents for feedback injection
   serverSync,
   mathRendererLoader,          // how KaTeX loads when no renderer is registered before first math render
   identityGenerator,           // sync generator behind the default "tater" name (no identityProvider)

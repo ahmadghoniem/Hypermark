@@ -29,7 +29,7 @@ import { appendFeedbackRecord, type FeedbackDecision } from "@hypermark/shared/f
 import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
 import { readImprovementHook, getImprovementHookExpectedPath } from "@hypermark/shared/improvement-hooks";
 import { composeImproveContext } from "@hypermark/shared/pfm-reminder";
-import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, handleReferenceSkills, handleReferenceSkillContent, readDraftGenerationFromBody } from "./shared-handlers";
+import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody } from "./shared-handlers";
 import { contentHash, deleteDraft } from "./draft";
 import { handleDoc, handleDocExists } from "./reference-handlers";
 import { closeAllFileBrowserWatchers, handleFileBrowserFilesStream } from "./reference-watch";
@@ -297,16 +297,6 @@ export async function startHypermarkServer(
           // API: Upload image -> save to temp -> return path
           if (url.pathname === "/api/upload" && req.method === "POST") {
             return handleUpload(req, sessionUploads);
-          }
-
-          // API: Global skill catalog for comment skill references
-          if (url.pathname === "/api/skills" && req.method === "GET") {
-            return handleReferenceSkills();
-          }
-
-          // API: SKILL.md contents for a referenced human-only skill
-          if (url.pathname === "/api/skills/content" && req.method === "GET") {
-            return handleReferenceSkillContent(req);
           }
 
           // API: Watch file browser roots and refresh the tree/status snapshot on changes

@@ -826,7 +826,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
               // not: a document-wide Agreed is not a thing).
               onQuickAgree={hook.handleCommentAgree}
               onClose={hook.handleCommentClose}
-              skillReferences
               targetChips={targetChips}
               onRemoveTargetChip={targetChips ? hook.removeDraftTarget : undefined}
               onHoverTargetChip={targetChips ? hook.flashDraftTarget : undefined}
@@ -846,7 +845,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
               isGlobal={true}
               onSubmit={handleGlobalCommentSubmit}
               onClose={() => setGlobalCommentPopover(null)}
-              skillReferences
             />,
             document.body,
           )}

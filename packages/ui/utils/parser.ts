@@ -1,7 +1,6 @@
 import type { Block, Annotation, CodeAnnotation, ImageAttachment } from '../types';
 import { planDenyFeedback } from '@hypermark/core/feedback-templates';
 import { resolveReplyParents } from '@hypermark/core/annotation-threads';
-import { skillReferenceExportBlock } from './skillReferences';
 
 /**
  * Parsed YAML frontmatter as key-value pairs.
@@ -1155,10 +1154,6 @@ export const exportAnnotations = (
     return a.startOffset - b.startOffset;
   });
 
-  // One injection per export: a human-only skill referenced by several
-  // comments has its instructions injected once (see skillReferenceExportBlock).
-  const injectedSkills = new Set<string>();
-
   let output = `# ${title}\n\n`;
 
   if (opts.sourceConverted) {
@@ -1306,12 +1301,6 @@ export const exportAnnotations = (
     // Multi-target raw-HTML comments list every additional covered element.
     output += additionalTargetsExportBlock(ann);
 
-    // Skill references in the comment text (no-op unless a catalog is
-    // registered). An annotation carrying a `source` arrived through the
-    // external-annotations API, not from the reviewer — it may list skills
-    // but must never cause a human-only skill's instructions to be injected.
-    output += skillReferenceExportBlock(ann.text, injectedSkills, { external: !!ann.source });
-
     // Add attached images for this annotation
     if (ann.images && ann.images.length > 0) {
       output += `**Attached images:**\n`;
@@ -1346,9 +1335,6 @@ export const exportLinkedDocAnnotations = (
   docAnnotations: Map<string, LinkedDocAnnotationEntry>
 ): string => {
   let output = `\n# Linked Document Feedback\n\nThe following feedback is on documents referenced in the plan.\n\n`;
-
-  // One injection per export, across all linked documents.
-  const injectedSkills = new Set<string>();
 
   for (const [filepath, { annotations, globalAttachments, blocks: docBlocks, isConverted }] of docAnnotations) {
     if (annotations.length === 0 && globalAttachments.length === 0) continue;
@@ -1398,9 +1384,6 @@ export const exportLinkedDocAnnotations = (
       // Multi-target raw-HTML comments list every additional covered element.
       output += additionalTargetsExportBlock(ann);
 
-      // External (tool-sourced) comments list skills but never inject.
-      output += skillReferenceExportBlock(ann.text, injectedSkills, { external: !!ann.source });
-
       if (ann.images && ann.images.length > 0) {
         output += `**Attached images:**\n`;
         ann.images.forEach((img: ImageAttachment) => {
@@ -1420,8 +1403,6 @@ export const exportCodeFileAnnotations = (annotations: CodeAnnotation[]): string
   if (annotations.length === 0) return '';
 
   let output = `\n# Code File Feedback\n\nThe following feedback is on code files referenced from the reviewed document.\n\n`;
-  // One injection per export, across all code-file comments.
-  const injectedSkills = new Set<string>();
   const sorted = [...annotations].sort((a, b) => {
     if (a.filePath !== b.filePath) return a.filePath.localeCompare(b.filePath);
     if (a.lineStart !== b.lineStart) return a.lineStart - b.lineStart;
@@ -1437,8 +1418,6 @@ export const exportCodeFileAnnotations = (annotations: CodeAnnotation[]): string
     if (ann.text) {
       output += `> ${ann.text}\n`;
     }
-    // External (tool-sourced) comments list skills but never inject.
-    output += skillReferenceExportBlock(ann.text, injectedSkills, { external: !!ann.source });
     if (ann.images && ann.images.length > 0) {
       output += `**Attached images:**\n`;
       ann.images.forEach((img) => {

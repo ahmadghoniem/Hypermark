@@ -53,7 +53,6 @@ export const HAND_WIRED: Record<string, string> = {
   // comment-popover (CommentPopover.tsx)
   'comment-popover.submit': 'packages/ui/components/CommentPopover.tsx',
   'comment-popover.cancel': 'packages/ui/components/CommentPopover.tsx',
-  'comment-popover.skillMenuOpen': 'packages/ui/components/CommentPopover.tsx',
 
   // decision-control (DecisionControl.tsx)
   'decision-control.submitNote': 'packages/ui/components/DecisionControl.tsx',

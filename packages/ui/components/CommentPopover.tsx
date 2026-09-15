@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useId } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { ImageAttachment } from '../types';
 import { CommentAttachShelf } from './CommentAttachShelf';
@@ -6,9 +6,6 @@ import { imageFilesFrom, useAttachmentUploads } from '../hooks/useAttachmentUplo
 import { submitHint } from '../utils/platform';
 import { useDraggable } from '../hooks/useDraggable';
 import { hasUnsavedCommentContent } from '../utils/commentContent';
-import { useSkillReferenceAutocomplete } from '../hooks/useSkillReferenceAutocomplete';
-import { HumanOnlySkillNotice, SkillReferenceMenu } from './SkillReferenceMenu';
-import type { SkillReferenceToken } from '../utils/skillReferences';
 import {
   useVisibleViewportBounds,
   type VisibleViewportBounds,
@@ -59,8 +56,6 @@ interface CommentPopoverProps {
   allowImages?: boolean;
   /** Whether submitting empty text is allowed, for editors that support clearing. */
   allowEmptySubmit?: boolean;
-  /** Opt-in: `/` and `$` skill-reference autocomplete (document UI surfaces). Off by default. */
-  skillReferences?: boolean;
   /** Opt-in (HTML multi-select): selected targets rendered as horizontally
    *  scrollable chips above the textarea. Absent → byte-identical composer. */
   targetChips?: CommentTargetChip[];
@@ -187,7 +182,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   draftKey,
   allowImages = true,
   allowEmptySubmit = false,
-  skillReferences = false,
   targetChips,
   onRemoveTargetChip,
   onHoverTargetChip,
@@ -559,20 +553,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     }
   }, [text, images, onSubmit, draftKey, allowImages, allowEmptySubmit, initialText, hasUnsavedContent, restoreOpeningFocus]);
 
-  const skillAc = useSkillReferenceAutocomplete({
-    text,
-    setText,
-    textareaRef,
-    enabled: skillReferences,
-  });
-  const skillListboxId = `skill-reference-listbox-${useId().replace(/:/g, '')}`;
-  const activeSkillOptionId =
-    skillAc.menu?.activeIndex === null || skillAc.menu?.activeIndex === undefined
-      ? undefined
-      : `${skillListboxId}-option-${skillAc.menu.activeIndex}`;
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (skillAc.onKeyDown(e)) return;
     if (e.key === 'Escape') {
       e.stopPropagation();
       if (mode === 'dialog') {
@@ -689,20 +670,11 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
               </button>
             )
           )}
-          {skillAc.menu && (
-            <SkillReferenceMenu
-              id={skillListboxId}
-              items={skillAc.menu.items}
-              activeIndex={skillAc.menu.activeIndex}
-              onSelect={skillAc.select}
-            />
-          )}
           <ComposerTextarea
             textareaRef={focusOnMountRef}
             value={text}
-            onChange={(e) => { setText(e.target.value); skillAc.onSelect(); }}
+            onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            onSelectCaret={skillAc.onSelect}
             placeholder={isGlobal ? 'Add a global comment...' : 'Add a comment...'}
             sizeClassName={
               mode === 'dialog'
@@ -717,13 +689,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
                 ? `calc(${visibleBounds.height}px - 10rem)`
                 : composerHeight === null ? popoverMaxHeightStyle : undefined
             }
-            skillReferences={skillReferences}
-            tokens={skillAc.referenceTokens}
-            listboxId={skillListboxId}
-            listboxOpen={skillAc.menu !== null}
-            activeOptionId={activeSkillOptionId}
           />
-          <HumanOnlySkillNotice skills={skillAc.humanOnlyReferences} />
         </div>
 
         {/* Attachment shelf - always mounted, so nothing below it moves. */}
@@ -890,14 +856,9 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 };
 
 // ---------------------------------------------------------------------------
-// Composer textarea with skill-reference token highlighting
+// Composer textarea
 // ---------------------------------------------------------------------------
 
-/** Classes shared by the textarea and its highlight mirror — font, size,
- * and box metrics MUST stay identical or the overlay drifts out of alignment.
- * The type size is deliberately absent: it arrives via `sizeClassName`, which
- * every one of the three layers receives, so the anchored composer can run at
- * its own 12.5px while the expanded dialog stays at `text-sm`. */
 const COMPOSER_TEXT_CLASSES = 'w-full bg-transparent px-1 py-0.5';
 
 interface ComposerTextareaProps {
@@ -908,160 +869,40 @@ interface ComposerTextareaProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  /** Caret observer (skill autocomplete). */
-  onSelectCaret: () => void;
   placeholder: string;
   /** Mode-specific min/max height classes. */
   sizeClassName: string;
   textareaRef: (el: HTMLTextAreaElement | null) => void;
-  /** Positioned skill-reference occurrences to highlight. */
-  tokens: SkillReferenceToken[];
-  /** Off → render the plain pre-feature textarea, byte-for-byte. */
-  skillReferences: boolean;
-  /** ARIA relationship to the skill-reference listbox. */
-  listboxId: string;
-  listboxOpen: boolean;
-  activeOptionId?: string;
 }
 
-/**
- * The composer's textarea. With `skillReferences` off this is exactly the
- * pre-feature `<textarea>`; with it on, inserted skill-reference tokens are
- * highlighted via a mirrored, aria-hidden overlay rendered BEHIND a
- * transparent-text textarea (a textarea cannot style substrings). The overlay
- * shares the exact font/padding/wrapping metrics and mirrors scroll position,
- * and token spans change ONLY color/background (never font or weight), so the
- * glyphs the browser lays out in the textarea and the glyphs the overlay
- * paints coincide. During IME composition the overlay hides and the textarea
- * text becomes visible again (`.pn-ref-composing`), keeping native
- * composition rendering (underlines, candidate highlights) intact.
- */
 const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
   heightPx = null,
   maxHeight = null,
   value,
   onChange,
   onKeyDown,
-  onSelectCaret,
   placeholder,
   sizeClassName,
   textareaRef,
-  tokens,
-  skillReferences,
-  listboxId,
-  listboxOpen,
-  activeOptionId,
 }) => {
-  const overlayRef = useRef<HTMLDivElement>(null);
   const boxStyle: React.CSSProperties = {
     ...(heightPx === null
       ? ({ fieldSizing: 'content' } as React.CSSProperties)
       : { height: heightPx }),
     ...(maxHeight != null ? { maxHeight } : {}),
   };
-  const [composing, setComposing] = useState(false);
-
-  const syncScroll = useCallback((el: HTMLTextAreaElement) => {
-    const overlay = overlayRef.current;
-    if (!overlay) return;
-    overlay.scrollTop = el.scrollTop;
-    overlay.scrollLeft = el.scrollLeft;
-  }, []);
-
-  const innerRef = useRef<HTMLTextAreaElement | null>(null);
-  const attachRef = useCallback(
-    (el: HTMLTextAreaElement | null) => {
-      innerRef.current = el;
-      textareaRef(el);
-    },
-    [textareaRef],
-  );
-
-  // Keep the mirror aligned when the value changes without a scroll event
-  // (e.g. programmatic insertion moving the caret into a scrolled region).
-  useEffect(() => {
-    if (innerRef.current) syncScroll(innerRef.current);
-  }, [value, syncScroll]);
-
-  if (!skillReferences) {
-    return (
-      <textarea
-        data-pn-mobile-editable="true"
-        ref={attachRef}
-        value={value}
-        onChange={onChange}
-        onKeyDown={onKeyDown}
-        onSelect={onSelectCaret}
-        placeholder={placeholder}
-        className={`${COMPOSER_TEXT_CLASSES} placeholder:text-muted-foreground resize-none focus:outline-none overflow-y-auto ${sizeClassName}`}
-        style={boxStyle}
-      />
-    );
-  }
-
-  const segments: React.ReactNode[] = [];
-  let pos = 0;
-  tokens.forEach((token, i) => {
-    if (token.start < pos || token.end > value.length) return; // stale tokens for a different value
-    if (token.start > pos) segments.push(value.slice(pos, token.start));
-    // Human-only tokens carry a quiet dotted underline as their inline marker
-    // (text-decoration never affects glyph layout, so overlay alignment is
-    // safe). The accessible explanation lives in HumanOnlySkillNotice below
-    // the textarea — this overlay is aria-hidden.
-    segments.push(
-      <span
-        key={`${token.start}-${i}`}
-        data-skill-ref-token={token.entry.name}
-        data-skill-ref-human-only={token.entry.humanOnly ? 'true' : undefined}
-        className={`text-primary bg-primary/10 rounded-[3px] ${
-          token.entry.humanOnly
-            ? 'underline decoration-dotted decoration-primary/60 underline-offset-2'
-            : ''
-        }`}
-      >
-        {value.slice(token.start, token.end)}
-      </span>,
-    );
-    pos = token.end;
-  });
-  segments.push(value.slice(pos));
 
   return (
-    <div className="relative">
-      <div
-        ref={overlayRef}
-        aria-hidden="true"
-        data-skill-ref-overlay="true"
-        data-pn-mobile-editable-mirror="true"
-        className={`${COMPOSER_TEXT_CLASSES} ${sizeClassName} pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap wrap-break-word`}
-        style={composing ? { visibility: 'hidden' } : undefined}
-      >
-        {segments}
-        {'\n'}
-      </div>
-      <textarea
-        data-pn-mobile-editable="true"
-        aria-label={placeholder}
-        aria-autocomplete="list"
-        aria-haspopup="listbox"
-        aria-controls={listboxOpen ? listboxId : undefined}
-        aria-owns={listboxOpen ? listboxId : undefined}
-        aria-activedescendant={activeOptionId}
-        ref={attachRef}
-        value={value}
-        onChange={onChange}
-        onKeyDown={onKeyDown}
-        onSelect={onSelectCaret}
-        onScroll={(e) => syncScroll(e.currentTarget)}
-        onCompositionStart={() => setComposing(true)}
-        onCompositionEnd={() => setComposing(false)}
-        placeholder={placeholder}
-        className={`${COMPOSER_TEXT_CLASSES} placeholder:text-muted-foreground resize-none focus:outline-none overflow-y-auto relative pn-ref-input ${
-          composing ? 'pn-ref-composing' : ''
-        } ${sizeClassName}`}
-        style={boxStyle}
-      />
-    </div>
+    <textarea
+      data-pn-mobile-editable="true"
+      ref={textareaRef}
+      value={value}
+      onChange={onChange}
+      onKeyDown={onKeyDown}
+      placeholder={placeholder}
+      className={`${COMPOSER_TEXT_CLASSES} placeholder:text-muted-foreground resize-none focus:outline-none overflow-y-auto ${sizeClassName}`}
+      style={boxStyle}
+    />
   );
 };
 
