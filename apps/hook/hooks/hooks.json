@@ -1,17 +1,5 @@
 {
   "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "EnterPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "hypermark improve-context",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
     "PermissionRequest": [
       {
         "matcher": "ExitPlanMode",

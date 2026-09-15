@@ -574,36 +574,6 @@ export function devMockApi(): Plugin {
     name: 'hypermark-dev-mock-api',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
-        if (req.url === '/api/hooks/status') {
-          res.setHeader('Content-Type', 'application/json');
-          try {
-            const { readImprovementHook, getImprovementHookExpectedPath } = await import('@hypermark/shared/improvement-hooks');
-            const { loadConfig } = await import('@hypermark/shared/config');
-            const { composeImproveContext } = await import('@hypermark/shared/pfm-reminder');
-            const config = loadConfig();
-            const hook = readImprovementHook('enterplanmode-improve');
-            const pfmEnabled = config.pfmReminder === true;
-            const composed = composeImproveContext({ pfmEnabled, improvementHookContent: hook?.content ?? null });
-            res.end(JSON.stringify({
-              pfmReminder: { enabled: pfmEnabled },
-              improvementHook: {
-                present: !!hook,
-                filePath: hook?.filePath ?? getImprovementHookExpectedPath('enterplanmode-improve'),
-                fileSize: hook?.content?.length ?? null,
-                content: hook?.content ?? null,
-              },
-              composedLength: composed?.length ?? null,
-            }));
-          } catch {
-            res.end(JSON.stringify({
-              pfmReminder: { enabled: false },
-              improvementHook: { present: false, filePath: '~/.hypermark/hooks/compound/enterplanmode-improve-hook.txt', fileSize: null, content: null },
-              composedLength: null,
-            }));
-          }
-          return;
-        }
-
         if (req.url === '/api/config' && req.method === 'POST') {
           let body = '';
           req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
@@ -612,7 +582,6 @@ export function devMockApi(): Plugin {
               const { saveConfig } = await import('@hypermark/shared/config');
               const parsed = JSON.parse(body);
               const toSave: Record<string, unknown> = {};
-              if (parsed.pfmReminder !== undefined) toSave.pfmReminder = parsed.pfmReminder;
               if (Object.keys(toSave).length > 0) saveConfig(toSave as any);
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify({ ok: true }));

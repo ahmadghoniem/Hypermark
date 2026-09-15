@@ -27,8 +27,6 @@ import { detectProjectName } from "./project";
 import { loadConfig, saveConfig, detectGitUser, getServerConfig, resolveFeedbackHistory } from "./config";
 import { appendFeedbackRecord, type FeedbackDecision } from "@hypermark/shared/feedback-archive";
 import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
-import { readImprovementHook, getImprovementHookExpectedPath } from "@hypermark/shared/improvement-hooks";
-import { composeImproveContext } from "@hypermark/shared/pfm-reminder";
 import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody } from "./shared-handlers";
 import { contentHash, deleteDraft } from "./draft";
 import { handleDoc, handleDocExists } from "./reference-handlers";
@@ -251,37 +249,15 @@ export async function startHypermarkServer(
             return handleDocExists(req);
           }
 
-          // API: Hook status for the Settings Hooks tab
-          if (url.pathname === "/api/hooks/status" && req.method === "GET") {
-            const config = loadConfig();
-            const hook = readImprovementHook("enterplanmode-improve");
-            const pfmEnabled = config.pfmReminder === true;
-            const composed = composeImproveContext({
-              pfmEnabled,
-              improvementHookContent: hook?.content ?? null,
-            });
-            return Response.json({
-              pfmReminder: { enabled: pfmEnabled },
-              improvementHook: {
-                present: !!hook,
-                filePath: hook?.filePath ?? getImprovementHookExpectedPath("enterplanmode-improve"),
-                fileSize: hook?.content?.length ?? null,
-                content: hook?.content ?? null,
-              },
-              composedLength: composed?.length ?? null,
-            });
-          }
-
           // API: Update user config (write-back to ~/.hypermark/config.json)
           if (url.pathname === "/api/config" && req.method === "POST") {
             try {
-              const body = (await req.json()) as { displayName?: string; diffOptions?: Record<string, unknown>; theme?: Record<string, unknown>; favicon?: FaviconStyle; pfmReminder?: boolean };
+              const body = (await req.json()) as { displayName?: string; diffOptions?: Record<string, unknown>; theme?: Record<string, unknown>; favicon?: FaviconStyle };
               const toSave: Record<string, unknown> = {};
               if (body.displayName !== undefined) toSave.displayName = body.displayName;
               if (body.diffOptions !== undefined) toSave.diffOptions = body.diffOptions;
               if (body.theme !== undefined) toSave.theme = body.theme;
               if (isFaviconStyle(body.favicon)) toSave.favicon = body.favicon;
-              if (body.pfmReminder !== undefined) toSave.pfmReminder = body.pfmReminder;
               if (Object.keys(toSave).length > 0) saveConfig(toSave as Parameters<typeof saveConfig>[0]);
               return Response.json({ ok: true });
             } catch {

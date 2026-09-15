@@ -725,18 +725,6 @@ if exist "!PLUGIN_HOOKS!" (
     (
 echo {
 echo   "hooks": {
-echo     "PreToolUse": [
-echo       {
-echo         "matcher": "EnterPlanMode",
-echo         "hooks": [
-echo           {
-echo             "type": "command",
-echo             "command": "\"!EXE_PATH!\" improve-context",
-echo             "timeout": 5
-echo           }
-echo         ]
-echo       }
-echo     ],
 echo     "PermissionRequest": [
 echo       {
 echo         "matcher": "ExitPlanMode",
@@ -808,7 +796,7 @@ set "AGENTS_SKILLS_DIR=%USERPROFILE%\.agents\skills"
 set "MIGRATIONS_DIR=!_CONFIG_DIR!\migrations"
 set "EXTRAS_MIGRATION=!MIGRATIONS_DIR!\2026-06-extras-default-install-removed"
 if not exist "!EXTRAS_MIGRATION!" (
-    for %%S in (hypermark-compound hypermark-setup-goal hypermark-visual-explainer) do (
+    for %%S in (hypermark-setup-goal hypermark-visual-explainer) do (
         if exist "!CLAUDE_SKILLS_DIR!\%%S" (
             rmdir /s /q "!CLAUDE_SKILLS_DIR!\%%S" >nul 2>&1
             echo Removed extra Hypermark skill from !CLAUDE_SKILLS_DIR!\%%S ^(reinstall via npx skills add^)
@@ -842,7 +830,7 @@ if exist "!PREFS_FILE!" (
 REM Extras already on disk? Then the extras question is moot - they still
 REM count toward the picker list, and we never launch the npx flow over them.
 set "EXTRAS_PRESENT=0"
-for %%S in (hypermark-compound hypermark-setup-goal hypermark-visual-explainer) do (
+for %%S in (hypermark-setup-goal hypermark-visual-explainer) do (
     if exist "!CLAUDE_SKILLS_DIR!\%%S" set "EXTRAS_PRESENT=1"
     if exist "!AGENTS_SKILLS_DIR!\%%S" set "EXTRAS_PRESENT=1"
 )
@@ -1100,7 +1088,7 @@ if "!SKIP_SKILLS!"=="1" (
 )
 if "!SKIP_SKILLS!"=="0" if not "!EXTRAS_CHOICE!"=="yes" (
     echo.
-    echo Optional skills ^(compound planning, setup-goal, visual explainer^):
+    echo Optional skills ^(setup-goal, visual explainer^):
     echo   npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global
 )
 
@@ -1173,7 +1161,7 @@ if "!EXTRAS_PRESENT!"=="1" (
     set "DEF_EXTRAS=no"
     if defined SAVED_EXTRAS set "DEF_EXTRAS=!SAVED_EXTRAS!"
     set "ANSWER="
-    set /p "ANSWER=Install the extra skills (compound planning, setup-goal, visual explainer)? [y/N] "
+    set /p "ANSWER=Install the extra skills (setup-goal, visual explainer)? [y/N] "
     set "EXTRAS_CHOICE=no"
     if /i "!ANSWER!"=="y" set "EXTRAS_CHOICE=yes"
     if /i "!ANSWER!"=="yes" set "EXTRAS_CHOICE=yes"
@@ -1198,10 +1186,9 @@ set "SKILL_1=hypermark-review"
 set "SKILL_2=hypermark-annotate"
 set "SKILL_3=hypermark-last"
 if "!EXTRAS_CHOICE!"=="yes" (
-    set "SKILL_COUNT=6"
-    set "SKILL_4=hypermark-compound"
-    set "SKILL_5=hypermark-setup-goal"
-    set "SKILL_6=hypermark-visual-explainer"
+    set "SKILL_COUNT=5"
+    set "SKILL_4=hypermark-setup-goal"
+    set "SKILL_5=hypermark-visual-explainer"
 )
 REM Preselect previously chosen skills. NOTE: no pipes here - each side of a
 REM cmd pipe runs in a child without delayed expansion, so !vars! would pass

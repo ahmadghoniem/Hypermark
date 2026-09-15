@@ -515,18 +515,6 @@ if (Test-Path $pluginHooks) {
     @"
 {
   "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "EnterPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$exePathJson\" improve-context",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
     "PermissionRequest": [
       {
         "matcher": "ExitPlanMode",
@@ -566,7 +554,7 @@ foreach ($junk in @("core", "extra")) {
     }
 }
 
-# Extras (compound / setup-goal / visual-explainer) are no longer managed in
+# Extras (setup-goal / visual-explainer) are no longer managed in
 # the Claude or shared-agent skill scopes. Remove previously default-installed
 # copies ONCE per machine - recorded in the migrations ledger under the
 # Hypermark data dir - because copies the user reinstalls via `npx skills
@@ -577,7 +565,7 @@ $agentsSkillsDir = "$env:USERPROFILE\.agents\skills"
 $migrationsDir = Join-Path $configDir "migrations"
 $extrasMigration = Join-Path $migrationsDir "2026-06-extras-default-install-removed"
 if (-not (Test-Path $extrasMigration)) {
-    foreach ($skill in @("hypermark-compound", "hypermark-setup-goal", "hypermark-visual-explainer")) {
+    foreach ($skill in @("hypermark-setup-goal", "hypermark-visual-explainer")) {
         foreach ($scopeDir in @($claudeSkillsDir, $agentsSkillsDir)) {
             $extraSkillPath = Join-Path $scopeDir $skill
             if (Test-Path $extraSkillPath) {
@@ -597,7 +585,7 @@ if (-not (Test-Path $extrasMigration)) {
 # redirected/CI runs never prompt. Flags win over everything.
 $prefsFile = Join-Path $configDir "install-prefs"
 $coreSkillNames = @("hypermark-review", "hypermark-annotate", "hypermark-last")
-$extraSkillNames = @("hypermark-compound", "hypermark-setup-goal", "hypermark-visual-explainer")
+$extraSkillNames = @("hypermark-setup-goal", "hypermark-visual-explainer")
 
 $savedExtras = ""
 $savedInvocable = ""
@@ -735,7 +723,7 @@ if ($runWizard) {
         $extrasChoice = if ($Extras) { "yes" } else { "no" }
     } else {
         $defaultExtras = if ($savedExtras) { $savedExtras } else { "no" }
-        $extrasChoice = Read-YesNo "Install the extra skills (compound planning, setup-goal, visual explainer)?" $defaultExtras
+        $extrasChoice = Read-YesNo "Install the extra skills (setup-goal, visual explainer)?" $defaultExtras
     }
     $invocableList = $coreSkillNames
     if ($extrasChoice -eq "yes") { $invocableList = $coreSkillNames + $extraSkillNames }
@@ -1029,7 +1017,7 @@ if ($skipSkillsResolved) {
 
 if ((-not $skipSkillsResolved) -and ($extrasChoice -ne "yes")) {
     Write-Host ""
-    Write-Host "Optional skills (compound planning, setup-goal, visual explainer):"
+    Write-Host "Optional skills (setup-goal, visual explainer):"
     Write-Host "  npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global"
 }
 

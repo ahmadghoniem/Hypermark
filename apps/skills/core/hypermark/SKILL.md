@@ -109,11 +109,9 @@ Lists active Hypermark server sessions. `--open` reopens session N (default 1) i
 
 ```bash
 hypermark uninstall [--purge] [--yes] [--dry-run]
-hypermark improve-context
 ```
 
 - `uninstall` removes Hypermark-installed components (`--purge` also deletes local data; `--yes` is required without a TTY; `--dry-run` previews).
-- `improve-context` is an internal integration command (hook plumbing). Never run `improve-context` directly.
 
 ## Environment variables that change behavior
 

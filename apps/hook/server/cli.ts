@@ -145,7 +145,6 @@ export function formatTopLevelHelp(): string {
     "  hypermark last",
     "  hypermark sessions",
     "  hypermark uninstall [--purge] [--yes] [--dry-run]",
-    "  hypermark improve-context",
     "",
     "Run 'hypermark <command> --help' for command-specific usage.",
     "",
@@ -204,15 +203,6 @@ export const SUBCOMMAND_HELP: Record<string, string> = {
     "  --gate        Add an Approve button (review-gate UX)",
     "  --json        Emit a structured decision JSON on stdout",
     "  --hook        Emit hook-native JSON (block/pass) for PostToolUse/Stop hooks",
-  ].join("\n"),
-  "improve-context": [
-    "Usage:",
-    "  hypermark improve-context",
-    "",
-    "Hook-integration command spawned by the PreToolUse hook on EnterPlanMode.",
-    "Reads the hook event on stdin and emits additionalContext JSON (PFM reminder",
-    "and/or compound improvement hook), or exits silently when nothing is enabled.",
-    "Not intended to be run directly.",
   ].join("\n"),
   sessions: [
     "Usage:",

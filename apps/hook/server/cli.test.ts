@@ -77,7 +77,6 @@ describe("CLI subcommand help", () => {
       "annotate",
       "sessions",
       "uninstall",
-      "improve-context",
     ]) {
       expect(isSubcommandHelpInvocation([sub, "--help"])).toBe(sub);
     }

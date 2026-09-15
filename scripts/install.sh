@@ -70,11 +70,11 @@ Options:
                          not available or the check does not pass.
   --skip-attestation     Force-skip provenance verification even if enabled
                          via env var or ~/.hypermark/config.json.
-  --extras               Install the extra skills (compound, setup-goal,
+  --extras               Install the extra skills (setup-goal,
                          visual-explainer) via `npx skills add` without asking.
   --no-extras            Skip the extras without asking.
   --model-invocable <l>  Comma-separated skill names to make model-invocable
-                         (e.g. hypermark-review,hypermark-compound), or
+                         (e.g. hypermark-review,hypermark-setup-goal), or
                          "none". Skills are user-invoked-only by default.
   --minimal              Install only the hypermark binary (aliased
                          --binary-only). Skips every
@@ -758,18 +758,6 @@ if [ -f "$PLUGIN_HOOKS" ]; then
     cat > "$PLUGIN_HOOKS" << 'HOOKS_EOF'
 {
   "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "EnterPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "hypermark improve-context",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
     "PermissionRequest": [
       {
         "matcher": "ExitPlanMode",
@@ -816,7 +804,7 @@ MIGRATIONS_DIR="$_config_dir/migrations"
 EXTRAS_MIGRATION="$MIGRATIONS_DIR/2026-06-extras-default-install-removed"
 if [ ! -f "$EXTRAS_MIGRATION" ]; then
     for scope in "$CLAUDE_SKILLS_DIR" "$AGENTS_SKILLS_DIR"; do
-        for skill in hypermark-compound hypermark-setup-goal hypermark-visual-explainer; do
+        for skill in hypermark-setup-goal hypermark-visual-explainer; do
             if [ -d "$scope/$skill" ]; then
                 rm -rf "$scope/$skill"
                 echo "Removed extra Hypermark skill from ${scope}/$skill (reinstall via npx skills add)"
@@ -834,7 +822,7 @@ fi
 # CI runs without a terminal never prompt. CLI flags win over everything.
 PREFS_FILE="$_config_dir/install-prefs"
 CORE_SKILL_NAMES="hypermark-review hypermark-annotate hypermark-last"
-EXTRA_SKILL_NAMES="hypermark-compound hypermark-setup-goal hypermark-visual-explainer"
+EXTRA_SKILL_NAMES="hypermark-setup-goal hypermark-visual-explainer"
 
 saved_extras=""
 saved_invocable=""
@@ -990,7 +978,7 @@ if [ "$run_wizard" -eq 1 ]; then
         # Flag already answered this question — don't ask and then ignore.
         extras_choice="$EXTRAS_FLAG"
     else
-        extras_choice=$(ask_yes_no "Install the extra skills (compound planning, setup-goal, visual explainer)?" "${saved_extras:-no}") || wizard_timed_out=1
+        extras_choice=$(ask_yes_no "Install the extra skills (setup-goal, visual explainer)?" "${saved_extras:-no}") || wizard_timed_out=1
     fi
     invocable_list="$CORE_SKILL_NAMES"
     if [ "$extras_choice" = "yes" ]; then
@@ -1278,7 +1266,7 @@ fi
 
 if [ "$skip_skills" -eq 0 ] && [ "$extras_choice" != "yes" ]; then
     echo ""
-    echo "Optional skills (compound planning, setup-goal, visual explainer):"
+    echo "Optional skills (setup-goal, visual explainer):"
     echo "  npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global"
 fi
 

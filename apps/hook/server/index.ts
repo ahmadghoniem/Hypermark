@@ -29,11 +29,6 @@
  *    - `--clean` removes stale session files
  *    - `--kill [N|all]` terminates a session's process (see sessions.ts)
  *
- * 8. Improve Context (`hypermark improve-context`):
- *    - Spawned by PreToolUse hook on EnterPlanMode
- *    - Reads improvement hook file from ~/.hypermark/hooks/
- *    - Returns additionalContext or silently passes through
- *
  * 9. Uninstall (`hypermark uninstall`):
  *    - Removes recognized installer-owned components across supported hosts
  *    - Preserves local data by default; `--purge` removes known local data
@@ -85,8 +80,6 @@ import {
   runHypermarkUninstall,
 } from "@hypermark/server/uninstall";
 import { detectProjectName } from "@hypermark/server/project";
-import { readImprovementHook } from "@hypermark/shared/improvement-hooks";
-import { composeImproveContext } from "@hypermark/shared/pfm-reminder";
 import { AGENT_CONFIG, type Origin } from "@hypermark/shared/agents";
 import {
   findSessionLogsByAncestorWalk,
@@ -820,37 +813,6 @@ if (args[0] === "sessions") {
   server.stop();
 
   emitAnnotateOutcome(result);
-  process.exit(0);
-
-} else if (args[0] === "improve-context") {
-  // ============================================
-  // IMPROVEMENT HOOK CONTEXT INJECTION MODE
-  // ============================================
-  //
-  // Called by PreToolUse hook on EnterPlanMode.
-  // Composes any enabled context sources (compound improvement hook,
-  // PFM reminder) into a single additionalContext payload.
-  // Nothing enabled = exit 0 silently (passthrough).
-
-  await Bun.stdin.text();
-
-  const hook = readImprovementHook("enterplanmode-improve");
-  const pfmEnabled = loadConfig().pfmReminder === true;
-
-  const context = composeImproveContext({
-    pfmEnabled,
-    improvementHookContent: hook?.content ?? null,
-  });
-
-  if (context === null) process.exit(0);
-
-  console.log(JSON.stringify({
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      additionalContext: context,
-    },
-  }));
-
   process.exit(0);
 
 } else {

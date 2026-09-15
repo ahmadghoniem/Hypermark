@@ -50,7 +50,6 @@ const KNOWLEDGE_SKILLS = [
 ] as const;
 
 const EXTRA_SKILLS = [
-  "hypermark-compound",
   "hypermark-setup-goal",
   "hypermark-visual-explainer",
 ] as const;
@@ -71,7 +70,6 @@ const PURGE_OWNED_TOP_LEVEL = [
   "drafts",
   "active",
   "hooks",
-  "compound",
   "sessions",
   "guides",
   "failed-comments",
@@ -243,7 +241,7 @@ type MutableUninstallResult = {
 type HookCleanupSpec = {
   readonly event: string;
   readonly matcher?: string;
-  readonly suffix: "" | "improve-context";
+  readonly suffix: "";
 };
 
 type HookCleanupPolicy = {
@@ -529,7 +527,6 @@ function removeHostConfigEntries(
     join(paths.claudeDir, "settings.json"),
     [
       { event: "PermissionRequest", matcher: "ExitPlanMode", suffix: "" },
-      { event: "PreToolUse", matcher: "EnterPlanMode", suffix: "improve-context" },
     ],
     paths.binaryPaths,
     environment.platform,
@@ -538,7 +535,7 @@ function removeHostConfigEntries(
       removeFileWhenEmpty: false,
     },
     "managed Claude Code hooks",
-    `Make ${join(paths.claudeDir, "settings.json")} a readable, writable strict JSON object. Remove only Hypermark command hooks from hooks.PermissionRequest entries whose matcher is "ExitPlanMode" and hooks.PreToolUse entries whose matcher is "EnterPlanMode", then save the file.`,
+    `Make ${join(paths.claudeDir, "settings.json")} a readable, writable strict JSON object. Remove only Hypermark command hooks from hooks.PermissionRequest entries whose matcher is "ExitPlanMode", then save the file.`,
     request,
     state,
   );
@@ -1281,7 +1278,7 @@ function removePath(
 function isManagedHook(
   value: unknown,
   binaryPaths: readonly string[],
-  suffix: "" | "improve-context",
+  suffix: "",
   platform: NodeJS.Platform,
   allowRelocatedBinary = false,
 ): boolean {
@@ -1307,7 +1304,7 @@ function isManagedHook(
 
 function isRelocatedHypermarkCommand(
   command: string,
-  suffix: "" | "improve-context",
+  suffix: "",
 ): boolean {
   const commandSuffix = suffix ? ` ${suffix}` : "";
   if (commandSuffix && !command.endsWith(commandSuffix)) return false;
