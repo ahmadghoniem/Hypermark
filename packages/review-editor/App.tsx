@@ -71,6 +71,7 @@ import { DEMO_DIFF } from './demoData';
 import { exportReviewFeedback, commitShaFromMode } from './utils/exportFeedback';
 import { parseDiffToFiles } from './utils/diffParser';
 import { AllFilesCodeView } from './components/AllFilesCodeView';
+import { CommitDescriptionHeader } from './components/CommitDescriptionHeader';
 import type { DiffFile, AnnotationScrollTarget } from './types';
 import type { DiffOption, GitContext, SinceBaseSections, CommitDiffInfo } from '@hypermark/shared/types';
 import { SectionsPanel } from './components/SectionsPanel';
