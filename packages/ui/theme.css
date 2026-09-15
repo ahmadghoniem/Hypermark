@@ -17,28 +17,6 @@
  * that differs from the system one. */
 @custom-variant dark (&:where(:root:not(.light), :root:not(.light) *));
 
-/* Skill-reference composer input (CommentPopover). The textarea's own glyphs
- * are transparent — a mirrored aria-hidden overlay behind it paints the text,
- * with reference tokens in the theme's primary color. The caret and the
- * selection stay on the textarea: the caret takes the foreground token, and
- * the selection uses a translucent primary wash so the overlay text stays
- * readable through it. During IME composition `.pn-ref-composing` restores
- * the native text so composition underlines render normally. */
-.pn-ref-input {
-  color: transparent;
-  caret-color: var(--foreground);
-}
-.pn-ref-input::selection {
-  background: color-mix(in oklab, var(--primary) 30%, transparent);
-  color: transparent;
-}
-.pn-ref-input.pn-ref-composing {
-  color: inherit;
-}
-.pn-ref-input.pn-ref-composing::selection {
-  color: inherit;
-}
-
 /* Tailwind bridge — maps CSS vars to utility classes */
 @theme inline {
   --color-background: var(--background);
@@ -118,7 +96,7 @@
   --z-index-menu: 70;         /* inline action menus */
   --z-index-popover: 100;     /* composer, toolbars, pickers, popovers */
   --z-index-popover-hint: 101; /* "composer is offscreen" pill over the composer layer */
-  --z-index-dialog: 110;      /* modal dialogs and the skill menu inside them */
+  --z-index-dialog: 110;      /* modal dialogs */
   --z-index-overlay: 200;     /* fullscreen image, diagram and code previews */
 }
 

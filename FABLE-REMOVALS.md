@@ -322,3 +322,52 @@ Mechanical leftovers across packages after all feature cuts merged:
 - **Archive CLI leftovers:** Removed dead `hypermark archive` command remnants from hook server CLI help texts and tests.
 - **Comments rewritten:** 43 comments rewritten across packages and tests to remove references to the removed Pi server mirror, OpenCode/Codex integrations, code navigation, dockview, and temp worktrees.
 
+
+---
+
+## Committed after the Tailwind pass
+
+### 31. Annotate agent terminal
+
+A terminal panel beside the document in `/hypermark-annotate` sessions. It ran
+an agent through a WebSocket to a Node sidecar (`@plannotator/webtui`, xterm,
+node-pty), with an Agent flag tab, a `Shift Shift` shortcut, a font and side
+settings popover, a default-agent setting, a "feedback already sent from the
+terminal" decision state, and a runtime installer (`hypermark install-runtime
+agent-terminal`, `~/.hypermark/vendor/agent-terminal`) wired into the install
+scripts and the release smoke tests.
+
+**Commits:** `a473ea4a` (53 files, ~4,800 lines); `b72b868e` restored the
+`killSession` variable the cut deleted, dropped the unused `agentCwd` option and
+the lockfile entries.
+
+### 32. Skill-reference autocomplete
+
+Typing `/` or `$` in a comment composer opened a menu of Claude skills. Picked
+names were painted in the primary colour by an overlay behind the textarea, and
+the export injected the referenced skills' contents, fetched through
+`/api/skills` and `/api/skills/content` from a server-side skill loader.
+
+**Commit:** `b7306731` (23 files, ~3,950 lines). The overlay's `.pn-ref-input`
+styles in `theme.css` went in the follow-up sweep.
+
+### 33. Planning context hook and the compound skill
+
+A `PreToolUse` hook on `EnterPlanMode` ran `hypermark improve-context` on every
+plan-mode entry. It injected `~/.hypermark/hooks/compound/enterplanmode-improve-hook.txt`,
+written by the `hypermark-compound` skill from denied plans, plus an opt-in
+`pfmReminder` note on Hypermark's markdown extensions. The skill's data source,
+the plan archive, was already gone (§23).
+
+**Commit:** `e1100843` (22 files, ~3,080 lines).
+
+### 34. External annotations API
+
+`/api/external-annotations` (GET, POST, PATCH, DELETE and an SSE stream) on the
+plan, review and annotate servers let outside tools push comments into a live
+session. Both editors kept a second annotation array for them. The Options menu
+held one item, "Agent Instructions", which copied a how-to for that API; the
+menu went with it.
+
+**Commits:** `9e7d31a5` (35 files, ~1,900 lines); `17dd3ee5` restored the
+`CommitDescriptionHeader` import the cut deleted.

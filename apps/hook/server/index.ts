@@ -1,7 +1,7 @@
 /**
  * Hypermark CLI for Claude Code
  *
- * Supports nine modes:
+ * Supports six modes:
  *
  * 1. Plan Review (default, no args):
  *    - Spawned by Claude hook entrypoints
@@ -29,7 +29,7 @@
  *    - `--clean` removes stale session files
  *    - `--kill [N|all]` terminates a session's process (see sessions.ts)
  *
- * 9. Uninstall (`hypermark uninstall`):
+ * 6. Uninstall (`hypermark uninstall`):
  *    - Removes recognized installer-owned components across supported hosts
  *    - Preserves local data by default; `--purge` removes known local data
  *

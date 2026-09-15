@@ -23,7 +23,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Shared dismissal (outside pointerdown + Escape). The hook consumes the
-  // dismissing Escape, so closing an open Options menu no longer also runs
+  // dismissing Escape, so closing an open menu no longer also runs
   // the host app's own Escape ladder — one Escape, one rung.
   const dismiss = useCallback(() => setIsOpen(false), []);
   useDismissablePopover({
