@@ -18,7 +18,6 @@ import type {
   InlineDiffToken,
   InlineDiffWrap,
 } from "../../utils/planDiffEngine";
-import { formatQuickLabel, type QuickLabel } from "../../utils/quickLabels";
 import { AnnotationToolbar } from "../AnnotationToolbar";
 import { CommentPopover } from "../CommentPopover";
 import { getIdentity } from "../../utils/identity";
@@ -198,16 +197,6 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
     setIsExiting(false);
   };
 
-  const handleQuickLabel = (label: QuickLabel) => {
-    if (!hoveredBlock) return;
-    createDiffAnnotation(
-      hoveredBlock.block, hoveredBlock.index, hoveredBlock.diffContext,
-      AnnotationType.COMMENT, formatQuickLabel(label), undefined, label.tip
-    );
-    setHoveredBlock(null);
-    setIsExiting(false);
-  };
-
   const handleToolbarClose = () => {
     setHoveredBlock(null);
     setIsExiting(false);
@@ -285,7 +274,6 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
           onAnnotate={handleAnnotate}
           onClose={handleToolbarClose}
           onRequestComment={handleRequestComment}
-          onQuickLabel={handleQuickLabel}
           isExiting={isExiting}
           onMouseEnter={() => {
             if (hoverTimeoutRef.current) {

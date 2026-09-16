@@ -268,7 +268,6 @@ export interface UseAnnotationHighlighterReturn {
   commentPopover: CommentPopoverState | null;
 
   handleAnnotate: (type: AnnotationType) => void;
-  handleQuickLabel: (label: QuickLabel) => void;
   handleToolbarClose: () => void;
   handleRequestComment: (initialChar?: string) => void;
   handleCommentSubmit: (text: string, images?: ImageAttachment[], quickLabelTip?: string) => void;
@@ -1152,29 +1151,6 @@ export function useAnnotationHighlighter({
     window.getSelection()?.removeAllRanges();
   };
 
-  const handleQuickLabel = (label: QuickLabel) => {
-    const highlighter = highlighterRef.current;
-    if (!toolbarState) return;
-    if (isMathAnnotationSource(toolbarState.source)) {
-      createAnnotationFromMathSource(
-        toolbarState.source, AnnotationType.COMMENT,
-        formatQuickLabel(label), undefined, label.tip
-      );
-      clearPendingSelection();
-      setToolbarState(null);
-      window.getSelection()?.removeAllRanges();
-      return;
-    }
-    if (!highlighter) return;
-    createAnnotationFromSource(
-      highlighter, toolbarState.source, AnnotationType.COMMENT,
-      formatQuickLabel(label), undefined, label.tip
-    );
-    clearPendingSelection();
-    setToolbarState(null);
-    window.getSelection()?.removeAllRanges();
-  };
-
   const handleToolbarClose = () => {
     if (toolbarState && highlighterRef.current && !isMathAnnotationSource(toolbarState.source)) {
       highlighterRef.current.remove(toolbarState.source.id);
@@ -1243,7 +1219,6 @@ export function useAnnotationHighlighter({
     toolbarState,
     commentPopover,
     handleAnnotate,
-    handleQuickLabel,
     handleToolbarClose,
     handleRequestComment,
     handleCommentSubmit,

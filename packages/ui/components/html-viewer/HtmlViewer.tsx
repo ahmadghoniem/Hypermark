@@ -11,7 +11,7 @@ import { createPortal } from "react-dom";
 import type { Annotation, EditorMode, ImageAttachment, InputMethod } from "../../types";
 import { AnnotationType } from "../../types";
 import { getIdentity } from "../../utils/identity";
-import { AGREED_LABEL } from "../../utils/quickLabels";
+import { COMPOSER_QUICK_LABELS } from "../../utils/quickLabels";
 import { AnnotationToolbar } from "../AnnotationToolbar";
 import {
   CommentPopover,
@@ -38,9 +38,6 @@ import {
   injectIntoHead,
   resolveBridgeScriptUrl,
 } from "./srcdoc";
-
-/** Comment-only surfaces may emit Agreed and nothing else. */
-const HTML_QUICK_LABELS = [AGREED_LABEL];
 
 const PREFIX = "hypermark-bridge-";
 
@@ -817,10 +814,9 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
               draftKey={`html:${hook.commentPopover.draftKey}`}
               onSubmit={hook.handleCommentSubmit}
               // Pinpoint clicks open this composer directly, so it carries
-              // the surface's one-click Agreed as a label chip (the global
-              // composer does not: a document-wide Agreed is not a thing).
-              quickLabels={HTML_QUICK_LABELS}
-              onQuickLabel={hook.handleCommentAgree}
+              // the quick labels itself (the global composer does not).
+              quickLabels={COMPOSER_QUICK_LABELS}
+              onQuickLabel={hook.handleCommentQuickLabel}
               onClose={hook.handleCommentClose}
               targetChips={targetChips}
               onRemoveTargetChip={targetChips ? hook.removeDraftTarget : undefined}

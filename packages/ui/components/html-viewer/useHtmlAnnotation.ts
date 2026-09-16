@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, type RefObject } from "react";
 import { AnnotationType, type Annotation, type EditorMode, type HtmlAnnotationTarget, type HtmlElementAnchor, type ImageAttachment } from "../../types";
-import { AGREED_LABEL, type QuickLabel } from "../../utils/quickLabels";
+import type { QuickLabel } from "../../utils/quickLabels";
 import { getIdentity } from "../../utils/identity";
 import type {
   ToolbarState,
@@ -384,9 +384,9 @@ export function useHtmlAnnotation({
   flashDraftTarget: (key: string) => void;
   /** Bumped after every target add/remove so the composer can refocus its textarea. */
   composerFocusToken: number;
-  /** Composer one-click "Agreed": submits the hardcoded positive label
-   *  with the same anchor and multi-select targets a typed comment would carry. */
-  handleCommentAgree: () => void;
+  /** Composer quick label: submits the label with the same anchor and
+   *  multi-select targets a typed comment would carry. */
+  handleCommentQuickLabel: (label: QuickLabel) => void;
   /** Ids this module minted for locally created annotations (create-mark),
    *  for the unanchored union: a minted id the host never listed is a
    *  swapped-out local mark, not a host row. Read-only, stable identity. */
@@ -824,12 +824,11 @@ export function useHtmlAnnotation({
     [post],
   );
 
-  // The composer's one-click "Agreed" (the one label affordance restored to
-  // comment-only surfaces, where pinpoint clicks land straight in the
+  // The composer's quick labels (pinpoint clicks land straight in the
   // composer and never see the selection toolbar). Mirrors
   // handleCommentSubmit — same anchor, same multi-select targets — but
-  // emits the hardcoded positive label instead of typed prose.
-  const handleCommentAgree = useCallback(() => {
+  // emits the label instead of typed prose.
+  const handleCommentQuickLabel = useCallback((label: QuickLabel) => {
     if (!enabledRef.current) return;
     const text = commentPopoverRef.current?.selectedText || pendingTextRef.current;
     if (!text) return;
@@ -853,9 +852,9 @@ export function useHtmlAnnotation({
       startOffset: 0,
       endOffset: 0,
       type: AnnotationType.COMMENT,
-      text: AGREED_LABEL.text,
+      text: label.text,
       originalText: text,
-      quickLabelTip: AGREED_LABEL.tip,
+      quickLabelTip: label.tip,
       author: getIdentity(),
       createdA: Date.now(),
       htmlAnchor: pendingAnchorRef.current ?? undefined,
@@ -898,38 +897,6 @@ export function useHtmlAnnotation({
     pendingAnchorRef.current = null;
   }, [post]);
 
-  const applyQuickLabel = useCallback(
-    (label: QuickLabel, clearState: () => void) => {
-      if (!enabledRef.current) return;
-      const text = pendingTextRef.current;
-      if (!text) return;
-      const id = nextHtmlAnnId();
-      mintedIdsRef.current.add(id);
-      post({ type: `${PREFIX}create-mark`, id, annotationType: "comment" });
-      onAddRef.current?.({
-        id,
-        blockId: "",
-        startOffset: 0,
-        endOffset: 0,
-        type: AnnotationType.COMMENT,
-        text: label.text,
-        originalText: text,
-        quickLabelTip: label.tip,
-        author: getIdentity(),
-        createdA: Date.now(),
-        htmlAnchor: pendingAnchorRef.current ?? undefined,
-      });
-      clearState();
-      pendingTextRef.current = "";
-      pendingAnchorRef.current = null;
-    },
-    [post],
-  );
-
-  const handleQuickLabel = useCallback(
-    (label: QuickLabel) => applyQuickLabel(label, () => setToolbarState(null)),
-    [applyQuickLabel],
-  );
 
   const removeHighlight = useCallback(
     (id: string) => {
@@ -972,11 +939,10 @@ export function useHtmlAnnotation({
     toolbarState,
     commentPopover,
     handleAnnotate,
-    handleQuickLabel,
     handleToolbarClose,
     handleRequestComment,
     handleCommentSubmit,
-    handleCommentAgree,
+    handleCommentQuickLabel,
     handleCommentClose,
     removeHighlight,
     clearAllHighlights,
