@@ -39,6 +39,9 @@ import {
   resolveBridgeScriptUrl,
 } from "./srcdoc";
 
+/** Comment-only surfaces may emit Agreed and nothing else. */
+const HTML_QUICK_LABELS = [AGREED_LABEL];
+
 const PREFIX = "hypermark-bridge-";
 
 function readThemeTokens(): Record<string, string> {
@@ -795,15 +798,7 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
               positionMode="center-above"
               element={hook.toolbarState.element}
               copyText={hook.toolbarState.selectionText}
-              // HTML/live surfaces are comment-only: no Delete, no label
-              // picker, no Alt+digit labels (commentOnly). Exactly ONE label
-              // affordance is restored: the hardcoded "Agreed". The
-              // wrapper filters by id as defense in depth, so no present or
-              // future toolbar path can emit an arbitrary label here.
               commentOnly
-              onQuickLabel={(label) => {
-                if (label.id === AGREED_LABEL.id) hook.handleQuickLabel(label);
-              }}
               onAnnotate={hook.handleAnnotate}
               onRequestComment={hook.handleRequestComment}
               onClose={hook.handleToolbarClose}
@@ -822,9 +817,10 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
               draftKey={`html:${hook.commentPopover.draftKey}`}
               onSubmit={hook.handleCommentSubmit}
               // Pinpoint clicks open this composer directly, so it carries
-              // the surface's one-click "Agreed" (the global composer does
-              // not: a document-wide Agreed is not a thing).
-              onQuickAgree={hook.handleCommentAgree}
+              // the surface's one-click Agreed as a label chip (the global
+              // composer does not: a document-wide Agreed is not a thing).
+              quickLabels={HTML_QUICK_LABELS}
+              onQuickLabel={hook.handleCommentAgree}
               onClose={hook.handleCommentClose}
               targetChips={targetChips}
               onRemoveTargetChip={targetChips ? hook.removeDraftTarget : undefined}

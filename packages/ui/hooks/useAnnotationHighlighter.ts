@@ -271,7 +271,8 @@ export interface UseAnnotationHighlighterReturn {
   handleQuickLabel: (label: QuickLabel) => void;
   handleToolbarClose: () => void;
   handleRequestComment: (initialChar?: string) => void;
-  handleCommentSubmit: (text: string, images?: ImageAttachment[]) => void;
+  handleCommentSubmit: (text: string, images?: ImageAttachment[], quickLabelTip?: string) => void;
+  handleCommentQuickLabel: (label: QuickLabel) => void;
   handleCommentClose: () => void;
   /** Paint a caller-created DOM range through the same pipeline as pointer selection. */
   highlightRange: (range: Range, modeOverride?: EditorMode) => void;
@@ -1196,7 +1197,7 @@ export function useAnnotationHighlighter({
     setToolbarState(null);
   };
 
-  const handleCommentSubmit = (text: string, images?: ImageAttachment[]) => {
+  const handleCommentSubmit = (text: string, images?: ImageAttachment[], quickLabelTip?: string) => {
     if (!commentPopover) return;
     if (isMathAnnotationSource(commentPopover.source)) {
       createAnnotationFromMathSource(
@@ -1204,6 +1205,7 @@ export function useAnnotationHighlighter({
         AnnotationType.COMMENT,
         text,
         images,
+        quickLabelTip,
       );
       clearPendingSelection();
       window.getSelection()?.removeAllRanges();
@@ -1213,12 +1215,16 @@ export function useAnnotationHighlighter({
     if (commentPopover.source && highlighterRef.current) {
       createAnnotationFromSource(
         highlighterRef.current, commentPopover.source,
-        AnnotationType.COMMENT, text, images
+        AnnotationType.COMMENT, text, images, quickLabelTip
       );
       clearPendingSelection();
       window.getSelection()?.removeAllRanges();
     }
     setCommentPopover(null);
+  };
+
+  const handleCommentQuickLabel = (label: QuickLabel) => {
+    handleCommentSubmit(formatQuickLabel(label), undefined, label.tip);
   };
 
   const handleCommentClose = useCallback(() => {
@@ -1241,6 +1247,7 @@ export function useAnnotationHighlighter({
     handleToolbarClose,
     handleRequestComment,
     handleCommentSubmit,
+    handleCommentQuickLabel,
     handleCommentClose,
     highlightRange,
     highlightMathElement,
