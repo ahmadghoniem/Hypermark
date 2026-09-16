@@ -11,9 +11,11 @@
   "dependencies": {
     "@hypermark/review-editor": "workspace:*",
     "@hypermark/server": "workspace:*",
+    "@tailwindcss/vite": "^4.1.18",
+    "dialkit": "2.0.2",
+    "motion": "^12",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "@tailwindcss/vite": "^4.1.18"
+    "react-dom": "^19.2.3"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.0",

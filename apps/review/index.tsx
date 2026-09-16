@@ -3,8 +3,6 @@ import ReactDOM from 'react-dom/client';
 import App from '@hypermark/review-editor';
 import { ReviewWorkerPoolProvider } from '@hypermark/review-editor/worker-pool';
 import '@hypermark/review-editor/styles';
-import { DialRoot } from 'dialkit';
-import 'dialkit/styles.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -20,6 +18,15 @@ root.render(
     <ReviewWorkerPoolProvider>
       <App />
     </ReviewWorkerPoolProvider>
-    <DialRoot position="bottom-left" />
   </React.StrictMode>
 );
+
+// Dev-only design panel. Loaded dynamically so `dialkit` and `motion` are
+// tree-shaken out of the production bundle instead of shipping dead.
+if (import.meta.env.DEV) {
+  void Promise.all([import('dialkit'), import('dialkit/styles.css')]).then(([{ DialRoot }]) => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    ReactDOM.createRoot(host).render(<DialRoot position="bottom-left" />);
+  });
+}
