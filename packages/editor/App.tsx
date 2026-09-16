@@ -32,7 +32,8 @@ import { getIdentity } from '@hypermark/ui/utils/identity';
 import { copyTextToClipboard } from '@hypermark/ui/utils/clipboard';
 import { configStore, useConfigValue } from '@hypermark/ui/config';
 import { CompletionOverlay } from '@hypermark/ui/components/CompletionOverlay';
-import { getUIPreferences, type PlanWidth } from '@hypermark/ui/utils/uiPreferences';
+import { getUIPreferences } from '@hypermark/ui/utils/uiPreferences';
+import { useDialKit } from 'dialkit';
 import { getEditorMode, saveEditorMode } from '@hypermark/ui/utils/editorMode';
 import { getInputMethod, saveInputMethod } from '@hypermark/ui/utils/inputMethod';
 import { getHtmlChromeState, saveHtmlChromeState } from '@hypermark/ui/utils/htmlChrome';
@@ -379,7 +380,6 @@ const AppInner: React.FC = () => {
   const [wideModeType, setWideModeType] = useState<WideModeType | null>(null);
   const wideModeSnapshotRef = useRef<WideModeLayoutSnapshot | null>(null);
   const initialSidebarPreferenceAppliedRef = useRef(false);
-  const lastAppliedTocEnabledRef = useRef(uiPrefs.tocEnabled);
   useEffect(() => {
     document.title = repoInfo ? `${repoInfo.display} · Hypermark` : "Hypermark";
   }, [repoInfo]);
@@ -575,17 +575,6 @@ const AppInner: React.FC = () => {
     setIsPanelOpen(prev => !prev);
   }, [exitWideMode, wideModeType]);
 
-  // Sync sidebar open state when the "Auto-open Sidebar" preference changes in
-  // Settings. Deliberately does NOT react to the document or render mode —
-  // switching files leaves the sidebar exactly as the
-  // user left it.
-  useEffect(() => {
-    if (wideModeType !== null) return;
-    if (lastAppliedTocEnabledRef.current === uiPrefs.tocEnabled) return;
-    lastAppliedTocEnabledRef.current = uiPrefs.tocEnabled;
-    if (uiPrefs.tocEnabled && hasTocEntries) sidebar.open('toc');
-    else if (!uiPrefs.tocEnabled) sidebar.close();
-  }, [wideModeType, sidebar.close, sidebar.open, uiPrefs.tocEnabled, hasTocEntries]);
 
   // Auto-close the sidebar when blocks parse with no TOC entries. Fires
   // only on blocks/hasTocEntries change (not on sidebar state) so a user
@@ -1150,7 +1139,7 @@ const AppInner: React.FC = () => {
     // HTML chrome is owned by the surface-transition effect below, which also
     // covers linked .html docs opened from a markdown session.
     if (renderAs === 'html') return;
-    if (uiPrefs.tocEnabled && hasTocEntries) {
+    if (hasTocEntries) {
       sidebar.open('toc');
     }
   }, [
@@ -1159,7 +1148,6 @@ const AppInner: React.FC = () => {
     renderAs,
     sidebar.close,
     sidebar.open,
-    uiPrefs.tocEnabled,
     wideModeType,
   ]);
 
@@ -2218,10 +2206,16 @@ const AppInner: React.FC = () => {
     dismissOnIframeFocus: isHtmlSurface,
   }), [annotateCloseTitle, annotateDecisionHandlers, annotateDecisionSpec, isHtmlSurface]);
 
-  const planMaxWidth = useMemo(() => {
-    const widths: Record<PlanWidth, number> = { compact: 832, default: 1040, wide: 1280 };
-    return widths[uiPrefs.planWidth] ?? 832;
-  }, [uiPrefs.planWidth]);
+  // Reading column. One width, dialled: the document is centred with a
+  // gutter on each side, and the left gutter holds the table of contents.
+  const layoutDials = useDialKit('04 · Layout', {
+    columnWidth: {
+      type: 'select',
+      options: ['672', '752', '832', '912', '1040'],
+      default: '832',
+    },
+  }, { id: 'cl-04', persist: true });
+  const planMaxWidth = Number(layoutDials.columnWidth);
   const annotateReaderMaxWidth = canUseWideMode && wideModeType === 'wide' ? null : planMaxWidth;
   const handleNavigatorTabChange = (tab: SidebarTab) => {
     toggleSidebarTab(tab);
