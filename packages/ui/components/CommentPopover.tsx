@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { ImageAttachment } from '../types';
-import { CommentAttachShelf } from './CommentAttachShelf';
+import { CommentAttachStack } from './CommentAttachStack';
 import { imageFilesFrom, useAttachmentUploads } from '../hooks/useAttachmentUploads';
-import { submitHint } from '../utils/platform';
 import { useDraggable } from '../hooks/useDraggable';
 import { hasUnsavedCommentContent } from '../utils/commentContent';
 import {
@@ -692,21 +691,22 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           />
         </div>
 
-        {/* Attachment shelf - always mounted, so nothing below it moves. */}
-        {allowImages && (
-          <CommentAttachShelf
-            images={images}
-            pending={uploads.pending}
-            onFiles={attachFiles}
-            onRemove={removeImage}
-            onRemovePending={uploads.removePending}
-            onRetryPending={uploads.retry}
-          />
-        )}
-
-        {/* Action row. */}
+        {/* Action row. Attachments on the left; Ask sits right beside Save.
+            Save sets the row's height, so attaching never moves it. */}
         <div className="flex items-center justify-between gap-3 pb-2 pl-2.5 pr-2 pt-1.75">
           <div className="flex min-w-0 items-center gap-0.5">
+            {allowImages && (
+              <CommentAttachStack
+                images={images}
+                pending={uploads.pending}
+                onFiles={attachFiles}
+                onRemove={removeImage}
+                onRemovePending={uploads.removePending}
+              />
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {quickLookGoodButton}
             <button
               type="button"
               onClick={() => {}}
@@ -715,13 +715,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             >
               Ask
             </button>
-          </div>
-          <div className="flex shrink-0 items-center gap-2.5">
-            {quickLookGoodButton}
-            <span className="flex items-center gap-1 text-3xs text-muted-foreground/60" title={submitHint}>
-              <span>Ctrl</span>
-              <span aria-hidden="true">↵</span>
-            </span>
             <button
               onClick={handleSubmit}
               disabled={!canSubmit}
