@@ -39,3 +39,15 @@ export const AGREED_LABEL: QuickLabel = {
   color: 'green',
 };
 
+/**
+ * The labels floating above an anchored composer. One click saves a comment
+ * with the label's text and tip. Agreed comes first and carries no tip.
+ */
+export const COMPOSER_QUICK_LABELS: QuickLabel[] = [
+  AGREED_LABEL,
+  { id: 'needs-explanation', emoji: '', text: 'Needs explanation', color: 'yellow', tip: 'Explain the reasoning behind this before going further.' },
+  { id: 'verify-this', emoji: '', text: 'Verify this', color: 'orange', tip: 'This seems like an assumption. Verify by reading the actual code before proceeding.' },
+  { id: 'give-an-example', emoji: '', text: 'Give an example', color: 'cyan', tip: 'This is too abstract. Show a before/after, a sample input/output, or a specific scenario so I can see how this actually works.' },
+  { id: 'out-of-scope', emoji: '', text: 'Out of scope', color: 'red', tip: 'This is not part of the current task. Remove it and stay focused on what was actually requested.' },
+  { id: 'needs-tests', emoji: '', text: 'Needs tests', color: 'blue' },
+];

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { AnnotationType } from "../types";
 import { createPortal } from "react-dom";
 import { useDismissOnOutsideAndEscape } from "../hooks/useDismissOnOutsideAndEscape";
-import { type QuickLabel, AGREED_LABEL } from "../utils/quickLabels";
 import { copyTextToClipboard } from "../utils/clipboard";
 import { acquireTypeToCommentCapture } from "../shortcuts/plan-review/annotationMode.shortcuts";
 
@@ -22,12 +21,9 @@ interface AnnotationToolbarProps {
   onClose: () => void;
   /** Called when user wants to write a comment (opens CommentPopover in parent) */
   onRequestComment?: (initialChar?: string) => void;
-  /** Called when a quick label chip is selected */
-  onQuickLabel?: (label: QuickLabel) => void;
   /** Text to copy when the button is clicked */
   copyText?: string;
   /** Comment-only surfaces (HTML / live-app viewer): hide the Delete action.
-   *  A provided onQuickLabel renders the hardcoded "Agreed" button.
    *  Markdown surfaces keep the full toolbar. */
   commentOnly?: boolean;
   /** Hide the copy button (set when a keyboard copy handler exists) */
@@ -47,7 +43,6 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
   onAnnotate,
   onClose,
   onRequestComment,
-  onQuickLabel,
   copyText,
   commentOnly = false,
   hideCopyButton = false,
@@ -210,14 +205,6 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
           label="Comment"
           className="text-annotation-comment hover:bg-annotation-comment/10"
         />
-        {onQuickLabel && (
-          <ToolbarButton
-            onClick={() => onQuickLabel(AGREED_LABEL)}
-            icon={<AgreedIcon />}
-            label="Agreed"
-            className="text-success hover:bg-success/10"
-          />
-        )}
         <div className="w-px h-5 bg-border mx-0.5" />
         <ToolbarButton
           onClick={onClose}
@@ -253,13 +240,6 @@ const TrashIcon = () => (
 const CommentIcon = () => (
   <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-  </svg>
-);
-
-/** The "Agreed" verdict: a check, not a thumb. */
-const AgreedIcon = () => (
-  <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
   </svg>
 );
 

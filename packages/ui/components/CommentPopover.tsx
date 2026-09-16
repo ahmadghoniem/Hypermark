@@ -10,6 +10,8 @@ import {
   type VisibleViewportBounds,
 } from '../hooks/useViewportEnvironment';
 import { useDialKit } from 'dialkit';
+import type { QuickLabel } from '../utils/quickLabels';
+import { ComposerQuickLabels } from './ComposerQuickLabels';
 
 /** One selected target of a multi-target draft comment (HTML pinpoint multi-select). */
 export interface CommentTargetChip {
@@ -38,14 +40,11 @@ interface CommentPopoverProps {
   initialImages?: ImageAttachment[];
   /** Called on submit with comment text and optional images */
   onSubmit: (text: string, images?: ImageAttachment[]) => void;
-  /**
-   * One-click "Agreed" action (comment-only HTML/live surfaces, where
-   * pinpoint clicks open this composer directly and never see the selection
-   * toolbar's own Agreed button). Renders an Agreed button in the footer;
-   * disabled once the user has typed or attached anything, so a click can
-   * never discard a draft. The parent owns annotation creation and closing.
-   */
-  onQuickAgree?: () => void;
+  /** Label chips floating above an anchored composer. A click saves a comment
+   *  with that label; the host creates the annotation and closes the composer.
+   *  Ignored for global comments. */
+  quickLabels?: readonly QuickLabel[];
+  onQuickLabel?: (label: QuickLabel) => void;
   /** Optional live draft observer for submit paths outside the popover. */
   onDraftChange?: (text: string, images?: ImageAttachment[]) => void;
   /** Called when popover is closed/cancelled */
@@ -148,15 +147,19 @@ interface CommentPopoverPosition {
 export function computeCommentPopoverPosition(
   anchorRect: Pick<DOMRect, 'top' | 'right' | 'bottom' | 'left' | 'width'>,
   bounds: VisibleViewportBounds,
+  labelsLane = 0,
 ): CommentPopoverPosition {
-  const spaceBelow = Math.max(0, bounds.bottom - anchorRect.bottom - GAP);
-  const spaceAbove = Math.max(0, anchorRect.top - bounds.top - GAP);
+  const spaceBelow = Math.max(0, bounds.bottom - anchorRect.bottom - GAP - labelsLane);
+  const spaceAbove = Math.max(0, anchorRect.top - bounds.top - GAP - labelsLane);
   const flipAbove = spaceBelow < 280 && spaceAbove > spaceBelow;
   const width = Math.min(MAX_POPOVER_WIDTH, bounds.width);
 
+  // Below the anchor the label row sits between the anchor and the card, so
+  // the card moves down by the lane. Above the anchor the row sits above the
+  // card, so only the available height shrinks.
   const top = flipAbove
     ? anchorRect.top - GAP
-    : anchorRect.bottom + GAP;
+    : anchorRect.bottom + GAP + labelsLane;
 
   let left = anchorRect.left + anchorRect.width / 2 - width / 2;
   left = Math.max(bounds.left, Math.min(left, bounds.right - width));
@@ -180,7 +183,8 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   initialText = '',
   initialImages,
   onSubmit,
-  onQuickAgree,
+  quickLabels,
+  onQuickLabel,
   onDraftChange,
   onClose,
   draftKey,
@@ -270,6 +274,19 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 
   const hasUnsavedContent = hasUnsavedCommentContent(text, allowImages ? images : []);
 
+  const labelDials = useDialKit('03 · Quick labels', {
+    chipHeight: [24, 18, 32, 1],
+    /** Between the row and the card, and between the row and the anchor. */
+    cardGap: [8, 2, 16, 1],
+    gap: [6, 2, 12, 1],
+    /** Width of the fade over a clipped edge of the row. */
+    fade: [36, 16, 64, 4],
+  }, { id: 'cl-03', persist: true });
+  const showQuickLabels = !isGlobal && !!onQuickLabel && (quickLabels?.length ?? 0) > 0;
+  // Room reserved above the card, so the row never covers the document and
+  // the card does not move when the row fades out.
+  const labelsLane = showQuickLabels ? labelDials.chipHeight + labelDials.cardGap : 0;
+
   const hasUnsavedContentRef = useRef(hasUnsavedContent);
   hasUnsavedContentRef.current = hasUnsavedContent;
   const { dragPosition, dragHandleProps, wasDragged, reset: resetDrag } = useDraggable(popoverRef);
@@ -306,7 +323,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     const update = () => {
       const rect = anchorEl?.getBoundingClientRect() ?? anchorRect;
       if (!rect) return;
-      const nextPosition = computeCommentPopoverPosition(rect, visibleBounds);
+      const nextPosition = computeCommentPopoverPosition(rect, visibleBounds, labelsLane);
       if (nextPosition.requiresExpanded) {
         setDialogIsForced(true);
         setMode('dialog');
@@ -320,7 +337,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     return () => {
       window.removeEventListener('scroll', update, true);
     };
-  }, [anchorEl, anchorRect, mode, visibleBounds, wasDragged]);
+  }, [anchorEl, anchorRect, labelsLane, mode, visibleBounds, wasDragged]);
 
   // Surface a "jump back" arrow when an open popover scrolls out of view.
   // Re-measures whenever the popover repositions (position updates every scroll
@@ -609,23 +626,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     hasUnsavedContent ||
     (allowEmptySubmit && initialText.trim().length > 0);
 
-  // Shared by both footers. Disabled once anything is typed or attached so a
-  // click can never discard a draft; with content present, Save is the path.
-  const quickLookGoodButton = onQuickAgree ? (
-    <button
-      type="button"
-      onClick={onQuickAgree}
-      disabled={hasUnsavedContent}
-      className="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-medium rounded-md text-muted-foreground hover:text-foreground hover:bg-success/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      title={hasUnsavedContent ? 'Clear the comment to use Agreed' : 'Add "Agreed" without typing'}
-    >
-      <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-      </svg>
-      Agreed
-    </button>
-  ) : null;
-
   const maxAllowedHeight = dragPosition ? visibleBounds.height : position?.maxHeight;
   const popoverMaxHeightStyle = maxAllowedHeight != null ? `calc(${maxAllowedHeight}px - 8rem)` : undefined;
 
@@ -734,7 +734,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             )}
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
-            {quickLookGoodButton}
             <button
               type="button"
               onClick={() => {}}
@@ -864,6 +863,18 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
         }
         onPointerDown={(e) => e.stopPropagation()}
       >
+        {showQuickLabels && quickLabels && onQuickLabel && (
+          <div className="absolute inset-x-0" style={{ bottom: `calc(100% + ${labelDials.cardGap}px)` }}>
+            <ComposerQuickLabels
+              labels={quickLabels}
+              onSelect={onQuickLabel}
+              hidden={hasUnsavedContent}
+              chipHeight={labelDials.chipHeight}
+              gap={labelDials.gap}
+              fade={labelDials.fade}
+            />
+          </div>
+        )}
         <style>{`
           @keyframes comment-popover-in {
             from { opacity: 0; transform: translateY(-8px); }

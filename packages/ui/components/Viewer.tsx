@@ -40,7 +40,7 @@ import { GraphvizBlock } from './GraphvizBlock';
 import { MermaidBlock } from './MermaidBlock';
 import { isGraphvizLanguage, isMermaidLanguage } from './diagramLanguages';
 import { getIdentity } from '../utils/identity';
-import { type QuickLabel, formatQuickLabel } from '../utils/quickLabels';
+import { COMPOSER_QUICK_LABELS } from '../utils/quickLabels';
 import { DocBadges, type DocBadgesProps, type LinkedDocBadgeInfo } from './DocBadges';
 import { PinpointOverlay } from './PinpointOverlay';
 import { usePinpoint } from '../hooks/usePinpoint';
@@ -412,10 +412,10 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     toolbarState,
     commentPopover: hookCommentPopover,
     handleAnnotate,
-    handleQuickLabel,
     handleToolbarClose,
     handleRequestComment,
     handleCommentSubmit: hookCommentSubmit,
+    handleCommentQuickLabel: hookCommentQuickLabel,
     handleCommentClose: hookCommentClose,
     highlightRange,
     removeHighlight: hookRemoveHighlight,
@@ -711,17 +711,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     setCodeBlockToolbar(null);
   };
 
-  const handleCodeBlockQuickLabel = (label: QuickLabel) => {
-    if (readOnlyRef.current || !codeBlockToolbar) return;
-    const codeEl = codeBlockToolbar.element.querySelector('code');
-    if (!codeEl) return;
-    applyCodeBlockAnnotation(
-      codeBlockToolbar.block.id, codeEl, AnnotationType.COMMENT,
-      formatQuickLabel(label), undefined, label.tip
-    );
-    setCodeBlockToolbar(null);
-  };
-
   const handleCodeBlockToolbarClose = () => {
     setCodeBlockToolbar(null);
   };
@@ -1008,7 +997,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               onAnnotate={handleAnnotate}
               onClose={handleToolbarClose}
               onRequestComment={handleRequestComment}
-              onQuickLabel={handleQuickLabel}
               copyText={toolbarState.selectionText}
               hideCopyButton={!isTouchDevice}
               closeOnScrollOut
@@ -1062,7 +1050,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
                 onAnnotate={handleCodeBlockAnnotate}
                 onClose={handleCodeBlockToolbarClose}
                 onRequestComment={handleCodeBlockRequestComment}
-                onQuickLabel={handleCodeBlockQuickLabel}
                 isExiting={isCodeBlockToolbarExiting}
                 onMouseEnter={() => {
                   if (hoverTimeoutRef.current) {
@@ -1120,6 +1107,8 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               draftKey={`plan:${commentDraftScope}:${hookCommentPopover.draftKey}`}
               onSubmit={hookCommentSubmit}
               onClose={hookCommentClose}
+              quickLabels={COMPOSER_QUICK_LABELS}
+              onQuickLabel={hookCommentQuickLabel}
               allowImages={allowImages}
             />
           )}
