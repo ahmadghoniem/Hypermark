@@ -56,6 +56,7 @@ import { useUndoHistory } from '@hypermark/ui/hooks/useUndoHistory';
 import { generateId } from '@hypermark/ui/utils/generateId';
 import { SidebarTabs } from '@hypermark/ui/components/sidebar/SidebarTabs';
 import { SidebarContainer } from '@hypermark/ui/components/sidebar/SidebarContainer';
+import { MessageRail } from '@hypermark/ui/components/MessageRail';
 import type { PickerMessage } from '@hypermark/ui/components/sidebar/MessagesBrowser';
 import { PlanDiffViewer } from '@hypermark/ui/components/plan-diff/PlanDiffViewer';
 import { CodeFilePopout, type CodeFileAnnotationInput } from '@hypermark/ui/components/CodeFilePopout';
@@ -2561,17 +2562,6 @@ const AppInner: React.FC = () => {
                     codePathBaseDir={activeDocBaseDir}
                     copyLabel={annotateSource === 'message' ? 'Copy message' : annotateSource === 'file' ? 'Copy file' : undefined}
                     sourceInfo={sourceInfo}
-                    messagePickerInfo={
-                      annotateSource === 'message' && recentMessages.length > 1
-                        ? {
-                            // selectedMessageId is always one of recentMessages (set on init,
-                            // only changed via handleSelectMessage), so findIndex is >= 0.
-                            current: recentMessages.findIndex((m) => m.messageId === selectedMessageId) + 1,
-                            total: recentMessages.length,
-                            onOpen: () => openSidebarTab('messages'),
-                          }
-                        : undefined
-                    }
                     onToggleCheckbox={checkbox.toggle}
                     checkboxOverrides={checkbox.overrides}
                     actionsLabelMode={actionsLabelMode}
@@ -2580,6 +2570,19 @@ const AppInner: React.FC = () => {
               </div>
             </div>
           </OverlayScrollArea>
+
+          {/* Message rail - recent assistant messages, in the gutter between
+              the document and the annotations panel. Replaces the Messages
+              sidebar tab and the "Message N of M" button. */}
+          {annotateSource === 'message' && recentMessages.length > 1 && wideModeType === null && (
+            <MessageRail
+              className="hidden lg:flex"
+              messages={recentMessages}
+              selectedMessageId={selectedMessageId}
+              onSelect={handleSelectMessage}
+              annotationCounts={activeMessageAnnotationCounts}
+            />
+          )}
 
           {/* Right panel region — `group/sidebar` so the collapse button reveals when
               hovering the whole panel, not just the thin handle. The handle and the
