@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import App from '@hypermark/review-editor';
 import { ReviewWorkerPoolProvider } from '@hypermark/review-editor/worker-pool';
 import '@hypermark/review-editor/styles';
+import { DialRoot } from 'dialkit';
+import 'dialkit/styles.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -18,5 +20,6 @@ root.render(
     <ReviewWorkerPoolProvider>
       <App />
     </ReviewWorkerPoolProvider>
+    <DialRoot position="bottom-left" />
   </React.StrictMode>
 );
