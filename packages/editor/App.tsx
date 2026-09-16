@@ -2235,6 +2235,30 @@ const AppInner: React.FC = () => {
     handleActivatePlanDiff();
   };
 
+  // Top padding that puts the sidebar header level with the document's first
+  // heading. Measured, because the toolstrip, sticky actions and breakpoint
+  // paddings all move the title. Both columns start at the same y.
+  const [docTitleOffset, setDocTitleOffset] = useState(0);
+  useLayoutEffect(() => {
+    const area = planAreaRef.current;
+    if (!area || isHtmlSurface || !sidebar.isOpen) return;
+    const measure = () => {
+      const heading = area.querySelector<HTMLElement>('article h1, article h2, article h3');
+      if (!heading) {
+        setDocTitleOffset(0);
+        return;
+      }
+      const headingTop = heading.getBoundingClientRect().top - area.getBoundingClientRect().top;
+      const lineHeight = parseFloat(getComputedStyle(heading).lineHeight) || heading.offsetHeight;
+      // The header row is 40px tall with its text centred: align the centres.
+      setDocTitleOffset(Math.max(0, Math.round(headingTop + lineHeight / 2 - 20)));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(area);
+    return () => observer.disconnect();
+  }, [isHtmlSurface, sidebar.isOpen, viewerContentKey]);
+
   const renderPlanSidebar = () => {
     return (
       <SidebarContainer
@@ -2242,6 +2266,7 @@ const AppInner: React.FC = () => {
         onTabChange={handleNavigatorTabChange}
         onClose={sidebar.close}
         width={`var(--toc-w, ${tocResize.width}px)`}
+        contentTopOffset={docTitleOffset}
         showContentsTab
         blocks={blocks}
         annotations={annotations}
@@ -2262,11 +2287,6 @@ const AppInner: React.FC = () => {
         isSelectingVersion={planDiff.isSelectingVersion}
         fetchingVersion={planDiff.fetchingVersion}
         onFetchVersions={planDiff.fetchVersions}
-        showMessagesTab={annotateSource === 'message' && recentMessages.length > 1}
-        messages={recentMessages}
-        selectedMessageId={selectedMessageId}
-        onSelectMessage={handleNavigatorMessageSelect}
-        messageAnnotationCounts={activeMessageAnnotationCounts}
       />
     );
   };
@@ -2371,8 +2391,6 @@ const AppInner: React.FC = () => {
               onToggleTab={toggleSidebarTab}
               hasDiff={planDiff.hasPreviousVersion}
               showVersionsTab={!isHtmlSurface && activeDiffVersionInfo !== null && activeDiffVersionInfo.totalVersions > 1}
-              showMessagesTab={annotateSource === 'message' && recentMessages.length > 1}
-              hasMessageAnnotations={activeMessageAnnotationCounts.size > 0}
               className="hidden lg:flex absolute left-0 top-0 z-20"
             />
           )}
