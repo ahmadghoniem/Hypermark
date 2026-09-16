@@ -5,6 +5,8 @@
  * so they persist across different port-based sessions.
  */
 
+import { storage } from './storage';
+
 export interface QuickLabel {
   id: string;     // kebab-case identifier e.g. "needs-tests"
   emoji: string;  // single emoji e.g. "🧪", or '' for a label that carries none
@@ -43,7 +45,7 @@ export const AGREED_LABEL: QuickLabel = {
  * The labels floating above an anchored composer. One click saves a comment
  * with the label's text and tip. Agreed comes first and carries no tip.
  */
-export const COMPOSER_QUICK_LABELS: QuickLabel[] = [
+export const DEFAULT_QUICK_LABELS: QuickLabel[] = [
   AGREED_LABEL,
   { id: 'needs-explanation', emoji: '', text: 'Needs explanation', color: 'yellow', tip: 'Explain the reasoning behind this before going further.' },
   { id: 'verify-this', emoji: '', text: 'Verify this', color: 'orange', tip: 'This seems like an assumption. Verify by reading the actual code before proceeding.' },
@@ -51,3 +53,68 @@ export const COMPOSER_QUICK_LABELS: QuickLabel[] = [
   { id: 'out-of-scope', emoji: '', text: 'Out of scope', color: 'red', tip: 'This is not part of the current task. Remove it and stay focused on what was actually requested.' },
   { id: 'needs-tests', emoji: '', text: 'Needs tests', color: 'blue' },
 ];
+
+const STORAGE_KEY_QUICK_LABELS = 'hypermark-quick-labels';
+/** Cookies hold ~4KB; these caps keep the list well inside that. */
+export const QUICK_LABEL_MAX_TIP = 240;
+export const QUICK_LABEL_MAX_COUNT = 24;
+/** Dot colours offered in the editor; keys of DOT_CLASS in ComposerQuickLabels. */
+export const QUICK_LABEL_COLORS = ['green', 'yellow', 'orange', 'cyan', 'red', 'blue'] as const;
+
+/** A label the user may edit: everything except the built-in Agreed. */
+export function isEditableQuickLabel(label: QuickLabel): boolean {
+  return label.id !== AGREED_LABEL.id;
+}
+
+/** kebab-case id derived from the text, made unique against `taken`. */
+export function quickLabelId(text: string, taken: readonly string[]): string {
+  const base = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'label';
+  let id = base;
+  for (let n = 2; taken.includes(id); n += 1) id = `${base}-${n}`;
+  return id;
+}
+
+/** Parses stored JSON, dropping anything malformed. Agreed is always first. */
+export function parseQuickLabels(raw: string | null): QuickLabel[] {
+  if (!raw) return DEFAULT_QUICK_LABELS;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return DEFAULT_QUICK_LABELS;
+    const labels = parsed
+      .filter((l): l is QuickLabel =>
+        !!l && typeof l === 'object'
+        && typeof (l as QuickLabel).id === 'string'
+        && typeof (l as QuickLabel).text === 'string')
+      .filter((l) => isEditableQuickLabel(l))
+      .slice(0, QUICK_LABEL_MAX_COUNT)
+      .map((l) => ({
+        id: l.id,
+        emoji: typeof l.emoji === 'string' ? l.emoji : '',
+        text: l.text.slice(0, 60),
+        color: typeof l.color === 'string' ? l.color : 'blue',
+        ...(l.tip ? { tip: String(l.tip).slice(0, QUICK_LABEL_MAX_TIP) } : {}),
+      }));
+    return [AGREED_LABEL, ...labels];
+  } catch {
+    return DEFAULT_QUICK_LABELS;
+  }
+}
+
+export function getQuickLabels(): QuickLabel[] {
+  return parseQuickLabels(storage.getItem(STORAGE_KEY_QUICK_LABELS));
+}
+
+const quickLabelListeners = new Set<() => void>();
+
+/** Persists everything except Agreed, which is not the user's to change. */
+export function saveQuickLabels(labels: readonly QuickLabel[]): void {
+  const editable = labels.filter(isEditableQuickLabel).slice(0, QUICK_LABEL_MAX_COUNT);
+  storage.setItem(STORAGE_KEY_QUICK_LABELS, JSON.stringify(editable));
+  for (const listener of quickLabelListeners) listener();
+}
+
+/** Subscribe to saves, so every open composer re-reads the list. */
+export function subscribeQuickLabels(listener: () => void): () => void {
+  quickLabelListeners.add(listener);
+  return () => quickLabelListeners.delete(listener);
+}

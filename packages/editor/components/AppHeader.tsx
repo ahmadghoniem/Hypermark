@@ -4,6 +4,7 @@ import { FeedbackButton, ApproveButton } from '@hypermark/ui/components/ToolbarB
 import { DecisionControl, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import type { DecisionActionId, DecisionSpec } from '@hypermark/ui/utils/decisionSpec';
 import { ThemeModeButton } from '@hypermark/ui/components/ThemeModeButton';
+import { QuickLabelsButton } from '@hypermark/ui/components/QuickLabelsSettings';
 import { KeyboardShortcutsButton } from '@hypermark/ui/components/KeyboardShortcutsDialog';
 import type { UIPreferences } from '@hypermark/ui/utils/uiPreferences';
 import { HtmlSurfaceControls } from '@hypermark/ui/components/HtmlSurfaceControls';
@@ -178,6 +179,8 @@ export const AppHeader = React.memo<AppHeaderProps>(({
             </span>
           )}
         </button>
+
+        <QuickLabelsButton />
 
         <ThemeModeButton />
 

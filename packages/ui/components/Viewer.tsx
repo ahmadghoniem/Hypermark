@@ -40,7 +40,7 @@ import { GraphvizBlock } from './GraphvizBlock';
 import { MermaidBlock } from './MermaidBlock';
 import { isGraphvizLanguage, isMermaidLanguage } from './diagramLanguages';
 import { getIdentity } from '../utils/identity';
-import { COMPOSER_QUICK_LABELS } from '../utils/quickLabels';
+import { useQuickLabels } from '../hooks/useQuickLabels';
 import { DocBadges, type DocBadgesProps, type LinkedDocBadgeInfo } from './DocBadges';
 import { PinpointOverlay } from './PinpointOverlay';
 import { usePinpoint } from '../hooks/usePinpoint';
@@ -406,6 +406,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   const stickySentinelRef = useRef<HTMLDivElement>(null);
   const lastAutoScrolledHashRef = useRef<string | null>(null);
   const [isStuck, setIsStuck] = useState(false);
+  const [quickLabels] = useQuickLabels();
 
   // Shared annotation infrastructure via hook
   const {
@@ -1107,7 +1108,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               draftKey={`plan:${commentDraftScope}:${hookCommentPopover.draftKey}`}
               onSubmit={hookCommentSubmit}
               onClose={hookCommentClose}
-              quickLabels={COMPOSER_QUICK_LABELS}
+              quickLabels={quickLabels}
               onQuickLabel={hookCommentQuickLabel}
               allowImages={allowImages}
             />
