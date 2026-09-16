@@ -18,8 +18,6 @@ export type InputMethod = 'drag' | 'pinpoint';
  */
 export type ActionsLabelMode = 'full' | 'short' | 'icon';
 
-export type WideModeType = 'wide' | 'focus';
-
 export interface ImageAttachment {
   path: string;
   name: string;
