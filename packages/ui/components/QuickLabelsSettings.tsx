@@ -140,7 +140,7 @@ export const QuickLabelsButton: React.FC = () => {
                         type="button"
                         disabled={isFirst}
                         onClick={() => moveLabel(index, index - 1)}
-                        className="size-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 disabled:opacity-30 disabled:pointer-events-none transition-opacity"
+                        className="size-5 flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 disabled:opacity-30 disabled:pointer-events-none transition-opacity"
                         title="Move up"
                         aria-label="Move up"
                       >
@@ -152,7 +152,7 @@ export const QuickLabelsButton: React.FC = () => {
                         type="button"
                         disabled={isLast}
                         onClick={() => moveLabel(index, index + 1)}
-                        className="size-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 disabled:opacity-30 disabled:pointer-events-none transition-opacity"
+                        className="size-5 flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 disabled:opacity-30 disabled:pointer-events-none transition-opacity"
                         title="Move down"
                         aria-label="Move down"
                       >
@@ -171,7 +171,7 @@ export const QuickLabelsButton: React.FC = () => {
                             color: label.color,
                           });
                         }}
-                        className="size-5 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-opacity"
+                        className="size-5 flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-opacity"
                         title="Edit label"
                         aria-label="Edit label"
                       >
@@ -186,7 +186,7 @@ export const QuickLabelsButton: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => save(labels.filter((l) => l.id !== label.id))}
-                        className="size-5 flex items-center justify-center rounded text-muted-foreground hover:text-destructive hover:bg-muted opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-opacity"
+                        className="size-5 flex items-center justify-center rounded-sm text-muted-foreground hover:text-destructive hover:bg-muted opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-opacity"
                         title="Delete label"
                         aria-label="Delete label"
                       >
