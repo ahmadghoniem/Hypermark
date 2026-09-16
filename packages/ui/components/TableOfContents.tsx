@@ -2,9 +2,16 @@ import React, { useMemo, useCallback } from 'react';
 import type { Block, Annotation } from '../types';
 import {
   buildTocHierarchy,
-  getAnnotationCountBySection,
   type TocItem,
 } from '../utils/annotationHelpers';
+import {
+  TOC_LINE_INNER,
+  TOC_LINE_OUTER,
+  TOC_ROW_HEIGHT,
+  buildTocActivePath,
+  buildTocCircuitPath,
+  tocLineX,
+} from '../utils/tocCircuit';
 import { fileName as pathFileName } from '../utils/displayPath';
 import {
   getScrollViewportRect,
@@ -23,11 +30,14 @@ interface TableOfContentsProps {
   linkedDocFilepath?: string | null;
   onLinkedDocBack?: () => void;
   backLabel?: string;
+  /** Circuit geometry, dialled by SidebarContainer. */
+  rowHeight?: number;
+  lineOuter?: number;
+  lineInner?: number;
+  lineStroke?: number;
 }
 
-// The prototype's TOC is a FLAT list — heading depth is conveyed by indentation
-// + tonal de-emphasis, not an expand/collapse chevron tree. Flatten the built
-// hierarchy (depth-first = document order) into a single ordered list.
+// Flat list in document order; depth is shown by the circuit line and indentation.
 function flattenToc(items: TocItem[]): TocItem[] {
   const out: TocItem[] = [];
   const walk = (list: TocItem[]) => {
@@ -40,22 +50,8 @@ function flattenToc(items: TocItem[]): TocItem[] {
   return out;
 }
 
-// Indentation + tonal de-emphasis by heading level (prototype style):
-// H1 flush + near-full strength, H2/H3 indented and dimmed to muted. Active row
-// is a soft neutral surface tint (not a loud primary fill).
-function itemClasses(level: number, isActive: boolean): string {
-  const indent = level <= 1 ? '' : level === 2 ? 'ml-3' : 'ml-6';
-  const tone = isActive
-    ? 'bg-surface-1 text-foreground'
-    : level <= 1
-      ? 'text-foreground/80 hover:bg-surface-1/70'
-      : 'text-muted-foreground hover:bg-surface-1/70';
-  return `${indent} ${tone}`;
-}
-
 export function TableOfContents({
   blocks,
-  annotations,
   activeId,
   onNavigate,
   className = '',
@@ -63,19 +59,18 @@ export function TableOfContents({
   linkedDocFilepath,
   onLinkedDocBack,
   backLabel,
+  rowHeight = TOC_ROW_HEIGHT,
+  lineOuter = TOC_LINE_OUTER,
+  lineInner = TOC_LINE_INNER,
+  lineStroke = 1.25,
 }: TableOfContentsProps) {
-  // Annotation count per section (kept — production feature).
-  const annotationCounts = useMemo(
-    () => getAnnotationCountBySection(blocks, annotations),
-    [blocks, annotations]
-  );
-
-  // Build the hierarchy (filters to heading levels ≤ 3 and attaches counts),
-  // then flatten to a plain list.
+  // Counts are not shown in the table of contents, so pass an empty map.
   const tocItems = useMemo(
-    () => flattenToc(buildTocHierarchy(blocks, annotationCounts)),
-    [blocks, annotationCounts]
+    () => flattenToc(buildTocHierarchy(blocks, new Map())),
+    [blocks]
   );
+  const levels = useMemo(() => tocItems.map((item) => item.level), [tocItems]);
+  const activeIndex = tocItems.findIndex((item) => item.id === activeId);
 
   // The real scroll element is the OverlayScrollArea viewport, not <main>.
   const scrollViewport = useScrollViewport();
@@ -111,7 +106,7 @@ export function TableOfContents({
       aria-label="Table of contents"
       style={style}
     >
-      <div className="p-1.5">
+      <div className="px-3 pb-3">
         {linkedDocFilepath && (
           <div className="mb-2 px-0.5 pb-1.5 border-b border-border/50">
             <div className="flex items-center justify-between">
@@ -133,26 +128,51 @@ export function TableOfContents({
             </p>
           </div>
         )}
-        <div className="flex flex-col gap-0.5">
-          {tocItems.map((item) => {
-            const isActive = item.id === activeId;
+        <div className="relative" style={{ height: tocItems.length * rowHeight }}>
+          <svg
+            aria-hidden="true"
+            className="pointer-events-none absolute left-0 top-0 overflow-visible"
+            width={lineInner + 6}
+            height={tocItems.length * rowHeight}
+            fill="none"
+          >
+            <path
+              d={buildTocCircuitPath(levels, rowHeight, lineOuter, lineInner)}
+              stroke="currentColor"
+              strokeWidth={lineStroke}
+              strokeLinecap="round"
+              className="text-muted-foreground/40"
+            />
+            {activeIndex >= 0 && (
+              <path
+                d={buildTocActivePath(levels, activeIndex, rowHeight, lineOuter, lineInner)}
+                stroke="currentColor"
+                strokeWidth={lineStroke + 0.75}
+                strokeLinecap="round"
+                className="text-primary"
+              />
+            )}
+          </svg>
+          {tocItems.map((item, index) => {
+            const isActive = index === activeIndex;
             return (
               <button
                 key={item.id}
                 type="button"
                 onClick={() => handleNavigate(item.id)}
                 aria-current={isActive ? 'location' : undefined}
-                className={`flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-2xs/snug font-medium  transition-colors ${itemClasses(
-                  item.level,
+                title={item.content}
+                // 12px between the line and the text, whichever track the row is on.
+                style={{ height: rowHeight, paddingLeft: tocLineX(item.level, lineOuter, lineInner) + 12 }}
+                className={`flex w-full items-center pr-1.5 text-left text-2xs font-medium transition-colors ${
                   isActive
-                )}`}
+                    ? 'text-primary'
+                    : item.level <= 1
+                      ? 'text-foreground hover:text-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                }`}
               >
-                <span className="line-clamp-2">{item.content}</span>
-                {item.annotationCount > 0 && (
-                  <span className="ml-1 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-primary/10 px-1 font-mono text-4xs text-primary">
-                    {item.annotationCount}
-                  </span>
-                )}
+                <span className="truncate">{item.content}</span>
               </button>
             );
           })}

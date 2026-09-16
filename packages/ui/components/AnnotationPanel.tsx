@@ -180,14 +180,14 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
     <aside
       data-annotation-panel="true"
       data-plan-sidebar="right"
-      className={`bg-card flex flex-col ${embedded ? 'size-full min-h-0 flex-1' : 'shrink-0 border-l border-border/50'} ${
+      className={`bg-card flex flex-col ${embedded ? 'size-full min-h-0 flex-1' : 'shrink-0'} ${
         mobilePanel ? 'fixed top-12 bottom-0 right-0 z-panel w-full max-w-sm shadow-2xl' : ''
       }`}
       style={embedded || mobilePanel ? undefined : { width: width ?? 288 }}
     >
       {/* Header */}
       {!embedded && (
-        <div className="border-b border-border/50">
+        <div>
           <div className="flex h-10 items-center justify-between px-3">
             <div className="flex items-center gap-2">
               <h2 className="text-xs font-medium text-foreground">
