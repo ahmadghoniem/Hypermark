@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDialKit } from 'dialkit';
-import type { PickerMessage } from './sidebar/MessagesBrowser';
+/** A recent assistant message offered by annotate-last. */
+export interface PickerMessage {
+  messageId: string;
+  text: string;
+  timestamp?: string;
+}
 import {
   RAIL_ROW_HEIGHT,
   formatRelativeTime,
