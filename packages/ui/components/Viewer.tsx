@@ -36,7 +36,6 @@ class ToolbarErrorBoundary extends React.Component<
 }
 
 import { CommentPopover } from './CommentPopover';
-import { MessagesIcon } from './icons/MessagesIcon';
 import { GraphvizBlock } from './GraphvizBlock';
 import { MermaidBlock } from './MermaidBlock';
 import { isGraphvizLanguage, isMermaidLanguage } from './diagramLanguages';
@@ -123,13 +122,6 @@ export interface ViewerProps {
   actionsLabelMode?: ActionsLabelMode;
   /** Source attribution for HTML/URL annotations (e.g. URL or filename) */
   sourceInfo?: string;
-  /**
-   * Message picker affordance — annotate-last mode only. Shown as a button in
-   * the sticky-top action bar so the user can switch to a different recent
-   * assistant message. Clicking opens the full picker in the left sidebar's
-   * Messages tab.
-   */
-  messagePickerInfo?: { current: number; total: number; onOpen: () => void };
   // Checkbox toggle props
   onToggleCheckbox?: (blockId: string, checked: boolean) => void;
   checkboxOverrides?: Map<string, boolean>;
@@ -332,7 +324,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   copyLabel,
   actionsLabelMode = 'full',
   sourceInfo,
-  messagePickerInfo,
   onToggleCheckbox,
   checkboxOverrides,
   allowImages = true,
@@ -791,21 +782,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
 
   const documentActions = (
     <>
-      {messagePickerInfo && (
-        <button
-          onClick={messagePickerInfo.onOpen}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors"
-          title="Pick a different message to annotate"
-        >
-          <MessagesIcon />
-          {actionsLabelMode === 'full' && (
-            <span>Message {messagePickerInfo.current} of {messagePickerInfo.total}</span>
-          )}
-          {actionsLabelMode === 'short' && (
-            <span>{messagePickerInfo.current}/{messagePickerInfo.total}</span>
-          )}
-        </button>
-      )}
 
       {!readOnly && (
         <button
