@@ -9,6 +9,7 @@ import {
   useVisibleViewportBounds,
   type VisibleViewportBounds,
 } from '../hooks/useViewportEnvironment';
+import { useDialKit } from 'dialkit';
 
 /** One selected target of a multi-target draft comment (HTML pinpoint multi-select). */
 export interface CommentTargetChip {
@@ -73,7 +74,11 @@ interface CommentPopoverProps {
   yieldState?: CommentPopoverYieldState;
 }
 
-const MAX_POPOVER_WIDTH = 384;
+const MAX_POPOVER_WIDTH = 344;
+/** rounded-xl with --radius 10px: the card's outer corner radius. */
+const CARD_RADIUS = 14;
+/** Corner radius just inside the card's 1px border. Nested corners subtract their inset from it. */
+const INNER_RADIUS = CARD_RADIUS - 1;
 const GAP = 8;
 
 // Module-level draft store: survives popover unmount so reopening the same key restores in-progress text.
@@ -189,6 +194,18 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   yieldState,
 }) => {
   const visibleBounds = useVisibleViewportBounds(16);
+  // Design dials (spec 08). Tuned from the DialKit panel in dev; the defaults
+  // are the shipped values until they are baked back into constants.
+  const dials = useDialKit('01 · Composer chrome', {
+    width: { type: 'select', options: ['320', '336', '344', '352', '368', '384'], default: '344' },
+    inset: [4, 2, 8, 1],
+    closeSize: [18, 14, 24, 1],
+    closeIcon: [12, 9, 16, 1],
+    anchorIcon: [12, 9, 14, 1],
+    arc: { gap: [4, 0, 10, 1], stroke: [2, 1, 3, 0.5], span: [60, 30, 90, 5] },
+  }, { id: 'cl-01', persist: true });
+  const baseWidth = Math.min(Number(dials.width), visibleBounds.width);
+  const closeRadius = Math.max(2, INNER_RADIUS - dials.inset);
   const [mode, setMode] = useState<'popover' | 'dialog'>('popover');
   // Dialog mode origin: the anchor simply has no room for a popover and the
   // geometry FORCED it.
@@ -325,10 +342,10 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     anchorEl?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }, [anchorEl]);
 
-  // Arc grip: drag the composer taller and wider in place, double-click to reset.
-  // The height rides on the textarea's min-height while the width applies to
-  // the card container. Null means "whatever the class/position says" - which
-  // is what double-click restores.
+  // Arc grip: drag grows the composer right and into whichever direction the
+  // card already grows - down from the anchor, or up when the card opened
+  // above it. Double-click expands into the dialog. Height rides on the
+  // textarea, width on the card. Null = class/position size.
   const [composerHeight, setComposerHeight] = useState<number | null>(null);
   const [composerWidth, setComposerWidth] = useState<number | null>(null);
 
@@ -340,15 +357,18 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     const startX = event.clientX;
     const startY = event.clientY;
     const startHeight = textareaRef.current?.getBoundingClientRect().height ?? 72;
-    const minWidth = position?.width ?? MAX_POPOVER_WIDTH;
+    const cardRect = popoverRef.current?.getBoundingClientRect();
+    const minWidth = baseWidth;
     const startWidth = composerWidth ?? minWidth;
-    const maxWidth = Math.min(720, visibleBounds.width - 32);
+    const maxWidth = Math.max(minWidth, Math.min(720, visibleBounds.right - (cardRect?.left ?? 0) - 16));
+    // Flipped above the anchor the card is placed by its bottom edge, so it
+    // grows upward and the grip is on the top-right: dragging up adds height.
+    const growsUp = !!position?.flipAbove && !dragPosition;
 
     const move = (e: PointerEvent) => {
-      // Dragging UP from the top-left corner grows height (inverted delta)
-      setComposerHeight(Math.max(56, Math.min(480, startHeight + (startY - e.clientY))));
-      // Dragging LEFT from the top-left corner grows width (inverted delta)
-      setComposerWidth(Math.max(minWidth, Math.min(maxWidth, startWidth + (startX - e.clientX))));
+      const dy = growsUp ? startY - e.clientY : e.clientY - startY;
+      setComposerHeight(Math.max(56, Math.min(480, startHeight + dy)));
+      setComposerWidth(Math.max(minWidth, Math.min(maxWidth, startWidth + (e.clientX - startX))));
     };
     const end = () => {
       window.removeEventListener('pointermove', move);
@@ -356,11 +376,18 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', end);
-  }, [composerWidth, position?.width, visibleBounds.width]);
+  }, [baseWidth, composerWidth, dragPosition, position?.flipAbove, visibleBounds.right]);
 
-  const resetGripResize = useCallback(() => {
+  const expandFromGrip = useCallback(() => {
     setComposerHeight(null);
     setComposerWidth(null);
+    setDialogIsForced(false);
+    setMode('dialog');
+  }, []);
+
+  const collapseFromGrip = useCallback(() => {
+    setDialogIsForced(false);
+    setMode('popover');
   }, []);
 
   // Focus the textarea when it mounts (initial open and popover/dialog switches).
@@ -603,71 +630,69 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   const popoverMaxHeightStyle = maxAllowedHeight != null ? `calc(${maxAllowedHeight}px - 8rem)` : undefined;
 
   const composerCard = (
-    <div className="flex min-h-0 flex-col overflow-hidden rounded-xl bg-muted/40">
-      {/* Top strip - the outer tier. Anchor mark, location, collapse/close at the
-          far right end. Draggable by the strip itself in popover mode.
-          When isGlobal, the strip element is not rendered. */}
+    <div className="flex min-h-0 flex-col overflow-hidden rounded-[13px] bg-muted/40">
+      {/* Top strip - anchor mark, location, Close at the far right. Draggable by
+          the strip in popover mode. Not rendered for global comments. The
+          inset is the same on the top, bottom and right, and Close's radius is
+          concentric with the corner it sits in. */}
       {!isGlobal && (
         <div
-          className="flex items-center gap-2 rounded-t-xl pl-3 pr-1.5 py-1.5"
+          className="flex items-center gap-2 rounded-t-[13px] pl-3"
           {...(mode === 'popover' ? dragHandleProps : {})}
+          style={{
+            ...(mode === 'popover' ? dragHandleProps.style : {}),
+            paddingTop: dials.inset,
+            paddingBottom: dials.inset,
+            paddingRight: dials.inset,
+          }}
         >
           <span className="flex shrink-0 text-primary" aria-hidden="true">
-            <AnchorIcon />
+            <AnchorIcon size={dials.anchorIcon} />
           </span>
           <span className="min-w-0 flex-1 truncate text-2xs/snug text-muted-foreground">
             {headerLabel}
           </span>
-          <div className="flex items-center gap-1">
-            {mode === 'dialog' && !forcedDialog && (
-              <button
-                onClick={() => { setDialogIsForced(false); setMode('popover'); }}
-                className="grid size-5.5 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                title="Collapse"
-                aria-label="Collapse"
-              >
-                <CollapseIcon />
-              </button>
-            )}
-            <button
-              onClick={() => handleClose()}
-              className="grid size-5.5 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              title="Close"
-              aria-label="Close"
-            >
-              <CloseIcon />
-            </button>
-          </div>
+          {/* `relative z-2`: when the card opens above its anchor the arc grip
+              is at this corner, and Close must stay on top of it. */}
+          <button
+            type="button"
+            onClick={() => handleClose()}
+            className="relative z-2 grid shrink-0 place-items-center p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            style={{ width: dials.closeSize, height: dials.closeSize, borderRadius: closeRadius }}
+            title="Close"
+            aria-label="Close"
+          >
+            <CloseIcon size={dials.closeIcon} />
+          </button>
         </div>
       )}
 
       {/* Body - the inner tier. A card in its own right: fully rounded, its own
           hairline, its own near shadow. */}
-      <div className="flex min-h-0 flex-col rounded-xl border border-border/50 bg-popover shadow-[0_1px_1px_rgb(0_0_0/0.16),0_2px_4px_-2px_rgb(0_0_0/0.3)]">
+      <div className="flex min-h-0 flex-col rounded-[13px] border border-border/50 bg-popover shadow-[0_1px_1px_rgb(0_0_0/0.16),0_2px_4px_-2px_rgb(0_0_0/0.3)]">
         {chipsRow}
 
-        {/* Textarea, with expand parked at its top-right in popover mode (or collapse for global dialog). */}
+        {/* Textarea. The global composer has no strip, so its Close sits in this corner. */}
         <div className="relative px-3.25 pb-0.5 pt-2.5" {...composerDropProps}>
-          {mode === 'popover' ? (
+          {isGlobal && (
             <button
-              onClick={() => { setDialogIsForced(false); setMode('dialog'); }}
-              className="absolute right-2.5 top-2 z-1 grid size-5.5 place-items-center rounded-[7px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              title="Expand"
-              aria-label="Expand"
+              type="button"
+              onClick={() => handleClose()}
+              className="absolute z-1 grid place-items-center p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              style={{
+                // The body has its own 1px border, so inset − 1 puts this button
+                // the same distance from the card edge as the strip's Close.
+                top: dials.inset - 1,
+                right: dials.inset - 1,
+                width: dials.closeSize,
+                height: dials.closeSize,
+                borderRadius: closeRadius,
+              }}
+              title="Close"
+              aria-label="Close"
             >
-              <ExpandIcon />
+              <CloseIcon size={dials.closeIcon} />
             </button>
-          ) : (
-            isGlobal && !forcedDialog && (
-              <button
-                onClick={() => { setDialogIsForced(false); setMode('popover'); }}
-                className="absolute right-2.5 top-2 z-1 grid size-5.5 place-items-center rounded-[7px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                title="Collapse"
-                aria-label="Collapse"
-              >
-                <CollapseIcon />
-              </button>
-            )
           )}
           <ComposerTextarea
             textareaRef={focusOnMountRef}
@@ -677,12 +702,15 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             placeholder={isGlobal ? 'Add a global comment...' : 'Add a comment...'}
             sizeClassName={
               mode === 'dialog'
-                ? 'min-h-64 max-h-full pr-[26px] text-[12.5px] leading-[1.45]'
+                ? 'min-h-64 max-h-full text-[12.5px] leading-[1.45]'
                 : composerHeight === null
-                  ? 'max-h-64 min-h-14 pr-[26px] text-[12.5px] leading-[1.45]'
-                  : 'pr-[26px] text-[12.5px] leading-[1.45]'
+                  ? 'max-h-64 min-h-14 text-[12.5px] leading-[1.45]'
+                  : 'text-[12.5px] leading-[1.45]'
             }
             heightPx={mode === 'popover' ? composerHeight : null}
+            // Keep text 4px clear of the global Close:
+            // (inset − 1) + closeSize + 4 − 13px container padding.
+            padRight={isGlobal ? dials.inset + dials.closeSize - 10 : undefined}
             maxHeight={
               mode === 'dialog'
                 ? `calc(${visibleBounds.height}px - 10rem)`
@@ -742,32 +770,44 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           onClick={() => handleClose()}
         />
 
-        {/* Dialog card */}
-        <div
-          ref={popoverRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label={isGlobal ? 'Global comment' : 'Comment'}
-          tabIndex={-1}
-          className="relative w-[min(720px,calc(100vw-2rem))] max-h-full min-h-0 bg-popover border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden"
-          style={{
-            animation: 'comment-dialog-in 0.15s ease-out',
-          }}
-          onPointerDown={(e) => e.stopPropagation()}
-          onKeyDown={(e) => {
-            if (e.key !== 'Escape') return;
-            e.preventDefault();
-            e.stopPropagation();
-            handleClose();
-          }}
-        >
-          <style>{`
-            @keyframes comment-dialog-in {
-              from { opacity: 0; transform: scale(0.95); }
-              to { opacity: 1; transform: scale(1); }
-            }
-          `}</style>
-          {composerCard}
+        {/* Dialog card, plus the arc that collapses it back to the popover. The
+            card clips its content, so the arc hangs off a wrapper instead. */}
+        <div className="group/composer relative flex max-h-full min-h-0">
+          <div
+            ref={popoverRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={isGlobal ? 'Global comment' : 'Comment'}
+            tabIndex={-1}
+            className="relative w-[min(720px,calc(100vw-2rem))] max-h-full min-h-0 bg-popover border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden"
+            style={{
+              animation: 'comment-dialog-in 0.15s ease-out',
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key !== 'Escape') return;
+              e.preventDefault();
+              e.stopPropagation();
+              handleClose();
+            }}
+          >
+            <style>{`
+              @keyframes comment-dialog-in {
+                from { opacity: 0; transform: scale(0.95); }
+                to { opacity: 1; transform: scale(1); }
+              }
+            `}</style>
+            {composerCard}
+          </div>
+          {!forcedDialog && (
+            <ArcGrip
+              {...dials.arc}
+              edge={0}
+              corner="bottom-right"
+              title="Double-click to collapse"
+              onDoubleClick={collapseFromGrip}
+            />
+          )}
         </div>
       </div>,
       document.body
@@ -777,9 +817,16 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   // Popover mode
   if (!position) return null;
 
-  const currentWidth = composerWidth ?? position.width;
-  const widthDelta = currentWidth - position.width;
-  const currentLeft = (dragPosition ? dragPosition.left : position.left) - widthDelta;
+  const currentWidth = composerWidth ?? baseWidth;
+  // position.left centres MAX_POPOVER_WIDTH on the anchor; re-centre for the
+  // dialled width. A resize keeps this left edge, so the card grows rightward.
+  const centredLeft = Math.max(
+    visibleBounds.left,
+    Math.min(position.left + (position.width - baseWidth) / 2, visibleBounds.right - baseWidth),
+  );
+  const currentLeft = dragPosition ? dragPosition.left : centredLeft;
+  // Placed by its bottom edge, so it grows upward: the grip moves with it.
+  const growsUp = position.flipAbove && !dragPosition;
 
   return createPortal(
     <>
@@ -829,19 +876,19 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
         `}</style>
         {yieldStyleBlock}
 
-        {/* Arc grip - drag the composer taller and wider in place, double-click to reset. */}
-        <span
-          onPointerDown={beginGripResize}
-          onDoubleClick={resetGripResize}
-          title="Drag to resize"
-          className="absolute -left-2.25 -top-2.25 z-3 grid size-6 cursor-nwse-resize place-items-center text-muted-foreground/60 opacity-0 transition-opacity group-hover/composer:opacity-100"
-        >
-          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden="true">
-            <path d="M1.5 13.5A12 12 0 0 1 13.5 1.5" />
-          </svg>
-        </span>
-
         {composerCard}
+
+        {/* Arc grip on the corner the card grows from: bottom-right normally,
+            top-right when the card opened above its anchor. Drag resizes;
+            double-click expands into the dialog. */}
+        <ArcGrip
+          {...dials.arc}
+          edge={1}
+          corner={growsUp ? 'top-right' : 'bottom-right'}
+          title="Drag to resize · double-click to expand"
+          onPointerDown={beginGripResize}
+          onDoubleClick={expandFromGrip}
+        />
       </div>
     </>,
     document.body
@@ -859,6 +906,8 @@ interface ComposerTextareaProps {
   heightPx?: number | null;
   /** Explicit max-height from positioning constraints. */
   maxHeight?: string | number | null;
+  /** Right padding in px; overrides the class padding. */
+  padRight?: number;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -871,6 +920,7 @@ interface ComposerTextareaProps {
 const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
   heightPx = null,
   maxHeight = null,
+  padRight,
   value,
   onChange,
   onKeyDown,
@@ -883,6 +933,7 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
       ? ({ fieldSizing: 'content' } as React.CSSProperties)
       : { height: heightPx }),
     ...(maxHeight != null ? { maxHeight } : {}),
+    ...(padRight != null ? { paddingRight: padRight } : {}),
   };
 
   return (
@@ -896,6 +947,74 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
       className={`${COMPOSER_TEXT_CLASSES} placeholder:text-muted-foreground resize-none focus:outline-none overflow-y-auto ${sizeClassName}`}
       style={boxStyle}
     />
+  );
+};
+
+// ---------------------------------------------------------------------------
+// Arc grip
+// ---------------------------------------------------------------------------
+
+/** Width of the invisible band along the arc that takes the pointer. */
+const ARC_HIT_WIDTH = 12;
+
+interface ArcGripProps {
+  /** Distance from the card edge to the arc's stroke centre, px. */
+  gap: number;
+  stroke: number;
+  /** Angle the arc covers, centred on the corner's diagonal, degrees. */
+  span: number;
+  /** Border width of the element the grip is placed in: 1 inside the popover card, 0 on the dialog wrapper. */
+  edge: 0 | 1;
+  /** The corner the card grows from. */
+  corner: 'bottom-right' | 'top-right';
+  title: string;
+  onDoubleClick: () => void;
+  onPointerDown?: (event: React.PointerEvent) => void;
+}
+
+/** Arc concentric with one of the card's right-hand corners (radius
+ *  CARD_RADIUS + gap), on the corner the card grows from. Only a band along
+ *  the arc takes the pointer, so the grip does not cover the buttons behind
+ *  it. Shown while the `group/composer` ancestor is hovered. */
+const ArcGrip: React.FC<ArcGripProps> = ({ gap, stroke, span, edge, corner, title, onDoubleClick, onPointerDown }) => {
+  const up = corner === 'top-right';
+  const r = CARD_RADIUS + gap;
+  const box = r + ARC_HIT_WIDTH / 2;
+  // The corner's centre of curvature inside the svg box: its top-left corner
+  // for the bottom-right grip, its bottom-left corner for the mirrored one.
+  // Angles run from 3 o'clock towards the corner.
+  const cy = up ? box : 0;
+  const point = (deg: number) => {
+    const rad = (deg * Math.PI) / 180;
+    const y = cy + r * Math.sin(rad) * (up ? -1 : 1);
+    return `${(r * Math.cos(rad)).toFixed(2)} ${y.toFixed(2)}`;
+  };
+  const d = `M ${point(45 - span / 2)} A ${r} ${r} 0 0 ${up ? 0 : 1} ${point(45 + span / 2)}`;
+  // Puts that centre of curvature CARD_RADIUS in from the card's outer edges.
+  const offset = CARD_RADIUS - edge - box;
+
+  return (
+    <svg
+      aria-hidden="true"
+      width={box}
+      height={box}
+      viewBox={`0 0 ${box} ${box}`}
+      className="pointer-events-none absolute z-1 overflow-visible text-muted-foreground/60 opacity-0 transition-[opacity,color] hover:text-foreground group-hover/composer:opacity-100"
+      style={{ right: offset, [up ? 'top' : 'bottom']: offset }}
+    >
+      <path d={d} fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" />
+      <path
+        d={d}
+        fill="none"
+        stroke="transparent"
+        strokeWidth={ARC_HIT_WIDTH}
+        style={{ pointerEvents: 'stroke', cursor: onPointerDown ? (up ? 'nesw-resize' : 'nwse-resize') : 'pointer' }}
+        onPointerDown={onPointerDown}
+        onDoubleClick={onDoubleClick}
+      >
+        <title>{title}</title>
+      </path>
+    </svg>
   );
 };
 
@@ -913,29 +1032,17 @@ const ChevronDownIcon = () => (
   </svg>
 );
 
-const ExpandIcon = () => (
-  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
-  </svg>
-);
-
 /** Corner-down-right arrow: "this points at that". Not a quotation mark -
  *  the strip holds a place in a file, and a place is not a quote. */
-const AnchorIcon = () => (
-  <svg className="size-3.25" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+const AnchorIcon: React.FC<{ size: number }> = ({ size }) => (
+  <svg style={{ width: size, height: size }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <polyline points="15 10 20 15 15 20" />
     <path d="M4 4v7a4 4 0 0 0 4 4h12" />
   </svg>
 );
 
-const CollapseIcon = () => (
-  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
-  </svg>
-);
-
-const CloseIcon = () => (
-  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+const CloseIcon: React.FC<{ size: number }> = ({ size }) => (
+  <svg style={{ width: size, height: size }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
   </svg>
 );
