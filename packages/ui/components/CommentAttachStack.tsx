@@ -167,7 +167,7 @@ export const CommentAttachStack: React.FC<CommentAttachStackProps> = ({
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) scheduleCollapse();
       }}
-      className="-my-1.5 -ml-0.5 flex min-w-0 max-w-full items-center overflow-x-auto overscroll-x-contain rounded-md py-1.5 pl-0.5 pr-1.5 outline-none [scrollbar-width:none] focus-visible:ring-1 focus-visible:ring-ring [&::-webkit-scrollbar]:hidden"
+      className="-my-1.5 -ml-0.5 flex min-w-0 max-w-full items-center overflow-x-auto overscroll-x-contain rounded-md py-1.5 pl-0.5 pr-1.5 outline-none scrollbar-none focus-visible:ring-1 focus-visible:ring-ring [&::-webkit-scrollbar]:hidden"
       style={{ gap: expanded ? dials.spreadGap : 0 }}
     >
       {fileInput}

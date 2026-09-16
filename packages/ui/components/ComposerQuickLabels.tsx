@@ -81,7 +81,7 @@ export const ComposerQuickLabels: React.FC<ComposerQuickLabelsProps> = ({ labels
         role="toolbar"
         aria-label="Quick labels"
         onScroll={measure}
-        className="flex items-center overflow-x-auto overscroll-x-contain py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex items-center overflow-x-auto overscroll-x-contain py-0.5 scrollbar-none [&::-webkit-scrollbar]:hidden"
         style={{ gap, ...(mask ? { maskImage: mask, WebkitMaskImage: mask } : {}) }}
       >
         {labels.map((label) => (
