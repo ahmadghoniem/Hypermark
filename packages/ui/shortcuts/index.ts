@@ -11,7 +11,6 @@ export { commentPopoverShortcuts } from './plan-review/commentPopover.shortcuts'
 export { inputMethodShortcuts } from './plan-review/inputMethod.shortcuts';
 export { htmlAnnotateShortcuts, useHtmlAnnotateShortcuts } from './plan-review/htmlAnnotate.shortcuts';
 export { viewerShortcuts } from './plan-review/viewer.shortcuts';
-export { documentViewShortcuts, useDocumentViewShortcuts } from './plan-review/documentView.shortcuts';
 export { annotateSidebarShortcuts, useAnnotateSidebarShortcuts } from './plan-review/sidebar.shortcuts';
 
 // code-review scopes

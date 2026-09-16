@@ -23,7 +23,7 @@ import { AnnotationPanel } from '@hypermark/ui/components/AnnotationPanel';
 import { ConfirmDialog } from '@hypermark/ui/components/ConfirmDialog';
 import { Annotation, AnnotationType, Block, EditorMode, type CodeAnnotation, type InputMethod, type ImageAttachment, type ActionsLabelMode } from '@hypermark/ui/types';
 import { ThemeProvider } from '@hypermark/ui/components/ThemeProvider';
-import { Tooltip, TooltipProvider } from '@hypermark/ui/components/Tooltip';
+import { TooltipProvider } from '@hypermark/ui/components/Tooltip';
 import { AnnotationToolstrip } from '@hypermark/ui/components/AnnotationToolstrip';
 import { StickyHeaderLane } from '@hypermark/ui/components/StickyHeaderLane';
 import { useActiveSection } from '@hypermark/ui/hooks/useActiveSection';
@@ -68,13 +68,10 @@ import { observeActionsLabelMode } from './utils/actionsLabelMode';
 // same env var on the server side so V2/V3 stay paired.
 import { DEMO_PLAN_CONTENT as DEFAULT_DEMO_PLAN_CONTENT } from './demoPlan';
 import { DIFF_DEMO_PLAN_CONTENT } from './demoPlanDiffDemo';
-import { canUseAnnotateWideMode, resolveFocusShortcutAction, resolveWideModeExitLayout, type WideModeLayoutSnapshot, type WideModeType } from '@hypermark/ui/utils/wideMode';
-import { modKey } from '@hypermark/ui/utils/platform';
 import {
   annotateSidebarShortcuts,
   useAnnotateSidebarShortcuts,
   useAnnotationModeShortcuts,
-  useDocumentViewShortcuts,
   useHtmlAnnotateShortcuts,
   useHistoryShortcuts,
 } from '@hypermark/ui/shortcuts';
@@ -377,8 +374,6 @@ const AppInner: React.FC = () => {
   const [submitted, setSubmitted] = useState<'approved' | 'denied' | 'exited' | null>(null);
   const [repoInfo, setRepoInfo] = useState<{ display: string; branch?: string; host?: string } | null>(null);
   const [projectRoot, setProjectRoot] = useState<string | null>(null);
-  const [wideModeType, setWideModeType] = useState<WideModeType | null>(null);
-  const wideModeSnapshotRef = useRef<WideModeLayoutSnapshot | null>(null);
   const initialSidebarPreferenceAppliedRef = useRef(false);
   useEffect(() => {
     document.title = repoInfo ? `${repoInfo.display} · Hypermark` : "Hypermark";
@@ -521,59 +516,17 @@ const AppInner: React.FC = () => {
     [blocks]
   );
 
-  const exitWideMode = useCallback((options?: {
-    restore?: boolean;
-    sidebarTab?: SidebarTab;
-    panelOpen?: boolean;
-  }) => {
-    if (wideModeType === null) {
-      if (options?.sidebarTab) sidebar.open(options.sidebarTab);
-      if (options?.panelOpen === true) setIsPanelOpen(true);
-      else if (options?.panelOpen === false) setIsPanelOpen(false);
-      return;
-    }
-
-    const snapshot = wideModeSnapshotRef.current;
-    const layout = resolveWideModeExitLayout(snapshot, options);
-
-    setWideModeType(null);
-    wideModeSnapshotRef.current = null;
-
-    if (layout.sidebarOpen && layout.sidebarTab) {
-      sidebar.open(layout.sidebarTab);
-    } else {
-      sidebar.close();
-    }
-
-    if (layout.panelOpen !== undefined) {
-      setIsPanelOpen(layout.panelOpen);
-    }
-  }, [wideModeType, sidebar.close, sidebar.open]);
-
   const openSidebarTab = useCallback((tab: SidebarTab) => {
-    if (wideModeType !== null) {
-      exitWideMode({ restore: false, sidebarTab: tab, panelOpen: false });
-      return;
-    }
     sidebar.open(tab);
-  }, [exitWideMode, wideModeType, sidebar.open]);
+  }, [sidebar.open]);
 
   const toggleSidebarTab = useCallback((tab: SidebarTab) => {
-    if (wideModeType !== null) {
-      exitWideMode({ restore: false, sidebarTab: tab, panelOpen: false });
-      return;
-    }
     sidebar.toggleTab(tab);
-  }, [exitWideMode, wideModeType, sidebar.toggleTab]);
-
+  }, [sidebar.toggleTab]);
 
   const handleAnnotationPanelToggle = useCallback(() => {
-    if (wideModeType !== null) {
-      exitWideMode({ restore: false, panelOpen: true });
-      return;
-    }
     setIsPanelOpen(prev => !prev);
-  }, [exitWideMode, wideModeType]);
+  }, []);
 
 
   // Auto-close the sidebar when blocks parse with no TOC entries. Fires
@@ -762,37 +715,6 @@ const AppInner: React.FC = () => {
     onSnapshot: applyRefreshedHtml,
     onUnanchored: handleHtmlRefreshUnanchored,
   });
-  const canUseWideMode = useMemo(() => canUseAnnotateWideMode({
-    isPlanDiffActive,
-  }), [isPlanDiffActive]);
-
-  const enterViewMode = useCallback((type: WideModeType) => {
-    if (!canUseWideMode) return;
-    if (wideModeType === null) {
-      wideModeSnapshotRef.current = {
-        sidebarIsOpen: sidebar.isOpen,
-        sidebarTab: sidebar.activeTab,
-        panelOpen: isPanelOpen,
-      };
-    }
-    setWideModeType(type);
-    sidebar.close();
-    setIsPanelOpen(false);
-  }, [canUseWideMode, isPanelOpen, wideModeType, sidebar.activeTab, sidebar.close, sidebar.isOpen]);
-
-  const toggleViewMode = useCallback((type: WideModeType) => {
-    if (wideModeType === type) {
-      exitWideMode();
-    } else {
-      enterViewMode(type);
-    }
-  }, [enterViewMode, exitWideMode, wideModeType]);
-
-  useEffect(() => {
-    if (!canUseWideMode && wideModeType !== null) {
-      exitWideMode();
-    }
-  }, [canUseWideMode, exitWideMode, wideModeType]);
 
   // Shared gate for the chrome-level keyboard commands (sidebars, focus mode):
   // never while a dialog, an overlay, a submission, or a text field owns the
@@ -838,31 +760,6 @@ const AppInner: React.FC = () => {
     },
   });
 
-  // Focus mode from the keyboard. Mirrors the document card's `Focus` control —
-  // including its availability — so the shortcut can never park the layout in a
-  // state with no visible way back. HTML surfaces cannot ENTER focus mode (they
-  // own their own persisted chrome and never render that control), but exit stays
-  // available everywhere: a linked-doc navigation can flip the surface to HTML
-  // while focus mode is active, and without the exit path that layout is stuck.
-  const handleToggleFocusMode = useCallback(() => {
-    const action = resolveFocusShortcutAction({
-      canUseWideMode: canUseWideMode && !isHtmlSurface,
-      wideModeType,
-    });
-    if (action === 'enter-focus') enterViewMode('focus');
-    else if (action === 'exit') exitWideMode();
-  }, [canUseWideMode, enterViewMode, exitWideMode, isHtmlSurface, wideModeType]);
-
-  useDocumentViewShortcuts({
-    handlers: {
-      toggleFocusMode: {
-        when: (event) =>
-          canHandleDocumentChromeShortcut(event)
-          && ((canUseWideMode && !isHtmlSurface) || wideModeType !== null),
-        handle: handleToggleFocusMode,
-      },
-    },
-  });
 
   useAnnotateSidebarShortcuts({
     handlers: {
@@ -1133,7 +1030,6 @@ const AppInner: React.FC = () => {
   useEffect(() => {
     if (initialSidebarPreferenceAppliedRef.current) return;
     if (isLoading) return;
-    if (wideModeType !== null) return;
 
     initialSidebarPreferenceAppliedRef.current = true;
     // HTML chrome is owned by the surface-transition effect below, which also
@@ -1148,7 +1044,6 @@ const AppInner: React.FC = () => {
     renderAs,
     sidebar.close,
     sidebar.open,
-    wideModeType,
   ]);
 
   // Restore-on-entry: every time the session transitions ONTO an HTML surface
@@ -1161,7 +1056,6 @@ const AppInner: React.FC = () => {
   const prevHtmlChromeSurfaceRef = useRef(false);
   useEffect(() => {
     if (isLoading) return;
-    if (wideModeType !== null) return;
     const wasHtml = prevHtmlChromeSurfaceRef.current;
     prevHtmlChromeSurfaceRef.current = isHtmlSurface;
     if (!isHtmlSurface || wasHtml) return;
@@ -1177,7 +1071,6 @@ const AppInner: React.FC = () => {
     isLoading,
     sidebar.close,
     sidebar.open,
-    wideModeType,
   ]);
 
   // Persist the chrome the user leaves an HTML session in (sidebar + panel
@@ -1797,8 +1690,8 @@ const AppInner: React.FC = () => {
       annotationId: id,
       codeAnnotationId: id ? null : selectionRef.current.codeAnnotationId,
     };
-    if (id && isMobile && wideModeType === null) setIsPanelOpen(true);
-  }, [isMobile, wideModeType]);
+    if (id && isMobile) setIsPanelOpen(true);
+  }, [isMobile]);
 
   const handleAddCodeAnnotation = React.useCallback((input: CodeFileAnnotationInput) => {
     const annotation: CodeAnnotation = {
@@ -1839,8 +1732,8 @@ const AppInner: React.FC = () => {
     setSelectedCodeAnnotationId(id);
     selectionRef.current = { annotationId: null, codeAnnotationId: id };
     codeFilePopout.open(annotation.filePath);
-    if (isMobile && wideModeType === null) setIsPanelOpen(true);
-  }, [codeAnnotations, codeFilePopout.open, isMobile, wideModeType]);
+    if (isMobile) setIsPanelOpen(true);
+  }, [codeAnnotations, codeFilePopout.open, isMobile]);
 
   const handleDeleteCodeAnnotation = React.useCallback((id: string) => {
     const index = codeAnnotationsRef.current.findIndex((annotation) => annotation.id === id);
@@ -2216,7 +2109,6 @@ const AppInner: React.FC = () => {
     },
   }, { id: 'cl-04', persist: true });
   const planMaxWidth = Number(layoutDials.columnWidth);
-  const annotateReaderMaxWidth = canUseWideMode && wideModeType === 'wide' ? null : planMaxWidth;
   const handleNavigatorTabChange = (tab: SidebarTab) => {
     toggleSidebarTab(tab);
   };
@@ -2379,7 +2271,7 @@ const AppInner: React.FC = () => {
         {/* Main Content */}
         <div className={`flex-1 flex overflow-hidden relative z-0 ${isResizing ? 'select-none' : ''}`}>
           {/* Left Sidebar: collapsed tab flags (when sidebar is closed) */}
-          {wideModeType === null && !sidebar.isOpen && !(isHtmlSurface && htmlToolsHidden) && (
+          {!sidebar.isOpen && !(isHtmlSurface && htmlToolsHidden) && (
             <SidebarTabs
               activeTab={sidebar.activeTab}
               onToggleTab={toggleSidebarTab}
@@ -2400,7 +2292,7 @@ const AppInner: React.FC = () => {
           {/* Document Area */}
           <OverlayScrollArea
             element="main"
-            className={`flex-1 min-w-0 ${isHtmlSurface ? 'bg-background' : `bg-card ${!sidebar.isOpen && wideModeType === null ? 'lg:pl-7.5' : ''}`}`}
+            className={`flex-1 min-w-0 ${isHtmlSurface ? 'bg-background' : `bg-card ${!sidebar.isOpen ? 'lg:pl-7.5' : ''}`}`}
             overflowX="hidden"
             overflowY="auto"
             onViewportReady={handleDocumentViewportReady}
@@ -2426,7 +2318,7 @@ const AppInner: React.FC = () => {
                   onPlanDiffToggle={() => setIsPlanDiffActive(!isPlanDiffActive)}
                   planDiffBaselineLabel={annotateMode ? 'since last review' : undefined}
                   planDiffBaselineTooltip={annotateMode ? 'Changes since you last reviewed this file' : undefined}
-                  maxWidth={annotateReaderMaxWidth}
+                  maxWidth={planMaxWidth}
                   remountToken={viewerContentKey}
                 />
               )}
@@ -2439,7 +2331,7 @@ const AppInner: React.FC = () => {
               {toolstripVisible && (
                 <div
                   className="w-full mb-3 md:mb-4 flex items-center justify-start"
-                  style={annotateReaderMaxWidth == null ? undefined : { maxWidth: annotateReaderMaxWidth }}
+                  style={{ maxWidth: planMaxWidth }}
                 >
                   <AnnotationToolstrip
                     inputMethod={inputMethod}
@@ -2473,38 +2365,6 @@ const AppInner: React.FC = () => {
               )}
               {/* Normal Plan View — always mounted, hidden during diff mode */}
               <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : 'flex justify-center'}`} style={{ display: isPlanDiffActive && planDiff.diffBlocks ? 'none' : undefined }}>
-                {canUseWideMode && !isPlanDiffActive && !isHtmlSurface && (
-                  <div
-                    className="absolute -top-5 inset-x-0 mx-auto w-full flex justify-end pointer-events-none"
-                    style={annotateReaderMaxWidth === null ? undefined : { maxWidth: annotateReaderMaxWidth ?? 832 }}
-                  >
-                    <div className="pointer-events-auto flex items-center gap-1.5 text-2xs tracking-wide mr-1">
-                      {(['wide', 'focus'] as const).map((type, i) => (
-                        <React.Fragment key={type}>
-                          {i > 0 && <span aria-hidden className="text-muted-foreground/30 select-none">|</span>}
-                          <Tooltip
-                            side="top"
-                            align="end"
-                            content={type === 'wide' ? 'Hide panels and expand document width' : `Hide panels, keep document width (${modKey}+.)`}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => toggleViewMode(type)}
-                              aria-pressed={wideModeType === type}
-                              className={`cursor-pointer rounded-sm transition-colors duration-150 outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:opacity-80 ${
-                                wideModeType === type
-                                  ? 'text-foreground'
-                                  : 'text-muted-foreground/50 hover:text-muted-foreground'
-                              }`}
-                            >
-                              {type.charAt(0).toUpperCase() + type.slice(1)}
-                            </button>
-                          </Tooltip>
-                        </React.Fragment>
-                      ))}
-                    </div>
-                  </div>
-                )}
                 {renderAs === 'html' ? (
                   <HtmlViewer
                     key={`${linkedDocHook.isActive ? `doc:${linkedDocHook.filepath}` : 'plan'}${isPlanDiffActive && htmlDiffHtml ? ':diff' : ''}:reload-${htmlRefresh.reloadGeneration}`}
@@ -2523,7 +2383,7 @@ const AppInner: React.FC = () => {
                     annotateModeActive={htmlAnnotateArmed}
                     onAnnotateModeExit={handleHtmlAnnotateExit}
                     onAnnotateModeToggle={handleHtmlAnnotateToggle}
-                    maxWidth={isHtmlSurface ? null : annotateReaderMaxWidth}
+                    maxWidth={isHtmlSurface ? null : planMaxWidth}
                     fullViewport={isHtmlSurface}
                     // The header's eye toggle is the way back, so a
                     // restored toolsHidden:true is never a trap.
@@ -2555,7 +2415,7 @@ const AppInner: React.FC = () => {
                     planDiffBaselineLabel={annotateMode ? 'since last review' : undefined}
                     planDiffBaselineTooltip={annotateMode ? 'Changes since you last reviewed this file' : undefined}
                     showDemoBadge={!isApiMode}
-                    maxWidth={annotateReaderMaxWidth}
+                    maxWidth={planMaxWidth}
                     onOpenLinkedDoc={handleOpenLinkedDoc}
                     onOpenCodeFile={codeFilePopout.open}
                     linkedDocInfo={
@@ -2585,7 +2445,7 @@ const AppInner: React.FC = () => {
           {/* Message rail - recent assistant messages, in the gutter between
               the document and the annotations panel. Replaces the Messages
               sidebar tab and the "Message N of M" button. */}
-          {annotateSource === 'message' && recentMessages.length > 1 && wideModeType === null && (
+          {annotateSource === 'message' && recentMessages.length > 1 && (
             <MessageRail
               className="hidden lg:flex"
               messages={recentMessages}
@@ -2601,12 +2461,12 @@ const AppInner: React.FC = () => {
               ancestor (`contents` = no layout box). */}
           <div className="contents group/sidebar">
           {/* Resize Handle */}
-          {isPanelOpen && wideModeType === null && <ResizeHandle {...panelResize.handleProps} className="hidden md:block z-resize" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => setIsPanelOpen(false)} />}
+          {isPanelOpen && <ResizeHandle {...panelResize.handleProps} className="hidden md:block z-resize" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => setIsPanelOpen(false)} />}
 
           {/* Annotation Panel */}
           {renderAnnotationPanel(
             'panel',
-            isPanelOpen && wideModeType === null,
+            isPanelOpen,
           )}
           </div>
         </div>

@@ -7,7 +7,6 @@ import { annotationPanelShortcuts } from './plan-review/annotationPanel.shortcut
 import { annotationToolbarShortcuts } from './plan-review/annotationToolbar.shortcuts';
 import { annotateSidebarShortcuts } from './plan-review/sidebar.shortcuts';
 import { commentPopoverShortcuts } from './plan-review/commentPopover.shortcuts';
-import { documentViewShortcuts } from './plan-review/documentView.shortcuts';
 import { htmlAnnotateShortcuts } from './plan-review/htmlAnnotate.shortcuts';
 import { inputMethodShortcuts } from './plan-review/inputMethod.shortcuts';
 import { viewerShortcuts } from './plan-review/viewer.shortcuts';
@@ -38,7 +37,6 @@ import { reviewFileTreeShortcuts } from './code-review/fileTree.shortcuts';
 export const planShortcutRegistry: ShortcutRegistry = createShortcutRegistry([
   decisionControlShortcuts,
   historyShortcuts,
-  documentViewShortcuts,
   inputMethodShortcuts,
   annotationModeShortcuts,
   annotationToolbarShortcuts,
