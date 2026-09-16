@@ -11,7 +11,7 @@ import { createPortal } from "react-dom";
 import type { Annotation, EditorMode, ImageAttachment, InputMethod } from "../../types";
 import { AnnotationType } from "../../types";
 import { getIdentity } from "../../utils/identity";
-import { COMPOSER_QUICK_LABELS } from "../../utils/quickLabels";
+import { useQuickLabels } from "../../hooks/useQuickLabels";
 import { AnnotationToolbar } from "../AnnotationToolbar";
 import {
   CommentPopover,
@@ -413,6 +413,7 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       );
     }, [deliverUnanchored]);
 
+    const [quickLabels] = useQuickLabels();
     const hook = useHtmlAnnotation({
       iframeRef,
       enabled: !readOnly,
@@ -815,7 +816,7 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
               onSubmit={hook.handleCommentSubmit}
               // Pinpoint clicks open this composer directly, so it carries
               // the quick labels itself (the global composer does not).
-              quickLabels={COMPOSER_QUICK_LABELS}
+              quickLabels={quickLabels}
               onQuickLabel={hook.handleCommentQuickLabel}
               onClose={hook.handleCommentClose}
               targetChips={targetChips}
