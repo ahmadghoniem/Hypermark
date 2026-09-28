@@ -30,7 +30,6 @@ import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
 import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody } from "./shared-handlers";
 import { contentHash, deleteDraft } from "./draft";
 import { handleDoc, handleDocExists } from "./reference-handlers";
-import { closeAllFileBrowserWatchers, handleFileBrowserFilesStream } from "./reference-watch";
 import { warmFileListCache } from "@hypermark/shared/resolve-file";
 import { SESSION_STREAM_PATH } from "@hypermark/shared/session-stream";
 import { createSessionStreamBroadcaster } from "./session-stream";
@@ -40,7 +39,6 @@ import { startParentWatch, type ParentWatcher } from "./parent-watch";
 export { openBrowser } from "./browser";
 export * from "./storage";
 export { handleServerReady } from "./shared-handlers";
-export { type VaultNode, buildFileTree } from "@hypermark/shared/reference-common";
 export { createDefaultGetParentPid } from "./parent-watch";
 
 // --- Types ---
@@ -272,13 +270,6 @@ export async function startHypermarkServer(
             return handleUpload(req, sessionUploads);
           }
 
-          // API: Watch file browser roots and refresh the tree/status snapshot on changes
-          if (url.pathname === "/api/reference/files/stream" && req.method === "GET") {
-            return handleFileBrowserFilesStream(req, {
-              disableIdleTimeout: () => server.timeout(req, 0),
-            });
-          }
-
           // API: Annotation draft persistence
           if (url.pathname === "/api/draft") {
             if (req.method === "POST") return handleDraftSave(req, draftKey);
@@ -390,7 +381,6 @@ export async function startHypermarkServer(
   const stop = () => {
     stopPromise ??= (async () => {
       try {
-        closeAllFileBrowserWatchers();
         sessionStream.closeSessions();
         parentWatch?.stop();
         for (const uploadPath of sessionUploads) {

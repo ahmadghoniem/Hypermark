@@ -16,7 +16,6 @@ import { getRepoInfo } from "./repo";
 import type { Origin } from "@hypermark/shared/agents";
 import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
 import { handleDoc, handleDocExists, resolveAllowedDocPath } from "./reference-handlers";
-import { closeAllFileBrowserWatchers, handleFileBrowserFilesStream } from "./reference-watch";
 import { getExtraMarkdownExtensions, MAX_ANNOTATABLE_FILE_BYTES, resolveUserPath, warmFileListCache } from "@hypermark/shared/resolve-file";
 import { contentHash, deleteDraft } from "./draft";
 import { getPlanVersion, getVersionCount, listVersions } from "@hypermark/shared/storage";
@@ -40,7 +39,6 @@ import { saveConfig, detectGitUser, getServerConfig, loadConfig, resolveAnnotate
 import { appendFeedbackRecord, type FeedbackDecision, type FeedbackSurface } from "@hypermark/shared/feedback-archive";
 import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
 import { dirname, resolve as resolvePath } from "path";
-import { isWithinDirectory } from "@hypermark/shared/html-assets-node";
 import { createHtmlAssetRegistry } from "./html-assets";
 
 // Re-export utilities
@@ -205,7 +203,7 @@ export async function startAnnotateServer(
   const annotateProjectName = project ?? "_unknown";
   const annotateHistoryEnabled = resolveAnnotateHistory(loadConfig());
   // Single local file sessions are the only ones this eager gate covers.
-  // URL, agent-message, and live-app sessions never write session content to
+  // URL and agent-message sessions never write session content to
   // the data dir. The durable submit records stay single-local-file only.
   const singleFileLocalAnnotate = mode === "annotate" && !/^https?:\/\//i.test(filePath);
   let annotateHistory: AnnotateHistoryResult | null = null;
@@ -345,8 +343,8 @@ export async function startAnnotateServer(
 
   // A local rendered-HTML root is served from its CURRENT bytes, not the
   // startup snapshot: the reviewer can Refresh in-app or reload the tab after
-  // an agent edits the file, and both /api/plan and /api/share-html must then
-  // describe the page the annotations were placed on. The snapshot is only
+  // an agent edits the file, and /api/plan must then describe the page the
+  // annotations were placed on. The snapshot is only
   // the fallback when the file is gone or has grown past the annotate cap.
   const rootHtmlSourcePath =
     renderHtml && rawHtml && !/^https?:\/\//i.test(filePath) ? resolvePath(filePath) : null;
@@ -388,46 +386,6 @@ export async function startAnnotateServer(
           }),
         }
       : undefined;
-
-  async function loadShareHtml(pathParam: string | null): Promise<Response> {
-    if (/^https?:\/\//i.test(filePath)) {
-      return Response.json({ error: "Raw HTML sharing is unavailable for URL annotations" }, { status: 400 });
-    }
-
-    const sourcePath = resolvePath(filePath);
-    const requestedPath = pathParam ? resolvePath(pathParam) : sourcePath;
-    if (!/\.html?$/i.test(requestedPath)) {
-      return Response.json({ error: "Share HTML is only available for HTML documents" }, { status: 400 });
-    }
-    if (!isAllowedHtmlSharePath(requestedPath)) {
-      return Response.json({ error: "Access denied" }, { status: 403 });
-    }
-
-    try {
-      let html: string;
-      if (rootHtmlSourcePath && requestedPath === rootHtmlSourcePath) {
-        const read = await readRootHtml();
-        if (read?.kind === "snapshot" && read.reason === "too-large") {
-          return Response.json({ error: "File too large to share (max 2MB)" }, { status: 413 });
-        }
-        html = read?.kind === "current" ? read.html : rawHtml!;
-      } else {
-        html = await Bun.file(requestedPath).text();
-      }
-      return Response.json({ shareHtml: htmlAssets.inlineHtml(html, requestedPath) });
-    } catch {
-      return Response.json({ error: "Failed to prepare share HTML" }, { status: 500 });
-    }
-  }
-
-  function isAllowedHtmlSharePath(targetPath: string): boolean {
-    const roots = new Set<string>([process.cwd()]);
-    if (!/^https?:\/\//i.test(filePath)) roots.add(dirname(filePath));
-    for (const root of roots) {
-      if (isWithinDirectory(targetPath, root)) return true;
-    }
-    return false;
-  }
 
   const initialSingleFileSourcePath = !/^https?:\/\//i.test(filePath) ? resolveUserPath(filePath) : null;
 
@@ -634,10 +592,6 @@ export async function startAnnotateServer(
             });
           }
 
-          if (url.pathname === "/api/share-html" && req.method === "GET") {
-            return loadShareHtml(url.searchParams.get("path"));
-          }
-
           // API: Update user config (write-back to ~/.hypermark/config.json)
           if (url.pathname === "/api/config" && req.method === "POST") {
             try {
@@ -688,13 +642,6 @@ export async function startAnnotateServer(
           // API: Batch existence check for code-file paths the renderer detected
           if (url.pathname === "/api/doc/exists" && req.method === "POST") {
             return handleDocExists(req, { rootPaths: getReferenceRootPaths() });
-          }
-
-          // API: Watch file browser roots and refresh the tree/status snapshot on changes
-          if (url.pathname === "/api/reference/files/stream" && req.method === "GET") {
-            return handleFileBrowserFilesStream(req, {
-              disableIdleTimeout: () => server.timeout(req, 0),
-            });
           }
 
           // API: Upload image -> save to temp -> return path
@@ -896,7 +843,6 @@ export async function startAnnotateServer(
     // regardless.
     runGuardedShutdown(
       [
-        ["file browser watchers", () => closeAllFileBrowserWatchers()],
         ["client lease", () => {
           clientLease.cancel();
           clientLease.closeSessions();

@@ -10,7 +10,7 @@
  */
 
 import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "os";
 import { dirname, join, resolve } from "path";
@@ -104,58 +104,10 @@ describe("annotate server: /api/config favicon persistence", () => {
   });
 });
 
-describe("annotate server: /api/share-html symlink containment", () => {
-  let savedPort: string | undefined;
-
-  beforeEach(() => {
-    savedPort = process.env.HYPERMARK_PORT;
-    delete process.env.HYPERMARK_PORT;
-  });
-
-  afterEach(() => {
-    if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
-    else process.env.HYPERMARK_PORT = savedPort;
-  });
-
-  // Regression: /api/share-html read the requested file through a lexical-only
-  // containment check, so a symlinked *.html inside the doc directory pointing
-  // outside it leaked the target's contents into the share payload. (Completes
-  // the #927 symlink fix, which hardened the asset sinks but missed this one.)
-  test("rejects a symlinked .html that escapes the document directory", async () => {
-    const docDir = mkdtempSync(join(tmpdir(), "hypermark-sharehtml-"));
-    const secretDir = mkdtempSync(join(tmpdir(), "hypermark-secret-"));
-    const secretPath = join(secretDir, "secret.html");
-    writeFileSync(secretPath, "SECRET_OUTSIDE_CONTENT", "utf-8");
-    symlinkSync(secretPath, join(docDir, "evil.html"));
-    const pagePath = join(docDir, "page.html");
-    writeFileSync(pagePath, MINIMAL_HTML, "utf-8");
-
-    const server = await startAnnotateServer({
-      markdown: "",
-      filePath: pagePath,
-      htmlContent: MINIMAL_HTML,
-      rawHtml: MINIMAL_HTML,
-      renderHtml: true,
-    });
-
-    try {
-      const response = await fetch(
-        `${server.url}/api/share-html?path=${encodeURIComponent(join(docDir, "evil.html"))}`,
-      );
-      expect(response.status).toBe(403);
-      expect(await response.text()).not.toContain("SECRET_OUTSIDE_CONTENT");
-    } finally {
-      server.stop();
-    }
-  });
-
-});
-
-// A local rendered-HTML root is served from its current bytes by both
-// /api/plan (tab reload) and /api/share-html (share after Refresh), with the
-// startup snapshot only as the deleted-file fallback. History lives in the
-// real data dir (storage resolves it at import time), so every test uses its
-// own project namespace, removed in afterAll.
+// A local rendered-HTML root is served from its current bytes by /api/plan
+// (tab reload), with the startup snapshot only as the deleted-file fallback.
+// History lives in the real data dir (storage resolves it at import time), so
+// every test uses its own project namespace, removed in afterAll.
 describe("annotate server: local rendered-HTML root freshness", () => {
   let savedPort: string | undefined;
   let savedHistoryFlag: string | undefined;
@@ -193,35 +145,6 @@ describe("annotate server: local rendered-HTML root freshness", () => {
   // the root but keeps a missing target's lexical path, which on a symlinked
   // tmpdir (macOS) would never match.
   const freshDocDir = (label: string) => realpathSync(mkdtempSync(join(tmpdir(), `hypermark-root-html-${label}-`)));
-
-  test("/api/share-html shares the root document's current bytes after the file changes on disk", async () => {
-    const pagePath = join(freshDocDir("share"), "page.html");
-    writeFileSync(pagePath, page("STARTUP_VERSION"), "utf-8");
-
-    const server = await startAnnotateServer({
-      markdown: "",
-      filePath: pagePath,
-      htmlContent: MINIMAL_HTML,
-      rawHtml: page("STARTUP_VERSION"),
-      renderHtml: true,
-      project: uniqueProject("share"),
-    });
-
-    try {
-      writeFileSync(pagePath, page("REFRESHED_VERSION"), "utf-8");
-      const refreshed = await (await fetch(
-        `${server.url}/api/share-html?path=${encodeURIComponent(pagePath)}`,
-      )).json() as { shareHtml: string };
-      expect(refreshed.shareHtml).toContain("REFRESHED_VERSION");
-      expect(refreshed.shareHtml).not.toContain("STARTUP_VERSION");
-
-      unlinkSync(pagePath);
-      const fallback = await (await fetch(`${server.url}/api/share-html`)).json() as { shareHtml: string };
-      expect(fallback.shareHtml).toContain("STARTUP_VERSION");
-    } finally {
-      server.stop();
-    }
-  });
 
   // A tab reload after an agent edit must show the edited page (the draft
   // annotations were placed on it) AND keep the version diff: the saved
@@ -362,10 +285,6 @@ describe("annotate server: local rendered-HTML root freshness", () => {
       expect(fallback.previousPlan).toBe(page("V1"));
       expect(fallback.versionInfo?.version).toBe(2);
       expect(fallback.diffHtml).toBeDefined();
-
-      const share = await fetch(`${server.url}/api/share-html`);
-      expect(share.status).toBe(200);
-      expect(((await share.json()) as { shareHtml: string }).shareHtml).toContain("V2");
     } finally {
       server.stop();
     }

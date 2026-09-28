@@ -7,12 +7,9 @@ import {
   rewriteHtmlAssetReferences,
 } from "@hypermark/shared/html-assets";
 import {
-  inlineHtmlLocalAssets,
   isWithinDirectory,
   MAX_HTML_ASSET_BYTES,
 } from "@hypermark/shared/html-assets-node";
-
-export { inlineHtmlLocalAssets };
 
 export function createHtmlAssetRegistry() {
   const rootsByToken = new Map<string, string>();
@@ -39,10 +36,6 @@ export function createHtmlAssetRegistry() {
     } catch {
       return html;
     }
-  }
-
-  function inlineHtml(html: string, htmlFilePath: string): string {
-    return inlineHtmlLocalAssets(html, htmlFilePath);
   }
 
   async function handle(_req: Request, url: URL): Promise<Response | null> {
@@ -96,6 +89,6 @@ export function createHtmlAssetRegistry() {
     }
   }
 
-  return { rewriteHtml, inlineHtml, handle };
+  return { rewriteHtml, handle };
 }
 

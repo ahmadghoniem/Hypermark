@@ -2,7 +2,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createHtmlAssetRegistry, inlineHtmlLocalAssets } from "./html-assets";
+import { createHtmlAssetRegistry } from "./html-assets";
 
 // Every fixture directory is torn down together; see scripts/install.test.ts
 // for why leaving them behind costs more on Windows than the bytes suggest.
@@ -53,31 +53,6 @@ describe("annotate raw HTML assets", () => {
     expect(await imageResponse?.text()).toBe("png-bytes");
   });
 
-  test("inlines raw HTML support assets for portable share payloads", () => {
-    const dir = makeTempDir("hypermark-html-share-");
-    const htmlPath = join(dir, "page.html");
-    const cssDir = join(dir, "styles");
-    const imageDir = join(dir, "images");
-    mkdirSync(cssDir);
-    mkdirSync(imageDir);
-    writeFileSync(join(imageDir, "bg.png"), Buffer.from([1, 2, 3]));
-    writeFileSync(join(cssDir, "style.css"), 'body { background: url("../images/bg.png"); }', "utf-8");
-    const html = '<!doctype html><html><head><link rel="stylesheet" href="./styles/style.css?v=1"></head><body><img src="./images/bg.png?cache=1"></body></html>';
-    writeFileSync(htmlPath, html, "utf-8");
-
-    const shareHtml = inlineHtmlLocalAssets(html, htmlPath);
-
-    expect(shareHtml).not.toContain("/api/html-assets/");
-    expect(shareHtml).toContain('href="data:text/css;charset=utf-8;base64,');
-    expect(shareHtml).toContain('src="data:image/png;base64,AQID"');
-    expect(shareHtml).not.toContain("base64,AQID?cache=1");
-
-    const cssBase64 = shareHtml.match(/href="data:text\/css;charset=utf-8;base64,([^"]+)"/)?.[1];
-    expect(cssBase64).toBeTruthy();
-    const css = Buffer.from(cssBase64!, "base64").toString("utf-8");
-    expect(css).toContain('url("data:image/png;base64,AQID")');
-  });
-
   test("does not serve a symlinked asset that escapes the source directory", async () => {
     // Attacker bundle: a symlink inside the HTML's dir pointing at a secret outside it.
     const base = makeTempDir("hypermark-html-symlink-");
@@ -99,23 +74,5 @@ describe("annotate raw HTML assets", () => {
     const response = await assets.handle(new Request(String(requestUrl)), requestUrl);
     expect(response?.status).toBe(403);
     expect(await response?.text()).not.toContain("SECRET_OUTSIDE_CONTENT");
-  });
-
-  test("does not inline a symlinked asset that escapes the source directory", () => {
-    const base = makeTempDir("hypermark-html-symlink-inline-");
-    const htmlDir = join(base, "site");
-    mkdirSync(htmlDir);
-    const secretPath = join(base, "secret.css");
-    writeFileSync(secretPath, "SECRET_OUTSIDE_CONTENT", "utf-8");
-    symlinkSync(secretPath, join(htmlDir, "evil.css"));
-    const htmlPath = join(htmlDir, "page.html");
-    const html = '<!doctype html><html><head><link rel="stylesheet" href="./evil.css"></head><body></body></html>';
-    writeFileSync(htmlPath, html, "utf-8");
-
-    const shareHtml = inlineHtmlLocalAssets(html, htmlPath);
-    // The symlinked secret must not be base64-embedded into the portable share.
-    expect(shareHtml).not.toContain("base64");
-    expect(Buffer.from(shareHtml).toString("utf-8")).not.toContain("SECRET_OUTSIDE_CONTENT");
-    expect(shareHtml).not.toContain(Buffer.from("SECRET_OUTSIDE_CONTENT").toString("base64"));
   });
 });

@@ -1,7 +1,7 @@
 /**
  * Reference/document route handlers for the plan server.
  *
- * Handles /api/doc and /api/reference/files. Extracted from index.ts for modularity.
+ * Handles /api/doc. Extracted from index.ts for modularity.
  */
 
 import { parseCodePath } from "@hypermark/shared/code-file";
