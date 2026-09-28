@@ -14,7 +14,7 @@
  * sees rendered in chat.
  */
 
-import { readdirSync, statSync, readFileSync } from "node:fs";
+import { readdirSync, statSync, readFileSync, existsSync } from "node:fs";
 import { join, dirname, basename } from "node:path";
 import { homedir } from "node:os";
 import { createDefaultGetParentPid } from "@hypermark/server";
@@ -282,6 +282,12 @@ export function resolveSessionLogByAncestorPids(
 
     const candidates = findSessionLogsForCwd(meta.cwd, opts.projectsDir);
     const match = candidates.find((p) => p.includes(meta.sessionId));
+    if (!match) {
+      // A session continued from another directory keeps writing its original
+      // log, so the cwd in its metadata points at the wrong project folder.
+      const moved = findSessionLogById(meta.sessionId, opts.projectsDir);
+      if (moved) return { logPath: moved, ancestorPid: pid };
+    }
     if (match) {
       // Check for stale metadata: if a newer log exists that has no
       // registered metadata, it's a ghost session from /clear — prefer it.
@@ -349,6 +355,28 @@ export function resolveSessionLogByCwdScan(
   for (const meta of candidates) {
     const match = logs.find((p) => p.includes(meta.sessionId));
     if (match) return match;
+  }
+  return null;
+}
+
+/**
+ * Find `{sessionId}.jsonl` in any project folder. The file name is the session
+ * id, so a hit can only be that session's log.
+ */
+export function findSessionLogById(
+  sessionId: string,
+  projectsDirOverride?: string
+): string | null {
+  const projectsDir = projectsDirOverride ?? DEFAULT_PROJECTS_DIR;
+  let dirs: string[];
+  try {
+    dirs = readdirSync(projectsDir);
+  } catch {
+    return null;
+  }
+  for (const d of dirs) {
+    const path = join(projectsDir, d, `${sessionId}.jsonl`);
+    if (existsSync(path)) return path;
   }
   return null;
 }

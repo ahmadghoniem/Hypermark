@@ -1168,6 +1168,28 @@ describe("resolveSessionLogByAncestorPids", () => {
     }
   });
 
+  test("finds a session whose log sits under another project folder", () => {
+    // A session started in one directory and continued from another: the
+    // metadata cwd changes, the log stays in the original project folder.
+    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("moved-cwd");
+    try {
+      const sessionId = "moved-1234";
+      writeSessionMeta(sessionsDir, 999, { sessionId, cwd: "/tmp/now-here" });
+      writeSessionLog(projectsDir, "/tmp/now-here", "other-session");
+      const logPath = writeSessionLog(projectsDir, "/tmp/started-here", sessionId);
+
+      const result = resolveSessionLogByAncestorPids({
+        startPid: 999,
+        getParentPid: () => null,
+        sessionsDir,
+        projectsDir,
+      });
+      expect(result?.logPath).toBe(logPath);
+    } finally {
+      cleanup();
+    }
+  });
+
   test("walks past bash subshell to find Claude Code ancestor", () => {
     // Simulates: hypermark (ppid=500 = sh) → sh (ppid=400 = claude)
     // Claude Code's session file is at pid 400, NOT 500.
