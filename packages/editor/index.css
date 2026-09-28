@@ -19,11 +19,19 @@
  * the block background. The old `.hljs-*` override stacks that existed to make
  * highlight.js's hardcoded github-dark palette survive light mode are gone with
  * it: a light palette now resolves a light Shiki theme. */
+/* The background belongs to the <pre>, not the <code>. A `display: block`
+   child of a horizontal scroller is only as wide as the visible area, so
+   painting it on the <code> left everything scrolled past showing whatever was
+   behind it. On the scroll container it always covers the block. */
+pre:has(> code.pn-code) {
+  border-radius: var(--radius);
+  background: var(--code-bg) !important;
+}
+
 pre code.pn-code {
   display: block;
   padding: 1rem;
-  border-radius: var(--radius);
-  background: var(--code-bg) !important;
+  background: transparent !important;
   font-size: 0.8125rem;
   line-height: 1.6;
 }
