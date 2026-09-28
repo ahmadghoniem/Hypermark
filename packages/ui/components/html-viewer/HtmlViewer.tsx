@@ -106,7 +106,7 @@ export interface HtmlViewerProps {
   selectedAnnotationId: string | null;
   /** Input method: 'drag' = text selection, 'pinpoint' = click an element. */
   inputMethod: InputMethod;
-  /** Interact/Annotate toggle for HTML and live-app surfaces. While false
+  /** Interact/Annotate toggle for HTML surfaces. While false
    *  the bridge keeps clicks native (no pinpoint capture, no hover outline)
    *  and clicks/forms/navigation reach the page untouched. Text
    *  drag-selection commenting stays live in BOTH modes, and committed

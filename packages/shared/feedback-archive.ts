@@ -109,7 +109,7 @@ export interface FeedbackTarget {
    */
   filePath?: string;
   /**
-   * Annotated URL (URL sessions) or the live app's target URL, stored in full
+   * Annotated URL (URL sessions), stored in full
    * including its query string, because that is the page that was reviewed.
    * A URL carrying a token or other secret in its query is therefore written
    * to disk; the archive opt-out is the control for that.

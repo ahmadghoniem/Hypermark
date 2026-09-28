@@ -1,5 +1,5 @@
 /**
- * Header controls for a raw-HTML or live-app annotation surface: the eye
+ * Header controls for a raw-HTML annotation surface: the eye
  * (show/hide the floating tools over the page), the optional refresh, and
  * the pen (Annotate/Interact toggle). Presentation only; every state lives
  * in the host. Each control renders only when its handler is passed, so a

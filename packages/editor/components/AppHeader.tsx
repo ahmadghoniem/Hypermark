@@ -20,9 +20,9 @@ interface AppHeaderProps {
   /** Mobile document-scroll surfaces let Safari own the top edge and scroll
    * this header with the page. Desktop keeps the incumbent sticky header. */
   sticky?: boolean;
-  /** HTML annotate surface (raw HTML or live app): shows the pen toggle. */
+  /** HTML annotate surface: shows the pen toggle. */
   htmlSurface?: boolean;
-  /** Interact/Annotate toggle for HTML and live-app surfaces: armed means
+  /** Interact/Annotate toggle for HTML surfaces: armed means
    *  clicks annotate; unarmed hands the page back its native interaction
    *  (text drag-selection commenting stays live either way). */
   htmlAnnotateArmed?: boolean;
@@ -52,7 +52,7 @@ interface AppHeaderProps {
     spec: DecisionSpec;
     handlers: Record<DecisionActionId, DecisionHandler>;
     closeTitle: string;
-    /** Framed surfaces (raw-HTML srcdoc / live-app proxy): iframe focus
+    /** Framed surfaces (raw-HTML srcdoc): iframe focus
      *  dismisses the popover since clicks never reach the parent document. */
     dismissOnIframeFocus?: boolean;
   };
@@ -138,7 +138,7 @@ export const AppHeader = React.memo<AppHeaderProps>(({
           </>
         )}
 
-        {/* HTML and live-app surfaces only: the eye (show/hide tools, the
+        {/* HTML surfaces only: the eye (show/hide tools, the
             only way back from hidden), the refresh, and the Interact/Annotate
             pen, in that order. */}
         {htmlSurface && (onToggleHtmlTools || onToggleHtmlAnnotate) && (

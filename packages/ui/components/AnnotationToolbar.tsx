@@ -3,7 +3,6 @@ import { AnnotationType } from "../types";
 import { createPortal } from "react-dom";
 import { useDismissOnOutsideAndEscape } from "../hooks/useDismissOnOutsideAndEscape";
 import { copyTextToClipboard } from "../utils/clipboard";
-import { acquireTypeToCommentCapture } from "../shortcuts/plan-review/annotationMode.shortcuts";
 
 const isEditableElement = (node: EventTarget | Element | null): boolean => {
   if (!(node instanceof Element)) return false;
@@ -94,14 +93,7 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    // While this listener owns printable keys, the Shift+1..3 annotation-mode
-    // shortcuts must not fire: Shift+3 is "#", and a user typing "#" into a
-    // starting comment must not silently arm Redline (#1244 follow-up).
-    const releaseCapture = acquireTypeToCommentCapture();
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      releaseCapture();
-    };
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose, onRequestComment]);
 
   useDismissOnOutsideAndEscape({

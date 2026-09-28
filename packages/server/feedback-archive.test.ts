@@ -356,7 +356,7 @@ describe("code review submissions are archived", () => {
 
 describe("annotate submissions are archived", () => {
   test("a URL session — which writes no history — still records the submission", async () => {
-    // Behavior change by design: URL / annotate-last / live-app / folder
+    // Behavior change by design: URL / annotate-last / folder
     // submissions leave a durable record for the first time.
     const dataDir = useTempDataDir();
     const server = await startAnnotateServer({

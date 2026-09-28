@@ -4,7 +4,7 @@ export { historyShortcuts, useHistoryShortcuts } from './history.shortcuts';
 export { decisionControlShortcuts } from './decisionControl.shortcuts';
 
 // plan-review scopes
-export { annotationModeShortcuts, useAnnotationModeShortcuts } from './plan-review/annotationMode.shortcuts';
+export { annotationModeShortcuts } from './plan-review/annotationMode.shortcuts';
 export { annotationToolbarShortcuts } from './plan-review/annotationToolbar.shortcuts';
 export { annotationPanelShortcuts } from './plan-review/annotationPanel.shortcuts';
 export { commentPopoverShortcuts } from './plan-review/commentPopover.shortcuts';

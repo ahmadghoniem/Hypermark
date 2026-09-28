@@ -567,14 +567,6 @@ const AnnotationCard: React.FC<{
             diff
           </span>
         )}
-        {annotation.pageUrl && (
-          <span
-            className="text-4xs px-1.5 py-0.5 rounded-sm font-medium bg-muted text-muted-foreground truncate max-w-40"
-            title={annotation.pageUrl}
-          >
-            {annotation.pageUrl}
-          </span>
-        )}
         {unanchored && (
           <span
             data-annotation-unanchored="true"

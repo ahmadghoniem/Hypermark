@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { QuickLabel } from '../utils/quickLabels';
 
-/** Dot colour per label colour key. Agreed shows a check instead. */
+/** Dot colour per label colour key. */
 const DOT_CLASS: Record<string, string> = {
   green: 'bg-success',
   yellow: 'bg-warning',
@@ -16,8 +16,8 @@ interface ComposerQuickLabelsProps {
   onSelect: (label: QuickLabel) => void;
   /** Faded out and inert while the composer has content. */
   hidden: boolean;
-  /** Dialled in CommentPopover: chip height, the gap between chips, and how
-   *  wide the clipped edges fade. */
+  /** Set by CommentPopover: chip height, the gap between chips, and how wide
+   *  the clipped edges fade. */
   chipHeight: number;
   gap: number;
   fade: number;

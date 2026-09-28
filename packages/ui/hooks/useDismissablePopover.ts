@@ -6,7 +6,7 @@ import { isDialKitTarget } from '../utils/dialkit';
  * shared effect behind DecisionControl and ActionMenu.
  *
  * `dismissOnIframeFocus` is the explicit strategy for framed surfaces
- * (raw-HTML srcdoc, live-app proxy): a click inside the iframe never produces
+ * (raw-HTML srcdoc): a click inside the iframe never produces
  * a `pointerdown` in the parent document, but it does move focus into the
  * frame, which fires `blur` on the parent window. The check runs on the next
  * task because `document.activeElement` is not yet updated inside the blur

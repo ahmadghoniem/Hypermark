@@ -2842,7 +2842,7 @@ export const BRIDGE_SCRIPT = `(function() {
   });
 
   // Mod+Shift+A toggles Interact/Annotate from inside the iframe (the parent
-  // registers the same chord, but focus usually lives in here on live apps).
+  // registers the same chord, but focus may live in here).
   // Capture phase so the page cannot swallow the reserved chord; the parent
   // answers with set-annotate-mode.
   document.addEventListener('keydown', function(e) {

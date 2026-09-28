@@ -1182,7 +1182,7 @@ const AppInner: React.FC = () => {
     ],
   );
 
-  // Interact/Annotate toggle (Mod+Shift+A) — HTML and live-app surfaces only.
+  // Interact/Annotate toggle (Mod+Shift+A) — HTML surfaces only.
   // The bridge mirrors the same chord inside the iframe and forwards it, so
   // this parent-side registration covers focus living in the editor chrome.
   useHtmlAnnotateShortcuts({

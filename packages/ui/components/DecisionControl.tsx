@@ -51,7 +51,7 @@ export interface DecisionControlProps {
   /** Spinner on the primary only. */
   isLoading: boolean;
   labelBreakpoint?: 'md' | 'lg';
-  /** The host says the surface is framed (raw-HTML srcdoc / live-app proxy):
+  /** The host says the surface is framed (raw-HTML srcdoc):
    *  clicks inside the iframe never reach the parent document, so iframe
    *  focus dismisses the popover instead. */
   dismissOnIframeFocus?: boolean;

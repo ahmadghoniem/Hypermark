@@ -1172,35 +1172,10 @@ export const exportAnnotations = (
     output += `I've reviewed this ${subject} and have ${annotations.length} piece${annotations.length > 1 ? 's' : ''} of feedback:\n\n`;
   }
 
-  // Live app sessions stamp annotations with the page they were made on.
-  // When any exported annotation carries a pageUrl, entries are grouped under
-  // per-page `## Page:` headings in order of first appearance and every entry
-  // demotes to `###` so it nests BELOW its page header (a `### Page:` header
-  // over `##` entries would invert the hierarchy); annotations without a page
-  // (e.g. globals) come first under no heading, at the same `###` level so
-  // entries render uniformly. Numbers stay GLOBAL: each entry keeps the
-  // number of its position in the ungrouped order, matching the on-page
-  // marker numbering, so grouped sections may show non-contiguous numbers.
-  // With no pageUrl anywhere the output is byte-identical to the ungrouped
-  // export (`## N.` entries, no page headers).
-  const hasPageGroups = sortedAnns.some(
-    (a: any) => typeof a.pageUrl === 'string' && a.pageUrl.length > 0,
-  );
   const annotationNumbers = new Map<any, number>(
     sortedAnns.map((ann, index) => [ann, index + 1]),
   );
   let emitOrder = sortedAnns;
-  if (hasPageGroups) {
-    const unpaged = sortedAnns.filter((a: any) => !a.pageUrl);
-    const pageOrder: string[] = [];
-    for (const ann of sortedAnns) {
-      if (ann.pageUrl && !pageOrder.includes(ann.pageUrl)) pageOrder.push(ann.pageUrl);
-    }
-    emitOrder = [
-      ...unpaged,
-      ...pageOrder.flatMap((page) => sortedAnns.filter((a: any) => a.pageUrl === page)),
-    ];
-  }
 
   // Threaded replies (`inReplyTo`): a reply is emitted as a nested exchange
   // under its parent's entry rather than as its own numbered entry, so the
@@ -1260,13 +1235,8 @@ export const exportAnnotations = (
     return parts.join('');
   };
 
-  let lastEmittedPage: string | null = null;
   emitOrder.forEach((ann) => {
-    if (hasPageGroups && ann.pageUrl && ann.pageUrl !== lastEmittedPage) {
-      output += `## Page: ${ann.pageUrl}\n\n`;
-      lastEmittedPage = ann.pageUrl;
-    }
-    output += `${hasPageGroups ? '###' : '##'} ${annotationNumbers.get(ann)}. `;
+    output += `## ${annotationNumbers.get(ann)}. `;
 
     // Add diff context label if annotation was created in diff view
     if (ann.diffContext) {
