@@ -56,6 +56,9 @@ const NAMED_TOKENS = new Set([
   'End',
   'A-Z',
   'hold',
+  // Pointer gestures a modifier qualifies, e.g. `Alt drag`. Declarative
+  // metadata for the help modal; never dispatched as a keypress.
+  'drag',
   // Punctuation keys used as shortcut targets. Add new ones as needed; we
   // whitelist explicitly so typos like `Cmd` instead of `Mod` keep failing
   // validation.

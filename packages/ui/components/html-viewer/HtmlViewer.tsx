@@ -8,11 +8,10 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import type { Annotation, EditorMode, ImageAttachment, InputMethod } from "../../types";
+import type { Annotation, ImageAttachment, InputMethod } from "../../types";
 import { AnnotationType } from "../../types";
 import { getIdentity } from "../../utils/identity";
 import { useQuickLabels } from "../../hooks/useQuickLabels";
-import { AnnotationToolbar } from "../AnnotationToolbar";
 import {
   CommentPopover,
   type CommentTargetChip,
@@ -105,7 +104,6 @@ export interface HtmlViewerProps {
   onAddAnnotation: (ann: Annotation) => void;
   onSelectAnnotation: (id: string | null) => void;
   selectedAnnotationId: string | null;
-  mode: EditorMode;
   /** Input method: 'drag' = text selection, 'pinpoint' = click an element. */
   inputMethod: InputMethod;
   /** Interact/Annotate toggle for HTML and live-app surfaces. While false
@@ -206,7 +204,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       onAddAnnotation,
       onSelectAnnotation,
       selectedAnnotationId,
-      mode,
       inputMethod,
       annotateModeActive = true,
       onAnnotateModeExit,
@@ -421,7 +418,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       onAddAnnotation,
       onSelectAnnotation,
       selectedAnnotationId,
-      mode,
       onResize: handleResize,
       onBridgePointer: handleBridgePointer,
       onUnanchoredChange: handleBridgeUnanchored,
@@ -584,13 +580,13 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
     }, [iframeReadyVersion, annotateModeActive]);
 
     // Parent-side Esc rung: with focus outside the iframe the bridge never
-    // sees the keydown. Any open composer/toolbar/picker still closes first —
+    // sees the keydown. Any open composer/picker still closes first —
     // their state is read from this render's closure, so an Esc that closed
     // one this same keydown is not double-consumed here.
     useEffect(() => {
       if (readOnly || !annotateModeActive || !onAnnotateModeExit) return;
       const overlayOpen =
-        !!hook.toolbarState || !!hook.commentPopover || !!globalCommentPopover;
+        !!hook.commentPopover || !!globalCommentPopover;
       const onKeyDown = (e: KeyboardEvent) => {
         if (e.key !== 'Escape' || e.defaultPrevented) return;
         if (overlayOpen) return;
@@ -606,7 +602,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       readOnly,
       annotateModeActive,
       onAnnotateModeExit,
-      hook.toolbarState,
       hook.commentPopover,
       globalCommentPopover,
     ]);
@@ -788,21 +783,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
             />
           </article>
         </div>
-
-        {/* Toolbar portal */}
-        {!readOnly && hook.toolbarState &&
-          createPortal(
-            <AnnotationToolbar
-              positionMode="center-above"
-              element={hook.toolbarState.element}
-              copyText={hook.toolbarState.selectionText}
-              commentOnly
-              onAnnotate={hook.handleAnnotate}
-              onRequestComment={hook.handleRequestComment}
-              onClose={hook.handleToolbarClose}
-            />,
-            document.body,
-          )}
 
         {/* Comment popover portal */}
         {!readOnly && hook.commentPopover &&

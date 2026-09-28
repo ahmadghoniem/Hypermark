@@ -175,7 +175,7 @@ export const BRIDGE_SCRIPT = `(function() {
   // pinpoint capture, no hover outline, no [data-annotate] click, no
   // committed-highlight click interception — clicks, forms, and SPA
   // navigation reach the page untouched. Text drag-selection commenting stays
-  // LIVE in both modes (a real drag opens the comment toolbar even in
+  // LIVE in both modes (a real drag opens the comment composer even in
   // Interact), committed overlay artifacts stay visible in both modes, and
   // marker buttons keep their own clicks. BOTH surface kinds start ARMED —
   // Esc (or the header pen) drops to Interact.
@@ -189,7 +189,7 @@ export const BRIDGE_SCRIPT = `(function() {
     }
   }
   var pinpointHover = null;
-  // A plain click on an element-annotation target opens the toolbar, but the same
+  // A plain click on an element-annotation target opens the composer, but the same
   // click's mouseup schedules a handleSelection() that would see an empty selection
   // and immediately clear it. This flag suppresses that one trailing clear.
   var skipNextClear = false;
@@ -214,7 +214,7 @@ export const BRIDGE_SCRIPT = `(function() {
     return text.slice(0, cut);
   }
 
-  function handleSelection(modeOverride, extras) {
+  function handleSelection(extras) {
     var sel = window.getSelection();
     if (!sel || sel.isCollapsed || !sel.rangeCount) {
       // Trailing clear from a plain-click element annotation — consume it once.
@@ -251,7 +251,6 @@ export const BRIDGE_SCRIPT = `(function() {
     postToParent({
       type: PREFIX + 'selection',
       text: text,
-      modeOverride: modeOverride || undefined,
       anchor: (extras && extras.anchor) || undefined,
       pinpoint: (extras && extras.pinpoint) || undefined,
       targetKey: (extras && extras.targetKey) || undefined,
@@ -1223,7 +1222,7 @@ export const BRIDGE_SCRIPT = `(function() {
     }
     dragEndedClick = draggedSelection;
     if (annotateModeActive && currentInputMethod === 'pinpoint' && !draggedSelection) return;
-    setTimeout(handleSelection, 10);
+    setTimeout(function () { handleSelection(); }, 10);
   }, true);
 
   // One record per committed annotation. Its targets are live projections;
@@ -2696,7 +2695,7 @@ export const BRIDGE_SCRIPT = `(function() {
   // whose <text> doesn't select like HTML text). Either way the element stays
   // outlined ("pinned") while the composer is open, and a serialized CSS anchor
   // rides along so the annotation can restore to this exact element later.
-  function annotateElement(el, modeOverride, viaPinpoint, clickPoint) {
+  function annotateElement(el, viaPinpoint, clickPoint) {
     if (!el) return false;
     pinpointHover = null;
     hidePinpointLabel();
@@ -2746,7 +2745,7 @@ export const BRIDGE_SCRIPT = `(function() {
       } catch (ex) {}
     }
     if (txt) {
-      var posted = handleSelection(modeOverride, extras);
+      var posted = handleSelection(extras);
       if (!posted) clearPendingPin();
       return posted;
     }
@@ -2757,9 +2756,8 @@ export const BRIDGE_SCRIPT = `(function() {
     var r = el.getBoundingClientRect();
     pendingSelection = { element: true };
     pendingRange = null;
-    skipNextClear = true; // don't let this click's mouseup clear the toolbar we just opened
+    skipNextClear = true; // don't let this click's mouseup clear the composer we just opened
     postToParent({ type: PREFIX + 'selection', text: elText,
-      modeOverride: modeOverride || undefined,
       anchor: pendingPinAnchor || undefined,
       pinpoint: !!viaPinpoint || undefined,
       targetKey: pendingPinKey || undefined,
@@ -2806,7 +2804,7 @@ export const BRIDGE_SCRIPT = `(function() {
     // Suppress the page's own behavior (links, buttons) — we're annotating.
     e.preventDefault();
     e.stopPropagation();
-    annotateElement(el, undefined, true, { x: e.clientX, y: e.clientY });
+    annotateElement(el, true, { x: e.clientX, y: e.clientY });
   }, true);
 
   // Escape ladder (outside vim, which has its own): a pending draft closes
@@ -2869,7 +2867,7 @@ export const BRIDGE_SCRIPT = `(function() {
     if (committedHighlightAt(e.clientX, e.clientY)) return; // mark-click handler owns it
     var s = window.getSelection();
     if (s && !s.isCollapsed && (s.toString() || '').trim()) return; // respect a drag-selection
-    annotateElement(t, undefined, undefined, { x: e.clientX, y: e.clientY });
+    annotateElement(t, undefined, { x: e.clientX, y: e.clientY });
   });
 
   // --- Mark Click ---
@@ -2918,34 +2916,6 @@ export const BRIDGE_SCRIPT = `(function() {
     if (!hitId) return;
     e.stopPropagation();
     postToParent({ type: PREFIX + 'mark-click', id: hitId });
-  });
-
-  // --- Optional Vim navigation ---
-  // The bridge owns iframe-local ranges and focus. The parent only enables the
-  // feature and receives the same selection messages used by pointer input.
-  function isVimEditableTarget(node) {
-    var el = node && node.nodeType === 1 ? node : node && node.parentElement;
-    if (!el || !el.closest) return false;
-    return !!el.closest('button,input,textarea,select,a[href],summary,[contenteditable]:not([contenteditable="false"]),[role="button"],[role="link"],[role="textbox"],[role="dialog"]');
-  }
-
-  // --- Type-to-comment ---
-  // While a selection is pending, focus is inside this iframe, so the parent's
-  // toolbar keydown listener never sees the keystroke. Forward a single printable
-  // char to the parent so it can open a comment pre-filled with it.
-  document.addEventListener('keydown', function(e) {
-    if (!pendingSelection) return;
-    if (isVimEditableTarget(e.target)) return;
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
-    if (!e.key || e.key.length !== 1) return; // single printable char only
-    e.preventDefault();
-    postToParent({ type: PREFIX + 'keytype', key: e.key });
-    // Hand keyboard focus back to the parent window so the comment textarea can
-    // take it. Blurring the <iframe> from the parent isn't enough — the inner
-    // document keeps focus — so the iframe must relinquish it. parent.focus() is
-    // allowed cross-origin (like postMessage); also drop the active element.
-    try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (ex) {}
-    try { parent.focus(); } catch (ex) {}
   });
 
   // --- Helpers ---

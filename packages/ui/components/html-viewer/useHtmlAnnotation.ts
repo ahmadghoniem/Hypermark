@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef, type RefObject } from "react";
-import { AnnotationType, type Annotation, type EditorMode, type HtmlAnnotationTarget, type HtmlElementAnchor, type ImageAttachment } from "../../types";
+import { AnnotationType, type Annotation, type HtmlAnnotationTarget, type HtmlElementAnchor, type ImageAttachment } from "../../types";
 import type { QuickLabel } from "../../utils/quickLabels";
 import { getIdentity } from "../../utils/identity";
 import type {
-  ToolbarState,
   CommentPopoverState,
   UseAnnotationHighlighterReturn,
 } from "../../hooks/useAnnotationHighlighter";
@@ -73,7 +72,6 @@ interface BridgeSelectionMessage {
   type: `${typeof PREFIX}selection`;
   text: string;
   rect: BridgeRect;
-  modeOverride?: EditorMode;
   /** Serialized element anchor (pinpoint clicks) — validated, size-capped. */
   anchor?: HtmlElementAnchor;
   /** True when the selection came from a pinpoint click on an element. */
@@ -114,7 +112,6 @@ type BridgeMessage =
   | { type: `${typeof PREFIX}pointer`; x: number; y: number; shift: boolean }
   | { type: `${typeof PREFIX}selection-clear` }
   | { type: `${typeof PREFIX}selection-rect`; rect: BridgeRect }
-  | { type: `${typeof PREFIX}keytype`; key: string }
   | { type: `${typeof PREFIX}mark-click`; id: string }
   | { type: `${typeof PREFIX}unanchored`; ids: string[] }
   | { type: `${typeof PREFIX}resize`; height: number };
@@ -128,7 +125,6 @@ export interface UseHtmlAnnotationOptions {
   onAddAnnotation?: (ann: Annotation) => void;
   onSelectAnnotation?: (id: string | null) => void;
   selectedAnnotationId: string | null;
-  mode: EditorMode;
   onResize?: (height: number) => void;
   /** Validated pointer positions relayed from inside the iframe while a
    *  pinpoint draft is open (iframe-local viewport coordinates), with the
@@ -164,14 +160,6 @@ function postToIframe(
   msg: Record<string, unknown>,
 ) {
   iframe?.contentWindow?.postMessage(msg, "*");
-}
-
-function parseEditorMode(value: unknown): EditorMode | undefined {
-  return value === "selection"
-    || value === "comment"
-    || value === "redline"
-    ? value
-    : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -289,7 +277,6 @@ function parseBridgeMessage(value: unknown): BridgeMessage | null {
         type: value.type,
         text: capSelectionText(value.text),
         rect,
-        modeOverride: parseEditorMode(value.modeOverride),
         anchor: parseHtmlElementAnchor(value.anchor) ?? undefined,
         pinpoint: value.pinpoint === true,
         targetKey: parseTargetKey(value.targetKey) ?? undefined,
@@ -322,10 +309,6 @@ function parseBridgeMessage(value: unknown): BridgeMessage | null {
       const rect = parseBridgeRect(value.rect);
       return rect ? { type: value.type, rect } : null;
     }
-    case `${PREFIX}keytype`:
-      return typeof value.key === "string"
-        ? { type: value.type, key: value.key }
-        : null;
     case `${PREFIX}mark-click`:
       // The id is page-controlled like every other bridge string: cap it like
       // the bridge's own sync validation does (256) so a hostile page cannot
@@ -366,7 +349,6 @@ export function useHtmlAnnotation({
   onAddAnnotation,
   onSelectAnnotation,
   selectedAnnotationId,
-  mode,
   onResize,
   onBridgePointer,
   onUnanchoredChange,
@@ -392,7 +374,6 @@ export function useHtmlAnnotation({
    *  swapped-out local mark, not a host row. Read-only, stable identity. */
   createdAnnotationIds: ReadonlySet<string>;
 } {
-  const [toolbarState, setToolbarState] = useState<ToolbarState | null>(null);
   const [commentPopover, setCommentPopover] = useState<CommentPopoverState | null>(null);
   const [draftTargets, setDraftTargets] = useState<HtmlDraftTarget[]>([]);
   const [composerFocusToken, setComposerFocusToken] = useState(0);
@@ -407,8 +388,6 @@ export function useHtmlAnnotation({
   onBridgePointerRef.current = onBridgePointer;
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
-  const modeRef = useRef(mode);
-  modeRef.current = mode;
   // Ids this instance minted (see the module comment above nextHtmlAnnId);
   // released on unmount so nothing outlives the viewer that created it.
   const mintedIdsRef = useRef<Set<string>>(new Set());
@@ -418,10 +397,6 @@ export function useHtmlAnnotation({
       minted.clear();
     };
   }, []);
-  // Mirror toolbar visibility into a ref so the (stable) message handler can gate
-  // type-to-comment on "the markup toolbar is showing", like AnnotationToolbar does.
-  const toolbarStateRef = useRef(toolbarState);
-  toolbarStateRef.current = toolbarState;
   // Mirror the open comment state so the selection-clear handler can
   // tell whether the user is mid-compose and must keep the captured text alive.
   const commentPopoverRef = useRef(commentPopover);
@@ -545,25 +520,7 @@ export function useHtmlAnnotation({
         const anchor = positionAnchor(message.rect);
         if (!anchor) return;
 
-        // HTML and live-app surfaces are COMMENT-ONLY: redline (auto-DELETION)
-        // and quickLabel are markdown-surface features, so both the host's
-        // mode and any bridge-posted modeOverride clamp to the plain selection
-        // flow here (a hostile page can post modeOverride, so the clamp sits
-        // at the trust boundary, not in the host). Persisted DELETION
-        // annotations still restore through applyAnnotations — only CREATION
-        // is comment-only.
-        const requestedMode = message.modeOverride ?? modeRef.current;
-        const currentMode =
-          requestedMode === "redline"
-            ? "selection"
-            : requestedMode;
-
-        if (
-          currentMode === "comment"
-          // Pinpoint click-to-pin: the click already chose the target, so skip
-          // the intermediate toolbar and go straight to the comment composer.
-          || (message.pinpoint && currentMode === "selection")
-        ) {
+        if (message.pinpoint) {
           // Release iframe focus so the popover's textarea autofocus lands in the
           // parent (otherwise the iframe keeps focus and swallows further keys).
           iframeRef.current?.blur();
@@ -594,10 +551,14 @@ export function useHtmlAnnotation({
             });
           }
         } else {
-          setToolbarState({
-            element: anchor,
-            source: null,
-            selectionText: message.text,
+          // A plain drag opens the composer on the selection. Release iframe
+          // focus first, same as the pinpoint path, so the textarea can take it.
+          iframeRef.current?.blur();
+          setCommentPopover({
+            anchorEl: anchor,
+            contextText: message.text,
+            selectedText: message.text,
+            draftKey: htmlCommentDraftKey(message.text, message.anchor),
           });
         }
       }
@@ -635,7 +596,6 @@ export function useHtmlAnnotation({
       }
 
       if (type === `${PREFIX}selection-clear`) {
-        setToolbarState(null);
         // Keep the captured text alive while a comment is open: the user
         // is composing, and the selection collapsing or scrolling out of view must
         // not drop the annotation on submit. It's overwritten on the next selection.
@@ -657,28 +617,6 @@ export function useHtmlAnnotation({
         anchor.style.top = `${iframeRect.top + r.top}px`;
         anchor.style.left = `${iframeRect.left + r.left + r.width / 2}px`;
         window.dispatchEvent(new Event("scroll"));
-      }
-
-      if (type === `${PREFIX}keytype`) {
-        // Type-to-comment: only when the markup toolbar is showing (matches the
-        // markdown path, where AnnotationToolbar owns this keydown). Open a comment
-        // pre-filled with the typed char.
-        if (!toolbarStateRef.current) return;
-        const key = message.key;
-        const text = pendingTextRef.current;
-        if (!key || !text) return;
-        const anchor = anchorRef.current ?? getOrCreateAnchor();
-        // Release iframe focus so the popover textarea can take it (and the rest of
-        // the typing) — otherwise the iframe keeps focus and the bridge eats keys.
-        iframeRef.current?.blur();
-        setToolbarState(null);
-        setCommentPopover({
-          anchorEl: anchor,
-          contextText: text,
-          selectedText: text,
-          initialText: key,
-          draftKey: htmlCommentDraftKey(text, pendingAnchorRef.current),
-        });
       }
 
       if (type === `${PREFIX}mark-click`) {
@@ -706,7 +644,6 @@ export function useHtmlAnnotation({
 
   useEffect(() => {
     if (enabled) return;
-    setToolbarState(null);
     setCommentPopover(null);
     setDraftTargets([]);
     pendingTextRef.current = "";
@@ -732,52 +669,6 @@ export function useHtmlAnnotation({
       });
     }
   }, [selectedAnnotationId, post, scrollBehavior]);
-
-  const handleAnnotate = useCallback(
-    (type: AnnotationType) => {
-      if (!enabledRef.current) return;
-      const text = pendingTextRef.current;
-      if (!text || type !== AnnotationType.DELETION) return;
-
-      const id = nextHtmlAnnId();
-      mintedIdsRef.current.add(id);
-      post({ type: `${PREFIX}create-mark`, id, annotationType: "deletion" });
-      onAddRef.current?.({
-        id,
-        blockId: "",
-        startOffset: 0,
-        endOffset: 0,
-        type: AnnotationType.DELETION,
-        originalText: text,
-        author: getIdentity(),
-        createdA: Date.now(),
-        htmlAnchor: pendingAnchorRef.current ?? undefined,
-      });
-
-      setToolbarState(null);
-      pendingTextRef.current = "";
-      pendingAnchorRef.current = null;
-    },
-    [post],
-  );
-
-  const handleRequestComment = useCallback(
-    (initialChar?: string) => {
-      if (!enabledRef.current) return;
-      const text = pendingTextRef.current;
-      if (!text) return;
-      const anchor = anchorRef.current ?? getOrCreateAnchor();
-      setToolbarState(null);
-      setCommentPopover({
-        anchorEl: anchor,
-        contextText: text,
-        selectedText: text,
-        initialText: initialChar,
-        draftKey: htmlCommentDraftKey(text, pendingAnchorRef.current),
-      });
-    },
-    [getOrCreateAnchor],
-  );
 
   const handleCommentSubmit = useCallback(
     (comment: string, images?: ImageAttachment[]) => {
@@ -890,14 +781,6 @@ export function useHtmlAnnotation({
     [post],
   );
 
-  const handleToolbarClose = useCallback(() => {
-    post({ type: `${PREFIX}cancel-selection` });
-    setToolbarState(null);
-    pendingTextRef.current = "";
-    pendingAnchorRef.current = null;
-  }, [post]);
-
-
   const removeHighlight = useCallback(
     (id: string) => {
       post({ type: `${PREFIX}remove-mark`, id });
@@ -936,11 +819,7 @@ export function useHtmlAnnotation({
   );
 
   return {
-    toolbarState,
     commentPopover,
-    handleAnnotate,
-    handleToolbarClose,
-    handleRequestComment,
     handleCommentSubmit,
     handleCommentQuickLabel,
     handleCommentClose,

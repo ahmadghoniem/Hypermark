@@ -11,7 +11,7 @@ import { parseMarkdownToBlocks, computeListIndices } from "../../utils/parser";
 import { applyHighlight, codeBlockClassName } from "../../utils/codeHighlight";
 import { useFenceTheme } from "../../hooks/useFenceTheme";
 import { ListItemBody } from "../ListItemBody";
-import type { Block, Annotation, EditorMode, ImageAttachment } from "../../types";
+import type { Block, Annotation, ImageAttachment } from "../../types";
 import { AnnotationType } from "../../types";
 import type {
   PlanDiffBlock,
@@ -28,7 +28,6 @@ interface PlanCleanDiffViewProps {
   onAddAnnotation?: (ann: Annotation) => void;
   onSelectAnnotation?: (id: string | null) => void;
   selectedAnnotationId?: string | null;
-  mode?: EditorMode;
   /**
    * When true (default), modified blocks that passed the qualification gate
    * render with inline word-level highlights. When false, every modified
@@ -44,10 +43,8 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
   onAddAnnotation,
   onSelectAnnotation,
   selectedAnnotationId = null,
-  mode = "selection",
   wordLevel = true,
 }) => {
-  const modeRef = useRef<EditorMode>(mode);
   const onAddAnnotationRef = useRef(onAddAnnotation);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -69,7 +66,6 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
     diffContext: Annotation['diffContext'];
   } | null>(null);
 
-  useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { onAddAnnotationRef.current = onAddAnnotation; }, [onAddAnnotation]);
 
   // Clean up timers on unmount
@@ -229,22 +225,17 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
     setCommentPopover(null);
   }, []);
 
-  // Mode-aware click on hovered block
+  // Click on hovered block opens the comment popover directly
   const handleBlockClick = useCallback((block: PlanDiffBlock, index: number, element: HTMLElement, diffContext: Annotation['diffContext']) => {
-    if (modeRef.current === 'redline') {
-      createDiffAnnotation(block, index, diffContext, AnnotationType.DELETION);
-    } else {
-      // selection or comment → open the comment popover directly on click
-      const content = getBlockContent(block, diffContext);
-      setCommentPopover({
-        anchorEl: element,
-        contextText: content.slice(0, 80),
-        block,
-        index,
-        diffContext,
-      });
-    }
-  }, [createDiffAnnotation, getBlockContent]);
+    const content = getBlockContent(block, diffContext);
+    setCommentPopover({
+      anchorEl: element,
+      contextText: content.slice(0, 80),
+      block,
+      index,
+      diffContext,
+    });
+  }, [getBlockContent]);
 
   // Check if a block index has been annotated (for highlight ring)
   const isBlockAnnotated = (index: number) => annotatedBlockIds.has(`diff-block-${index}`);
@@ -270,7 +261,6 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
       {hoveredBlock && !commentPopover && (
         <AnnotationToolbar
           element={hoveredBlock.element}
-          positionMode="top-right"
           onAnnotate={handleAnnotate}
           onClose={handleToolbarClose}
           onRequestComment={handleRequestComment}

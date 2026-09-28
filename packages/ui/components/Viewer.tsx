@@ -1,7 +1,7 @@
 import { generateId } from '../utils/generateId';
 import React, { useRef, useState, useEffect, useMemo, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { AnnotationType, type Block, type Annotation, type EditorMode, type InputMethod, type ImageAttachment, type ActionsLabelMode } from '../types';
+import { AnnotationType, type Block, type Annotation, type InputMethod, type ImageAttachment, type ActionsLabelMode } from '../types';
 import { applyHighlight, codeBlockClassName, onCodeHighlightSwap } from '../utils/codeHighlight';
 import { paintCodeBlockMark } from '../utils/codeBlockMark';
 import { useFenceTheme } from '../hooks/useFenceTheme';
@@ -63,8 +63,6 @@ import {
 export interface ViewerAnnotationHeaderConfig {
   /** Persist and apply a Select or Pinpoint input-method change. */
   readonly onInputMethodChange: (method: InputMethod) => void;
-  /** Persist and apply an annotation-mode change. */
-  readonly onModeChange: (mode: EditorMode) => void;
 }
 
 /** Public properties for the Markdown document Viewer. */
@@ -76,7 +74,6 @@ export interface ViewerProps {
   onAddAnnotation: (ann: Annotation) => void;
   onSelectAnnotation: (id: string | null) => void;
   selectedAnnotationId: string | null;
-  mode: EditorMode;
   inputMethod?: InputMethod;
   repoInfo?: { display: string; branch?: string; host?: string } | null;
   stickyActions?: boolean;
@@ -184,7 +181,6 @@ const FrontmatterCard: React.FC<{ frontmatter: Frontmatter }> = ({ frontmatter }
 interface ViewerDocumentHeaderProps {
   readonly config: ViewerAnnotationHeaderConfig;
   readonly inputMethod: InputMethod;
-  readonly mode: EditorMode;
   readonly sticky: boolean;
   readonly stuck: boolean;
   readonly sentinelRef: React.RefObject<HTMLDivElement | null>;
@@ -196,7 +192,6 @@ interface ViewerDocumentHeaderProps {
 const ViewerDocumentHeader: React.FC<ViewerDocumentHeaderProps> = ({
   config,
   inputMethod,
-  mode,
   sticky,
   stuck,
   sentinelRef,
@@ -265,8 +260,6 @@ const ViewerDocumentHeader: React.FC<ViewerDocumentHeaderProps> = ({
               <AnnotationToolstrip
                 inputMethod={inputMethod}
                 onInputMethodChange={config.onInputMethodChange}
-                mode={mode}
-                onModeChange={config.onModeChange}
                 compact
                 iconOnly={iconOnly}
               />
@@ -302,7 +295,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   onAddAnnotation,
   onSelectAnnotation,
   selectedAnnotationId,
-  mode,
   inputMethod = 'drag',
   repoInfo,
   stickyActions = true,
@@ -410,11 +402,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
 
   // Shared annotation infrastructure via hook
   const {
-    toolbarState,
     commentPopover: hookCommentPopover,
-    handleAnnotate,
-    handleToolbarClose,
-    handleRequestComment,
     handleCommentSubmit: hookCommentSubmit,
     handleCommentQuickLabel: hookCommentQuickLabel,
     handleCommentClose: hookCommentClose,
@@ -428,15 +416,12 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     onAddAnnotation,
     onSelectAnnotation,
     selectedAnnotationId,
-    mode,
     enabled: !readOnly,
   });
 
   // Refs for code block annotation path
   const onAddAnnotationRef = useRef(onAddAnnotation);
   useEffect(() => { onAddAnnotationRef.current = onAddAnnotation; }, [onAddAnnotation]);
-  const modeRef = useRef<EditorMode>(mode);
-  useEffect(() => { modeRef.current = mode; }, [mode]);
 
   const applyCodeBlockAnnotation = useCallback((
     blockId: string,
@@ -535,26 +520,21 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     const block = blocks.find((candidate) => candidate.id === blockId);
     const codeEl = element.querySelector('code');
     if (!block || !codeEl) return;
-    // In pinpoint mode, apply code block annotation based on current editor mode
-    if (modeRef.current === 'redline') {
-      applyCodeBlockAnnotation(blockId, codeEl, AnnotationType.DELETION);
-    } else {
-      // Show comment popover anchored to the code block
-      setViewerCommentPopover({
-        anchorEl: element,
-        contextText: (codeEl.textContent || '').slice(0, 80),
-        selectedText: codeEl.textContent || '',
-        isGlobal: false,
-        codeBlock: { block, element },
-      });
-    }
-  }, [applyCodeBlockAnnotation, blocks]);
+    // Show comment popover anchored to the code block
+    setViewerCommentPopover({
+      anchorEl: element,
+      contextText: (codeEl.textContent || '').slice(0, 80),
+      selectedText: codeEl.textContent || '',
+      isGlobal: false,
+      codeBlock: { block, element },
+    });
+  }, [blocks]);
 
   const keyboardCodeBlockToolbarOpen = codeBlockToolbar?.activation === 'keyboard';
   const { hoverTarget } = usePinpoint({
     containerRef,
     inputMethod,
-    enabled: !readOnly && !toolbarState && !hookCommentPopover && !viewerCommentPopover && !(isPlanDiffActive ?? false),
+    enabled: !readOnly && !hookCommentPopover && !viewerCommentPopover && !(isPlanDiffActive ?? false),
     onSelectRange: highlightRange,
     onCodeBlockClick: handlePinpointCodeBlockClick,
   });
@@ -662,15 +642,16 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
-      if (toolbarState?.selectionText) {
+      const captured = hookCommentPopover?.selectedText;
+      if (captured) {
         e.preventDefault();
-        e.clipboardData?.setData('text/plain', toolbarState.selectionText);
+        e.clipboardData?.setData('text/plain', captured);
       }
     };
 
     document.addEventListener('copy', handleCopy);
     return () => document.removeEventListener('copy', handleCopy);
-  }, [toolbarState]);
+  }, [hookCommentPopover]);
 
   // Imperative handle — delegates to hook, extends removeHighlight for code blocks
   useImperativeHandle(ref, () => ({
@@ -854,7 +835,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
           <ViewerDocumentHeader
             config={viewerAnnotationHeader}
             inputMethod={inputMethod}
-            mode={mode}
             sticky={stickyActions}
             stuck={isStuck}
             sentinelRef={stickySentinelRef}
@@ -928,7 +908,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
                   tableHoverTimeoutRef.current = null;
                 }
                 setIsTableToolbarExiting(false);
-                if (!toolbarState) {
+                if (!hookCommentPopover) {
                   setHoveredTable({ block: group.block, element });
                 }
               }}
@@ -954,9 +934,9 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
                 }
                 // Cancel exit animation if re-entering
                 setIsCodeBlockToolbarExiting(false);
-                // Only show hover toolbar if no selection toolbar is active
+                // Only show the hover toolbar while no selection composer is open
                 if (
-                  !toolbarState
+                  !hookCommentPopover
                   && !keyboardCodeBlockToolbarOpen
                 ) {
                   setCodeBlockToolbar({
@@ -989,24 +969,8 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
           )
         )}
 
-        {/* Text selection toolbar */}
-        {!readOnly && toolbarState && (
-          <ToolbarErrorBoundary>
-            <AnnotationToolbar
-              element={toolbarState.element}
-              positionMode="center-above"
-              onAnnotate={handleAnnotate}
-              onClose={handleToolbarClose}
-              onRequestComment={handleRequestComment}
-              copyText={toolbarState.selectionText}
-              hideCopyButton={!isTouchDevice}
-              closeOnScrollOut
-            />
-          </ToolbarErrorBoundary>
-        )}
-
         {/* Table hover toolbar */}
-        {hoveredTable && !toolbarState && (
+        {hoveredTable && !hookCommentPopover && (
           <TableToolbar
             element={hoveredTable.element}
             markdown={hoveredTable.block.content}
@@ -1042,12 +1006,11 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
         {/* Code block hover toolbar */}
         {!readOnly
           && codeBlockToolbar
-          && !toolbarState
+          && !hookCommentPopover
           && (
             <ToolbarErrorBoundary>
               <AnnotationToolbar
                 element={codeBlockToolbar.element}
-                positionMode="top-right"
                 onAnnotate={handleCodeBlockAnnotate}
                 onClose={handleCodeBlockToolbarClose}
                 onRequestComment={handleCodeBlockRequestComment}

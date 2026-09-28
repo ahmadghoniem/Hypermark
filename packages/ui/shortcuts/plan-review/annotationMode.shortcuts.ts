@@ -13,29 +13,15 @@ export const annotationModeShortcuts = defineShortcutScope({
   id: 'annotation-mode',
   title: 'Annotation Mode',
   shortcuts: {
-    selectMarkupMode: {
-      description: 'Markup mode',
-      bindings: ['Shift+1'],
+    // Declarative metadata for the help modal only. Not dispatched through
+    // `useShortcutScope`: `useAnnotationHighlighter` reads `altKey` off the
+    // mouseup that ends the selection.
+    strikeOnRelease: {
+      description: 'Strike through on release',
+      bindings: ['Alt drag'],
       section: 'Annotations',
-      hint: 'Selecting text opens the annotation toolbar.',
-      preventDefault: true,
-      displayOrder: 1,
-    },
-    selectCommentMode: {
-      description: 'Comment mode',
-      bindings: ['Shift+2'],
-      section: 'Annotations',
-      hint: 'Selecting text opens the comment editor.',
-      preventDefault: true,
-      displayOrder: 2,
-    },
-    selectRedlineMode: {
-      description: 'Redline mode',
-      bindings: ['Shift+3'],
-      section: 'Annotations',
-      hint: 'Selecting text marks it for deletion.',
-      preventDefault: true,
-      displayOrder: 3,
+      hint: 'Hold Alt as you release a selection to mark it for deletion, whatever mode is armed.',
+      displayOrder: 4,
     },
   },
 });

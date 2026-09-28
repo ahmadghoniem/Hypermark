@@ -11,7 +11,7 @@ export function actionsLabelModeForWidth(width: number): ActionsLabelMode {
  */
 export function observeActionsLabelMode(
   element: HTMLElement,
-  onModeChange: (mode: ActionsLabelMode) => void,
+  onChange: (mode: ActionsLabelMode) => void,
 ): () => void {
   const update = (entries?: readonly ResizeObserverEntry[]) => {
     const entry = entries?.find((candidate) => candidate.target === element);
@@ -20,7 +20,7 @@ export function observeActionsLabelMode(
       ? borderBoxSize[0]
       : borderBoxSize;
     const width = measuredBorderBox?.inlineSize ?? element.getBoundingClientRect().width;
-    onModeChange(actionsLabelModeForWidth(width));
+    onChange(actionsLabelModeForWidth(width));
   };
 
   update();

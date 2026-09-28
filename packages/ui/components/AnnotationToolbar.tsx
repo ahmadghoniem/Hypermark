@@ -5,8 +5,6 @@ import { useDismissOnOutsideAndEscape } from "../hooks/useDismissOnOutsideAndEsc
 import { copyTextToClipboard } from "../utils/clipboard";
 import { acquireTypeToCommentCapture } from "../shortcuts/plan-review/annotationMode.shortcuts";
 
-type PositionMode = 'center-above' | 'top-right';
-
 const isEditableElement = (node: EventTarget | Element | null): boolean => {
   if (!(node instanceof Element)) return false;
   if (node.matches('input, textarea, select, [role="textbox"]')) return true;
@@ -14,22 +12,18 @@ const isEditableElement = (node: EventTarget | Element | null): boolean => {
   return (node as HTMLElement).isContentEditable;
 };
 
+/**
+ * The hover toolbar for a whole block — a code fence in the markdown viewer, a
+ * diff block in the clean plan view. Text selections do not open it: releasing a
+ * drag opens the comment composer directly, and Alt+drag strikes the selection
+ * through.
+ */
 interface AnnotationToolbarProps {
   element: HTMLElement;
-  positionMode: PositionMode;
   onAnnotate: (type: AnnotationType) => void;
   onClose: () => void;
   /** Called when user wants to write a comment (opens CommentPopover in parent) */
   onRequestComment?: (initialChar?: string) => void;
-  /** Text to copy when the button is clicked */
-  copyText?: string;
-  /** Comment-only surfaces (HTML / live-app viewer): hide the Delete action.
-   *  Markdown surfaces keep the full toolbar. */
-  commentOnly?: boolean;
-  /** Hide the copy button (set when a keyboard copy handler exists) */
-  hideCopyButton?: boolean;
-  /** Close toolbar when element scrolls out of viewport */
-  closeOnScrollOut?: boolean;
   /** Exit animation state */
   isExiting?: boolean;
   /** Hover callbacks for code block behavior */
@@ -39,30 +33,22 @@ interface AnnotationToolbarProps {
 
 export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
   element,
-  positionMode,
   onAnnotate,
   onClose,
   onRequestComment,
-  copyText,
-  commentOnly = false,
-  hideCopyButton = false,
-  closeOnScrollOut = false,
   isExiting = false,
   onMouseEnter,
   onMouseLeave,
 }) => {
-  const [position, setPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
+  const [position, setPosition] = useState<{ top: number; right: number } | null>(null);
   const [copied, setCopied] = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setCopied(false); }, [element]);
 
   const handleCopy = async () => {
-    let textToCopy = copyText;
-    if (!textToCopy) {
-      const codeEl = element.querySelector('code');
-      textToCopy = codeEl?.textContent || element.textContent || '';
-    }
+    const codeEl = element.querySelector('code');
+    const textToCopy = codeEl?.textContent || element.textContent || '';
     if (await copyTextToClipboard(textToCopy)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
@@ -73,23 +59,10 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
   useEffect(() => {
     const updatePosition = () => {
       const rect = element.getBoundingClientRect();
-
-      if (closeOnScrollOut && (rect.bottom < 0 || rect.top > window.innerHeight)) {
-        onClose();
-        return;
-      }
-
-      if (positionMode === 'center-above') {
-        setPosition({
-          top: rect.top - 48,
-          left: rect.left + rect.width / 2,
-        });
-      } else {
-        setPosition({
-          top: rect.top - 40,
-          right: window.innerWidth - rect.right,
-        });
-      }
+      setPosition({
+        top: rect.top - 40,
+        right: window.innerWidth - rect.right,
+      });
     };
 
     updatePosition();
@@ -100,7 +73,7 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
       window.removeEventListener("scroll", updatePosition, true);
       window.removeEventListener("resize", updatePosition);
     };
-  }, [element, positionMode, closeOnScrollOut, onClose]);
+  }, [element]);
 
   // Type-to-comment shortcut
   useEffect(() => {
@@ -147,14 +120,9 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
     }
   };
 
-  const isCentered = position.left !== undefined;
-  const translateX = isCentered ? ' translateX(-50%)' : '';
-
   const style: React.CSSProperties = {
     top: position.top,
-    ...(isCentered
-      ? { left: position.left, transform: 'translateX(-50%)' }
-      : { right: position.right }),
+    right: position.right,
     animation: isExiting
       ? 'annotation-toolbar-out 0.15s ease-in forwards'
       : 'annotation-toolbar-in 0.15s ease-out',
@@ -171,34 +139,28 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
     >
       <style>{`
         @keyframes annotation-toolbar-in {
-          from { opacity: 0; transform: translateY(12px)${translateX}; }
-          to { opacity: 1; transform: translateY(0)${translateX}; }
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         @keyframes annotation-toolbar-out {
-          from { opacity: 1; transform: translateY(0)${translateX}; }
-          to { opacity: 0; transform: translateY(8px)${translateX}; }
+          from { opacity: 1; transform: translateY(0); }
+          to { opacity: 0; transform: translateY(8px); }
         }
       `}</style>
       <div className="flex items-center p-1 gap-0.5">
-        {!hideCopyButton && (
-          <>
-            <ToolbarButton
-              onClick={handleCopy}
-              icon={copied ? <CheckIcon /> : <CopyIcon />}
-              label={copied ? "Copied!" : "Copy"}
-              className={copied ? "text-success" : "text-muted-foreground hover:bg-muted hover:text-foreground"}
-            />
-            <div className="w-px h-5 bg-border mx-0.5" />
-          </>
-        )}
-        {!commentOnly && (
-          <ToolbarButton
-            onClick={() => handleTypeSelect(AnnotationType.DELETION)}
-            icon={<TrashIcon />}
-            label="Delete"
-            className="text-destructive hover:bg-destructive/10"
-          />
-        )}
+        <ToolbarButton
+          onClick={handleCopy}
+          icon={copied ? <CheckIcon /> : <CopyIcon />}
+          label={copied ? "Copied!" : "Copy"}
+          className={copied ? "text-success" : "text-muted-foreground hover:bg-muted hover:text-foreground"}
+        />
+        <div className="w-px h-5 bg-border mx-0.5" />
+        <ToolbarButton
+          onClick={() => handleTypeSelect(AnnotationType.DELETION)}
+          icon={<TrashIcon />}
+          label="Delete"
+          className="text-destructive hover:bg-destructive/10"
+        />
         <ToolbarButton
           onClick={() => handleTypeSelect(AnnotationType.COMMENT)}
           icon={<CommentIcon />}

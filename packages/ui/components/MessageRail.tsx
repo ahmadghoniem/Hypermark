@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useDialKit } from 'dialkit';
 /** A recent assistant message offered by annotate-last. */
 export interface PickerMessage {
   messageId: string;
@@ -7,11 +6,14 @@ export interface PickerMessage {
   timestamp?: string;
 }
 import {
-  RAIL_ROW_HEIGHT,
   formatRelativeTime,
   railPreview,
   railTickWidth,
 } from '../utils/messageRail';
+
+const RAIL_WIDTH = 36;
+const PITCH = 16;
+const TICK_SIZES = { open: 20, rest: 12, hoverMax: 32 };
 
 interface MessageRailProps {
   /** Recent assistant messages, newest first (as the server sends them). */
@@ -35,18 +37,6 @@ export const MessageRail: React.FC<MessageRailProps> = ({
   annotationCounts,
   className = 'flex',
 }) => {
-  const dials = useDialKit('06 · Message rail', {
-    railWidth: [36, 24, 56, 2],
-    /** Vertical distance between ticks. */
-    pitch: [RAIL_ROW_HEIGHT, 10, 28, 1],
-    tickOpen: [20, 10, 36, 1],
-    tickRest: [12, 6, 24, 1],
-    /** Width of the tick under the pointer; its neighbours fall off from it. */
-    tickHoverMax: [32, 16, 48, 2],
-    tickThickness: [2, 1, 4, 0.5],
-    cardWidth: [288, 200, 360, 8],
-  }, { id: 'cl-06', persist: true });
-  const tickSizes = { open: dials.tickOpen, rest: dials.tickRest, hoverMax: dials.tickHoverMax };
   const ordered = useMemo(() => [...messages].reverse(), [messages]);
   const selectedIndex = ordered.findIndex((m) => m.messageId === selectedMessageId);
   const [pointerIndex, setPointerIndex] = useState<number | null>(null);
@@ -87,7 +77,7 @@ export const MessageRail: React.FC<MessageRailProps> = ({
     <nav
       aria-label="Recent assistant messages"
       className={`relative z-panel shrink-0 flex-col justify-center ${className}`}
-      style={{ width: dials.railWidth }}
+      style={{ width: RAIL_WIDTH }}
       onPointerLeave={() => setPointerIndex(null)}
     >
       <div className="relative py-1.5">
@@ -110,7 +100,7 @@ export const MessageRail: React.FC<MessageRailProps> = ({
               onClick={() => onSelect(message.messageId)}
               onKeyDown={(e) => handleKeyDown(e, index)}
               className="flex w-full items-center justify-end rounded-[5px] p-0 px-1 outline-none focus-visible:ring-[1.5px] focus-visible:ring-primary/55"
-              style={{ height: dials.pitch }}
+              style={{ height: PITCH }}
             >
               {count > 0 && !selected && (
                 <span aria-hidden="true" className="mr-1.25 size-1 shrink-0 rounded-full bg-primary/85" />
@@ -121,8 +111,8 @@ export const MessageRail: React.FC<MessageRailProps> = ({
                   selected ? 'bg-primary' : lit ? 'bg-foreground/90' : 'bg-muted-foreground/60'
                 }`}
                 style={{
-                  width: railTickWidth(index, activeIndex, selectedIndex, tickSizes),
-                  height: dials.tickThickness,
+                  width: railTickWidth(index, activeIndex, selectedIndex, TICK_SIZES),
+                  height: 2.5,
                 }}
               />
             </button>
@@ -134,9 +124,9 @@ export const MessageRail: React.FC<MessageRailProps> = ({
             aria-hidden="true"
             className="pointer-events-none absolute rounded-2xl border border-border bg-popover px-3.5 py-3 shadow-[0_12px_32px_-12px_rgb(0_0_0/0.8)]"
             style={{
-              right: dials.railWidth + 8,
-              width: dials.cardWidth,
-              top: 6 + activeIndex * dials.pitch + dials.pitch / 2 - 34,
+              right: RAIL_WIDTH + 8,
+              width: 288,
+              top: 6 + activeIndex * PITCH + PITCH / 2 - 34,
             }}
           >
             <div className="mb-1.5 flex items-center gap-2">

@@ -4,7 +4,6 @@ import type { ImageAttachment } from '../types';
 import { getImageSrc } from './ImageThumbnail';
 import type { PendingAttachment } from './AttachmentStrip';
 import {
-  STACK_COLLAPSE_DELAY_MS,
   isRemovalGuarded,
   stackLayout,
 } from '../utils/attachStack';
@@ -13,7 +12,7 @@ import {
  * The composer's attachments, as an overlapping stack on the left of the
  * action row.
  *
- * Empty, it is one dashed tile that opens the file picker. Filled, it shows up
+ * Empty, it is one image glyph that opens the file picker. Filled, it shows up
  * to three overlapping thumbnails and a +N tile. Hover or keyboard focus
  * spreads every tile in place, each with its own remove button; leaving
  * collapses it again. Nothing opens over the composer.
@@ -50,16 +49,44 @@ export const CommentAttachStack: React.FC<CommentAttachStackProps> = ({
   const lastRemovalAt = useRef(0);
   const [expanded, setExpanded] = useState(false);
   const dials = useDialKit('02 · Attachment stack', {
-    tile: [24, 18, 32, 1],
-    overlap: [9, 4, 16, 1],
-    spreadGap: [6, 2, 12, 1],
+    tile: {
+      type: 'select',
+      options: [
+        { value: '20', label: '20' },
+        { value: '24', label: '24 · default · rec' },
+        { value: '28', label: '28' },
+        { value: '32', label: '32' },
+      ],
+      default: '24',
+    },
     ring: [2, 1, 3, 0.5],
-    collapseDelay: [STACK_COLLAPSE_DELAY_MS, 0, 500, 25],
-    /** The add tile at the end of a spread stack: the only way to reach the
-     *  file picker once images are attached. */
-    addTile: true,
+    /** Corner radius of every tile in the stack: thumbnails, the +N tile and
+     *  the add tile. 6px read as too round on a 24px tile. */
+    imageRadius: {
+      type: 'select',
+      options: [
+        { value: '1', label: '1' },
+        { value: '2', label: '2' },
+        { value: '4', label: '4 · default · rec' },
+      ],
+      default: '4',
+    },
+    collapseDelay: {
+      type: 'select',
+      options: [
+        { value: '0', label: '0' },
+        { value: '100', label: '100' },
+        { value: '150', label: '150 · default' },
+        { value: '250', label: '250 · rec' },
+        { value: '400', label: '400' },
+      ],
+      default: '150',
+    },
   }, { id: 'cl-02', persist: true });
-  const tileSize = { width: dials.tile, height: dials.tile };
+  const tile = Number(dials.tile);
+  const collapseDelay = Number(dials.collapseDelay);
+  const radius = Number(dials.imageRadius);
+  const tileSize = { width: tile, height: tile };
   // The ring separates overlapping tiles; it is the card colour, not a border,
   // so it does not eat into the thumbnail.
   const tileRing = `0 0 0 ${dials.ring}px var(--color-popover)`;
@@ -83,8 +110,8 @@ export const CommentAttachStack: React.FC<CommentAttachStackProps> = ({
 
   const scheduleCollapse = useCallback(() => {
     cancelCollapse();
-    collapseTimer.current = window.setTimeout(() => setExpanded(false), dials.collapseDelay);
-  }, [cancelCollapse, dials.collapseDelay]);
+    collapseTimer.current = window.setTimeout(() => setExpanded(false), collapseDelay);
+  }, [cancelCollapse, collapseDelay]);
 
   useEffect(() => cancelCollapse, [cancelCollapse]);
 
@@ -136,7 +163,7 @@ export const CommentAttachStack: React.FC<CommentAttachStackProps> = ({
     return (
       <>
         {fileInput}
-        <AddTile onClick={openPicker} style={tileSize} />
+        <AddTile onClick={openPicker} style={{ ...tileSize, borderRadius: radius }} />
       </>
     );
   }
@@ -168,7 +195,7 @@ export const CommentAttachStack: React.FC<CommentAttachStackProps> = ({
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) scheduleCollapse();
       }}
       className="-my-1.5 -ml-0.5 flex min-w-0 max-w-full items-center overflow-x-auto overscroll-x-contain rounded-md py-1.5 pl-0.5 pr-1.5 outline-none scrollbar-none focus-visible:ring-1 focus-visible:ring-ring [&::-webkit-scrollbar]:hidden"
-      style={{ gap: expanded ? dials.spreadGap : 0 }}
+      style={{ gap: expanded ? 6 : 0 }}
     >
       {fileInput}
       {layout.visible.map((index, position) => {
@@ -177,14 +204,15 @@ export const CommentAttachStack: React.FC<CommentAttachStackProps> = ({
           <span
             key={tile.key}
             title={tile.kind === 'pending' && tile.item.error ? tile.item.error : tile.name}
-            className="group/tile relative shrink-0 rounded-md transition-[margin] duration-150 motion-reduce:transition-none"
+            className="group/tile relative shrink-0 transition-[margin] duration-150 motion-reduce:transition-none"
             style={{
               ...tileSize,
+              borderRadius: radius,
               boxShadow: tileRing,
-              marginLeft: position > 0 && !expanded ? -dials.overlap : 0,
+              marginLeft: position > 0 && !expanded ? -9 : 0,
             }}
           >
-            <img src={tile.src} alt={tile.name} className="rounded-md object-cover" style={tileSize} />
+            <img src={tile.src} alt={tile.name} className="object-cover" style={{ ...tileSize, borderRadius: radius }} />
             {expanded && (
               <button
                 type="button"
@@ -201,19 +229,20 @@ export const CommentAttachStack: React.FC<CommentAttachStackProps> = ({
       })}
       {layout.overflow > 0 && (
         <span
-          className="grid shrink-0 place-items-center rounded-md bg-muted font-mono text-4xs font-semibold text-muted-foreground"
-          style={{ ...tileSize, boxShadow: tileRing, marginLeft: -dials.overlap }}
+          className="grid shrink-0 place-items-center bg-muted font-mono text-4xs font-semibold text-muted-foreground"
+          style={{ ...tileSize, borderRadius: radius, boxShadow: tileRing, marginLeft: -9 }}
         >
           +{layout.overflow}
         </span>
       )}
-      {expanded && dials.addTile && <AddTile onClick={openPicker} style={tileSize} />}
+      {expanded && <AddTile onClick={openPicker} style={{ ...tileSize, borderRadius: radius }} />}
     </div>
   );
 };
 
-/** Dashed tile that opens the file picker: the empty stack, and the last tile
- *  of a spread one. */
+/** The glyph that opens the file picker: the empty stack, and the last tile of
+ *  a spread one. Borderless — it fills the tile box, so the icon itself is the
+ *  target rather than something floating inside a dashed ring. */
 const AddTile: React.FC<{ onClick: () => void; style: React.CSSProperties }> = ({ onClick, style }) => (
   <button
     type="button"
@@ -221,7 +250,7 @@ const AddTile: React.FC<{ onClick: () => void; style: React.CSSProperties }> = (
     aria-label="Attach images"
     title="Attach images"
     data-comment-attach="true"
-    className="grid shrink-0 place-items-center rounded-md border border-dashed border-muted-foreground/45 p-0 text-muted-foreground transition-colors hover:border-muted-foreground/70 hover:text-foreground"
+    className="grid shrink-0 place-items-center p-0 text-muted-foreground transition-colors hover:text-foreground"
     style={style}
   >
     <ImagePlusGlyph />
@@ -236,7 +265,7 @@ const RemoveGlyph: React.FC = () => (
 
 /** Image placeholder with a plus in its bottom-right corner. */
 const ImagePlusGlyph: React.FC = () => (
-  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <svg className="size-full p-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M13 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8" />
     <circle cx="8.5" cy="8.5" r="1.5" />
     <path d="M21 15l-5-5L5 21" />

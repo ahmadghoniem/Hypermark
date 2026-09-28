@@ -19,9 +19,9 @@ import { wrapFeedbackForClipboard, type AnnotateFeedbackTemplates } from '@hyper
 import { parseMarkdownToBlocks, exportAnnotations, exportLinkedDocAnnotations, exportCodeFileAnnotations, extractFrontmatter, wrapFeedbackForAgent, Frontmatter, type LinkedDocAnnotationEntry, type MessageAnnotationEntry } from '@hypermark/ui/utils/parser';
 import { Viewer, ViewerHandle } from '@hypermark/ui/components/Viewer';
 import { HtmlViewer } from '@hypermark/ui/components/html-viewer';
-import { AnnotationPanel } from '@hypermark/ui/components/AnnotationPanel';
+import { AnnotationPanel, type AnnotationScope, type AnnotationMessageGroup } from '@hypermark/ui/components/AnnotationPanel';
 import { ConfirmDialog } from '@hypermark/ui/components/ConfirmDialog';
-import { Annotation, AnnotationType, Block, EditorMode, type CodeAnnotation, type InputMethod, type ImageAttachment, type ActionsLabelMode } from '@hypermark/ui/types';
+import { Annotation, AnnotationType, Block, type CodeAnnotation, type InputMethod, type ImageAttachment, type ActionsLabelMode } from '@hypermark/ui/types';
 import { ThemeProvider } from '@hypermark/ui/components/ThemeProvider';
 import { TooltipProvider } from '@hypermark/ui/components/Tooltip';
 import { AnnotationToolstrip } from '@hypermark/ui/components/AnnotationToolstrip';
@@ -34,20 +34,16 @@ import { configStore, useConfigValue } from '@hypermark/ui/config';
 import { CompletionOverlay } from '@hypermark/ui/components/CompletionOverlay';
 import { getUIPreferences } from '@hypermark/ui/utils/uiPreferences';
 import { useDialKit } from 'dialkit';
-import { getEditorMode, saveEditorMode } from '@hypermark/ui/utils/editorMode';
 import { getInputMethod, saveInputMethod } from '@hypermark/ui/utils/inputMethod';
 import { getHtmlChromeState, saveHtmlChromeState } from '@hypermark/ui/utils/htmlChrome';
-import { useInputMethodSwitch } from '@hypermark/ui/hooks/useInputMethodSwitch';
 import { usePrintMode } from '@hypermark/ui/hooks/usePrintMode';
-import { useResizablePanel } from '@hypermark/ui/hooks/useResizablePanel';
-import { ResizeHandle } from '@hypermark/ui/components/ResizeHandle';
 import { OverlayScrollArea } from '@hypermark/ui/components/OverlayScrollArea';
 import { ScrollViewportProvider } from '@hypermark/ui/hooks/useScrollViewport';
 import { useOverlayViewport } from '@hypermark/ui/hooks/useOverlayViewport';
 import { useIsMobile } from '@hypermark/ui/hooks/useIsMobile';
 import { useViewportEnvironment } from '@hypermark/ui/hooks/useViewportEnvironment';
 import { PLAN_APPROVAL_PERMISSION_MODE } from '@hypermark/ui/utils/permissionMode';
-import { useSidebar, type SidebarTab } from '@hypermark/ui/hooks/useSidebar';
+import type { SidebarTab } from '@hypermark/ui/hooks/useSidebar';
 import { usePlanDiff, type VersionInfo, type VersionEntry, type PlanDiffFetchers } from '@hypermark/ui/hooks/usePlanDiff';
 import { useLinkedDoc, type LinkedDocSessionState } from '@hypermark/ui/hooks/useLinkedDoc';
 import { useCodeFilePopout } from '@hypermark/ui/hooks/useCodeFilePopout';
@@ -55,9 +51,13 @@ import { useAnnotationDraft } from '@hypermark/ui/hooks/useAnnotationDraft';
 import { useSessionEndedStream } from '@hypermark/ui/hooks/useSessionEndedStream';
 import { useUndoHistory } from '@hypermark/ui/hooks/useUndoHistory';
 import { generateId } from '@hypermark/ui/utils/generateId';
-import { SidebarTabs } from '@hypermark/ui/components/sidebar/SidebarTabs';
 import { SidebarContainer } from '@hypermark/ui/components/sidebar/SidebarContainer';
 import { MessageRail, type PickerMessage } from '@hypermark/ui/components/MessageRail';
+
+/** Distance from the document scroller's right edge to the message rail: the
+ *  11px native scrollbar plus the rail's own 12px gutter, reserved whether the
+ *  scrollbar is drawn or not so the rail never moves between messages. */
+const MESSAGE_RAIL_INSET = 24;
 import { PlanDiffViewer } from '@hypermark/ui/components/plan-diff/PlanDiffViewer';
 import { CodeFilePopout, type CodeFileAnnotationInput } from '@hypermark/ui/components/CodeFilePopout';
 import type { PlanDiffMode } from '@hypermark/ui/components/plan-diff/PlanDiffModeSwitcher';
@@ -71,7 +71,6 @@ import { DIFF_DEMO_PLAN_CONTENT } from './demoPlanDiffDemo';
 import {
   annotateSidebarShortcuts,
   useAnnotateSidebarShortcuts,
-  useAnnotationModeShortcuts,
   useHtmlAnnotateShortcuts,
   useHistoryShortcuts,
 } from '@hypermark/ui/shortcuts';
@@ -230,9 +229,6 @@ function annotationOwnsHighlight(annotation: Annotation): boolean {
     && !annotation.id.startsWith('ann-checkbox-');
 }
 
-/** Hint shown following the cursor while hovering a sidebar/panel resize handle. */
-const RESIZE_HANDLE_TOOLTIP = 'Click to close · Drag to resize';
-
 const AppInner: React.FC = () => {
   useViewportEnvironment();
   const [markdown, setMarkdown] = useState(DEMO_PLAN_CONTENT);
@@ -299,8 +295,9 @@ const AppInner: React.FC = () => {
   // render-assigned ref (same pattern as headerHandlersRef) so keyboard and
   // header share literally one submitPrimaryDecision.
   const submitPrimaryDecisionRef = useRef<() => void>(() => {});
-  const [isPanelOpen, setIsPanelOpen] = useState(() => window.innerWidth >= 768);
-  const [editorMode, setEditorMode] = useState<EditorMode>(getEditorMode);
+  // The annotations panel is permanent on desktop. This state is the MOBILE
+  // drawer only: it opens when a comment is selected and closes on its own X.
+  const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
   const [inputMethod, setInputMethod] = useState<InputMethod>(getInputMethod);
   const [uiPrefs, setUiPrefs] = useState(() => getUIPreferences());
 
@@ -332,6 +329,8 @@ const AppInner: React.FC = () => {
   const [annotateSource, setAnnotateSource] = useState<'file' | 'message' | null>(null);
   const [recentMessages, setRecentMessages] = useState<PickerMessage[]>([]);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [annotationScope, setAnnotationScope] = useState<AnnotationScope>('this');
+  const [pendingAnnotationSelection, setPendingAnnotationSelection] = useState<string | null>(null);
   const messageStateCacheRef = useRef<Map<string, MessageAnnotationState>>(new Map());
   const [cachedMessageAnnotationCounts, setCachedMessageAnnotationCounts] = useState<Map<string, number>>(new Map());
   const [sourceInfo, setSourceInfo] = useState<string | undefined>();
@@ -374,7 +373,6 @@ const AppInner: React.FC = () => {
   const [submitted, setSubmitted] = useState<'approved' | 'denied' | 'exited' | null>(null);
   const [repoInfo, setRepoInfo] = useState<{ display: string; branch?: string; host?: string } | null>(null);
   const [projectRoot, setProjectRoot] = useState<string | null>(null);
-  const initialSidebarPreferenceAppliedRef = useRef(false);
   useEffect(() => {
     document.title = repoInfo ? `${repoInfo.display} · Hypermark` : "Hypermark";
   }, [repoInfo]);
@@ -384,9 +382,7 @@ const AppInner: React.FC = () => {
   const [previousPlan, setPreviousPlan] = useState<string | null>(null);
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const isMobile = useIsMobile();
-  const effectiveEditorMode: EditorMode = editorMode;
   const effectiveInputMethod = inputMethod;
-  const effectivePanelOpen = isPanelOpen;
 
   const viewerRef = useRef<ViewerHandle>(null);
   const historyContext = [
@@ -482,31 +478,10 @@ const AppInner: React.FC = () => {
 
   usePrintMode();
 
-  // Sidebar (shared TOC + Version Browser)
-  const sidebar = useSidebar(false);
-
-  // Resizable panels
-  const panelResize = useResizablePanel({
-    storageKey: 'hypermark-panel-width',
-    // Drag the right panel skinny → snap it shut (matches the contents sidebar).
-    onSnapClose: () => setIsPanelOpen(false),
-    // Single click on the handle (no drag) collapses it.
-    onClick: () => setIsPanelOpen(false),
-    // Render-free drag: write the live width to a :root var the panel reads,
-    // so dragging never re-renders this (heavy) App.
-    apply: (w) => document.documentElement.style.setProperty('--rpanel-w', `${w}px`),
-  });
-  const tocResize = useResizablePanel({
-    storageKey: 'hypermark-toc-width',
-    defaultWidth: 240, minWidth: 160, maxWidth: 400, side: 'left',
-    // Drag the contents panel skinny → snap it shut (prototype behavior).
-    onSnapClose: sidebar.close,
-    // Single click on the handle (no drag) collapses it.
-    onClick: sidebar.close,
-    // Render-free drag: write the live width to a :root var the panel reads.
-    apply: (w) => document.documentElement.style.setProperty('--toc-w', `${w}px`),
-  });
-  const isResizing = panelResize.isDragging || tocResize.isDragging;
+  // Sidebar (shared TOC + Version Browser). It is a permanent column on
+  // desktop — neither collapsible nor resizable — so the only state left is
+  // which of the two panes it shows.
+  const [sidebarTab, setSidebarTab] = useState<SidebarTab>('toc');
 
   // Whether the document has any TOC-eligible headings (level <= 3, matching
   // buildTocHierarchy). Drives the empty-doc auto-close behavior below — must
@@ -516,31 +491,15 @@ const AppInner: React.FC = () => {
     [blocks]
   );
 
-  const openSidebarTab = useCallback((tab: SidebarTab) => {
-    sidebar.open(tab);
-  }, [sidebar.open]);
-
-  const toggleSidebarTab = useCallback((tab: SidebarTab) => {
-    sidebar.toggleTab(tab);
-  }, [sidebar.toggleTab]);
-
-  const handleAnnotationPanelToggle = useCallback(() => {
-    setIsPanelOpen(prev => !prev);
+  const openSidebarTab = useCallback((tab?: SidebarTab) => {
+    setSidebarTab(tab ?? 'toc');
   }, []);
 
+  /** Show `tab`, or fall back to the contents when it is already showing. */
+  const toggleSidebarTab = useCallback((tab: SidebarTab) => {
+    setSidebarTab((current) => (current === tab ? 'toc' : tab));
+  }, []);
 
-  // Auto-close the sidebar when blocks parse with no TOC entries. Fires
-  // only on blocks/hasTocEntries change (not on sidebar state) so a user
-  // who manually re-opens the empty sidebar is left alone — until the
-  // document changes again (e.g. picking a linked file).
-  useEffect(() => {
-    if (blocks.length === 0) return;
-    if (hasTocEntries) return;
-    if (sidebar.activeTab === 'toc' && sidebar.isOpen) {
-      sidebar.close();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [blocks, hasTocEntries]);
 
   // Clear diff view on Escape key. defaultPrevented respects the
   // one-Escape-one-rung contract: an Escape consumed by a popover
@@ -557,20 +516,8 @@ const AppInner: React.FC = () => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isPlanDiffActive]);
 
-  const linkedDocSidebar = useMemo(() => ({
-    ...sidebar,
-    // useLinkedDoc opens the relevant desktop rail after activating a file.
-    open: (tab?: SidebarTab) => {
-      openSidebarTab(tab ?? 'toc');
-    },
-    toggleTab: toggleSidebarTab,
-  }), [
-    openSidebarTab,
-    sidebar.activeTab,
-    sidebar.close,
-    sidebar.isOpen,
-    toggleSidebarTab,
-  ]);
+  // useLinkedDoc shows the relevant desktop pane after activating a file.
+  const linkedDocSidebar = useMemo(() => ({ open: openSidebarTab }), [openSidebarTab]);
 
   const handleBeforeDocumentNavigation = useCallback(() => {
     annotationHistory.clear();
@@ -643,7 +590,7 @@ const AppInner: React.FC = () => {
     exitPlanDiffView,
   );
   usePlanDiffNavigationAutoExit(
-    sidebar.activeTab === 'toc',
+    sidebarTab === 'toc',
     exitPlanDiffView,
   );
   const handleSelectBaseVersion = useCallback((version: number) => {
@@ -1027,32 +974,11 @@ const AppInner: React.FC = () => {
     return output;
   }, [blocks, allAnnotations, globalAttachments, linkedDocHook.getDocAnnotations, codeAnnotations, sourceConverted, annotateSource, linkedDocHook.isActive, linkedDocHook.filepath]);
 
-  useEffect(() => {
-    if (initialSidebarPreferenceAppliedRef.current) return;
-    if (isLoading) return;
-
-    initialSidebarPreferenceAppliedRef.current = true;
-    // HTML chrome is owned by the surface-transition effect below, which also
-    // covers linked .html docs opened from a markdown session.
-    if (renderAs === 'html') return;
-    if (hasTocEntries) {
-      sidebar.open('toc');
-    }
-  }, [
-    hasTocEntries,
-    isLoading,
-    renderAs,
-    sidebar.close,
-    sidebar.open,
-  ]);
-
   // Restore-on-entry: every time the session transitions ONTO an HTML surface
   // (a root raw-HTML session, or a linked .html doc opened from markdown),
-  // apply the sidebar/panel/toolsHidden state the user last left an HTML
-  // session with (first-ever run: both closed, tools visible). A restored
-  // toolsHidden:true always has a way back: the header's eye toggle.
-  // Re-restoring on each entry is also what keeps a markdown surface's
-  // sidebar state from leaking into the HTML cookie on the way back.
+  // apply the toolsHidden state the user last left an HTML session with
+  // (first-ever run: tools visible). A restored toolsHidden:true always has a
+  // way back: the header's eye toggle.
   const prevHtmlChromeSurfaceRef = useRef(false);
   useEffect(() => {
     if (isLoading) return;
@@ -1061,23 +987,18 @@ const AppInner: React.FC = () => {
     if (!isHtmlSurface || wasHtml) return;
     const chrome = getHtmlChromeState();
     skipNextHtmlChromeSaveRef.current = true;
-    if (chrome.sidebarOpen) sidebar.open();
-    else sidebar.close();
-    setIsPanelOpen(chrome.panelOpen);
     setHtmlToolsHidden(chrome.toolsHidden);
     htmlChromeRestoredRef.current = true;
   }, [
     isHtmlSurface,
     isLoading,
-    sidebar.close,
-    sidebar.open,
   ]);
 
-  // Persist the chrome the user leaves an HTML session in (sidebar + panel
-  // open state), so the next raw-HTML session opens exactly as they left this
-  // one. Gated on the restore having run — a pre-restore render must not save
-  // the transient defaults over the user's remembered state — and on being ON
-  // the HTML surface, so a linked markdown doc's sidebar use never writes here.
+  // Persist the chrome the user leaves an HTML session in, so the next
+  // raw-HTML session opens exactly as they left this one. Gated on the restore
+  // having run — a pre-restore render must not save the transient defaults
+  // over the user's remembered state — and on being ON the HTML surface, so a
+  // linked markdown doc never writes here.
   useEffect(() => {
     if (!isHtmlSurface || !htmlChromeRestoredRef.current) return;
     // The restore effect flips htmlChromeRestoredRef synchronously, but its
@@ -1091,8 +1012,8 @@ const AppInner: React.FC = () => {
       skipNextHtmlChromeSaveRef.current = false;
       return;
     }
-    saveHtmlChromeState({ sidebarOpen: sidebar.isOpen, panelOpen: isPanelOpen, toolsHidden: htmlToolsHidden });
-  }, [isHtmlSurface, sidebar.isOpen, isPanelOpen, htmlToolsHidden]);
+    saveHtmlChromeState({ toolsHidden: htmlToolsHidden });
+  }, [isHtmlSurface, htmlToolsHidden]);
 
   // useLayoutEffect + synchronous getBoundingClientRect so the initial
   // bucket is set before the browser paints. Otherwise narrow viewports
@@ -1220,11 +1141,6 @@ const AppInner: React.FC = () => {
     return `${path}${separator}draftGeneration=${getDraftGeneration()}`;
   }, [getDraftGeneration]);
 
-  const handleEditorModeChange = (mode: EditorMode) => {
-    setEditorMode(mode);
-    saveEditorMode(mode);
-  };
-
   const handleInputMethodChange = (method: InputMethod) => {
     // HTML surfaces pin the viewer to pinpoint (drag-selection commenting
     // is simultaneously live there, so there is nothing to switch): the toolstrip
@@ -1250,12 +1166,13 @@ const AppInner: React.FC = () => {
   }, [isHtmlSurface]);
 
   // Alt/Option key: hold to temporarily switch, double-tap to toggle
-  useInputMethodSwitch(effectiveInputMethod, handleInputMethodChange);
+  // Alt no longer switches Select/Pinpoint — it strikes a selection through on
+  // release (useAnnotationHighlighter). Select/Pinpoint is the toolstrip's
+  // pair of buttons.
 
-  // Gates both the toolstrip's own render and its shortcuts, so a mode can never
-  // change with no visible pill to report it. HTML/live surfaces have no
+  // Gates the toolstrip's own render. HTML/live surfaces have no
   // toolstrip at all: they are comment-only with pinpoint + drag both live,
-  // so there is no input method or annotation mode left to switch.
+  // so there is no input method left to switch.
   const toolstripVisible = useMemo(
     () =>
       !isPlanDiffActive && !isHtmlSurface,
@@ -1263,11 +1180,6 @@ const AppInner: React.FC = () => {
       isHtmlSurface,
       isPlanDiffActive,
     ],
-  );
-
-  const canHandleAnnotationModeShortcut = useCallback(
-    (event: KeyboardEvent) => toolstripVisible && canHandleDocumentChromeShortcut(event),
-    [canHandleDocumentChromeShortcut, toolstripVisible],
   );
 
   // Interact/Annotate toggle (Mod+Shift+A) — HTML and live-app surfaces only.
@@ -1279,14 +1191,6 @@ const AppInner: React.FC = () => {
         when: (event) => isHtmlSurface && canHandleDocumentChromeShortcut(event),
         handle: handleHtmlAnnotateToggle,
       },
-    },
-  });
-
-  useAnnotationModeShortcuts({
-    handlers: {
-      selectMarkupMode: { when: canHandleAnnotationModeShortcut, handle: () => handleEditorModeChange('selection') },
-      selectCommentMode: { when: canHandleAnnotationModeShortcut, handle: () => handleEditorModeChange('comment') },
-      selectRedlineMode: { when: canHandleAnnotationModeShortcut, handle: () => handleEditorModeChange('redline') },
     },
   });
 
@@ -1677,21 +1581,26 @@ const AppInner: React.FC = () => {
     // staleness TTL (see preferenceTtl.ts).
     if (isHtmlSurface) {
       if (htmlChromeRestoredRef.current) {
-        saveHtmlChromeState({ sidebarOpen: sidebar.isOpen, panelOpen: isPanelOpen, toolsHidden: htmlToolsHidden });
+        saveHtmlChromeState({ toolsHidden: htmlToolsHidden });
       }
     }
   };
 
   // Keep selection behavior explicit across mobile/wide-mode transitions.
-  const handleSelectAnnotation = React.useCallback((id: string | null) => {
+  const handleSelectAnnotation = React.useCallback((id: string | null, messageId?: string) => {
+    if (messageId && messageId !== selectedMessageId) {
+      handleSelectMessage(messageId);
+      if (id) setPendingAnnotationSelection(id);
+      return;
+    }
     setSelectedAnnotationId(id);
     if (id) setSelectedCodeAnnotationId(null);
     selectionRef.current = {
       annotationId: id,
       codeAnnotationId: id ? null : selectionRef.current.codeAnnotationId,
     };
-    if (id && isMobile) setIsPanelOpen(true);
-  }, [isMobile]);
+    if (id && isMobile) setIsMobilePanelOpen(true);
+  }, [isMobile, selectedMessageId, handleSelectMessage]);
 
   const handleAddCodeAnnotation = React.useCallback((input: CodeFileAnnotationInput) => {
     const annotation: CodeAnnotation = {
@@ -1725,15 +1634,34 @@ const AppInner: React.FC = () => {
   // The code popout is full-viewport modal — the annotation panel is behind it.
   // This handler only fires when the popout is closed (sidebar visible), so
   // reopening the file via codeFilePopout.open() is the correct behavior.
-  const handleSelectCodeAnnotation = React.useCallback((id: string) => {
+  const handleSelectCodeAnnotation = React.useCallback((id: string, messageId?: string) => {
+    if (messageId && messageId !== selectedMessageId) {
+      handleSelectMessage(messageId);
+      setPendingAnnotationSelection(id);
+      return;
+    }
     const annotation = codeAnnotations.find(a => a.id === id);
     if (!annotation) return;
     setSelectedAnnotationId(null);
     setSelectedCodeAnnotationId(id);
     selectionRef.current = { annotationId: null, codeAnnotationId: id };
     codeFilePopout.open(annotation.filePath);
-    if (isMobile) setIsPanelOpen(true);
-  }, [codeAnnotations, codeFilePopout.open, isMobile]);
+    if (isMobile) setIsMobilePanelOpen(true);
+  }, [codeAnnotations, codeFilePopout.open, isMobile, selectedMessageId, handleSelectMessage]);
+
+  useEffect(() => {
+    if (!pendingAnnotationSelection) return;
+    const id = pendingAnnotationSelection;
+    setPendingAnnotationSelection(null);
+    requestAnimationFrame(() => {
+      const isCode = codeAnnotationsRef.current.some((a) => a.id === id);
+      if (isCode) {
+        handleSelectCodeAnnotation(id);
+      } else {
+        handleSelectAnnotation(id);
+      }
+    });
+  }, [selectedMessageId, handleSelectAnnotation, handleSelectCodeAnnotation]);
 
   const handleDeleteCodeAnnotation = React.useCallback((id: string) => {
     const index = codeAnnotationsRef.current.findIndex((annotation) => annotation.id === id);
@@ -2101,14 +2029,9 @@ const AppInner: React.FC = () => {
 
   // Reading column. One width, dialled: the document is centred with a
   // gutter on each side, and the left gutter holds the table of contents.
-  const layoutDials = useDialKit('04 · Layout', {
-    columnWidth: {
-      type: 'select',
-      options: ['672', '752', '832', '912', '1040'],
-      default: '832',
-    },
-  }, { id: 'cl-04', persist: true });
-  const planMaxWidth = Number(layoutDials.columnWidth);
+  // 880px at the 14px body is 63em — the measure GitHub renders markdown in at
+  // 16px/1012px, reproduced at our smaller type size.
+  const planMaxWidth = 880;
   const handleNavigatorTabChange = (tab: SidebarTab) => {
     toggleSidebarTab(tab);
   };
@@ -2121,38 +2044,47 @@ const AppInner: React.FC = () => {
     handleActivatePlanDiff();
   };
 
-  // Top padding that puts the sidebar header level with the document's first
-  // heading. Measured, because the toolstrip, sticky actions and breakpoint
-  // paddings all move the title. Both columns start at the same y.
-  const [docTitleOffset, setDocTitleOffset] = useState(0);
-  useLayoutEffect(() => {
-    const area = planAreaRef.current;
-    if (!area || isHtmlSurface || !sidebar.isOpen) return;
-    const measure = () => {
-      const heading = area.querySelector<HTMLElement>('article h1, article h2, article h3');
-      if (!heading) {
-        setDocTitleOffset(0);
-        return;
-      }
-      const headingTop = heading.getBoundingClientRect().top - area.getBoundingClientRect().top;
-      const lineHeight = parseFloat(getComputedStyle(heading).lineHeight) || heading.offsetHeight;
-      // The header row is 40px tall with its text centred: align the centres.
-      setDocTitleOffset(Math.max(0, Math.round(headingTop + lineHeight / 2 - 20)));
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(area);
-    return () => observer.disconnect();
-  }, [isHtmlSurface, sidebar.isOpen, viewerContentKey]);
+  const isMessageScopeEligible = annotateSource === 'message' && recentMessages.length > 1;
+
+  const messageGroups = useMemo((): AnnotationMessageGroup[] | undefined => {
+    if (!isMessageScopeEligible) return undefined;
+    const states = getMessageStatesWithCurrent();
+    const currentId = selectedMessageId;
+    const groups: AnnotationMessageGroup[] = [];
+    for (const msg of recentMessages) {
+      const state = states.get(msg.messageId);
+      const isCurrent = msg.messageId === currentId;
+      const groupAnnotations = isCurrent
+        ? allAnnotations
+        : [
+            ...(state?.linkedDocSession.root.annotations ?? []),
+            ...Array.from(state?.linkedDocSession.docs.values() ?? []).flatMap((d) => d.annotations),
+          ];
+      const groupCodeAnnotations = isCurrent
+        ? codeAnnotations
+        : (state?.codeAnnotations ?? []);
+      groups.push({
+        messageId: msg.messageId,
+        text: msg.text,
+        timestamp: msg.timestamp,
+        isCurrent,
+        annotations: groupAnnotations,
+        codeAnnotations: groupCodeAnnotations,
+      });
+    }
+    groups.sort((a, b) => {
+      if (a.isCurrent) return -1;
+      if (b.isCurrent) return 1;
+      return 0;
+    });
+    return groups;
+  }, [isMessageScopeEligible, getMessageStatesWithCurrent, selectedMessageId, recentMessages, allAnnotations, codeAnnotations]);
 
   const renderPlanSidebar = () => {
     return (
       <SidebarContainer
-        activeTab={sidebar.activeTab}
+        activeTab={sidebarTab}
         onTabChange={handleNavigatorTabChange}
-        onClose={sidebar.close}
-        width={`var(--toc-w, ${tocResize.width}px)`}
-        contentTopOffset={docTitleOffset}
         showContentsTab
         blocks={blocks}
         annotations={annotations}
@@ -2191,9 +2123,11 @@ const AppInner: React.FC = () => {
       onSelectCodeAnnotation={handleSelectCodeAnnotation}
       onDeleteCodeAnnotation={handleDeleteCodeAnnotation}
       onEditCodeAnnotation={handleEditCodeAnnotation}
-      width={presentation === 'panel' ? `var(--rpanel-w, ${panelResize.width}px)` : undefined}
+      scope={isMessageScopeEligible ? annotationScope : undefined}
+      onScopeChange={isMessageScopeEligible ? setAnnotationScope : undefined}
+      messageGroups={isMessageScopeEligible ? messageGroups : undefined}
       unanchoredIds={isHtmlSurface && htmlUnanchoredIds.size > 0 ? htmlUnanchoredIds : undefined}
-      onClose={presentation === 'panel' ? () => setIsPanelOpen(false) : undefined}
+      onClose={presentation === 'panel' ? () => setIsMobilePanelOpen(false) : undefined}
       onQuickCopy={async () => {
         const output = getCurrentFeedbackPayload();
         return copyTextToClipboard(wrapCopiedFeedback(output));
@@ -2236,15 +2170,12 @@ const AppInner: React.FC = () => {
           origin={origin}
           isSubmitting={isSubmitting}
           isExiting={isExiting}
-          isPanelOpen={isPanelOpen}
-          annotationCount={feedbackAnnotationCount}
           linkedDocIsActive={linkedDocHook.isActive}
           agentName={agentName}
           showAnnotationsWarning={hasFeedbackToSend}
           annotateDecision={annotateMode ? annotateDecision : undefined}
           onFeedback={handleHeaderFeedback}
           onApprove={handleHeaderApprove}
-          onAnnotationPanelToggle={handleAnnotationPanelToggle}
         />
 
         {/* The provider is render-transparent (context only, no DOM), so it can
@@ -2269,32 +2200,26 @@ const AppInner: React.FC = () => {
         )}
 
         {/* Main Content */}
-        <div className={`flex-1 flex overflow-hidden relative z-0 ${isResizing ? 'select-none' : ''}`}>
-          {/* Left Sidebar: collapsed tab flags (when sidebar is closed) */}
-          {!sidebar.isOpen && !(isHtmlSurface && htmlToolsHidden) && (
-            <SidebarTabs
-              activeTab={sidebar.activeTab}
-              onToggleTab={toggleSidebarTab}
-              hasDiff={planDiff.hasPreviousVersion}
-              showVersionsTab={!isHtmlSurface && activeDiffVersionInfo !== null && activeDiffVersionInfo.totalVersions > 1}
-              className="hidden lg:flex absolute left-0 top-0 z-20"
-            />
-          )}
+        <div className="flex-1 flex overflow-hidden relative z-0">
+          {/* Left Sidebar: the permanent contents rail (TOC or Version Browser) */}
+          {renderPlanSidebar()}
 
-          {/* Left Sidebar: open state (TOC or Version Browser) */}
-          {sidebar.isOpen && (
-            <div className="contents group/sidebar">
-              {renderPlanSidebar()}
-              <ResizeHandle {...tocResize.handleProps} className="hidden lg:block z-resize" side="left" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={sidebar.close} />
-            </div>
-          )}
-
-          {/* Document Area */}
+          {/* Document Area. The wrapper is the rail's anchor: its width is the
+              scroller's BORDER box, which the scrollbar lives inside and so
+              never changes. Anchoring the rail to the scroller's content box
+              moved it sideways whenever a message was short enough not to
+              scroll. */}
+          <div className="relative flex min-w-0 flex-1">
           <OverlayScrollArea
             element="main"
-            className={`flex-1 min-w-0 ${isHtmlSurface ? 'bg-background' : `bg-card ${!sidebar.isOpen ? 'lg:pl-7.5' : ''}`}`}
+            className={`flex-1 min-w-0 ${isHtmlSurface ? 'bg-background' : 'bg-card'}`}
             overflowX="hidden"
             overflowY="auto"
+            // Native scrollbars take layout width, so a document short enough
+            // not to scroll is WIDER than one that does — which slid the
+            // message rail sideways on every message switch. A stable gutter
+            // reserves the space whether the scrollbar is there or not.
+            style={{ scrollbarGutter: 'stable' }}
             onViewportReady={handleDocumentViewportReady}
           >
             <div ref={planAreaRef} className={`${isHtmlSurface ? 'h-full flex flex-col' : 'min-h-full flex flex-col items-center px-2 py-3 md:px-10 md:py-8 xl:px-16'} relative z-10`}>
@@ -2309,8 +2234,6 @@ const AppInner: React.FC = () => {
                 <StickyHeaderLane
                   inputMethod={inputMethod}
                   onInputMethodChange={handleInputMethodChange}
-                  mode={editorMode}
-                  onModeChange={handleEditorModeChange}
                   repoInfo={repoInfo}
                   planDiffStats={planDiff.diffStats}
                   isPlanDiffActive={isPlanDiffActive}
@@ -2323,11 +2246,10 @@ const AppInner: React.FC = () => {
                 />
               )}
 
-              {/* Annotation Toolstrip — the mode switcher (selection/redline input +
-                  comment/markup mode). Markdown surfaces only: HTML/live surfaces
-                  are comment-only with pinpoint + drag both live, so no floating
-                  toolstrip ever overlays the rendered page. Hidden during plan
-                  diff browsing. */}
+              {/* Annotation Toolstrip — the input method switcher (select / pinpoint).
+                  Markdown surfaces only: HTML/live surfaces are comment-only with
+                  pinpoint + drag both live, so no floating toolstrip ever overlays the
+                  rendered page. Hidden during plan diff browsing. */}
               {toolstripVisible && (
                 <div
                   className="w-full mb-3 md:mb-4 flex items-center justify-start"
@@ -2336,8 +2258,6 @@ const AppInner: React.FC = () => {
                   <AnnotationToolstrip
                     inputMethod={inputMethod}
                     onInputMethodChange={handleInputMethodChange}
-                    mode={editorMode}
-                    onModeChange={handleEditorModeChange}
                   />
                 </div>
               )}
@@ -2359,7 +2279,6 @@ const AppInner: React.FC = () => {
                     onAddAnnotation={handleAddAnnotation}
                     onSelectAnnotation={handleSelectAnnotation}
                     selectedAnnotationId={selectedAnnotationId}
-                    mode={effectiveEditorMode}
                   />
                 </div>
               )}
@@ -2374,7 +2293,6 @@ const AppInner: React.FC = () => {
                     onAddAnnotation={handleAddAnnotation}
                     onSelectAnnotation={handleSelectAnnotation}
                     selectedAnnotationId={selectedAnnotationId}
-                    mode={effectiveEditorMode}
                     // HTML surfaces are always pinpoint: armed = click
                     // pins an element AND drag selects text (both live at
                     // once); Interact (Esc) keeps clicks native while drag
@@ -2404,7 +2322,6 @@ const AppInner: React.FC = () => {
                     onAddAnnotation={handleAddAnnotation}
                     onSelectAnnotation={handleSelectAnnotation}
                     selectedAnnotationId={selectedAnnotationId}
-                    mode={effectiveEditorMode}
                     inputMethod={effectiveInputMethod}
                     repoInfo={repoInfo}
                     stickyActions={uiPrefs.stickyActionsEnabled}
@@ -2441,34 +2358,26 @@ const AppInner: React.FC = () => {
               </div>
             </div>
           </OverlayScrollArea>
-
-          {/* Message rail - recent assistant messages, in the gutter between
-              the document and the annotations panel. Replaces the Messages
-              sidebar tab and the "Message N of M" button. */}
           {annotateSource === 'message' && recentMessages.length > 1 && (
-            <MessageRail
-              className="hidden lg:flex"
-              messages={recentMessages}
-              selectedMessageId={selectedMessageId}
-              onSelect={handleSelectMessage}
-              annotationCounts={activeMessageAnnotationCounts}
-            />
-          )}
-
-          {/* Right panel region — `group/sidebar` so the collapse button reveals when
-              hovering the whole panel, not just the thin handle. The handle and the
-              panel(s) are separate sibling conditionals, so they need a shared hover
-              ancestor (`contents` = no layout box). */}
-          <div className="contents group/sidebar">
-          {/* Resize Handle */}
-          {isPanelOpen && <ResizeHandle {...panelResize.handleProps} className="hidden md:block z-resize" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => setIsPanelOpen(false)} />}
-
-          {/* Annotation Panel */}
-          {renderAnnotationPanel(
-            'panel',
-            isPanelOpen,
+            <div
+              className="pointer-events-none absolute inset-y-0 right-0 z-panel hidden items-center lg:flex"
+              style={{ paddingRight: MESSAGE_RAIL_INSET }}
+            >
+              <div className="pointer-events-auto">
+                <MessageRail
+                  messages={recentMessages}
+                  selectedMessageId={selectedMessageId}
+                  onSelect={handleSelectMessage}
+                  annotationCounts={activeMessageAnnotationCounts}
+                />
+              </div>
+            </div>
           )}
           </div>
+
+          {/* Annotation Panel — permanent on desktop; on mobile it is a drawer
+              opened by selecting a comment and closed by its own X. */}
+          {renderAnnotationPanel('panel', isMobile ? isMobilePanelOpen : true)}
         </div>
         </ScrollViewportProvider>
 

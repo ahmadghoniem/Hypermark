@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'bun:test';
 import {
-  annotationModeShortcuts,
   createShortcutRegistry,
   defineShortcutScope,
   dispatchShortcutEvent,
@@ -228,53 +227,5 @@ describe('shortcuts', () => {
 
     expect(handled).toBe(false);
     expect(preventDefaultCalls).toBe(0);
-  });
-
-
-  it('switches annotation mode on Shift+1-3 across keyboard layouts', () => {
-    const calls: string[] = [];
-    const handlers = {
-      selectMarkupMode: () => calls.push('selection'),
-      selectCommentMode: () => calls.push('comment'),
-      selectRedlineMode: () => calls.push('redline'),
-    };
-
-    let preventDefaultCalls = 0;
-    const preventDefault = () => {
-      preventDefaultCalls += 1;
-    };
-
-    // Shift+2 reports '@' on a US layout, so matching has to fall back to event.code.
-    const shiftedDigit = {
-      key: '@', code: 'Digit2', ctrlKey: false, metaKey: false, shiftKey: true, altKey: false, preventDefault,
-    } as unknown as KeyboardEvent;
-    expect(dispatchShortcutEvent(annotationModeShortcuts, handlers, shiftedDigit)).toBe(true);
-
-    const plainDigit = {
-      key: '3', code: 'Digit3', ctrlKey: false, metaKey: false, shiftKey: true, altKey: false, preventDefault,
-    } as unknown as KeyboardEvent;
-    expect(dispatchShortcutEvent(annotationModeShortcuts, handlers, plainDigit)).toBe(true);
-
-    expect(calls).toEqual(['comment', 'redline']);
-    expect(preventDefaultCalls).toBe(2);
-  });
-
-
-  it('leaves annotation mode alone when Alt is held', () => {
-    // AltGr sends Ctrl+Alt; the binding declares no Alt, so it must not fire.
-    const altGrEvent = {
-      key: '1', code: 'Digit1', ctrlKey: false, metaKey: false, shiftKey: true, altKey: true,
-      preventDefault: () => {
-        throw new Error('should not run');
-      },
-    } as unknown as KeyboardEvent;
-
-    const handled = dispatchShortcutEvent(annotationModeShortcuts, {
-      selectMarkupMode: () => {
-        throw new Error('should not run');
-      },
-    }, altGrEvent);
-
-    expect(handled).toBe(false);
   });
 });

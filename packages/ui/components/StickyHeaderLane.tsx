@@ -32,7 +32,7 @@ import {
   getScrollViewportIntersectionRoot,
   useScrollViewport,
 } from '../hooks/useScrollViewport';
-import type { EditorMode, InputMethod } from '../types';
+import type { InputMethod } from '../types';
 import type { PlanDiffStats } from '../utils/planDiffEngine';
 import {
   resolveCompactHeaderGeometry,
@@ -51,8 +51,6 @@ export interface StickyHeaderLaneProps {
   // Toolstrip state
   inputMethod: InputMethod;
   onInputMethodChange: (method: InputMethod) => void;
-  mode: EditorMode;
-  onModeChange: (mode: EditorMode) => void;
 
   /**
    * Show the lane only after it sticks, or keep it visible at rest too.
@@ -95,8 +93,6 @@ export interface StickyHeaderLaneProps {
 export const StickyHeaderLane: React.FC<StickyHeaderLaneProps> = ({
   inputMethod,
   onInputMethodChange,
-  mode,
-  onModeChange,
   visibility = 'stuck',
   sticky = true,
   repoInfo,
@@ -257,8 +253,6 @@ export const StickyHeaderLane: React.FC<StickyHeaderLaneProps> = ({
             <AnnotationToolstrip
               inputMethod={inputMethod}
               onInputMethodChange={onInputMethodChange}
-              mode={mode}
-              onModeChange={onModeChange}
               compact
               iconOnly={isNarrow || isToolstripIconOnly}
             />

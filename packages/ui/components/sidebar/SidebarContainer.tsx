@@ -2,8 +2,11 @@
  * SidebarContainer — the left sidebar.
  *
  * A header ("On this page", or "Versions") over the table of contents or the
- * version browser. The host passes `contentTopOffset` so the header sits level
- * with the document's first heading.
+ * version browser. The column starts at the top of the viewport, under the app
+ * header.
+ *
+ * It is a permanent column: no collapse, no drag-resize. Its width is the
+ * `width` dial below, so the layout has exactly one place to change it.
  */
 
 import React from "react";
@@ -18,10 +21,6 @@ import { OverlayScrollArea } from "../OverlayScrollArea";
 interface SidebarContainerProps {
   activeTab: SidebarTab;
   onTabChange: (tab: SidebarTab) => void;
-  onClose: () => void;
-  width: number | string;
-  /** Top padding, in px, that puts the header level with the document title. */
-  contentTopOffset?: number;
   // TOC props
   showContentsTab?: boolean;
   blocks: Block[];
@@ -49,8 +48,6 @@ interface SidebarContainerProps {
 export const SidebarContainer: React.FC<SidebarContainerProps> = ({
   activeTab,
   onTabChange,
-  width,
-  contentTopOffset = 0,
   showContentsTab = true,
   blocks,
   annotations,
@@ -72,19 +69,27 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
   fetchingVersion,
   onFetchVersions,
 }) => {
+  // The contents list's indent step and row radius are fixed. Width stays
+  // dialled: it moves the document column, so it is still being tuned.
   const dials = useDialKit('05 · Sidebar', {
-    rowHeight: [28, 22, 36, 1],
-    /** x of the hairline for levels 1–2, and for level 3. */
-    lineOuter: [6, 2, 14, 1],
-    lineInner: [18, 10, 30, 1],
-    lineStroke: [1.25, 0.75, 2, 0.25],
+    width: {
+      type: 'select',
+      options: [
+        { value: '208', label: '208' },
+        { value: '224', label: '224' },
+        { value: '240', label: '240 · default' },
+        { value: '256', label: '256 · rec' },
+        { value: '288', label: '288' },
+      ],
+      default: '240',
+    },
   }, { id: 'cl-05', persist: true });
   const showingVersions = activeTab === "versions" && !!showVersionsTab;
 
   return (
     <aside
       className="hidden lg:flex flex-col sticky top-12 h-[calc(100vh-3rem)] shrink-0 bg-card"
-      style={{ width, paddingTop: contentTopOffset }}
+      style={{ width: Number(dials.width) }}
     >
       {/* Header */}
       <div className="flex h-10 shrink-0 items-center gap-2 px-3.5">
@@ -117,10 +122,8 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
             activeId={activeSection}
             onNavigate={onTocNavigate}
             className=""
-            rowHeight={dials.rowHeight}
-            lineOuter={dials.lineOuter}
-            lineInner={dials.lineInner}
-            lineStroke={dials.lineStroke}
+            indent={12}
+            radius={8}
             linkedDocFilepath={linkedDocFilepath}
             onLinkedDocBack={onLinkedDocBack}
             backLabel={backLabel}

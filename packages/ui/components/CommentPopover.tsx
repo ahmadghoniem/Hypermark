@@ -9,9 +9,9 @@ import {
   useVisibleViewportBounds,
   type VisibleViewportBounds,
 } from '../hooks/useViewportEnvironment';
-import { useDialKit } from 'dialkit';
 import type { QuickLabel } from '../utils/quickLabels';
 import { ComposerQuickLabels } from './ComposerQuickLabels';
+import { isDialKitTarget } from '../utils/dialkit';
 
 /** One selected target of a multi-target draft comment (HTML pinpoint multi-select). */
 export interface CommentTargetChip {
@@ -80,6 +80,14 @@ const CARD_RADIUS = 14;
 const INNER_RADIUS = CARD_RADIUS - 1;
 const GAP = 8;
 
+// The quick-label row sits at the foot of the text field.
+const CHIP_HEIGHT = 24;
+const CHIP_GAP = 6;
+/** The text area's own floor — the same 56px the old `min-h-14` gave it. An
+ *  empty composer is exactly as tall as one being written in, so opening it,
+ *  typing the first character and clearing it again never resize anything. */
+const TEXT_MIN_HEIGHT = 56;
+
 // Module-level draft store: survives popover unmount so reopening the same key restores in-progress text.
 export interface ComposerDraftEntry {
   key: string;
@@ -147,19 +155,15 @@ interface CommentPopoverPosition {
 export function computeCommentPopoverPosition(
   anchorRect: Pick<DOMRect, 'top' | 'right' | 'bottom' | 'left' | 'width'>,
   bounds: VisibleViewportBounds,
-  labelsLane = 0,
 ): CommentPopoverPosition {
-  const spaceBelow = Math.max(0, bounds.bottom - anchorRect.bottom - GAP - labelsLane);
-  const spaceAbove = Math.max(0, anchorRect.top - bounds.top - GAP - labelsLane);
+  const spaceBelow = Math.max(0, bounds.bottom - anchorRect.bottom - GAP);
+  const spaceAbove = Math.max(0, anchorRect.top - bounds.top - GAP);
   const flipAbove = spaceBelow < 280 && spaceAbove > spaceBelow;
   const width = Math.min(MAX_POPOVER_WIDTH, bounds.width);
 
-  // Below the anchor the label row sits between the anchor and the card, so
-  // the card moves down by the lane. Above the anchor the row sits above the
-  // card, so only the available height shrinks.
   const top = flipAbove
     ? anchorRect.top - GAP
-    : anchorRect.bottom + GAP + labelsLane;
+    : anchorRect.bottom + GAP;
 
   let left = anchorRect.left + anchorRect.width / 2 - width / 2;
   left = Math.max(bounds.left, Math.min(left, bounds.right - width));
@@ -198,18 +202,10 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   yieldState,
 }) => {
   const visibleBounds = useVisibleViewportBounds(16);
-  // Design dials (spec 08). Tuned from the DialKit panel in dev; the defaults
-  // are the shipped values until they are baked back into constants.
-  const dials = useDialKit('01 · Composer chrome', {
-    width: { type: 'select', options: ['320', '336', '344', '352', '368', '384'], default: '344' },
-    inset: [4, 2, 8, 1],
-    closeSize: [18, 14, 24, 1],
-    closeIcon: [12, 9, 16, 1],
-    anchorIcon: [12, 9, 14, 1],
-    arc: { gap: [4, 0, 10, 1], stroke: [2, 1, 3, 0.5], span: [60, 30, 90, 5] },
-  }, { id: 'cl-01', persist: true });
-  const baseWidth = Math.min(Number(dials.width), visibleBounds.width);
-  const closeRadius = Math.max(2, INNER_RADIUS - dials.inset);
+  const baseWidth = Math.min(MAX_POPOVER_WIDTH, visibleBounds.width);
+  const textMinHeight = TEXT_MIN_HEIGHT;
+  const fieldMinHeight = TEXT_MIN_HEIGHT + CHIP_HEIGHT + CHIP_GAP;
+  const closeRadius = Math.max(2, INNER_RADIUS - 4);
   const [mode, setMode] = useState<'popover' | 'dialog'>('popover');
   // Dialog mode origin: the anchor simply has no room for a popover and the
   // geometry FORCED it.
@@ -274,18 +270,8 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 
   const hasUnsavedContent = hasUnsavedCommentContent(text, allowImages ? images : []);
 
-  const labelDials = useDialKit('03 · Quick labels', {
-    chipHeight: [24, 18, 32, 1],
-    /** Between the row and the card, and between the row and the anchor. */
-    cardGap: [8, 2, 16, 1],
-    gap: [6, 2, 12, 1],
-    /** Width of the fade over a clipped edge of the row. */
-    fade: [36, 16, 64, 4],
-  }, { id: 'cl-03', persist: true });
   const showQuickLabels = !isGlobal && !!onQuickLabel && (quickLabels?.length ?? 0) > 0;
-  // Room reserved above the card, so the row never covers the document and
-  // the card does not move when the row fades out.
-  const labelsLane = showQuickLabels ? labelDials.chipHeight + labelDials.cardGap : 0;
+
 
   const hasUnsavedContentRef = useRef(hasUnsavedContent);
   hasUnsavedContentRef.current = hasUnsavedContent;
@@ -323,7 +309,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     const update = () => {
       const rect = anchorEl?.getBoundingClientRect() ?? anchorRect;
       if (!rect) return;
-      const nextPosition = computeCommentPopoverPosition(rect, visibleBounds, labelsLane);
+      const nextPosition = computeCommentPopoverPosition(rect, visibleBounds);
       if (nextPosition.requiresExpanded) {
         setDialogIsForced(true);
         setMode('dialog');
@@ -337,7 +323,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     return () => {
       window.removeEventListener('scroll', update, true);
     };
-  }, [anchorEl, anchorRect, labelsLane, mode, visibleBounds, wasDragged]);
+  }, [anchorEl, anchorRect, mode, visibleBounds, wasDragged]);
 
   // Surface a "jump back" arrow when an open popover scrolls out of view.
   // Re-measures whenever the popover repositions (position updates every scroll
@@ -382,10 +368,29 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     // grows upward and the grip is on the top-right: dragging up adds height.
     const growsUp = !!position?.flipAbove && !dragPosition;
 
+    // A click is not a resize. Until the pointer has travelled past the
+    // threshold nothing is pinned: a 1px twitch during a plain click used to
+    // swap the textarea's content sizing for a fixed height and snap the empty
+    // field up to the floor.
+    let dragging = false;
+
     const move = (e: PointerEvent) => {
-      const dy = growsUp ? startY - e.clientY : e.clientY - startY;
-      setComposerHeight(Math.max(56, Math.min(480, startHeight + dy)));
-      setComposerWidth(Math.max(minWidth, Math.min(maxWidth, startWidth + (e.clientX - startX))));
+      const dx = e.clientX - startX;
+      const travel = e.clientY - startY;
+      if (!dragging) {
+        if (Math.abs(dx) < 3 && Math.abs(travel) < 3) return;
+        dragging = true;
+      }
+      const dy = growsUp ? -travel : travel;
+      // Proportional: the card keeps the shape it started the drag with. Each
+      // axis contributes its own travel as a fraction of that axis, and the
+      // mean drives both — so a diagonal drag scales, and a drag along one
+      // edge still moves the other axis, at half rate.
+      const scale = 1 + (dx / startWidth + dy / startHeight) / 2;
+      // Floored at one text line, which is what the field wrapper already
+      // reserves for it — anything higher would jump on the first pixel.
+      setComposerHeight(Math.max(textMinHeight, Math.min(480, Math.round(startHeight * scale))));
+      setComposerWidth(Math.max(minWidth, Math.min(maxWidth, Math.round(startWidth * scale))));
     };
     const end = () => {
       window.removeEventListener('pointermove', move);
@@ -393,7 +398,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', end);
-  }, [baseWidth, composerWidth, dragPosition, position?.flipAbove, visibleBounds.right]);
+  }, [baseWidth, composerWidth, dragPosition, position?.flipAbove, textMinHeight, visibleBounds.right]);
 
   const expandFromGrip = useCallback(() => {
     setComposerHeight(null);
@@ -471,6 +476,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       // Don't close if clicking inside a child portal
       const el = target as HTMLElement;
       if (el.closest?.('[data-popover-layer]')) return;
+      if (isDialKitTarget(e.target)) return;
       if (hasUnsavedContentRef.current) return;
       // A same-document multi-select target receives pointerdown before click.
       // Preserve the existing draft so the following Shift-click can extend
@@ -640,14 +646,13 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           className="flex items-center gap-2 rounded-t-[13px] pl-3"
           {...(mode === 'popover' ? dragHandleProps : {})}
           style={{
-            ...(mode === 'popover' ? dragHandleProps.style : {}),
-            paddingTop: dials.inset,
-            paddingBottom: dials.inset,
-            paddingRight: dials.inset,
+            paddingTop: 4,
+            paddingBottom: 4,
+            paddingRight: 4,
           }}
         >
           <span className="flex shrink-0 text-primary" aria-hidden="true">
-            <AnchorIcon size={dials.anchorIcon} />
+            <AnchorIcon size={12} />
           </span>
           <span className="min-w-0 flex-1 truncate text-2xs/snug text-muted-foreground">
             {headerLabel}
@@ -658,11 +663,11 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             type="button"
             onClick={() => handleClose()}
             className="relative z-2 grid shrink-0 place-items-center p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            style={{ width: dials.closeSize, height: dials.closeSize, borderRadius: closeRadius }}
+            style={{ width: 20, height: 20, borderRadius: closeRadius }}
             title="Close"
             aria-label="Close"
           >
-            <CloseIcon size={dials.closeIcon} />
+            <CloseIcon size={12} />
           </button>
         </div>
       )}
@@ -682,46 +687,62 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
               style={{
                 // The body has its own 1px border, so inset − 1 puts this button
                 // the same distance from the card edge as the strip's Close.
-                top: dials.inset - 1,
-                right: dials.inset - 1,
-                width: dials.closeSize,
-                height: dials.closeSize,
+                top: 3,
+                right: 3,
+                width: 20,
+                height: 20,
                 borderRadius: closeRadius,
               }}
               title="Close"
               aria-label="Close"
             >
-              <CloseIcon size={dials.closeIcon} />
+              <CloseIcon size={12} />
             </button>
           )}
-          <ComposerTextarea
-            textareaRef={focusOnMountRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={isGlobal ? 'Add a global comment...' : 'Add a comment...'}
-            sizeClassName={
-              mode === 'dialog'
-                ? 'min-h-64 max-h-full text-[12.5px] leading-[1.45]'
-                : composerHeight === null
-                  ? 'max-h-64 min-h-14 text-[12.5px] leading-[1.45]'
-                  : 'text-[12.5px] leading-[1.45]'
-            }
-            heightPx={mode === 'popover' ? composerHeight : null}
-            // Keep text 4px clear of the global Close:
-            // (inset − 1) + closeSize + 4 − 13px container padding.
-            padRight={isGlobal ? dials.inset + dials.closeSize - 10 : undefined}
-            maxHeight={
-              mode === 'dialog'
-                ? `calc(${visibleBounds.height}px - 10rem)`
-                : composerHeight === null ? popoverMaxHeightStyle : undefined
-            }
-          />
+          <div
+            className="flex flex-col justify-between"
+            style={mode === 'dialog' ? undefined : { minHeight: fieldMinHeight }}
+          >
+            <ComposerTextarea
+              textareaRef={focusOnMountRef}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={isGlobal ? "What's your feedback overall?" : "What's your feedback?"}
+              sizeClassName={
+                mode === 'dialog'
+                  ? 'min-h-64 max-h-full text-[12.5px] leading-[1.45]'
+                  : composerHeight === null
+                    ? 'max-h-64 text-[12.5px] leading-[1.45]'
+                    : 'text-[12.5px] leading-[1.45]'
+              }
+              heightPx={mode === 'popover' ? composerHeight : null}
+              minHeightPx={mode === 'popover' ? textMinHeight : null}
+              // Keep text 4px clear of the global Close:
+              // (inset − 1) + closeSize + 4 − 13px container padding.
+              padRight={isGlobal ? 14 : undefined}
+              maxHeight={
+                mode === 'dialog'
+                  ? `calc(${visibleBounds.height}px - 10rem)`
+                  : composerHeight === null ? popoverMaxHeightStyle : undefined
+              }
+            />
+            {showQuickLabels && quickLabels && onQuickLabel && (
+              <ComposerQuickLabels
+                labels={quickLabels}
+                onSelect={onQuickLabel}
+                hidden={hasUnsavedContent}
+                chipHeight={CHIP_HEIGHT}
+                gap={CHIP_GAP}
+                fade={36}
+              />
+            )}
+          </div>
         </div>
 
         {/* Action row. Attachments on the left; Ask sits right beside Save.
             Save sets the row's height, so attaching never moves it. */}
-        <div className="flex items-center justify-between gap-3 pb-2 pl-2.5 pr-2 pt-1.75">
+        <div className="flex items-center justify-between gap-3 pl-2.5 pr-2 pb-1.75 pt-1.5">
           <div className="flex min-w-0 items-center gap-0.5">
             {allowImages && (
               <CommentAttachStack
@@ -738,14 +759,14 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
               type="button"
               onClick={() => {}}
               title="Ask about this line"
-              className="rounded-md border border-destructive/30 bg-destructive/10 px-2.25 py-1.25 text-2xs font-medium text-destructive transition-colors hover:bg-destructive/20"
+              className="rounded-md border border-destructive/30 bg-destructive/10 font-medium text-destructive transition-colors hover:bg-destructive/20 px-2 py-1 text-2xs"
             >
               Ask
             </button>
             <button
               onClick={handleSubmit}
               disabled={!canSubmit}
-              className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md bg-primary font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 px-2.75 py-1.25 text-2xs"
             >
               {isGlobal ? 'Add' : 'Save'}
             </button>
@@ -800,7 +821,9 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           </div>
           {!forcedDialog && (
             <ArcGrip
-              {...dials.arc}
+              gap={4}
+              stroke={2}
+              span={60}
               edge={0}
               corner="bottom-right"
               title="Double-click to collapse"
@@ -863,18 +886,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
         }
         onPointerDown={(e) => e.stopPropagation()}
       >
-        {showQuickLabels && quickLabels && onQuickLabel && (
-          <div className="absolute inset-x-0" style={{ bottom: `calc(100% + ${labelDials.cardGap}px)` }}>
-            <ComposerQuickLabels
-              labels={quickLabels}
-              onSelect={onQuickLabel}
-              hidden={hasUnsavedContent}
-              chipHeight={labelDials.chipHeight}
-              gap={labelDials.gap}
-              fade={labelDials.fade}
-            />
-          </div>
-        )}
         <style>{`
           @keyframes comment-popover-in {
             from { opacity: 0; transform: translateY(-8px); }
@@ -893,7 +904,9 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             top-right when the card opened above its anchor. Drag resizes;
             double-click expands into the dialog. */}
         <ArcGrip
-          {...dials.arc}
+          gap={4}
+          stroke={2}
+          span={60}
           edge={1}
           corner={growsUp ? 'top-right' : 'bottom-right'}
           title="Drag to resize · double-click to expand"
@@ -915,6 +928,9 @@ const COMPOSER_TEXT_CLASSES = 'w-full bg-transparent px-1 py-0.5';
 interface ComposerTextareaProps {
   /** Explicit height in px from the resize grip; null keeps the class-driven size. */
   heightPx?: number | null;
+  /** Floor for the content-sized box, so an empty composer is as tall as one
+   *  being written in. Ignored once `heightPx` pins the height. */
+  minHeightPx?: number | null;
   /** Explicit max-height from positioning constraints. */
   maxHeight?: string | number | null;
   /** Right padding in px; overrides the class padding. */
@@ -930,6 +946,7 @@ interface ComposerTextareaProps {
 
 const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
   heightPx = null,
+  minHeightPx = null,
   maxHeight = null,
   padRight,
   value,
@@ -941,7 +958,10 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
 }) => {
   const boxStyle: React.CSSProperties = {
     ...(heightPx === null
-      ? ({ fieldSizing: 'content' } as React.CSSProperties)
+      ? ({
+          fieldSizing: 'content',
+          ...(minHeightPx != null ? { minHeight: minHeightPx } : {}),
+        } as React.CSSProperties)
       : { height: heightPx }),
     ...(maxHeight != null ? { maxHeight } : {}),
     ...(padRight != null ? { paddingRight: padRight } : {}),

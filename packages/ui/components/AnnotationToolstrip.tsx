@@ -1,12 +1,10 @@
 import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
-import type { EditorMode, InputMethod } from '../types';
+import type { InputMethod } from '../types';
 
-/** Props for the shared annotation input and action mode toolstrip. */
+/** Props for the shared annotation input method toolstrip. */
 export interface AnnotationToolstripProps {
   inputMethod: InputMethod;
   onInputMethodChange: (method: InputMethod) => void;
-  mode: EditorMode;
-  onModeChange: (mode: EditorMode) => void;
   /**
    * Compact mode: used inside the sticky header lane. Buttons only expand for
    * the active mode (no hover expansion) and the gap is tightened.
@@ -25,12 +23,10 @@ export interface AnnotationToolstripProps {
   hideInputMethodSwitch?: boolean;
 }
 
-/** Render the shared input-method and annotation-mode controls. */
+/** Render the shared input-method controls. */
 export const AnnotationToolstrip: React.FC<AnnotationToolstripProps> = ({
   inputMethod,
   onInputMethodChange,
-  mode,
-  onModeChange,
   compact = false,
   iconOnly = false,
   hideInputMethodSwitch = false,
@@ -86,52 +82,6 @@ export const AnnotationToolstrip: React.FC<AnnotationToolstripProps> = ({
           />
         </div>
         )}
-
-        {/* Action mode group */}
-        <div className="inline-flex items-center gap-0.5 bg-muted/50 rounded-lg p-0.5 border border-border/30">
-          <ToolstripButton
-            active={mode === 'selection'}
-            onClick={() => onModeChange('selection')}
-            label="Markup"
-            color="secondary"
-            mounted={mounted}
-            compact={compact}
-            iconOnly={iconOnly}
-            icon={
-              <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-            }
-          />
-          <ToolstripButton
-            active={mode === 'comment'}
-            onClick={() => onModeChange('comment')}
-            label="Comment"
-            color="accent"
-            mounted={mounted}
-            compact={compact}
-            iconOnly={iconOnly}
-            icon={
-              <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-              </svg>
-            }
-          />
-          <ToolstripButton
-            active={mode === 'redline'}
-            onClick={() => onModeChange('redline')}
-            label="Redline"
-            color="destructive"
-            mounted={mounted}
-            compact={compact}
-            iconOnly={iconOnly}
-            icon={
-              <svg className="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75L14.25 12m0 0l2.25 2.25M14.25 12l2.25-2.25M14.25 12L12 14.25m-2.58 4.92l-6.375-6.375a1.125 1.125 0 010-1.59L9.42 4.83c.211-.211.498-.33.796-.33H19.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25h-9.284c-.298 0-.585-.119-.796-.33z" />
-              </svg>
-            }
-          />
-        </div>
     </div>
   );
 };

@@ -228,9 +228,7 @@ export function createShortcutScopeHook<TScope extends ShortcutScopeDefinition<a
 //
 //   - Double-tap → `useDoubleTapShortcuts` below.
 //   - Hold       → no shared hook yet; wire by hand in the consuming
-//                  component until one is built. The `Alt hold` binding in
-//                  `inputMethodShortcuts` is currently driven by the
-//                  bespoke `useInputMethodSwitch` hook in the plan editor.
+//                  component until one is built.
 //
 // TODO: when the App.tsx migration starts touching hold semantics, add a
 // `useHoldShortcuts` here paired with a `parseHoldBinding` in core.ts so the

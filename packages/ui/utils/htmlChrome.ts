@@ -2,13 +2,12 @@ import { storage } from './storage';
 import { isStalePreference } from './preferenceTtl';
 
 /**
- * Cross-session sidebar/panel state for raw-HTML annotate sessions.
+ * Cross-session chrome state for raw-HTML annotate sessions.
  *
- * A raw-HTML session opens with both side surfaces closed so the page gets
- * the viewport; an explicit change the user makes (opening the sidebar or the
- * annotations drawer) persists for later HTML sessions, but only while they
- * keep using HTML annotate: state not refreshed within the staleness TTL
- * (explicit changes or annotation activity re-stamp it) expires back to the
+ * An explicit change the user makes (hiding the floating tools) persists for
+ * later HTML sessions, but only while they keep using HTML annotate: state not
+ * refreshed within the staleness TTL (explicit changes or annotation activity
+ * re-stamp it) expires back to the
  * defaults. Persisted as a cookie (like every other cross-session UI pref;
  * hook servers run on random ports, and cookies are scoped by domain, not
  * port). Markdown sessions are untouched. A legacy record without a timestamp
@@ -24,18 +23,12 @@ import { isStalePreference } from './preferenceTtl';
 const STORAGE_KEY = 'hypermark-html-chrome';
 
 export interface HtmlChromeState {
-  /** Whether the left sidebar was open when the user last left. */
-  sidebarOpen: boolean;
-  /** Whether the right annotations drawer was open when the user last left. */
-  panelOpen: boolean;
   /** Whether ALL floating tools over the page were hidden when the user left. */
   toolsHidden: boolean;
 }
 
-/** Default: both side surfaces closed — the page gets the viewport. */
+/** Default: the floating tools are visible. */
 export const DEFAULT_HTML_CHROME_STATE: HtmlChromeState = {
-  sidebarOpen: false,
-  panelOpen: false,
   toolsHidden: false,
 };
 
@@ -53,12 +46,6 @@ export function resolveHtmlChromeState(
     const record = parsed as Record<string, unknown>;
     if (isStalePreference(record.savedAt, now)) return DEFAULT_HTML_CHROME_STATE;
     return {
-      sidebarOpen: typeof record.sidebarOpen === 'boolean'
-        ? record.sidebarOpen
-        : DEFAULT_HTML_CHROME_STATE.sidebarOpen,
-      panelOpen: typeof record.panelOpen === 'boolean'
-        ? record.panelOpen
-        : DEFAULT_HTML_CHROME_STATE.panelOpen,
       toolsHidden: typeof record.toolsHidden === 'boolean'
         ? record.toolsHidden
         : DEFAULT_HTML_CHROME_STATE.toolsHidden,

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useDialKit } from 'dialkit';
 import { AnnotationType, type Annotation, type Block, type CodeAnnotation } from '../types';
 import { ImageThumbnail } from './ImageThumbnail';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -8,6 +9,18 @@ import { cn } from '../lib/utils';
 import { resolveReplyParents, resolveThreadRootTimestamps } from '@hypermark/core/annotation-threads';
 import { isCurrentUser } from '../utils/identity';
 import { fileName as pathFileName } from '../utils/displayPath';
+import { formatRelativeTime, railPreview } from '../utils/messageRail';
+
+export type AnnotationScope = 'this' | 'all';
+
+export interface AnnotationMessageGroup {
+  messageId: string;
+  text: string;
+  timestamp?: string;
+  isCurrent?: boolean;
+  annotations: Annotation[];
+  codeAnnotations?: CodeAnnotation[];
+}
 
 // Card type-word colors. Deletion uses `destructive` (reliably red on every
 // theme, matching the in-document .deletion highlight). Comment uses the
@@ -86,14 +99,19 @@ interface PanelProps {
   isOpen: boolean;
   annotations: Annotation[];
   blocks: Block[];
-  onSelectAnnotation: (id: string) => void;
+  onSelectAnnotation: (id: string, messageId?: string) => void;
   onDeleteAnnotation: (id: string) => void;
   onEditAnnotation?: (id: string, updates: Partial<Annotation>) => void;
   selectedId: string | null;
   codeAnnotations?: CodeAnnotation[];
-  onSelectCodeAnnotation?: (id: string) => void;
+  onSelectCodeAnnotation?: (id: string, messageId?: string) => void;
   onDeleteCodeAnnotation?: (id: string) => void;
   onEditCodeAnnotation?: (id: string, updates: Partial<CodeAnnotation>) => void;
+  scope?: AnnotationScope;
+  onScopeChange?: (scope: AnnotationScope) => void;
+  messageGroups?: AnnotationMessageGroup[];
+  /** Explicit width, for hosts that size the panel themselves (the review
+   *  editor still drags its panel). Omitted, the `width` dial decides. */
   width?: number | string;
   onClose?: () => void;
   /** Copy the full feedback payload. May resolve a success boolean; resolving
@@ -139,11 +157,32 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
   readOnly = false,
   presentation = 'panel',
   unanchoredIds,
+  scope,
+  onScopeChange,
+  messageGroups,
 }) => {
+  const dials = useDialKit('07 · Annotations panel', {
+    width: {
+      type: 'select',
+      options: [
+        { value: '256', label: '256' },
+        { value: '288', label: '288 · default' },
+        { value: '304', label: '304' },
+        { value: '320', label: '320 · rec' },
+        { value: '336', label: '336' },
+        { value: '384', label: '384' },
+      ],
+      default: '288',
+    },
+  }, { id: 'cl-07', persist: true });
   const isMobile = useIsMobile();
   const embedded = presentation === 'embedded';
   const mobilePanel = isMobile && !embedded;
   const [copiedText, setCopiedText] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (scope === 'all') setNow(Date.now());
+  }, [scope]);
   const listRef = useRef<HTMLDivElement>(null);
   const sortedAnnotations = [...annotations].sort((a, b) => a.createdA - b.createdA);
   const sortedCodeAnnotations = [...codeAnnotations].sort((a, b) => a.createdAt - b.createdAt);
@@ -163,7 +202,9 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
     if (a.threadTs !== b.threadTs) return a.threadTs - b.threadTs;
     return a.ts - b.ts;
   });
-  const totalCount = annotations.length + codeAnnotations.length;
+  const totalCount = scope === 'all' && messageGroups
+    ? messageGroups.reduce((acc, g) => acc + g.annotations.length + (g.codeAnnotations?.length ?? 0), 0)
+    : annotations.length + codeAnnotations.length;
 
   // Scroll selected annotation card into view
   useEffect(() => {
@@ -183,7 +224,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
       className={`bg-card flex flex-col ${embedded ? 'size-full min-h-0 flex-1' : 'shrink-0'} ${
         mobilePanel ? 'fixed top-12 bottom-0 right-0 z-panel w-full max-w-sm shadow-2xl' : ''
       }`}
-      style={embedded || mobilePanel ? undefined : { width: width ?? 288 }}
+      style={embedded || mobilePanel ? undefined : { width: width ?? Number(dials.width) }}
     >
       {/* Header */}
       {!embedded && (
@@ -197,6 +238,40 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                 <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary/10 px-1 font-mono text-3xs font-medium tabular-nums text-primary">
                   {totalCount}
                 </span>
+              )}
+              {scope && onScopeChange && (
+                <div
+                  role="tablist"
+                  aria-label="Annotation scope"
+                  className="inline-flex items-center rounded-md bg-muted/60 p-0.5 text-3xs"
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={scope === 'this'}
+                    onClick={() => onScopeChange('this')}
+                    className={`rounded-sm px-1.5 py-0.5 font-medium transition-all ${
+                      scope === 'this'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    This message
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={scope === 'all'}
+                    onClick={() => onScopeChange('all')}
+                    className={`rounded-sm px-1.5 py-0.5 font-medium transition-all ${
+                      scope === 'all'
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    All
+                  </button>
+                </div>
               )}
             </div>
             {mobilePanel && onClose && (
@@ -238,6 +313,92 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
               Select text to annotate
             </p>
           </div>
+        ) : scope === 'all' && messageGroups ? (
+          <>
+            {messageGroups.map((group) => {
+              const groupSortedAnnotations = [...group.annotations].sort((a, b) => a.createdA - b.createdA);
+              const groupSortedCodeAnnotations = [...(group.codeAnnotations ?? [])].sort((a, b) => a.createdAt - b.createdAt);
+              const groupThreaded = threadReplies(groupSortedAnnotations);
+              const groupThreadRootTs = resolveThreadRootTimestamps(groupSortedAnnotations);
+              const groupEntries = [
+                ...groupThreaded.map(({ annotation, isReply }) => ({
+                  kind: 'plan' as const,
+                  ts: annotation.createdA,
+                  threadTs: groupThreadRootTs.get(annotation.id) ?? annotation.createdA,
+                  annotation,
+                  isReply,
+                })),
+                ...groupSortedCodeAnnotations.map((annotation) => ({
+                  kind: 'code' as const,
+                  ts: annotation.createdAt,
+                  threadTs: annotation.createdAt,
+                  annotation,
+                  isReply: false,
+                })),
+              ].sort((a, b) => {
+                if (a.threadTs !== b.threadTs) return a.threadTs - b.threadTs;
+                return a.ts - b.ts;
+              });
+
+              if (groupEntries.length === 0) return null;
+
+              const relTime = formatRelativeTime(group.timestamp, now);
+              return (
+                <div key={group.messageId} data-message-group={group.messageId} className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-2 px-1 pt-2 pb-0.5 text-2xs font-medium text-muted-foreground">
+                    <span className="truncate">{railPreview(group.text)}</span>
+                    {relTime && (
+                      <span className="shrink-0 text-3xs text-muted-foreground/60">{relTime}</span>
+                    )}
+                  </div>
+                  {groupEntries.map((entry) => (
+                    entry.kind === 'plan' ? (
+                      entry.isReply ? (
+                        <div
+                          key={entry.annotation.id}
+                          data-annotation-reply="true"
+                          className="ml-3 border-l-2 border-border/40 pl-1.5"
+                        >
+                          <AnnotationCard
+                            annotation={entry.annotation}
+                            isSelected={selectedId === entry.annotation.id}
+                            onSelect={() => onSelectAnnotation(entry.annotation.id, group.messageId)}
+                            onDelete={() => onDeleteAnnotation(entry.annotation.id)}
+                            onEdit={onEditAnnotation ? (updates: Partial<Annotation>) => onEditAnnotation(entry.annotation.id, updates) : undefined}
+                            readOnly={readOnly || !group.isCurrent}
+                            footer={group.isCurrent ? renderCardFooter?.(entry.annotation) : undefined}
+                            unanchored={group.isCurrent ? (unanchoredIds?.has(entry.annotation.id) ?? false) : false}
+                          />
+                        </div>
+                      ) : (
+                        <AnnotationCard
+                          key={entry.annotation.id}
+                          annotation={entry.annotation}
+                          isSelected={selectedId === entry.annotation.id}
+                          onSelect={() => onSelectAnnotation(entry.annotation.id, group.messageId)}
+                          onDelete={() => onDeleteAnnotation(entry.annotation.id)}
+                          onEdit={onEditAnnotation ? (updates: Partial<Annotation>) => onEditAnnotation(entry.annotation.id, updates) : undefined}
+                          readOnly={readOnly || !group.isCurrent}
+                          footer={group.isCurrent ? renderCardFooter?.(entry.annotation) : undefined}
+                          unanchored={group.isCurrent ? (unanchoredIds?.has(entry.annotation.id) ?? false) : false}
+                        />
+                      )
+                    ) : (
+                      <CodeAnnotationCard
+                        key={entry.annotation.id}
+                        annotation={entry.annotation}
+                        isSelected={selectedId === entry.annotation.id}
+                        onSelect={() => onSelectCodeAnnotation?.(entry.annotation.id, group.messageId)}
+                        onDelete={() => onDeleteCodeAnnotation?.(entry.annotation.id)}
+                        onEdit={onEditCodeAnnotation ? (updates: Partial<CodeAnnotation>) => onEditCodeAnnotation(entry.annotation.id, updates) : undefined}
+                        readOnly={readOnly || !group.isCurrent}
+                      />
+                    )
+                  ))}
+                </div>
+              );
+            })}
+          </>
         ) : (
           <>
             {timelineEntries.map(entry => (

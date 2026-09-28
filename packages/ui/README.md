@@ -130,12 +130,10 @@ on the left and its existing Global comment / Copy actions on the right:
 
 ```tsx
 <Viewer
-  mode={mode}
   inputMethod={inputMethod}
   stickyActions={stickyActions}
   annotationHeader={{
     onInputMethodChange: setInputMethod,
-    onModeChange: setMode,
   }}
   // ...the existing Viewer props
 />

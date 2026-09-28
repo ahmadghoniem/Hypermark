@@ -4,8 +4,6 @@ export enum AnnotationType {
   GLOBAL_COMMENT = 'GLOBAL_COMMENT',
 }
 
-export type EditorMode = 'selection' | 'comment' | 'redline';
-
 export type InputMethod = 'drag' | 'pinpoint';
 
 /**

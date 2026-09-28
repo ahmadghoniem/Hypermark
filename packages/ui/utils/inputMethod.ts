@@ -5,8 +5,8 @@ const STORAGE_KEY = 'hypermark-input-method';
 const HTML_STORAGE_KEY = 'hypermark-input-method-html';
 const DEFAULT_METHOD: InputMethod = 'drag';
 /**
- * HTML sessions open on Select like every other surface; Pinpoint is one Alt-tap
- * away (`useInputMethodSwitch`).
+ * HTML sessions open on Select like every other surface; Pinpoint is selected
+ * via the toolstrip.
  */
 const DEFAULT_HTML_METHOD: InputMethod = 'drag';
 

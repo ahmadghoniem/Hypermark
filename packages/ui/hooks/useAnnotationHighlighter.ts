@@ -7,19 +7,13 @@
 
 import { useEffect, useRef, useState, useCallback, type RefObject } from 'react';
 import Highlighter from '@plannotator/web-highlighter';
-import type { Annotation, EditorMode, ImageAttachment } from '../types';
+import type { Annotation, ImageAttachment } from '../types';
 import { AnnotationType } from '../types';
 import { formatQuickLabel, type QuickLabel } from '../utils/quickLabels';
 import { getIdentity } from '../utils/identity';
 import { transformPlainText } from '../utils/inlineTransforms';
 
 // --- Exported state types ---
-
-export interface ToolbarState {
-  element: HTMLElement;
-  source: any;
-  selectionText: string;
-}
 
 export interface CommentPopoverState {
   anchorEl: HTMLElement;
@@ -247,7 +241,6 @@ export interface UseAnnotationHighlighterOptions {
   onAddAnnotation?: (ann: Annotation) => void;
   onSelectAnnotation?: (id: string | null) => void;
   selectedAnnotationId: string | null;
-  mode: EditorMode;
   enabled?: boolean;
   /** Opt-in: after a meta-based restore (`fromStore`), verify the painted text
    *  matches the annotation's `originalText` (whitespace-normalized). On
@@ -264,19 +257,15 @@ export interface UseAnnotationHighlighterOptions {
 export interface UseAnnotationHighlighterReturn {
   highlighterRef: RefObject<Highlighter | null>;
 
-  toolbarState: ToolbarState | null;
   commentPopover: CommentPopoverState | null;
 
-  handleAnnotate: (type: AnnotationType) => void;
-  handleToolbarClose: () => void;
-  handleRequestComment: (initialChar?: string) => void;
   handleCommentSubmit: (text: string, images?: ImageAttachment[], quickLabelTip?: string) => void;
   handleCommentQuickLabel: (label: QuickLabel) => void;
   handleCommentClose: () => void;
   /** Paint a caller-created DOM range through the same pipeline as pointer selection. */
-  highlightRange: (range: Range, modeOverride?: EditorMode) => void;
+  highlightRange: (range: Range, modeOverride?: 'redline' | 'comment') => void;
   /** Annotate one rendered formula through the same path as a pointer click. */
-  highlightMathElement: (element: HTMLElement, modeOverride?: EditorMode) => void;
+  highlightMathElement: (element: HTMLElement, modeOverride?: 'redline' | 'comment') => void;
 
   removeHighlight: (id: string) => void;
   clearAllHighlights: () => void;
@@ -295,28 +284,27 @@ export function useAnnotationHighlighter({
   onAddAnnotation,
   onSelectAnnotation,
   selectedAnnotationId,
-  mode,
   enabled = true,
   verifyRestoredContent = false,
   onRestoreMismatch,
 }: UseAnnotationHighlighterOptions): UseAnnotationHighlighterReturn {
   const highlighterRef = useRef<Highlighter | null>(null);
-  const modeRef = useRef<EditorMode>(mode);
   const onAddAnnotationRef = useRef(onAddAnnotation);
   const onSelectAnnotationRef = useRef(onSelectAnnotation);
   const pendingSourceRef = useRef<any>(null);
   const pendingMathTargetsRef = useRef<MathAnnotationTarget[]>([]);
   const pendingMathElementRef = useRef<HTMLElement | null>(null);
-  const pendingModeOverrideRef = useRef<EditorMode | null>(null);
+  const pendingModeOverrideRef = useRef<'redline' | 'comment' | null>(null);
   const justCreatedIdRef = useRef<string | null>(null);
   const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  /** Alt held when the selection was released: strike it through on the spot.
+   *  Without it a release opens the comment composer. */
+  const altOnReleaseRef = useRef(false);
   const mouseDownMathRef = useRef<HTMLElement | null>(null);
 
-  const [toolbarState, setToolbarState] = useState<ToolbarState | null>(null);
   const [commentPopover, setCommentPopover] = useState<CommentPopoverState | null>(null);
 
   // Keep refs in sync
-  useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { onAddAnnotationRef.current = onAddAnnotation; }, [onAddAnnotation]);
   useEffect(() => { onSelectAnnotationRef.current = onSelectAnnotation; }, [onSelectAnnotation]);
   const onRestoreMismatchRef = useRef(onRestoreMismatch);
@@ -342,7 +330,10 @@ export function useAnnotationHighlighter({
 
   // Track mouse position for quick label picker
   useEffect(() => {
-    const track = (e: MouseEvent) => { lastMousePosRef.current = { x: e.clientX, y: e.clientY }; };
+    const track = (e: MouseEvent) => {
+      lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+      altOnReleaseRef.current = e.altKey;
+    };
     document.addEventListener('mouseup', track, true);
     return () => document.removeEventListener('mouseup', track, true);
   }, [clearPendingSelection]);
@@ -859,13 +850,16 @@ export function useAnnotationHighlighter({
           pendingMathTargetsRef.current = mathTargetsFromSelection(window.getSelection(), containerRef.current);
           setCommentPopover(null);
 
-          const effectiveMode = pendingModeOverrideRef.current ?? modeRef.current;
+          // Alt on release strikes the selection through; every other
+          // release opens the composer on the highlight.
+          const redline = (pendingModeOverrideRef.current ?? (altOnReleaseRef.current ? 'redline' : 'comment')) === 'redline';
           pendingModeOverrideRef.current = null;
+          altOnReleaseRef.current = false;
 
-          if (effectiveMode === 'redline') {
+          if (redline) {
             createAnnotationFromSource(highlighter, source, AnnotationType.DELETION);
             window.getSelection()?.removeAllRanges();
-          } else if (effectiveMode === 'comment') {
+          } else {
             pendingSourceRef.current = source;
             setCommentPopover({
               anchorEl: doms[0] as HTMLElement,
@@ -873,14 +867,6 @@ export function useAnnotationHighlighter({
               selectedText: source.text,
               source,
               draftKey: commentDraftTargetKey(source, source.text),
-            });
-          } else {
-            // Selection mode — show toolbar
-            pendingSourceRef.current = source;
-            setToolbarState({
-              element: doms[0] as HTMLElement,
-              source,
-              selectionText: source.text,
             });
           }
         }
@@ -914,7 +900,7 @@ export function useAnnotationHighlighter({
 
       const existingId = mathElement.dataset.bindId;
       const selectedText = selection?.toString().trim() ?? '';
-      if (!selectedText && existingId && modeRef.current !== 'redline') {
+      if (!selectedText && existingId) {
         event.preventDefault();
         event.stopPropagation();
         onSelectAnnotationRef.current?.(existingId);
@@ -933,34 +919,23 @@ export function useAnnotationHighlighter({
         highlighter.remove(pendingSourceRef.current.id);
       }
       clearPendingSelection();
-      setToolbarState(null);
       setCommentPopover(null);
 
-      if (modeRef.current === 'redline') {
+      if (altOnReleaseRef.current) {
+        altOnReleaseRef.current = false;
         createAnnotationFromMathSource(source, AnnotationType.DELETION);
-        selection?.removeAllRanges();
-        return;
-      }
-
-      if (modeRef.current === 'comment') {
-        pendingSourceRef.current = source;
-        showPendingMathPreview(source);
-        setCommentPopover({
-          anchorEl: source.element,
-          contextText: source.text.slice(0, 80),
-          selectedText: source.text,
-          source,
-          draftKey: commentDraftTargetKey(source, source.text),
-        });
+        window.getSelection()?.removeAllRanges();
         return;
       }
 
       pendingSourceRef.current = source;
       showPendingMathPreview(source);
-      setToolbarState({
-        element: source.element,
+      setCommentPopover({
+        anchorEl: source.element,
+        contextText: source.text.slice(0, 80),
+        selectedText: source.text,
         source,
-        selectionText: source.text,
+        draftKey: commentDraftTargetKey(source, source.text),
       });
     };
 
@@ -997,7 +972,7 @@ export function useAnnotationHighlighter({
     };
   }, [clearPendingSelection, enabled]);
 
-  const highlightRange = useCallback((range: Range, modeOverride?: EditorMode) => {
+  const highlightRange = useCallback((range: Range, modeOverride?: 'redline' | 'comment') => {
     const highlighter = highlighterRef.current;
     const container = containerRef.current;
     if (!highlighter || !container || range.collapsed) return;
@@ -1018,13 +993,15 @@ export function useAnnotationHighlighter({
 
   const highlightMathElement = useCallback((
     element: HTMLElement,
-    modeOverride?: EditorMode,
+    modeOverride?: 'redline' | 'comment',
   ) => {
     const container = containerRef.current;
     const mathElement = closestMathElement(element, container);
     if (!container || !mathElement) return;
 
-    const effectiveMode = modeOverride ?? modeRef.current;
+    const effectiveMode = modeOverride
+      ?? (altOnReleaseRef.current ? 'redline' : 'comment');
+    altOnReleaseRef.current = false;
     const existingId = mathElement.dataset.bindId;
     if (existingId && effectiveMode !== 'redline') {
       onSelectAnnotationRef.current?.(existingId);
@@ -1039,7 +1016,6 @@ export function useAnnotationHighlighter({
       highlighter.remove(pendingSourceRef.current.id);
     }
     clearPendingSelection();
-    setToolbarState(null);
     setCommentPopover(null);
 
     if (effectiveMode === 'redline') {
@@ -1050,21 +1026,12 @@ export function useAnnotationHighlighter({
     pendingSourceRef.current = source;
     showPendingMathPreview(source);
 
-    if (effectiveMode === 'comment') {
-      setCommentPopover({
-        anchorEl: source.element,
-        contextText: source.text.slice(0, 80),
-        selectedText: source.text,
-        source,
-        draftKey: commentDraftTargetKey(source, source.text),
-      });
-      return;
-    }
-
-    setToolbarState({
-      element: source.element,
+    setCommentPopover({
+      anchorEl: source.element,
+      contextText: source.text.slice(0, 80),
+      selectedText: source.text,
       source,
-      selectionText: source.text,
+      draftKey: commentDraftTargetKey(source, source.text),
     });
   }, [clearPendingSelection, containerRef, showPendingMathPreview]);
 
@@ -1134,45 +1101,6 @@ export function useAnnotationHighlighter({
 
   // --- Handlers ---
 
-  const handleAnnotate = (type: AnnotationType) => {
-    const highlighter = highlighterRef.current;
-    if (!toolbarState) return;
-    if (isMathAnnotationSource(toolbarState.source)) {
-      createAnnotationFromMathSource(toolbarState.source, type);
-      clearPendingSelection();
-      setToolbarState(null);
-      window.getSelection()?.removeAllRanges();
-      return;
-    }
-    if (!highlighter) return;
-    createAnnotationFromSource(highlighter, toolbarState.source, type);
-    clearPendingSelection();
-    setToolbarState(null);
-    window.getSelection()?.removeAllRanges();
-  };
-
-  const handleToolbarClose = () => {
-    if (toolbarState && highlighterRef.current && !isMathAnnotationSource(toolbarState.source)) {
-      highlighterRef.current.remove(toolbarState.source.id);
-    }
-    clearPendingSelection();
-    setToolbarState(null);
-    window.getSelection()?.removeAllRanges();
-  };
-
-  const handleRequestComment = (initialChar?: string) => {
-    if (!toolbarState) return;
-    setCommentPopover({
-      anchorEl: toolbarState.element,
-      contextText: toolbarState.selectionText.slice(0, 80),
-      selectedText: toolbarState.selectionText,
-      initialText: initialChar,
-      source: toolbarState.source,
-      draftKey: commentDraftTargetKey(toolbarState.source, toolbarState.selectionText),
-    });
-    setToolbarState(null);
-  };
-
   const handleCommentSubmit = (text: string, images?: ImageAttachment[], quickLabelTip?: string) => {
     if (!commentPopover) return;
     if (isMathAnnotationSource(commentPopover.source)) {
@@ -1216,11 +1144,7 @@ export function useAnnotationHighlighter({
 
   return {
     highlighterRef,
-    toolbarState,
     commentPopover,
-    handleAnnotate,
-    handleToolbarClose,
-    handleRequestComment,
     handleCommentSubmit,
     handleCommentQuickLabel,
     handleCommentClose,

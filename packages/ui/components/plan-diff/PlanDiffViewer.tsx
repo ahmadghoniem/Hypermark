@@ -8,7 +8,7 @@
 
 import React, { useState } from "react";
 import type { PlanDiffBlock, PlanDiffStats } from "../../utils/planDiffEngine";
-import type { Annotation, EditorMode } from "../../types";
+import type { Annotation } from "../../types";
 import {
   PlanDiffModeSwitcher,
   type PlanDiffMode,
@@ -32,7 +32,6 @@ interface PlanDiffViewerProps {
   onAddAnnotation?: (ann: Annotation) => void;
   onSelectAnnotation?: (id: string | null) => void;
   selectedAnnotationId?: string | null;
-  mode?: EditorMode;
 }
 
 export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
@@ -49,7 +48,6 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
   onAddAnnotation,
   onSelectAnnotation,
   selectedAnnotationId,
-  mode,
 }) => {
 
   return (
@@ -134,7 +132,6 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
             onAddAnnotation={onAddAnnotation}
             onSelectAnnotation={onSelectAnnotation}
             selectedAnnotationId={selectedAnnotationId}
-            mode={mode}
             wordLevel={diffMode === "clean"}
           />
         )}

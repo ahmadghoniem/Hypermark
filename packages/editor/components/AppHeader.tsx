@@ -42,8 +42,6 @@ interface AppHeaderProps {
   // Dynamic state
   isSubmitting: boolean;
   isExiting: boolean;
-  isPanelOpen: boolean;
-  annotationCount: number;
   linkedDocIsActive: boolean;
   agentName: string;
   showAnnotationsWarning: boolean;
@@ -62,7 +60,6 @@ interface AppHeaderProps {
   // Handlers — App owns all decision logic, header just calls these
   onFeedback: () => void;
   onApprove: () => void;
-  onAnnotationPanelToggle: () => void;
 }
 
 export const AppHeader = React.memo<AppHeaderProps>(({
@@ -80,15 +77,12 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   origin,
   isSubmitting,
   isExiting,
-  isPanelOpen,
-  annotationCount,
   linkedDocIsActive,
   agentName,
   showAnnotationsWarning,
   annotateDecision,
   onFeedback,
   onApprove,
-  onAnnotationPanelToggle,
 }) => {
   return (
     <header
@@ -159,26 +153,6 @@ export const AppHeader = React.memo<AppHeaderProps>(({
             labels={HYPERMARK_HTML_REFRESH_LABELS}
           />
         )}
-
-        {/* Annotations panel toggle */}
-        <button
-          onClick={onAnnotationPanelToggle}
-          className={`relative p-1.5 rounded-md text-xs font-medium transition-all ${
-            isPanelOpen
-              ? 'bg-primary/15 text-primary'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-          }`}
-          title={isPanelOpen ? 'Hide annotations' : 'Show annotations'}
-        >
-          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-          </svg>
-          {annotationCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 flex items-center justify-center rounded-full bg-primary text-4xs font-bold text-primary-foreground px-0.5">
-              {annotationCount > 99 ? '99+' : annotationCount}
-            </span>
-          )}
-        </button>
 
         <QuickLabelsButton />
 

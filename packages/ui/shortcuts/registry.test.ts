@@ -58,9 +58,8 @@ export const HAND_WIRED: Record<string, string> = {
   'decision-control.submitNote': 'packages/ui/components/DecisionControl.tsx',
   'decision-control.closeNote': 'packages/ui/components/DecisionControl.tsx',
 
-  // input-method (useInputMethodSwitch.ts)
-  'input-method.temporarySwitch': 'packages/ui/hooks/useInputMethodSwitch.ts',
-  'input-method.toggleSwitch': 'packages/ui/hooks/useInputMethodSwitch.ts',
+  // annotation-mode Alt+drag (useAnnotationHighlighter.ts)
+  'annotation-mode.strikeOnRelease': 'packages/ui/hooks/useAnnotationHighlighter.ts',
 };
 
 function getRepoRoot(): string {

@@ -6,7 +6,6 @@ import {
 
 const annotationHeader: ViewerAnnotationHeaderConfig = {
   onInputMethodChange: () => {},
-  onModeChange: () => {},
 };
 
 /** Compile-only proof of the published Viewer-owned document-header API. */
