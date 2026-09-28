@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AGREED_LABEL, type QuickLabel } from '../utils/quickLabels';
+import type { QuickLabel } from '../utils/quickLabels';
 
 /** Dot colour per label colour key. Agreed shows a check instead. */
 const DOT_CLASS: Record<string, string> = {
@@ -21,13 +21,15 @@ interface ComposerQuickLabelsProps {
   chipHeight: number;
   gap: number;
   fade: number;
+  className?: string;
 }
 
 /**
- * One line of label chips above the composer. A vertical wheel scrolls it
- * sideways; the clipped edges fade. No tooltips.
+ * One line of label chips along the bottom of the composer's text field. A
+ * vertical wheel scrolls it sideways; the clipped edges fade. It hides as soon
+ * as the field has content, without changing the field's height. No tooltips.
  */
-export const ComposerQuickLabels: React.FC<ComposerQuickLabelsProps> = ({ labels, onSelect, hidden, chipHeight, gap, fade }) => {
+export const ComposerQuickLabels: React.FC<ComposerQuickLabelsProps> = ({ labels, onSelect, hidden, chipHeight, gap, fade, className }) => {
   const rowRef = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ start: false, end: false });
 
@@ -74,7 +76,7 @@ export const ComposerQuickLabels: React.FC<ComposerQuickLabelsProps> = ({ labels
     <div
       data-quick-labels="true"
       aria-hidden={hidden ? 'true' : undefined}
-      className={`transition-opacity duration-150 motion-reduce:transition-none ${hidden ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
+      className={`transition-opacity duration-150 motion-reduce:transition-none ${hidden ? 'pointer-events-none opacity-0' : 'opacity-100'} ${className ?? ''}`}
     >
       <div
         ref={rowRef}
@@ -93,13 +95,7 @@ export const ComposerQuickLabels: React.FC<ComposerQuickLabelsProps> = ({ labels
             style={{ height: chipHeight }}
             className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-card pl-2 pr-2.25 text-2xs font-medium text-foreground/85 shadow-[0_1px_2px_rgb(0_0_0/0.3),0_6px_14px_-6px_rgb(0_0_0/0.6)] transition-colors hover:bg-muted hover:text-foreground"
           >
-            {label.id === AGREED_LABEL.id ? (
-              <svg className="size-3 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              <span aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${DOT_CLASS[label.color] ?? 'bg-muted-foreground'}`} />
-            )}
+            <span aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${DOT_CLASS[label.color] ?? 'bg-muted-foreground'}`} />
             {label.text}
           </button>
         ))}

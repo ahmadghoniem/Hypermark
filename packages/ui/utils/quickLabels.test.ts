@@ -14,22 +14,30 @@ describe('parseQuickLabels', () => {
     expect(parseQuickLabels('{"a":1}')).toEqual(DEFAULT_QUICK_LABELS);
   });
 
-  test('Agreed is first and is never taken from storage', () => {
+  test('a stored list replaces the defaults outright, Agreed included', () => {
     const stored = JSON.stringify([
-      { id: 'agreed', emoji: '', text: 'Hacked', color: 'red' },
       { id: 'needs-tests', emoji: '', text: 'Needs tests', color: 'blue' },
+      { id: 'agreed', emoji: '', text: 'Sounds right', color: 'green' },
     ]);
     const labels = parseQuickLabels(stored);
-    expect(labels[0]).toEqual(AGREED_LABEL);
     expect(labels).toHaveLength(2);
-    expect(labels[1]?.text).toBe('Needs tests');
+    expect(labels[0]?.text).toBe('Needs tests');
+    expect(labels[1]?.text).toBe('Sounds right');
+  });
+
+  test('Agreed seeds the defaults', () => {
+    expect(parseQuickLabels(null)[0]).toEqual(AGREED_LABEL);
+  });
+
+  test('an emptied list stays empty', () => {
+    expect(parseQuickLabels('[]')).toEqual([]);
   });
 
   test('a long tip is truncated', () => {
     const stored = JSON.stringify([
       { id: 'x', emoji: '', text: 'X', color: 'blue', tip: 'y'.repeat(400) },
     ]);
-    expect(parseQuickLabels(stored)[1]?.tip).toHaveLength(QUICK_LABEL_MAX_TIP);
+    expect(parseQuickLabels(stored)[0]?.tip).toHaveLength(QUICK_LABEL_MAX_TIP);
   });
 });
 

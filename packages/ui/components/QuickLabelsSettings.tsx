@@ -1,13 +1,11 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Popover, PopoverTrigger, PopoverContent } from './Popover';
 import { useQuickLabels } from '../hooks/useQuickLabels';
 import {
-  AGREED_LABEL,
   QUICK_LABEL_COLORS,
   QUICK_LABEL_MAX_COUNT,
   QUICK_LABEL_MAX_TIP,
   quickLabelId,
-  isEditableQuickLabel,
   type QuickLabel,
 } from '../utils/quickLabels';
 
@@ -36,6 +34,61 @@ export const QuickLabelsButton: React.FC = () => {
     }
   };
 
+  // Drag-to-reorder from the grip on the left of each row. The rows are a
+  // uniform height, so the target index is the travel divided by that height
+  // — no per-row hit testing, and it keeps working while the pointer is
+  // outside the list.
+  const listRef = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<{ from: number; to: number; offset: number; pitch: number } | null>(null);
+  // True for the one frame that commits the new order. The rows land in their
+  // new DOM slots and lose their transforms in the same paint, which is exactly
+  // where they already are — but with `transition-transform` still on, the
+  // browser animates that transform back to zero and every row appears to jump.
+  const [settling, setSettling] = useState(false);
+
+  const beginReorder = useCallback((index: number, event: React.PointerEvent) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    const row = (event.currentTarget as HTMLElement).closest('[data-label-row]');
+    // Pitch is the row plus the 2px `space-y-0.5` gap: the distance a row
+    // travels when it swaps with its neighbour.
+    const pitch = (row?.getBoundingClientRect().height || 26) + 2;
+    const startY = event.clientY;
+    const count = labels.length;
+    let to = index;
+
+    const move = (e: PointerEvent) => {
+      const offset = e.clientY - startY;
+      to = Math.max(0, Math.min(count - 1, index + Math.round(offset / pitch)));
+      // The grabbed row tracks the pointer 1:1; the rest slide by one pitch.
+      setDrag({ from: index, to, offset, pitch });
+    };
+    const end = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+      if (to !== index) {
+        setSettling(true);
+        moveLabel(index, to);
+        requestAnimationFrame(() => setSettling(false));
+      }
+      setDrag(null);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [labels]);
+
+  /** Keyboard parity for the grip, which replaced the move buttons. */
+  const gripKeyDown = (index: number) => (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowUp' && index > 0) {
+      e.preventDefault();
+      moveLabel(index, index - 1);
+    } else if (e.key === 'ArrowDown' && index < labels.length - 1) {
+      e.preventDefault();
+      moveLabel(index, index + 1);
+    }
+  };
+
   const handleSave = () => {
     if (!draft) return;
     const text = draft.text.trim();
@@ -44,8 +97,7 @@ export const QuickLabelsButton: React.FC = () => {
       return;
     }
     const isNew = !draft.id;
-    const currentEditableCount = labels.filter(isEditableQuickLabel).length;
-    if (isNew && currentEditableCount >= QUICK_LABEL_MAX_COUNT) {
+    if (isNew && labels.length >= QUICK_LABEL_MAX_COUNT) {
       setError('That is as many labels as fit.');
       return;
     }
@@ -65,8 +117,6 @@ export const QuickLabelsButton: React.FC = () => {
     setDraft(null);
     setError(null);
   };
-
-  const editableLabels = labels.filter(isEditableQuickLabel);
 
   return (
     <Popover onOpenChange={(open) => { if (!open) { setDraft(null); setError(null); } }}>
@@ -101,65 +151,45 @@ export const QuickLabelsButton: React.FC = () => {
               <span className="text-xs font-semibold">Quick labels</span>
             </div>
 
-            <div className="max-h-64 overflow-y-auto p-1.5 space-y-0.5">
+            <div ref={listRef} className="max-h-64 overflow-y-auto p-1.5 space-y-0.5">
               {labels.map((label, index) => {
-                if (label.id === AGREED_LABEL.id) {
-                  return (
-                    <div key={label.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs">
-                      <svg
-                        className="size-3.5 text-success shrink-0"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2.5}
-                        aria-hidden="true"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="font-medium text-foreground truncate">{label.text}</span>
-                      <span className="ml-auto text-3xs text-muted-foreground">built in</span>
-                    </div>
-                  );
-                }
-
-                const isFirst = index === 1;
-                const isLast = index === labels.length - 1;
+                const lifted = drag?.from === index;
+                // The grabbed row follows the pointer; the rows it passes slide
+                // one pitch the other way, so the list reads as its new order
+                // and no empty slot opens up behind it.
+                const shift = drag && !lifted
+                  ? (drag.from < index && index <= drag.to ? -1
+                    : drag.from > index && index >= drag.to ? 1 : 0)
+                  : 0;
+                const offset = lifted && drag ? drag.offset : shift * (drag?.pitch ?? 0);
 
                 return (
                   <div
                     key={label.id}
-                    className="group/row flex items-center gap-2 px-2 py-1 rounded-md text-xs hover:bg-muted/50 transition-colors"
+                    data-label-row="true"
+                    style={{ transform: offset ? `translateY(${offset}px)` : undefined }}
+                    className={`group/row flex items-center gap-2 px-2 py-1 rounded-md text-xs ${
+                      lifted
+                        ? 'relative z-1 bg-popover shadow-[0_4px_12px_-4px_rgb(0_0_0/0.45)] ring-1 ring-border'
+                        : `hover:bg-muted/50 ${settling ? '' : 'transition-transform'} ${drag ? '' : 'transition-colors'}`
+                    }`}
                   >
+                    <button
+                      type="button"
+                      onPointerDown={(e) => beginReorder(index, e)}
+                      onKeyDown={gripKeyDown(index)}
+                      title="Drag to reorder"
+                      aria-label={`Reorder ${label.text}`}
+                      className="-ml-1 size-5 shrink-0 grid place-items-center rounded-sm text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover/row:opacity-100 touch-none cursor-grab active:cursor-grabbing"
+                    >
+                      <GripDots />
+                    </button>
                     <span
                       aria-hidden="true"
                       className={`size-2 shrink-0 rounded-full ${DOT_CLASS[label.color] ?? 'bg-primary'}`}
                     />
                     <span className="min-w-0 truncate text-foreground flex-1">{label.text}</span>
                     <div className="flex items-center gap-0.5">
-                      <button
-                        type="button"
-                        disabled={isFirst}
-                        onClick={() => moveLabel(index, index - 1)}
-                        className="size-5 flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 disabled:opacity-30 disabled:pointer-events-none transition-opacity"
-                        title="Move up"
-                        aria-label="Move up"
-                      >
-                        <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isLast}
-                        onClick={() => moveLabel(index, index + 1)}
-                        className="size-5 flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 disabled:opacity-30 disabled:pointer-events-none transition-opacity"
-                        title="Move down"
-                        aria-label="Move down"
-                      >
-                        <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
                       <button
                         type="button"
                         onClick={() => {
@@ -199,7 +229,7 @@ export const QuickLabelsButton: React.FC = () => {
                 );
               })}
 
-              {editableLabels.length === 0 && (
+              {labels.length === 0 && (
                 <div className="px-2 py-3 text-2xs text-muted-foreground text-center">
                   No labels yet. Add one to see it above the composer.
                 </div>
@@ -325,3 +355,15 @@ export const QuickLabelsButton: React.FC = () => {
     </Popover>
   );
 };
+
+/** Six dots in two columns: the conventional reorder grip. */
+const GripDots: React.FC = () => (
+  <svg className="size-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <circle cx="9" cy="5" r="1.75" />
+    <circle cx="15" cy="5" r="1.75" />
+    <circle cx="9" cy="12" r="1.75" />
+    <circle cx="15" cy="12" r="1.75" />
+    <circle cx="9" cy="19" r="1.75" />
+    <circle cx="15" cy="19" r="1.75" />
+  </svg>
+);

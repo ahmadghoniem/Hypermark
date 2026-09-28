@@ -26,10 +26,8 @@ export function formatQuickLabel(label: QuickLabel): string {
 }
 
 /**
- * The hardcoded one-click positive label behind the selection toolbar's and
- * the composer's "Agreed" action. Deliberately NOT part of the configurable
- * set: it is the ONLY label comment-only surfaces (HTML / live-app) may
- * emit — their restricted handlers filter on this id.
+ * The positive label the default set opens with. Ordinary in every way — it
+ * can be renamed, recoloured, reordered and deleted like any other.
  *
  * It carries no emoji: it reads as a plain verdict on the selection, not as a
  * reaction to it.
@@ -44,6 +42,8 @@ export const AGREED_LABEL: QuickLabel = {
 /**
  * The labels floating above an anchored composer. One click saves a comment
  * with the label's text and tip. Agreed comes first and carries no tip.
+ * These are only the starting point: the settings popover writes the whole
+ * list, and a stored list replaces this one outright.
  */
 export const DEFAULT_QUICK_LABELS: QuickLabel[] = [
   AGREED_LABEL,
@@ -61,11 +61,6 @@ export const QUICK_LABEL_MAX_COUNT = 24;
 /** Dot colours offered in the editor; keys of DOT_CLASS in ComposerQuickLabels. */
 export const QUICK_LABEL_COLORS = ['green', 'yellow', 'orange', 'cyan', 'red', 'blue'] as const;
 
-/** A label the user may edit: everything except the built-in Agreed. */
-export function isEditableQuickLabel(label: QuickLabel): boolean {
-  return label.id !== AGREED_LABEL.id;
-}
-
 /** kebab-case id derived from the text, made unique against `taken`. */
 export function quickLabelId(text: string, taken: readonly string[]): string {
   const base = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'label';
@@ -74,7 +69,7 @@ export function quickLabelId(text: string, taken: readonly string[]): string {
   return id;
 }
 
-/** Parses stored JSON, dropping anything malformed. Agreed is always first. */
+/** Parses stored JSON, dropping anything malformed. */
 export function parseQuickLabels(raw: string | null): QuickLabel[] {
   if (!raw) return DEFAULT_QUICK_LABELS;
   try {
@@ -85,7 +80,6 @@ export function parseQuickLabels(raw: string | null): QuickLabel[] {
         !!l && typeof l === 'object'
         && typeof (l as QuickLabel).id === 'string'
         && typeof (l as QuickLabel).text === 'string')
-      .filter((l) => isEditableQuickLabel(l))
       .slice(0, QUICK_LABEL_MAX_COUNT)
       .map((l) => ({
         id: l.id,
@@ -94,7 +88,7 @@ export function parseQuickLabels(raw: string | null): QuickLabel[] {
         color: typeof l.color === 'string' ? l.color : 'blue',
         ...(l.tip ? { tip: String(l.tip).slice(0, QUICK_LABEL_MAX_TIP) } : {}),
       }));
-    return [AGREED_LABEL, ...labels];
+    return labels;
   } catch {
     return DEFAULT_QUICK_LABELS;
   }
@@ -106,10 +100,10 @@ export function getQuickLabels(): QuickLabel[] {
 
 const quickLabelListeners = new Set<() => void>();
 
-/** Persists everything except Agreed, which is not the user's to change. */
+/** Persists the whole list, capped at what a cookie holds. */
 export function saveQuickLabels(labels: readonly QuickLabel[]): void {
-  const editable = labels.filter(isEditableQuickLabel).slice(0, QUICK_LABEL_MAX_COUNT);
-  storage.setItem(STORAGE_KEY_QUICK_LABELS, JSON.stringify(editable));
+  const capped = labels.slice(0, QUICK_LABEL_MAX_COUNT);
+  storage.setItem(STORAGE_KEY_QUICK_LABELS, JSON.stringify(capped));
   for (const listener of quickLabelListeners) listener();
 }
 
