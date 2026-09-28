@@ -29,6 +29,10 @@ export default defineConfig({
   },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    // `HYPERMARK_DIALS=1 bun run build:*` keeps the DialKit panel in a
+    // production build, so the bundle the `hypermark` CLI serves is dialable.
+    // Unset, DialKit and `motion` tree-shake straight out again.
+    __DIALS__: JSON.stringify(process.env.HYPERMARK_DIALS === '1'),
   },
   plugins: [demoFileContentPlugin(), react(), tailwindcss(), viteSingleFile()],
   resolve: {

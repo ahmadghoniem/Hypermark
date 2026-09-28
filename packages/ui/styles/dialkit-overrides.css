@@ -1,0 +1,57 @@
+/* packages/ui/styles/dialkit-overrides.css
+ *
+ * Marks the shipped default on the dials that stayed sliders.
+ * Every other control is a select whose option labels carry `· default` and
+ * `· rec`; a slider has no such affordance, so its default gets a tinted
+ * hairline on the track, labelled on hover.
+ *
+ * The only hook DialKit 2.0.2 gives us is the slider's `aria-label`, which is
+ * `formatLabel(key)` — the config key title-cased with spaces, so `lineStroke`
+ * is `Line Stroke`, NOT `lineStroke`. Its `.dialkit-slider-hashmarks` child is
+ * `position: absolute; inset: 0`, which is what the pseudo-elements below
+ * position against.
+ *
+ * --dk-default-pct is (default − min) / (max − min).
+ */
+
+/* 02 · Attachment stack — ring [2, 1, 3, 0.5] */
+.dialkit-root .dialkit-slider[aria-label="Ring"] {
+  --dk-default-pct: 50%;
+}
+
+/* The tick itself, on that slider only. A slider with no declared default is
+ * left exactly as DialKit draws it. */
+.dialkit-root .dialkit-slider[aria-label="Ring"] .dialkit-slider-hashmarks::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: var(--dk-default-pct);
+  width: 1.5px;
+  height: 10px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  background: var(--dial-text-focus, #38bdf8);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Hover names it, so the tint is not a colour you have to remember. */
+.dialkit-root .dialkit-slider[aria-label="Ring"]:hover .dialkit-slider-hashmarks::before {
+  content: 'default';
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: var(--dk-default-pct);
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: var(--dial-surface, #1e1e1e);
+  color: var(--dial-text-label, #aaa);
+  border: 1px solid var(--dial-border, #333);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+}

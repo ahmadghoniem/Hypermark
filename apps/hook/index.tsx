@@ -15,12 +15,14 @@ root.render(
   </React.StrictMode>
 );
 
-// Dev-only design panel. Loaded dynamically so `dialkit` and `motion` are
-// tree-shaken out of the production bundle instead of shipping dead.
-if (import.meta.env.DEV) {
-  void Promise.all([import('dialkit'), import('dialkit/styles.css')]).then(([{ DialRoot }]) => {
+// Design panel. Loaded dynamically so `dialkit` and `motion` are tree-shaken
+// out of an ordinary production bundle instead of shipping dead; a build run
+// with HYPERMARK_DIALS=1 keeps it, which is how the `hypermark` CLI's bundle
+// gets dials.
+if (import.meta.env.DEV || __DIALS__) {
+  void import('@hypermark/ui/components/DialsMount').then(({ DialsMount }) => {
     const host = document.createElement('div');
     document.body.appendChild(host);
-    ReactDOM.createRoot(host).render(<DialRoot position="bottom-left" />);
+    ReactDOM.createRoot(host).render(<DialsMount />);
   });
 }
