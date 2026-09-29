@@ -4,7 +4,7 @@ set -euo pipefail
 workspace="${GITHUB_WORKSPACE:-$(pwd)}"
 subjects_dir="${HYPERMARK_RELEASE_SUBJECTS_DIR:?Set HYPERMARK_RELEASE_SUBJECTS_DIR to the downloaded release subjects}"
 output_dir="${HYPERMARK_RELEASE_SECURITY_DIR:?Set HYPERMARK_RELEASE_SECURITY_DIR to an empty output directory}"
-repository="https://github.com/${GITHUB_REPOSITORY:-backnotprop/plannotator}"
+repository="https://github.com/${GITHUB_REPOSITORY:-ahmadghoniem/Hypermark}"
 commit="${GITHUB_SHA:-$(git -C "$workspace" rev-parse HEAD)}"
 version="$(jq -r .version "$workspace/package.json")"
 

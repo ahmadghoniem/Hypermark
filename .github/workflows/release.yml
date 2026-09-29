@@ -346,10 +346,6 @@ jobs:
             "XDG_CONFIG_HOME",
             "XDG_CACHE_HOME",
             "CLAUDE_CONFIG_DIR",
-            "CODEX_HOME",
-            "FACTORY_CONFIG_DIR",
-            "COPILOT_HOME",
-            "PI_CODING_AGENT_DIR",
             "HYPERMARK_DATA_DIR"
           )
           $savedEnvironment = @{}
@@ -378,7 +374,6 @@ jobs:
               XDG_CONFIG_HOME = (Join-Path $isolatedHome ".config")
               XDG_CACHE_HOME = (Join-Path $isolatedHome ".cache")
               CLAUDE_CONFIG_DIR = (Join-Path $isolatedHome ".claude")
-              PI_CODING_AGENT_DIR = (Join-Path $isolatedHome ".pi\agent")
               HYPERMARK_DATA_DIR = (Join-Path $isolatedHome ".hypermark")
             }
             foreach ($entry in $values.GetEnumerator()) {
@@ -481,160 +476,6 @@ jobs:
           }
 
 
-  install-script-smoke:
-    needs: build
-    runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            artifact: hypermark-linux-x64
-
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - name: Download binaries
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: binaries
-          path: artifacts
-
-      - name: Verify installer writes Codex hook config
-        env:
-          ARTIFACT_NAME: ${{ matrix.artifact }}
-        run: |
-          set -euo pipefail
-
-          tmp_home="$(mktemp -d)"
-          fake_bin="$(mktemp -d)"
-          artifact="$PWD/artifacts/$ARTIFACT_NAME"
-
-          cat > "$fake_bin/codex" <<'SH'
-          #!/usr/bin/env bash
-          echo "codex stub"
-          SH
-          chmod +x "$fake_bin/codex"
-
-          cat > "$fake_bin/curl" <<'SH'
-          #!/usr/bin/env bash
-          set -euo pipefail
-
-          out=""
-          url=""
-
-          while [ "$#" -gt 0 ]; do
-            case "$1" in
-              -o|--output)
-                out="$2"
-                shift 2
-                ;;
-              -*)
-                shift
-                ;;
-              *)
-                url="$1"
-                shift
-                ;;
-            esac
-          done
-
-          if [[ "$url" == *.sha256 ]]; then
-            if command -v sha256sum >/dev/null 2>&1; then
-              sha256sum "$ARTIFACT"
-            else
-              shasum -a 256 "$ARTIFACT"
-            fi
-            exit 0
-          fi
-
-          if [ -n "$out" ]; then
-            cp "$ARTIFACT" "$out"
-          else
-            cat "$ARTIFACT"
-          fi
-          SH
-          chmod +x "$fake_bin/curl"
-
-          # --skip-skills: this smoke installs a SYNTHETIC v9.9.9. The fake curl
-          # above serves the freshly built binary for any URL, but the skills and
-          # slash commands come from `git clone --branch v9.9.9` against real
-          # github.com, where that tag does not and cannot exist. The clone has
-          # always failed here; it only went unnoticed while a broken guard let
-          # the installer exit 0 anyway. This job checks the Codex hook config,
-          # not the skills, so opt out of the checkout rather than teach the test
-          # to ignore a real error. Both call sites below run through this
-          # function, so the flag applies to each of them.
-          run_installer() {
-            HOME="$tmp_home" \
-              PATH="$fake_bin:$PATH" \
-              SHELL=/bin/bash \
-              ARTIFACT="$artifact" \
-              bash scripts/install.sh --version v9.9.9 --skip-attestation --skip-skills
-          }
-
-          run_installer
-
-          test -x "$tmp_home/.local/bin/hypermark"
-          grep -q 'hooks = true' "$tmp_home/.codex/config.toml"
-
-          HOME="$tmp_home" node <<'NODE'
-          const fs = require("fs");
-          const path = require("path");
-          const home = process.env.HOME;
-          const hooksPath = path.join(home, ".codex", "hooks.json");
-          const hooks = JSON.parse(fs.readFileSync(hooksPath, "utf8"));
-          const command = hooks?.hooks?.Stop?.[0]?.hooks?.[0]?.command;
-          const timeout = hooks?.hooks?.Stop?.[0]?.hooks?.[0]?.timeout;
-          const expected = path.join(home, ".local", "bin", "hypermark");
-
-          if (command !== expected) {
-            throw new Error(`Expected Stop hook command ${expected}, got ${command}`);
-          }
-          if (timeout !== 345600) {
-            throw new Error(`Expected Stop hook timeout 345600, got ${timeout}`);
-          }
-          NODE
-
-          cat > "$tmp_home/.codex/hooks.json" <<'JSON'
-          {
-            "hooks": {
-              "Stop": [
-                {
-                  "hooks": [
-                    {
-                      "type": "command",
-                      "command": "HYPERMARK_BROWSER=/usr/bin/true hypermark",
-                      "timeout": 123
-                    }
-                  ]
-                }
-              ]
-            }
-          }
-          JSON
-
-          run_installer
-
-          HOME="$tmp_home" node <<'NODE'
-          const fs = require("fs");
-          const path = require("path");
-          const hooksPath = path.join(process.env.HOME, ".codex", "hooks.json");
-          const stop = JSON.parse(fs.readFileSync(hooksPath, "utf8"))?.hooks?.Stop;
-          const hooks = stop?.flatMap((entry) => entry?.hooks ?? []) ?? [];
-
-          if (hooks.length !== 1) {
-            throw new Error(`Expected one preserved custom Stop hook, got ${hooks.length}`);
-          }
-          if (hooks[0].command !== "HYPERMARK_BROWSER=/usr/bin/true hypermark") {
-            throw new Error(`Custom Stop hook command was changed to ${hooks[0].command}`);
-          }
-          NODE
-
   attest:
     # Isolated attestation job — runs on tag pushes only and holds the
     # OIDC minting + attestations-write capabilities that the build job
@@ -649,7 +490,6 @@ jobs:
       - release-eligibility
       - build
       - smoke-binaries
-      - install-script-smoke
       - release-security
     if: startsWith(github.ref, 'refs/tags/v') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs['dry-run'] == 'false'))
     runs-on: ubuntu-latest
@@ -663,13 +503,6 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: binaries
-          digest-mismatch: error
-
-      - name: Download npm package subjects
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: npm-packages
-          path: npm-packages
           digest-mismatch: error
 
       - name: Download validated subject evidence
@@ -699,12 +532,6 @@ jobs:
             hypermark-linux-arm64
             hypermark-win32-x64.exe
             hypermark-win32-arm64.exe
-            hypermark-paste-darwin-arm64
-            hypermark-paste-darwin-x64
-            hypermark-paste-linux-x64
-            hypermark-paste-linux-arm64
-            hypermark-paste-win32-x64.exe
-            hypermark-paste-win32-arm64.exe
 
       # actions/attest is the current official general attestation action.
       # Its sbom-path mode supersedes the deprecated actions/attest-sbom
@@ -720,12 +547,6 @@ jobs:
             hypermark-linux-arm64
             hypermark-win32-x64.exe
             hypermark-win32-arm64.exe
-            hypermark-paste-darwin-arm64
-            hypermark-paste-darwin-x64
-            hypermark-paste-linux-x64
-            hypermark-paste-linux-arm64
-            hypermark-paste-win32-x64.exe
-            hypermark-paste-win32-arm64.exe
           sbom-path: release-sbom/${{ needs.release-security.outputs.sbom-name }}
 
   release:
@@ -771,58 +592,13 @@ jobs:
           draft: false
           prerelease: ${{ contains(github.ref, '-') }}
 
-  # PRs and manual dry-runs stop here. This job executes repository build code,
-  # so it must never receive an npm token or permission to mint an OIDC token.
-  npm-package:
-    needs:
-      - build
-      - smoke-binaries
-      - install-script-smoke
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: 1.3.14
-          no-cache: true
-
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
-        with:
-          node-version: 24
-          package-manager-cache: false
-          registry-url: https://registry.npmjs.org
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build packages
-        run: |
-          bun run build:review
-          bun run build:hook
-
-      - name: Create package artifact directory
-        run: mkdir -p npm-packages
-
-      - name: Upload npm package artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: npm-packages
-          path: npm-packages/*.tgz
-          if-no-files-found: error
-          retention-days: 7
-
   # Credential-free release inventory and vulnerability gate. This job runs on
-  # PRs and dry-runs against the exact binaries and npm tarballs produced above,
-  # but it cannot attest, publish, deploy, or mint an OIDC token.
+  # PRs and dry-runs against the exact binaries produced above, but it cannot
+  # attest, publish, deploy, or mint an OIDC token.
   release-security:
     needs:
       - build
-      - npm-package
+      - smoke-binaries
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -844,13 +620,6 @@ jobs:
         with:
           name: binaries
           path: release-subjects
-          digest-mismatch: error
-
-      - name: Download npm package subjects
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: npm-packages
-          path: release-subjects/npm-packages
           digest-mismatch: error
 
       - name: Define release evidence names

@@ -45,29 +45,20 @@ gh api repos/ahmadghoniem/Hypermark/pulls/<number>/comments --jq '.[].user.login
 
 ### Step 3: Write the release notes
 
-Read the reference release notes in `references/` for the canonical template structure. These are real release notes from previous versions — match their tone, structure, and level of detail.
+Read the previous release's notes (`gh release view <last-tag> --json body --jq .body`) and match their tone, structure, and level of detail.
 
-- `release-notes-v0.13.0.md` — large release, 14 PRs, 3 first-time contributors, "New Contributors" + narrative "Contributors" section
-- `release-notes-v0.12.0.md` — large community release, 14 PRs, 10 external, detailed narrative "Contributors" section
-- `release-notes-v0.13.1.md` — small patch release, 2 PRs, no external authors, "Community" section focused on issue reporters
-
-Pay attention to how each reference handles contributor crediting differently. Pick the pattern that fits the release's contributor profile — a release with many external PRs warrants a narrative "Contributors" section; a patch driven by issue reports uses a lighter "Community" section.
+Pick the contributor-credit pattern that fits the release's contributor profile — a release with many external PRs warrants a narrative "Contributors" section; a patch driven by issue reports uses a lighter "Community" section.
 
 Write the file to the repo root as `RELEASE_NOTES_v<VERSION>.md`.
 
 #### Structure
 
-1. **X/Twitter follow link** — first line, always the same:
-   ```
-   Follow [@plannotator](https://x.com/plannotator) on X for updates
-   ```
-
-2. **"Missed recent releases?"** collapsible table — copy from the previous release's notes, then:
+1. **"Missed recent releases?"** collapsible table — copy from the previous release's notes, then:
    - Add the previous release (the one you're succeeding) as the newest row
    - Keep roughly 10-12 rows; drop the oldest if needed
    - Each row: version link + comma-separated feature highlights (short phrases)
 
-3. **"What's New in vX.Y.Z"** — the heart of the notes
+2. **"What's New in vX.Y.Z"** — the heart of the notes
    - Open with 1-3 sentences summarizing the release theme and scope. Mention how many PRs, how many from external contributors, any first-timers.
    - Each major feature/fix gets its own `###` subsection with:
      - A descriptive heading (not the PR title verbatim — rephrase for clarity)
@@ -75,24 +66,24 @@ Write the file to the repo root as `RELEASE_NOTES_v<VERSION>.md`.
      - Credit line at the bottom: PR link, linked issues with `closing [#N]`, and contributor attribution
    - Minor changes go under `### Additional Changes` as bold-titled bullets
 
-4. **Install / Update** — standard block, read from the previous release notes and reuse verbatim
+3. **Install / Update** — standard block, read from the previous release notes and reuse verbatim
 
-5. **"What's Changed"** — bullet list of every PR in the release:
+4. **"What's Changed"** — bullet list of every PR in the release:
    ```
    - feat: descriptive PR title by @author in [#N](url)
    ```
 
-6. **"New Contributors"** — if any first-time contributors:
+5. **"New Contributors"** — if any first-time contributors:
    ```
    - @username made their first contribution in [#N](url)
    ```
 
-7. **"Contributors" or "Community"** — narrative section recognizing everyone who participated:
+6. **"Contributors" or "Community"** — narrative section recognizing everyone who participated:
    - PR authors get a sentence about what they built
    - Issue reporters and commenters get listed with what they reported/discussed
    - Group community issue reporters in a bullet list at the end
 
-8. **Full Changelog link**:
+7. **Full Changelog link**:
    ```
    **Full Changelog**: https://github.com/ahmadghoniem/Hypermark/compare/<prev-tag>...<new-tag>
    ```
@@ -117,7 +108,7 @@ Write the draft to `RELEASE_NOTES_v<VERSION>.md` in the repo root and tell the u
 
 ## Phase 2: Version Bump
 
-Bump the version string in these **7 files** (and only these — other package.json files use stub versions):
+Bump the version string in these **4 files** (and only these — other package.json files use stub versions):
 
 | File | Field |
 |------|-------|
@@ -126,7 +117,7 @@ Bump the version string in these **7 files** (and only these — other package.j
 | `openpackage.yml` (root) | `version:` |
 | `packages/server/package.json` | `"version"` |
 
-Read each file, confirm the current version matches expectations, then update all 7 atomically.
+Read each file, confirm the current version matches expectations, then update all 4 atomically.
 
 
 ---
@@ -150,7 +141,7 @@ Verify all builds succeed before proceeding.
    ```
    chore: bump version to X.Y.Z
    ```
-   Stage only the 7 version-bumped files. Do not stage the release notes file (it's untracked by design).
+   Stage only the 4 version-bumped files. Do not stage the release notes file (it's untracked by design).
 
 2. **Create and push the tag:**
    ```bash
@@ -163,13 +154,11 @@ Verify all builds succeed before proceeding.
 3. **The pipeline handles everything else:**
    - Runs tests
    - Cross-compiles binaries for 6 platforms (macOS ARM64/x64, Linux x64/ARM64, Windows x64/ARM64)
-   - Compiles paste service binaries (same 6 platforms)
-   - Packs the two npm packages in a credential-free job
    - Downloads pinned, checksum-verified Syft and Grype binaries; generates and schema-validates the release-wide CycloneDX SBOM after all shipped subjects exist
    - Forces the repository-owned, suppression-free Grype configuration, retries the official database update up to three times, requires a valid/active schema-v6 database no more than 120 hours old with no pending update, and preserves the machine-readable scan/database/policy evidence as a workflow artifact
    - Rejects every scanner-side ignored match, then blocks before any attestation or publication on CISA KEV or fixable Critical findings classified as shipped/runtime or unknown-applicability. High, development-only, and no-fix Critical findings are report-only but remain in the evidence
-   - Generates SLSA build provenance attestations for all 12 binaries via `actions/attest-build-provenance` (signed through Sigstore, recorded in Rekor)
-   - Uses the separate official `actions/attest` SBOM path to bind the CycloneDX predicate to all 12 binaries through the same GitHub OIDC/Sigstore service. This is an inventory attestation, not a replacement for SLSA or npm provenance
+   - Generates SLSA build provenance attestations for all 6 binaries via `actions/attest-build-provenance` (signed through Sigstore, recorded in Rekor)
+   - Uses the separate official `actions/attest` SBOM path to bind the CycloneDX predicate to all 6 binaries through the same GitHub OIDC/Sigstore service. This is an inventory attestation, not a replacement for SLSA provenance
    - Creates the GitHub Release with all binaries, SHA256 sidecars, the versioned CycloneDX SBOM, and its SHA256 sidecar attached
 
    **SBOM scope:** the public document is a release-wide Syft inventory of the monorepo's locked build inputs and dependencies. It is deliberately not described as exact binary runtime contents. Coverage testing found that Bun standalone executables hide bundled JavaScript dependency metadata from Syft. The scope and limitations are also embedded in the CycloneDX metadata.
@@ -185,13 +174,11 @@ Verify all builds succeed before proceeding.
    gh run view <run-id> --log
    ```
    Verify:
-   - All jobs pass, including `release-security`, `attest`, `release`, and `npm-publish`
+   - All jobs pass, including `release-security`, `attest`, and `release`
    - `release-security-evidence` records the Syft/Grype versions, active database schema/build/checksum/update status, all Grype matches, and an `ACCEPT` policy decision
    - The GitHub Release was created with all binary artifacts, SHA256 sidecars, the versioned `hypermark-X.Y.Z-release-sbom.cdx.json`, and its `.sha256` sidecar
 
    A pull request proves generation, schema/sentinel validation, database policy, Grype evaluation, least-privilege job wiring, and all report artifacts. GitHub OIDC issuance, publication to the artifact-attestation service, and final release-asset publication only run for a real eligible `v*` tag. For the first release after this control lands, complete this bounded tag-only verification before calling the rollout complete:
-
-   Before tagging that first release, update the canonical Mintlify page at `https://docs.plannotator.ai/open-source/start/installation#pin-or-verify-a-release` with the SBOM scope/limitations, Grype policy, download/checksum commands, and both predicate-verification commands from the README. The legacy Astro files under `apps/marketing/src/content/docs/` are redirect-only/deprecated copies and are not the public documentation source. Confirm the live Mintlify page contains the material; do not let its publication lag the shipped control.
 
    ```bash
    tag=vX.Y.Z
@@ -213,7 +200,7 @@ Verify all builds succeed before proceeding.
      --predicate-type https://cyclonedx.org/bom
    ```
 
-   Also extract the attested CycloneDX predicate with `gh attestation verify --format json --jq '.[0].verificationResult.statement.predicate'`, canonicalize both it and the downloaded release SBOM with `jq -S`, and `cmp` them. Verify one npm tarball subject the same way if you download the exact published tarball. Record any tag-only discrepancy as a release blocker and ship a new version rather than mutating an immutable release.
+   Also extract the attested CycloneDX predicate with `gh attestation verify --format json --jq '.[0].verificationResult.statement.predicate'`, canonicalize both it and the downloaded release SBOM with `jq -S`, and `cmp` them. Record any tag-only discrepancy as a release blocker and ship a new version rather than mutating an immutable release.
 
    If anything fails, investigate the logs and report to the user before retrying.
 
@@ -236,14 +223,11 @@ Before tagging, verify:
 - [ ] No stale build artifacts (clean builds, no cache issues — run `bun install` first if dependencies changed)
 - [ ] The PR-safe `release-security` job generated a schema-valid, sentinel-complete SBOM and accepted the Grype policy with a fresh database
 - [ ] No scanner binary, database, generated SBOM/report, credential, or `DO_NOT_COMMIT` content is staged
-- [ ] For the first SBOM-enabled release, the canonical Mintlify install/verification page contains the README's SBOM scope, policy, checksum, SLSA, and CycloneDX commands (do not edit the deprecated Astro docs instead)
 
 After tagging, verify:
-- [ ] Release workflow completed with `release-security`, `attest`, `release`, and `npm-publish` green
+- [ ] Release workflow completed with `release-security`, `attest`, and `release` green
 - [ ] GitHub Release created with all binaries, sidecars, SBOM, and SBOM sidecar
 - [ ] One native binary passes both the explicit SLSA and CycloneDX predicate checks pinned to the tag and signer workflow
 - [ ] Downloaded SBOM checksum passes and canonical JSON matches the attested predicate
 - [ ] `release-security-evidence` shows a fresh/active database and an accepted policy decision
-- [ ] npm packages published at correct version
-- [ ] npm trusted-publishing provenance remains visible for both packages
 - [ ] Release notes replaced via `gh release edit`

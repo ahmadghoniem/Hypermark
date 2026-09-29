@@ -11,13 +11,10 @@ export const NATIVE_SUBJECTS = [
   "hypermark-win32-arm64.exe",
 ];
 
-export const NPM_SUBJECTS = [];
-
 export const RELEASE_WORKSPACES = [
   "",
   "apps/hook",
   "apps/review",
-  "packages/ai",
   "packages/core",
   "packages/editor",
   "packages/review-editor",
@@ -190,7 +187,7 @@ export async function prepareReleaseEvidence(options) {
   }
 
   const subjects = [];
-  for (const relativePath of [...NATIVE_SUBJECTS, ...NPM_SUBJECTS]) {
+  for (const relativePath of NATIVE_SUBJECTS) {
     subjects.push(await validateSubject(subjectsRoot, relativePath));
   }
 
@@ -237,7 +234,7 @@ export async function verifyReleaseSubjects(options) {
   ) {
     fail("Validated subject evidence does not match this release invocation");
   }
-  const expectedPaths = [...NATIVE_SUBJECTS, ...NPM_SUBJECTS];
+  const expectedPaths = NATIVE_SUBJECTS;
   if (!Array.isArray(evidence.subjects) || evidence.subjects.length !== expectedPaths.length) {
     fail(`Subject evidence must contain exactly ${expectedPaths.length} release subjects`);
   }
