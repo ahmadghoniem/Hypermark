@@ -8,13 +8,6 @@ export function isDocumentScrollViewport(
     && viewport.ownerDocument.scrollingElement === viewport;
 }
 
-/** Resolve the document scroller without assuming whether WebKit chose html or body. */
-export function getDocumentScrollViewport(
-  targetDocument: Document = document,
-): HTMLElement | null {
-  return targetDocument.scrollingElement as HTMLElement | null;
-}
-
 /**
  * Page scrolling needs viewport geometry, not the document element's full
  * content rect. Element-backed scroll areas retain their incumbent geometry.
@@ -43,14 +36,6 @@ export function scrollViewportTo(
     return;
   }
   viewport.ownerDocument.defaultView?.scrollTo(options);
-}
-
-export function offsetScrollViewport(viewport: HTMLElement, delta: number): void {
-  if (!isDocumentScrollViewport(viewport)) {
-    viewport.scrollTop += delta;
-    return;
-  }
-  viewport.ownerDocument.defaultView?.scrollBy({ top: delta, behavior: 'auto' });
 }
 
 export function addScrollViewportListener(

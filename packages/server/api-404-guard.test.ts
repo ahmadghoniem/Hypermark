@@ -8,7 +8,6 @@ import { saveConfig } from "./config";
 // Use a distinct module key so unrelated mock.module() tests cannot replace
 // the real server.
 import { startAnnotateServer as startBunAnnotateServer } from "./annotate.ts?api-404-guard";
-import { startHypermarkServer as startBunPlanServer } from "./index";
 import { startReviewServer as startBunReviewServer } from "./review";
 
 const SPA_HTML = "<!doctype html><html><body>SPA fallback</body></html>";
@@ -27,16 +26,6 @@ interface ServerCase {
 }
 
 const serverCases = [
-  {
-    name: "Bun plan",
-    knownApiPath: "/api/plan",
-    start: () =>
-      startBunPlanServer({
-        plan: "# Test Plan",
-        origin: "claude-code",
-        htmlContent: SPA_HTML,
-      }),
-  },
   {
     name: "Bun review",
     knownApiPath: "/api/diff",

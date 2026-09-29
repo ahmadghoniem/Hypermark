@@ -77,7 +77,7 @@ describe("annotate approval submission", () => {
       originalText: "Runbook",
       images: undefined,
     };
-    // Spec 05 §4.1: a "global reference image" is comment-owned — an
+    // A "global reference image" is comment-owned — an
     // image-only GLOBAL_COMMENT annotation — not a parallel top-level list.
     const globalImageAnnotation: Annotation = {
       id: "global-attachments",

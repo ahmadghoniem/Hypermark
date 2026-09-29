@@ -1,6 +1,6 @@
 /**
- * Lightweight block-level markdown renderer for GitHub-sourced text
- * (PR descriptions, PR comments, commit messages). No annotation
+ * Lightweight block-level markdown renderer for commit message bodies.
+ * No annotation
  * infrastructure — the full document surface is Viewer/BlockRenderer.
  */
 import React, { useMemo, useRef, useEffect } from 'react';

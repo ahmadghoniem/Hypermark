@@ -380,7 +380,7 @@ jobs:
 
           {
             echo '### Semgrep Community Edition'
-            echo '- Scope: TypeScript/JavaScript (Bun, Pi/Node, React/DOM, Cloudflare) plus generic installer checks'
+            echo '- Scope: TypeScript/JavaScript (Bun, Node, React/DOM, Cloudflare) plus generic installer checks'
             echo "- Engine: Semgrep OSS $SEMGREP_VERSION; $rule_count repository-owned rules (SHA-256 \`$rules_sha\`)"
             echo '- Network/data mode: scan runs offline; no token, Registry rules, metrics, version check, or Semgrep Cloud upload'
             echo "- Targets: $target_count"
@@ -771,16 +771,6 @@ jobs:
               echo 'Trivy did not catalog the direct development bun-types sentinel from bun.lock.' >&2
               exit 1
             }
-          jq -e 'any(.Results[];
-            .Target == "tests/manual/ssh/Dockerfile" and
-            .Class == "config" and .Type == "dockerfile" and
-            .MisconfSummary.Successes > 0 and
-            (.Misconfigurations | any(.Status == "FAIL")))' \
-            security-results/trivy.json >/dev/null || {
-              echo 'Trivy did not execute both passing and failing Dockerfile checks against the manual SSH fixture.' >&2
-              exit 1
-            }
-
           trivy convert \
             --format sarif \
             --output security-results/trivy.sarif \
@@ -810,7 +800,7 @@ jobs:
             echo "- Misconfiguration checks: v2.2.0 content, \`$checks_digest\`"
             echo "- Dependency catalog: $total_package_count records ($bun_package_count from text bun.lock, including development dependencies; $npm_target_count/$expected_npm_target_count tracked npm locks)"
             echo "- Vulnerabilities: $vulnerability_count ($critical_count critical, $high_count high)"
-            echo "- Misconfiguration failures: $misconfiguration_count; tests/manual/ssh/Dockerfile is a non-production manual fixture"
+            echo "- Misconfiguration failures: $misconfiguration_count"
             echo "- Informational installed-license records: $license_count (runner/install graph, not a deployment inventory)"
             echo '- Enforcement: monitor mode; install, release checksum, DB freshness, checks, catalog, detector, collection, and report failures still fail the job'
           } >> "$GITHUB_STEP_SUMMARY"

@@ -385,7 +385,7 @@ REM wins, so an install never relocates itself; otherwise an explicitly-set
 REM absolute XDG_DATA_HOME (rare on Windows but honored the same way as the
 REM runtime; drive-rooted or UNC) places the directory at
 REM XDG_DATA_HOME\hypermark; otherwise %USERPROFILE%\.hypermark.
-REM A fresh root (spec 06, decision D5): Hypermark starts at ~/.hypermark and
+REM A fresh root: Hypermark starts at ~/.hypermark and
 REM never probes ~/.plannotator, so an existing Plannotator install keeps its
 REM plans, drafts and config exactly where they are.
 if defined HYPERMARK_DATA_DIR (
@@ -713,37 +713,6 @@ if "!MINIMAL!"=="1" (
 
 call :PrintPathAdvice
 
-REM Validate plugin hooks.json if plugin is already installed
-if defined CLAUDE_CONFIG_DIR (
-    set "PLUGIN_HOOKS=%CLAUDE_CONFIG_DIR%\plugins\marketplaces\hypermark\apps\hook\hooks\hooks.json"
-) else (
-    set "PLUGIN_HOOKS=%USERPROFILE%\.claude\plugins\marketplaces\hypermark\apps\hook\hooks\hooks.json"
-)
-if exist "!PLUGIN_HOOKS!" (
-    REM Use full path so the hook works without PATH being set in the shell
-    set "EXE_PATH=!INSTALL_PATH:\=/!"
-    (
-echo {
-echo   "hooks": {
-echo     "PermissionRequest": [
-echo       {
-echo         "matcher": "ExitPlanMode",
-echo         "hooks": [
-echo           {
-echo             "type": "command",
-echo             "command": "\"!EXE_PATH!\"",
-echo             "timeout": 345600
-echo           }
-echo         ]
-echo       }
-echo     ]
-echo   }
-echo }
-    ) > "!PLUGIN_HOOKS!"
-    echo Updated plugin hooks at !PLUGIN_HOOKS!
-)
-
-
 REM ----------------------------------------------------------------------
 REM Skills + command stubs install (requires git)
 REM
@@ -830,7 +799,7 @@ if exist "!PREFS_FILE!" (
 REM Extras already on disk? Then the extras question is moot - they still
 REM count toward the picker list, and we never launch the npx flow over them.
 set "EXTRAS_PRESENT=0"
-for %%S in (hypermark-setup-goal hypermark-visual-explainer) do (
+for %%S in (hypermark-visual-explainer) do (
     if exist "!CLAUDE_SKILLS_DIR!\%%S" set "EXTRAS_PRESENT=1"
     if exist "!AGENTS_SKILLS_DIR!\%%S" set "EXTRAS_PRESENT=1"
 )
@@ -1067,10 +1036,7 @@ if "!SKIP_SKILLS!"=="0" if defined INVOCABLE_CHOICE if not "!INVOCABLE_CHOICE!"=
 )
 
 echo.
-echo Test the install:
-echo   echo {"tool_input":{"plan":"# Test Plan\\n\\nHello world"}} ^| hypermark
-echo.
-echo Then install the Claude Code plugin:
+echo Install the Claude Code plugin:
 echo   /plugin marketplace add ahmadghoniem/Hypermark
 echo   /plugin install hypermark@hypermark
 echo.
@@ -1088,31 +1054,8 @@ if "!SKIP_SKILLS!"=="1" (
 )
 if "!SKIP_SKILLS!"=="0" if not "!EXTRAS_CHOICE!"=="yes" (
     echo.
-    echo Optional skills ^(setup-goal, visual explainer^):
+    echo Optional skills ^(visual explainer^):
     echo   npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global
-)
-
-REM Warn if hypermark is configured in both settings.json hooks AND the plugin (causes double execution)
-REM Only warn when the plugin is installed - manual-only users won't have overlap
-if defined CLAUDE_CONFIG_DIR (
-    set "CLAUDE_SETTINGS=%CLAUDE_CONFIG_DIR%\settings.json"
-) else (
-    set "CLAUDE_SETTINGS=%USERPROFILE%\.claude\settings.json"
-)
-if exist "!PLUGIN_HOOKS!" if exist "!CLAUDE_SETTINGS!" (
-    findstr /r /c:"\"command\".*hypermark" "!CLAUDE_SETTINGS!" >nul 2>&1
-    if !ERRORLEVEL! equ 0 (
-        echo.
-        echo WARNING: DUPLICATE HOOK DETECTED
-        echo.
-        echo   hypermark was found in your settings.json hooks:
-        echo   !CLAUDE_SETTINGS!
-        echo.
-        echo   This will cause hypermark to run TWICE on each plan review.
-        echo   Remove the hypermark hook from settings.json and rely on the
-        echo   plugin instead ^(installed automatically via marketplace^).
-        echo.
-    )
 )
 
 echo.
@@ -1161,7 +1104,7 @@ if "!EXTRAS_PRESENT!"=="1" (
     set "DEF_EXTRAS=no"
     if defined SAVED_EXTRAS set "DEF_EXTRAS=!SAVED_EXTRAS!"
     set "ANSWER="
-    set /p "ANSWER=Install the extra skills (setup-goal, visual explainer)? [y/N] "
+    set /p "ANSWER=Install the extra skills (visual explainer)? [y/N] "
     set "EXTRAS_CHOICE=no"
     if /i "!ANSWER!"=="y" set "EXTRAS_CHOICE=yes"
     if /i "!ANSWER!"=="yes" set "EXTRAS_CHOICE=yes"
@@ -1186,9 +1129,8 @@ set "SKILL_1=hypermark-review"
 set "SKILL_2=hypermark-annotate"
 set "SKILL_3=hypermark-last"
 if "!EXTRAS_CHOICE!"=="yes" (
-    set "SKILL_COUNT=5"
-    set "SKILL_4=hypermark-setup-goal"
-    set "SKILL_5=hypermark-visual-explainer"
+    set "SKILL_COUNT=4"
+    set "SKILL_4=hypermark-visual-explainer"
 )
 REM Preselect previously chosen skills. NOTE: no pipes here - each side of a
 REM cmd pipe runs in a child without delayed expansion, so !vars! would pass

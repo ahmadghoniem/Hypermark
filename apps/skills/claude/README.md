@@ -34,8 +34,8 @@ directory's root, along with the `core/` variants deliberately having neither
 the allowlist nor the injection. That guard is gone; the four properties are now
 maintained by hand, so read this section before editing a launcher.
 
-Command names are `/hypermark-*`, renamed together in spec 06 step 2;
-renaming them piecemeal is a bug, not a step. Nothing enforces this any more —
+Command names are `/hypermark-*` and are renamed together;
+renaming them piecemeal is a bug. Nothing enforces this any more —
 check every launcher when you touch one.
 
 ## Native `/btw` is not one of these
@@ -46,9 +46,7 @@ launcher, alias, or replacement, and does not change how it is transported.
 What it does: it asks a side question inside the current Claude Code
 conversation without that exchange polluting the main conversation's history.
 
-Its accepted limitation (decision D1 in
-[`spec/01-foundation-and-scope.md`](../../../spec/01-foundation-and-scope.md)):
-**it has no tool access.** It answers from the conversation context it already
+Its accepted limitation: **it has no tool access.** It answers from the conversation context it already
 has. It does not read new files, inspect a browser selection, or reach into a
 Hypermark review session. That is fine for on-the-fly questions and is the
 reason no custom skill can reproduce it — an ordinary skill cannot promise the
@@ -66,7 +64,7 @@ Consequences for anyone working on this directory:
   run in the intended one.
 
 Not verified here: `/btw`'s live behavior inside an interactive Claude Code
-session (including how it interacts with a blocking plan-review hook) has not
+session has not
 been exercised from this repository. Nothing in Hypermark installs, wraps, or
 configures it, so there is no Hypermark-side transport to check — but the
 end-to-end observation is still owed by whoever runs the interactive gate.

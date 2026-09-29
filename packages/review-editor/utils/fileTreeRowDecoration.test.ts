@@ -23,7 +23,7 @@ const textOf = (file: DiffFile, overrides: Partial<Parameters<typeof buildRowDec
 const partsOf = (file: DiffFile, overrides: Partial<Parameters<typeof buildRowDecoration>[0]> = {}) =>
   buildRowDecoration({ file, ...base, ...overrides })?.parts ?? [];
 
-describe('buildRowDecoration — retained per-row metadata (spec 04:67-68)', () => {
+describe('buildRowDecoration — retained per-row metadata', () => {
   it('renders the additions/deletions pair with distinct colors', () => {
     const parts = partsOf(diffFile('src/a.ts', { additions: 12, deletions: 4 }));
     const add = parts.find(part => part.text === '+12');
@@ -86,7 +86,7 @@ describe('buildRowDecoration — retained per-row metadata (spec 04:67-68)', () 
   });
 
   it('uses theme custom properties, never hard-coded colors', () => {
-    // Hard-coded hex would break the seven-palette contract from spec 03.
+    // Hard-coded hex would break the seven-palette contract.
     const parts = partsOf(diffFile('src/a.ts', { status: 'added', additions: 3, deletions: 1 }), {
       annotationCount: 2,
     });
@@ -119,7 +119,7 @@ describe('buildRowDecoration — retained per-row metadata (spec 04:67-68)', () 
   });
 });
 
-describe('the fixed tree contract (spec 04:39-48)', () => {
+describe('the fixed tree contract', () => {
   const files = [
     diffFile('src/deep/a/b/c/leaf.ts'),
     diffFile('src/top.ts'),

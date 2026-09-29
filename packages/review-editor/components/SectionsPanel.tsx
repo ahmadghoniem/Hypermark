@@ -67,7 +67,6 @@ interface SectionsPanelProps {
   showCommitsOption?: boolean;
   /** All files nav row — the review's landing view, listed first. */
   onSelectAllFiles?: () => void;
-  isAllFilesActive?: boolean;
   /** Footer copy-diffs. */
   onCopyRawDiff?: () => void;
   canCopyRawDiff?: boolean;
@@ -166,7 +165,6 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
   onSelectPanelView,
   showCommitsOption,
   onSelectAllFiles,
-  isAllFilesActive,
   onCopyRawDiff,
   canCopyRawDiff,
   copyRawDiffStatus = 'idle',
@@ -453,7 +451,7 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
             {/* Nav rows — shared with the tree view, same order. */}
             {onSelectAllFiles && (
               <AllFilesRow
-                active={isAllFilesActive ?? false}
+                active
                 onClick={onSelectAllFiles}
                 additions={totalAdditions}
                 deletions={totalDeletions}

@@ -12,7 +12,7 @@ import { AnnotationType, type Annotation } from '../types';
 import { threadReplies } from './AnnotationPanel';
 
 function comment(id: string, extra: Partial<Annotation> = {}): Annotation {
-  return { id, blockId: 'b', startOffset: 0, endOffset: 1, type: AnnotationType.COMMENT, text: `t${id}`, originalText: 'x', createdA: Number(id), author: 'a', ...extra };
+  return { id, blockId: 'b', startOffset: 0, endOffset: 1, type: AnnotationType.COMMENT, text: `t${id}`, originalText: 'x', createdA: Number(id), ...extra };
 }
 
 describe('AnnotationPanel threading on a deep chain', () => {

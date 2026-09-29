@@ -19,7 +19,7 @@ const C_ESCAPES: Record<string, number> = {
  *
  * Literal (non-escaped) characters are appended as-is, NOT pushed through the
  * byte decoder — our own quoteGitPath (JSON.stringify, used when synthesizing
- * workspace patch headers) leaves unicode unescaped inside quotes, and those
+ * patch headers) leaves unicode unescaped inside quotes, and those
  * headers round-trip through this function too. Unquoted values pass through
  * untouched.
  */
@@ -61,7 +61,7 @@ export function unquoteGitPath(value: string): string {
     } else if (next === "u" && /^[0-9a-fA-F]{4}$/.test(inner.slice(i + 2, i + 6))) {
       // \uXXXX: never emitted by git, but our own quoteGitPath is
       // JSON.stringify, which uses it for control chars lacking a short
-      // JSON escape (e.g. a vertical tab, \u000b) — synthesized workspace headers round-trip
+      // JSON escape (e.g. a vertical tab, \u000b) — synthesized headers round-trip
       // through here, so this must decode or the path keeps a literal
       // backslash and file access breaks.
       flush();

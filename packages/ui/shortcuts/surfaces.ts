@@ -60,11 +60,11 @@ export const reviewShortcutRegistry: ShortcutRegistry = createShortcutRegistry([
   reviewAnnotationToolbarShortcuts,
 ]);
 
-export type ShortcutSurfaceMode = 'plan' | 'annotate' | 'review';
+export type ShortcutSurfaceMode = 'annotate' | 'review';
 
 /** The registry backing one app's help panel. */
 export function getShortcutRegistryForMode(mode: ShortcutSurfaceMode): ShortcutRegistry {
   if (mode === 'review') return reviewShortcutRegistry;
   if (mode === 'annotate') return annotateShortcutRegistry;
-  return planShortcutRegistry;
+  return annotateShortcutRegistry;
 }

@@ -56,13 +56,10 @@ interface ActionMenuItemProps {
   icon: React.ReactNode;
   label: string;
   subtitle?: string;
-  badge?: React.ReactNode;
-  disabled?: boolean;
   /** ARIA menu semantics for hosts that render a real `role="menu"` popover
-   *  (DecisionControl). Default undefined so existing consumers are unchanged. */
+   *  (DecisionControl). */
   role?: 'menuitem';
-  /** Appended to the row's classes (e.g. a tone token). Default undefined so
-   *  existing consumers are byte-identical. */
+  /** Appended to the row's classes (e.g. a tone token). */
   className?: string;
 }
 
@@ -71,17 +68,14 @@ export const ActionMenuItem: React.FC<ActionMenuItemProps> = ({
   icon,
   label,
   subtitle,
-  badge,
-  disabled = false,
   role,
   className,
 }) => (
   <button
     type="button"
     onClick={onClick}
-    disabled={disabled}
     role={role}
-    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent${className ? ` ${className}` : ''}`}
+    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-muted${className ? ` ${className}` : ''}`}
   >
     <span className="text-muted-foreground">{icon}</span>
     {subtitle ? (
@@ -92,16 +86,9 @@ export const ActionMenuItem: React.FC<ActionMenuItemProps> = ({
     ) : (
       <span className="flex-1">{label}</span>
     )}
-    {badge}
   </button>
 );
 
 export const ActionMenuDivider: React.FC = () => (
   <div className="my-1 border-t border-border" />
-);
-
-export const ActionMenuSectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="text-3xs font-semibold uppercase tracking-wider text-muted-foreground">
-    {children}
-  </div>
 );

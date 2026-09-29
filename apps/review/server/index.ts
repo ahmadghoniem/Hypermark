@@ -66,7 +66,7 @@ const server = await startReviewServer({
   gitRef: displayRef,
   htmlContent,
   // This dev server emits the full decision JSON below — feedback included on
-  // approve — so it advertises approve-with-notes (spec §6.4).
+  // approve — so it advertises approve-with-notes.
   approvalNotesSupported: true,
   onReady: (url, port) => {
     handleReviewServerReady(url, port);

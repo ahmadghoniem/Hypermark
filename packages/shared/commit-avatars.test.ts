@@ -1,7 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import {
-  absolutizeGitLabAvatar,
-  buildGitHubEmailAvatarMap,
   classifyAvatarRemote,
   createCommitAvatarResolver,
   type CommandResult,
@@ -36,45 +34,6 @@ describe("classifyAvatarRemote", () => {
   });
 });
 
-describe("buildGitHubEmailAvatarMap", () => {
-  test("maps linked commit authors by email and skips unlinked ones", () => {
-    const payload = [
-      {
-        sha: "a1",
-        commit: { author: { email: "dev@example.com" } },
-        author: { avatar_url: "https://avatars.example/1" },
-      },
-      // Unlinked email — the GitHub `author` account is null.
-      { sha: "a2", commit: { author: { email: "ghost@example.com" } }, author: null },
-      // Duplicate email — first mapping wins.
-      {
-        sha: "a3",
-        commit: { author: { email: "dev@example.com" } },
-        author: { avatar_url: "https://avatars.example/other" },
-      },
-    ];
-    const map = buildGitHubEmailAvatarMap(payload);
-    expect(map.get("dev@example.com")).toBe("https://avatars.example/1");
-    expect(map.has("ghost@example.com")).toBe(false);
-    expect(map.size).toBe(1);
-  });
-
-  test("tolerates a non-array payload", () => {
-    expect(buildGitHubEmailAvatarMap({ message: "Not Found" }).size).toBe(0);
-  });
-});
-
-describe("absolutizeGitLabAvatar", () => {
-  test("pins relative self-hosted paths to the GitLab host", () => {
-    expect(absolutizeGitLabAvatar("gitlab.example.io", "/uploads/u/avatar.png")).toBe(
-      "https://gitlab.example.io/uploads/u/avatar.png",
-    );
-    expect(absolutizeGitLabAvatar("gitlab.com", "https://secure.gravatar.com/x")).toBe(
-      "https://secure.gravatar.com/x",
-    );
-  });
-});
-
 describe("createCommitAvatarResolver", () => {
   const ok = (stdout: string): CommandResult => ({ stdout, stderr: "", exitCode: 0 });
   const fail = (stderr = "boom"): CommandResult => ({ stdout: "", stderr, exitCode: 1 });
@@ -102,6 +61,13 @@ describe("createCommitAvatarResolver", () => {
               commit: { author: { email: "dev@example.com" } },
               author: { avatar_url: "https://avatars.example/dev" },
             },
+            // Unlinked email: the GitHub `author` account is null.
+            { commit: { author: { email: "ghost@example.com" } }, author: null },
+            // Duplicate email: the first mapping wins.
+            {
+              commit: { author: { email: "dev@example.com" } },
+              author: { avatar_url: "https://avatars.example/other" },
+            },
           ]),
         );
       }
@@ -118,6 +84,14 @@ describe("createCommitAvatarResolver", () => {
     const second = await resolver.resolve("/repo", ["dev@example.com", "ghost@example.com"]);
     expect(second.get("dev@example.com")).toBe("https://avatars.example/dev");
     expect(calls.length).toBe(before);
+  });
+
+  test("a non-array gh payload resolves nothing", async () => {
+    const { runner } = makeRunner((cmd) =>
+      cmd === "git" ? ok("git@github.com:owner/repo.git\n") : ok(JSON.stringify({ message: "Not Found" })),
+    );
+    const resolver = createCommitAvatarResolver(runner);
+    expect((await resolver.resolve("/repo", ["dev@example.com"])).size).toBe(0);
   });
 
   test("a failing gh is memoized — never retried this session", async () => {

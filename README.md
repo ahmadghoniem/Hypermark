@@ -6,8 +6,8 @@
 
 <p align="center">
   <strong>Everything you need to annotate and stay in the loop with your agents</strong><br/>
-  <strong>Markdown Review • Code Review • HTML Artifacts</strong><br/>
-  <sub>Annotate plans, specs, markdown, and HTML before implementation. Review diffs and PRs. Send feedback to your agent.</sub>
+  <strong>Annotate Documents • Annotate Claude's Messages • Review Code</strong><br/>
+  <sub>Annotate markdown and HTML documents, mark up Claude's messages, and review code diffs in the browser. Send feedback to Claude Code.</sub>
 </p>
 
 <p align="center">
@@ -26,17 +26,15 @@
 
 Hypermark is a local, browser-based review surface for Claude Code.
 
-**It plugs directly into Claude Code** through its hooks and skills. When the agent proposes a plan, html, or finishes writing code, the work opens in your browser and you mark it up, comment, and send feedback directly to the agent for it to act on it.
+**It plugs directly into Claude Code** through its skills. You open a document, Claude's last message, or your current diff in the browser, mark it up, comment, and send feedback directly to the agent for it to act on it.
 
 <table>
 <tr>
 <td width="40%" valign="middle">
 
-### Review documents, plans, and agent messages
+### Annotate documents and agent messages
 
-Annotate plans, specs, messages, html, then send the feedback to your agent. 
-
-<p><strong>Demo:</strong> <a href="https://youtu.be/XqFun9XCXPw">Plan review with Pi</a></p>
+Annotate specs, markdown, messages, and html, then send the feedback to your agent.
 
 </td>
 <td width="60%">
@@ -50,7 +48,7 @@ Annotate plans, specs, messages, html, then send the feedback to your agent.
 
 ### Code Review
 
-Review local changes or remote PRs. Comment on diffs, suggest code. Your comments go back to the agent. Works with Git, GitHub, and GitLab.
+Review local changes. Comment on diffs. Your comments go back to the agent.
 
 </td>
 <td width="60%">
@@ -60,10 +58,6 @@ Review local changes or remote PRs. Comment on diffs, suggest code. Your comment
 </td>
 </tr>
 </table>
-
-<p align="center">
-  <sub><strong>AI built in:</strong> ask AI about anything you're reviewing,<br/>or launch AI reviews that post comments to the diff.</sub>
-</p>
 
 ## Annotate HTML Artifacts
 
@@ -90,10 +84,6 @@ Need a realistic document to try? Any markdown file works — try one of your ow
 /hypermark-review                    # Review uncommitted changes
 ```
 
-### Plan mode
-
-No command needed. Plan mode is wired in through each harness's hooks. Any time your agent creates a plan, the markdown review surface opens for you.
-
 ### CLI
 
 ```
@@ -105,23 +95,17 @@ hypermark sessions --open 1          # Reopen a session in the browser
 
 ## Privacy and network behavior
 
-Hypermark does not collect usage telemetry or analytics. Plans, diffs, annotations, drafts, history, and configuration stay local by default.
+Hypermark does not collect usage telemetry or analytics. Documents, diffs, annotations, drafts, history, and configuration stay local by default.
 
-Each plan review, annotate, archive, and code-review app surface checks GitHub for the latest Hypermark release when it loads. This sends no plan or review content and gives the Hypermark project owner no usage analytics, although GitHub receives an ordinary request. There is currently no opt-out setting. Local Git code review can also query the configured `origin` with `git ls-remote` to detect the default branch and a stale baseline; it does not send the local diff.
+Each annotate and code-review app surface checks GitHub for the latest Hypermark release when it loads. This sends no document or review content and gives the Hypermark project owner no usage analytics, although GitHub receives an ordinary request. There is currently no opt-out setting. Local Git code review can also query the configured `origin` with `git ls-remote` to detect the default branch and a stale baseline; it does not send the local diff.
 
-Content leaves the local workflow only when a network feature needs it:
-
-- URL annotation fetches the requested site, through Jina Reader by default for public pages or directly when Jina is disabled or unavailable.
-- GitHub and GitLab review uses your authenticated CLI and Git remote to retrieve PR or MR data.
-
-There is no link sharing, no paste service and no hosted counterpart: this fork
-removed all three, so nothing is uploaded anywhere.
+There is no link sharing, no paste service and no hosted counterpart, so nothing is uploaded anywhere.
 
 ---
 
 ## Install
 
-The installer puts the `hypermark` binary on your PATH and configures Claude Code's hooks, skills and slash commands:
+The installer puts the `hypermark` binary on your PATH and configures Claude Code's skills and slash commands:
 
 ```bash
 # macOS / Linux / WSL
@@ -133,9 +117,9 @@ curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts
 irm https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.ps1 | iex
 ```
 
-The installer downloads the binary from GitHub Releases. A full install also contacts GitHub for release resolution and the skills checkout, Ataraxy-Labs/sem for the optional `sem` sidecar, and npm for the extra skills. Pinning `--version` skips only GitHub API release resolution, not the release download.
+The installer downloads the binary from GitHub Releases. A full install also contacts GitHub for release resolution and the skills checkout, and npm for the extra skills. Pinning `--version` skips only GitHub API release resolution, not the release download.
 
-Want just the binary and nothing else? Pass `--minimal` (or export `HYPERMARK_MINIMAL=1`) to install only the `hypermark` binary to `~/.local/bin`, skipping every skill, hook, slash command and hook config:
+Want just the binary and nothing else? Pass `--minimal` (or export `HYPERMARK_MINIMAL=1`) to install only the `hypermark` binary to `~/.local/bin`, skipping every skill and slash command:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash -s -- --minimal
@@ -154,7 +138,7 @@ details, and `scripts/install.sh --help` for every installer flag.
 ### Uninstall
 
 The safe default removes recognized Hypermark-installed components and keeps
-your local plans, history, drafts, guides, and settings:
+your local history, drafts, and settings:
 
 ```bash
 hypermark uninstall
@@ -178,16 +162,14 @@ irreversible outcome require a stronger explicit word, and still give package
 managers and scripts a conventional non-interactive flag.
 
 The command covers the conventional macOS, Linux, WSL, and Windows binary
-locations; the managed `sem` sidecar and call-flow runtimes;
-the skills it installed under `~/.claude/skills` and `~/.agents/skills`; the
-Claude Code commands it replaced with skills; its managed hooks in Claude's
-`settings.json`; and the Claude Code plugin through the `claude` CLI. It
+locations; the skills it installed under `~/.claude/skills` and `~/.agents/skills`; the
+Claude Code commands it replaced with skills; and the Claude Code plugin through the `claude` CLI. It
 removes nothing else — an existing Plannotator installation's data, skills,
 commands and agent homes are another product's files and are left untouched.
 Strict JSON updates preserve the file's indentation, line endings, and
 trailing-newline style. Custom
 or unrecognized files, separately installed optional skills, project-local
-integrations, external plan-save locations, and invalid configs are preserved
+integrations, and invalid configs are preserved
 (malformed host config is a fail-safe error). If cleanup reports an error,
 the CLI remains available for a safe retry, and its Windows PATH entry is
 retained or restored when possible. If PATH restoration itself fails, the
@@ -201,32 +183,6 @@ commands, immediately before the synchronous data-removal block; a replaced
 data directory is refused without touching either the old or replacement data.
 If your dedicated data directory is symlinked, point `HYPERMARK_DATA_DIR` at
 its resolved target and retry.
-
-<details>
-<summary>Claude Code: manual hook setup (without the plugin system)</summary>
-
-Add to `~/.claude/settings.json`:
-
-```json
-{
-  "hooks": {
-    "PermissionRequest": [
-      {
-        "matcher": "ExitPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "hypermark",
-            "timeout": 345600
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-</details>
 
 <details>
 <summary>Pin a specific version</summary>
@@ -247,52 +203,31 @@ The fastest way to see what Hypermark does is to invoke it yourself, right now, 
 
 ```
 /hypermark-last                   # annotate the agent's last reply
-/hypermark-review                 # review your current diff, PR-style
+/hypermark-review                 # review your current diff
 /hypermark-annotate report.html   # annotate any local file
 ```
 
-
-Plan review needs no command at all. The next time your agent proposes a plan, it opens in your browser automatically.
 
 ---
 
 ## How it works
 
-### Plan review
-
-```
-Agent calls ExitPlanMode
-  -> PermissionRequest hook fires
-  -> Local server reads plan from hook input
-  -> Browser opens with review UI
-  -> You annotate and approve/deny
-  -> Approve: agent proceeds
-  -> Deny: structured feedback sent to agent
-  -> Agent revises, plan diff shows what changed
-```
-
 ### Code review
 
 ```
 You run /hypermark-review
-  -> git diff captures changes (or PR fetched by URL)
+  -> git diff captures changes
   -> Browser opens with diff viewer
-  -> Annotate lines, stage/unstage files
+  -> Annotate lines
   -> Send feedback: returned to agent session
   -> Approve: "LGTM" sent
 ```
 
 ---
 
-## Integrations
-
-**GitHub / GitLab**: Pass any PR or MR URL to `/hypermark-review` and review it with the full diff viewer, annotations, and file tree.
-
----
-
 ## Security
 
-Every released binary ships with a SHA256 sidecar. [SLSA provenance](https://slsa.dev/) attestations are available from v0.17.2. The current release workflow also attaches a CycloneDX JSON SBOM, evaluates it with a fresh Grype database before anything is attested or published, and creates a GitHub/Sigstore SBOM attestation for the shipped binaries and npm tarballs.
+Every released binary ships with a SHA256 sidecar. [SLSA provenance](https://slsa.dev/) attestations are available from v0.17.2. The current release workflow also attaches a CycloneDX JSON SBOM, evaluates it with a fresh Grype database before anything is attested or published, and creates a GitHub/Sigstore SBOM attestation for the shipped binaries.
 
 The SBOM is intentionally labeled as a release-wide Syft inventory of the monorepo's locked build inputs and dependencies. It is not an exact per-binary runtime inventory: Bun standalone executables do not expose their bundled JavaScript package metadata to Syft. The SBOM verification commands are below.
 
@@ -343,38 +278,14 @@ Installer verification remains opt-in and verifies SLSA build provenance; normal
 
 ## Configuration
 
-Settings are saved in cookies (not localStorage) because each hook invocation runs on a random port. You can also set options through environment variables or `~/.hypermark/config.json`.
+Settings are saved in cookies (not localStorage) because each invocation runs on a random port. You can also set options through environment variables or `~/.hypermark/config.json`.
 
-### Optional Vim controls
-
-Plan and annotate views offer a default-off **Vim controls** profile under
-**Settings → Vim**. Once enabled, focus the document and use `j` / `k`
-to move one rendered block at a time. After `l` refines into a semantic level,
-`j` / `k` move among sibling rows, cells, or inline targets; `h` moves back to
-the containing target. Refining past the deepest target enters text. `v`
-starts characterwise Visual selection and
-`V` selects whole blocks. `Space` opens the normal annotation toolbar; `c`,
-`d`, `m`, and `t` select comment, redline, markup, and label actions. The same
-semantic target graph drives pointer Pinpoint and keyboard navigation. Press
-`?` in the document for the contextual key reference. Inputs, dialogs,
-editors, `Tab`, and all pointer interactions retain their native behavior.
-The document takes focus automatically when the page is otherwise neutral;
-press `Escape` from app chrome to return to it without clicking.
-An additional default-off **Vim HUD** toggle appears beneath Vim controls. It
-uses the product-demo styling for the live target reticle and navigation
-context. Its bottom-right **Key panel** is independently hideable while the
-reticle remains active; `?` still opens the complete key map on demand. The
-panel shows recent handled keys, the current block/line/word/Visual phase, and
-the command meaning without capturing text typed into comments or other
-controls.
 | Variable | Description |
 |---|---|
 | `HYPERMARK_PORT` | Fixed port (default: random) |
-| `HYPERMARK_BROWSER` | Custom browser to open plans in |
+| `HYPERMARK_BROWSER` | Custom browser to open Hypermark in |
 | `HYPERMARK_ORIGIN` | Override agent detection. Only `claude-code` is installed by this fork |
-| `HYPERMARK_JINA` | `0`/`false` to disable Jina Reader for URL annotation |
-| `JINA_API_KEY` | Jina Reader API key for higher rate limits |
-| `HYPERMARK_DATA_DIR` | Base directory for Hypermark-managed files (plans, history, drafts, `config.json`). Default: `~/.hypermark`; if that directory doesn't exist and `$XDG_DATA_HOME` is set to an absolute path, `$XDG_DATA_HOME/hypermark` is used instead |
+| `HYPERMARK_DATA_DIR` | Base directory for Hypermark-managed files (history, drafts, `config.json`). Default: `~/.hypermark`; if that directory doesn't exist and `$XDG_DATA_HOME` is set to an absolute path, `$XDG_DATA_HOME/hypermark` is used instead |
 
 Hypermark-managed files live under `~/.hypermark` by default. It is a fresh
 root: an existing `~/.plannotator` is never read, copied, moved or deleted, so
@@ -393,7 +304,7 @@ export HYPERMARK_DATA_DIR=~/.local/share/hypermark
 ```bash
 bun install
 
-bun run dev:hook       # Plan review server
+bun run dev:hook       # Annotate server
 bun run dev:review     # Code review editor
 ```
 

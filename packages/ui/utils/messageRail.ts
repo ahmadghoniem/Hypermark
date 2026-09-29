@@ -1,5 +1,3 @@
-/** Vertical pitch of the rail, in px. */
-export const RAIL_ROW_HEIGHT = 16;
 /** Tick width at rest: the open message, and every other one. */
 export const RAIL_TICK_OPEN = 20;
 export const RAIL_TICK_REST = 12;

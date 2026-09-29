@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef, type RefObject } from "react";
 import { AnnotationType, type Annotation, type HtmlAnnotationTarget, type HtmlElementAnchor, type ImageAttachment } from "../../types";
 import type { QuickLabel } from "../../utils/quickLabels";
-import { getIdentity } from "../../utils/identity";
 import type {
   CommentPopoverState,
   UseAnnotationHighlighterReturn,
@@ -136,8 +135,7 @@ export interface UseHtmlAnnotationOptions {
    *  representation on the page — every target dead, or the restore never
    *  resolved (fail-closed anchors hide markers rather than guess). Called
    *  with the complete current set whenever it changes, including back to
-   *  empty on recovery. Delivered in readOnly mode too: view-only surfaces
-   *  are exactly where silently missing markers would go unnoticed. */
+   *  empty on recovery. */
   onUnanchoredChange?: (ids: string[]) => void;
   /** Product cap on additional (shift-click) targets per comment, 0..16.
    *  Applied at the trust boundary, on submit, on restore, and carried to
@@ -700,7 +698,6 @@ export function useHtmlAnnotation({
         type: AnnotationType.COMMENT,
         text: comment,
         originalText: text,
-        author: getIdentity(),
         createdA: Date.now(),
         images,
         htmlAnchor: pendingAnchorRef.current ?? undefined,
@@ -746,7 +743,6 @@ export function useHtmlAnnotation({
       text: label.text,
       originalText: text,
       quickLabelTip: label.tip,
-      author: getIdentity(),
       createdA: Date.now(),
       htmlAnchor: pendingAnchorRef.current ?? undefined,
       htmlAdditionalTargets: additionalTargets,

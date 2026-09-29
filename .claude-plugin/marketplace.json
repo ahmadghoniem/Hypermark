@@ -7,7 +7,7 @@
     {
       "name": "hypermark",
       "source": "./apps/hook",
-      "description": "Interactive Plan Review: Mark up and refine your plans using a UI, easily share for team collaboration, automatically integrates with plan mode hooks."
+      "description": "Annotate documents and Claude's messages, review code diffs in the browser, and send feedback to Claude Code."
     }
   ]
 }

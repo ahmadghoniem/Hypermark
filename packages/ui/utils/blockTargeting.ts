@@ -2,7 +2,7 @@ import { getScrollViewportRect } from '../hooks/useScrollViewport';
 import { createTextRange } from './domSelection';
 
 /**
- * Semantic document targeting shared by pointer Pinpoint and Vim navigation.
+ * Semantic document targeting used by pointer Pinpoint.
  *
  * The graph is rebuilt from the live rendered document whenever a consumer
  * needs it. Callers persist stable keys, never DOM nodes, across renders.
@@ -54,17 +54,6 @@ export interface SemanticTargetGraph {
   /** One entry per rendered Markdown block, in document order. */
   readonly blockKeys: readonly string[];
 }
-
-/** Motions available while navigating the semantic target graph. */
-export type SemanticTargetMotion =
-  | 'previous-block'
-  | 'next-block'
-  | 'previous-sibling'
-  | 'next-sibling'
-  | 'parent'
-  | 'child'
-  | 'first-block'
-  | 'last-block';
 
 /** Pointer coordinates used for table edge-zone targeting. */
 export interface SemanticPointerPosition {
@@ -332,92 +321,6 @@ export function createSemanticTargetRange(target: SemanticTarget): Range | null 
     : createTextRange(target.element);
 }
 
-/** Return the direct semantic children of a target in document order. */
-export function getSemanticTargetChildren(
-  graph: SemanticTargetGraph,
-  target: SemanticTarget,
-): readonly SemanticTarget[] {
-  return graph.targets.filter((candidate) => candidate.parentKey === target.key);
-}
-
-/** Return the block-navigation target that owns a nested semantic target. */
-export function getOwningBlockTarget(
-  graph: SemanticTargetGraph,
-  target: SemanticTarget,
-): SemanticTarget {
-  let current = target;
-  while (!graph.blockKeys.includes(current.key) && current.parentKey) {
-    const parent = resolveSemanticTarget(graph, current.parentKey);
-    if (!parent) break;
-    current = parent;
-  }
-  if (graph.blockKeys.includes(current.key)) return current;
-  return graph.blockKeys
-    .map((key) => resolveSemanticTarget(graph, key))
-    .find((candidate) => candidate?.blockId === target.blockId)
-    ?? target;
-}
-
-/** Pick the block nearest the visible center of the document viewport. */
-export function findInitialSemanticTarget(
-  graph: SemanticTargetGraph,
-  scrollViewport?: HTMLElement | null,
-): SemanticTarget | null {
-  const viewportRect = scrollViewport
-    ? getScrollViewportRect(scrollViewport)
-    : graph.container.getBoundingClientRect();
-  const centerY = viewportRect.top + viewportRect.height / 2;
-  return graph.blockKeys
-    .map((key) => resolveSemanticTarget(graph, key))
-    .filter((target): target is SemanticTarget => target !== null)
-    .sort((left, right) => {
-      const leftRect = left.element.getBoundingClientRect();
-      const rightRect = right.element.getBoundingClientRect();
-      return Math.abs((leftRect.top + leftRect.bottom) / 2 - centerY)
-        - Math.abs((rightRect.top + rightRect.bottom) / 2 - centerY);
-    })[0] ?? null;
-}
-
-/**
- * Move through block order, sibling order, or one hierarchy level.
- */
-export function moveSemanticTarget(
-  graph: SemanticTargetGraph,
-  current: SemanticTarget,
-  motion: SemanticTargetMotion,
-): SemanticTarget {
-  if (motion === 'parent') {
-    return resolveSemanticTarget(graph, current.parentKey) ?? current;
-  }
-  if (motion === 'child') {
-    return getSemanticTargetChildren(graph, current)[0] ?? current;
-  }
-  if (motion === 'first-block') {
-    return resolveSemanticTarget(graph, graph.blockKeys[0] ?? null) ?? current;
-  }
-  if (motion === 'last-block') {
-    return resolveSemanticTarget(graph, graph.blockKeys.at(-1) ?? null) ?? current;
-  }
-  if (motion === 'previous-sibling' || motion === 'next-sibling') {
-    if (!current.parentKey) return current;
-    const parent = resolveSemanticTarget(graph, current.parentKey);
-    if (!parent) return current;
-    const siblings = getSemanticTargetChildren(graph, parent);
-    const index = siblings.findIndex((candidate) => candidate.key === current.key);
-    if (index < 0) return current;
-    const delta = motion === 'previous-sibling' ? -1 : 1;
-    const nextIndex = Math.max(0, Math.min(siblings.length - 1, index + delta));
-    return siblings[nextIndex] ?? current;
-  }
-
-  const delta: -1 | 1 = motion === 'previous-block' ? -1 : 1;
-  const block = getOwningBlockTarget(graph, current);
-  const index = graph.blockKeys.indexOf(block.key);
-  if (index < 0) return current;
-  const nextIndex = Math.max(0, Math.min(graph.blockKeys.length - 1, index + delta));
-  return resolveSemanticTarget(graph, graph.blockKeys[nextIndex] ?? null) ?? current;
-}
-
 function targetForBlock(graph: SemanticTargetGraph, block: HTMLElement): SemanticTarget | null {
   const blockId = block.dataset.blockId;
   if (!blockId) return null;
@@ -490,38 +393,4 @@ export function resolveSemanticTargetAtPoint(
   }
 
   return blockTarget;
-}
-
-/**
- * Backward-compatible pointer result used by existing Pinpoint consumers.
- *
- * New code should retain the semantic target itself so pointer and keyboard
- * paths share its stable key and hierarchy.
- */
-export interface PinpointTarget {
-  readonly element: HTMLElement;
-  readonly blockId: string;
-  readonly label: string;
-  readonly isCodeBlock: boolean;
-}
-
-/** Resolve a pointer target through the canonical semantic graph. */
-export function resolvePinpointTarget(
-  target: HTMLElement,
-  container: HTMLElement,
-  pointer?: SemanticPointerPosition,
-): PinpointTarget | null {
-  const semantic = resolveSemanticTargetAtPoint(
-    buildSemanticTargetGraph(container),
-    target,
-    pointer,
-  );
-  return semantic
-    ? {
-        element: semantic.element,
-        blockId: semantic.blockId,
-        label: semantic.label,
-        isCodeBlock: semantic.kind === 'code',
-      }
-    : null;
 }

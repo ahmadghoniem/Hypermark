@@ -6,8 +6,8 @@ import React from 'react';
  * counts — in both views.
  */
 
-/** Shared shell for the panel action rows (PR overview, Semantic diff, All files). */
-export function SidebarActionRow({
+/** Shell for the panel action rows. */
+function SidebarActionRow({
   active,
   onClick,
   title,

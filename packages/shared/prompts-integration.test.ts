@@ -58,260 +58,6 @@ describe("prompts integration (config from disk)", () => {
   });
   afterEach(cleanTestHome);
 
-  // ── Plan denied ──────────────────────────────────────────────────────
-
-  test("plan denied reads generic override from config.json", async () => {
-    writeConfig({
-      prompts: {
-        plan: {
-          denied: "NOPE.\n\n{{feedback}}",
-        },
-      },
-    });
-
-    const result = await runScript(`
-      import { getPlanDeniedPrompt } from "./packages/shared/prompts";
-      console.log(getPlanDeniedPrompt("claude-code", undefined, {
-        toolName: "ExitPlanMode",
-        planFileRule: "",
-        feedback: "Fix the auth",
-      }));
-    `);
-
-    expect(result).toBe("NOPE.\n\nFix the auth");
-    expect(result).not.toContain("YOUR PLAN WAS NOT APPROVED");
-  });
-
-  test("plan denied reads runtime-specific override from config.json", async () => {
-    writeConfig({
-      prompts: {
-        plan: {
-          denied: "Generic: {{feedback}}",
-          runtimes: {
-            "claude-code": { denied: "Claude Code: {{feedback}}" },
-          },
-        },
-      },
-    });
-
-    const oc = await runScript(`
-      import { getPlanDeniedPrompt, getPlanToolName } from "./packages/shared/prompts";
-      console.log(getPlanDeniedPrompt("claude-code", undefined, {
-        toolName: getPlanToolName("claude-code"),
-        planFileRule: "",
-        feedback: "Fix it",
-      }));
-    `);
-    expect(oc).toBe("Claude Code: Fix it");
-
-    const cc = await runScript(`
-      import { getPlanDeniedPrompt, getPlanToolName } from "./packages/shared/prompts";
-      console.log(getPlanDeniedPrompt("claude-code", undefined, {
-        toolName: getPlanToolName("claude-code"),
-        planFileRule: "",
-        feedback: "Fix it",
-      }));
-    `);
-    expect(cc).toBe("Generic: Fix it");
-  });
-
-  test("plan denied falls back to hardcoded default when config.json missing", async () => {
-    // No config file written — CONFIG_DIR exists but no config.json
-    rmSync(CONFIG_PATH, { force: true });
-
-    const result = await runScript(`
-      import { getPlanDeniedPrompt } from "./packages/shared/prompts";
-      console.log(getPlanDeniedPrompt("claude-code", undefined, {
-        toolName: "ExitPlanMode",
-        planFileRule: "",
-        feedback: "Some feedback",
-      }));
-    `);
-
-    expect(result).toContain("YOUR PLAN WAS NOT APPROVED");
-    expect(result).toContain("Some feedback");
-  });
-
-  test("plan denied falls through blank config values to default", async () => {
-    writeConfig({
-      prompts: {
-        plan: {
-          denied: "   ",
-          runtimes: { "claude-code": { denied: "" } },
-        },
-      },
-    });
-
-    const result = await runScript(`
-      import { getPlanDeniedPrompt } from "./packages/shared/prompts";
-      console.log(getPlanDeniedPrompt("claude-code", undefined, {
-        toolName: "ExitPlanMode",
-        planFileRule: "",
-        feedback: "fb",
-      }));
-    `);
-
-    expect(result).toContain("YOUR PLAN WAS NOT APPROVED");
-  });
-
-  // ── Plan approved ────────────────────────────────────────────────────
-
-  test("plan approved reads override from config.json", async () => {
-    writeConfig({
-      prompts: {
-        plan: {
-          approved: "Go build it.",
-        },
-      },
-    });
-
-    const result = await runScript(`
-      import { getPlanApprovedPrompt } from "./packages/shared/prompts";
-      console.log(getPlanApprovedPrompt("claude-code"));
-    `);
-
-    expect(result).toBe("Go build it.");
-    expect(result).not.toContain("full tool access");
-  });
-
-  // ── Plan approved with notes ─────────────────────────────────────────
-
-  test("plan approved with notes reads override from config.json", async () => {
-    writeConfig({
-      prompts: {
-        plan: {
-          approvedWithNotes: "Approved. User says: {{feedback}}",
-        },
-      },
-    });
-
-    const result = await runScript(`
-      import { getPlanApprovedWithNotesPrompt } from "./packages/shared/prompts";
-      console.log(getPlanApprovedWithNotesPrompt("claude-code", undefined, {
-        feedback: "Watch the edge case",
-      }));
-    `);
-
-    expect(result).toBe("Approved. User says: Watch the edge case");
-  });
-
-  // ── Plan auto-approved ───────────────────────────────────────────────
-
-  test("plan auto-approved reads override from config.json", async () => {
-    writeConfig({
-      prompts: { plan: { autoApproved: "Auto-OK. Proceed." } },
-    });
-
-    const result = await runScript(`
-      import { getPlanAutoApprovedPrompt } from "./packages/shared/prompts";
-      console.log(getPlanAutoApprovedPrompt("claude-code"));
-    `);
-
-    expect(result).toBe("Auto-OK. Proceed.");
-  });
-
-  // ── Annotate file feedback ───────────────────────────────────────────
-
-  test("annotate file feedback reads override from config.json", async () => {
-    writeConfig({
-      prompts: {
-        annotate: {
-          fileFeedback: "# Notes\n\n{{filePath}}: {{feedback}}",
-        },
-      },
-    });
-
-    const result = await runScript(`
-      import { getAnnotateFileFeedbackPrompt } from "./packages/shared/prompts";
-      console.log(getAnnotateFileFeedbackPrompt("claude-code", undefined, {
-        fileHeader: "File",
-        filePath: "src/app.ts",
-        feedback: "Fix line 10",
-      }));
-    `);
-
-    expect(result).toBe("# Notes\n\nsrc/app.ts: Fix line 10");
-  });
-
-  test("annotate file feedback reads runtime-specific override", async () => {
-    writeConfig({
-      prompts: {
-        annotate: {
-          fileFeedback: "Generic: {{feedback}}",
-          runtimes: {
-            "claude-code": { fileFeedback: "Claude Code: {{filePath}} — {{feedback}}" },
-          },
-        },
-      },
-    });
-
-    const out = await runScript(`
-      import { getAnnotateFileFeedbackPrompt } from "./packages/shared/prompts";
-      console.log(getAnnotateFileFeedbackPrompt("claude-code", undefined, {
-        fileHeader: "File", filePath: "x.ts", feedback: "fix",
-      }));
-    `);
-    expect(out).toBe("Claude Code: x.ts — fix");
-  });
-
-  // ── Annotate message feedback ────────────────────────────────────────
-
-  test("annotate message feedback reads override from config.json", async () => {
-    writeConfig({
-      prompts: {
-        annotate: {
-          messageFeedback: "Message review:\n\n{{feedback}}",
-        },
-      },
-    });
-
-    const result = await runScript(`
-      import { getAnnotateMessageFeedbackPrompt } from "./packages/shared/prompts";
-      console.log(getAnnotateMessageFeedbackPrompt("claude-code", undefined, {
-        feedback: "Wrong output",
-      }));
-    `);
-
-    expect(result).toBe("Message review:\n\nWrong output");
-  });
-
-  // ── Annotate approved ────────────────────────────────────────────────
-
-  test("annotate approved reads override from config.json", async () => {
-    writeConfig({
-      prompts: { annotate: { approved: "LGTM" } },
-    });
-
-    const result = await runScript(`
-      import { getAnnotateApprovedPrompt } from "./packages/shared/prompts";
-      console.log(getAnnotateApprovedPrompt("claude-code"));
-    `);
-
-    expect(result).toBe("LGTM");
-  });
-
-  test("annotate approved-with-notes reads override from config.json", async () => {
-    writeConfig({
-      prompts: {
-        annotate: {
-          approvedWithNotes: "APPROVED {{context}}\n\nNotes: {{feedback}}",
-        },
-      },
-    });
-
-    const result = await runScript(`
-      import { getAnnotateApprovedWithNotesPrompt } from "./packages/shared/prompts";
-      console.log(getAnnotateApprovedWithNotesPrompt("claude-code", undefined, {
-        context: "File: src/app.ts",
-        feedback: "Keep the retry bounded.",
-      }));
-    `);
-
-    expect(result).toBe(
-      "APPROVED File: src/app.ts\n\nNotes: Keep the retry bounded.",
-    );
-  });
-
   // ── Review denied suffix ─────────────────────────────────────────────
 
   test("review denied suffix reads override from config.json", async () => {
@@ -332,35 +78,31 @@ describe("prompts integration (config from disk)", () => {
   test("config sections don't bleed into each other", async () => {
     writeConfig({
       prompts: {
-        plan: { denied: "Custom plan denial: {{feedback}}" },
-        annotate: { approved: "Custom annotate approved" },
+        review: { denied: "Custom review denial: {{feedback}}" },
+        annotate: { fileFeedback: "Custom file feedback: {{feedback}}" },
       },
     });
 
-    // Plan denied should use custom
-    const planDenied = await runScript(`
-      import { getPlanDeniedPrompt } from "./packages/shared/prompts";
-      console.log(getPlanDeniedPrompt("claude-code", undefined, {
-        toolName: "ExitPlanMode", planFileRule: "", feedback: "fb",
-      }));
+    // Review denied should use custom
+    const reviewDenied = await runScript(`
+      import { getReviewDeniedSuffix } from "./packages/shared/prompts";
+      console.log(getReviewDeniedSuffix("claude-code"));
     `);
-    expect(planDenied).toBe("Custom plan denial: fb");
+    expect(reviewDenied).toBe("Custom review denial: {{feedback}}");
 
-    // Annotate approved should use custom
-    const annotateApproved = await runScript(`
-      import { getAnnotateApprovedPrompt } from "./packages/shared/prompts";
-      console.log(getAnnotateApprovedPrompt("claude-code"));
+    // Annotate file feedback should use custom
+    const fileFeedback = await runScript(`
+      import { getAnnotateFileFeedbackTemplate } from "./packages/shared/prompts";
+      console.log(getAnnotateFileFeedbackTemplate("claude-code"));
     `);
-    expect(annotateApproved).toBe("Custom annotate approved");
+    expect(fileFeedback).toBe("Custom file feedback: {{feedback}}");
 
-    // Plan approved should still be the default (not set in config)
-    const planApproved = await runScript(`
-      import { getPlanApprovedPrompt } from "./packages/shared/prompts";
-      console.log(getPlanApprovedPrompt("claude-code", undefined, {
-        planFilePath: "p.md", doneMsg: "",
-      }));
+    // Annotate message feedback should still be the default (not set in config)
+    const messageFeedback = await runScript(`
+      import { getAnnotateMessageFeedbackTemplate } from "./packages/shared/prompts";
+      console.log(getAnnotateMessageFeedbackTemplate("claude-code"));
     `);
-    expect(planApproved).toContain("full tool access");
+    expect(messageFeedback).toContain("# Message Annotations");
   });
 
   // ── Malformed config resilience ──────────────────────────────────────
@@ -369,33 +111,10 @@ describe("prompts integration (config from disk)", () => {
     writeFileSync(CONFIG_PATH, "not valid json {{{");
 
     const result = await runScript(`
-      import { getPlanDeniedPrompt } from "./packages/shared/prompts";
-      console.log(getPlanDeniedPrompt("claude-code", undefined, {
-        toolName: "ExitPlanMode", planFileRule: "", feedback: "fb",
-      }));
+      import { DEFAULT_REVIEW_DENIED_SUFFIX, getReviewDeniedSuffix } from "./packages/shared/prompts";
+      console.log(getReviewDeniedSuffix("claude-code") === DEFAULT_REVIEW_DENIED_SUFFIX);
     `);
 
-    expect(result).toContain("YOUR PLAN WAS NOT APPROVED");
-  });
-
-  // ── planDenyFeedback is browser-safe (no Node imports) ────────────────
-
-  test("planDenyFeedback() always uses hardcoded default (not config)", async () => {
-    writeConfig({
-      prompts: {
-        plan: { denied: "CUSTOM.\n\n{{feedback}}" },
-      },
-    });
-
-    const result = await runScript(`
-      import { planDenyFeedback } from "./packages/shared/feedback-templates";
-      console.log(planDenyFeedback("Fix auth", "ExitPlanMode"));
-    `);
-
-    // planDenyFeedback is self-contained — it does NOT read config.json.
-    // This is intentional: it's imported by the browser SPA bundle, which
-    // cannot access Node APIs. Config-aware denials use getPlanDeniedPrompt().
-    expect(result).toContain("YOUR PLAN WAS NOT APPROVED");
-    expect(result).toContain("Fix auth");
+    expect(result).toBe("true");
   });
 });

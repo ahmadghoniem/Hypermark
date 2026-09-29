@@ -110,7 +110,7 @@ export const COLLAB_CONFIG = {
   maxCollaborators: 25,
   heartbeatIntervalMs: 5_000,
   operationBatchSize: 32,
-  gateway: "wss://collab.plannotator.ai",
+  gateway: "wss://collab.example.com",
 } as const;
 \`\`\`
 
@@ -580,7 +580,7 @@ export function devMockApi(): Plugin {
           req.on('end', async () => {
             try {
               const { saveConfig } = await import('@hypermark/shared/config');
-              const parsed = JSON.parse(body);
+              JSON.parse(body);
               const toSave: Record<string, unknown> = {};
               if (Object.keys(toSave).length > 0) saveConfig(toSave as any);
               res.setHeader('Content-Type', 'application/json');
@@ -598,6 +598,9 @@ export function devMockApi(): Plugin {
           res.end(JSON.stringify({
             plan: undefined, // Editor uses its own DIFF_DEMO_PLAN_CONTENT
             origin: 'claude-code',
+            mode: 'annotate',
+            gate: false,
+            approvalNotesSupported: false,
             previousPlan: PLAN_V2,
             versionInfo: { version: 3, totalVersions: 3, project: 'demo' },
           }));

@@ -3,8 +3,8 @@ import { fileBasename } from '../utils/fileName';
 
 /**
  * Compact chip showing a file's name (basename) with the full path on hover.
- * Shared label for file-scoped annotations across the comment banner, sidebar,
- * and AI tab so the "which file" marker stays visually consistent everywhere.
+ * Shared label for file-scoped annotations across the comment banner and
+ * sidebar so the "which file" marker stays visually consistent everywhere.
  */
 export const FileNameChip: React.FC<{ path: string }> = ({ path }) => (
   <span

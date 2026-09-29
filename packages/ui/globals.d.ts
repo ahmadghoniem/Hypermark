@@ -12,9 +12,3 @@ declare module '*.webp' {
   const src: string;
   export default src;
 }
-// Video asset imports (announcement demo recordings). Inlined as data URIs by
-// the single-file build (assetsInlineLimit), so the import resolves to a string.
-declare module '*.webm' {
-  const src: string;
-  export default src;
-}

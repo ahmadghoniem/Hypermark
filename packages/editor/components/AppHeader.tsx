@@ -1,6 +1,5 @@
 import React from 'react';
 import type { Origin } from '@hypermark/shared/agents';
-import { FeedbackButton, ApproveButton } from '@hypermark/ui/components/ToolbarButtons';
 import { DecisionControl, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import type { DecisionActionId, DecisionSpec } from '@hypermark/ui/utils/decisionSpec';
 import { ThemeModeButton } from '@hypermark/ui/components/ThemeModeButton';
@@ -36,15 +35,11 @@ interface AppHeaderProps {
   onRefreshHtml?: () => void;
   // Mode flags (stable after mount)
   isApiMode: boolean;
-  annotateMode: boolean;
   origin: Origin | null;
 
   // Dynamic state
   isSubmitting: boolean;
   isExiting: boolean;
-  linkedDocIsActive: boolean;
-  agentName: string;
-  showAnnotationsWarning: boolean;
   /** The unified annotate decision control (spec + handlers + close title).
    *  App owns the spec derivation and every handler; the header only mounts
    *  the control beside the ghost Close. Absent outside annotate mode. */
@@ -56,10 +51,6 @@ interface AppHeaderProps {
      *  dismisses the popover since clicks never reach the parent document. */
     dismissOnIframeFocus?: boolean;
   };
-
-  // Handlers — App owns all decision logic, header just calls these
-  onFeedback: () => void;
-  onApprove: () => void;
 }
 
 export const AppHeader = React.memo<AppHeaderProps>(({
@@ -73,16 +64,10 @@ export const AppHeader = React.memo<AppHeaderProps>(({
   isRefreshingHtml,
   onRefreshHtml,
   isApiMode,
-  annotateMode,
   origin,
   isSubmitting,
   isExiting,
-  linkedDocIsActive,
-  agentName,
-  showAnnotationsWarning,
   annotateDecision,
-  onFeedback,
-  onApprove,
 }) => {
   return (
     <header
@@ -94,44 +79,16 @@ export const AppHeader = React.memo<AppHeaderProps>(({
       </div>
 
       <div className="flex items-center gap-1 md:gap-2">
-        {isApiMode && (!linkedDocIsActive || annotateMode) && (
+        {isApiMode && (
           <>
-            {annotateMode ? (
-              annotateDecision && (
-                <DecisionControl
-                  spec={annotateDecision.spec}
-                  handlers={annotateDecision.handlers}
-                  busy={isSubmitting || isExiting}
-                  isLoading={isSubmitting}
-                  dismissOnIframeFocus={annotateDecision.dismissOnIframeFocus}
-                />
-              )
-            ) : (
-              <FeedbackButton
-                onClick={onFeedback}
-                disabled={isSubmitting}
+            {annotateDecision && (
+              <DecisionControl
+                spec={annotateDecision.spec}
+                handlers={annotateDecision.handlers}
+                busy={isSubmitting || isExiting}
                 isLoading={isSubmitting}
-                label="Send Feedback"
-                title="Send Feedback"
+                dismissOnIframeFocus={annotateDecision.dismissOnIframeFocus}
               />
-            )}
-
-            {!annotateMode && (
-              <div className="relative group/approve">
-                <ApproveButton
-                  onClick={onApprove}
-                  disabled={isSubmitting}
-                  isLoading={isSubmitting}
-                  dimmed={showAnnotationsWarning}
-                />
-                {showAnnotationsWarning && (
-                  <div className="absolute top-full right-0 mt-2 px-3 py-2 bg-popover border border-border rounded-lg shadow-xl text-xs text-foreground w-56 text-center opacity-0 invisible group-hover/approve:opacity-100 group-hover/approve:visible transition-all pointer-events-none z-chrome">
-                    <div className="absolute bottom-full right-4 border-4 border-transparent border-b-border" />
-                    <div className="absolute bottom-full right-4 mt-px border-4 border-transparent border-b-popover" />
-                    {agentName} doesn't support feedback on approval. Your feedback won't be seen.
-                  </div>
-                )}
-              </div>
             )}
 
             <div className="w-px h-5 bg-border/50 mx-1 hidden md:block" />
@@ -158,7 +115,7 @@ export const AppHeader = React.memo<AppHeaderProps>(({
 
         <ThemeModeButton />
 
-        <KeyboardShortcutsButton mode={annotateMode ? 'annotate' : 'plan'} />
+        <KeyboardShortcutsButton mode="annotate" />
       </div>
     </header>
   );

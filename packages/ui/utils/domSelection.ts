@@ -13,24 +13,10 @@ const NON_ANNOTATABLE_SELECTOR = [
   '.katex',
 ].join(',');
 
-const DOCUMENT_KEYBOARD_CONTROL_SELECTOR = [
-  'button',
-  'input',
-  'textarea',
-  'select',
-  'a[href]',
-  'summary',
-  '[contenteditable]:not([contenteditable="false"])',
-  '[role="button"]',
-  '[role="link"]',
-  '[role="textbox"]',
-  '[role="dialog"]',
-].join(',');
-
 /**
  * Return the annotatable text nodes under an element in document order.
- * Existing highlight wrappers remain eligible so Vim selections can overlap
- * annotations just like pointer selections.
+ * Existing highlight wrappers remain eligible so selections can overlap
+ * existing annotations.
  */
 export function getAnnotatableTextNodes(element: Element): Text[] {
   const nodes: Text[] = [];
@@ -52,17 +38,6 @@ export function getAnnotatableTextNodes(element: Element): Text[] {
     node = walker.nextNode();
   }
   return nodes;
-}
-
-/**
- * Return whether a keyboard event originated in an editable or interactive
- * control that must retain ownership of ordinary typing keys.
- */
-export function isDocumentKeyboardControl(target: EventTarget | null): boolean {
-  if (!(target instanceof Element)) return false;
-  return target.matches(DOCUMENT_KEYBOARD_CONTROL_SELECTOR)
-    || target.closest(DOCUMENT_KEYBOARD_CONTROL_SELECTOR) !== null
-    || (target instanceof HTMLElement && target.isContentEditable);
 }
 
 /**

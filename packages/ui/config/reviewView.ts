@@ -32,7 +32,7 @@ export function setReviewPanelView(
   store.set('reviewPanelView', view);
   // An explicit persisted choice also becomes the last-used view — otherwise
   // a stale last-used cookie would immediately shadow what the user just
-  // picked in Settings / the setup dialog. recordLastUsed: false is for
+  // picked in Settings. recordLastUsed: false is for
   // NON-choices: the App self-heal repairs a conflicted persisted pair
   // without any user action, so it must not overwrite the user's memo.
   if (options?.recordLastUsed !== false) {

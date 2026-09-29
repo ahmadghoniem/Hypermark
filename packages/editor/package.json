@@ -13,7 +13,6 @@
     "@hypermark/shared": "workspace:*",
     "@hypermark/ui": "workspace:*",
     "@phosphor-icons/react": "2.1.10",
-    "dialkit": "2.0.2",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "sonner": "^2.0.7",

@@ -10,7 +10,6 @@ import type { DecisionActionId, DecisionSpec } from '@hypermark/ui/utils/decisio
 import type { UseSidebarReturn } from '@hypermark/ui/hooks/useSidebar';
 import { Tree } from '@phosphor-icons/react';
 import type { DiffFreshness } from '../hooks/useDiffFreshness';
-import type { DiffFile } from '../types';
 
 interface ReviewHeaderProps {
   shouldShowFileTree: boolean;
@@ -18,9 +17,6 @@ interface ReviewHeaderProps {
   isNavigatorOpen: boolean;
   repoInfo: { display: string; branch?: string } | null;
   origin: Origin | null;
-  reviewMode: string | null;
-  diffError: string | null;
-  files: DiffFile[];
   diffFreshness: DiffFreshness;
   isLoadingDiff: boolean;
   handleRefreshStaleDiff: () => void;
@@ -49,9 +45,6 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
   isNavigatorOpen,
   repoInfo,
   origin,
-  reviewMode,
-  diffError,
-  files,
   diffFreshness,
   isLoadingDiff,
   handleRefreshStaleDiff,
@@ -119,15 +112,6 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
             (rightHeaderActionsComponent → ReviewDockRightActions). */}
         {origin ? (
           <>
-            {reviewMode === 'workspace' && diffError && (
-              <div
-                className="text-xs text-foreground px-2 py-1 bg-warning/10 rounded-sm border border-warning/25 max-w-60 truncate"
-                title={diffError}
-              >
-                {files.length > 0 ? 'Some workspace changes could not be loaded' : 'Workspace changes could not be loaded'}
-              </div>
-            )}
-
             {/* Diff staleness notice — files changed since this snapshot
                 was computed (agent editing mid-review). Non-blocking; the
                 user refreshes when ready. */}

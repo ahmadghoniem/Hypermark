@@ -32,8 +32,8 @@ export const DEFAULT_HTML_CHROME_STATE: HtmlChromeState = {
   toolsHidden: false,
 };
 
-/** Pure resolution logic (exported for tests): raw cookie value → state. */
-export function resolveHtmlChromeState(
+/** Raw cookie value → state. */
+function resolveHtmlChromeState(
   raw: string | null,
   now: number = Date.now(),
 ): HtmlChromeState {

@@ -4,7 +4,7 @@ import { SEVERITY_STYLES, type DiffAnnotationMetadata } from '@hypermark/ui/type
 import { renderInlineMarkdown } from '../utils/renderInlineMarkdown';
 
 /**
- * Gutter comment presentation for the code review diff (spec 05 §3.1).
+ * Gutter comment presentation for the code review diff.
  *
  * A code comment lives at its code location: a compact marker in the gutter,
  * a transient preview on hover, and a pinned, focusable popup on click, Enter
@@ -72,7 +72,7 @@ export function useGutterAnnotations(): GutterAnnotationsController {
   // otherwise reopen the very preview the reviewer just dismissed.
   const skipFocusOpen = useRef(false);
 
-  // Pre-mount portal container once per file list rather than per open (spec 08 §4).
+  // Pre-mount portal container once per file list rather than per open.
   const portalRootRef = useRef<HTMLElement | null>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
 
@@ -303,7 +303,7 @@ interface GutterAnnotationPopupProps {
 /**
  * The pinned/preview popup. Every annotation at the anchor is reachable in one
  * ordered list, each entry distinguished by its own text — never by an
- * "N of M" counter. Presentation-only chrome (author, avatar, timestamps,
+ * "N of M" counter. Presentation-only chrome (avatar, timestamps,
  * ordinals) is omitted here; the underlying data keeps those fields.
  */
 export const GutterAnnotationPopup: React.FC<GutterAnnotationPopupProps> = ({

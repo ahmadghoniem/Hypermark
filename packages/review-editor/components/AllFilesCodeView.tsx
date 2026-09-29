@@ -95,7 +95,7 @@ import {
  *  - When an item enters CodeView's rendered window (its `onPostRender` fires
  *    with phase 'mount'/'update', the direct analogue of LazyFileDiff's
  *    IntersectionObserver becoming visible), we fetch `/api/file-content` for
- *    that file (path/oldPath preserved — workspace prefixes intact — plus the
+ *    that file (path/oldPath preserved plus the
  *    review base), reparse with `processFile`, and swap `item.fileDiff` to the
  *    augmented `FileDiffMetadata`. The augmented diff gets a NEW `cacheKey`
  *    (contents changed!), `item.version++`, and `viewer.updateItem(item)`. This
@@ -141,8 +141,6 @@ import {
  *    Pierre's virtual window and expose a large blank tail.
  *
  * The worker pool remains a later phase.
- *
- * EXPERIMENTAL edit-to-suggestion (flag-gated, default OFF): the plain
  */
 export interface AllFilesCodeViewProps {
   files: DiffFile[];
@@ -490,7 +488,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   // changes. CodeView is uncontrolled (the Diffshub pattern) and only seeds
   // `initialItems` once per instance, so changing `files` in place would NOT
   // re-seed it. The ALL_FILES dock panel is reused (single fixed panel id,
-  // `getPanel().api.setActive()`), and diff-type/base/PR-scope/PR/whitespace
+  // `getPanel().api.setActive()`), and diff-type/base/whitespace
   // switches all call `setFiles(...)` WITHOUT recreating the panel — so this
   // component instance survives a diff switch. To keep CodeView in sync with
   // the new diff we remount it via `fileSetKey` (below), which re-runs the
@@ -1049,8 +1047,8 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     const isStale = () =>
       controller.signal.aborted || fileSetKeyRef.current !== generation;
 
-    // Workspace-prefixed paths are passed through verbatim — /api/file-content
-    // resolves the prefix back to the owning repo (same contract LazyFileDiff /
+    // Paths are passed through verbatim — /api/file-content
+    // resolves them itself (same contract LazyFileDiff /
     // DiffViewer rely on).
     const params = new URLSearchParams({ path: file.path });
     if (file.oldPath) params.set('oldPath', file.oldPath);
@@ -1371,14 +1369,14 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
         // (no line/side/suggestion).
         const sig = scope === 'file'
           ? JSON.stringify([
-              'F', a.id, a.text ?? '', a.source ?? '', a.author ?? '',
+              'F', a.id, a.text ?? '',
               a.createdAt ?? 0, a.reasoning ?? '',
             ])
           : JSON.stringify([
               a.id, a.lineEnd, a.side, a.type,
               a.text ?? '',
-              a.severity ?? '', a.reasoning ?? '', a.author ?? '',
-              a.source ?? '', a.createdAt ?? 0,
+              a.severity ?? '', a.reasoning ?? '',
+              a.createdAt ?? 0,
             ]);
         map.set(a.filePath, `${map.get(a.filePath) ?? ''}${sig}\n`);
       }
@@ -1423,7 +1421,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   const selectedLinesRef = useRef(selectedLines);
   selectedLinesRef.current = selectedLines;
 
-  // Reconcile the App-level `pendingSelection` (the range the toolbar / AI is
+  // Reconcile the App-level `pendingSelection` (the range the toolbar is
   // operating on) with CodeView's highlighted lines. CodeView selection is
   // CONTROLLED here, and `onSelectedLinesChange` fires on EVERY drag delta —
   // each delta already paints `selectedLines` on the owning item (correct id)
@@ -1431,7 +1429,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
   // selection, this effect must do NOTHING: re-deriving the highlight from
   // `activeFilePath` mid-drag would clear it (activeFilePath only updates at
   // pointer-up) or paint it on the previously-active file. It only acts on:
-  //   1. pendingSelection cleared (annotation submitted / cancelled / AI done)
+  //   1. pendingSelection cleared (annotation submitted / cancelled)
   //      → drop the highlight instead of leaving it stuck on the file.
   //   2. A toolbar-originated range CodeView doesn't know about (gutter-utility
   //      click on a not-yet-active file, draft restore) → paint it on the
@@ -1958,7 +1956,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
     <CodeView<DiffAnnotationMetadata>
       // Remount on diff switch so uncontrolled `initialItems` re-seeds from
       // the freshly computed identity. Without this, switching diff
-      // type/base/whitespace/PR with the all-files panel open would keep the
+      // type/base/whitespace with the all-files panel open would keep the
       // OLD diff on screen (the panel instance is reused, not recreated).
       key={fileSetKey}
       ref={viewerRef}

@@ -24,14 +24,13 @@ const MAX_ZOOM = 8;
  */
 const loadVizInstance = (): Promise<Viz> => import('@viz-js/viz').then((m) => m.instance());
 
-let vizLoader = loadVizInstance;
 let vizInstancePromise: Promise<Viz> | null = null;
 
 /**
  * Delay before the one automatic re-attempt after a failed engine import.
  * Only chunking hosts can fail here (a single-file build never fetches).
  */
-let runtimeRetryDelayMs = 750;
+const RUNTIME_RETRY_DELAY_MS = 750;
 
 /**
  * Memoized engine. A rejected load is dropped from the memo so the next call
@@ -40,23 +39,13 @@ let runtimeRetryDelayMs = 750;
  */
 function getVizInstance(): Promise<Viz> {
   if (!vizInstancePromise) {
-    const attempt = vizLoader().catch((err: unknown) => {
+    const attempt = loadVizInstance().catch((err: unknown) => {
       if (vizInstancePromise === attempt) vizInstancePromise = null;
       throw err;
     });
     vizInstancePromise = attempt;
   }
   return vizInstancePromise;
-}
-
-/** Test hook: stand in for the engine import and shorten the retry delay. */
-export function __setVizLoaderForTests(
-  loader: (() => Promise<Viz>) | undefined,
-  options?: { retryDelayMs?: number },
-): void {
-  vizLoader = loader ?? loadVizInstance;
-  vizInstancePromise = null;
-  runtimeRetryDelayMs = options?.retryDelayMs ?? 750;
 }
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -225,7 +214,7 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
           // re-attempt with a fresh import() after a short delay. In a
           // single-file build the first await never rejects, so this branch
           // is unreachable there and the success path is unchanged.
-          await wait(runtimeRetryDelayMs);
+          await wait(RUNTIME_RETRY_DELAY_MS);
           if (cancelled) return;
           viz = await getVizInstance();
         }

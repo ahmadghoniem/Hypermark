@@ -18,7 +18,7 @@ days. Findings are initially monitor-only. Missing targets, empty coverage,
 malformed reports, scanner failures, and failure to detect the controlled
 passive-scan fixture fail the workflow.
 
-The scan hook seeds `/`, `/api/plan`, the disabled-AI capabilities response,
+The scan hook seeds `/`, `/api/plan`,
 and an unknown-API 404 through ZAP. The traditional spider is confined to that
 small API 404 because parsing the single-file bundle as static HTML creates
 false link candidates. A read-only route guard forwards those approved GET

@@ -16,7 +16,7 @@ const ann = (overrides: Partial<CodeAnnotation> = {}): CodeAnnotation => ({
 
 
 describe("exportReviewFeedback", () => {
-  it("includes a line comment's attached images (spec 05 §4.1.4)", () => {
+  it("includes a line comment's attached images", () => {
     const result = exportReviewFeedback([ann({
       images: [
         { path: '/uploads/a.png', name: 'a.png' },
@@ -121,20 +121,6 @@ describe("exportReviewFeedback", () => {
     expect(result).toContain("### Line 7 (new)");
   });
 
-  it("emits a Highlighted text block for an edit-session selection comment", () => {
-    const result = exportReviewFeedback([
-      ann({ text: "Rename this", selectedText: "const widget = make();" }),
-    ]);
-    expect(result).toContain("Rename this\n");
-    expect(result).toContain("**Highlighted text:**\n```\nconst widget = make();\n```");
-    expect(result).not.toContain("approximate");
-  });
-
-  it("omits the Highlighted text block when there is no selectedText", () => {
-    const result = exportReviewFeedback([ann()]);
-    expect(result).not.toContain("**Highlighted text:**");
-  });
-
   it("includes side indicator", () => {
     const result = exportReviewFeedback([
       ann({ side: "old", lineStart: 3, lineEnd: 3 }),
@@ -199,116 +185,6 @@ describe("exportReviewFeedback", () => {
       { mode: `commit:${sha}` },
     );
     expect(result).not.toContain("anchored");
-  });
-});
-
-describe("exportReviewFeedback - workspace mode", () => {
-  it("workspace mode: uses generic header, no PR content (same as local mode)", () => {
-    const result = exportReviewFeedback([ann()]);
-    expect(result).toStartWith("# Code Review Feedback\n\n");
-    expect(result).not.toContain("PR Review");
-    expect(result).not.toContain("github.com");
-    expect(result).not.toContain("Branch:");
-  });
-
-  it("groups annotations by repo-prefixed file paths", () => {
-    const result = exportReviewFeedback([
-      ann({ filePath: "repo-a/src/index.ts", lineStart: 5, text: "first" }),
-      ann({ filePath: "repo-b/src/index.ts", lineStart: 1, text: "second" }),
-    ]);
-    expect(result).toContain("## repo-a/src/index.ts");
-    expect(result).toContain("## repo-b/src/index.ts");
-  });
-
-  it("sorts annotations by line number within each repo-prefixed file", () => {
-    const result = exportReviewFeedback([
-      ann({ filePath: "repo-a/src/index.ts", lineStart: 20, text: "later" }),
-      ann({ filePath: "repo-a/src/index.ts", lineStart: 5, text: "earlier" }),
-      ann({ filePath: "repo-b/src/index.ts", lineStart: 15, text: "middle in repo-b" }),
-    ]);
-    const earlierIdx = result.indexOf("earlier");
-    const laterIdx = result.indexOf("later");
-    const middleInRepoB = result.indexOf("middle in repo-b");
-    expect(earlierIdx).toBeLessThan(laterIdx);
-    expect(laterIdx).toBeLessThan(middleInRepoB);
-  });
-
-  it("handles nested repo labels with overlapping paths", () => {
-    const result = exportReviewFeedback([
-      ann({ filePath: "apps/api/src/server.ts", text: "in nested repo" }),
-      ann({ filePath: "apps/web/src/app.ts", text: "in sibling repo" }),
-      ann({ filePath: "apps/src/main.ts", text: "in parent repo" }),
-    ]);
-    expect(result).toContain("## apps/api/src/server.ts");
-    expect(result).toContain("## apps/web/src/app.ts");
-    expect(result).toContain("## apps/src/main.ts");
-  });
-
-  it("handles deeply nested repo labels", () => {
-    const result = exportReviewFeedback([
-      ann({ filePath: "packages/shared/utils/helpers/string.ts", text: "deep path" }),
-    ]);
-    expect(result).toContain("## packages/shared/utils/helpers/string.ts");
-    expect(result).toContain("### Line 10 (new)");
-  });
-
-  it("groups multiple annotations on same repo-prefixed file together", () => {
-    const result = exportReviewFeedback([
-      ann({ filePath: "repo-a/src/index.ts", lineStart: 5, text: "first comment" }),
-      ann({ filePath: "repo-b/src/index.ts", lineStart: 10, text: "second comment" }),
-      ann({ filePath: "repo-a/src/index.ts", lineStart: 15, text: "third comment" }),
-    ]);
-    const repoAHeaderIdx = result.indexOf("## repo-a/src/index.ts");
-    const repoBHeaderIdx = result.indexOf("## repo-b/src/index.ts");
-    const firstCommentIdx = result.indexOf("first comment");
-    const thirdCommentIdx = result.indexOf("third comment");
-    const secondCommentIdx = result.indexOf("second comment");
-
-    expect(repoAHeaderIdx).toBeLessThan(repoBHeaderIdx);
-    expect(firstCommentIdx).toBeLessThan(thirdCommentIdx);
-    expect(thirdCommentIdx).toBeLessThan(repoBHeaderIdx);
-    expect(repoBHeaderIdx).toBeLessThan(secondCommentIdx);
-  });
-
-  it("handles file-scoped annotations with repo-prefixed paths", () => {
-    const result = exportReviewFeedback([
-      ann({ filePath: "repo-a/src/index.ts", scope: "file", text: "file comment" }),
-      ann({ filePath: "repo-a/src/index.ts", lineStart: 1, lineEnd: 1, text: "line comment" }),
-    ]);
-    expect(result).toContain("## repo-a/src/index.ts");
-    expect(result).toContain("### File Comment");
-    expect(result).toContain("### Line 1");
-    const fileIdx = result.indexOf("File Comment");
-    const lineIdx = result.indexOf("Line 1");
-    expect(fileIdx).toBeLessThan(lineIdx);
-  });
-
-  it("handles repo labels with special characters in paths", () => {
-    const result = exportReviewFeedback([
-      ann({ filePath: "my-repo_2.0/src/index.ts", text: "special chars" }),
-    ]);
-    expect(result).toContain("## my-repo_2.0/src/index.ts");
-  });
-
-  it("empty annotations returns generic message regardless of workspace mode", () => {
-    expect(exportReviewFeedback([])).toBe("# Code Review\n\nNo feedback provided.");
-  });
-
-  it("describes exact workspace diff mode in feedback context", () => {
-    const staged = exportReviewFeedback([ann()], { mode: "workspace-staged" });
-    const last = exportReviewFeedback([ann()], { mode: "workspace-last" });
-
-    expect(staged).toContain("**Diff:** Workspace staged changes");
-    expect(last).toContain("**Diff:** Workspace last change");
-  });
-
-  it("contains exactly one top-level heading in workspace mode", () => {
-    const result = exportReviewFeedback([
-      ann({ filePath: "repo-a/src/a.ts" }),
-      ann({ filePath: "repo-b/src/b.ts" }),
-    ]);
-    const headingMatches = result.match(/^# /gm) || [];
-    expect(headingMatches).toHaveLength(1);
   });
 });
 

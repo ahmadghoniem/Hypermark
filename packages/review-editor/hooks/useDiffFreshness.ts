@@ -27,7 +27,6 @@ export function useDiffFreshness({
   enabled,
   resetKey,
   snapshotId,
-  onAgentCwd,
   onBaseBehindRemote,
 }: {
   enabled: boolean;
@@ -40,11 +39,6 @@ export function useDiffFreshness({
    * switch), THIS client goes stale even when the VCS fingerprint matches —
    * and a freshly-loaded tab holding the current snapshot stays fresh. */
   snapshotId?: string;
-  /** Called when a probe re-advertises the PR-mode local checkout (or null when
-   * none is usable yet), so the Open-in control tracks pool warmup / in-place PR
-   * switches without a page reload. A probe that omits the field leaves the
-   * current value untouched (non-PR sessions never send it). */
-  onAgentCwd?: (cwd: string | null) => void;
   /** Called with the probe's baseBehindRemote flag (false when the field is
    * omitted) — the local origin/<default> tracking ref is behind the actual
    * remote, i.e. the baseline needs a fetch. */
@@ -53,8 +47,6 @@ export function useDiffFreshness({
   const [staleFingerprint, setStaleFingerprint] = useState<string | null>(null);
   const [dismissedFingerprint, setDismissedFingerprint] = useState<string | null>(null);
   // Latest callback in a ref so the polling effect never resubscribes for it.
-  const onAgentCwdRef = useRef(onAgentCwd);
-  onAgentCwdRef.current = onAgentCwd;
   const onBaseBehindRemoteRef = useRef(onBaseBehindRemote);
   onBaseBehindRemoteRef.current = onBaseBehindRemote;
 
@@ -92,16 +84,12 @@ export function useDiffFreshness({
           const data = (await res.json()) as {
             fresh: boolean;
             fingerprint?: string;
-            agentCwd?: string | null;
             baseBehindRemote?: boolean;
           };
           // Keep polling even while stale: a reverted edit flips back to
           // fresh, and a FURTHER change updates the fingerprint so a
           // dismissed notice can reappear.
           setStaleFingerprint(data.fresh ? null : data.fingerprint ?? 'stale');
-          // PR mode re-advertises the live local checkout each probe; non-PR
-          // probes omit the field entirely (leave agentCwd untouched).
-          if ('agentCwd' in data) onAgentCwdRef.current?.(data.agentCwd ?? null);
           // Baseline-behind flag: emitted as true or omitted (= false).
           onBaseBehindRemoteRef.current?.(data.baseBehindRemote === true);
         }

@@ -8,7 +8,6 @@ def zap_access_target(zap, target):
     for path in (
         "",
         "/api/plan",
-        "/api/ai/capabilities",
         "/api/definitely-missing",
     ):
         response = zap.urlopen(target.rstrip("/") + path)

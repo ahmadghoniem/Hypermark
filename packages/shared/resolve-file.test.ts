@@ -4,7 +4,6 @@ import { tmpdir } from "os";
 import { join } from "path";
 import {
 	getFileBrowserMaxFiles,
-	hasMarkdownFiles,
 	resolveCodeFile,
 	resolveMarkdownFile,
 	warmFileListCache,
@@ -183,37 +182,6 @@ describe("bounded file traversal", () => {
 			if (result.kind === "ambiguous") {
 				expect(result.matches).toHaveLength(2);
 			}
-		} finally {
-			if (previousLimit === undefined) {
-				delete process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
-			} else {
-				process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = previousLimit;
-			}
-			rmSync(limitedRoot, { recursive: true, force: true });
-		}
-	});
-
-	test("caps folder-target discovery even when no files match", () => {
-		const limitedRoot = mkdtempSync(join(tmpdir(), "hypermark-folder-limit-"));
-		const previousLimit = process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;
-		class CountingRegExp extends RegExp {
-			calls = 0;
-
-			override test(value: string): boolean {
-				this.calls += 1;
-				return super.test(value);
-			}
-		}
-
-		try {
-			for (let index = 0; index < 5; index += 1) {
-				writeFileSync(join(limitedRoot, `file-${index}.txt`), "not markdown\n");
-			}
-			process.env.HYPERMARK_FILE_BROWSER_MAX_FILES = "2";
-			const extensions = new CountingRegExp("^never-match$");
-
-			expect(hasMarkdownFiles(limitedRoot, [], extensions)).toBe(false);
-			expect(extensions.calls).toBe(2);
 		} finally {
 			if (previousLimit === undefined) {
 				delete process.env.HYPERMARK_FILE_BROWSER_MAX_FILES;

@@ -1,10 +1,10 @@
 {
   "name": "hypermark",
-  "description": "Interactive Plan Review: Mark up and refine your plans using a UI, easily share for team collaboration, automatically integrates with plan mode hooks.",
+  "description": "Interactive review and annotation: mark up markdown files, URLs, and code changes in a UI and send structured feedback back to Claude Code.",
   "version": "0.27.12",
   "author": {
     "name": "ahmadghoniem"
   },
   "repository": "https://github.com/ahmadghoniem/Hypermark",
-  "keywords": ["planning", "review", "hooks", "ExitPlanMode", "collaboration"]
+  "keywords": ["review", "annotate", "markdown", "code-review"]
 }

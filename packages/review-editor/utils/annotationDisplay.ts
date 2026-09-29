@@ -44,11 +44,9 @@ export function lineAnnotationMetadata(ann: CodeAnnotation): DiffAnnotationMetad
     annotationId: ann.id,
     type: ann.type,
     text: ann.text,
-    author: ann.author,
     severity: ann.severity,
     reasoning: ann.reasoning,
     createdAt: ann.createdAt,
-    source: ann.source,
     copyText: ann.text ? commentCopyText(ann) : undefined,
   };
 }

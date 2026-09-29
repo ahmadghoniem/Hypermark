@@ -138,7 +138,6 @@ export function formatTopLevelHelp(): string {
     "Usage:",
     "  hypermark --help",
     "  hypermark --version, -v",
-    "  hypermark [--browser <name>]",
     "  hypermark review [--git]",
     "  hypermark annotate <file.md | file.txt | file.html> [--markdown] [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]",
     "  hypermark annotate-last [--stdin] [--gate] [--json] [--hook]",
@@ -147,9 +146,6 @@ export function formatTopLevelHelp(): string {
     "  hypermark uninstall [--purge] [--yes] [--dry-run]",
     "",
     "Run 'hypermark <command> --help' for command-specific usage.",
-    "",
-    "Note:",
-    "  running 'hypermark' without arguments is for hook integration and expects JSON on stdin",
   ].join("\n");
 }
 
@@ -261,10 +257,9 @@ export function formatSubcommandHelp(subcommand: string): string {
 
 export function formatInteractiveNoArgClarification(): string {
   return [
-    "hypermark (without arguments) is usually launched automatically by Claude Code hooks.",
-    "It expects hook JSON on stdin.",
+    "hypermark (without arguments) does nothing in an interactive terminal.",
     "",
-    "For interactive use, try:",
+    "Try:",
     "  hypermark review",
     "  hypermark annotate <file.md | file.txt | file.html>",
     "  hypermark last",

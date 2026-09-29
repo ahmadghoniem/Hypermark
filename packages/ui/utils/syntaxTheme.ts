@@ -16,13 +16,13 @@
 
 /**
  * Retained theme IDs -> Shiki theme name, per mode.
- * Trimmed to the seven retained palettes (Spec 03 locked scope).
+ * Trimmed to the seven retained palettes.
  * `null` = this palette has no counterpart in that mode and falls back to the Pierre default.
  */
 export const SHIKI_THEME_MAP: Record<string, { dark: string | null; light: string | null }> = {
   'pierre': { dark: 'pierre-dark', light: 'pierre-light' },
   // Stated explicitly rather than reached by falling out of the map. It does
-  // render in Pierre's syntax themes, but spec 03 wants syntax to be palette
+  // render in Pierre's syntax themes, but syntax must be palette
   // DATA for every supported palette/mode, not a value produced by a generic
   // lookup miss -- and a key mapping to nothing breaks this map's own invariant.
   'hypermark': { dark: 'pierre-dark', light: 'pierre-light' },

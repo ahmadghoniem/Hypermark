@@ -170,7 +170,7 @@ describe('buildDecisionSpec invariants', () => {
     for (const input of inputs) {
       const spec = buildDecisionSpec(input);
       const strings = [
-        spec.primary.label, spec.primary.shortLabel, spec.primary.mobileLabel,
+        spec.primary.label, spec.primary.shortLabel,
         spec.primary.title,
         ...spec.items.flatMap((item) => [
           item.label, item.subtitle,
@@ -217,7 +217,7 @@ describe('buildDecisionSpec invariants', () => {
     expect(zero.items.find((item) => item.id === 'close-session')!.label).toBe('Close session');
 
     // F2 ruling (maintainer-confirmed): the
-    // count-0 + hasFeedback cell (direct edits / attachments only) still
+    // count-0 + hasFeedback cell (attachments only) still
     // offers approve-with-notes on capable approval flows, with zero-form
     // copy — the subtitle must never claim an annotation count of 0.
     const zeroGate = buildDecisionSpec({

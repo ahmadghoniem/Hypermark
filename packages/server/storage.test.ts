@@ -8,7 +8,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { generateSlug, saveToHistory, getPlanVersion, getVersionCount, listVersions } from "./storage";
+import { saveToHistory, getPlanVersion, getVersionCount, listVersions } from "./storage";
 
 const tempDirs: string[] = [];
 
@@ -22,32 +22,6 @@ afterEach(() => {
   for (const dir of tempDirs.splice(0)) {
     rmSync(dir, { recursive: true, force: true });
   }
-});
-
-describe("generateSlug", () => {
-  test("uses first heading and date", () => {
-    const slug = generateSlug("# My Plan\n\nSome content");
-    const date = new Date().toISOString().split("T")[0];
-    expect(slug).toMatch(/^my-plan-\d{4}-\d{2}-\d{2}$/);
-    expect(slug).toEndWith(date);
-  });
-
-  test("falls back to 'plan' when no heading", () => {
-    const slug = generateSlug("No heading here");
-    expect(slug).toMatch(/^plan-\d{4}-\d{2}-\d{2}$/);
-  });
-
-  test("same heading on same day produces same slug", () => {
-    const a = generateSlug("# Deploy Strategy\nVersion A");
-    const b = generateSlug("# Deploy Strategy\nVersion B");
-    expect(a).toBe(b);
-  });
-
-  test("different headings produce different slugs", () => {
-    const a = generateSlug("# Plan A");
-    const b = generateSlug("# Plan B");
-    expect(a).not.toBe(b);
-  });
 });
 
 describe("saveToHistory", () => {

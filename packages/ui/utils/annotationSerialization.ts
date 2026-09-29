@@ -17,10 +17,10 @@
  *    either a `[path, name]` tuple (newer) or a bare path string (oldest), for
  *    which the name is derived from the filename.
  *
- * Spec 05 (comments and attachments) owns the top-level/global image
- * conversion. Until then these decoders MUST keep returning global
- * attachments and per-annotation images as-is: dropping them here would
- * silently discard images from legacy drafts before 05 can convert them.
+ * The top-level/global image conversion lives in attachmentNormalization.ts.
+ * These decoders MUST keep returning global attachments and per-annotation
+ * images as-is: dropping them here would silently discard images from legacy
+ * drafts before the normalizer can convert them.
  */
 
 import { AnnotationType, type Annotation, type ImageAttachment } from '../types';
@@ -28,11 +28,13 @@ import { AnnotationType, type Annotation, type ImageAttachment } from '../types'
 // Image in shareable format: plain string (old) or [path, name] tuple (new)
 export type ShareableImage = string | [string, string];
 
-// Minimal shareable annotation format: [type, originalText, text?, author?, images?]
+// Minimal shareable annotation format: [type, originalText, text?, legacyAuthor?, images?]
+// The legacy author slot is kept so previously shared links and stored drafts
+// still decode; its value is ignored.
 export type ShareableAnnotation =
-  | ['D', string, string | null, ShareableImage[]?]                    // Deletion: type, original, author, images
-  | ['C', string, string, string | null, ShareableImage[]?]            // Comment: type, original, comment, author, images
-  | ['G', string, string | null, ShareableImage[]?];                   // Global Comment: type, comment, author, images
+  | ['D', string, string | null, ShareableImage[]?]                    // Deletion: type, original, legacy author (ignored), images
+  | ['C', string, string, string | null, ShareableImage[]?]            // Comment: type, original, comment, legacy author (ignored), images
+  | ['G', string, string | null, ShareableImage[]?];                   // Global Comment: type, comment, legacy author (ignored), images
 
 /**
  * Convert ShareableImage[] to ImageAttachment[] (handles old plain-string format)
@@ -54,7 +56,7 @@ export function parseShareableImages(raw: ShareableImage[] | undefined): ImageAt
  * Note: blockId, offsets, and meta will need to be populated separately
  * by finding the text in the rendered document.
  */
-export function fromShareable(data: ShareableAnnotation[], diffContexts?: (string | null)[] | null, sources?: (string | undefined)[] | null): Annotation[] {
+export function fromShareable(data: ShareableAnnotation[], diffContexts?: (string | null)[] | null): Annotation[] {
   const typeMap: Record<string, AnnotationType> = {
     'D': AnnotationType.DELETION,
     'C': AnnotationType.COMMENT,
@@ -64,10 +66,9 @@ export function fromShareable(data: ShareableAnnotation[], diffContexts?: (strin
   return data.map((item, index) => {
     const type = item[0];
 
-    // Handle global comments specially: ['G', text, author, images?]
+    // Handle global comments specially: ['G', text, legacy author (ignored), images?]
     if (type === 'G') {
       const text = item[1] as string;
-      const author = item[2] as string | null;
       const rawImages = item[3] as ShareableImage[] | undefined;
 
       return {
@@ -79,17 +80,14 @@ export function fromShareable(data: ShareableAnnotation[], diffContexts?: (strin
         text: text || undefined,
         originalText: '',
         createdA: Date.now() + index,
-        author: author || undefined,
         images: parseShareableImages(rawImages),
-        ...(sources?.[index] ? { source: sources[index] } : {}),
       };
     }
 
     const originalText = item[1];
-    // For deletion: [type, original, author, images?]
-    // For others: [type, original, text, author, images?]
+    // For deletion: [type, original, legacy author (ignored), images?]
+    // For others: [type, original, text, legacy author (ignored), images?]
     const text = type === 'D' ? undefined : item[2] as string;
-    const author = type === 'D' ? item[2] as string | null : item[3] as string | null;
     const rawImages = type === 'D' ? item[3] as ShareableImage[] | undefined : item[4] as ShareableImage[] | undefined;
 
     return {
@@ -101,10 +99,8 @@ export function fromShareable(data: ShareableAnnotation[], diffContexts?: (strin
       text: text || undefined,
       originalText,
       createdA: Date.now() + index,  // Preserve order
-      author: author || undefined,
       images: parseShareableImages(rawImages),
       ...(diffContexts?.[index] ? { diffContext: diffContexts[index] as Annotation['diffContext'] } : {}),
-      ...(sources?.[index] ? { source: sources[index] } : {}),
       // startMeta/endMeta will be set by web-highlighter
     };
   });

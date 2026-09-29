@@ -165,7 +165,6 @@ jobs:
                 const checks = [
                   [19432, "/", 200],
                   [19432, "/api/plan", 200],
-                  [19432, "/api/ai/capabilities", 200],
                   [19432, "/api/definitely-missing", 404],
                   [19432, "/robots.txt", 404],
                   [19433, "/", 200],

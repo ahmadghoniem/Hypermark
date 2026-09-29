@@ -18,13 +18,8 @@ if (process.env.HYPERMARK_DAST_ISOLATED !== "1") {
 // accidentally reached feature cannot invoke agents, persist review data,
 // open a browser, or install optional runtimes.
 Object.assign(process.env, {
-  HYPERMARK_REMOTE: "0",
   HYPERMARK_PORT: String(APP_PORT),
-  HYPERMARK_AI: "disabled",
-  HYPERMARK_JINA: "0",
   HYPERMARK_ANNOTATE_HISTORY: "0",
-  HYPERMARK_GUIDE_HISTORY: "0",
-  HYPERMARK_TODO_PROVIDER: "off",
   HYPERMARK_GLIMPSE: "0",
   HYPERMARK_SKIP_BROWSER_OPEN: "1",
   HYPERMARK_FILE_BROWSER_MAX_FILES: "64",
@@ -54,7 +49,6 @@ const application = await startAnnotateServer({
 const forwardedPaths = new Set([
   "/",
   "/api/plan",
-  "/api/ai/capabilities",
   "/api/definitely-missing",
 ]);
 const readOnlyMethods = new Set(["GET", "HEAD"]);

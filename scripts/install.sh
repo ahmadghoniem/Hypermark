@@ -70,11 +70,10 @@ Options:
                          not available or the check does not pass.
   --skip-attestation     Force-skip provenance verification even if enabled
                          via env var or ~/.hypermark/config.json.
-  --extras               Install the extra skills (setup-goal,
-                         visual-explainer) via `npx skills add` without asking.
+  --extras               Install the extra skills (visual-explainer) via `npx skills add` without asking.
   --no-extras            Skip the extras without asking.
   --model-invocable <l>  Comma-separated skill names to make model-invocable
-                         (e.g. hypermark-review,hypermark-setup-goal), or
+                         (e.g. hypermark-review,hypermark-last), or
                          "none". Skills are user-invoked-only by default.
   --minimal              Install only the hypermark binary (aliased
                          --binary-only). Skips every
@@ -371,7 +370,7 @@ verify_attestation=0
 # Unset: an existing ~/.hypermark always wins, so an install never relocates
 # itself; otherwise an explicitly-set absolute XDG_DATA_HOME places it at
 # $XDG_DATA_HOME/hypermark; otherwise ~/.hypermark.
-# A fresh root (spec 06, decision D5): Hypermark starts at ~/.hypermark and
+# A fresh root: Hypermark starts at ~/.hypermark and
 # never probes ~/.plannotator, so an existing Plannotator install keeps its
 # plans, drafts and config exactly where they are.
 _raw_dir="${HYPERMARK_DATA_DIR:-}"
@@ -752,30 +751,6 @@ fi
 
 print_path_advice
 
-# Validate plugin hooks.json if plugin is already installed
-PLUGIN_HOOKS="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/marketplaces/hypermark/apps/hook/hooks/hooks.json"
-if [ -f "$PLUGIN_HOOKS" ]; then
-    cat > "$PLUGIN_HOOKS" << 'HOOKS_EOF'
-{
-  "hooks": {
-    "PermissionRequest": [
-      {
-        "matcher": "ExitPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "hypermark",
-            "timeout": 345600
-          }
-        ]
-      }
-    ]
-  }
-}
-HOOKS_EOF
-    echo "Updated plugin hooks at ${PLUGIN_HOOKS}"
-fi
-
 # --- Aggressive cleanup of skills/commands we no longer manage ---
 # Echo each removal; ignore missing entries.
 
@@ -822,7 +797,7 @@ fi
 # CI runs without a terminal never prompt. CLI flags win over everything.
 PREFS_FILE="$_config_dir/install-prefs"
 CORE_SKILL_NAMES="hypermark-review hypermark-annotate hypermark-last"
-EXTRA_SKILL_NAMES="hypermark-setup-goal hypermark-visual-explainer"
+EXTRA_SKILL_NAMES="hypermark-visual-explainer"
 
 saved_extras=""
 saved_invocable=""
@@ -978,7 +953,7 @@ if [ "$run_wizard" -eq 1 ]; then
         # Flag already answered this question — don't ask and then ignore.
         extras_choice="$EXTRAS_FLAG"
     else
-        extras_choice=$(ask_yes_no "Install the extra skills (setup-goal, visual explainer)?" "${saved_extras:-no}") || wizard_timed_out=1
+        extras_choice=$(ask_yes_no "Install the extra skills (visual explainer)?" "${saved_extras:-no}") || wizard_timed_out=1
     fi
     invocable_list="$CORE_SKILL_NAMES"
     if [ "$extras_choice" = "yes" ]; then
@@ -1266,23 +1241,6 @@ fi
 
 if [ "$skip_skills" -eq 0 ] && [ "$extras_choice" != "yes" ]; then
     echo ""
-    echo "Optional skills (setup-goal, visual explainer):"
+    echo "Optional skills (visual explainer):"
     echo "  npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global"
-fi
-
-# Warn if hypermark is configured in both settings.json hooks AND the plugin (causes double execution)
-# Only warn when the plugin is installed — manual-only users won't have overlap
-CLAUDE_SETTINGS="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
-if [ -f "$PLUGIN_HOOKS" ] && [ -f "$CLAUDE_SETTINGS" ] && grep -q '"command".*hypermark' "$CLAUDE_SETTINGS" 2>/dev/null; then
-    echo ""
-    echo "⚠️ ⚠️ ⚠️  WARNING: DUPLICATE HOOK DETECTED  ⚠️ ⚠️ ⚠️"
-    echo ""
-    echo "  hypermark was found in your settings.json hooks:"
-    echo "  $CLAUDE_SETTINGS"
-    echo ""
-    echo "  This will cause hypermark to run TWICE on each plan review."
-    echo "  Remove the hypermark hook from settings.json and rely on the"
-    echo "  plugin instead (installed automatically via marketplace)."
-    echo ""
-    echo "⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️ ⚠️"
 fi

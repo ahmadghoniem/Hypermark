@@ -2,7 +2,7 @@
  * Math renderer slot.
  *
  * `MathBlock` and inline math read their renderer from this module instead of
- * importing `katex` statically, so a host that bundles by route does not carry
+ * importing `katex` statically, so a route-split bundle does not carry
  * KaTeX in every document read. The slot is SYNCHRONOUS: when it is filled
  * before the first render (which is what `./math-eager` does, and what every
  * Hypermark entry imports) the typeset HTML is in the DOM on the first
@@ -10,28 +10,22 @@
  * components render the same wrapper element with the TeX source as text,
  * call `loadMathRenderer()`, and re-render typeset once it resolves.
  *
- * This module deliberately has NO runtime import of `katex`: the only place
- * the dependency is named is `./math-default-loader`'s `import('katex')`,
- * which a chunking bundler turns into a lazy chunk and Hypermark's
- * single-file builds inline (the eager entry keeps it in the entry either
- * way). That default is called only while no host loader is registered, and
- * it lives in its own module so a host that registers a loader can alias it
- * away and drop the chunk (see HANDOFF.md "Lazy renderers and eager entries").
+ * This module has no static import of `katex`: `loadMathRenderer()` reaches it
+ * through a dynamic `import('katex')`, which a chunking bundler turns into a
+ * lazy chunk and Hypermark's single-file builds inline (the eager entry keeps
+ * it in the entry either way).
  */
 
 import type { KatexOptions } from 'katex';
-import { loadDefaultMathRenderer } from './math-default-loader';
 
 /** The subset of KaTeX's API the renderer needs. `katex` itself satisfies it. */
 export interface MathRenderer {
   renderToString(tex: string, options?: KatexOptions): string;
 }
 
-export type MathRendererLoader = () => Promise<MathRenderer>;
-
 /**
  * Who filled the slot: the eager entry (`./math-eager`), the lazy loader, or a
- * host calling `setMathRenderer` directly. Diagnostic for a host chasing a TeX
+ * direct `setMathRenderer` call. Diagnostic for chasing a TeX
  * flash, and the eager value is a build marker: it only reaches a bundle when
  * `./math-eager` is evaluated, which is what `tests/entry-assets.test.ts`
  * asserts on the built single-file HTML.
@@ -40,18 +34,11 @@ export type MathRendererSource = 'hypermark-math-eager' | 'loader' | 'host';
 
 let renderer: MathRenderer | null = null;
 let rendererSource: MathRendererSource | null = null;
-/**
- * The host loader, or `null` while none is registered. `null` is the only
- * state in which `loadMathRenderer()` reaches `loadDefaultMathRenderer` and
- * its `import('katex')`; a registered loader is never backfilled by the
- * default, not even after it rejects.
- */
-let loader: MathRendererLoader | null = null;
 let pending: Promise<MathRenderer> | null = null;
 /**
  * Bumped by `resetMathRenderer()`. A load in flight across a reset must not
  * fill the slot when it lands: the reset promised an empty slot, and the next
- * `loadMathRenderer()` re-invokes the registered loader instead.
+ * `loadMathRenderer()` starts a fresh load instead.
  */
 let resetEpoch = 0;
 const listeners = new Set<() => void>();
@@ -87,26 +74,6 @@ export function subscribeMathRenderer(listener: () => void): () => void {
 }
 
 /**
- * Swap the loader `loadMathRenderer()` uses. Host seam
- * (`configureHypermarkUI({ mathRendererLoader })`): a host may return a
- * module that imports katex AND its stylesheet in one chunk. A load already in
- * flight keeps going and still fills the slot when it lands (the component
- * that started it is waiting on that result and would otherwise never
- * typeset); the new loader is used from the next `loadMathRenderer()` call
- * that finds the slot empty. Passing `null` unregisters the host loader and
- * restores the package default.
- */
-export function setMathRendererLoader(next: MathRendererLoader | null): void {
-  loader = next;
-  pending = null;
-}
-
-/** The registered host loader, or `null` while the package default applies. */
-export function getMathRendererLoader(): MathRendererLoader | null {
-  return loader;
-}
-
-/**
  * Load and register the renderer. Idempotent: a filled slot resolves at once,
  * a load in flight is shared, and a rejected load is dropped so the next call
  * retries instead of failing forever on a transient chunk error.
@@ -115,7 +82,7 @@ export function loadMathRenderer(): Promise<MathRenderer> {
   if (renderer) return Promise.resolve(renderer);
   if (!pending) {
     const epoch = resetEpoch;
-    const attempt = (loader ? loader() : loadDefaultMathRenderer()).then(
+    const attempt = import('katex').then((m) => m.default).then(
       (loaded) => {
         // A reset since this load started wants the slot empty: hand the
         // result to the caller that awaited it, but do not register it.
@@ -134,11 +101,8 @@ export function loadMathRenderer(): Promise<MathRenderer> {
 
 /**
  * Test hook: empty the slot (renderer and source) and forget any load in
- * flight, so the next `loadMathRenderer()` invokes the loader afresh and a
- * stale in-flight result cannot fill the slot after the reset. The registered
- * loader is KEPT: resetting the renderer is not unregistering the host seam
- * (a host's `configureHypermarkUI` runs once, before any reset a test issues
- * later). To drop the loader too, call `setMathRendererLoader(null)`.
+ * flight, so the next `loadMathRenderer()` starts a fresh load and a
+ * stale in-flight result cannot fill the slot after the reset.
  */
 export function resetMathRenderer(): void {
   renderer = null;
@@ -153,7 +117,7 @@ export const normalizeMathTex = (tex: string): string => tex.trim();
 /**
  * Render TeX with the pinned option set. `throwOnError: false` and
  * `trust: false` are a deliberate security pin applied to EVERY renderer,
- * including one a host registered: a registered module never widens what
+ * including one registered through `setMathRenderer`: a registered module never widens what
  * document-supplied TeX may do. Returns `null` while no renderer is
  * registered so callers can fall back to the text placeholder.
  */

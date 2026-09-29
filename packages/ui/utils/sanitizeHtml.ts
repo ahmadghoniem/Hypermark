@@ -37,8 +37,8 @@ export function sanitizeBlockHtml(html: string): string {
 
 /**
  * Sanitize inline HTML that is already HTML (no markdown pass) — same allowlist
- * as {@link sanitizeBlockHtml}. Used for inline GitHub content (e.g. PR comment
- * spans) so the allowlist lives in exactly one place.
+ * as {@link sanitizeBlockHtml}. Used for inline HTML in commit message bodies
+ * so the allowlist lives in exactly one place.
  */
 export function sanitizeInlineHtml(html: string): string {
   return DOMPurify.sanitize(html, { ALLOWED_TAGS, ALLOWED_ATTR });

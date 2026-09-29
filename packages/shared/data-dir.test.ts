@@ -88,7 +88,7 @@ describe("getHypermarkDataDir", () => {
   });
 
   /**
-   * Spec 06 decision D5: a fresh root, no import, no merge. An existing
+   * A fresh root, no import, no merge. An existing
    * Plannotator directory must not attract a single read — the whole promise
    * of "your old data is untouched" rests on this resolver never naming it.
    */

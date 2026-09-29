@@ -21,5 +21,3 @@ export const DialsMount: React.FC = () => {
 
   return <DialRoot key={position} position={position} productionEnabled />;
 };
-
-export default DialsMount;

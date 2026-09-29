@@ -20,7 +20,6 @@ export interface AnnotateClientLeaseConfig {
 }
 
 export interface ShouldConnectAnnotateClientLeaseInput {
-  annotateMode: boolean;
   /** Decision already taken, if any. Nullish means the session is still open. */
   submitted: string | null | undefined;
   clientLease: AnnotateClientLeaseConfig | null | undefined;
@@ -35,7 +34,6 @@ export function shouldConnectAnnotateClientLease(
   input: ShouldConnectAnnotateClientLeaseInput,
 ): boolean {
   return (
-    input.annotateMode &&
     input.submitted == null &&
     !!input.clientLease?.enabled
   );

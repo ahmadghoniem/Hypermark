@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import type { CommitDiffInfo } from '@hypermark/shared/types';
 import { Avatar } from './Avatar';
 import { MarkdownBody } from './MarkdownBody';
-import { formatRelativeTime } from '@hypermark/ui/utils/aiChatFormat';
+import { formatRelativeTime } from '../utils/formatRelativeTime';
 
 /**
  * The commit description heading the all-files view while a `commit:<sha>`
  * diff is on screen: subject, author (avatar + name), sha, age, and the full
- * message body rendered as markdown — the same renderer the PR viewer uses.
+ * message body rendered as markdown.
  *
  * Rendered as the all-files surface's leadingContent, so it scrolls away with
  * the diff (not pinned). The body shows in full; only genuinely huge bodies

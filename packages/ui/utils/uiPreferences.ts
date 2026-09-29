@@ -11,7 +11,3 @@ export function getUIPreferences(): UIPreferences {
     stickyActionsEnabled: storage.getItem(STORAGE_KEY_STICKY_ACTIONS) !== 'false',
   };
 }
-
-export function saveUIPreferences(prefs: UIPreferences): void {
-  storage.setItem(STORAGE_KEY_STICKY_ACTIONS, String(prefs.stickyActionsEnabled));
-}

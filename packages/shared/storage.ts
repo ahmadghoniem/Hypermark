@@ -10,32 +10,9 @@
 
 import { join } from "path";
 import { mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, existsSync } from "fs";
-import { sanitizeTag } from "./project";
 import { getHypermarkDataDir } from "./data-dir";
 
 const DATA_DIR = getHypermarkDataDir();
-
-/**
- * Extract the first heading from markdown content.
- */
-function extractFirstHeading(markdown: string): string | null {
-  const match = markdown.match(/^#\s+(.+)$/m);
-  if (!match) return null;
-  return match[1].trim();
-}
-
-/**
- * Generate a slug from plan content.
- * Format: {sanitized-heading}-YYYY-MM-DD
- */
-export function generateSlug(plan: string): string {
-  const date = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-
-  const heading = extractFirstHeading(plan);
-  const slug = heading ? sanitizeTag(heading) : null;
-
-  return slug ? `${slug}-${date}` : `plan-${date}`;
-}
 
 // --- Version History ---
 
@@ -115,8 +92,8 @@ export function saveToHistory(
  *   {DATA_DIR}/history/{project}/{slug}/submissions/{timestamp}.md
  *
  * The `submissions/` subdirectory keeps these out of the numeric NNN.md
- * version scans above (getNextVersionNumber / listVersions / listProjectPlans
- * all match files directly in the slug directory only). Filenames are
+ * version scans above (getNextVersionNumber / listVersions
+ * both match files directly in the slug directory only). Filenames are
  * filesystem-safe ISO timestamps (colons/dots replaced) with a collision
  * counter so rapid successive submits never overwrite each other.
  *
@@ -210,44 +187,6 @@ export function listVersions(
       }
     }
     return versions.sort((a, b) => a.version - b.version);
-  } catch {
-    return [];
-  }
-}
-
-/**
- * List all plan slugs stored for a project.
- * Returns slugs sorted by most recently modified first.
- */
-export function listProjectPlans(
-  project: string
-): Array<{ slug: string; versions: number; lastModified: string }> {
-  const projectDir = join(DATA_DIR, "history", project);
-  try {
-    const entries = readdirSync(projectDir, { withFileTypes: true });
-    const plans: Array<{ slug: string; versions: number; lastModified: string }> = [];
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const slugDir = join(projectDir, entry.name);
-      const files = readdirSync(slugDir).filter((f) => /^\d+\.md$/.test(f));
-      if (files.length === 0) continue;
-
-      // Find most recent file modification time
-      let latest = 0;
-      for (const file of files) {
-        try {
-          const mtime = statSync(join(slugDir, file)).mtime.getTime();
-          if (mtime > latest) latest = mtime;
-        } catch { /* skip */ }
-      }
-
-      plans.push({
-        slug: entry.name,
-        versions: files.length,
-        lastModified: latest ? new Date(latest).toISOString() : "",
-      });
-    }
-    return plans.sort((a, b) => b.lastModified.localeCompare(a.lastModified));
   } catch {
     return [];
   }

@@ -1,5 +1,4 @@
 import type { Block, Annotation, CodeAnnotation, ImageAttachment } from '../types';
-import { planDenyFeedback } from '@hypermark/core/feedback-templates';
 import { resolveReplyParents } from '@hypermark/core/annotation-threads';
 
 /**
@@ -1075,10 +1074,6 @@ export function groupBlocks(blocks: Block[]): RenderGroup[] {
   return groups;
 }
 
-/** Wrap feedback output with the deny preamble for pasting into agent sessions */
-export const wrapFeedbackForAgent = (feedback: string): string =>
-  planDenyFeedback(feedback);
-
 export interface ExportAnnotationsOptions {
   sourceConverted?: boolean;
 }
@@ -1160,7 +1155,7 @@ export const exportAnnotations = (
     output += `> Note: Line numbers below refer to the converted markdown, not the original HTML/URL source.\n\n`;
   }
 
-  // Spec 05 §4.1: a standalone "Reference Images" section is no longer
+  // A standalone "Reference Images" section is no longer
   // emitted here. Legacy top-level `globalAttachments` are decoded (see
   // `normalizeDocumentAnnotations`) into one image-only GLOBAL_COMMENT
   // annotation before export, so those images already appear below under
@@ -1222,9 +1217,8 @@ export const exportAnnotations = (
     pushReplies(parent, 0);
     while (stack.length > 0) {
       const { reply, depth } = stack.pop()!;
-      const who = reply.author ? `${reply.author}` : 'reply';
       const indent = '  '.repeat(Math.min(depth, MAX_REPLY_INDENT_DEPTH));
-      parts.push(`${indent}- **Reply (${who}):** ${String(reply.text ?? '').replace(/\r?\n/g, `\n${indent}  `)}\n`);
+      parts.push(`${indent}- **Reply:** ${String(reply.text ?? '').replace(/\r?\n/g, `\n${indent}  `)}\n`);
       if (reply.images && reply.images.length > 0) {
         reply.images.forEach((img: ImageAttachment) => {
           parts.push(`${indent}  - [${img.name}] \`${img.path}\`\n`);
@@ -1311,7 +1305,7 @@ export const exportLinkedDocAnnotations = (
 
     output += `## ${filepath}${isConverted ? ' (converted from HTML — line numbers refer to converted markdown)' : ''}\n\n`;
 
-    // Spec 05 §4.1: no standalone "Reference Images" section — legacy
+    // No standalone "Reference Images" section — legacy
     // top-level images are decoded into a GLOBAL_COMMENT annotation and
     // appear under "Attached images" with that comment below.
 

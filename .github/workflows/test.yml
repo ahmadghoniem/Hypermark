@@ -34,12 +34,6 @@ jobs:
       - name: Type check
         run: bun run typecheck
 
-      - name: Smoke-test published UI package
-        # This packs the real tarball and installs it with a pinned pnpm CLI in
-        # a temp consumer outside the monorepo. It prevents workspace protocols
-        # from leaking into the manifest published to external consumers.
-        run: bun run --cwd packages/ui smoke:package
-
       - name: Run tests
         run: bun test
 
@@ -70,10 +64,8 @@ jobs:
   install-cmd-windows:
     # End-to-end integration test for scripts/install.cmd on real cmd.exe.
     # With scripts/install.test.ts gone this is the only coverage the installer
-    # has: it runs install.cmd end-to-end on Windows with a seeded ~/.gemini
-    # settings.json fixture so cmd's delayed-expansion parser and the embedded
-    # `node -e` Gemini merge — exactly where issue #506 lived — actually
-    # execute, and any regression of #506 fails CI.
+    # has: it runs install.cmd end-to-end on Windows so cmd's delayed-expansion
+    # parser actually executes.
     name: install.cmd (Windows integration)
     runs-on: windows-latest
     steps:
@@ -81,49 +73,13 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Seed fake ~/.gemini/settings.json with pre-existing hook
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.gemini" | Out-Null
-          # Fixture mirrors the shape of a real Gemini settings.json (top-level
-          # `hooks.BeforeTool` array plus unrelated sibling keys) but uses only
-          # obviously-fake values. Must NOT contain the literal string
-          # "hypermark" anywhere — install.cmd's Gemini block is gated on
-          # `findstr /c:"hypermark"` returning non-zero and would otherwise
-          # skip the merge entirely.
-          $fixture = @'
-          {
-            "theme": "ci-fixture-theme",
-            "hooks": {
-              "BeforeTool": [
-                {
-                  "matcher": "ci-fixture-existing-matcher",
-                  "hooks": [
-                    {
-                      "type": "command",
-                      "command": "ci-fixture-existing-command",
-                      "timeout": 1000
-                    }
-                  ]
-                }
-              ]
-            },
-            "general": {
-              "ciFixtureSentinel": true
-            }
-          }
-          '@
-          Set-Content -Path "$env:USERPROFILE\.gemini\settings.json" -Value $fixture -NoNewline
-
       - name: Run install.cmd end-to-end # zizmor: ignore[misfeature]
         # CMD is the subject of this regression test; replacing the shell would
         # invalidate it. Owner: maintainers; reassess by 2027-08-11.
         shell: cmd
         # v0.17.1 is pinned intentionally. This test needs a real binary
         # to download so it can exercise install.cmd end-to-end — SHA256
-        # verification, skills sparse-checkout, and (critically) the
-        # embedded `node -e` Gemini merge path that was the site of
-        # issue #506. Using `latest` would couple the Windows regression
+        # verification and skills sparse-checkout. Using `latest` would couple the Windows regression
         # test to whatever version is currently released, so a bad
         # release would retroactively break CI on every branch.
         #
@@ -138,52 +94,6 @@ jobs:
         # A missing or mismatched release asset surfaces as a curl 404
         # in this step with no obvious connection to the test's purpose.
         run: scripts\install.cmd v0.17.1 --skip-attestation
-
-      - name: Verify Gemini settings.json was merged correctly
-        shell: pwsh
-        run: |
-          $path = "$env:USERPROFILE\.gemini\settings.json"
-          if (-not (Test-Path $path)) { throw "settings.json missing after install" }
-
-          # Must still parse as JSON after the merge (regression for #506,
-          # where cmd's delayed expansion corrupted the embedded node script
-          # and left settings.json in a broken state).
-          $s = Get-Content $path -Raw | ConvertFrom-Json
-
-          # The hypermark hook must have been added.
-          $hypermarkEntries = $s.hooks.BeforeTool | Where-Object {
-            $_.matcher -eq 'exit_plan_mode'
-          }
-          if (-not $hypermarkEntries) {
-            throw "hypermark hook was not added to BeforeTool"
-          }
-          $planCmd = $hypermarkEntries[0].hooks | Where-Object {
-            $_.command -eq 'hypermark'
-          }
-          if (-not $planCmd) {
-            throw "hypermark command entry missing inside the new hook"
-          }
-
-          # The pre-existing (fixture) hook must have survived the merge.
-          # The original buggy JS was `if(!s.hooks.BeforeTool)s.hooks.BeforeTool=[]`
-          # which — after cmd ate the `!` — wiped existing arrays. The fix
-          # (`s.hooks.BeforeTool = s.hooks.BeforeTool || []`) must preserve them.
-          $fixtureHook = $s.hooks.BeforeTool | Where-Object {
-            $_.matcher -eq 'ci-fixture-existing-matcher'
-          }
-          if (-not $fixtureHook) {
-            throw "pre-existing hook was wiped — merge clobbered existing data"
-          }
-
-          # Unrelated top-level keys must survive the merge.
-          if ($s.theme -ne 'ci-fixture-theme') {
-            throw "unrelated top-level field 'theme' was mangled"
-          }
-          if ($s.general.ciFixtureSentinel -ne $true) {
-            throw "unrelated top-level field 'general' was mangled"
-          }
-
-          Write-Host "✓ Gemini settings.json merge verified (issue #506 regression guard)"
 
       - name: Attestation pre-flight rejects v0.17.1 on real cmd.exe
         shell: pwsh
@@ -215,7 +125,7 @@ jobs:
           $installedBinary = "$env:USERPROFILE\.local\bin\hypermark.exe"
 
           # Capture the currently-installed binary's hash BEFORE running
-          # the rejection test. The earlier Gemini-merge integration step
+          # the rejection test. The earlier install.cmd step
           # installed v0.17.1 at this path; we use the captured hash as
           # a baseline so we can prove the rejected invocation left it
           # untouched (no wasted download, no overwrite).
@@ -275,26 +185,6 @@ jobs:
             }
           }
           Write-Host "✓ No deprecated Claude Code command files were written (skills are the slash commands now)"
-
-          # Gemini slash commands — `.toml` files with `!{hypermark ...}` invocation
-          # syntax, now COPIED VERBATIM from the sparse checkout (apps/gemini/commands
-          # at the pinned tag) instead of being generated by echo escapes. The earlier
-          # integration step seeded `~/.gemini/settings.json`, so install.cmd's Gemini
-          # block fired. The `!{hypermark` content check verifies the verbatim copy
-          # actually delivered intact files (and would catch a regression back to
-          # generated content that mangles the `!`).
-          $geminiDir = "$env:USERPROFILE\.gemini\commands"
-          foreach ($file in @("hypermark-review.toml", "hypermark-annotate.toml")) {
-            $path = Join-Path $geminiDir $file
-            if (-not (Test-Path $path)) {
-              throw "Expected Gemini command file missing: $path"
-            }
-            $content = Get-Content $path -Raw
-            if ($content -notmatch '!\{hypermark') {
-              throw "Gemini command file $file is missing the '!' shell-invocation prefix. Content: $content"
-            }
-          }
-          Write-Host "✓ Both Gemini slash command files contain the '!' prefix"
 
       - name: Unknown flag is rejected with non-zero exit
         shell: pwsh

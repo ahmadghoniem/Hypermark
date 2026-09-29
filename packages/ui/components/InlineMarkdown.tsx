@@ -17,35 +17,13 @@ export interface DocPreviewResult {
   contents?: string;
   filepath?: string;
 }
-export type DocPreviewFetcher = (path: string, base?: string) => Promise<DocPreviewResult | null>;
-
-/**
- * Default code-file hover-preview fetcher — Hypermark's `/api/doc` behavior, verbatim.
- */
-const defaultDocPreviewFetcher: DocPreviewFetcher = async (path, base) => {
+/** Code-file hover-preview fetcher (`/api/doc`). */
+const fetchDocPreview = async (path: string, base?: string): Promise<DocPreviewResult | null> => {
   const params = new URLSearchParams({ path });
   if (base) params.set('base', base);
   const res = await fetch(`/api/doc?${params}`);
   return await res.json();
 };
-
-// Module-level fetcher, stable identity. Defaults to Hypermark's `/api/doc`.
-// A host (e.g. Workspaces) calls setDocPreviewFetcher once at startup to load
-// hover previews from its own backend.
-let docPreviewFetcher: DocPreviewFetcher = defaultDocPreviewFetcher;
-
-/** Override how code-file hover previews are fetched. Call once at app startup. */
-export const setDocPreviewFetcher = (fetcher: DocPreviewFetcher): void => {
-  docPreviewFetcher = fetcher;
-};
-
-/** Reset to the default (Hypermark `/api/doc`) fetcher. Mainly for tests. */
-export const resetDocPreviewFetcher = (): void => {
-  docPreviewFetcher = defaultDocPreviewFetcher;
-};
-
-/** Read the active fetcher at call time (so a late override is honored). */
-export const getDocPreviewFetcher = (): DocPreviewFetcher => docPreviewFetcher;
 
 /**
  * Decide how a candidate code-file path should render based on validation state:
@@ -204,7 +182,7 @@ const CodeFileLink: React.FC<{
     if (hoverPreviewRef.current) return;
     showTimerRef.current = setTimeout(async () => {
       try {
-        const data = await docPreviewFetcher(candidate, baseDir);
+        const data = await fetchDocPreview(candidate, baseDir);
         if (data?.contents) setHoverPreview({ contents: data.contents, filepath: data.filepath ?? candidate });
       } catch {}
     }, 150);

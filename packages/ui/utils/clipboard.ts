@@ -63,29 +63,6 @@ function copyTextWithFallback(text: string, focusOwner?: HTMLElement): boolean {
 }
 
 /**
- * Copy text without stealing focus or discarding the host document's native
- * selection. Falls back to the copy event for restricted browser contexts.
- */
-export function copyTextPreservingFocus(
-  text: string,
-  focusOwner: HTMLElement,
-): void {
-  try {
-    const clipboardWrite = navigator.clipboard?.writeText(text);
-    if (clipboardWrite) {
-      void clipboardWrite.catch(() => {
-        copyTextWithFallback(text, focusOwner);
-      });
-      return;
-    }
-  } catch {
-    // Fall through when a browser exposes Clipboard but rejects access
-    // synchronously (for example, in a restricted embedded document).
-  }
-  copyTextWithFallback(text, focusOwner);
-}
-
-/**
  * Copy text to the clipboard, falling back to the legacy copy-event /
  * execCommand path when the async Clipboard API is unavailable (insecure
  * contexts such as remote-mode plain HTTP) or rejects. Resolves `true` when

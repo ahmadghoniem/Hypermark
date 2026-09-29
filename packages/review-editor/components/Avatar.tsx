@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 /** Round author avatar with an initials fallback (and broken-image fallback).
- * Shared by the PR comments timeline and the Commits panel. */
+ * Shared by the commit description header and the Commits panel. */
 export function Avatar({ src, name, size = 22 }: { src?: string; name: string; size?: number }) {
   const [failed, setFailed] = useState(false);
   // A new src deserves a fresh attempt — without this, an instance whose

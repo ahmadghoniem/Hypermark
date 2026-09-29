@@ -76,7 +76,7 @@ const DEFAULT_SUFFIXES = DEFAULT_GENERATED_PATTERNS.filter((p) =>
 /**
  * Does the path's LAST segment match a built-in generated default? Pure and
  * git-free, so it also serves the non-git degrade modes (piped patches,
- * workspace multi-repo folder-prefixed paths, PR worktrees) where attribute lookup is unavailable.
+ * PR worktrees) where attribute lookup is unavailable.
  */
 export function isDefaultGeneratedPath(path: string): boolean {
   const name = path.slice(path.lastIndexOf("/") + 1);
@@ -103,7 +103,7 @@ export function detectGeneratedFilesByName(paths: string[]): string[] {
  * UN-mark it — overriding the built-in defaults. `unspecified` (or any other
  * value) expresses no opinion and falls through to the defaults.
  */
-export function parseCheckAttrStates(
+function parseCheckAttrStates(
   stdout: string,
 ): Map<string, "set" | "unset" | "unspecified"> {
   const tokens = stdout.split("\0");

@@ -72,9 +72,8 @@ interface FileTreeProps {
   onSelectSearchMatch?: (matchId: string) => void;
   onStepSearchMatch?: (direction: 1 | -1) => void;
   onSelectAllFiles?: () => void;
-  isAllFilesActive?: boolean;
   scrollHighlightIndex?: number;
-  /** Absolute repo root for the "Copy full path" context menu item. Null/undefined hides the option (e.g. PR review mode). */
+  /** Absolute repo root for the "Copy full path" context menu item. Null/undefined hides the option. */
   repoRoot?: string | null;
   /** Current panel-view selection. The tree also renders as the FALLBACK for a
    * latent 'sections'/'commits' selection the session can't offer, so the
@@ -130,7 +129,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
   onSelectSearchMatch,
   onStepSearchMatch,
   onSelectAllFiles,
-  isAllFilesActive = false,
   scrollHighlightIndex,
   repoRoot,
   panelView = 'tree',
@@ -140,11 +138,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
   sinceBaseSections,
 }) => {
   const isSearchVisible = !!onSearchChange && (isSearchOpen || !!searchQuery.trim());
-
-  // The active-file/overlay-panel forcing rule the tree has always applied:
-  // the All files view owns the "active" slot while it is open, so the tree
-  // shows no selection of its own.
-  const effectiveActiveFileIndex = isAllFilesActive ? -1 : activeFileIndex;
 
   const treePaths = useMemo(() => buildFileTreePaths(files), [files]);
 
@@ -209,7 +202,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // Double-click activation (spec 04 step 4): @pierre/trees ships no
+  // Double-click activation: @pierre/trees ships no
   // double-click hook. We listen for `dblclick` on the element wrapping the
   // tree, walk `event.composedPath()` across the shadow DOM boundary for the
   // first `data-item-path`, and resolve to canonical identity.
@@ -284,10 +277,9 @@ export const FileTree: React.FC<FileTreeProps> = ({
     [],
   );
 
-  // The fixed tree contract (spec 04 step 3) — applied exactly, density
-  // deliberately omitted. `gitStatus` is likewise never passed: spec 02 removed
-  // the per-file Git status UI and spec 04 forbids reintroducing it as a
-  // substitute. `paths` seeds construction only; `resetPaths` below keeps the
+  // The fixed tree contract — applied exactly, density
+  // deliberately omitted. `gitStatus` is likewise never passed: the per-file
+  // Git status UI was removed on purpose. `paths` seeds construction only; `resetPaths` below keeps the
   // live model in sync as `files` change.
   const { model } = useFileTree({
     paths: treePaths,
@@ -328,7 +320,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
   // Re-runs on treePaths changes so reveal survives a path-set change that
   // leaves files unchanged.
   useEffect(() => {
-    const [identifier] = getSelectedTreePaths(files, effectiveActiveFileIndex);
+    const [identifier] = getSelectedTreePaths(files, -1);
     if (identifier) {
       revealFileInTree(model, files, identifier);
     } else {
@@ -336,7 +328,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
         model.getItem(selectedPath)?.deselect();
       }
     }
-  }, [model, files, effectiveActiveFileIndex, treePaths]);
+  }, [model, files, treePaths]);
 
   // Real canonical directory paths (every ancestor of every file), not the
   // collapsed display paths buildFileTree produces — the Pierre model's
@@ -500,7 +492,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
       <div className="p-1 shrink-0">
         {onSelectAllFiles && (
           <AllFilesRow
-            active={isAllFilesActive}
+            active
             onClick={onSelectAllFiles}
             additions={files.reduce((sum, file) => sum + file.additions, 0)}
             deletions={files.reduce((sum, file) => sum + file.deletions, 0)}

@@ -20,7 +20,6 @@ import {
   renameSync,
   realpathSync,
 } from "fs";
-import { execSync } from "child_process";
 
 import type { DefaultDiffType, DiffLineBgIntensity, DiffOptions, ThemeConfig } from '@hypermark/core/config-types';
 import { isFaviconStyle, type FaviconStyle } from './favicon';
@@ -41,12 +40,6 @@ export interface PromptConfig {
     approvedWithNotes?: string;
     denied?: string;
   };
-  plan?: PromptSectionConfig & {
-    approved?: string;
-    approvedWithNotes?: string;
-    autoApproved?: string;
-    denied?: string;
-  };
   annotate?: PromptSectionConfig & {
     fileFeedback?: string;
     messageFeedback?: string;
@@ -55,7 +48,7 @@ export interface PromptConfig {
   };
 }
 
-const PROMPT_SECTIONS = ["review", "plan", "annotate"] as const;
+const PROMPT_SECTIONS = ["review", "annotate"] as const;
 
 export function mergePromptConfig(
   current?: PromptConfig,
@@ -83,7 +76,6 @@ export function mergePromptConfig(
 }
 
 export interface HypermarkConfig {
-  displayName?: string;
   diffOptions?: DiffOptions;
   /**
    * Appearance: which mode, plus the palette assigned to each half of the
@@ -110,8 +102,8 @@ export interface HypermarkConfig {
    * the HYPERMARK_SKIP_SKILLS_INSTALL env var, which is in turn overridden
    * by the --skip-skills flag. Default: off.
    *
-   * The per-agent entries this object used to
-   * carry went with the integrations spec 02 removed. It stays an object
+   * The per-agent entries this object used to carry went with the removed
+   * integrations. It stays an object
    * rather than a bare boolean so an existing config.json carrying those
    * keys still parses; unknown keys are simply not read.
    */
@@ -153,19 +145,6 @@ export interface HypermarkConfig {
    * Set to false to always use the system browser even when Glimpse is installed.
    */
   glimpse?: boolean;
-  /**
-   * Mirror the approved plan checklist into an editable todo provider during
-   * execution (issue #484). "auto" (default) syncs whenever a provider is
-   * detected — currently pi-todos. Detection checks the configured todo
-   * directory; PI_TODO_PATH only redirects which directory is checked.
-   *
-   * The mirror is additive: the progress widget is left alone. pi-todos has no
-   * live surface of its own (its list renders on demand in `/todos`), so the
-   * widget stays the at-a-glance tracker while the provider contributes
-   * editable, session-durable todos. Sync is one-way; provider-side edits are
-   * never read back. Failures are non-fatal.
-   */
-  todoProvider?: "auto" | "off";
   /**
    * Selected favicon style for Hypermark application surfaces:
    * 'classic' (historical dark-navy P tile).
@@ -400,36 +379,19 @@ export function saveConfig(partial: Partial<HypermarkConfig>): void {
 }
 
 /**
- * Detect the git user name from `git config user.name`.
- * Returns null if git is unavailable, not in a repo, or user.name is not set.
- */
-export function detectGitUser(): string | null {
-  try {
-    const name = execSync("git config user.name", { encoding: "utf-8", timeout: 3000 }).trim();
-    return name || null;
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Build the serverConfig payload for API responses.
  * Reads config.json fresh each call so the response reflects the latest file on disk.
  */
-export function getServerConfig(gitUser: string | null): {
-  displayName?: string;
+export function getServerConfig(): {
   diffOptions?: DiffOptions;
   theme?: ThemeConfig;
   favicon?: FaviconStyle;
-  gitUser?: string;
 } {
   const cfg = loadConfig();
   return {
-    displayName: cfg.displayName,
     diffOptions: cfg.diffOptions,
     ...(cfg.theme !== undefined && { theme: cfg.theme }),
     ...(isFaviconStyle(cfg.favicon) && { favicon: cfg.favicon }),
-    gitUser: gitUser ?? undefined,
   };
 }
 
@@ -505,26 +467,4 @@ export function resolveFeedbackHistory(config: HypermarkConfig): boolean {
     return envVal === "1" || envVal.toLowerCase() === "true";
   }
   return coerceConfigBoolean(config.feedbackHistory, true);
-}
-
-/**
- * Resolve whether the approved plan checklist is mirrored into an editable todo
- * provider during execution.
- *
- * Priority (highest wins):
- *   HYPERMARK_TODO_PROVIDER env var  →  config.todoProvider  →  default auto
- *
- * Env values `off` / `0` / `false` / `disabled` turn the mirror off, matching
- * the vocabulary the other flags accept; anything else — including `auto` —
- * keeps it on. Enabled only means "sync when a provider is detected": with no
- * provider present, the progress widget is the whole experience either way.
- */
-export function resolveTodoProviderEnabled(config: HypermarkConfig): boolean {
-  const envVal = process.env.HYPERMARK_TODO_PROVIDER;
-  if (envVal !== undefined) {
-    const v = envVal.toLowerCase();
-    return v !== "off" && v !== "0" && v !== "false" && v !== "disabled";
-  }
-  if (config.todoProvider !== undefined) return config.todoProvider !== "off";
-  return true;
 }

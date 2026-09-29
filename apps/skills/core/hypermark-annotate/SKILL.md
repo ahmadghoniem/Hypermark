@@ -14,7 +14,7 @@ Run for ordinary annotation/feedback:
 hypermark annotate <file>
 ```
 
-Run when the user asks to review, approve, accept, or gate a generated plan/spec/document:
+Run when the user asks to review, approve, accept, or gate a generated spec/document:
 
 ```bash
 hypermark annotate <file> --gate --json

@@ -3,9 +3,8 @@
  * "Login Mockup.png" → "login-mockup"
  * "annotated.png" or generic names → "image-N"
  *
- * Extracted from AttachmentsButton so the non-component upload paths (composer
- * paste/drop, spec 05 §3.2) can name attachments identically without importing
- * a React component module. `AttachmentsButton` re-exports it unchanged.
+ * Shared by the upload paths (composer paste/drop) so every attachment is
+ * named the same way.
  */
 export function deriveImageName(originalName: string, existingNames: string[]): string {
   const base = originalName.replace(/\.[^.]+$/, '');

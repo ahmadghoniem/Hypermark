@@ -28,12 +28,6 @@ import {
   resolve,
 } from "node:path";
 import { getHypermarkDataDir } from "@hypermark/shared/data-dir";
-import {
-  applyEdits,
-  createScanner,
-  findNodeAtLocation,
-  parseTree,
-} from "jsonc-parser";
 
 const CORE_SKILLS = [
   "hypermark-review",
@@ -57,7 +51,7 @@ const EXTRA_SKILLS = [
 // Claude Code command files this product replaced with skills of the same
 // name. Every entry is a name Hypermark itself writes: an existing Hypermark
 // installation's commands, skills and agent homes are another product's files
-// and are left untouched (spec 06, decision D5). Uninstall ownership does not
+// and are left untouched. Uninstall ownership does not
 // widen just because the label on the box changed.
 const LEGACY_COMMAND_NAMES = [
   ...CORE_SKILLS,
@@ -112,10 +106,8 @@ const WINDOWS_PATH_BROADCAST_STATEMENTS = [
  * success the ORIGINAL value is echoed as one JSON string on stdout so the
  * caller can roll back. The echo is written before the broadcast, so stdout
  * carrying that JSON proves the registry write completed.
- *
- * @internal Exported only so the PowerShell syntax can be regression-tested.
  */
-export const WINDOWS_PATH_SCRIPT = [
+const WINDOWS_PATH_SCRIPT = [
   "$ErrorActionPreference='Stop'",
   "$k=[Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment',$true)",
   "if($null -eq $k){exit 3}",
@@ -145,9 +137,8 @@ const WINDOWS_PATH_RESTORED_SENTINEL = "HYPERMARK_PATH_RESTORED";
  * (the kind the removal preserved), falling back to REG_EXPAND_SZ when the
  * value is gone entirely. Same decoupled broadcast as the removal.
  *
- * @internal Exported only so the PowerShell syntax can be regression-tested.
  */
-export const WINDOWS_PATH_RESTORE_SCRIPT = [
+const WINDOWS_PATH_RESTORE_SCRIPT = [
   "$ErrorActionPreference='Stop'",
   "$original=$env:HYPERMARK_UNINSTALL_ORIGINAL_PATH",
   "$k=[Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment',$true)",
@@ -160,8 +151,7 @@ export const WINDOWS_PATH_RESTORE_SCRIPT = [
   ...WINDOWS_PATH_BROADCAST_STATEMENTS,
 ].join("; ");
 
-/** @internal Exported only so the Windows worker syntax can be regression-tested. */
-export const WINDOWS_SELF_DELETE_SCRIPT = [
+const WINDOWS_SELF_DELETE_SCRIPT = [
   "$target=$env:HYPERMARK_UNINSTALL_TARGET",
   "for($i=0;$i -lt 40;$i++){",
   "  Start-Sleep -Milliseconds 250",
@@ -462,9 +452,8 @@ async function removeHostPlugins(
   state: MutableUninstallResult,
 ): Promise<void> {
   // Claude Code is the only host this product installs a plugin into, so it is
-  // the only one uninstalled from. Entries for other integrations that
-  // this list used to carry were removed in spec 02; a
-  // Hypermark uninstall must not reach into hosts it never wrote to.
+  // the only one uninstalled from. A Hypermark uninstall must not reach into
+  // hosts it never wrote to.
   const actions = [
     {
       label: "Claude Code plugin hypermark@hypermark",
@@ -574,11 +563,10 @@ function removeInstalledFiles(
     state,
   );
 
-  // Claude Code command files only. Sweeps for other agent harnesses
-  // that used to follow removed files this product never writes; they
-  // went with the integrations spec 02 deleted. A machine that also ran
+  // Claude Code command files only. This product never writes command files
+  // for other agent harnesses, so it never sweeps them. A machine that also ran
   // Hypermark keeps those files — removing them is that product's uninstall
-  // to run, not ours (spec 06, decision D5).
+  // to run, not ours.
   for (const command of LEGACY_COMMAND_NAMES) {
     removePath(
       join(paths.claudeDir, "commands", `${command}.md`),
@@ -956,66 +944,6 @@ function cleanupHooksJson(
   writeJson(filePath, parsed, label, recovery, request, state);
 }
 
-function removeJsoncArrayEntry(
-  content: string,
-  path: (string | number)[],
-  index: number,
-): string {
-  const tree = parseTree(content, [], {
-    allowTrailingComma: true,
-    disallowComments: false,
-  });
-  const arrayNode = tree ? findNodeAtLocation(tree, path) : undefined;
-  const children = arrayNode?.type === "array" ? arrayNode.children : undefined;
-  const target = children?.[index];
-  if (!arrayNode || !children || !target) return content;
-
-  const targetEnd = target.offset + target.length;
-  const next = children[index + 1];
-  let commaOffset = findJsoncCommaOffset(
-    content,
-    targetEnd,
-    next?.offset ?? arrayNode.offset + arrayNode.length,
-  );
-  if (commaOffset === null && index > 0) {
-    const previous = children[index - 1];
-    if (previous) {
-      commaOffset = findJsoncCommaOffset(
-        content,
-        previous.offset + previous.length,
-        target.offset,
-      );
-    }
-  }
-
-  const edits = [
-    { offset: target.offset, length: target.length, content: "" },
-  ];
-  if (commaOffset !== null) {
-    edits.push({ offset: commaOffset, length: 1, content: "" });
-  }
-  return applyEdits(content, edits);
-}
-
-function findJsoncCommaOffset(
-  content: string,
-  start: number,
-  end: number,
-): number | null {
-  const segment = content.slice(start, end);
-  const scanner = createScanner(segment, false);
-  while (scanner.getPosition() < segment.length) {
-    scanner.scan();
-    if (
-      scanner.getTokenLength() === 1 &&
-      segment[scanner.getTokenOffset()] === ","
-    ) {
-      return start + scanner.getTokenOffset();
-    }
-  }
-  return null;
-}
-
 function readJsonRecord(
   filePath: string,
   integration: string,
@@ -1103,28 +1031,6 @@ function writeJson(
       `${serialized}${trailingNewline ? lineEnding : ""}`,
       "utf8",
     );
-    state.removed.push(`${label} in ${filePath}`);
-  } catch (error) {
-    reportHostCleanupFailure(
-      `Could not update ${filePath}`,
-      formatError(error),
-      recovery,
-      request,
-      state,
-    );
-  }
-}
-
-function writeTextUpdate(
-  filePath: string,
-  content: string,
-  label: string,
-  recovery: HostCleanupRecovery,
-  request: UninstallRequest,
-  state: MutableUninstallResult,
-): void {
-  try {
-    writeFileSync(filePath, content, "utf8");
     state.removed.push(`${label} in ${filePath}`);
   } catch (error) {
     reportHostCleanupFailure(

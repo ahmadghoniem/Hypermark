@@ -5,13 +5,13 @@ import type { CodeAnnotation } from '@hypermark/ui/types';
 import {
   resolveFileTreeTarget,
   buildFileTreePaths,
-  getRevealAncestorPaths,
   getAllFilesTarget,
   getChangeCounts,
   buildAnnotationCountMap,
   getSelectedPaths,
   revealFileInTree,
 } from './fileTreeAdapter';
+import { getAncestorPaths } from './buildFileTree';
 
 const diffFile = (path: string, overrides: Partial<DiffFile> = {}): DiffFile => ({
   path,
@@ -34,7 +34,7 @@ const annotation = (filePath: string, overrides: Partial<CodeAnnotation> = {}): 
 });
 
 /**
- * The seven synthetic fixtures spec 04 step 2 requires, plus a couple of
+ * Seven synthetic fixtures, one per tree case, plus a couple of
  * supporting files so the set has real folder structure to navigate through.
  * `generated` isn't a `DiffFile` field (generated-ness lives in App.tsx's own
  * `generatedFiles: Set<string>`, entirely outside this contract) — its case
@@ -141,36 +141,6 @@ describe('fileTreeAdapter — buildFileTreePaths', () => {
 
   it('returns an empty array for zero files', () => {
     expect(buildFileTreePaths([])).toEqual([]);
-  });
-});
-
-describe('fileTreeAdapter — getRevealAncestorPaths', () => {
-  it('returns [] for a true root-level file (no directory segments)', () => {
-    const rootFiles = [...files, diffFile('README.md')];
-    expect(getRevealAncestorPaths(rootFiles, 'README.md')).toEqual([]);
-  });
-
-  it('returns the immediate parent for a file one directory deep', () => {
-    expect(getRevealAncestorPaths(files, 'assets/logo.png')).toEqual(['assets']);
-  });
-
-  it('returns every ancestor for a deeply nested file', () => {
-    expect(getRevealAncestorPaths(files, 'src/a/b/c/d/e/deep.ts')).toEqual([
-      'src',
-      'src/a',
-      'src/a/b',
-      'src/a/b/c',
-      'src/a/b/c/d',
-      'src/a/b/c/d/e',
-    ]);
-  });
-
-  it('resolves ancestors for a rename via its OLD path (current ancestry, not stale)', () => {
-    expect(getRevealAncestorPaths(files, 'src/old-name.ts')).toEqual(['src']);
-  });
-
-  it('returns [] when the identifier does not resolve', () => {
-    expect(getRevealAncestorPaths(files, 'nope.ts')).toEqual([]);
   });
 });
 
@@ -348,7 +318,7 @@ describe('fileTreeAdapter — revealFileInTree against a live @pierre/trees mode
     const model = makeModel();
     try {
       // Closed initial expansion: ancestors start collapsed.
-      for (const ancestor of getRevealAncestorPaths(files, 'src/a/b/c/d/e/deep.ts')) {
+      for (const ancestor of getAncestorPaths('src/a/b/c/d/e/deep.ts')) {
         const item = model.getItem(ancestor);
         expect(item && 'isExpanded' in item && item.isExpanded()).toBe(false);
       }
@@ -358,7 +328,7 @@ describe('fileTreeAdapter — revealFileInTree against a live @pierre/trees mode
       expect(model.getSelectedPaths()).toEqual(['src/a/b/c/d/e/deep.ts']);
       expect(model.getFocusedPath()).toBe('src/a/b/c/d/e/deep.ts');
 
-      for (const ancestor of getRevealAncestorPaths(files, 'src/a/b/c/d/e/deep.ts')) {
+      for (const ancestor of getAncestorPaths('src/a/b/c/d/e/deep.ts')) {
         const item = model.getItem(ancestor);
         expect(item && 'isExpanded' in item && item.isExpanded()).toBe(true);
       }

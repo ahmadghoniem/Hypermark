@@ -2,7 +2,7 @@
   "name": "hypermark",
   "version": "0.27.12",
   "private": true,
-  "description": "Interactive Plan Review for Claude Code - annotate plans visually, share with team, automatically send feedback",
+  "description": "Annotate documents and Claude's messages, review code diffs in the browser, and send feedback to Claude Code.",
   "author": "ahmadghoniem",
   "license": "MIT OR Apache-2.0",
   "repository": {
@@ -28,11 +28,10 @@
     "build:dials": "bun run build:review:dials && bun run build:hook:dials",
     "check:release-version": "node scripts/check-release-version.mjs",
     "test": "bun test",
-    "typecheck": "tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p packages/shared/tsconfig.json && tsc --noEmit -p packages/server/tsconfig.json && tsc --noEmit -p packages/ui/tsconfig.json && tsc --noEmit -p packages/ui/tsconfig.strict-consumer.json",
+    "typecheck": "tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p packages/shared/tsconfig.json && tsc --noEmit -p packages/server/tsconfig.json && tsc --noEmit -p packages/ui/tsconfig.json",
     "typecheck:editors": "tsc --noEmit -p packages/editor/tsconfig.json && tsc --noEmit -p packages/review-editor/tsconfig.json",
     "lint:tw": "eslint packages/ui --max-warnings 0 && eslint packages/editor --max-warnings 0 && eslint packages/review-editor --max-warnings 0 && eslint apps/hook --max-warnings 0 && eslint apps/review --max-warnings 0",
-    "lint:tw:fix": "eslint packages/ui --fix && eslint packages/editor --fix && eslint packages/review-editor --fix && eslint apps/hook --fix && eslint apps/review --fix",
-    "build:ui-css": "bun run --cwd packages/ui build:css"
+    "lint:tw:fix": "eslint packages/ui --fix && eslint packages/editor --fix && eslint packages/review-editor --fix && eslint apps/hook --fix && eslint apps/review --fix"
   },
   "dependencies": {
     "@pierre/diffs": "1.4.1",

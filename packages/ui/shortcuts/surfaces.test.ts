@@ -8,7 +8,7 @@ import {
   type ShortcutSurfaceMode,
 } from './surfaces';
 
-const MODES: ShortcutSurfaceMode[] = ['plan', 'annotate', 'review'];
+const MODES: ShortcutSurfaceMode[] = ['annotate', 'review'];
 
 describe('shortcut surfaces', () => {
   test('every surface is internally consistent', () => {

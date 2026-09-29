@@ -141,11 +141,6 @@ export function hasActiveHistoryOverlay(root: ParentNode): boolean {
   return root.querySelector(ACTIVE_HISTORY_OVERLAY_SELECTOR) !== null;
 }
 
-/** External or agent-authored annotations never enter human undo history. */
-export function isHumanHistoryMutation(item: { readonly source?: string }): boolean {
-  return !item.source;
-}
-
 /** Minimal imperative highlight surface used by annotation-history replay. */
 export interface HistoryHighlightTarget<TItem extends { readonly id: string }> {
   removeHighlight: (id: string) => void;

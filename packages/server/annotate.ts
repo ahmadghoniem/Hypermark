@@ -14,7 +14,7 @@ import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } 
 import { existsSync, unlinkSync } from "fs";
 import { getRepoInfo } from "./repo";
 import type { Origin } from "@hypermark/shared/agents";
-import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
+import { handleImage, handleUpload, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
 import { handleDoc, handleDocExists, resolveAllowedDocPath } from "./reference-handlers";
 import { getExtraMarkdownExtensions, MAX_ANNOTATABLE_FILE_BYTES, resolveUserPath, warmFileListCache } from "@hypermark/shared/resolve-file";
 import { contentHash, deleteDraft } from "./draft";
@@ -35,7 +35,7 @@ import { createAnnotateDecisionSettler } from "@hypermark/shared/annotate-decisi
 import { SESSION_STREAM_PATH } from "@hypermark/shared/session-stream";
 import { createSessionStreamBroadcaster } from "./session-stream";
 import { startParentWatch, type ParentWatcher } from "./parent-watch";
-import { saveConfig, detectGitUser, getServerConfig, loadConfig, resolveAnnotateHistory, resolveFeedbackHistory } from "./config";
+import { saveConfig, getServerConfig, loadConfig, resolveAnnotateHistory, resolveFeedbackHistory } from "./config";
 import { appendFeedbackRecord, type FeedbackDecision, type FeedbackSurface } from "@hypermark/shared/feedback-archive";
 import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
 import { dirname, resolve as resolvePath } from "path";
@@ -192,7 +192,6 @@ export async function startAnnotateServer(
     onReady,
   } = options;
 
-  const gitUser = detectGitUser();
   const sessionUploads = new Set<string>();
 
   // Per-file version history → powers the native version diff in annotate mode.
@@ -509,7 +508,7 @@ export async function startAnnotateServer(
               // The renderer needs them to linkify relative/wiki links to
               // sibling docs the same way it linkifies .md ones.
               markdownExtensions: getExtraMarkdownExtensions(),
-              serverConfig: getServerConfig(gitUser),
+              serverConfig: getServerConfig(),
               ...(recentMessages ? { recentMessages } : {}),
               // Resolved copy-wrapper templates (config-aware, placeholders
               // intact) so clipboard Copy matches what Send Feedback produces
@@ -595,9 +594,8 @@ export async function startAnnotateServer(
           // API: Update user config (write-back to ~/.hypermark/config.json)
           if (url.pathname === "/api/config" && req.method === "POST") {
             try {
-              const body = (await req.json()) as { displayName?: string; diffOptions?: Record<string, unknown>; theme?: Record<string, unknown>; favicon?: FaviconStyle };
+              const body = (await req.json()) as { diffOptions?: Record<string, unknown>; theme?: Record<string, unknown>; favicon?: FaviconStyle };
               const toSave: Record<string, unknown> = {};
-              if (body.displayName !== undefined) toSave.displayName = body.displayName;
               if (body.diffOptions !== undefined) toSave.diffOptions = body.diffOptions;
               if (body.theme !== undefined) toSave.theme = body.theme;
               if (isFaviconStyle(body.favicon)) toSave.favicon = body.favicon;

@@ -11,7 +11,6 @@
 
 import type { DiffLineBgIntensity } from '@hypermark/core/config-types';
 import { storage } from '../utils/storage';
-import { generateIdentity } from '../utils/generateIdentity';
 import {
   getDefaultThemePair,
   normalizeThemePair,
@@ -60,16 +59,6 @@ export interface SettingDef<T> {
 
 /** Typed registry of persisted UI settings and their storage codecs. */
 export const SETTINGS = {
-  displayName: {
-    defaultValue: () => generateIdentity(),
-    fromCookie: () => storage.getItem('hypermark-identity') || undefined,
-    toCookie: (v: string) => storage.setItem('hypermark-identity', v),
-    serverKey: 'displayName',
-    fromServer: (sc: Record<string, unknown>) =>
-      typeof sc.displayName === 'string' && sc.displayName ? sc.displayName : undefined,
-    toServer: (v: string) => ({ displayName: v }),
-  },
-
   /**
    * Appearance: the mode plus the palette assigned to each half of the pair.
    * Stored as one value because the three fields are only meaningful together —
@@ -100,7 +89,7 @@ export const SETTINGS = {
 
   // Which left-panel view a code review OPENS in. 'sections' = the git-status
   // view (Committed/Changes/Untracked); 'tree' = the classic file tree.
-  // Cookie-only. Written ONLY by Settings and the first-run setup dialog —
+  // Cookie-only. Written ONLY by Settings —
   // the in-review header toggle is session-scoped and never writes this
   // (looking at another view mid-review must not silently change the default).
   //
@@ -108,7 +97,7 @@ export const SETTINGS = {
   // and never the opening view — a review always opens on files. A
   // previously-persisted 'commits' cookie is treated as unset.
   reviewPanelView: {
-    defaultValue: 'sections' as 'sections' | 'tree',
+    defaultValue: 'tree' as 'sections' | 'tree',
     fromCookie: () => {
       const v = storage.getItem('hypermark-review-panel-view');
       return v === 'tree' || v === 'sections' ? v : undefined;

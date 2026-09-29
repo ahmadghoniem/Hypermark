@@ -1,7 +1,5 @@
 /** Collapsed attachment stack: how many tiles show before a +N tile. */
 export const STACK_MAX_COLLAPSED = 3;
-/** Delay before a spread stack collapses once the pointer or focus leaves. */
-export const STACK_COLLAPSE_DELAY_MS = 150;
 /** After a removal, further removals are ignored for this long. */
 export const STACK_REMOVE_GUARD_MS = 250;
 

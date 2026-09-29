@@ -19,7 +19,6 @@ import path from "path";
 import { resolveAtReference, stripAtPrefix } from "@hypermark/shared/at-reference";
 import { htmlToMarkdown } from "@hypermark/shared/html-to-markdown";
 import {
-  buildAnnotatableDocRegex,
   buildAnnotatableExtensionsHint,
 } from "@hypermark/shared/annotatable";
 import {

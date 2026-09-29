@@ -1,8 +1,8 @@
 /**
- * Per-row decoration for the @pierre/trees file tree (spec 04, step 3).
+ * Per-row decoration for the @pierre/trees file tree.
  *
- * spec/04-file-tree.md:67-68 requires that the replacement tree preserve
- * "applicable annotation counts, and active-file highlighting". The old
+ * The tree must preserve applicable annotation counts and active-file
+ * highlighting. The old
  * `FileTreeNodeItem` rendered those as separate React elements per row
  * (`ChangeTypeLetter`, `AnnotationBadge`, `DiffCounts`, `CommittedDot`).
  *
@@ -19,7 +19,7 @@
  * Colors are theme CSS custom properties. They resolve inside the tree's
  * shadow root because custom properties inherit through the shadow boundary,
  * which is also why this must NOT hard-code hex values: doing so would break
- * the seven-palette contract spec 03 just established.
+ * the seven-palette contract.
  */
 import type { DiffFile } from '../types';
 

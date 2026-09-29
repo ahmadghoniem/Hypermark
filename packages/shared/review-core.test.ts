@@ -141,7 +141,7 @@ function makeRuntime(baseCwd: string): ReviewGitRuntime {
 /**
  * Like `makeRuntime`, but routes every command through `prepareGitCommand`
  * and forwards the prepared environment to git — the way the production Bun
- * and Pi runtimes do — so per-command `config` (GIT_CONFIG_*) actually
+ * runtime does — so per-command `config` (GIT_CONFIG_*) actually
  * reaches the spawned process. `intercept` lets a test sabotage individual
  * commands (e.g. force the cat-file size probe to fail).
  */

@@ -24,8 +24,8 @@ steps to ensure your changes work correctly.
 ### Installation
 
 ```bash
-git clone https://github.com/backnotprop/plannotator.git
-cd hypermark
+git clone https://github.com/ahmadghoniem/Hypermark.git
+cd Hypermark
 bun install
 ```
 
@@ -35,12 +35,12 @@ The project uses a monorepo structure:
 
 - **`packages/`** - Shared code
   - `ui/` - Reusable React components, hooks, utilities
-  - `server/` - Server implementation (plan/review servers)
-  - `editor/` - Plan review application logic
+  - `server/` - Server implementation (annotate/review servers)
+  - `editor/` - Annotate application logic
   - `review-editor/` - Code review application logic
 
 - **`apps/`** - Deployable applications
-  - `hook/` - Claude Code plugin (plan review)
+  - `hook/` - Claude Code plugin and `hypermark` CLI
   - `review/` - Standalone review app
   - `skills/` - Agent skills (Claude launchers, core, extra)
 
@@ -60,15 +60,15 @@ If successful, you'll see `apps/hook/dist/index.html` created.
 
 ### Making UI Changes
 
-**Shared components** (used by both plan and review UIs):
+**Shared components** (used by both annotate and review UIs):
 
 - Location: `packages/ui/components/`
 - Examples: `TableOfContents.tsx`, `AnnotationToolbar.tsx`, `Viewer.tsx`
 
-**Plan editor** (plan review UI):
+**Annotate editor** (markdown/HTML annotation UI):
 
 - Location: `packages/editor/App.tsx`
-- Main application logic for plan review
+- Main application logic for annotate sessions
 
 **Code review editor** (code review UI):
 
@@ -85,7 +85,7 @@ If successful, you'll see `apps/hook/dist/index.html` created.
 For rapid iteration, use development servers with hot reload:
 
 ```bash
-# Plan review UI (most common)
+# Annotate UI (most common)
 bun run dev:hook
 # Opens http://localhost:5173
 
@@ -101,7 +101,7 @@ bun run dev:review
 When you're ready to test with actual plugin integration:
 
 ```bash
-# Build plan review UI
+# Build annotate UI
 bun run build:hook
 # Output: apps/hook/dist/index.html
 
@@ -138,29 +138,17 @@ Always rebuild the review app BEFORE the hook if you changed review UI code.
 
 ## Quick Testing Guide
 
-### Test Scripts
+### Running a Real Session
 
-UI test scripts simulate plugin behavior locally:
+After a build, run the CLI from source against a fixture or a repo:
 
 ```bash
-# Plan review UI tests
-./tests/manual/local/test-hook.sh          # Claude Code simulation
+# Annotate UI
+bun run apps/hook/server/index.ts annotate tests/test-fixtures/<fixture>.md
 
-# Code review UI test
-./tests/manual/local/test-worktree-review.sh  # Worktree support test
+# Code review UI (inside any git repo)
+bun run apps/hook/server/index.ts review
 ```
-
-### What Each Script Does
-
-**`test-hook.sh`**
-
-1. Builds the hook plugin (`bun run build:hook`)
-2. Pipes sample plan JSON (includes title, SQL/TypeScript code, checklist)
-3. Starts local server
-4. Opens browser with plan review UI
-5. Prints approve/deny decision to terminal
-
-See [tests/README.md](../tests/README.md) for additional integration and utility test scripts.
 
 ### Manual Testing Workflow
 
@@ -171,20 +159,14 @@ See [tests/README.md](../tests/README.md) for additional integration and utility
      ```bash
      bun run dev:hook
      ```
-   - **Option B:** Build and test with script (integration test)
+   - **Option B:** Build and run a real session (integration test)
      ```bash
-     bun run build:hook && ./tests/manual/local/test-hook.sh
+     bun run build:hook && bun run apps/hook/server/index.ts annotate tests/test-fixtures/<fixture>.md
      ```
 
 3. **Verify your changes** work correctly
 
-4. **Test responsive design:**
-   - Desktop (>1024px): Full layout with TOC
-   - Tablet (768-1024px): TOC hidden
-   - Mobile (<768px): Touch-optimized
-   - Use browser DevTools (F12) → Device Toolbar (Cmd+Shift+M / Ctrl+Shift+M)
-
-5. **Check browser console** for errors:
+4. **Check browser console** for errors:
    - Open DevTools (F12)
    - Console tab
    - Look for red errors
@@ -340,39 +322,26 @@ Build failed with X errors
 Not CI. Every annotate surface and the review header share one adaptive split control
 (`DecisionControl`): a positive primary (`All good` / `Approve` / `Send Feedback · n`) plus a caret
 menu with the alternate decisions and the in-place note composer. Run each flow in both states —
-zero annotations and n annotations — on desktop AND on a real phone (touch has no `Mod+Enter`,
-which is the regression class this control exists to fix).
+zero annotations and n annotations — on desktop.
 
 1. **Annotate, single file** (`hypermark annotate notes.md`). At zero the primary reads `All good`;
    clicking it submits the "no feedback" record and the terminal prints it. Caret →
    `Done with a note…` opens the composer in place: `Enter` inserts a newline, `Mod+Enter`
    submits, `Escape` steps back to the menu keeping the draft. Add an annotation: the primary
-   flips to `Send Feedback · 1`, and `Close, discard 1 annotation…` raises the one confirm.
+   flips to `Send Feedback · 1`.
 2. **Annotate, gate mode** (`hypermark annotate notes.md --gate --json`). The zero-state
    primary is `Approve` and posts `/api/approve` (stdout records `"approved"`; with
    `--require-approval` only approval exits `0`); `Request changes…` records an annotated
    decision. `Approve with a note…` / `Approve with notes` appear only when the session
    advertises approval-notes support.
-3. **Annotate, folder and last** (`hypermark annotate docs/`, `hypermark last`). Same
-   control, same states; in a folder session switch documents mid-draft and confirm the header
-   count tracks the session's annotations.
-4. **HTML / live-app annotate** (`hypermark annotate page.html`, `hypermark annotate
-   http://localhost:<port>`). Open the caret menu, then click the framed page: the popover
+3. **Annotate last message** (`hypermark last`). Same control, same states.
+4. **HTML annotate** (`hypermark annotate page.html`). Open the caret menu, then click the framed page: the popover
    dismisses (iframe focus is the dismissal signal — there is no parent pointerdown).
 5. **Review, agent mode** (`hypermark review`). `Approve` at zero, `Send Feedback · n` after
-   annotating; approving despite annotations is two clicks (caret → `Approve, discard n
-   annotations…` → `Discard & approve`). With the composer open, `Escape` returns to the menu
+   annotating. With the composer open, `Escape` returns to the menu
    and does NOT collapse the file tree or close the sidebar; a second `Escape` closes the menu;
-   a third runs the app's own ladder. `Mod+Enter` over the open discard confirm must fire only
-   the dialog, never a second submission.
-6. **Review, platform (PR) mode** (`hypermark review <pr-url>`). Same control shape, no
-   composer items: every menu action opens `ReviewSubmissionDialog`. On your own PR the
-   approve rows are muted with the "You can't approve your own PR/MR" reason while
-   `Request changes…` / `Post comments, then…` stay live.
-7. **Compact/touch** (real phone or DevTools device mode, both apps). The header menu carries a
-   visible positive decision row in every state; composer rows open the note dialog
-   (`DecisionNoteDialog`), not an inline textarea.
-8. **Sidebar general comment** (review). "+ General comment" is reachable at zero annotations
+   a third runs the app's own ladder.
+6. **Sidebar general comment** (review). "+ General comment" is reachable at zero annotations
    (empty state) and from the General section header; creating one flips the header control to
    `Send Feedback · 1`.
 

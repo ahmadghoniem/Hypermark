@@ -19,18 +19,6 @@ export const ANNOTATION_HIGHLIGHT_CSS = `
  * markers) render inside a shadow-rooted fixed overlay host — see OVERLAY_CSS
  * in the bridge script. Nothing annotation-related is ever wrapped into or
  * styled onto the author's own elements. */
-/* Vim pinpoint target tint. The MOUSE pinpoint path no longer mutates author
- * elements — it draws the dedicated overlay box below — but keyboard (vim)
- * navigation keeps this class-based visual. */
-.hypermark-pinpoint-hover {
-  background-color: oklch(from var(--pn-focus-highlight, #4493f8) l c h / 0.12) !important;
-  border-radius: 3px;
-  cursor: pointer !important;
-}
-/* SVG groups can't render a CSS background, so use a soft glow instead. */
-.hypermark-pinpoint-hover:is(g, svg) {
-  filter: drop-shadow(0 0 4px oklch(from var(--pn-focus-highlight, #4493f8) l c h / 0.55));
-}
 /* Mouse pinpoint hover: a fixed-position outline box sized to the hovered
  * element's rect. Never a class/style write on the page's own elements. */
 [data-hypermark-pinpoint-box] {
@@ -67,7 +55,7 @@ body[data-hypermark-pinpoint-cursor] * {
 }
 @media print {
   /* Viewer overlays are review chrome, not page content: never bake pinpoint
-     boxes/labels or vim UI into a printed page. The outer app chrome is
+     boxes/labels into a printed page. The outer app chrome is
      print-hidden by print.css, but this CSS lives inside the iframe's own
      document and must carry its own rule. The annotation overlay host carries
      its own print rule inside its shadow root. */
@@ -529,12 +517,12 @@ export const BRIDGE_SCRIPT = `(function() {
   // like a drag — the hover visual is a dedicated fixed-position outline box
   // (never a class write on the page's own elements), the click serializes a
   // CSS anchor for later restoration, and element-only pins (SVG, icon
-  // buttons) get a numbered badge. The semantic target graph below survives
-  // as the vim-navigation vocabulary only; the pointer path never builds it.
+  // buttons) get a numbered badge. The semantic target graph below is
+  // not built by the pointer path.
   var PINPOINT_SKIP_SELECTOR = 'script,style,noscript';
 
   // Identity set of every overlay node the viewer creates inside the page
-  // (pin badges, pinpoint box/label, vim UI). Hit-testing excludes overlay
+  // (pin badges, pinpoint box/label). Hit-testing excludes overlay
   // nodes by IDENTITY, never by selector match, so page markup carrying our
   // attribute names cannot spoof its way out of (or into) targeting.
   var overlayNodes = new Set();
@@ -1349,7 +1337,7 @@ export const BRIDGE_SCRIPT = `(function() {
   }
 
   // Resolve one contiguous document Range for the first occurrence of text.
-  // Overlay-owned text (labels, vim chrome) is skipped by IDENTITY so viewer
+  // Overlay-owned text (labels) is skipped by IDENTITY so viewer
   // chrome can never satisfy a page-text search.
   function findTextRange(text, root) {
     var scope = root || document.body;
@@ -2713,7 +2701,7 @@ export const BRIDGE_SCRIPT = `(function() {
     pendingPinLabel = pinpointHoverLabel(el);
     // The user's selected point, normalized inside the element's rect. It
     // rides the durable anchor so restoration reprojects the marker at the
-    // same relative spot; keyboard entry (vim) has no pointer and defaults.
+    // same relative spot. Entry without a pointer defaults.
     pendingPinPoint = normalizePointInElement(el, clickPoint);
     if (pendingPinAnchor && pendingPinPoint) pendingPinAnchor.point = pendingPinPoint;
     pendingPinViaPinpoint = !!viaPinpoint;
@@ -2807,7 +2795,7 @@ export const BRIDGE_SCRIPT = `(function() {
     annotateElement(el, true, { x: e.clientX, y: e.clientY });
   }, true);
 
-  // Escape ladder (outside vim, which has its own): a pending draft closes
+  // Escape ladder: a pending draft closes
   // first, then the hover outline clears, then Esc EXITS Annotate back to
   // Interact — the parent owns the mode, so the final rung only posts
   // annotate-exit and waits for set-annotate-mode to come back down.
@@ -3012,7 +3000,7 @@ export const BRIDGE_SCRIPT = `(function() {
   // Animations/transitions move geometry without mutations or scroll events:
   // reconcile when they settle (end or cancel), matching the reference
   // invalidation set. Capture phase so non-bubbling targets still count.
-  // Viewer-owned light-DOM chrome (pin-enter, vim reticle) settling is
+  // Viewer-owned light-DOM chrome (pin-enter) settling is
   // identity-filtered out: our own overlay animations must never schedule
   // redundant reconciles of the frames they themselves caused.
   var settleEvents = ['animationend', 'animationcancel', 'transitionend', 'transitioncancel'];

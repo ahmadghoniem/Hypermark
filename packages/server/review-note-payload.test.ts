@@ -40,7 +40,6 @@ const NOTE = {
   side: "new",
   text: NOTE_TEXT,
   createdAt: 1735689600000,
-  author: "reviewer",
 } as const;
 
 const LINE_COMMENT = {

@@ -2,11 +2,6 @@
  * Annotate Server — end-to-end route wiring
  *
  * Boots the real annotate server and exercises route wiring over HTTP.
- *
- * NOTE: this can only run because apps/opencode-plugin/commands.test.ts injects
- * its annotate-server stub via CommandDeps instead of a global `mock.module`.
- * A module mock there would leak the stub into this file (Bun module mocks are
- * process-global and cannot be unset).
  */
 
 import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
@@ -87,7 +82,7 @@ describe("annotate server: /api/config favicon persistence", () => {
       });
       expect(validResponse.status).toBe(200);
       expect(loadConfig().favicon).toBe("classic");
-      expect(getServerConfig(null).favicon).toBe("classic");
+      expect(getServerConfig().favicon).toBe("classic");
 
       const invalidResponse = await fetch(`${server.url}/api/config`, {
         method: "POST",
@@ -97,7 +92,7 @@ describe("annotate server: /api/config favicon persistence", () => {
       expect(invalidResponse.status).toBe(200);
       // "unknown" was not written into config, so "classic" is retained
       expect(loadConfig().favicon).toBe("classic");
-      expect(getServerConfig(null).favicon).toBe("classic");
+      expect(getServerConfig().favicon).toBe("classic");
     } finally {
       server.stop();
     }

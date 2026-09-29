@@ -1,8 +1,5 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "ignoreBinaries": [
-    "taskkill.exe"
-  ],
   "workspaces": {
     ".": {
       "entry": [
@@ -57,9 +54,6 @@
     },
     "packages/ui": {
       "entry": [
-        "styles-entry.css",
-        "build-stubs/*.css",
-        "test-consumer/*.tsx",
         "**/*.test.{ts,tsx}"
       ],
       "project": [

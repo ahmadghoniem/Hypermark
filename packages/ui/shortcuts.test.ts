@@ -3,24 +3,15 @@ import {
   createShortcutRegistry,
   defineShortcutScope,
   dispatchShortcutEvent,
-  formatShortcutBindingText,
   formatShortcutBindingTokens,
-  matchesKeyName,
   matchesShortcutBinding,
-  parseDoubleTapBinding,
   validateShortcutRegistry,
 } from './shortcuts';
 
 describe('shortcuts', () => {
-  it('formats bindings for docs and keycaps', () => {
-    expect(formatShortcutBindingText('Mod+Enter')).toBe('Cmd/Ctrl+Enter');
-    expect(formatShortcutBindingText('Alt hold')).toBe('Hold Alt');
-    expect(formatShortcutBindingText('Alt Alt')).toBe('Double-tap Alt');
-    expect(formatShortcutBindingText('Alt Alt', 'mac')).toBe('Double-tap Option');
+  it('formats bindings for keycaps', () => {
     expect(formatShortcutBindingTokens('Mod+Enter', 'mac')).toEqual(['⌘', '⏎']);
     expect(formatShortcutBindingTokens('Mod+Enter', 'non-mac')).toEqual(['Ctrl', '↵']);
-    expect(formatShortcutBindingTokens('Alt Alt', 'mac')).toEqual(['⌥', '×2']);
-    expect(formatShortcutBindingTokens('Alt Alt', 'non-mac')).toEqual(['Alt', '×2']);
   });
 
   it('validates duplicate scope ids and non-normalized tokens', () => {
@@ -166,28 +157,6 @@ describe('shortcuts', () => {
 
     expect(handled).toBe(true);
     expect(calls).toEqual(['preventDefault', 'fallback']);
-  });
-
-  it('parses double-tap bindings', () => {
-    expect(parseDoubleTapBinding('Alt Alt')).toBe('Alt');
-    expect(parseDoubleTapBinding('Shift Shift')).toBe('Shift');
-    expect(parseDoubleTapBinding('Alt hold')).toBeNull();
-    expect(parseDoubleTapBinding('Mod+Enter')).toBeNull();
-    expect(parseDoubleTapBinding('Alt Shift')).toBeNull(); // different keys
-    expect(parseDoubleTapBinding('Alt+Shift Alt+Shift')).toBeNull(); // multi-key groups
-  });
-
-  it('matches key names for sequential binding support', () => {
-    const altEvent = { key: 'Alt' } as KeyboardEvent;
-    const shiftEvent = { key: 'Shift' } as KeyboardEvent;
-    const metaEvent = { key: 'Meta' } as KeyboardEvent;
-    const ctrlEvent = { key: 'Control' } as KeyboardEvent;
-
-    expect(matchesKeyName(altEvent, 'Alt')).toBe(true);
-    expect(matchesKeyName(altEvent, 'Shift')).toBe(false);
-    expect(matchesKeyName(shiftEvent, 'Shift')).toBe(true);
-    expect(matchesKeyName(metaEvent, 'Mod')).toBe(true);
-    expect(matchesKeyName(ctrlEvent, 'Mod')).toBe(true);
   });
 
   it('does not handle or prevent default when a guard fails', () => {

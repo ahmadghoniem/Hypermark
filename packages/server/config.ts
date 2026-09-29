@@ -1,7 +1,6 @@
 export {
   loadConfig,
   saveConfig,
-  detectGitUser,
   getServerConfig,
   resolveAnnotateHistory,
   resolveFeedbackHistory,

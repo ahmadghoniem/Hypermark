@@ -107,21 +107,6 @@ export function probeAnnotateToken(
 }
 
 /**
- * Does the whole input name something that the annotate pipeline would reach
- * a specific verdict on? Used by hosts that run the token fallback as a
- * pre-pass: when this is true the unchanged pipeline runs and produces
- * exactly today's behavior.
- */
-export function annotateInputNamesExistingTarget(
-  input: string,
-  projectRoot: string,
-): boolean {
-  const trimmed = (input ?? "").trim();
-  if (!trimmed) return false;
-  return probeAnnotateToken(trimmed, projectRoot) !== null;
-}
-
-/**
  * Tier 1/2/3 selection over the tokens of the raw argument input. Accepts
  * either the pre-split argv tokens (preserving quoted arguments that contain
  * whitespace) or a single raw string that is split on whitespace. Duplicate

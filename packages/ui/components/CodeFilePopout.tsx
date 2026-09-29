@@ -96,13 +96,6 @@ function buildPierreCSS(mode: 'dark' | 'light', bg: string, fg: string): string 
   `;
 }
 
-function getLineSlice(contents: string, start: number, end: number): string {
-  return contents
-    .split('\n')
-    .slice(Math.max(0, start - 1), Math.max(0, end))
-    .join('\n');
-}
-
 function lineLabel(start: number, end: number): string {
   return start === end ? `line ${start}` : `lines ${start}-${end}`;
 }
@@ -179,7 +172,6 @@ const CodeInlineAnnotation: React.FC<{
         <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono normal-case text-foreground">
           {lineLabel(annotation.lineStart, annotation.lineEnd)}
         </span>
-        {annotation.author && <span className="truncate normal-case">by {annotation.author}</span>}
         <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
           {onEdit && !isEditing && (
             <button

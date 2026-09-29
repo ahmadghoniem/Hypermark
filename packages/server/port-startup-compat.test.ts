@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { createTestEnvironment } from "../../tests/helpers/environment";
 import { closeServer, occupyConsecutivePorts } from "../../tests/helpers/ports";
-import { startHypermarkServer } from "./index";
+import { startAnnotateServer } from "./annotate";
 import { handleServerReady } from "./shared-handlers";
 
 const envKeys = [
@@ -21,8 +21,9 @@ describe("Bun startup port compatibility", () => {
     process.env.__CFBundleIdentifier = "com.apple.Terminal";
     let ready: { url: string; port: number } | undefined;
 
-    const server = await startHypermarkServer({
-      plan: "# Port compatibility",
+    const server = await startAnnotateServer({
+      markdown: "# Port compatibility",
+      filePath: "test.md",
       origin: "claude-code",
       htmlContent: "<!doctype html><html><body>plan</body></html>",
       onReady: (url, port) => {
@@ -56,8 +57,9 @@ describe("Bun startup port compatibility", () => {
     process.env.HYPERMARK_DATA_DIR = environment.makeTempDir();
     let ready: { url: string; port: number } | undefined;
 
-    const server = await startHypermarkServer({
-      plan: "# Fixed port compatibility",
+    const server = await startAnnotateServer({
+      markdown: "# Fixed port compatibility",
+      filePath: "test.md",
       origin: "claude-code",
       htmlContent: "<!doctype html><html><body>plan</body></html>",
       onReady: (url, port) => {
@@ -82,8 +84,9 @@ describe("Bun startup port compatibility", () => {
     process.env.HYPERMARK_DATA_DIR = environment.makeTempDir();
     const readyError = new Error("ready handoff failed");
 
-    await expect(startHypermarkServer({
-      plan: "# Ready failure cleanup",
+    await expect(startAnnotateServer({
+      markdown: "# Ready failure cleanup",
+      filePath: "test.md",
       origin: "claude-code",
       htmlContent: "<!doctype html><html><body>plan</body></html>",
       onReady: async () => {

@@ -8,7 +8,7 @@ import type { ShortcutScopeDefinition } from './core';
  * Allowlist for shortcuts whose handlers are wired directly by keydown listeners
  * rather than via a `use*Shortcuts({ handlers: { ... } })` hook registration.
  *
- * (Spec 09: A7 requires every shortcut action ID in shortcuts/index.ts to either
+ * (Every shortcut action ID in shortcuts/index.ts must either
  * appear in a `handlers` object under packages/{editor,review-editor,ui} or in
  * this HAND_WIRED allowlist pointing to its implementing file on disk.)
  */
@@ -149,7 +149,7 @@ function getAllScopes(): ShortcutScopeDefinition<any>[] {
   return scopes;
 }
 
-describe('shortcut registry handlers check (spec 09: A7)', () => {
+describe('shortcut registry handlers check', () => {
   const repoRoot = getRepoRoot();
 
   it('every hand-wired file exists on disk', () => {

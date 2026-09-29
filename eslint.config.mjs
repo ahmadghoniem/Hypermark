@@ -81,7 +81,7 @@ const tsx = {
 
 export default defineConfig([
   {
-    ignores: ["**/node_modules/**", "**/dist/**", "**/build-stubs/**", "**/*.test.*", "**/test-consumer/**"],
+    ignores: ["**/node_modules/**", "**/dist/**", "**/*.test.*"],
   },
   {
     // The react-hooks disable comments look unused because those rules do not

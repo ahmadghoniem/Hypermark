@@ -6,8 +6,8 @@ import { lineAnnotationMetadata } from './annotationDisplay';
  * Project a file's LINE annotations into Pierre's `DiffLineAnnotation` shape.
  *
  * One entry per line the comment covers, so a multi-line comment carries a
- * gutter marker on every line of its range rather than only on `lineEnd`
- * (spec 05 §4.3.5). File-scoped comments are deliberately excluded — they
+ * gutter marker on every line of its range rather than only on `lineEnd`.
+ * File-scoped comments are deliberately excluded — they
  * render in the file header, not the gutter.
  *
  * Lives outside the component so it can be tested without importing the
@@ -24,7 +24,7 @@ export function projectFileAnnotations(
         (a.scope ?? 'line') === 'line',
     )
     .flatMap((ann) => {
-      // One entry per covered line, not only `lineEnd` (spec 05 §4.3.5), so a
+      // One entry per covered line, not only `lineEnd`, so a
       // multi-line comment is reachable from anywhere in its range.
       const side = ann.side === 'new' ? ('additions' as const) : ('deletions' as const);
       const metadata = lineAnnotationMetadata(ann);

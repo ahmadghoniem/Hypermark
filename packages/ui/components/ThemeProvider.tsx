@@ -109,7 +109,7 @@ function markWindowsPlatform() {
 export function ThemeProvider({
   children,
   defaultTheme = 'dark',
-  // Pierre is the default and recovery palette (spec 03). A host can still
+  // Pierre is the default and recovery palette. A host can still
   // override this, but a cookie-less visit must land on the same palette an
   // unusable saved value recovers to, or first paint and recovery disagree.
   defaultColorTheme = DEFAULT_COLOR_THEME,

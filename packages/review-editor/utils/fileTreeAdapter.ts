@@ -1,5 +1,5 @@
 /**
- * @pierre/trees identity-safe adapter (spec 04, step 2).
+ * @pierre/trees identity-safe adapter.
  *
  * This is the ONE place that maps this app's review identity — canonical
  * `DiffFile.path`, display-only `oldPath`, status-independent change counts,
@@ -73,19 +73,6 @@ export function buildFileTreePaths(files: readonly DiffFile[]): string[] {
 }
 
 /**
- * Ancestor folder paths to force-open when revealing `identifier` (a path or
- * oldPath). Resolves through `resolveFileTreeTarget` first so a rename's
- * `oldPath` still expands the file's CURRENT ancestry, then delegates to the
- * shared `getAncestorPaths` identity helper (also used by `AllFilesCodeView`)
- * rather than re-deriving path segmentation.
- */
-export function getRevealAncestorPaths(files: readonly DiffFile[], identifier: string): string[] {
-  const target = resolveFileTreeTarget(files, identifier);
-  if (!target) return [];
-  return getAncestorPaths(target.canonicalPath);
-}
-
-/**
  * Where `identifier` lands in the "All files" visual order (the folders-first
  * order `getVisualFileOrder`/`AllFilesCodeView` use), alongside its
  * single-file `fileIndex`. Returns null when `identifier` does not resolve to
@@ -126,7 +113,7 @@ export function buildAnnotationCountMap(annotations: readonly CodeAnnotation[]):
 /**
  * The tree's selected-path set for a given `activeFileIndex`. Mirrors
  * `FileTree.tsx`'s existing rule that `activeFileIndex` is forced to `-1`
- * while All files/Semantic/Call flow/PR panels are active: returns an empty
+ * while the All files panel is active: returns an empty
  * selection rather than guessing at a fallback file.
  */
 export function getSelectedPaths(files: readonly DiffFile[], activeFileIndex: number): string[] {

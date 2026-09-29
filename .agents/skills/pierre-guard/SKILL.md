@@ -26,8 +26,8 @@ import DiffsWorker from '@pierre/diffs/worker/worker.js?worker&inline';
 ```
 
 `AllFilesCodeView.tsx` is the only file that renders Pierre; `workerPool.tsx` owns the
-worker pool. Four other files import Pierre TYPES only (`ToolbarHost.tsx`,
-`hooks/useAnnotationToolbar.ts`, `utils/buildCodeNavRequest.ts`,
+worker pool. Three other files import Pierre TYPES only (`ToolbarHost.tsx`,
+`hooks/useAnnotationToolbar.ts`,
 `utils/lineAnnotationProjection.ts`) and carry no runtime dependency.
 
 The single-file `FileDiff` component is no longer used — the review renders every file

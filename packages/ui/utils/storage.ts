@@ -46,17 +46,15 @@ const cookieBackend: StorageBackend = {
   },
 };
 
-// Active backend. Defaults to cookies so Hypermark is unchanged. A host
-// (e.g. Workspaces) calls setStorageBackend once at startup to persist settings
-// through its own storage instead.
+// Active backend. Cookies by default; tests swap in a fake via setStorageBackend.
 let backend: StorageBackend = cookieBackend;
 
-/** Override the storage backend. Call once at app startup. */
+/** Test hook: replace the storage backend. */
 export function setStorageBackend(b: StorageBackend): void {
   backend = b;
 }
 
-/** Reset to the default (cookie) backend. Mainly for tests. */
+/** Test hook: restore the cookie backend. */
 export function resetStorageBackend(): void {
   backend = cookieBackend;
 }

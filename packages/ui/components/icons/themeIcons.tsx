@@ -8,7 +8,7 @@ import { Sun, Moon, Monitor } from '@phosphor-icons/react';
  * historically MobileMenu). They used to inline hand-rolled SVGs
  * independently, which meant any tweak to a glyph had to be hunted down
  * across files. Centralizing them here keeps the iconography consistent.
- * The SVG bodies were migrated to Phosphor (spec 03 step 5); the exported
+ * The SVG bodies were migrated to Phosphor; the exported
  * component names and their `className`-only prop signature are unchanged
  * so ThemeTab does not need to change.
  *

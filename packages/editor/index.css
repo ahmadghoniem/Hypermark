@@ -47,14 +47,3 @@ pre code.pn-code {
    code-review description annotations). */
 
 /* Plan Diff Styles also moved to packages/ui/theme.css (imported above). */
-
-/* ========================================
-   Sidebar
-   ======================================== */
-
-.sidebar-tab-flag {
-  transition: transform 200ms ease, opacity 200ms ease;
-}
-.sidebar-tab-flag:hover {
-  transform: translateX(2px);
-}

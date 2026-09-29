@@ -79,7 +79,7 @@ describe("feedback archive: record shape", () => {
     expect(record.surface).toBe("review");
     expect(record.decision).toBe("feedback");
     expect(record.feedback).toContain("null case in parse()");
-    expect(record.counts).toEqual({ annotations: 1, external: 0, images: 0 });
+    expect(record.counts).toEqual({ annotations: 1, images: 0 });
     expect(record.annotations?.[0]).toMatchObject({ file: "src/parse.ts", lineStart: 12, side: "new" });
 
     // The sidecar the index names must exist and carry the same feedback.
@@ -109,28 +109,6 @@ describe("feedback archive: record shape", () => {
     expect(record.annotations?.find((a) => a.id === "g1")?.scope).toBe("general");
     // Absent scope stays absent (the pre-scope default), not defaulted-in.
     expect(record.annotations?.find((a) => a.id === "l1")?.scope).toBeUndefined();
-  });
-
-  test("provenance is preserved so `source == null` filters the reviewer's own comments", () => {
-    // Regression: external/agent findings are archived (the submitted
-    // text already embeds them) but must stay distinguishable, or "analyze my
-    // own feedback" silently counts a linter's output as the user's.
-    const dataDir = useTempDataDir();
-    appendFeedbackRecord({
-      project: PROJECT,
-      surface: "review",
-      decision: "feedback",
-      feedback: "mixed",
-      annotations: [
-        { id: "mine", type: "COMMENT", text: "rename this", author: "ramos" },
-        { id: "linter", type: "COMMENT", text: "no-unused-vars", source: "eslint" },
-        { id: "agent", type: "COMMENT", text: "consider a guard", source: "browser-agent" },
-      ],
-    });
-    const record = readIndex(dataDir)[0];
-    expect(record.counts).toEqual({ annotations: 3, external: 2, images: 0 });
-    const own = (record.annotations ?? []).filter((a) => a.source === undefined);
-    expect(own.map((a) => a.id)).toEqual(["mine"]);
   });
 
   test("a bare decision is a decision-only line with no sidecar", () => {
@@ -182,7 +160,7 @@ describe("feedback archive: append durability", () => {
     // legacy plans/ snapshot overwrites by slug; the archive must not).
     const dataDir = useTempDataDir();
     for (const decision of ["denied", "feedback", "approved"] as const) {
-      appendFeedbackRecord({ project: PROJECT, surface: "plan", decision, feedback: `note ${decision}` });
+      appendFeedbackRecord({ project: PROJECT, surface: "annotate", decision, feedback: `note ${decision}` });
     }
     const records = readIndex(dataDir);
     expect(records.map((r) => r.decision)).toEqual(["denied", "feedback", "approved"]);
@@ -266,7 +244,7 @@ describe("feedback archive: shared index", () => {
       decision: "feedback",
       target: { agent: { host: "claude-code", session: "s-1", transcript: "/t/1.jsonl" } },
       feedback: "from the terminal client",
-      counts: { annotations: 0, external: 0, images: 0 },
+      counts: { annotations: 0, images: 0 },
       recordFile: "records/2026-09-01T09-00-00-000Z-annotate-last-feedback-hypermark-tui.md",
       somethingWeHaveNeverHeardOf: { nested: true },
     };

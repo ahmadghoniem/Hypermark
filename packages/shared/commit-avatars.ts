@@ -1,15 +1,13 @@
 /**
  * Commit author avatars for the Commits panel.
  *
- * Local commits carry only a git author name/email — no platform login — so
- * the PR review's avatar machinery (GitHub GraphQL keyed by login, GitLab
- * notes carrying `avatar_url`) can't be reused directly. What IS reused:
+ * Local commits carry only a git author name/email — no platform login. What
+ * is used:
  *
  *  - `parseRemoteUrl` / `parseRemoteHost` (./repo) to identify the forge from
  *    `git remote get-url origin`.
  *  - The gh/glab CLI invocation shape, including the `--hostname` convention
- *    for self-hosted instances (mirrors pr-github's hostnameArgs and
- *    pr-gitlab's apiArgs).
+ *    for self-hosted instances.
  *  - GitLab's relative-avatar absolutization rule (self-hosted instances
  *    return `/uploads/...` paths that must be pinned to the GitLab host).
  *
@@ -50,8 +48,8 @@ export interface AvatarRemote {
 
 /**
  * Classify a git remote URL to a forge we can query for avatars. Bare remote
- * URLs have none of the path markers parsePRUrl keys off (`/pull/`,
- * `/-/merge_requests/`), so this goes by hostname: exact/prefix github or a
+ * URLs carry no forge-specific path markers, so this goes by hostname:
+ * exact/prefix github or a
  * host containing "gitlab". Self-hosted forges with an opaque hostname return
  * null — probing both CLIs blind would be slow and noisy. Accepted edge.
  */
@@ -70,12 +68,12 @@ export function classifyAvatarRemote(remoteUrl: string): AvatarRemote | null {
   return null;
 }
 
-/** Mirrors pr-github's hostnameArgs: `--hostname` only off github.com. */
+/** `--hostname` only off github.com. */
 function ghArgs(host: string, args: string[]): string[] {
   return host !== "github.com" ? [...args, "--hostname", host] : args;
 }
 
-/** Mirrors pr-gitlab's apiArgs: `--hostname` only off gitlab.com. */
+/** `--hostname` only off gitlab.com. */
 function glabArgs(host: string, endpoint: string): string[] {
   const args = ["api", endpoint];
   if (host !== "gitlab.com") args.push("--hostname", host);
@@ -85,9 +83,8 @@ function glabArgs(host: string, endpoint: string): string[] {
 /**
  * Build the email → avatar map from the GitHub commits-list API response.
  * `author` is the linked GitHub account and is null for unlinked emails.
- * Exported for tests.
  */
-export function buildGitHubEmailAvatarMap(payload: unknown): Map<string, string> {
+function buildGitHubEmailAvatarMap(payload: unknown): Map<string, string> {
   const map = new Map<string, string>();
   if (!Array.isArray(payload)) return map;
   for (const entry of payload) {
@@ -105,11 +102,11 @@ export function buildGitHubEmailAvatarMap(payload: unknown): Map<string, string>
 }
 
 /**
- * Same rule as pr-gitlab's resolveAvatar: self-hosted GitLab often returns
+ * Self-hosted GitLab often returns
  * relative `/uploads/...` avatar paths that would otherwise resolve against
- * our local server. Exported for tests.
+ * our local server.
  */
-export function absolutizeGitLabAvatar(host: string, url: string): string {
+function absolutizeGitLabAvatar(host: string, url: string): string {
   return url.startsWith("/") ? `https://${host}${url}` : url;
 }
 

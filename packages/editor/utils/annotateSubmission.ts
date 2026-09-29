@@ -29,8 +29,8 @@ export interface AnnotateApprovalBodyInput {
 
 /**
  * The zero-feedback payload sentence. Every existing CLI consumer's plain-mode
- * output and the strict-gate exit codes depend on this exact byte sequence
- * (spec §5.3/§6.1), and the approval framing below reuses it so "Done with a
+ * output and the strict-gate exit codes depend on this exact byte sequence,
+ * and the approval framing below reuses it so "Done with a
  * note…" can never read as a change request.
  */
 export const ANNOTATE_NO_FEEDBACK_SENTENCE =
@@ -63,7 +63,7 @@ export function buildAnnotateApprovalBody(
 export interface CompleteAnnotateFeedbackInput {
   blocks: Block[];
   annotations: Annotation[];
-  /** Legacy, read-only (spec 05 §4.1): the host's `globalAttachments` state
+  /** Legacy, read-only: the host's `globalAttachments` state
       is no longer written to, so this is always empty by the time it
       reaches export — kept only so `exportAnnotations` still decodes an old
       caller that hasn't gone through the restore-time normalizer. */
@@ -81,7 +81,7 @@ export interface CompleteAnnotateFeedbackInput {
    * is the sentence). Since the empty-menu collapse (the maintainer merged
    * "Done with a note…" into the single unframed "Send a note…"), the only
    * caller is the non-gated discard path, which frames its positive finish
-   * over any direct edits that still ride along.
+   * over the annotations.
    */
   approvalFraming?: boolean;
 }

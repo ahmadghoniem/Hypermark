@@ -37,8 +37,6 @@ export interface Annotation {
   text?: string; // For comments
   originalText: string; // The text that was selected
   createdA: number;
-  author?: string; // Tater identity for collaborative sharing
-  source?: string; // Legacy identifier preserved for backwards-compatibility with older saved drafts
   images?: ImageAttachment[]; // Attached images with human-readable names
   quickLabelTip?: string; // optional instruction tip from the label definition
   diffContext?: 'added' | 'removed' | 'modified'; // set when annotation created in plan diff view
@@ -118,7 +116,7 @@ export interface DiffResult {
 }
 
 // Code Review Types
-export type CodeAnnotationType = 'comment' | 'suggestion' | 'concern';
+export type CodeAnnotationType = 'comment';
 // 'general' is a review-level comment tied to no file and no line. For 'general'
 // (and the file-less case) filePath is "" and lineStart/lineEnd are 0 — consumers
 // must branch on scope, never read those sentinels as a real path or row.
@@ -138,14 +136,7 @@ export interface CodeAnnotation {
   charStart?: number; // Character offset within lineStart (token-level selection)
   charEnd?: number; // Character offset within lineEnd (token-level selection)
   tokenText?: string; // Selected token/span text (token-level selection)
-  /** Exact text highlighted when the comment was created inside an edit
-   *  session (captured from the editor selection). Exported alongside the
-   *  comment so the agent sees what was highlighted even when it differs
-   *  from the anchored diff lines. */
-  selectedText?: string;
   createdAt: number;
-  author?: string;
-  source?: string; // Legacy identifier preserved for backwards-compatibility with older saved drafts
   severity?: 'important' | 'nit' | 'pre_existing'; // Agent review severity (Claude)
   reasoning?: string; // Validation chain — how the issue was confirmed (Claude)
   /** Set when the annotation was created on a commit:<sha> diff (Commits
@@ -176,23 +167,15 @@ export interface DiffAnnotationMetadata {
   annotationId: string;
   type: CodeAnnotationType;
   text?: string;
-  author?: string;
   severity?: 'important' | 'nit' | 'pre_existing';
   reasoning?: string;
-  // Shared comment-meta fields (so the inline diff card shows the same identity
-  // row — author, time, badges — as the sidebar and file-banner cards).
+  // Shared comment-meta fields (so the inline diff card shows the same meta
+  // row — time, badges — as the sidebar and file-banner cards).
   createdAt?: number;
-  source?: string;
   /** Precomputed clipboard text (location prefix + body + reasoning) so the
    *  inline copy action matches the sidebar/banner — the inline card only has
    *  the projected metadata, not the full annotation. */
   copyText?: string;
-  // AI marker fields (set when kind === 'ai-marker')
-  kind?: 'annotation' | 'ai-marker';
-  questionId?: string;
-  promptPreview?: string;
-  hasResponse?: boolean;
-  isStreaming?: boolean;
 }
 
 export interface SelectedLineRange {
@@ -201,37 +184,6 @@ export interface SelectedLineRange {
   /** Optional to match @pierre/diffs, which omits it for single-side views. */
   side?: 'deletions' | 'additions';
   endSide?: 'deletions' | 'additions';
-}
-
-// ---------------------------------------------------------------------------
-// AI Chat (inline AI on diffs)
-// ---------------------------------------------------------------------------
-
-export interface AIQuestion {
-  id: string;
-  prompt: string;
-  scope?: {
-    kind: 'general' | 'selection';
-    label?: string;
-    text?: string;
-    sourcePath?: string;
-  };
-  /** undefined = general question (no file scope) */
-  filePath?: string;
-  /** undefined + filePath present = file-scoped; with filePath = line-scoped */
-  lineStart?: number;
-  lineEnd?: number;
-  side?: 'old' | 'new';
-  selectedCode?: string;
-  createdAt: number;
-}
-
-export interface AIResponse {
-  questionId: string;
-  text: string;
-  isStreaming: boolean;
-  error?: string;
-  createdAt: number;
 }
 
 export interface VaultNode {

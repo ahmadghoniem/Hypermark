@@ -9,22 +9,15 @@
     "./diff-files": "./diff-files.ts",
     "./annotatable": "./annotatable.ts",
     "./annotation-threads": "./annotation-threads.ts",
-    "./browser-paths": "./browser-paths.ts",
     "./code-file": "./code-file.ts",
     "./extract-code-paths": "./extract-code-paths.ts",
     "./favicon": "./favicon.ts",
     "./session-stream": "./session-stream.ts",
     "./feedback-templates": "./feedback-templates.ts",
-    "./html-anchor": "./html-anchor.ts",
     "./project": "./project.ts",
     "./config-types": "./config-types.ts",
-    "./workspace-status-types": "./workspace-status-types.ts",
     "./types": "./types.ts"
   },
-  "files": [
-    "**/*.ts",
-    "!**/*.test.ts"
-  ],
   "dependencies": {},
   "devDependencies": {
     "typescript": "~5.8.2"

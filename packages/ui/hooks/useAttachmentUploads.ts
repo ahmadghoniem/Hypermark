@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ImageAttachment } from '../types';
 import type { PendingAttachment } from '../components/AttachmentStrip';
 import { deriveImageName } from '../utils/imageNames';
-import { assertUploadResult, getUploadTransport } from '../utils/upload';
+import { assertUploadResult, upload } from '../utils/upload';
 
 interface UseAttachmentUploadsOptions {
   /** Already-stored attachments, used for name deduplication. */
@@ -24,7 +24,7 @@ export interface AttachmentUploads {
 let uploadSeq = 0;
 
 /**
- * Owns in-flight composer attachments (spec 05 §3.2.4–5).
+ * Owns in-flight composer attachments.
  *
  * A selected file occupies a strip slot immediately, keeps its local preview
  * through failure, and only becomes an `ImageAttachment` once the transport
@@ -83,7 +83,7 @@ export function useAttachmentUploads({
   const runUpload = useCallback(
     async (id: string, file: File, name: string) => {
       try {
-        const result = assertUploadResult(await getUploadTransport().upload(file));
+        const result = assertUploadResult(await upload(file));
         if (!alive.current) return;
         releasePending(id);
         updatePending((prev) => prev.filter((p) => p.id !== id));

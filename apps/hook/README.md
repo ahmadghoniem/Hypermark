@@ -25,7 +25,7 @@ Released binaries ship with SHA256 sidecars and [SLSA build provenance](https://
 
 ---
 
-[Plugin Installation](#plugin-installation) · [Manual Installation (Hooks)](#manual-installation-hooks)  
+[Plugin Installation](#plugin-installation) · [How It Works](#how-it-works)
 
 ---
 
@@ -34,51 +34,28 @@ Released binaries ship with SHA256 sidecars and [SLSA build provenance](https://
 In Claude Code:
 
 ```
-/plugin marketplace add backnotprop/plannotator
+/plugin marketplace add ahmadghoniem/Hypermark
 /plugin install hypermark@hypermark
 ```
 
-**Important:** Restart Claude Code after installing the plugin for the hooks to take effect.
-
-## Manual Installation (Hooks)
-
-If you prefer not to use the plugin system, add this to your `~/.claude/settings.json`:
-
-```json
-{
-  "hooks": {
-    "PermissionRequest": [
-      {
-        "matcher": "ExitPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "hypermark",
-            "timeout": 345600
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+**Important:** Restart Claude Code after installing the plugin for the skills to take effect.
 
 ## How It Works
 
-When Claude Code calls `ExitPlanMode`, this hook intercepts and:
+Hypermark opens a local review surface in your browser for three things:
 
-1. Opens Hypermark UI in your browser
-2. Lets you annotate the plan visually
-3. Approve → Claude proceeds with implementation
-4. Request changes → Your annotations are sent back to Claude
-5. On resubmission → Plan Diff shows what changed since the last version
+1. Annotate a file or document (`/hypermark-annotate`)
+2. Annotate Claude's last message (`/hypermark-last`)
+3. Review code changes (`/hypermark-review`)
+
+Your annotations are sent back to Claude Code. When you annotate a file again, the version diff shows what changed since you last reviewed it.
 
 ## Environment Variables
 
 | Variable | Description |
 |----------|-------------|
 | `HYPERMARK_PORT` | Fixed port, or an inclusive range (`9000-9010`). Default: an OS-chosen free port. |
-| `HYPERMARK_BROWSER` | Custom browser to open plans in. macOS: app name or path. Linux/Windows: executable path. |
+| `HYPERMARK_BROWSER` | Custom browser to open Hypermark in. macOS: app name or path. Linux/Windows: executable path. |
 
 Every session is local: the server binds loopback and advertises `localhost`.
 There is no remote/SSH mode in this fork.
@@ -89,6 +66,6 @@ Hypermark's slash commands are installed as Claude Code skills in `~/.claude/ski
 
 | Command | Description |
 |---------|-------------|
-| `/hypermark-review [--git]` | Open code review UI for current changes or a GitHub PR; optionally force the Git provider |
+| `/hypermark-review [--git]` | Open code review UI for current changes; optionally force the Git provider |
 | `/hypermark-annotate <file.md \| file.txt \| file.html>` | Annotate a local file |
 | `/hypermark-last` | Annotate the agent's last message |

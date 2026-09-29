@@ -8,7 +8,6 @@ import {
   detectGeneratedFiles,
   detectGeneratedFilesByName,
   isDefaultGeneratedPath,
-  parseCheckAttrStates,
 } from "./generated-files";
 import type { ReviewGitRuntime } from "./review-core";
 
@@ -181,27 +180,6 @@ describe("detectGeneratedFiles", () => {
     };
     expect(await detectGeneratedFiles(runtime, undefined, ["", ""])).toEqual([]);
     expect(spawned).toBe(false);
-  });
-});
-
-describe("parseCheckAttrStates", () => {
-  test("maps set/true to set, unset/false to unset, everything else to unspecified", () => {
-    const stdout = [
-      "a.md", "linguist-generated", "true",
-      "b.sql", "linguist-generated", "set",
-      "c.ts", "linguist-generated", "unset",
-      "d.md", "linguist-generated", "false",
-      "e.ts", "linguist-generated", "unspecified",
-    ].join("\0") + "\0";
-    expect(parseCheckAttrStates(stdout)).toEqual(
-      new Map([
-        ["a.md", "set"],
-        ["b.sql", "set"],
-        ["c.ts", "unset"],
-        ["d.md", "unset"],
-        ["e.ts", "unspecified"],
-      ]),
-    );
   });
 });
 

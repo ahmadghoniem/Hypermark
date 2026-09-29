@@ -39,7 +39,6 @@ import { CommentPopover } from './CommentPopover';
 import { GraphvizBlock } from './GraphvizBlock';
 import { MermaidBlock } from './MermaidBlock';
 import { isGraphvizLanguage, isMermaidLanguage } from './diagramLanguages';
-import { getIdentity } from '../utils/identity';
 import { useQuickLabels } from '../hooks/useQuickLabels';
 import { DocBadges, type DocBadgesProps, type LinkedDocBadgeInfo } from './DocBadges';
 import { PinpointOverlay } from './PinpointOverlay';
@@ -92,9 +91,6 @@ export interface ViewerProps {
    *  so out-of-tree relative references (e.g. `../foo.ts` in a linked doc)
    *  resolve against the doc's own directory rather than only cwd. */
   codePathBaseDir?: string;
-  /** Opt out of `/api/doc/exists` code-path validation (host without that
-   *  endpoint). Default undefined for Hypermark => validation stays on. */
-  disableCodePathValidation?: boolean;
   linkedDocInfo?: LinkedDocBadgeInfo | null;
   // Plan diff props
   planDiffStats?: { additions: number; deletions: number; modifications: number } | null;
@@ -122,15 +118,6 @@ export interface ViewerProps {
   // Checkbox toggle props
   onToggleCheckbox?: (blockId: string, checked: boolean) => void;
   checkboxOverrides?: Map<string, boolean>;
-  /** Whether comment popovers offer image attachments. Hosts without an
-   *  uploadTransport pass false so the attach affordance never dead-ends.
-   *  Default true — today's behavior. */
-  allowImages?: boolean;
-  /** View-only mode: suppresses every annotation-creation entry point
-   *  (selection toolbar, comment popovers, quick labels, pinpoint, global
-   *  comment, attachments, checkbox toggles). Existing annotations still
-   *  render and remain selectable. Default false — today's behavior. */
-  readOnly?: boolean;
 }
 
 export interface ViewerHandle {
@@ -312,17 +299,13 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   linkedDocInfo,
   imageBaseDir,
   codePathBaseDir,
-  disableCodePathValidation,
   copyLabel,
   actionsLabelMode = 'full',
   sourceInfo,
   onToggleCheckbox,
   checkboxOverrides,
-  allowImages = true,
-  readOnly = false,
 }, ref) => {
-  const viewerAnnotationHeader = readOnly ? undefined : annotationHeader;
-  const hasViewerAnnotationHeader = viewerAnnotationHeader !== undefined;
+  const hasViewerAnnotationHeader = annotationHeader !== undefined;
   const [copied, setCopied] = useState(false);
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
   const [locationHash, setLocationHash] = useState(() => window.location.hash);
@@ -393,8 +376,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     codeBlock?: { block: Block; element: HTMLElement };
   } | null>(null);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const readOnlyRef = useRef(readOnly);
-  readOnlyRef.current = readOnly;
   const stickySentinelRef = useRef<HTMLDivElement>(null);
   const lastAutoScrolledHashRef = useRef<string | null>(null);
   const [isStuck, setIsStuck] = useState(false);
@@ -416,7 +397,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     onAddAnnotation,
     onSelectAnnotation,
     selectedAnnotationId,
-    enabled: !readOnly,
   });
 
   // Refs for code block annotation path
@@ -431,8 +411,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     images?: ImageAttachment[],
     quickLabelTip?: string,
   ) => {
-    if (readOnlyRef.current) return;
-
     const id = `codeblock-${Date.now()}`;
     const codeText = codeEl.textContent || '';
 
@@ -447,7 +425,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
       text,
       originalText: codeText,
       createdA: Date.now(),
-      author: getIdentity(),
       images,
       ...(quickLabelTip ? { quickLabelTip } : {}),
     };
@@ -515,8 +492,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
 
   // Pinpoint mode: hover + click to select elements
   const handlePinpointCodeBlockClick = useCallback((blockId: string, element: HTMLElement) => {
-    if (readOnlyRef.current) return;
-
     const block = blocks.find((candidate) => candidate.id === blockId);
     const codeEl = element.querySelector('code');
     if (!block || !codeEl) return;
@@ -534,22 +509,11 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   const { hoverTarget } = usePinpoint({
     containerRef,
     inputMethod,
-    enabled: !readOnly && !hookCommentPopover && !viewerCommentPopover && !(isPlanDiffActive ?? false),
+    enabled: !hookCommentPopover && !viewerCommentPopover && !(isPlanDiffActive ?? false),
     onSelectRange: highlightRange,
     onCodeBlockClick: handlePinpointCodeBlockClick,
   });
   const pinpointOverlayTarget = inputMethod === 'pinpoint' ? hoverTarget : null;
-
-  useEffect(() => {
-    if (!readOnly) return;
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
-    }
-    setCodeBlockToolbar(null);
-    setIsCodeBlockToolbarExiting(false);
-    setViewerCommentPopover(null);
-  }, [readOnly]);
 
   // Suppress native context menu on touch devices (prevents cut/copy/paste overlay on mobile)
   useEffect(() => {
@@ -686,7 +650,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   // --- Viewer-specific: code block annotation ---
 
   const handleCodeBlockAnnotate = (type: AnnotationType) => {
-    if (readOnlyRef.current || !codeBlockToolbar) return;
+    if (!codeBlockToolbar) return;
     const codeEl = codeBlockToolbar.element.querySelector('code');
     if (!codeEl) return;
     applyCodeBlockAnnotation(codeBlockToolbar.block.id, codeEl, type);
@@ -700,7 +664,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   // Viewer-specific comment popover handlers (code blocks + global comments)
 
   const handleCodeBlockRequestComment = (initialChar?: string) => {
-    if (readOnlyRef.current || !codeBlockToolbar) return;
+    if (!codeBlockToolbar) return;
     const codeText = codeBlockToolbar.element.querySelector('code')?.textContent || '';
     setViewerCommentPopover({
       anchorEl: codeBlockToolbar.element,
@@ -714,7 +678,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   };
 
   const handleViewerCommentSubmit = (text: string, images?: ImageAttachment[]) => {
-    if (readOnlyRef.current || !viewerCommentPopover) return;
+    if (!viewerCommentPopover) return;
 
     if (viewerCommentPopover.isGlobal) {
       const newAnnotation: Annotation = {
@@ -729,7 +693,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
         text: text.trim(),
         originalText: '',
         createdA: Date.now(),
-        author: getIdentity(),
         images,
       };
       onAddAnnotation(newAnnotation);
@@ -749,33 +712,31 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
 
   const commentDraftScope = linkedDocInfo?.filepath ?? sourceInfo ?? markdown.slice(0, 120);
 
-  const codePathValidation = useValidatedCodePaths(markdown, codePathBaseDir, disableCodePathValidation);
+  const codePathValidation = useValidatedCodePaths(markdown, codePathBaseDir);
 
   const documentActions = (
     <>
 
-      {!readOnly && (
-        <button
-          ref={globalCommentButtonRef}
-          onClick={() => {
-            const anchorEl = globalCommentButtonRef.current;
-            if (!anchorEl) return;
-            setViewerCommentPopover({
-              anchorEl,
-              contextText: '',
-              isGlobal: true,
-            });
-          }}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors"
-          title="Add global comment"
-        >
-          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
-          </svg>
-          {actionsLabelMode === 'full' && <span>Global comment</span>}
-          {actionsLabelMode === 'short' && <span>Comment</span>}
-        </button>
-      )}
+      <button
+        ref={globalCommentButtonRef}
+        onClick={() => {
+          const anchorEl = globalCommentButtonRef.current;
+          if (!anchorEl) return;
+          setViewerCommentPopover({
+            anchorEl,
+            contextText: '',
+            isGlobal: true,
+          });
+        }}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors"
+        title="Add global comment"
+      >
+        <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
+        </svg>
+        {actionsLabelMode === 'full' && <span>Global comment</span>}
+        {actionsLabelMode === 'short' && <span>Comment</span>}
+      </button>
 
       <button
         onClick={handleCopyPlan}
@@ -813,7 +774,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
         } as React.CSSProperties}
       >
         {/* Legacy badge placement remains byte-for-byte opt-out behavior. */}
-        {!viewerAnnotationHeader && (repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo || sourceInfo) && (
+        {!annotationHeader && (repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo || sourceInfo) && (
           <div ref={docBadgesRef} className="absolute top-3 md:top-4 left-0">
             <DocBadges
               layout="column"
@@ -831,9 +792,9 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
           </div>
         )}
 
-        {viewerAnnotationHeader ? (
+        {annotationHeader ? (
           <ViewerDocumentHeader
-            config={viewerAnnotationHeader}
+            config={annotationHeader}
             inputMethod={inputMethod}
             sticky={stickyActions}
             stuck={isStuck}
@@ -878,7 +839,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
                       orderedIndex={indices[i]}
                       onOpenLinkedDoc={onOpenLinkedDoc}
                       onOpenCodeFile={onOpenCodeFile}
-                      onToggleCheckbox={readOnly ? undefined : onToggleCheckbox}
+                      onToggleCheckbox={onToggleCheckbox}
                       checkboxOverrides={checkboxOverrides}
                       githubRepo={repoInfo?.display}
                       headingAnchorId={headingSlugMap.get(block.id)}
@@ -926,7 +887,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
             <CodeBlock
               key={group.block.id}
               block={group.block}
-              onHover={readOnly || inputMethod === 'pinpoint' ? undefined : (element) => {
+              onHover={inputMethod === 'pinpoint' ? undefined : (element) => {
                 // Clear any pending leave timeout
                 if (hoverTimeoutRef.current) {
                   clearTimeout(hoverTimeoutRef.current);
@@ -946,7 +907,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
                   });
                 }
               }}
-              onLeave={readOnly || inputMethod === 'pinpoint' ? undefined : () => {
+              onLeave={inputMethod === 'pinpoint' ? undefined : () => {
                 if (keyboardCodeBlockToolbarOpen) return;
                 // Delay then start exit animation
                 hoverTimeoutRef.current = setTimeout(() => {
@@ -959,13 +920,12 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
                 }, 100);
               }}
               isHovered={
-                !readOnly
-                && inputMethod !== 'pinpoint'
+                inputMethod !== 'pinpoint'
                 && codeBlockToolbar?.block.id === group.block.id
               }
             />
           ) : (
-            <BlockRenderer imageBaseDir={imageBaseDir} onImageClick={(src, alt) => setLightbox({ src, alt })} key={group.block.id} block={group.block} onOpenLinkedDoc={onOpenLinkedDoc} onOpenCodeFile={onOpenCodeFile} onNavigateAnchor={scrollToAnchor} onToggleCheckbox={readOnly ? undefined : onToggleCheckbox} checkboxOverrides={checkboxOverrides} githubRepo={repoInfo?.display} headingAnchorId={headingSlugMap.get(group.block.id)} />
+            <BlockRenderer imageBaseDir={imageBaseDir} onImageClick={(src, alt) => setLightbox({ src, alt })} key={group.block.id} block={group.block} onOpenLinkedDoc={onOpenLinkedDoc} onOpenCodeFile={onOpenCodeFile} onNavigateAnchor={scrollToAnchor} onToggleCheckbox={onToggleCheckbox} checkboxOverrides={checkboxOverrides} githubRepo={repoInfo?.display} headingAnchorId={headingSlugMap.get(group.block.id)} />
           )
         )}
 
@@ -1004,8 +964,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
         )}
 
         {/* Code block hover toolbar */}
-        {!readOnly
-          && codeBlockToolbar
+        {codeBlockToolbar
           && !hookCommentPopover
           && (
             <ToolbarErrorBoundary>
@@ -1062,7 +1021,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
         )}
 
         {/* Comment popover — hook handles text selection, Viewer handles global + code block */}
-        {!readOnly && hookCommentPopover && (
+        {hookCommentPopover && (
             <CommentPopover
               anchorEl={hookCommentPopover.anchorEl}
               contextText={hookCommentPopover.contextText}
@@ -1073,10 +1032,9 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               onClose={hookCommentClose}
               quickLabels={quickLabels}
               onQuickLabel={hookCommentQuickLabel}
-              allowImages={allowImages}
             />
           )}
-        {!readOnly && viewerCommentPopover && (
+        {viewerCommentPopover && (
           <CommentPopover
             anchorEl={viewerCommentPopover.anchorEl}
             contextText={viewerCommentPopover.contextText}
@@ -1089,7 +1047,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
             }`}
             onSubmit={handleViewerCommentSubmit}
             onClose={handleViewerCommentClose}
-            allowImages={allowImages}
           />
         )}
 

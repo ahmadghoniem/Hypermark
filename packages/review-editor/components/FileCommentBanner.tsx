@@ -94,7 +94,6 @@ export const FileCommentCard: React.FC<{
             <FileNameChip path={comment.filePath} />
           </>
         }
-        author={comment.author}
         createdAt={comment.createdAt}
       />
 
@@ -124,7 +123,7 @@ export const FileCommentCard: React.FC<{
         collapsed ? (
           <div className="review-comment-body truncate text-muted-foreground/80">{firstLine(comment.text)}</div>
         ) : (
-          <div className="review-comment-body ai-markdown max-h-55 overflow-y-auto" dangerouslySetInnerHTML={{ __html: html }} />
+          <div className="review-comment-body comment-markdown max-h-55 overflow-y-auto" dangerouslySetInnerHTML={{ __html: html }} />
         )
       ) : null}
       {!isEditing && (

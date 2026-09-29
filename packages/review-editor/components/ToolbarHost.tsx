@@ -1,4 +1,4 @@
-import React, { forwardRef, useImperativeHandle } from 'react';
+import { forwardRef, useImperativeHandle } from 'react';
 import type {
   CodeAnnotation,
   CodeAnnotationType,
@@ -86,7 +86,6 @@ export const ToolbarHost = forwardRef<ToolbarHostHandle, ToolbarHostProps>(funct
               ? `edit:${toolbar.editingAnnotationId}`
               : `line:${filePath}:${toolbar.toolbarState.range.start}-${toolbar.toolbarState.range.end}`
           }
-          allowImages
         />
       )}
     </>

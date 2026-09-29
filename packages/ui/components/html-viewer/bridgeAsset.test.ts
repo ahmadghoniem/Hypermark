@@ -1,12 +1,6 @@
 /**
- * The bridge-as-asset seam, package side (no DOM registration needed):
+ * Bridge script and srcdoc injection:
  *
- * - the generated `bridge-script.asset.js` is byte-for-byte `BRIDGE_SCRIPT`
- *   and the generated `bridge-script.lite.ts` carries the other exports
- *   unchanged with the literal stubbed (a generator that drifts from the
- *   source module would ship a bridge that disagrees with the parent);
- * - the package manifest wires both files (exports subpaths, `files`,
- *   `prepack`) so `bun pm pack` ships them and a `?url` import resolves;
  * - the srcdoc injection has ONE bridge script element: inline by default,
  *   `<script src>` on the URL path, with no `crossorigin` and no CSP meta;
  * - the real bridge, executed in an isolated window, posts a `ready` that
@@ -14,20 +8,8 @@
  *   that and rejects a stamp-less ready (a stale asset).
  */
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import {
-  ANNOTATION_HIGHLIGHT_CSS,
-  BRIDGE_PROTOCOL_VERSION,
-  BRIDGE_SCRIPT,
-} from "./bridge-script";
-import {
-  BRIDGE_ASSET_DIR,
-  BRIDGE_ASSET_FILENAME,
-  BRIDGE_LITE_FILENAME,
-  writeBridgeAssets,
-} from "../../scripts/build-bridge-assets";
+import { dirname, resolve } from "node:path";
+import { BRIDGE_PROTOCOL_VERSION, BRIDGE_SCRIPT } from "./bridge-script";
 import {
   buildBridgeScriptTag,
   buildSrcdocInjection,
@@ -37,62 +19,6 @@ import {
 import { checkBridgeProtocolVersion, formatBridgeProtocolWarning } from "./useHtmlAnnotation";
 
 const uiRoot = resolve(import.meta.dir, "../..");
-
-describe("generated bridge assets", () => {
-  test("the asset is byte-for-byte BRIDGE_SCRIPT and the lite module keeps every other export", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "hypermark-bridge-asset-"));
-    try {
-      const written = writeBridgeAssets(dir);
-      expect(written.map((p) => p.slice(dir.length + 1)).sort()).toEqual(
-        [BRIDGE_ASSET_FILENAME, BRIDGE_LITE_FILENAME].sort(),
-      );
-      const asset = readFileSync(join(dir, BRIDGE_ASSET_FILENAME));
-      expect(asset.equals(Buffer.from(BRIDGE_SCRIPT, "utf8"))).toBe(true);
-
-      // Determinism: a second run produces the same bytes.
-      writeBridgeAssets(dir);
-      expect(readFileSync(join(dir, BRIDGE_ASSET_FILENAME)).equals(asset)).toBe(true);
-
-      const lite = await import(join(dir, BRIDGE_LITE_FILENAME));
-      expect(lite.ANNOTATION_HIGHLIGHT_CSS).toBe(ANNOTATION_HIGHLIGHT_CSS);
-      expect(lite.BRIDGE_PROTOCOL_VERSION).toBe(BRIDGE_PROTOCOL_VERSION);
-      expect(lite.BRIDGE_SCRIPT).toBe("");
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  // A stale local artifact (generated before a bridge edit) would ship a
-  // bridge that disagrees with the parent. Only checked when present: the
-  // files are gitignored and exist after `prepack`.
-  test.skipIf(!existsSync(join(BRIDGE_ASSET_DIR, BRIDGE_ASSET_FILENAME)))(
-    "an already-generated asset in the package matches the current source",
-    () => {
-      const asset = readFileSync(join(BRIDGE_ASSET_DIR, BRIDGE_ASSET_FILENAME), "utf8");
-      expect(asset === BRIDGE_SCRIPT).toBe(true);
-    },
-  );
-
-  test("the package manifest ships and exports both generated files", () => {
-    const pkg = JSON.parse(readFileSync(join(uiRoot, "package.json"), "utf8")) as {
-      exports: Record<string, string>;
-      files: string[];
-      scripts: Record<string, string>;
-    };
-    expect(pkg.exports[`./components/html-viewer/${BRIDGE_ASSET_FILENAME}`]).toBe(
-      `./components/html-viewer/${BRIDGE_ASSET_FILENAME}`,
-    );
-    expect(pkg.exports["./components/html-viewer/bridge-script.lite"]).toBe(
-      `./components/html-viewer/${BRIDGE_LITE_FILENAME}`,
-    );
-    // `files` covers components/ and nothing excludes the generated names.
-    expect(pkg.files).toContain("components");
-    expect(pkg.files.some((entry) => entry.startsWith("!") && /bridge-script/.test(entry))).toBe(false);
-    expect(pkg.scripts.prepack).toContain("build:bridge-assets");
-    // The generated directory is the source module's own directory.
-    expect(BRIDGE_ASSET_DIR).toBe(dirname(resolve(import.meta.dir, "bridge-script.ts")));
-  });
-});
 
 describe("srcdoc bridge script tag", () => {
   const base = { tokens: {}, isLight: true, hostTheme: false, diffActive: false };

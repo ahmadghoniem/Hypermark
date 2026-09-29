@@ -1,5 +1,5 @@
 
-export type ShortcutPlatform = 'mac' | 'non-mac' | 'cross-platform';
+export type ShortcutPlatform = 'mac' | 'non-mac';
 
 export interface ShortcutDefinition {
   description: string;
@@ -30,13 +30,6 @@ export interface ShortcutSection {
 }
 
 export type ShortcutRegistry = readonly ShortcutScopeDefinition[];
-
-export interface ShortcutSurface {
-  slug: string;
-  title: string;
-  description: string;
-  registry: ShortcutRegistry;
-}
 
 const NAMED_TOKENS = new Set([
   'Mod',
@@ -97,34 +90,6 @@ function isSingleDigit(token: string): boolean {
 
 function getBindingTokens(binding: string): string[] {
   return binding.trim().split(/[+\s]+/).filter(Boolean);
-}
-
-function getBindingGroups(binding: string): string[][] {
-  return binding.trim().split(/\s+/).filter(Boolean).map(group => group.split('+').filter(Boolean));
-}
-
-/**
- * Parse a double-tap binding like `"Alt Alt"` and return the key name.
- * Returns null for non-double-tap bindings.
- */
-export function parseDoubleTapBinding(binding: string): string | null {
-  const groups = getBindingGroups(binding);
-  if (groups.length !== 2) return null;
-  if (groups[0].length !== 1 || groups[1].length !== 1) return null;
-  if (groups[0][0] !== groups[1][0]) return null;
-  if (groups[1][0] === 'hold') return null;
-  return groups[0][0];
-}
-
-/**
- * Check if a KeyboardEvent matches a named key token (for sequential/stateful matching).
- * Unlike `matchesShortcutBinding`, this matches a single key identity without modifier checks.
- */
-export function matchesKeyName(event: ShortcutKeyEvent, keyName: string): boolean {
-  if (keyName === 'Alt') return event.key === 'Alt';
-  if (keyName === 'Shift') return event.key === 'Shift';
-  if (keyName === 'Mod') return event.key === 'Meta' || event.key === 'Control';
-  return matchesKeyToken(event, keyName);
 }
 
 function isNormalizedToken(token: string): boolean {
@@ -211,24 +176,6 @@ export function createShortcutRegistry<TRegistry extends ShortcutRegistry>(regis
   return registry;
 }
 
-export function mergeShortcutRegistries(...registries: ShortcutRegistry[]): ShortcutRegistry {
-  return createShortcutRegistry(registries.flat());
-}
-
-export function getShortcutScope(registry: ShortcutRegistry, scopeId: string): ShortcutScopeDefinition | undefined {
-  return registry.find(scope => scope.id === scopeId);
-}
-
-export function getShortcut(
-  registry: ShortcutRegistry,
-  scopeId: string,
-  actionId: string,
-): ShortcutEntry | undefined {
-  const scope = getShortcutScope(registry, scopeId);
-  const shortcut = scope?.shortcuts[actionId];
-  return scope && shortcut ? normalizeShortcutEntry(scope, actionId, shortcut) : undefined;
-}
-
 export function listRegistryShortcuts(registry: ShortcutRegistry): ShortcutEntry[] {
   const shortcuts: ShortcutEntry[] = [];
 
@@ -261,11 +208,11 @@ export function listRegistryShortcutSections(registry: ShortcutRegistry): Shortc
   return listShortcutSections(listRegistryShortcuts(registry));
 }
 
-export function getShortcutPlatform(): Exclude<ShortcutPlatform, 'cross-platform'> {
+export function getShortcutPlatform(): ShortcutPlatform {
   return 'non-mac';
 }
 
-function formatKeycapToken(token: string, platform: Exclude<ShortcutPlatform, 'cross-platform'>): string {
+function formatKeycapToken(token: string, platform: ShortcutPlatform): string {
   if (platform === 'mac') {
     if (token === 'Mod') return '⌘';
     if (token === 'Alt') return '⌥';
@@ -283,59 +230,11 @@ function formatKeycapToken(token: string, platform: Exclude<ShortcutPlatform, 'c
   return token;
 }
 
-function formatTextToken(token: string, platform: ShortcutPlatform): string {
-  if (token === 'Mod') {
-    if (platform === 'mac') return 'Cmd';
-    if (platform === 'non-mac') return 'Ctrl';
-    return 'Cmd/Ctrl';
-  }
-
-  if (token === 'Alt') {
-    return platform === 'mac' ? 'Option' : 'Alt';
-  }
-
-  if (token === 'Escape') return 'Escape';
-  if (token === 'hold') return 'hold';
-  return token;
-}
-
 export function formatShortcutBindingTokens(
   binding: string,
-  platform: Exclude<ShortcutPlatform, 'cross-platform'> = getShortcutPlatform(),
+  platform: ShortcutPlatform = getShortcutPlatform(),
 ): string[] {
-  const doubleTapKey = parseDoubleTapBinding(binding);
-  if (doubleTapKey) {
-    return [formatKeycapToken(doubleTapKey, platform), '×2'];
-  }
-
   return getBindingTokens(binding).map(token => formatKeycapToken(token, platform));
-}
-
-export function formatShortcutBindingText(
-  binding: string,
-  platform: ShortcutPlatform = 'cross-platform',
-): string {
-  const groups = getBindingGroups(binding);
-
-  if (groups.length === 2 && groups[1].length === 1 && groups[1][0] === 'hold' && groups[0].length === 1) {
-    return `Hold ${formatTextToken(groups[0][0], platform)}`;
-  }
-
-  const doubleTapKey = parseDoubleTapBinding(binding);
-  if (doubleTapKey) {
-    return `Double-tap ${formatTextToken(doubleTapKey, platform)}`;
-  }
-
-  return groups
-    .map(group => group.map(token => formatTextToken(token, platform)).join('+'))
-    .join(' then ');
-}
-
-export function formatShortcutBindingsText(
-  bindings: string[],
-  platform: ShortcutPlatform = 'cross-platform',
-): string {
-  return bindings.map(binding => formatShortcutBindingText(binding, platform)).join(' or ');
 }
 
 function getDigitCode(event: ShortcutKeyEvent): string | null {

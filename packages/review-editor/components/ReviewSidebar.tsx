@@ -22,7 +22,7 @@ interface ReviewSidebarProps {
   onNavigateToAnnotation: (id: string | null) => void;
   onDeleteAnnotation: (id: string) => void;
   /** "+ General comment": commit a durable scope:'general' review-level
-   *  comment to the session (spec §3.3). When present, the affordance renders
+   *  comment to the session. When present, the affordance renders
    *  in the General section header AND in the all-empty state — the state it
    *  is most useful in. */
   onAddGeneralComment?: (text: string) => void;
@@ -235,7 +235,6 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
               </span>
             )
           }
-          author={annotation.author}
           createdAt={annotation.createdAt}
         />
         {annotation.text && (
@@ -304,7 +303,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
                 <div className="p-2 space-y-4">
                   {(generalAnnotations.length > 0 || onAddGeneralComment) && (
                     <div>
-                      {/* z above the file/PR sticky headers (z-10/z-20) so the
+                      {/* z above the sticky file headers (z-10/z-20) so the
                           anchored composer popover is never painted under a
                           later section's header. */}
                       <div className="sticky top-0 z-25 bg-background/95 backdrop-blur-sm px-2 py-1 flex items-center justify-between gap-2">

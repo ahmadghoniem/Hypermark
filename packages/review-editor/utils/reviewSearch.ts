@@ -165,10 +165,6 @@ export function findMatchesInIndex(index: SearchableLine[], query: string): Revi
   return matches;
 }
 
-export function findReviewSearchMatches(files: ReviewSearchableDiffFile[], query: string): ReviewSearchMatch[] {
-  return findMatchesInIndex(buildSearchIndex(files), query);
-}
-
 export function groupReviewSearchMatches(
   files: ReviewSearchableDiffFile[],
   matches: ReviewSearchMatch[],

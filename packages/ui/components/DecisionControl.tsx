@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, CaretDown, CircleNotch, PaperPlaneTilt } from '@phosphor-icons/react';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from './ui/dialog';
-import { Tooltip } from './Tooltip';
 import { ActionMenuDivider, ActionMenuItem } from './ActionMenu';
 import { ConfirmDialog, type ConfirmDialogProps } from './ConfirmDialog';
 import { useDismissablePopover } from '../hooks/useDismissablePopover';
@@ -161,88 +160,6 @@ export const DecisionNoteField: React.FC<DecisionNoteFieldProps> = ({
   );
 };
 
-/**
- * The compact/touch note composer. The desktop composer morphs inside the
- * caret popover, which is the wrong shape on touch (the header menu popup
- * closes on outside pointerdown and its max-height fights the soft keyboard),
- * so compact rows open this dialog instead.
- */
-export const DecisionNoteDialog: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
-  composer: DecisionComposer;
-  onSubmit: (note: string) => void;
-  disabled?: boolean;
-  /** Free prose under the title, e.g. what the note rides along with. */
-  subtitle?: string;
-}> = ({ isOpen, onClose, composer, onSubmit, disabled = false, subtitle }) => {
-  const [text, setText] = useState('');
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  // If the surface goes busy while the dialog is open, close it rather than
-  // leaving an editable field whose action can no longer do anything.
-  useEffect(() => {
-    if (disabled && isOpen) onClose();
-  }, [disabled, isOpen, onClose]);
-
-  const submit = useCallback(() => {
-    if (disabled) return;
-    const trimmed = text.trim();
-    if (trimmed.length === 0) {
-      // Same contract as the popover composer: the action stays full-strength
-      // and an empty-note tap refocuses the field — on touch this also raises
-      // the keyboard, which is what the tap was asking for.
-      contentRef.current
-        ?.querySelector<HTMLTextAreaElement>('[data-decision-note-input]')
-        ?.focus();
-      return;
-    }
-    onSubmit(trimmed);
-    setText('');
-    onClose();
-  }, [disabled, onClose, onSubmit, text]);
-
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent
-        ref={contentRef}
-        data-decision-note-composer="dialog"
-        className="max-w-md rounded-xl bg-card p-4 text-foreground"
-      >
-        <DialogTitle className="font-semibold mb-1">{composer.title}</DialogTitle>
-        {subtitle ? (
-          <DialogDescription className="text-sm text-muted-foreground mb-3">
-            {subtitle}
-          </DialogDescription>
-        ) : null}
-        <DecisionNoteField
-          text={text}
-          onTextChange={setText}
-          onSubmit={submit}
-          onCancel={onClose}
-          placeholder={composer.placeholder}
-          disabled={disabled}
-          autoFocus
-        />
-        <div className="mt-3 flex items-center justify-between gap-2">
-          <span className="text-2xs/snug text-muted-foreground">{submitHint}</span>
-          <Button
-            variant={toneButtonVariant(composer.tone)}
-            size="xs"
-            data-decision-composer-send="true"
-            onClick={submit}
-            disabled={disabled}
-            title={composer.actionLabel}
-            iconLeft={composer.icon ? ICONS[composer.icon] : undefined}
-          >
-            {composer.actionLabel}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
 type PopoverState = null | 'menu' | 'composer';
 
 export const DecisionControl: React.FC<DecisionControlProps> = ({
@@ -336,10 +253,8 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
   // back from the composer, confirm cancel — focus its first row.
   useEffect(() => {
     if (popover !== 'menu') return;
-    // :not(:disabled) — a muted (platform self-approval) row cannot take
-    // focus, so land on the first live row instead.
     popoverRef.current
-      ?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')
+      ?.querySelector<HTMLButtonElement>('[role="menuitem"]')
       ?.focus();
   }, [popover]);
 
@@ -418,7 +333,6 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
 
   const primaryVariant = toneButtonVariant(spec.primary.tone);
   const Confirm = confirmDialog ?? ConfirmDialog;
-  const mutedReasonId = useId();
 
   // Left segment — the incumbent primary. It never opens the popover and,
   // deliberately, never fades or disables while the popover is open: the
@@ -429,36 +343,21 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
       <Button
         variant={primaryVariant}
         size="xs"
-        onClick={() => {
-          // Muted (platform self-approval, PR6 §3.4): the click is a no-op.
-          // Deliberately NOT `disabled` — a disabled button would also lose
-          // hover/focus, and the Tooltip below carries the reason.
-          if (spec.primary.muted) return;
-          handlers.primary?.();
-        }}
+        onClick={() => handlers.primary?.()}
         disabled={busy}
-        aria-disabled={spec.primary.muted || undefined}
-        // Muted: the reason renders as a real Tooltip (hover + keyboard
-        // focus) and as an aria-describedby description — a native title on
-        // top of that would double the tooltip.
-        title={spec.primary.muted ? undefined : spec.primary.title}
-        aria-describedby={spec.primary.muted ? mutedReasonId : undefined}
+        title={spec.primary.title}
         data-decision-primary="true"
         iconLeft={
           isLoading
             ? <CircleNotch className="size-3.5 animate-spin" />
             : spec.primary.icon ? ICONS[spec.primary.icon] : undefined
         }
-        className={cn(
-          'rounded-r-none border-r-0',
-          // Same mute treatment the old platform ApproveButton wore.
-          spec.primary.muted && 'opacity-40 cursor-not-allowed bg-muted text-muted-foreground hover:bg-muted',
-        )}
+        className="rounded-r-none border-r-0"
       >
         {spec.primary.shortLabel ? (
           <>
-            {/* Responsive spans copied from FeedbackButton so the toolbar
-                width below xl is unchanged in review. */}
+            {/* Responsive spans: the short label below xl keeps the toolbar
+                narrow. */}
             <span className={labelBreakpoint === 'lg' ? 'hidden lg:inline xl:hidden' : 'hidden md:inline lg:hidden'}>
               {spec.primary.shortLabel}
             </span>
@@ -486,23 +385,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
 
   return (
     <div ref={rootRef} className="relative inline-flex">
-      {spec.primary.muted ? (
-        <>
-          {/* The self-approval reason must be reachable by keyboard and AT,
-              not just mouse hover: the Tooltip opens on hover AND
-              focus-visible (Base UI wires floating-ui's useFocus on the
-              trigger), and the hidden span makes the same sentence the
-              button's persistent accessible description. */}
-          <Tooltip content={spec.primary.title} side="bottom" wide>
-            {primaryButton}
-          </Tooltip>
-          <span id={mutedReasonId} hidden>
-            {spec.primary.title}
-          </span>
-        </>
-      ) : (
-        primaryButton
-      )}
+      {primaryButton}
 
       {/* Right segment — the caret. */}
       <Button
@@ -547,10 +430,6 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
                     icon={item.icon ? ICONS[item.icon] : undefined}
                     label={item.label}
                     subtitle={item.subtitle}
-                    // Muted (platform self-approval): the row disables with
-                    // the reason already in its subtitle; sibling rows stay
-                    // live so the menu is never a dead end.
-                    disabled={item.muted}
                     className={itemToneClass(item.tone)}
                     onClick={() => selectItem(item)}
                   />

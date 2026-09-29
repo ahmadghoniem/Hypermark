@@ -36,10 +36,6 @@ function describeDiff(ctx: FeedbackDiffContext): string {
     case "staged":       label = "Staged changes"; break;
     case "unstaged":     label = "Unstaged changes"; break;
     case "last-commit":  label = "Last commit"; break;
-    case "workspace-current":  label = "Workspace current changes"; break;
-    case "workspace-staged":   label = "Workspace staged changes"; break;
-    case "workspace-unstaged": label = "Workspace unstaged changes"; break;
-    case "workspace-last":     label = "Workspace last change"; break;
     case "since-base":   label = base ? `All changes since \`${base}\` (committed + uncommitted + untracked)` : "All changes since base (committed + uncommitted + untracked)"; break;
     case "branch":       label = base ? `Branch diff vs \`${base}\`` : "Branch diff"; break;
     case "merge-base":   label = base ? `Committed changes vs \`${base}\`` : "Committed changes"; break;
@@ -116,22 +112,11 @@ function formatFileAnnotations(fileAnnotations: CodeAnnotation[], headingLevel =
     if (ann.reasoning) {
       output += `\n**Reasoning:** ${ann.reasoning}\n`;
     }
-    output += formatSelectedTextBlock(ann);
     output += formatAttachedImages(ann.images);
     output += '\n';
   }
 
   return output;
-}
-
-/**
- * The highlighted-text payload for an annotation that carries the exact text
- * the reviewer had selected, so the agent sees what was highlighted even when
- * it differs from the anchored diff lines.
- */
-function formatSelectedTextBlock(ann: CodeAnnotation): string {
-  if (!ann.selectedText) return '';
-  return `\n**Highlighted text:**\n\`\`\`\n${ann.selectedText}\n\`\`\`\n`;
 }
 
 function renderGeneralComments(annotations: CodeAnnotation[]): string {

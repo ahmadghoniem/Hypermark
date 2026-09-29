@@ -1,6 +1,6 @@
 name: hypermark
 version: 0.27.12
-description: Annotate Claude Code and other agent plans and review code visually. Share with your team, and send feedback to your agent with one click
+description: Annotate documents and Claude's messages, review code diffs in the browser, and send feedback to Claude Code.
 author: ahmadghoniem
 license: MIT/Apache2.0
 

@@ -11,7 +11,6 @@
 import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./server-port";
 import type { Origin } from "@hypermark/shared/agents";
 import { type DiffType, type GitContext, runVcsDiff, getVcsFileContentsForDiff, getVcsDiffFingerprint, resolveVcsCwd, validateFilePath, getVcsContext, detectRemoteDefaultCompareTarget, vcsOwnsDiffType, gitRuntime } from "./vcs";
-import { basename } from "node:path";
 import { existsSync, unlinkSync } from "node:fs";
 import { SingleFlight } from "@hypermark/shared/single-flight";
 import {
@@ -34,12 +33,11 @@ import {
 import { createCommitAvatarResolver, type CommandRunner } from "@hypermark/shared/commit-avatars";
 import { detectGeneratedFiles, detectGeneratedFilesByName } from "@hypermark/shared/generated-files";
 import { getRepoInfo } from "./repo";
-import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
+import { handleImage, handleUpload, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
 import { contentHash, deleteDraft } from "./draft";
-import { loadConfig, saveConfig, detectGitUser, getServerConfig, resolveFeedbackHistory } from "./config";
+import { loadConfig, saveConfig, getServerConfig, resolveFeedbackHistory } from "./config";
 import { appendFeedbackRecord, countChangedFiles, deriveFeedbackProject, type FeedbackDecision, type FeedbackReviewTarget } from "@hypermark/shared/feedback-archive";
 import { isFaviconStyle, type FaviconStyle } from "@hypermark/shared/favicon";
-import type { LocalWorkspaceReview, WorkspaceDiffType } from "./review-workspace";
 import { SESSION_STREAM_PATH } from "@hypermark/shared/session-stream";
 import { createSessionStreamBroadcaster } from "./session-stream";
 import { startParentWatch, type ParentWatcher } from "./parent-watch";
@@ -63,11 +61,9 @@ export interface ReviewServerOptions {
   /** Origin identifier for UI customization */
   origin?: Origin;
   /** Current diff type being displayed */
-  diffType?: DiffType | WorkspaceDiffType;
+  diffType?: DiffType;
   /** Git context with branch info and available diff options */
   gitContext?: GitContext;
-  /** Local parent directory containing multiple child VCS repositories. */
-  workspace?: LocalWorkspaceReview;
   /**
    * Initial base branch the caller used to compute `rawPatch`. When a caller
    * overrides the detected default, this must be forwarded so the server's internal
@@ -78,13 +74,13 @@ export interface ReviewServerOptions {
   /** Freshness token captured atomically with the initial provider patch. */
   initialFingerprint?: string;
   /**
-   * Whether this session's decision consumer delivers approve-time feedback
-   * (decision-control spec §6.4). Echoed as `approvalNotesSupported` on every
+   * Whether this session's decision consumer delivers approve-time feedback.
+   * Echoed as `approvalNotesSupported` on every
    * diff payload (`/api/diff`, `/api/diff/switch`) so the advert survives a diff
    * switch; the client gates its approve-carrying menu items on it. Default false — a caller
    * that does not pass it (an older consumer whose approved branch still discards
    * `result.feedback`) advertises "not capable" and the client renders no
-   * approve-carrying items, exactly the pre-PR5 behavior.
+   * approve-carrying items.
    */
   approvalNotesSupported?: boolean;
   /** Called when server starts with the URL, remote status, and port */
@@ -96,8 +92,6 @@ export interface ReviewServerOptions {
    * back to deriving a name from the review's working directory.
    */
   project?: string;
-  /** Working directory for agent processes. Independent of diff pipeline. */
-  agentCwd?: string;
   /**
    * Enable the stale-session reaper (see ./parent-watch.ts). Off by default
    * — see the identical option on AnnotateServerOptions in ./annotate.ts
@@ -149,8 +143,6 @@ export async function startReviewServer(
   // option's doc). Absent option = false, so old callers advertise honestly.
   const approvalNotesSupported = options.approvalNotesSupported === true;
 
-  const workspace = options.workspace;
-  const isWorkspaceMode = !!workspace;
   const hasLocalAccess = !!gitContext;
   const sessionVcsType = gitContext?.vcsType;
   let clientGitContext = gitContext;
@@ -159,7 +151,7 @@ export async function startReviewServer(
   // Mutable state for diff switching
   let currentPatch = options.rawPatch;
   let currentGitRef = options.gitRef;
-  let currentDiffType: DiffType | WorkspaceDiffType = options.diffType || workspace?.diffType || "uncommitted";
+  let currentDiffType: DiffType = options.diffType || "uncommitted";
   let currentError = options.error;
   let currentHideWhitespace = loadConfig().diffOptions?.hideWhitespace ?? false;
   // Monotonic guard for /api/diff/switch: concurrent switches mutate shared
@@ -190,7 +182,6 @@ export async function startReviewServer(
   let currentFingerprint = options.initialFingerprint ?? null;
   const computeDiffFingerprint = async (): Promise<string | null> => {
     try {
-      if (workspace) return await workspace.getFingerprint();
       if (!hasLocalAccess) return null;
       return await getVcsDiffFingerprint(currentDiffType as DiffType, currentBase, gitContext?.cwd, {
         hideWhitespace: currentHideWhitespace,
@@ -428,7 +419,7 @@ export async function startReviewServer(
   // (committed / changes / untracked) for the three-stack panel. Only
   // computed when the since-base mode (or its worktree variant) is active.
   const isSinceBaseActive = (diffType: string = currentDiffType as string): boolean => {
-    if (workspace || !gitContext) return false;
+    if (!gitContext) return false;
     const effective = parseWorktreeDiffType(diffType)?.subType ?? diffType;
     return effective === "since-base";
   };
@@ -451,7 +442,7 @@ export async function startReviewServer(
   // diffType parameterized for the same pin-before-await discipline as
   // buildSectionsSidecar.
   const buildCommitInfoSidecar = async (diffType: string = currentDiffType as string): Promise<CommitDiffInfo | undefined> => {
-    if (workspace || !gitContext) return undefined;
+    if (!gitContext) return undefined;
     const effective = parseWorktreeDiffType(diffType)?.subType ?? diffType;
     const sha = parseCommitDiffType(effective as string)?.sha;
     if (!sha) return undefined;
@@ -471,10 +462,8 @@ export async function startReviewServer(
   // un-marks even a built-in name, unspecified keeps the default).
   // Presentation-layer only: the patch is never filtered and snapshot/
   // fingerprint semantics are untouched. Attribute refinement runs for plain
-  // local Git sessions only — workspace multi-repo gets
-  // the name-based defaults alone rather than guessing
-  // attributes for a tree git can't authoritatively resolve here. Patch and
-  // diff type are parameterized for the same pin-before-await discipline as
+  // local Git sessions only; other sessions get the name-based defaults
+  // alone. Patch and diff type are parameterized for the same pin-before-await discipline as
   // buildSectionsSidecar.
   const buildGeneratedFilesSidecar = async (
     patch: string = currentPatch,
@@ -482,7 +471,7 @@ export async function startReviewServer(
   ): Promise<string[] | undefined> => {
     const paths = listPatchFiles(patch).map((f) => f.path);
     const plainLocalGit =
-      !workspace && gitContext && (sessionVcsType ?? "git") === "git";
+      gitContext && (sessionVcsType ?? "git") === "git";
     const generated = plainLocalGit
       ? await detectGeneratedFiles(
           gitRuntime,
@@ -495,24 +484,7 @@ export async function startReviewServer(
 
   let serverUrl = "";
   const sessionUploads = new Set<string>();
-  const resolveAgentCwd = (): string => {
-    if (workspace) return workspace.root;
-    return options.agentCwd ?? resolveVcsCwd(currentDiffType as DiffType, gitContext?.cwd) ?? process.cwd();
-  };
-  const resolveAgentCwdReady = async (): Promise<string> => {
-    return resolveAgentCwd();
-  };
 
-  // The "changes under review" context for Ask AI, built from the CURRENT view
-  // by the SAME machine the launchable review jobs use (buildCommand above) —
-  // contextOnly=true so it carries only the changeset/how-to-inspect-it text, no
-  // "provide findings" framing. Returned in the diff payloads so the chat can
-  // latch it onto the user's messages; recomputed wherever the view changes so a
-  // mid-session switch (diff type, base, whitespace) stays accurate.
-  // Parameterized so response handlers that SNAPSHOT the served state before
-  // an await can build the AI context from that same snapshot — reading the
-  // live globals here would let the startup base upgrade hand Ask AI a
-  // context for a different changeset than the rendered patch.
   // Snapshot identity clients echo on freshness probes: the content hash
   // PLUS the view mode. Mode is included so a cross-tab mode switch with a
   // byte-identical patch still flags old tabs; the BASE is deliberately
@@ -535,7 +507,7 @@ export async function startReviewServer(
   const feedbackProject = (): string =>
     options.project?.trim()
       ? options.project
-      : deriveFeedbackProject(gitContext?.cwd ?? options.agentCwd ?? process.cwd());
+      : deriveFeedbackProject(gitContext?.cwd ?? process.cwd());
 
   // Diff IDENTITY only: refs, view, snapshot id, and size metadata. The patch
   // bytes are deliberately not archived (guide history already showed what
@@ -550,9 +522,7 @@ export async function startReviewServer(
       patchBytes: currentPatch.length,
     };
     if (sessionVcsType) target.vcsType = sessionVcsType;
-    else if (workspace) target.vcsType = "workspace";
-    const cwd = gitContext?.cwd ?? options.agentCwd;
-    if (cwd) target.cwd = cwd;
+    if (gitContext?.cwd) target.cwd = gitContext.cwd;
     return target;
   };
 
@@ -587,12 +557,9 @@ export async function startReviewServer(
     return written !== null || !hasContent;
   };
 
-  const gitUser = detectGitUser();
 
   // Detect repo info (cached for this session)
-  let repoInfo = workspace
-    ? { display: basename(workspace.root), branch: "Workspace" }
-    : await getRepoInfo();
+  let repoInfo = await getRepoInfo();
   if (gitContext?.repository?.displayFallback) {
     repoInfo = {
       ...repoInfo,
@@ -657,28 +624,21 @@ export async function startReviewServer(
               gitRef: servedGitRef,
               snapshotId: servedSnapshotId,
               origin,
-              mode: isWorkspaceMode ? "workspace" : undefined,
-              diffType: hasLocalAccess || isWorkspaceMode ? servedDiffType : undefined,
+              diffType: hasLocalAccess ? servedDiffType : undefined,
               // Echo the active base so a page refresh or reconnect rehydrates
               // the picker to what the server is actually using — not the
               // detected default.
               base: hasLocalAccess ? servedBase : undefined,
               hideWhitespace: servedHideWhitespace,
-              ...(workspace && { diffOptions: workspace.diffOptions }),
               gitContext: hasLocalAccess ? servedGitContext : undefined,
               approvalNotesSupported,
               repoInfo,
-              ...(workspace
-                ? { agentCwd: workspace.root }
-                : options.agentCwd
-                  ? { agentCwd: options.agentCwd }
-                  : {}),
               ...(sections && { sections }),
               ...(commitInfo && { commitInfo }),
               ...(generatedFiles && { generatedFiles }),
               ...(baseBehindRemote && { baseBehindRemote: true }),
               ...(servedError && { error: servedError }),
-              serverConfig: getServerConfig(gitUser),
+              serverConfig: getServerConfig(),
             });
           }
 
@@ -757,13 +717,12 @@ export async function startReviewServer(
           }
 
           // API: Linear commit history for the Commits panel. Git-local
-          // sessions only — workspace reviews don't offer the view (same
-          // gate the client's commitsCapable applies). Computed against the
+          // sessions only (same gate the client's commitsCapable applies). Computed against the
           // same cwd as the active diff so worktree sessions list the
           // worktree's history, and against the active base so the divider
           // matches the review baseline.
           if (url.pathname === "/api/commits" && req.method === "GET") {
-            if (!gitContext || workspace || (sessionVcsType && sessionVcsType !== "git")) {
+            if (!gitContext || (sessionVcsType && sessionVcsType !== "git")) {
               return Response.json(
                 { error: "Commit history is only available for local git reviews" },
                 { status: 400 },
@@ -799,14 +758,14 @@ export async function startReviewServer(
             // epoch after `await req.json()` let a slow-body OLDER request bump
             // last and overwrite a newer, already-confirmed switch.
             const switchEpoch = ++diffSwitchEpoch;
-            if (!hasLocalAccess && !workspace) {
+            if (!hasLocalAccess) {
               return Response.json(
                 { error: "Not available without local file access" },
                 { status: 400 },
               );
             }
             try {
-              const body = (await req.json()) as { diffType: DiffType | WorkspaceDiffType; base?: string; hideWhitespace?: boolean; explicitBase?: boolean };
+              const body = (await req.json()) as { diffType: DiffType; base?: string; hideWhitespace?: boolean; explicitBase?: boolean };
               let newDiffType = body.diffType;
 
               if (typeof newDiffType !== "string" || !newDiffType) {
@@ -822,36 +781,6 @@ export async function startReviewServer(
               const effectiveHideWhitespace = typeof body.hideWhitespace === "boolean"
                 ? body.hideWhitespace
                 : currentHideWhitespace;
-
-              if (workspace) {
-                const snapshot = await workspace.rebuild({
-                  diffType: newDiffType,
-                  hideWhitespace: effectiveHideWhitespace,
-                });
-                if (switchEpoch !== diffSwitchEpoch) {
-                  return Response.json({ superseded: true });
-                }
-                currentHideWhitespace = effectiveHideWhitespace;
-                currentPatch = snapshot.rawPatch;
-                currentGitRef = snapshot.gitRef;
-                currentDiffType = workspace.diffType;
-                currentError = snapshot.error;
-                draftKey = contentHash(currentPatch);
-                captureDiffFingerprint();
-
-                return Response.json({
-                  rawPatch: currentPatch,
-                  // Snapshot arg: robust against a future await sneaking in
-                  // between the epoch check and this response.
-                  gitRef: currentGitRef,
-                  snapshotId: currentSnapshotId(),
-                  approvalNotesSupported,
-                  diffType: currentDiffType,
-                  diffOptions: workspace.diffOptions,
-                  hideWhitespace: currentHideWhitespace,
-                  ...(currentError && { error: currentError }),
-                });
-              }
 
               if (sessionVcsType && !vcsOwnsDiffType(sessionVcsType, newDiffType as string)) {
                 return Response.json(
@@ -1032,18 +961,6 @@ export async function startReviewServer(
               return Response.json({ oldContent: null, newContent: null });
             }
 
-            if (workspace) {
-              try {
-                const result = await workspace.getFileContents(filePath, oldPath);
-                return Response.json(result);
-              } catch (error) {
-                return Response.json(
-                  { error: error instanceof Error ? error.message : "No file access available" },
-                  { status: 400 },
-                );
-              }
-            }
-
             // Local review: read file contents from local git
             if (hasLocalAccess) {
               const requestedBase = url.searchParams.get("base") ?? undefined;
@@ -1065,9 +982,8 @@ export async function startReviewServer(
           // API: Update user config (write-back to ~/.hypermark/config.json)
           if (url.pathname === "/api/config" && req.method === "POST") {
             try {
-              const body = (await req.json()) as { displayName?: string; diffOptions?: Record<string, unknown>; theme?: Record<string, unknown>; favicon?: FaviconStyle };
+              const body = (await req.json()) as { diffOptions?: Record<string, unknown>; theme?: Record<string, unknown>; favicon?: FaviconStyle };
               const toSave: Record<string, unknown> = {};
-              if (body.displayName !== undefined) toSave.displayName = body.displayName;
               if (body.diffOptions !== undefined) toSave.diffOptions = body.diffOptions;
               if (body.theme !== undefined) toSave.theme = body.theme;
               if (isFaviconStyle(body.favicon)) toSave.favicon = body.favicon;

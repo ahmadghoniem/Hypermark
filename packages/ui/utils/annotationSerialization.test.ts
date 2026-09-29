@@ -8,9 +8,9 @@
  * arrays), and both image encodings — `[path, name]` tuples and the oldest
  * bare path strings, whose name is derived from the filename.
  *
- * Spec 05 owns the top-level/global image conversion. Until then the decoders
- * must keep every image they are handed: the "images survive" cases below are
- * the handoff contract, not incidental coverage.
+ * The top-level/global image conversion lives in attachmentNormalization.ts,
+ * so the decoders must keep every image they are handed: the "images survive"
+ * cases below are the handoff contract, not incidental coverage.
  */
 import { describe, expect, test } from 'bun:test';
 import { AnnotationType } from '../types';
@@ -59,7 +59,7 @@ describe('fromShareable — legacy tuple annotations', () => {
     expect(fromShareable([])).toEqual([]);
   });
 
-  test("'C' comments restore text, quote, author and ordering", () => {
+  test("'C' comments restore text, quote and ordering", () => {
     const restored = fromShareable([
       ['C', 'first quote', 'first comment', 'ramos'],
       ['C', 'second quote', 'second comment', null],
@@ -70,12 +70,11 @@ describe('fromShareable — legacy tuple annotations', () => {
     expect(restored[0]!.type).toBe(AnnotationType.COMMENT);
     expect(restored[0]!.originalText).toBe('first quote');
     expect(restored[0]!.text).toBe('first comment');
-    expect(restored[0]!.author).toBe('ramos');
     expect(restored[0]!.blockId).toBe('');
     expect(restored[0]!.startOffset).toBe(0);
     expect(restored[0]!.endOffset).toBe(0);
-    // A null author is absent, not the string "null".
-    expect(restored[1]!.author).toBeUndefined();
+    // The legacy author slot is ignored.
+    expect(restored[0]).not.toHaveProperty('author');
     // createdA preserves the stored order for the panel.
     expect(restored[1]!.createdA).toBeGreaterThan(restored[0]!.createdA);
   });
@@ -86,20 +85,18 @@ describe('fromShareable — legacy tuple annotations', () => {
     expect(restored!.originalText).toBe('quote');
   });
 
-  test("'D' deletions carry the author in slot 2 and no text", () => {
+  test("'D' deletions ignore the legacy author slot and carry no text", () => {
     const [restored] = fromShareable([['D', 'strike this', 'ramos']]);
     expect(restored!.type).toBe(AnnotationType.DELETION);
     expect(restored!.originalText).toBe('strike this');
     expect(restored!.text).toBeUndefined();
-    expect(restored!.author).toBe('ramos');
   });
 
   test("'G' global comments restore with an empty quote", () => {
-    const [restored] = fromShareable([['G', 'overall note', 'tater']]);
+    const [restored] = fromShareable([['G', 'overall note', 'legacy-author']]);
     expect(restored!.type).toBe(AnnotationType.GLOBAL_COMMENT);
     expect(restored!.text).toBe('overall note');
     expect(restored!.originalText).toBe('');
-    expect(restored!.author).toBe('tater');
   });
 
   test('images decode on every tuple form, in both encodings', () => {
@@ -111,35 +108,27 @@ describe('fromShareable — legacy tuple annotations', () => {
 
     expect(comment!.images).toEqual([{ path: '/data/a.png', name: 'A' }]);
     expect(deletion!.images).toEqual([{ path: '/data/b.png', name: 'b' }]);
-    // Global comment attachments survive intact — spec 05 converts them later.
+    // Global comment attachments survive intact — the normalizer converts them later.
     expect(global!.images).toEqual([
       { path: '/data/c.png', name: 'C' },
       { path: '/data/d.png', name: 'd' },
     ]);
   });
 
-  test('the parallel d/s arrays attach diffContext and source by index', () => {
+  test('the parallel d array attaches diffContext by index', () => {
     const data: ShareableAnnotation[] = [
       ['C', 'quote a', 'comment a', null],
       ['C', 'quote b', 'comment b', null],
     ];
-    const restored = fromShareable(data, ['added', null], [undefined, 'browser-agent']);
+    const restored = fromShareable(data, ['added', null]);
 
     expect(restored[0]!.diffContext).toBe('added');
-    expect('source' in restored[0]!).toBe(false);
     expect('diffContext' in restored[1]!).toBe(false);
-    expect(restored[1]!.source).toBe('browser-agent');
   });
 
-  test('a global comment keeps its source (its provenance survives restore)', () => {
-    const [restored] = fromShareable([['G', 'overall', null]], null, ['browser-agent']);
-    expect(restored!.source).toBe('browser-agent');
-  });
-
-  test('omitted d/s arrays leave both keys off', () => {
+  test('an omitted d array leaves diffContext off', () => {
     const [restored] = fromShareable([['C', 'quote', 'comment', null]]);
     expect('diffContext' in restored!).toBe(false);
-    expect('source' in restored!).toBe(false);
   });
 
   test('the tuple format never carried anchors, targets or reply links, and restore does not invent them', () => {
@@ -148,7 +137,7 @@ describe('fromShareable — legacy tuple annotations', () => {
     // another viewer's DOM anchors from a payload that has neither.
     const restored = fromShareable([
       ['C', 'quote', 'Parent', 'ramos'],
-      ['C', 'quote', 'Reply', 'tater'],
+      ['C', 'quote', 'Reply', 'legacy-author'],
     ]);
 
     expect(restored[1]!.originalText).toBe('quote');

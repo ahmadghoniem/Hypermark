@@ -15,24 +15,24 @@ function comment(id: string, quote: string, text: string, extra: Partial<Annotat
   const block = blocks.find((b) => b.content.includes(quote))!;
   return {
     id, blockId: block.id, startOffset: block.content.indexOf(quote), endOffset: block.content.indexOf(quote) + quote.length,
-    type: AnnotationType.COMMENT, text, originalText: quote, createdA: 1, author: 'ramos', ...extra,
+    type: AnnotationType.COMMENT, text, originalText: quote, createdA: 1, ...extra,
   };
 }
 
 describe('exportAnnotations with inReplyTo', () => {
   test('a reply nests under its parent entry and the entry numbers stay consecutive', () => {
     const parent = comment('p', 'Rotate the key', 'This invalidates in-flight uploads.');
-    const reply = comment('r', 'Rotate the key', 'Agreed, proposing a grace window.', { id: 'r', inReplyTo: 'p', author: 'tater', source: 'browser-agent', createdA: 2 });
+    const reply = comment('r', 'Rotate the key', 'Agreed, proposing a grace window.', { id: 'r', inReplyTo: 'p', createdA: 2 });
     const later = comment('l', 'Ship behind a flag', 'Which flag?', { createdA: 3 });
     const out = exportAnnotations(blocks, [parent, reply, later]);
     expect(out).toContain('## 1. ');
     expect(out).toContain('## 2. ');
     expect(out).not.toContain('## 3. ');
     const parentAt = out.indexOf('This invalidates in-flight uploads.');
-    // Deliberate pin: the `- **Reply (author):** text` line is the export
+    // Deliberate pin: the `- **Reply:** text` line is the export
     // contract the coding agent parses a thread from; changing its shape is a
     // product decision, not a wording tweak.
-    const replyAt = out.indexOf('- **Reply (tater):** Agreed, proposing a grace window.');
+    const replyAt = out.indexOf('- **Reply:** Agreed, proposing a grace window.');
     const laterAt = out.indexOf('Which flag?');
     expect(parentAt).toBeGreaterThan(0);
     expect(replyAt).toBeGreaterThan(parentAt);
@@ -53,7 +53,7 @@ describe('exportAnnotations with inReplyTo', () => {
     const x = comment('x', 'Rotate the key', 'X says', { inReplyTo: 'y', createdA: 1 });
     const y = comment('y', 'Rotate the key', 'Y says', { inReplyTo: 'x', createdA: 2 });
     const self = comment('s', 'Ship behind a flag', 'Self says', { inReplyTo: 's', createdA: 3 });
-    const reply = comment('r', 'Rotate the key', 'Reply to X', { inReplyTo: 'x', author: 'tater', createdA: 4 });
+    const reply = comment('r', 'Rotate the key', 'Reply to X', { inReplyTo: 'x', createdA: 4 });
     const out = exportAnnotations(blocks, [x, y, self, reply]);
     expect(out).toContain('have 4 pieces of feedback');
     for (const text of ['X says', 'Y says', 'Self says']) expect(out).toContain(text);
@@ -62,7 +62,7 @@ describe('exportAnnotations with inReplyTo', () => {
     expect(out).toContain('## 2. ');
     expect(out).toContain('## 3. ');
     expect(out).not.toContain('## 4. ');
-    expect(out).toContain('- **Reply (tater):** Reply to X');
+    expect(out).toContain('- **Reply:** Reply to X');
     expect(out.indexOf('X says')).toBeLessThan(out.indexOf('Y says'));
     expect(out.indexOf('Reply to X')).toBeLessThan(out.indexOf('Y says'));
   });

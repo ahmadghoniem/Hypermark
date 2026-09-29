@@ -1,9 +1,9 @@
 /**
  * Attachment Normalization & Legacy Compatibility Layer
  *
- * Spec 05 (§4.1) mandates migrating from parallel top-level/global attachment
- * lists to comment-owned attachments, while strictly preserving backward
- * compatibility for legacy readers and persisted formats.
+ * Migrates parallel top-level/global attachment lists to comment-owned
+ * attachments, while strictly preserving backward compatibility for legacy
+ * readers and persisted formats.
  *
  * This module provides pure normalizer functions that:
  * 1. Convert legacy tuple `g` and top-level `globalAttachments` into one
@@ -108,7 +108,6 @@ export interface NormalizeDocumentOptions {
   annotations?: Annotation[];
   globalAttachments?: unknown[];
   docKey?: string | null;
-  author?: string;
   createdA?: number;
 }
 
@@ -120,7 +119,7 @@ export interface NormalizedDocumentResult {
 /**
  * Normalizes annotations and legacy global attachments for a single document.
  *
- * Decision rationale for ambiguous global images (Spec 05 §4.1):
+ * Decision rationale for ambiguous global images:
  * Legacy global attachments do not carry line anchors or comment associations.
  * Attaching them to an arbitrary line comment would invent false semantic
  * associations. Therefore, all unassociated global attachments are deterministically
@@ -131,7 +130,6 @@ export function normalizeDocumentAnnotations({
   annotations = [],
   globalAttachments = [],
   docKey,
-  author,
   createdA,
 }: NormalizeDocumentOptions): NormalizedDocumentResult {
   const normalizedGlobals = normalizeAttachmentImages(globalAttachments);
@@ -201,7 +199,6 @@ export function normalizeDocumentAnnotations({
       type: AnnotationType.GLOBAL_COMMENT,
       originalText: '',
       createdA: createdA ?? Date.now(),
-      ...(author ? { author } : {}),
       images: imagesToAdd,
     };
     updatedAnnotations.push(newGlobalComment);

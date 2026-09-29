@@ -9,13 +9,3 @@
  */
 export const altKey = 'Alt';
 export const submitHint = 'Ctrl+Enter';
-/**
- * The primary modifier's own `KeyboardEvent.key` name, for features that arm
- * on the modifier being HELD rather than on a chord. Pair with `isModKeyHeld`:
- * this identifies the key itself, that reads the held flag off any event.
- */
-export const modEventKey = 'Control';
-/** Whether the primary modifier is down for this event. */
-export function isModKeyHeld(event: { metaKey: boolean; ctrlKey: boolean }): boolean {
-  return event.ctrlKey;
-}

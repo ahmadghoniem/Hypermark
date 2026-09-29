@@ -3,7 +3,6 @@ import {
   applyCollectionMutation,
   applyCollectionMutations,
   createUndoHistoryState,
-  isHumanHistoryMutation,
   recordUndoAction,
   takeRedoAction,
   takeUndoAction,
@@ -69,9 +68,4 @@ describe('undo history', () => {
     expect(applyCollectionMutations([], mutations, 'redo', getId)[1]?.inReplyTo).toBe('parent');
   });
 
-  it('explicitly excludes external and agent-authored mutations', () => {
-    expect(isHumanHistoryMutation({})).toBe(true);
-    expect(isHumanHistoryMutation({ source: 'browser-agent' })).toBe(false);
-    expect(isHumanHistoryMutation({ source: 'external-review' })).toBe(false);
-  });
 });

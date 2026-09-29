@@ -268,17 +268,3 @@ function scrollSearchTargetIntoContainer(
   });
 }
 
-function scrollToSearchMatch(
-  scrollContainer: HTMLElement,
-  root: ParentNode,
-  match: ReviewSearchMatch,
-): boolean {
-  const lineEl = root.querySelector(getLineSelector(match)) as HTMLElement | null;
-  if (!lineEl) return false;
-
-  const mark = root.querySelector(`mark[data-review-search-match="${CSS.escape(match.id)}"]`) as HTMLElement | null;
-  scrollSearchTargetIntoContainer(scrollContainer, mark ?? lineEl);
-  mark?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-  return true;
-}
-

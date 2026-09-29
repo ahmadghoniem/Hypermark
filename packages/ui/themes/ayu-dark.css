@@ -45,29 +45,6 @@
   --code-bg: #141821;
 
   /* Terminal / ANSI */
-  --terminal-background: #141821;
-  --terminal-foreground: #bfbdb6;
-  --terminal-cursor: #e6b450;
-  --terminal-cursor-accent: #141821;
-  --terminal-selection-background: #273747;
-  --terminal-selection-foreground: #bfbdb6;
-  --terminal-selection-inactive-background: #1b1f29;
-  --terminal-black: #0d1017;
-  --terminal-red: #ea6c73;
-  --terminal-green: #70bf56;
-  --terminal-yellow: #fdb04c;
-  --terminal-blue: #73b8ff;
-  --terminal-magenta: #d4bfff;
-  --terminal-cyan: #90e1c6;
-  --terminal-white: #bfbdb6;
-  --terminal-bright-black: #6c7380;
-  --terminal-bright-red: #ea6c73;
-  --terminal-bright-green: #70bf56;
-  --terminal-bright-yellow: #fdb04c;
-  --terminal-bright-blue: #73b8ff;
-  --terminal-bright-magenta: #d4bfff;
-  --terminal-bright-cyan: #90e1c6;
-  --terminal-bright-white: #ffffff;
 
   /* Focus */
   --ring: #e6b450;

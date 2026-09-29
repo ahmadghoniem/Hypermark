@@ -147,7 +147,7 @@ export function HtmlSurfaceControls({
 
       {/* Interact/Annotate toggle. A PEN icon (deliberately not a speech
           bubble: an annotations-panel bubble beside it must stay
-          distinguishable at a glance, and so must AI sparkles). Always the
+          distinguishable at a glance). Always the
           same icon: armed shows the accent color plus a visible border;
           unarmed is muted with a TRANSPARENT border of the same width, so
           the button's box is pixel-identical in both states. */}

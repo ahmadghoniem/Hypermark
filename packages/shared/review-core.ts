@@ -2121,8 +2121,8 @@ export interface SinceBaseSectionEntry {
   group: "committed" | "changes" | "untracked";
   /** True when the file has staged (index) changes — porcelain column X.
    *  SNAPSHOT value from when the sidecar was computed. For DISPLAY, always
-   *  render from the client's effective staged set (useGitAdd folds
-   *  this in with session overrides) — never OR this flag back in, or files
+   *  render from the client's effective staged set, which folds
+   *  in session overrides — never OR this flag back in, or files
    *  unstaged mid-session keep a stale staged indicator. */
   staged: boolean;
 }

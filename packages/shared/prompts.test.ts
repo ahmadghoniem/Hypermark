@@ -2,35 +2,18 @@ import { describe, expect, test } from "bun:test";
 import { mergePromptConfig, type PromptRuntime } from "./config";
 import {
   DEFAULT_REVIEW_APPROVED_PROMPT,
-  DEFAULT_PLAN_DENIED_PROMPT,
-  DEFAULT_PLAN_APPROVED_PROMPT,
-  DEFAULT_PLAN_APPROVED_WITH_NOTES_PROMPT,
-  DEFAULT_PLAN_AUTO_APPROVED_PROMPT,
   DEFAULT_ANNOTATE_FILE_FEEDBACK_PROMPT,
   DEFAULT_ANNOTATE_MESSAGE_FEEDBACK_PROMPT,
-  DEFAULT_ANNOTATE_APPROVED_PROMPT,
-  DEFAULT_ANNOTATE_APPROVED_WITH_NOTES_PROMPT,
   DEFAULT_REVIEW_APPROVED_WITH_NOTES_PROMPT,
   DEFAULT_REVIEW_DENIED_SUFFIX,
   LEGACY_REVIEW_APPROVAL_PLACEHOLDER,
   composeReviewApprovedMessage,
   getReviewApprovedPrompt,
-  getPlanDeniedPrompt,
-  getPlanApprovedPrompt,
-  getPlanApprovedWithNotesPrompt,
-  getPlanAutoApprovedPrompt,
-  getAnnotateFileFeedbackPrompt,
   getAnnotateFileFeedbackTemplate,
-  getAnnotateMessageFeedbackPrompt,
   getAnnotateMessageFeedbackTemplate,
-  getAnnotateApprovedPrompt,
-  getAnnotateApprovedWithNotesPrompt,
   getReviewDeniedSuffix,
   resolveTemplate,
-  getPlanToolName,
-  buildPlanFileRule,
 } from "./prompts";
-import { planDenyFeedback } from "./feedback-templates";
 
 // ─── A1. Template engine ─────────────────────────────────────────────────────
 
@@ -63,200 +46,6 @@ describe("resolveTemplate", () => {
   test("handles adjacent and repeated variables", () => {
     expect(resolveTemplate("{{a}}{{b}} and {{a}}", { a: "X", b: "Y" }))
       .toBe("XY and X");
-  });
-});
-
-// ─── A2. Plan denied ─────────────────────────────────────────────────────────
-
-describe("getPlanDeniedPrompt", () => {
-  test("falls back to built-in default when no config", () => {
-    const result = getPlanDeniedPrompt("claude-code", {}, {
-      toolName: "ExitPlanMode",
-      planFileRule: "",
-      feedback: "Fix the auth section",
-    });
-    expect(result).toContain("YOUR PLAN WAS NOT APPROVED");
-    expect(result).toContain("Fix the auth section");
-    expect(result).toContain("ExitPlanMode");
-  });
-
-  test("uses generic plan.denied config override", () => {
-    const result = getPlanDeniedPrompt("claude-code", {
-      prompts: { plan: { denied: "REJECTED.\n\n{{feedback}}" } },
-    }, { feedback: "Fix it" });
-    expect(result).toBe("REJECTED.\n\nFix it");
-    expect(result).not.toContain("YOUR PLAN WAS NOT APPROVED");
-  });
-
-  test("runtime-specific override wins over generic", () => {
-    const result = getPlanDeniedPrompt("claude-code", {
-      prompts: {
-        plan: {
-          denied: "Generic denial: {{feedback}}",
-          runtimes: { "claude-code": { denied: "OC denial: {{feedback}}" } },
-        },
-      },
-    }, { feedback: "nope" });
-    expect(result).toBe("OC denial: nope");
-  });
-
-  test("interpolates {{toolName}}, {{feedback}}, {{planFileRule}}", () => {
-    const result = getPlanDeniedPrompt(null, {}, {
-      toolName: "submit_plan",
-      feedback: "user feedback here",
-      planFileRule: "- Saved at: plan.md\n",
-    });
-    expect(result).toContain("submit_plan");
-    expect(result).toContain("user feedback here");
-    expect(result).toContain("Saved at: plan.md");
-  });
-
-  test("blank config falls through to default", () => {
-    const result = getPlanDeniedPrompt("claude-code", {
-      prompts: { plan: { denied: "   ", runtimes: { "claude-code": { denied: "" } } } },
-    }, { toolName: "submit_plan", planFileRule: "", feedback: "fb" });
-    expect(result).toContain("YOUR PLAN WAS NOT APPROVED");
-  });
-
-  test("default template preserves plan title instruction (regression #296)", () => {
-    const result = getPlanDeniedPrompt(null, {}, {
-      toolName: "ExitPlanMode", planFileRule: "", feedback: "fb",
-    });
-    expect(result.toLowerCase()).toContain("title");
-    expect(result.toLowerCase()).toContain("heading");
-  });
-
-  test("includes plan file rule when planFileRule var is populated", () => {
-    const result = getPlanDeniedPrompt(null, {}, {
-      toolName: "ExitPlanMode",
-      planFileRule: buildPlanFileRule("ExitPlanMode", "plans/auth.md"),
-      feedback: "fb",
-    });
-    expect(result).toContain("plans/auth.md");
-    expect(result).toContain("edit this file");
-  });
-
-  test("omits plan file rule when planFileRule is empty", () => {
-    const result = getPlanDeniedPrompt(null, {}, {
-      toolName: "ExitPlanMode", planFileRule: "", feedback: "fb",
-    });
-    expect(result).not.toContain("saved at");
-  });
-
-});
-
-// ─── A3. Plan approved ───────────────────────────────────────────────────────
-
-describe("getPlanApprovedPrompt", () => {
-  test("uses configured prompt with variable interpolation", () => {
-    const result = getPlanApprovedPrompt("claude-code", {
-      prompts: { plan: { approved: "Go ahead with {{planFilePath}}." } },
-    }, { planFilePath: "my-plan.md" });
-    expect(result).toBe("Go ahead with my-plan.md.");
-  });
-
-  test("runtime config wins over generic config wins over runtime default", () => {
-    const result = getPlanApprovedPrompt("claude-code", {
-      prompts: {
-        plan: {
-          approved: "Generic approved",
-          runtimes: { "claude-code": { approved: "OC approved" } },
-        },
-      },
-    });
-    expect(result).toBe("OC approved");
-  });
-
-  test("interpolates {{planFilePath}} and {{doneMsg}}", () => {
-    const result = getPlanApprovedPrompt("claude-code", {}, {
-      planFilePath: "plans/auth.md",
-      doneMsg: "Check each step.",
-    });
-    expect(result).toContain("plans/auth.md");
-    expect(result).toContain("Check each step.");
-  });
-});
-
-describe("getPlanApprovedWithNotesPrompt", () => {
-  test("includes Implementation Notes section in default", () => {
-    const result = getPlanApprovedWithNotesPrompt("claude-code", {}, {
-      planFilePath: "p.md", doneMsg: "", feedback: "Watch the edge case",
-    });
-    expect(result).toContain("## Implementation Notes");
-    expect(result).toContain("Watch the edge case");
-  });
-
-  test("uses configured override when present", () => {
-    const result = getPlanApprovedWithNotesPrompt("claude-code", {
-      prompts: { plan: { approvedWithNotes: "Approved. Notes: {{feedback}}" } },
-    }, { feedback: "be careful" });
-    expect(result).toBe("Approved. Notes: be careful");
-  });
-});
-
-describe("getPlanAutoApprovedPrompt", () => {
-  test("returns default auto-approved message", () => {
-    expect(getPlanAutoApprovedPrompt("claude-code", {})).toContain("auto-approved");
-  });
-
-  test("uses configured override", () => {
-    expect(getPlanAutoApprovedPrompt("claude-code", {
-      prompts: { plan: { autoApproved: "Auto OK" } },
-    })).toBe("Auto OK");
-  });
-});
-
-// ─── A4. Annotation feedback ─────────────────────────────────────────────────
-
-describe("getAnnotateFileFeedbackPrompt", () => {
-  test("includes file header and path in default", () => {
-    const result = getAnnotateFileFeedbackPrompt("claude-code", {}, {
-      fileHeader: "File", filePath: "/src/app.ts", feedback: "Fix line 5",
-    });
-    expect(result).toContain("File: /src/app.ts");
-    expect(result).toContain("Fix line 5");
-    expect(result).toContain("Please address");
-  });
-
-  test("handles folder header variant", () => {
-    const result = getAnnotateFileFeedbackPrompt("claude-code", {}, {
-      fileHeader: "Folder", filePath: "/src/", feedback: "Check all files",
-    });
-    expect(result).toContain("Folder: /src/");
-  });
-
-  test("uses configured override", () => {
-    const result = getAnnotateFileFeedbackPrompt("claude-code", {
-      prompts: { annotate: { fileFeedback: "Review {{filePath}}: {{feedback}}" } },
-    }, { filePath: "x.ts", feedback: "fix it" });
-    expect(result).toBe("Review x.ts: fix it");
-  });
-
-  test("runtime-specific override wins over generic", () => {
-    const result = getAnnotateFileFeedbackPrompt("claude-code", {
-      prompts: {
-        annotate: {
-          fileFeedback: "Generic: {{feedback}}",
-          runtimes: { "claude-code": { fileFeedback: "Pi: {{feedback}}" } },
-        },
-      },
-    }, { feedback: "note" });
-    expect(result).toBe("Pi: note");
-  });
-});
-
-describe("getAnnotateMessageFeedbackPrompt", () => {
-  test("includes feedback in default template", () => {
-    const result = getAnnotateMessageFeedbackPrompt("claude-code", {}, { feedback: "Wrong output" });
-    expect(result).toContain("Message Annotations");
-    expect(result).toContain("Wrong output");
-  });
-
-  test("uses configured override", () => {
-    const result = getAnnotateMessageFeedbackPrompt("claude-code", {
-      prompts: { annotate: { messageFeedback: "Notes: {{feedback}}" } },
-    }, { feedback: "fix" });
-    expect(result).toBe("Notes: fix");
   });
 });
 
@@ -296,107 +85,11 @@ describe("getAnnotateFileFeedbackTemplate / getAnnotateMessageFeedbackTemplate",
       prompts: {
         annotate: {
           fileFeedback: "Generic: {{feedback}}",
-          runtimes: { "claude-code": { fileFeedback: "Pi: {{feedback}}" } },
+          runtimes: { "claude-code": { fileFeedback: "Runtime: {{feedback}}" } },
         },
       },
     });
-    expect(result).toBe("Pi: {{feedback}}");
-  });
-});
-
-describe("getAnnotateApprovedPrompt", () => {
-  test("returns default approved message", () => {
-    expect(getAnnotateApprovedPrompt("claude-code", {})).toBe("The user approved.");
-  });
-
-  test("uses configured override", () => {
-    expect(getAnnotateApprovedPrompt("claude-code", {
-      prompts: { annotate: { approved: "Approved!" } },
-    })).toBe("Approved!");
-  });
-});
-
-describe("getAnnotateApprovedWithNotesPrompt", () => {
-  test("frames approved file notes as non-blocking guidance with target context", () => {
-    const result = getAnnotateApprovedWithNotesPrompt("claude-code", {}, {
-      context: "File: /src/app.ts",
-      feedback: "Keep the retry bounded.",
-    });
-
-    expect(result).toContain("artifact is approved");
-    expect(result).toContain("non-blocking guidance");
-    expect(result).toContain("not a request for another revision");
-    expect(result).toContain("File: /src/app.ts");
-    expect(result).toContain("Keep the retry bounded.");
-    expect(result).toContain(
-      "Do not revise or reopen the artifact solely because of these notes unless the user explicitly requests it",
-    );
-    expect(result).toContain("Carry the notes into subsequent work where applicable");
-    expect(result).not.toMatch(/\baddress\b/i);
-    expect(result).toBe(
-      resolveTemplate(DEFAULT_ANNOTATE_APPROVED_WITH_NOTES_PROMPT, {
-        contextBlock: "File: /src/app.ts\n\n",
-        feedback: "Keep the retry bounded.",
-      }),
-    );
-  });
-
-  test("omits target context for approved message notes", () => {
-    const result = getAnnotateApprovedWithNotesPrompt("claude-code", {}, {
-      feedback: "Retain this caveat.",
-    });
-
-    expect(result).toContain("Retain this caveat.");
-    expect(result).not.toContain("{{context}}");
-    expect(result).not.toContain("File:");
-  });
-
-  test("resolves {{context}} to empty in custom templates for message annotations", () => {
-    // The OpenCode CLI-bridge message path passes `context: undefined`
-    // (there is no target file); the key being present must not leave a
-    // literal `{{context}}` in a custom template.
-    const result = getAnnotateApprovedWithNotesPrompt("claude-code", {
-      prompts: {
-        annotate: {
-          approvedWithNotes: "APPROVED {{context}}\n\nGuidance: {{feedback}}",
-        },
-      },
-    }, {
-      context: undefined,
-      feedback: "Retain this caveat.",
-    });
-
-    expect(result).toBe("APPROVED \n\nGuidance: Retain this caveat.");
-    expect(result).not.toContain("{{context}}");
-  });
-
-  test("uses the single configurable approvedWithNotes override", () => {
-    const result = getAnnotateApprovedWithNotesPrompt("claude-code", {
-      prompts: {
-        annotate: {
-          approvedWithNotes: "APPROVED {{context}}\n\nGuidance: {{feedback}}",
-        },
-      },
-    }, {
-      context: "Folder: /src",
-      feedback: "Keep names stable.",
-    });
-
-    expect(result).toBe("APPROVED Folder: /src\n\nGuidance: Keep names stable.");
-  });
-
-  test("preserves configured template whitespace", () => {
-    const result = getAnnotateApprovedWithNotesPrompt("claude-code", {
-      prompts: {
-        annotate: {
-          approvedWithNotes: "Approved.\n\n\n{{feedback}}",
-        },
-      },
-    }, {
-      feedback: "Keep names stable.",
-    });
-
-    expect(result).toBe("Approved.\n\n\nKeep names stable.");
+    expect(result).toBe("Runtime: {{feedback}}");
   });
 });
 
@@ -446,48 +139,23 @@ describe("getReviewDeniedSuffix", () => {
       prompts: {
         review: {
           denied: "Generic review suffix.",
-          runtimes: { "claude-code": { denied: "Pi review suffix." } },
+          runtimes: { "claude-code": { denied: "Runtime review suffix." } },
         },
       },
-    })).toBe("Pi review suffix.");
-  });
-});
-
-// ─── A5. Backward compatibility ──────────────────────────────────────────────
-
-describe("backward compatibility", () => {
-  test("planDenyFeedback() produces same output via pipeline as before", () => {
-    const feedback = "## Fix auth\n> Remove the old token.";
-    const direct = getPlanDeniedPrompt(null, undefined, {
-      toolName: "ExitPlanMode",
-      planFileRule: "",
-      feedback,
-    });
-    expect(planDenyFeedback(feedback, "ExitPlanMode")).toBe(direct);
-  });
-
-  test("planDenyFeedback() with planFilePath produces same output", () => {
-    const direct = getPlanDeniedPrompt(null, undefined, {
-      toolName: "hypermark_submit_plan",
-      planFileRule: buildPlanFileRule("hypermark_submit_plan", "plans/auth.md"),
-      feedback: "Fix it",
-    });
-    expect(planDenyFeedback("Fix it", "hypermark_submit_plan", {
-      planFilePath: "plans/auth.md",
-    })).toBe(direct);
+    })).toBe("Runtime review suffix.");
   });
 });
 
 // ─── A6. Config merge (expanded) ─────────────────────────────────────────────
 
 describe("mergePromptConfig (expanded)", () => {
-  test("merges plan section alongside existing review section", () => {
+  test("merges annotate section alongside existing review section", () => {
     const merged = mergePromptConfig(
       { review: { approved: "R" } },
-      { plan: { denied: "D" } },
+      { annotate: { fileFeedback: "F" } },
     );
     expect(merged?.review?.approved).toBe("R");
-    expect(merged?.plan?.denied).toBe("D");
+    expect(merged?.annotate?.fileFeedback).toBe("F");
   });
 
   test("merges annotate section", () => {
@@ -502,12 +170,12 @@ describe("mergePromptConfig (expanded)", () => {
 
 });
 
-// ─── Approve-with-notes composition (PR5, spec §6.4) ─────────────────────────
+// ─── Approve-with-notes composition ─────────────────────────
 
 describe("composeReviewApprovedMessage", () => {
-  // The one shared composer the four agent-facing review consumers (§6.3)
-  // emit approvals through. Bare approvals must stay byte-identical to the
-  // pre-notes output — every consumer's approved branch depends on it.
+  // The one shared composer the review decision consumer emits approvals
+  // through. Bare approvals must stay byte-identical to the pre-notes output —
+  // the consumer's approved branch depends on it.
   test("bare approvals emit the approved prompt alone", () => {
     expect(composeReviewApprovedMessage("claude-code", undefined, {})).toBe(DEFAULT_REVIEW_APPROVED_PROMPT);
     expect(composeReviewApprovedMessage("claude-code", "", {})).toBe(DEFAULT_REVIEW_APPROVED_PROMPT);
@@ -538,7 +206,7 @@ describe("composeReviewApprovedMessage", () => {
     ).toBe("APPROVED. Notes: the note");
   });
 
-  // Compatibility (new consumer / old built client): the pre-PR5 client sent
+  // Compatibility (new consumer / old built client): older clients sent
   // this exact placeholder on every approval; framing it as reviewer guidance
   // would add filler the reviewer never wrote to every mixed-build approval.
   test("the legacy LGTM placeholder is filtered, never framed as guidance", () => {
@@ -591,28 +259,5 @@ describe("prompts", () => {
         },
       }),
     ).toBe(DEFAULT_REVIEW_APPROVED_PROMPT);
-  });
-});
-
-// ─── Helper tests ────────────────────────────────────────────────────────────
-
-describe("getPlanToolName", () => {
-  test("defaults to ExitPlanMode for null/undefined", () => {
-    expect(getPlanToolName(null)).toBe("ExitPlanMode");
-    expect(getPlanToolName(undefined)).toBe("ExitPlanMode");
-  });
-});
-
-describe("buildPlanFileRule", () => {
-  test("returns empty string when no planFilePath", () => {
-    expect(buildPlanFileRule("ExitPlanMode")).toBe("");
-    expect(buildPlanFileRule("ExitPlanMode", undefined)).toBe("");
-  });
-
-  test("includes path and tool name when planFilePath provided", () => {
-    const result = buildPlanFileRule("submit_plan", "plans/auth.md");
-    expect(result).toContain("plans/auth.md");
-    expect(result).toContain("submit_plan");
-    expect(result).toContain("edit this file");
   });
 });

@@ -31,8 +31,8 @@ describe("stripAtPrefix", () => {
     expect(stripAtPrefix("")).toBe("");
   });
 
-  // Wrapping quotes come from harnesses that tokenize on whitespace (OpenCode,
-  // Pi). Users have to quote paths with spaces: `"@My Notes.md"`. Without
+  // Wrapping quotes come from harnesses that tokenize on whitespace. Users
+  // have to quote paths with spaces: `"@My Notes.md"`. Without
   // unwrapping the quotes first, stripAtPrefix would never see the `@`.
   test("strips wrapping double quotes before stripping @", () => {
     expect(stripAtPrefix(`"@foo.md"`)).toBe("foo.md");

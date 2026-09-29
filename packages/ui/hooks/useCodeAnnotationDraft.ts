@@ -124,8 +124,7 @@ export function useCodeAnnotationDraft({
     if (isEmpty) {
       // The user cleared everything (#948). Delete the draft with a generation
       // tombstone so it can't resurface on refresh and a late save can't revive
-      // it. Mirrors useAnnotationDraft.persistNow — routed through the draft
-      // transport seam so a host backend tombstones its own stored draft too.
+      // it. Mirrors useAnnotationDraft.persistNow.
       getDraftTransport().remove(draftGeneration, { keepalive }).catch(() => {});
       return;
     }
@@ -155,11 +154,7 @@ export function useCodeAnnotationDraft({
     if (!isApiMode || submitted) return;
     if (!hasMountedRef.current) return;
 
-    // Track engagement on USER-AUTHORED annotations only. External/SSE annotations
-    // (source-tagged, e.g. an eslint plugin) arrive via `allAnnotations` and have
-    // their own lifecycle, separate from the draft; they must NOT count as "had content",
-    // or a later empty state would look like the user deleted everything and wrongly delete the draft.
-    if (annotations.some((a) => !a.source)) hasHadAnnotationsRef.current = true;
+    if (annotations.length > 0) hasHadAnnotationsRef.current = true;
 
     scheduleDraftSave();
   }, [annotations, isApiMode, submitted, scheduleDraftSave]);

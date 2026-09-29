@@ -78,22 +78,14 @@ class ConfigStore {
   private serverSyncTimer: ReturnType<typeof setTimeout> | null = null;
   private pagehideFlushRegistered = false;
   private serverSync: ServerSyncFn = defaultServerSync;
-  /** True once a host installed its own transport via setServerSync(). */
-  private serverSyncInstalled = false;
   /** Settings whose value came from the server config; seeds must not undo them. */
   private serverOverridden = new Set<string>();
   private loaded = false;
 
   /**
-   * Resolve all settings from the LIVE storage backend (cookie > default) on
-   * first use — deliberately not in the constructor. The singleton is created
-   * at module import, which for a host app is before configureHypermarkUI()
-   * can install its StorageBackend; resolving eagerly there would write every
-   * missing default (including a generated identity) as cookies onto the host's
-   * origin. Deferring to first use means a host that configures at startup gets
-   * its own backend for the initial resolution too — no cookies are ever
-   * written on a configured host. Hypermark is unchanged: same resolution,
-   * same default-seeding writes, on first settings access instead of at import.
+   * Resolve all settings from the live storage backend (cookie > default) on
+   * first use rather than in the constructor, so the singleton created at
+   * module import does not write default cookies before anything reads a setting.
    */
   private ensureLoaded(): void {
     if (this.loaded) return;
@@ -110,36 +102,6 @@ class ConfigStore {
         def.toCookie(resolved as never);
       }
     }
-  }
-
-  /**
-   * Re-hydrate all settings from the currently installed StorageBackend.
-   * ADDITIVE host hook — Hypermark never calls this (eager cookie default unchanged).
-   * Host installs a SYNCHRONOUS StorageBackend serving prefetched settings, then calls
-   * this to route the initial load through that backend. Precedence after a host call:
-   * server (init) > host backend (loadFromBackend) > cookie/default (constructor).
-   * Call this BEFORE init(serverConfig): init() always wins, so calling loadFromBackend()
-   * after init() would silently overwrite server-supplied settings.
-   */
-  loadFromBackend(): void {
-    this.ensureLoaded();
-    for (const [name, def] of Object.entries(SETTINGS)) {
-      const fromBackend = def.fromCookie();
-      if (fromBackend !== undefined) {
-        this.values.set(name, fromBackend);
-      } else {
-        // Seed the host backend with the resolved default. This matters when
-        // the store was already resolved BEFORE the host installed its
-        // StorageBackend (e.g. something read a setting pre-configure): those
-        // default-seeding writes went to the earlier backend, not this one.
-        // Without this, a fresh host store is never populated, so generated
-        // defaults (e.g. displayName) regenerate on every reload. In the normal
-        // configure-at-startup flow ensureLoaded() above already resolved
-        // through the host backend and this loop is a no-op re-read.
-        def.toCookie(this.values.get(name) as never);
-      }
-    }
-    this.notify();
   }
 
   /**
@@ -194,15 +156,10 @@ class ConfigStore {
 
   /**
    * Persist a user choice to memory + cookie, queuing the server write-back
-   * only when this store is actually talking to a server. Hosts that never
-   * installed a serverSync seam have no /api/config endpoint, so the legacy
-   * cookie-only APIs (ThemeProvider.setColorTheme) use this instead of set().
+   * without queuing a server write-back. The legacy cookie-only APIs
+   * (ThemeProvider.setColorTheme) use this instead of set().
    */
   setLocal<K extends SettingName>(key: K, value: SettingValue<K>): void {
-    if (this.serverSyncInstalled) {
-      this.set(key, value);
-      return;
-    }
     this.ensureLoaded();
     const def = SETTINGS[key];
     this.values.set(key, value);
@@ -237,15 +194,14 @@ class ConfigStore {
     return () => this.listeners.delete(listener);
   }
 
-  /** Override the server write-back transport (default = inline POST /api/config). */
+  /** Test hook: replace the server write-back transport (default = POST /api/config). */
   setServerSync(fn: ServerSyncFn): void {
     this.serverSync = fn;
-    this.serverSyncInstalled = true;
   }
 
+  /** Test hook: restore the default server write-back transport. */
   resetServerSync(): void {
     this.serverSync = defaultServerSync;
-    this.serverSyncInstalled = false;
   }
 
   private notify(): void {

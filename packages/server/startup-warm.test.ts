@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { warmFileListCache } from "@hypermark/shared/resolve-file";
 import { startAnnotateServer } from "./annotate";
-import { startHypermarkServer } from "./index";
 
 const MINIMAL_HTML = "<html><body>Hypermark</body></html>";
 
@@ -77,17 +76,6 @@ async function expectReadyBeforeWarm(
 }
 
 describe("startup file-cache warm", () => {
-	test("Bun plan server binds before its cache warm can settle", async () => {
-		await expectReadyBeforeWarm((onReady) =>
-			startHypermarkServer({
-				plan: "# Test plan",
-				origin: "claude-code",
-				htmlContent: MINIMAL_HTML,
-				onReady,
-			}),
-		);
-	});
-
 	test("Bun annotate server binds before its cache warm can settle", async () => {
 		await expectReadyBeforeWarm((onReady) =>
 			startAnnotateServer({

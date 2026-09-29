@@ -6,10 +6,6 @@
  * not forked components" true. `DecisionControl.tsx` renders whatever this
  * returns; the apps translate ids into handlers.
  *
- * NOT host-supported surface: like ActionMenu/ConfirmDialog, this module is
- * app-shared chrome and is deliberately absent from the README supported-import
- * list and the strict-consumer tsconfig.
- *
  * Labels, subtitles and confirm strings are the approved prototype's
  * (DESIGN_final-proposal.html `spec()`), authoritative over any older branch
  * or mock copy — except where a later maintainer ruling supersedes it: the
@@ -29,21 +25,12 @@ export type DecisionTone = 'success' | 'primary' | 'neutral' | 'destructive';
 
 export interface DecisionPrimary {
   id: 'primary';
-  label: string;            // 'All good' | 'Approve' | 'Send Feedback' | 'Post Comments'
+  label: string;            // 'All good' | 'Approve' | 'Send Feedback'
   shortLabel?: string;      // 'Send' — the lg-breakpoint label
-  mobileLabel?: string;     // compact/touch row label
   title: string;            // tooltip / aria description
   tone: Exclude<DecisionTone, 'destructive'>;
   icon?: 'check' | 'send';
   count?: number;           // rendered as the inline pill; omitted when 0
-  /**
-   * Platform self-approval (PR6, §3.4): rendered dimmed but NOT disabled.
-   * The reason surfaces through the shared Tooltip + aria-describedby (the
-   * native title is deliberately dropped when muted, pinned by test), and
-   * every invocation path (click, Mod+Enter, compact row) is a no-op. The
-   * caret stays live so the menu's non-approve paths remain reachable.
-   */
-  muted?: boolean;
 }
 
 export interface DecisionComposer {
@@ -69,13 +56,6 @@ export interface DecisionMenuItem {
   dividerBefore?: boolean;
   composer?: DecisionComposer;   // present ⇒ the item morphs the popover
   confirm?: DecisionConfirm;     // present ⇒ the item raises one confirm
-  /**
-   * Platform self-approval (PR6, §3.4): the row renders disabled with the
-   * reason in its subtitle. Muted rather than removed, so the menu still
-   * documents the path and no state is a dead end (the non-approve rows
-   * stay live).
-   */
-  muted?: boolean;
 }
 
 export interface DecisionSpec {
@@ -91,7 +71,7 @@ export interface DecisionSpecInput {
   count: number;
   /**
    * Whether there is anything to send. Deliberately separate from `count`:
-   * annotate counts direct edits / saved-file changes / attachments as
+   * annotate counts attachments as
    * feedback with count 0 (`hasFeedbackContent` in the annotate app).
    */
   hasFeedback: boolean;
@@ -227,8 +207,7 @@ function buildFeedbackSpec(input: DecisionSpecInput, approvalFlow: boolean): Dec
   // it sits before whichever approve-flavoured item comes first.
   let dividerPending = true;
 
-  // Capability-gated only (F2 ruling, maintainer-confirmed): at count 0 the feedback is direct edits / saved-file
-  // changes / attachments, and a capable approve transport delivers those too,
+  // Capability-gated only (F2 ruling, maintainer-confirmed): at count 0 the feedback is attachments, and a capable approve transport delivers those too,
   // so the item stays offered with zero-form copy — no "0 annotations"
   // language. Subtitles are free prose, NOT frozen.
   if (approvalFlow && input.approvalNotesSupported) {
@@ -255,7 +234,6 @@ function buildFeedbackSpec(input: DecisionSpecInput, approvalFlow: boolean): Dec
       // Frozen copy (maintainer-approved): 'Send Feedback'.
       label: 'Send Feedback',
       shortLabel: 'Send',
-      mobileLabel: 'Send feedback',
       title: 'Send feedback to the agent',
       tone: 'primary',
       icon: 'send',

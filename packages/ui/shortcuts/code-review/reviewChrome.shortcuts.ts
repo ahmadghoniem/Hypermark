@@ -6,17 +6,14 @@ import { defineShortcutScope } from '../core';
  *
  * These were the last shortcuts the registry did not know about. Their
  * handlers live in `review-editor/App.tsx` as ordinary `keydown` effects with
- * guards too situational to express as a scope `when` (search focus, compact
- * navigator state, an Escape ladder with six rungs), so they are NOT dispatched
+ * guards too situational to express as a scope `when` (search focus), so
+ * they are NOT dispatched
  * through `useShortcutScope`. What they do read from here is the BINDING — via
  * `matchesShortcutBinding(event, ...bindings)` — so this file is the single
  * place a review chrome key is written down, for the help panel and the
  * handler alike.
  *
- * `Escape` is declared as one action deliberately. The handler walks a
- * precedence ladder (destination menu, export modal, compact navigator,
- * compact sidebar, then search), but to a reader there is one Escape key and
- * it dismisses whatever is in front of them.
+ * `Escape` closes the file search, or clears its query first when one is set.
  */
 export const reviewChromeShortcuts = defineShortcutScope({
   id: 'review-chrome',
@@ -61,10 +58,10 @@ export const reviewChromeShortcuts = defineShortcutScope({
       preventDefault: true,
     },
     dismiss: {
-      description: 'Close menu / clear search',
+      description: 'Clear or close search',
       bindings: ['Escape'],
       section: 'Actions',
-      hint: 'Dismisses whatever is in front: an open menu, the compact navigator, the sidebar, then the search query.',
+      hint: 'Clears the search query, then closes the search field.',
       displayOrder: 60,
     },
   },

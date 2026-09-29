@@ -67,7 +67,6 @@ export interface VcsSnapshotOptions {
   cwd: string;
   rawPatch: string;
   includedExtensions: readonly string[];
-  prCommitPair?: { from: string; to: string };
   signal?: AbortSignal;
 }
 
@@ -450,7 +449,7 @@ export function createVcsApi(providers: readonly VcsProvider[]): VcsApi {
       options: VcsSnapshotOptions,
     ): Promise<VcsSnapshot> {
       const provider = getProviderById(vcsType);
-      if (!provider?.materializeSnapshot || (!options.prCommitPair && !(provider.supportsSnapshot?.(options.diffType) ?? false))) {
+      if (!provider?.materializeSnapshot || !(provider.supportsSnapshot?.(options.diffType) ?? false)) {
         throw new Error(`Snapshot materialization does not support the ${options.diffType} ${formatVcsName(vcsType)} review mode.`);
       }
       return provider.materializeSnapshot(options);
@@ -572,15 +571,6 @@ async function materializeGitSnapshot(
   runtime: ReviewGitRuntime,
   options: VcsSnapshotOptions,
 ): Promise<VcsSnapshot> {
-  if (options.prCommitPair) {
-    return {
-      cwd: options.cwd,
-      from: await resolveCommit(runtime, options.cwd, options.prCommitPair.from),
-      to: await resolveCommit(runtime, options.cwd, options.prCommitPair.to),
-      cleanup: () => {},
-    };
-  }
-
   const worktree = parseWorktreeDiffType(options.diffType);
   const cwd = worktree?.path ?? options.cwd;
   const diffType = worktree?.subType ?? options.diffType;

@@ -29,14 +29,12 @@ describe("CLI top-level help", () => {
 
     expect(output).toContain("hypermark --help");
     expect(output).toContain("hypermark --version, -v");
-    expect(output).toContain("hypermark [--browser <name>]");
     expect(output).toContain("hypermark review [--git]");
     expect(output).toContain("hypermark annotate <file.md | file.txt | file.html>");
     expect(output).toContain("[--markdown] [--gate]");
     expect(output).toContain("hypermark annotate-last [--stdin]");
     expect(output).toContain("hypermark uninstall [--purge] [--yes]");
     expect(output).toContain("Run 'hypermark <command> --help' for command-specific usage.");
-    expect(output).toContain("running 'hypermark' without arguments is for hook integration");
   });
 });
 
@@ -83,7 +81,7 @@ describe("CLI subcommand help", () => {
   });
 
   test("ignores help flags for unknown / internal subcommands", () => {
-    expect(isSubcommandHelpInvocation(["opencode-review", "--help"])).toBeNull();
+    expect(isSubcommandHelpInvocation(["unknown-command", "--help"])).toBeNull();
     expect(isSubcommandHelpInvocation(["--help"])).toBeNull();
     expect(isSubcommandHelpInvocation([])).toBeNull();
   });
@@ -303,8 +301,7 @@ describe("interactive no-arg invocation", () => {
   test("renders clarification for interactive users", () => {
     const output = formatInteractiveNoArgClarification();
 
-    expect(output).toContain("usually launched automatically by Claude Code hooks");
-    expect(output).toContain("It expects hook JSON on stdin.");
+    expect(output).toContain("does nothing in an interactive terminal");
     expect(output).toContain("hypermark review");
     expect(output).toContain("hypermark sessions");
     expect(output).toContain("hypermark uninstall");

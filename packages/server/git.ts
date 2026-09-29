@@ -9,7 +9,6 @@ import { lstat, readlink } from "node:fs/promises";
 import { resolve as resolvePath } from "node:path";
 
 import {
-  type DiffOption,
   type DiffResult,
   type DiffType,
   type GitCommandResult,

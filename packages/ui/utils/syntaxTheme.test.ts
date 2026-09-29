@@ -67,8 +67,8 @@ describe('resolveSyntaxTheme', () => {
 
   test('names Pierre\x27s syntax themes explicitly for hypermark', () => {
     // Hypermark does render in Pierre's syntax themes, but it says so as
-    // palette DATA rather than reaching them by falling out of the map: spec 03
-    // requires syntax to be explicit for every supported palette and mode, and
+    // palette DATA rather than reaching them by falling out of the map: syntax
+    // must be explicit for every supported palette and mode, and
     // a key present in the map but resolving to nothing is not a mapping.
     expect(resolveSyntaxTheme('hypermark', 'dark')).toEqual({
       dark: 'pierre-dark',

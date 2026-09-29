@@ -1,8 +1,8 @@
 /**
- * Handler exhaustiveness for the annotate decision wiring (spec §8C, pure
- * lane — cannot silently skip).
+ * Handler exhaustiveness for the annotate decision wiring (pure lane —
+ * cannot silently skip).
  *
- * Neither app package is typechecked (spec §9), so the contract "every id the
+ * Neither app package is typechecked, so the contract "every id the
  * spec can emit has a route" is enforced here at runtime: an id added to
  * `decisionSpec.ts` without a branch in `resolveAnnotateDecisionAction`
  * returns `undefined` and fails these sweeps.
@@ -43,7 +43,7 @@ describe("annotate decision handler exhaustiveness", () => {
     }
   });
 
-  // Guards the endpoint matrix (spec §3.1/§6.1): Done and every note stay on
+  // Guards the endpoint matrix: Done and every note stay on
   // /api/feedback so formatAnnotateOutcome shapes and strict-gate exit codes
   // are untouched; only gate-mode approvals reach /api/approve.
   test("note routes follow the gate's transport; no menu note ever carries approval framing", () => {

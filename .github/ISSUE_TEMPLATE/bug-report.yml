@@ -24,26 +24,6 @@ body:
         - macOS
         - Linux
         - Windows
-        - Devcontainer / SSH / remote
-    validations:
-      required: true
-  - type: dropdown
-    id: agent
-    attributes:
-      label: Agent
-      description: Which coding agent were you using Hypermark with?
-      options:
-        - Claude Code
-        - OpenCode
-        - Pi
-        - Codex
-        - Amp
-        - Droid
-        - Copilot CLI
-        - Gemini CLI
-        - Kiro CLI
-        - None / standalone CLI
-        - Other
     validations:
       required: true
   - type: dropdown
@@ -51,7 +31,6 @@ body:
     attributes:
       label: Where did it happen?
       options:
-        - Plan review
         - Code review
         - Annotate
         - Install / CLI

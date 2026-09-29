@@ -176,7 +176,7 @@ $verifyAttestationResolved = $false
 # install never relocates itself; otherwise an explicitly-set absolute
 # XDG_DATA_HOME (rare on Windows but honored the same way as the runtime)
 # places the directory at $XDG_DATA_HOME\hypermark; otherwise ~/.hypermark.
-# A fresh root (spec 06, decision D5): Hypermark starts at ~/.hypermark and
+# A fresh root: Hypermark starts at ~/.hypermark and
 # never probes ~/.plannotator, so an existing Plannotator install keeps its
 # plans, drafts and config exactly where they are.
 $configDir = if ($env:HYPERMARK_DATA_DIR) { $env:HYPERMARK_DATA_DIR.Trim() } else {
@@ -505,35 +505,6 @@ if ($minimal) {
 
 Show-PathAdvice
 
-# Validate plugin hooks.json if plugin is already installed
-$pluginHooks = if ($env:CLAUDE_CONFIG_DIR) { "$env:CLAUDE_CONFIG_DIR\plugins\marketplaces\hypermark\apps\hook\hooks\hooks.json" } else { "$env:USERPROFILE\.claude\plugins\marketplaces\hypermark\apps\hook\hooks\hooks.json" }
-if (Test-Path $pluginHooks) {
-    # Use full path on Windows so the hook works without PATH being set in the shell
-    $exePath = "$installDir\hypermark.exe"
-    # Convert backslashes to forward slashes and escape for JSON
-    $exePathJson = $exePath.Replace('\', '/')
-    @"
-{
-  "hooks": {
-    "PermissionRequest": [
-      {
-        "matcher": "ExitPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$exePathJson\"",
-            "timeout": 345600
-          }
-        ]
-      }
-    ]
-  }
-}
-"@ | Set-Content -Path $pluginHooks
-    Write-Host "Updated plugin hooks at $pluginHooks"
-}
-
-
 # Aggressive cleanup of stale install locations from prior versions.
 # Echo each removal and ignore anything that is already gone.
 
@@ -554,7 +525,7 @@ foreach ($junk in @("core", "extra")) {
     }
 }
 
-# Extras (setup-goal / visual-explainer) are no longer managed in
+# Extras (visual-explainer and older extras) are no longer managed in
 # the Claude or shared-agent skill scopes. Remove previously default-installed
 # copies ONCE per machine - recorded in the migrations ledger under the
 # Hypermark data dir - because copies the user reinstalls via `npx skills
@@ -585,7 +556,7 @@ if (-not (Test-Path $extrasMigration)) {
 # redirected/CI runs never prompt. Flags win over everything.
 $prefsFile = Join-Path $configDir "install-prefs"
 $coreSkillNames = @("hypermark-review", "hypermark-annotate", "hypermark-last")
-$extraSkillNames = @("hypermark-setup-goal", "hypermark-visual-explainer")
+$extraSkillNames = @("hypermark-visual-explainer")
 
 $savedExtras = ""
 $savedInvocable = ""
@@ -723,7 +694,7 @@ if ($runWizard) {
         $extrasChoice = if ($Extras) { "yes" } else { "no" }
     } else {
         $defaultExtras = if ($savedExtras) { $savedExtras } else { "no" }
-        $extrasChoice = Read-YesNo "Install the extra skills (setup-goal, visual explainer)?" $defaultExtras
+        $extrasChoice = Read-YesNo "Install the extra skills (visual explainer)?" $defaultExtras
     }
     $invocableList = $coreSkillNames
     if ($extrasChoice -eq "yes") { $invocableList = $coreSkillNames + $extraSkillNames }
@@ -1017,26 +988,6 @@ if ($skipSkillsResolved) {
 
 if ((-not $skipSkillsResolved) -and ($extrasChoice -ne "yes")) {
     Write-Host ""
-    Write-Host "Optional skills (setup-goal, visual explainer):"
+    Write-Host "Optional skills (visual explainer):"
     Write-Host "  npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global"
-}
-
-# Warn if hypermark is configured in both settings.json hooks AND the plugin (causes double execution)
-# Only warn when the plugin is installed - manual-only users won't have overlap
-$claudeSettings = if ($env:CLAUDE_CONFIG_DIR) { "$env:CLAUDE_CONFIG_DIR\settings.json" } else { "$env:USERPROFILE\.claude\settings.json" }
-if ((Test-Path $pluginHooks) -and (Test-Path $claudeSettings)) {
-    $settingsContent = Get-Content -Path $claudeSettings -Raw -ErrorAction SilentlyContinue
-    if ($settingsContent -match '"command".*hypermark') {
-        Write-Host ""
-        Write-Host "!!! WARNING: DUPLICATE HOOK DETECTED !!!"
-        Write-Host ""
-        Write-Host "  hypermark was found in your settings.json hooks:"
-        Write-Host "  $claudeSettings"
-        Write-Host ""
-        Write-Host "  This will cause hypermark to run TWICE on each plan review."
-        Write-Host "  Remove the hypermark hook from settings.json and rely on the"
-        Write-Host "  plugin instead (installed automatically via marketplace)."
-        Write-Host ""
-        Write-Host "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-    }
 }

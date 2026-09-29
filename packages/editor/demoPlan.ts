@@ -11,7 +11,7 @@ export const COLLAB_CONFIG = {
   maxCollaborators: 50,
   heartbeatIntervalMs: 5_000,
   operationBatchSize: 32,
-  gateway: "wss://collab.plannotator.ai",
+  gateway: "wss://collab.example.com",
 } as const;
 \`\`\`
 
@@ -22,7 +22,7 @@ export const COLLAB_CONFIG = {
 | \`maxCollaborators\` | 50 | Hard ceiling per document before the gateway rejects new joins |
 | \`heartbeatIntervalMs\` | 5 000 ms | Ping cadence; three missed heartbeats trigger a reconnect |
 | \`operationBatchSize\` | 32 | Max ops coalesced into a single WebSocket frame |
-| \`gateway\` | \`wss://collab.plannotator.ai\` | Regional edge endpoint; clients are routed by latency |
+| \`gateway\` | \`wss://collab.example.com\` | Regional edge endpoint; clients are routed by latency |
 
 ### Key files
 

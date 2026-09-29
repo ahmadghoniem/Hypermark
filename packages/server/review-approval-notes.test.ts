@@ -1,6 +1,5 @@
 /**
- * PR5 approve-with-notes delivery — server half, dual-runtime (Bun + Pi).
- * Decision-control spec §6.4.
+ * Approve-with-notes delivery — server half, Bun runtime.
  *
  * Guards three regressions:
  *  1. Advert honesty: a server booted WITHOUT `approvalNotesSupported`
@@ -10,13 +9,13 @@
  *  2. Advert survival: the advert rides /api/diff/switch too. If a switch
  *     response stopped carrying it, a client that re-derives state from the
  *     payload would silently lose the approve-carrying menu items after a
- *     diff switch — the exact failure the spec names.
+ *     diff switch.
  *  3. Delivery + archive: an approval carrying feedback reaches
  *     waitForDecision unmodified and archives as `approved-with-notes`;
  *     a bare approval (`feedback: ''`, no annotations — the post-placeholder
  *     client shape) archives as `lgtm` with NO sidecar. The `lgtm` decision
- *     was unreachable while the client sent the LGTM placeholder (spec §6.2
- *     fact 1); this pins that it stays reachable.
+ *     was unreachable while the client sent the LGTM placeholder; this pins
+ *     that it stays reachable.
  */
 import { afterEach, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
@@ -117,7 +116,7 @@ for (const [runtime, startServer] of [
       const legacy = await startServer({
         rawPatch: PATCH,
         gitRef: "HEAD",
-        origin: runtime === "Pi" ? "pi" : "claude-code",
+        origin: "claude-code",
         htmlContent: MINIMAL_HTML,
       });
       try {
@@ -138,7 +137,7 @@ for (const [runtime, startServer] of [
         gitRef: "Working tree",
         diffType: "uncommitted",
         gitContext,
-        origin: runtime === "Pi" ? "pi" : "claude-code",
+        origin: "claude-code",
         approvalNotesSupported: true,
         htmlContent: MINIMAL_HTML,
       });
@@ -168,7 +167,7 @@ for (const [runtime, startServer] of [
       const server = await startServer({
         rawPatch: PATCH,
         gitRef: "HEAD",
-        origin: runtime === "Pi" ? "pi" : "claude-code",
+        origin: "claude-code",
         approvalNotesSupported: true,
         htmlContent: MINIMAL_HTML,
       });
@@ -207,7 +206,7 @@ for (const [runtime, startServer] of [
       const server = await startServer({
         rawPatch: PATCH,
         gitRef: "HEAD",
-        origin: runtime === "Pi" ? "pi" : "claude-code",
+        origin: "claude-code",
         approvalNotesSupported: true,
         htmlContent: MINIMAL_HTML,
       });
@@ -229,7 +228,7 @@ for (const [runtime, startServer] of [
           readFileSync(join(dataDir, "feedback", projects[0], "index.jsonl"), "utf-8"),
         );
         expect(records.length).toBe(1);
-        // Reachable at last: the pre-PR5 client's LGTM placeholder made
+        // Reachable at last: the old client's LGTM placeholder made
         // hasContent always true, so every bare approval archived as
         // approved-with-notes plus a sidecar file.
         expect(records[0].decision).toBe("lgtm");

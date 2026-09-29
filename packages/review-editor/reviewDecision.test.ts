@@ -1,8 +1,8 @@
 /**
  * Handler exhaustiveness for the review (agent-mode) decision wiring
- * (spec §8C, pure lane — cannot silently skip).
+ * (pure lane — cannot silently skip).
  *
- * Neither app package is typechecked (spec §9), so the contract "every id the
+ * Neither app package is typechecked, so the contract "every id the
  * spec can emit has a route" is enforced here at runtime: an id added to
  * `decisionSpec.ts` without a branch in `resolveReviewDecisionAction` (or the
  * compact row mapper) returns `undefined` and fails these sweeps.
@@ -57,9 +57,9 @@ describe("review decision handler exhaustiveness", () => {
     }
   });
 
-  // Guards the single-transport matrix (spec §3.2/§6.1): request-changes and
+  // Guards the single-transport matrix: request-changes and
   // note-with-feedback differ only by state, never by route; the confirm item
-  // is the close flow; both approve-carrying ids land on the PR5 delivery
+  // is the close flow; both approve-carrying ids land on the approve-with-notes
   // path — routing one to the plain-note flow would misdeliver an approval as
   // a change request — and fork only on WHAT rides the approval.
   test("the routes fork only on approved, never on which menu state emitted them", () => {
@@ -73,8 +73,7 @@ describe("review decision handler exhaustiveness", () => {
       .toEqual({ kind: "approve-with-notes", withAnnotations: true });
   });
 
-  // The PR5 contract (spec §6.4), extended from PR3's tripwire exactly as its
-  // comment instructed: the advert may only emit approve-carrying ids whose
+  // The advert may only emit approve-carrying ids whose
   // route DELIVERS the content. The refusal marker is gone, so the assertion
   // is now about the wire body: under a true advert every approve-carrying
   // item builds an approval payload that carries the reviewer's content —
@@ -123,9 +122,9 @@ describe("review decision handler exhaustiveness", () => {
     }
   });
 
-  // Compatibility matrix (spec §6.4): old server / new client — a payload
-  // without the field reads false, so no approve-carrying item renders (the
-  // PR3 behavior); and the new bare approval sends `feedback: ''` instead of
+  // Compatibility matrix: old server / new client — a payload
+  // without the field reads false, so no approve-carrying item renders; and
+  // the new bare approval sends `feedback: ''` instead of
   // the removed LGTM placeholder, which is what makes the archive's `lgtm`
   // decision reachable and stops bare approvals writing sidecars.
   test("absent advert reads false, and a bare approval carries no placeholder", () => {
@@ -176,7 +175,7 @@ describe("createGeneralReviewComment — the one review-level comment shape", ()
   // "+ General comment") depend on: the ''/0/0 sentinels keep it out of every
   // file group and the payload tests pin the same shape on the wire.
   test("commits a trimmed scope:'general' comment with the sentinel anchor", () => {
-    const note = createGeneralReviewComment("  Split this into two PRs.  ", "ramos");
+    const note = createGeneralReviewComment("  Split this into two PRs.  ");
     expect(note).toMatchObject({
       type: "comment",
       scope: "general",
@@ -185,16 +184,14 @@ describe("createGeneralReviewComment — the one review-level comment shape", ()
       lineEnd: 0,
       side: "new",
       text: "Split this into two PRs.",
-      author: "ramos",
     });
     // Two commits in one millisecond must not collide: the deferred-submit
-    // effect keys on the id (spec §9 — why randomUUID, not Date.now()).
+    // effect keys on the id (why randomUUID, not Date.now()).
     expect(createGeneralReviewComment("a")!.id).not.toBe(createGeneralReviewComment("a")!.id);
   });
 
-  test("a whitespace-only note never commits, and a missing identity omits author", () => {
+  test("a whitespace-only note never commits", () => {
     expect(createGeneralReviewComment("   \n  ")).toBeNull();
     expect(createGeneralReviewComment("")).toBeNull();
-    expect("author" in createGeneralReviewComment("x", "")!).toBe(false);
   });
 });

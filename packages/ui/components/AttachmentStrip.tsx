@@ -22,7 +22,7 @@ interface AttachmentStripProps {
   onRetryPending?: (id: string) => void;
   /**
    * Focus fallback once the removed chip had no neighbor — normally the
-   * composer's attach action (spec 05 §3.2.3).
+   * composer's attach action.
    */
   onFocusAfterLastRemoved?: () => void;
   /** Mode-specific padding, so the strip lines up with the textarea above it. */
@@ -44,7 +44,7 @@ const CHIP =
 
 /**
  * Image attachments as chips, inside the comment composer and below the
- * textarea (spec 05 §3.2).
+ * textarea.
  *
  * Chips rather than thumbnail tiles: an attachment is a thing you have
  * ATTACHED, not a thing you are looking at. A 56px grid pushed the send row
@@ -173,7 +173,7 @@ const SavedChip: React.FC<SavedChipProps> = ({ image, onRemove, registerRemoveBu
   return (
     <div role="listitem" title={image.name} className={CHIP}>
       {unavailable ? (
-        // Spec 05 §3.2.6: a stored reference can outlive its temporary file.
+        // A stored reference can outlive its temporary file.
         // Say so explicitly and keep the attachment; never drop it silently.
         <span
           data-attachment-unavailable="true"

@@ -37,16 +37,13 @@ export function normalizeCwdForCompare(cwd: string): string {
 
 export interface SessionLogEntry {
   type: string;
-  id?: string;
   /** Entry identity. Bookkeeping types (`last-prompt`, `ai-title`, `mode`) have none. */
   uuid?: string;
   /** The entry this one follows. `null` on the root entry. */
   parentUuid?: string | null;
-  visibility?: string;
   message?: {
     id?: string;
     role?: string;
-    visibility?: string;
     content?: string | ContentBlock[];
   };
   [key: string]: unknown;
@@ -440,12 +437,6 @@ const SYSTEM_USER_PREFIXES = [
   "<system-notification>",
 ];
 
-function getEntryRole(entry: SessionLogEntry): "user" | "assistant" | null {
-  if (entry.type === "user" || entry.type === "assistant") return entry.type;
-  const role = entry.message?.role;
-  return role === "user" || role === "assistant" ? role : null;
-}
-
 function getVisibleTextBlocks(content: string | ContentBlock[] | undefined): string[] {
   if (typeof content === "string") {
     return content.trim() ? [content] : [];
@@ -456,26 +447,12 @@ function getVisibleTextBlocks(content: string | ContentBlock[] | undefined): str
     .map((b: ContentBlock) => b.text!);
 }
 
-function getEntryVisibility(entry: SessionLogEntry): string | undefined {
-  return entry.visibility ?? entry.message?.visibility;
-}
-
-function isHiddenTranscriptEntry(entry: SessionLogEntry): boolean {
-  const visibility = getEntryVisibility(entry)?.trim().toLowerCase();
-  return visibility === "llm_only" || visibility === "assistant_only" || visibility === "hidden";
-}
-
-function getEntryMessageId(entry: SessionLogEntry): string | undefined {
-  return entry.message?.id ?? entry.id;
-}
-
 /**
  * Check if a session log entry is a human-typed user prompt
  * (as opposed to a tool result or system-generated user message).
  */
 export function isHumanPrompt(entry: SessionLogEntry): boolean {
-  if (getEntryRole(entry) !== "user") return false;
-  if (isHiddenTranscriptEntry(entry)) return false;
+  if (entry.type !== "user") return false;
   const blocks = getVisibleTextBlocks(entry.message?.content);
   if (blocks.length === 0) return false;
   const content = blocks.join("\n");
@@ -487,109 +464,11 @@ export function isHumanPrompt(entry: SessionLogEntry): boolean {
 }
 
 /**
- * Check if a session log entry is an assistant message with rendered text.
- */
-function hasTextContent(entry: SessionLogEntry): boolean {
-  if (getEntryRole(entry) !== "assistant") return false;
-  if (isHiddenTranscriptEntry(entry)) return false;
-  return getVisibleTextBlocks(entry.message?.content).length > 0;
-}
-
-/**
  * Extract text blocks from an assistant message's content array.
  */
 function extractTextBlocks(entry: SessionLogEntry): string[] {
-  if (getEntryRole(entry) !== "assistant") return [];
-  if (isHiddenTranscriptEntry(entry)) return [];
+  if (entry.type !== "assistant") return [];
   return getVisibleTextBlocks(entry.message?.content);
-}
-
-/**
- * Find the anchor index: the last human prompt at or before `beforeIndex`
- * whose content includes `anchorText`.
- * If no anchorText is provided, returns the index of the last human prompt.
- */
-export function findAnchorIndex(
-  entries: SessionLogEntry[],
-  anchorText?: string,
-  beforeIndex?: number
-): number {
-  const end = beforeIndex ?? entries.length - 1;
-  for (let i = end; i >= 0; i--) {
-    if (!isHumanPrompt(entries[i])) continue;
-    if (!anchorText) return i;
-    const content = getVisibleTextBlocks(entries[i].message?.content).join("\n");
-    if (content.includes(anchorText)) return i;
-  }
-  return -1;
-}
-
-/**
- * Extract the last rendered assistant message before a given index.
- *
- * Finds the last message.id with text content — the final "bubble" the user
- * sees in the TUI. Collects all text chunks for that message.id only.
- *
- * Skips noise entries and non-human user messages. If no text is found
- * in the current turn, walks backward through earlier turns.
- */
-export function extractLastRenderedMessage(
-  entries: SessionLogEntry[],
-  beforeIndex: number
-): RenderedMessage | null {
-  let targetMessageId: string | null = null;
-  const textParts: { text: string; lineNum: number }[] = [];
-
-  for (let i = beforeIndex - 1; i >= 0; i--) {
-    const entry = entries[i];
-
-    // Skip noise
-    if (entry.type === "progress" || entry.type === "system") continue;
-    if (entry.type === "file-history-snapshot") continue;
-    if (entry.type === "queue-operation") continue;
-
-    // Skip non-human user messages (tool results, system-generated)
-    if (getEntryRole(entry) === "user" && !isHumanPrompt(entry)) continue;
-
-    // At a human prompt: if we already have text, stop.
-    // If no text yet, skip and keep looking in earlier turns.
-    if (isHumanPrompt(entry)) {
-      if (textParts.length > 0) break;
-      continue;
-    }
-
-    if (getEntryRole(entry) !== "assistant") continue;
-
-    // If we already locked onto a message.id, collect earlier chunks of it
-    if (targetMessageId) {
-      const msgId = getEntryMessageId(entry);
-      if (msgId !== targetMessageId) break;
-      const texts = extractTextBlocks(entry);
-      if (texts.length > 0) {
-        textParts.push(...texts.map((t) => ({ text: t, lineNum: i + 1 })));
-      }
-      continue;
-    }
-
-    // Haven't found target yet — look for assistant with text
-    if (!hasTextContent(entry)) continue;
-    const msgId = getEntryMessageId(entry);
-    if (!msgId) continue;
-
-    targetMessageId = msgId;
-    const texts = extractTextBlocks(entry);
-    textParts.push(...texts.map((t) => ({ text: t, lineNum: i + 1 })));
-  }
-
-  if (!targetMessageId || textParts.length === 0) return null;
-
-  textParts.reverse();
-
-  return {
-    messageId: targetMessageId,
-    text: textParts.map((p) => p.text).join("\n"),
-    lineNumbers: textParts.map((p) => p.lineNum),
-  };
 }
 
 
@@ -655,7 +534,7 @@ export function resolveActiveBranchIndices(
 /**
  * Extract up to `limit` of the most recent rendered assistant messages.
  *
- * Returned newest-first. Unlike `extractLastRenderedMessage`, this does not
+ * Returned newest-first. This does not
  * stop at turn boundaries (human prompts) — picker UIs want a flat list of
  * recent assistant bubbles.
  *
@@ -689,12 +568,11 @@ export function extractRecentRenderedMessages(
     if (entry.type === "progress" || entry.type === "system") continue;
     if (entry.type === "file-history-snapshot") continue;
     if (entry.type === "queue-operation") continue;
-    if (getEntryRole(entry) !== "assistant") continue;
-    if (isHiddenTranscriptEntry(entry)) continue;
+    if (entry.type !== "assistant") continue;
 
     const texts = extractTextBlocks(entry);
     if (texts.length === 0) continue;
-    const msgId = getEntryMessageId(entry);
+    const msgId = entry.message?.id;
     if (!msgId) continue;
 
     let bucket = buckets.get(msgId);

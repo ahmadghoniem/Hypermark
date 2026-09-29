@@ -18,9 +18,3 @@ export type {
   CommitHistoryPage,
   CommitListEntry,
 } from "./commit-history";
-
-export type {
-  WorkspaceDiffType,
-  WorkspaceRepoState,
-  WorkspaceReviewState,
-} from "./review-workspace";

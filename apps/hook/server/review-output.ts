@@ -2,7 +2,7 @@ import type { Origin } from "@hypermark/shared/agents";
 
 /**
  * Whether the `hypermark review` CLI's decision consumer delivers
- * approve-time feedback for this origin (decision-control spec §6.4).
+ * approve-time feedback for this origin.
  *
  * Review has no `--gate/--json/--hook` triad, so unlike
  * `supportsAnnotateApprovalNotes` this is keyed on the origin's CONSUMER, not

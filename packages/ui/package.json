@@ -9,8 +9,6 @@
     "./components/core/*": "./components/core/*.tsx",
     "./components/html-viewer": "./components/html-viewer/index.ts",
     "./components/html-viewer/bridge-script": "./components/html-viewer/bridge-script.ts",
-    "./components/html-viewer/bridge-script.asset.js": "./components/html-viewer/bridge-script.asset.js",
-    "./components/html-viewer/bridge-script.lite": "./components/html-viewer/bridge-script.lite.ts",
     "./components/icons/*": "./components/icons/*.tsx",
     "./components/sidebar/*": "./components/sidebar/*.tsx",
     "./components/plan-diff/*": "./components/plan-diff/*.tsx",
@@ -19,36 +17,10 @@
     "./hooks/*": "./hooks/*.ts",
     "./shortcuts": "./shortcuts/index.ts",
     "./config": "./config/index.ts",
-    "./configure": "./configure.ts",
     "./theme-modes": "./components/themeModes.tsx",
     "./types": "./types.ts",
-    "./theme": "./theme.css",
-    "./styles.css": "./styles.css"
+    "./theme": "./theme.css"
   },
-  "files": [
-    "components",
-    "config",
-    "hooks",
-    "icons",
-    "lib",
-    "shortcuts",
-    "utils",
-    "assets",
-    "themes",
-    "sprite_package_additional",
-    "sprite_package_new",
-    "sprite_package_pulluphang",
-    "globals.d.ts",
-    "configure.ts",
-    "types.ts",
-    "theme.css",
-    "styles.css",
-    "hypermark.webp",
-    "HANDOFF.md",
-    "!**/*.test.ts",
-    "!**/*.test.tsx",
-    "!test-setup"
-  ],
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "@hypermark/core": "0.25.1",
@@ -66,8 +38,7 @@
     "marked": "^17.0.6",
     "mermaid": "^11.12.2",
     "motion": "^12",
-    "tailwind-merge": "^3.6.0",
-    "unique-username-generator": "^1.5.1"
+    "tailwind-merge": "^3.6.0"
   },
   "peerDependencies": {
     "react": "^19.2.3",
@@ -87,10 +58,6 @@
     "vite": "^6.2.0"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "build:css": "vite build --config vite.css.config.ts && rm -f styles.js",
-    "build:bridge-assets": "bun run scripts/build-bridge-assets.ts",
-    "smoke:package": "bun run scripts/package-smoke.ts",
-    "prepack": "bun run build:css && bun run build:bridge-assets"
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   }
 }

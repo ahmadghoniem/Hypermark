@@ -1,35 +1,30 @@
 /**
  * Hypermark CLI for Claude Code
  *
- * Supports six modes:
+ * Supports five modes:
  *
- * 1. Plan Review (default, no args):
- *    - Spawned by Claude hook entrypoints
- *    - Reads hook event from stdin, extracts plan content
- *    - Serves UI, returns approve/deny decision to stdout
- *
- * 2. Code Review (`hypermark review`, `hypermark review --git`):
+ * 1. Code Review (`hypermark review`, `hypermark review --git`):
  *    - Triggered by /review slash command
  *    - Runs git diff, opens review UI
  *    - Outputs feedback to stdout (captured by slash command)
  *
- * 3. Annotate (`hypermark annotate <file.md | file.txt>`):
+ * 2. Annotate (`hypermark annotate <file.md | file.txt>`):
  *    - Triggered by /hypermark-annotate slash command
  *    - Opens any markdown file in the annotation UI
  *    - Outputs structured feedback to stdout
  *
- * 4. Annotate Last (`hypermark annotate-last`, `hypermark last`):
+ * 3. Annotate Last (`hypermark annotate-last`, `hypermark last`):
  *    - Triggered by /hypermark-last slash command
  *    - Annotates the most recent assistant response in the annotation UI
  *    - Outputs structured feedback to stdout
  *
- * 5. Sessions (`hypermark sessions`):
+ * 4. Sessions (`hypermark sessions`):
  *    - Lists active Hypermark server sessions
  *    - `--open [N]` reopens a session in the browser
  *    - `--clean` removes stale session files
  *    - `--kill [N|all]` terminates a session's process (see sessions.ts)
  *
- * 6. Uninstall (`hypermark uninstall`):
+ * 5. Uninstall (`hypermark uninstall`):
  *    - Removes recognized installer-owned components across supported hosts
  *    - Preserves local data by default; `--purge` removes known local data
  *
@@ -42,10 +37,6 @@
  *   HYPERMARK_PORT   - Fixed port to use (default: random)
  */
 
-import {
-  startHypermarkServer,
-  handleServerReady,
-} from "@hypermark/server";
 import {
   startReviewServer,
   handleReviewServerReady,
@@ -67,8 +58,6 @@ import { resolveAnnotateTarget } from "./annotate-resolution";
 import {
   composeReviewApprovedMessage,
   getReviewDeniedSuffix,
-  getPlanDeniedPrompt,
-  getPlanToolName,
 } from "@hypermark/shared/prompts";
 import { supportsReviewApprovalNotes } from "./review-output";
 import { registerSession, unregisterSession, listSessions, killSession } from "@hypermark/server/sessions";
@@ -113,7 +102,6 @@ import {
 } from "./strict-annotate-result";
 import path from "path";
 import { createInterface } from "node:readline/promises";
-import { buildLocalWorkspaceReview, type WorkspaceDiffType } from "@hypermark/server/review-workspace";
 import {
   createAnnotateOutcomeEmitter,
   supportsAnnotateApprovalNotes,
@@ -298,9 +286,8 @@ if (isInteractiveNoArgInvocation(args, process.stdin.isTTY)) {
 process.on("exit", () => unregisterSession());
 
 // Route fatal signals through process.exit() so "exit" handlers run — by
-// default a SIGINT/SIGTERM death skips them, leaking background-warmup
-// children and stale `git worktree` registrations (the --local PR checkout
-// cleanup below is registered on "exit"). `once` keeps a second Ctrl-C as a
+// default a SIGINT/SIGTERM death skips them, leaving the session registered.
+// `once` keeps a second Ctrl-C as a
 // force-quit escape hatch if cleanup ever hangs. SIGHUP is deliberately NOT
 // routed here: installing any SIGHUP listener overrides the ignored
 // disposition `nohup` depends on, so a plain `nohup hypermark review &`
@@ -404,9 +391,7 @@ if (args[0] === "sessions") {
   let diffError: string | undefined;
   let initialFingerprint: string | undefined;
   let gitContext: Awaited<ReturnType<typeof prepareLocalReviewDiff>>["gitContext"] | undefined;
-  let initialDiffType: DiffType | WorkspaceDiffType | undefined;
-  let agentCwd: string | undefined;
-  let workspace: Awaited<ReturnType<typeof buildLocalWorkspaceReview>> | undefined;
+  let initialDiffType: DiffType | undefined;
 
   const config = loadConfig();
   const managedVcs = await detectManagedVcs(process.cwd(), reviewArgs.vcsType);
@@ -425,19 +410,8 @@ if (args[0] === "sessions") {
     diffError = diffResult.error;
     initialFingerprint = diffResult.fingerprint;
   } else {
-    workspace = await buildLocalWorkspaceReview(process.cwd(), {
-      configuredDiffType: resolveDefaultDiffType(config),
-      hideWhitespace: config.diffOptions?.hideWhitespace ?? false,
-    });
-    if (workspace.repos.length === 0) {
-      console.error("Not in a Git repo and no nested Git repositories were found.");
-      process.exit(1);
-    }
-    rawPatch = workspace.rawPatch;
-    gitRef = workspace.gitRef;
-    diffError = workspace.error;
-    initialDiffType = workspace.diffType;
-    agentCwd = workspace.root;
+    console.error("Not in a Git repo.");
+    process.exit(1);
   }
 
   const reviewProject = (await detectProjectName()) ?? "_unknown";
@@ -449,13 +423,11 @@ if (args[0] === "sessions") {
     error: diffError,
     origin: detectedOrigin,
     project: reviewProject,
-    diffType: workspace ? (initialDiffType ?? workspace.diffType) : gitContext ? (initialDiffType ?? "unstaged") : undefined,
+    diffType: gitContext ? (initialDiffType ?? "unstaged") : undefined,
     gitContext,
     initialFingerprint,
-    workspace,
-    agentCwd,
     // The approved branch below prints result.feedback after the prompt, so
-    // this CLI's origins may see approve-carrying menu items (spec §6.4).
+    // this CLI's origins may see approve-carrying menu items.
     approvalNotesSupported: supportsReviewApprovalNotes(detectedOrigin),
     htmlContent: reviewHtmlContent,
     parentWatch: true,
@@ -487,8 +459,7 @@ if (args[0] === "sessions") {
   if (result.exit) {
     console.log("Review session closed without feedback.");
   } else if (result.approved) {
-    // PR5 delivery (spec §6.4): a bare approval prints the approved prompt,
-    // byte-identical to before; an approval carrying reviewer notes prints
+    // A bare approval prints the approved prompt; an approval carrying reviewer notes prints
     // the approved-with-notes framing (non-blocking guidance) instead.
     console.log(composeReviewApprovedMessage(detectedOrigin, result.feedback));
   } else {
@@ -816,111 +787,11 @@ if (args[0] === "sessions") {
   process.exit(0);
 
 } else {
-  // ============================================
-  // PLAN REVIEW MODE (default)
-  // ============================================
-
-  // Read hook event from stdin
-  const eventJson = await Bun.stdin.text();
-  if (!eventJson.trim()) {
+  // No subcommand. A stale hook registration from an old plugin install pipes
+  // JSON on stdin; exit silently so it stays harmless.
+  if (!process.stdin.isTTY) {
     process.exit(0);
   }
-
-  let event: Record<string, any>;
-  try {
-    event = JSON.parse(eventJson);
-  } catch (e: any) {
-    console.error(`Failed to parse hook event from stdin: ${e?.message || e}`);
-    process.exit(1);
-  }
-
-  const planContent = event.tool_input?.plan || "";
-  const permissionMode = event.permission_mode || "default";
-
-  if (!planContent) {
-    console.error("No plan content in hook event");
-    process.exit(1);
-  }
-
-  const planProject = (await detectProjectName()) ?? "_unknown";
-
-  // Start the plan review server
-  const server = await startHypermarkServer({
-    plan: planContent,
-    origin: detectedOrigin,
-    permissionMode,
-    htmlContent: planHtmlContent,
-    parentWatch: true,
-    onReady: async (url, port) => {
-      handleServerReady(url, port);
-    },
-  });
-
-  registerSession({
-    pid: process.pid,
-    port: server.port,
-    url: server.url,
-    mode: "plan",
-    project: planProject,
-    startedAt: new Date().toISOString(),
-    label: `plan-${planProject}`,
-  });
-
-  // Wait for user decision (blocks until approve/deny)
-  const result = await server.waitForDecision();
-
-  // Give browser time to receive response and update UI
-  await Bun.sleep(1500);
-
-  // Cleanup
-  server.stop();
-
-  // Output decision for the Claude Code PermissionRequest hook.
-  {
-    if (result.approved) {
-      const updatedPermissions = [];
-      if (result.permissionMode) {
-        updatedPermissions.push({
-          type: "setMode",
-          mode: result.permissionMode,
-          destination: "session",
-        });
-      }
-
-      console.log(
-        JSON.stringify({
-          hookSpecificOutput: {
-            hookEventName: "PermissionRequest",
-            decision: {
-              behavior: "allow",
-              // Echo the original tool_input as updatedInput. Claude Code
-              // >= 2.1.199 silently drops an allow decision for ExitPlanMode
-              // (a tool requiring user interaction) when updatedInput is
-              // absent, falling back to the built-in approval dialog.
-              updatedInput: event.tool_input,
-              ...(updatedPermissions.length > 0 && { updatedPermissions }),
-            },
-          },
-        })
-      );
-    } else {
-      console.log(
-        JSON.stringify({
-          hookSpecificOutput: {
-            hookEventName: "PermissionRequest",
-            decision: {
-              behavior: "deny",
-              message: getPlanDeniedPrompt(detectedOrigin, undefined, {
-                toolName: getPlanToolName(detectedOrigin),
-                planFileRule: "",
-                feedback: result.feedback || "Plan changes requested",
-              }),
-            },
-          },
-        })
-      );
-    }
-  }
-
+  console.log(formatTopLevelHelp());
   process.exit(0);
 }

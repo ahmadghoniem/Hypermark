@@ -1,18 +1,16 @@
 // Eager renderer registration (side-effect imports, evaluated before every
-// other module below). These keep Hypermark's first paint and identity
-// minting byte-identical now that @hypermark/ui loads KaTeX and the username
-// dictionary lazily for hosts: math is typeset on the first commit and names
-// come from the full dictionary. Guarded by tests/entry-assets.test.ts; do not
-// drop or reorder either line.
+// other module below). These keep Hypermark's first paint byte-identical now
+// that @hypermark/ui loads KaTeX lazily for hosts: math is typeset on the
+// first commit. Guarded by tests/entry-assets.test.ts; do not drop or reorder
+// this line.
 import '@hypermark/ui/utils/math-eager';
-import '@hypermark/ui/utils/identity-tater';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { type Origin, getAgentName } from '@hypermark/shared/agents';
-import { ThemeProvider, useTheme } from '@hypermark/ui/components/ThemeProvider';
+import { ThemeProvider } from '@hypermark/ui/components/ThemeProvider';
 import { TooltipProvider } from '@hypermark/ui/components/Tooltip';
 import { ConfirmDialog } from '@hypermark/ui/components/ConfirmDialog';
-import { buildDecisionSpec, type DecisionActionId, type DecisionMenuItem } from '@hypermark/ui/utils/decisionSpec';
-import { DecisionNoteDialog, type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
+import { buildDecisionSpec, type DecisionActionId } from '@hypermark/ui/utils/decisionSpec';
+import { type DecisionHandler } from '@hypermark/ui/components/DecisionControl';
 import {
   buildReviewApprovalBody,
   createGeneralReviewComment,
@@ -42,7 +40,7 @@ import {
 
 /**
  * These handlers keep their own `keydown` effects — their guards (search
- * focus, compact navigator state, an Escape ladder) are too situational for a
+ * focus, an Escape ladder) are too situational for a
  * scope `when` — but the KEY each one answers to is read from the registry, so
  * `reviewChrome.shortcuts.ts` is the single place a review chrome binding is
  * written down, for the help panel and the handler alike.
@@ -53,7 +51,6 @@ const matchesChrome = (event: KeyboardEvent, bindings: string[]): boolean =>
 import {
   applyCollectionMutations,
   hasActiveHistoryOverlay,
-  isHumanHistoryMutation,
   isNativeHistoryOwner,
   type CollectionMutation,
   type HistoryDirection,
@@ -73,11 +70,10 @@ import { parseDiffToFiles } from './utils/diffParser';
 import { AllFilesCodeView } from './components/AllFilesCodeView';
 import { CommitDescriptionHeader } from './components/CommitDescriptionHeader';
 import type { DiffFile, AnnotationScrollTarget } from './types';
-import type { DiffOption, GitContext, SinceBaseSections, CommitDiffInfo } from '@hypermark/shared/types';
+import type { GitContext, SinceBaseSections, CommitDiffInfo } from '@hypermark/shared/types';
 import { SectionsPanel } from './components/SectionsPanel';
 import { CommitsPanel } from './components/CommitsPanel';
 import { useCommitsView } from './hooks/useCommitsView';
-import { initializeReviewSetup } from './utils/reviewSetup';
 import { resolvePanelView } from './utils/resolvePanelView';
 import { isCommitDiffType, resolveCommitExitDiff, type CommitViewRestoreTarget } from './utils/commitViewRestore';
 import { copyTextToClipboard } from '@hypermark/ui/utils/clipboard';
@@ -89,7 +85,6 @@ interface DiffData {
   origin?: Origin;
   diffType?: string;
   gitContext?: GitContext;
-  diffOptions?: DiffOption[];
 }
 
 // When the since-base sections sidecar is present, order the master file list
@@ -99,7 +94,7 @@ interface DiffData {
 // top-down order instead of raw patch order.
 //
 // INVARIANT: this reads the sidecar's `staged` flag, so it is only meaningful
-// at sidecar-fresh moments (initial load, diff switch, PR response). The file
+// at sidecar-fresh moments (initial load, diff switch). The file
 // order deliberately stays stable until the next refresh.
 function orderFilesBySections(files: DiffFile[], sections?: SinceBaseSections | null): DiffFile[] {
   if (!sections) return files;
@@ -151,7 +146,6 @@ function ReviewNavigatorContainer({
 
 const ReviewAppInner: React.FC = () => {
   useViewportEnvironment();
-  const { resolvedMode } = useTheme();
   const [diffData, setDiffData] = useState<DiffData | null>(null);
   const [files, setFiles] = useState<DiffFile[]>([]);
   const [activeFileIndex, setActiveFileIndex] = useState(0);
@@ -181,7 +175,6 @@ const ReviewAppInner: React.FC = () => {
   const fileScrollTokenRef = useRef(0);
   const [allFilesVisibleFile, setAllFilesVisibleFile] = useState<string | null>(null);
   const [pendingSelection, setPendingSelection] = useState<SelectedLineRange | null>(null);
-  const [showWorktreeDialog, setShowWorktreeDialog] = useState(false);
   const [showNoAnnotationsDialog, setShowNoAnnotationsDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const diffStyle = useConfigValue('diffStyle');
@@ -244,11 +237,8 @@ const ReviewAppInner: React.FC = () => {
     });
   }, []);
   const [origin, setOrigin] = useState<Origin | null>(null);
-  const [gitUser, setGitUser] = useState<string | undefined>();
-  const [reviewMode, setReviewMode] = useState<string | null>(null);
   const [diffType, setDiffType] = useState<string>('uncommitted');
   const [gitContext, setGitContext] = useState<GitContext | null>(null);
-  const [workspaceDiffOptions, setWorkspaceDiffOptions] = useState<DiffOption[] | null>(null);
   // Two bases:
   //   selectedBase  — what the picker is currently showing (UI intent).
   //                   Updates immediately when the user picks, so the chip
@@ -278,7 +268,7 @@ const ReviewAppInner: React.FC = () => {
   // decides what a review OPENS on unless a last-used view is recorded; the
   // header toggle is a session control layered over both — it NEVER writes
   // the persisted view/diff pair. Changing the default is an explicit
-  // Settings/setup-dialog act, not a side effect of looking at another view
+  // Settings act, not a side effect of looking at another view
   // mid-review; the toggle only records its choice as the last-used memo.
   const persistedPanelView = useConfigValue('reviewPanelView');
   const lastUsedPanelView = useConfigValue('reviewPanelViewLastUsed');
@@ -290,7 +280,6 @@ const ReviewAppInner: React.FC = () => {
     // never recorded — picking it leaves last-used at its previous value.
     if (view !== 'commits') configStore.set('reviewPanelViewLastUsed', view);
   }, []);
-  const [agentCwd, setAgentCwd] = useState<string | null>(null);
   const [isLoadingDiff, setIsLoadingDiff] = useState(false);
   const [diffError, setDiffError] = useState<string | null>(null);
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
@@ -306,17 +295,10 @@ const ReviewAppInner: React.FC = () => {
     noteId: string;
     dispatched: boolean;
   } | null>(null);
-  // Compact/touch decision surfaces: composer items open DecisionNoteDialog,
-  // confirm items open one ConfirmDialog (the desktop popover lives inside
-  // DecisionControl; compact has no popover to morph). L2: only the item ID
-  // is state — the dialog contents resolve from the LIVE spec at render, so
-  // a spec update while a dialog is up can never show or confirm stale copy.
-  const [compactDecisionComposer, setCompactDecisionComposer] = useState<DecisionMenuItem['id'] | null>(null);
-  const [compactDecisionConfirm, setCompactDecisionConfirm] = useState<DecisionMenuItem['id'] | null>(null);
-  // Server capability advert (spec §6.4): does this session's decision
+  // Server capability advert: does this session's decision
   // consumer deliver approve-time feedback? Defaults false so an old server
-  // that never sends the field renders no approve-carrying items (PR3
-  // behavior); read off every diff payload that carries it.
+  // that never sends the field renders no approve-carrying items; read off
+  // every diff payload that carries it.
   const [approvalNotesSupported, setApprovalNotesSupported] = useState(false);
   const [repoInfo, setRepoInfo] = useState<{ display: string; branch?: string } | null>(null);
 
@@ -350,11 +332,11 @@ const ReviewAppInner: React.FC = () => {
   }, [reviewHistory, submitted]);
 
   // The Commits view (linear history rail) exists for plain local git
-  // sessions only — workspace keeps its existing panels. Unlike
+  // sessions only. Unlike
   // sections it has NO coupled diff: the review opens on the user's normal
   // default until a commit is clicked, and the clicked sha is never persisted.
   // Declared this early because the global keyboard handler consults it.
-  const commitsCapable = reviewMode !== 'workspace' && gitContext?.vcsType === 'git';
+  const commitsCapable = gitContext?.vcsType === 'git';
   const showCommitsPanel = commitsCapable && panelView === 'commits';
   // The diff the session was reviewing before the Commits view's commit
   // clicks (or its HEAD auto-select) took over the single session-global
@@ -363,8 +345,6 @@ const ReviewAppInner: React.FC = () => {
   // non-commit switch (see fetchDiffSwitch). Ref, not state: it never drives
   // a render, and capture happens inside event handlers.
   const preCommitDiffRef = useRef<CommitViewRestoreTarget | null>(null);
-
-  const identity = useConfigValue('displayName');
 
   const clearPendingSelection = useCallback(() => {
     setPendingSelection(null);
@@ -410,7 +390,6 @@ const ReviewAppInner: React.FC = () => {
   const hasSearchableFiles = files.length > 0;
   const shouldShowFileTree =
     hasSearchableFiles ||
-    (reviewMode === 'workspace' && !!workspaceDiffOptions?.length) ||
     !!gitContext?.diffOptions?.length ||
     !!gitContext?.worktrees?.length;
 
@@ -580,12 +559,9 @@ const ReviewAppInner: React.FC = () => {
         rawPatch: string;
         gitRef: string;
         origin?: Origin;
-        mode?: string;
         diffType?: string;
         base?: string;
         gitContext?: GitContext;
-        diffOptions?: DiffOption[];
-        agentCwd?: string | null;
         approvalNotesSupported?: boolean;
         repoInfo?: { display: string; branch?: string };
         error?: string;
@@ -595,13 +571,11 @@ const ReviewAppInner: React.FC = () => {
         generatedFiles?: string[];
         baseBehindRemote?: boolean;
         snapshotId?: string;
-        serverConfig?: Record<string, unknown> & { displayName?: string; gitUser?: string };
+        serverConfig?: Record<string, unknown>;
       }) => {
         apiModeRef.current = true;
         // Initialize config store with server-provided values (config file > cookie > default)
         configStore.init(data.serverConfig);
-        // gitUser drives the "Use git name" button in Settings; stays undefined (button hidden) when unavailable
-        setGitUser(data.serverConfig?.gitUser);
         setSnapshotId(data.snapshotId);
         const apiFiles = orderFilesBySections(parseDiffToFiles(data.rawPatch), data.sections);
         setDiffData({
@@ -611,11 +585,8 @@ const ReviewAppInner: React.FC = () => {
           origin: data.origin,
           diffType: data.diffType,
           gitContext: data.gitContext,
-          diffOptions: data.diffOptions,
         });
         setFiles(apiFiles);
-        setReviewMode(data.mode ?? null);
-        setWorkspaceDiffOptions(data.mode === 'workspace' ? (data.diffOptions ?? []) : null);
         if (data.origin) setOrigin(data.origin);
         if (data.diffType) setDiffType(data.diffType);
         if (data.gitContext) {
@@ -627,7 +598,6 @@ const ReviewAppInner: React.FC = () => {
           setSelectedBase(initial);
           setCommittedBase(initial);
         }
-        if (data.agentCwd !== undefined) setAgentCwd(data.agentCwd);
         setApprovalNotesSupported(readApprovalNotesAdvert(data.approvalNotesSupported));
         if (data.repoInfo) setRepoInfo(data.repoInfo);
         if (data.error) setDiffError(data.error);
@@ -635,28 +605,6 @@ const ReviewAppInner: React.FC = () => {
         setCommitInfo(data.commitInfo ?? null);
         setGeneratedFiles(new Set(data.generatedFiles ?? []));
         setBaseBehindRemote(data.baseBehindRemote === true);
-        // First-run: offer the review-view chooser for a plain local git
-        // session (not workspace), once. An unseen reviewer's panel
-        // is initialized to Tree while inheriting the resolved diff default;
-        // the seen gate leaves returning reviewers' persisted and last-used
-        // views untouched. The user's explicit choice in the dialog then
-        // sticks. Applied to the live session on dismiss.
-        //
-        // Only when since-base is actually AVAILABLE (base ref resolves). On a
-        // repo where getGitContext omits it (trunk / no origin/HEAD), forcing
-        // since-base would degrade to HEAD and hide committed work — the exact
-        // case the offering guard avoids. There, leave the default alone and
-        // don't show the chooser. Matches the sectionsCapable gate used for the
-        // header-menu reopen.
-        const sinceBaseAvailable = !!data.gitContext?.diffOptions?.some(
-          (o: { id: string }) => o.id === 'since-base',
-        );
-        if (
-          data.gitContext && data.mode !== 'workspace' &&
-          data.gitContext.vcsType === 'git' && sinceBaseAvailable && initializeReviewSetup()
-        ) {
-          initializeReviewSetup();
-        }
       })
       .catch(() => {
         // Not in API mode - use demo content
@@ -667,7 +615,6 @@ const ReviewAppInner: React.FC = () => {
           gitRef: 'demo',
         });
         setFiles(demoFiles);
-        setWorkspaceDiffOptions(null);
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -715,12 +662,11 @@ const ReviewAppInner: React.FC = () => {
         tokenText: tokenMeta.tokenText,
       }),
       createdAt: Date.now(),
-      author: identity,
       images,
     };
     addCodeAnnotationsWithHistory([withDiffContext(newAnnotation)]);
     clearPendingSelection();
-  }, [pendingSelection, identity, withDiffContext, clearPendingSelection, addCodeAnnotationsWithHistory]);
+  }, [pendingSelection, withDiffContext, clearPendingSelection, addCodeAnnotationsWithHistory]);
 
   const handleAddFileCommentForFile = useCallback((filePath: string, text: string) => {
     const trimmed = text.trim();
@@ -736,11 +682,10 @@ const ReviewAppInner: React.FC = () => {
       side: 'new',
       text: trimmed,
       createdAt: Date.now(),
-      author: identity,
     };
 
     addCodeAnnotationsWithHistory([withDiffContext(newAnnotation)]);
-  }, [identity, withDiffContext, addCodeAnnotationsWithHistory]);
+  }, [withDiffContext, addCodeAnnotationsWithHistory]);
 
   // Edit annotation
   const handleEditAnnotation = useCallback((
@@ -752,7 +697,7 @@ const ReviewAppInner: React.FC = () => {
       ...(text !== undefined && { text }),
       // The composer always sends its concrete image list (never omits it), so
       // an edit that removed every image clears the saved list instead of
-      // leaving stale references behind (spec 05 §4.1.5).
+      // leaving stale references behind.
       ...(images !== undefined && { images: images.length > 0 ? images : undefined }),
     };
     const before = annotationsRef.current.find((annotation) => annotation.id === id);
@@ -760,14 +705,12 @@ const ReviewAppInner: React.FC = () => {
     const after = { ...before, ...updates };
     annotationsRef.current = annotationsRef.current.map((annotation) => annotation.id === id ? after : annotation);
     setAnnotations(annotationsRef.current);
-    if (isHumanHistoryMutation(before)) {
-      reviewHistory.record({
-        kind: 'code',
-        mutations: [{ kind: 'edit', before, after }],
-        beforeSelection: selectedAnnotationIdRef.current,
-        afterSelection: selectedAnnotationIdRef.current,
-      });
-    }
+    reviewHistory.record({
+      kind: 'code',
+      mutations: [{ kind: 'edit', before, after }],
+      beforeSelection: selectedAnnotationIdRef.current,
+      afterSelection: selectedAnnotationIdRef.current,
+    });
   }, [reviewHistory]);
 
   // selectedAnnotationId is cleared via a functional update (not a captured
@@ -785,17 +728,14 @@ const ReviewAppInner: React.FC = () => {
     const afterSelection = beforeSelection === id ? null : beforeSelection;
     selectedAnnotationIdRef.current = afterSelection;
     setSelectedAnnotationId(afterSelection);
-    if (isHumanHistoryMutation(local)) {
-      reviewHistory.record({
-        kind: 'code',
-        mutations: [{ kind: 'delete', item: local, index }],
-        beforeSelection,
-        afterSelection,
-      });
-    }
+    reviewHistory.record({
+      kind: 'code',
+      mutations: [{ kind: 'delete', item: local, index }],
+      beforeSelection,
+      afterSelection,
+    });
   }, [reviewHistory]);
 
-  // Handle identity change - update author on existing annotations
   // Switch file in the dedicated center diff panel.
   const handleFilePreview = useCallback((index: number) => {
     const file = files[index];
@@ -818,13 +758,12 @@ const ReviewAppInner: React.FC = () => {
   );
 
   // The three-stack sections panel exists only for the since-base composite
-  // view in a plain git session (workspace keeps the classic tree).
-  const sectionsAvailable = !!sections && activeDiffBase === 'since-base' && reviewMode !== 'workspace';
+  // view in a plain git session.
+  const sectionsAvailable = !!sections && activeDiffBase === 'since-base';
   // The sections view IS the since-base comparison — a repo that supports it
   // shows the view toggle even while an advanced (tree) mode is active, and
   // toggling back to Sections switches the diff back to since-base.
-  const sectionsCapable = reviewMode !== 'workspace'
-    && !!gitContext?.diffOptions?.some(option => option.id === 'since-base');
+  const sectionsCapable = !!gitContext?.diffOptions?.some(option => option.id === 'since-base');
   const activeCommitSha = activeDiffBase.startsWith('commit:')
     ? activeDiffBase.slice('commit:'.length)
     : null;
@@ -879,7 +818,6 @@ const ReviewAppInner: React.FC = () => {
         diffType: string;
         base?: string;
         gitContext?: GitContext;
-        diffOptions?: DiffOption[];
         error?: string;
         sections?: SinceBaseSections;
         commitInfo?: CommitDiffInfo;
@@ -919,12 +857,11 @@ const ReviewAppInner: React.FC = () => {
         // If the current file was removed (whitespace-only), retarget the
         // dock panel to the first remaining file.
         setDiffData(prev => prev ? { ...prev, rawPatch: data.rawPatch, gitRef: data.gitRef } : prev);
-        if (data.diffOptions) setWorkspaceDiffOptions(data.diffOptions);
         // Adopt the server's base even on in-place refreshes: the staleness
         // Refresh and post-Fetch paths both preserveFile, and they're exactly
         // when the server may canonicalize the base (main -> origin/main after
         // the startup upgrade). Keeping the old name would send /api/file-content
-        // and Ask AI context requests against the wrong base.
+        // requests against the wrong base.
         if (data.base) {
           setSelectedBase(data.base);
           setCommittedBase(data.base);
@@ -946,7 +883,6 @@ const ReviewAppInner: React.FC = () => {
         setDiffData(prev => prev ? { ...prev, rawPatch: data.rawPatch, gitRef: data.gitRef, diffType: data.diffType } : prev);
         setFiles(nextFiles);
         setDiffType(data.diffType);
-        if (data.diffOptions) setWorkspaceDiffOptions(data.diffOptions);
         if (data.base) {
           setSelectedBase(data.base);
           setCommittedBase(data.base);
@@ -1013,7 +949,7 @@ const ReviewAppInner: React.FC = () => {
   // mode is active, switch the LIVE diff back along with the view. No writes
   // to the persisted view/diff pair: the toggle only records the last-used
   // memo (via selectPanelView), so there is no pair to keep consistent here
-  // (Settings and the setup dialog, which do persist, enforce the
+  // (Settings, which does persist, enforces the
   // sections ⟺ since-base coupling via the shared setters in
   // config/reviewView).
   const handleSwitchToSections = useCallback(() => {
@@ -1191,13 +1127,13 @@ const ReviewAppInner: React.FC = () => {
   // Preserves the active file since only whitespace hunks change.
   const hideWhitespaceInitialized = useRef(false);
   useEffect(() => {
-    if (!origin || (!gitContext && reviewMode !== 'workspace')) return;
+    if (!origin || !gitContext) return;
     if (!hideWhitespaceInitialized.current) {
       hideWhitespaceInitialized.current = true;
       return;
     }
     fetchDiffSwitch(diffType, selectedBase, { preserveFile: true });
-  }, [diffHideWhitespace, origin, reviewMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [diffHideWhitespace, origin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Diff staleness ---------------------------------------------------------
   // Files changing mid-review (an agent editing/committing while the user
@@ -1209,7 +1145,6 @@ const ReviewAppInner: React.FC = () => {
     enabled: !!origin,
     resetKey: diffData?.rawPatch ?? '',
     snapshotId,
-    onAgentCwd: setAgentCwd,
     onBaseBehindRemote: setBaseBehindRemote,
   });
 
@@ -1337,8 +1272,7 @@ const ReviewAppInner: React.FC = () => {
 
   const totalAnnotationCount = allAnnotations.length;
 
-  // Copy the same full feedback the agent gets (code + editor + PR description +
-  // PR comment notes), not just code annotations. Defined after feedbackMarkdown
+  // Copy the same full feedback the agent gets. Defined after feedbackMarkdown
   // / totalAnnotationCount so it can depend on them.
   const handleCopyFeedback = useCallback(async () => {
     if (totalAnnotationCount === 0) {
@@ -1362,7 +1296,7 @@ const ReviewAppInner: React.FC = () => {
   // (L3). The old zero-count guard is gone: no send action is offered at zero
   // (the empty-state primary is Approve), and leaving it would silently
   // swallow a request-changes submission whose note has not yet landed in
-  // state (spec §3.2).
+  // state.
   const handleSendFeedback = useCallback(async (): Promise<boolean> => {
     setIsSendingFeedback(true);
     try {
@@ -1417,7 +1351,7 @@ const ReviewAppInner: React.FC = () => {
   useSessionEndedStream(submitted === false, handleSessionEnded);
 
   // Approve — bare (LGTM), with a composer note, or with the live annotations
-  // riding along (PR5 delivery, spec §6.4). The old LGTM placeholder is gone:
+  // riding along. The old LGTM placeholder is gone:
   // consumers now print approve-time feedback, so a bare approval must send
   // `feedback: ''` (which also makes the archive's `lgtm` decision reachable
   // and stops bare approvals writing a sidecar). Payload shape is the pure
@@ -1450,10 +1384,9 @@ const ReviewAppInner: React.FC = () => {
     }
   }, [getDraftGeneration, feedbackMarkdown, allAnnotations]);
 
-  // --- The unified review decision control, agent mode (spec §3.2/§4) ------
+  // --- The unified review decision control, agent mode ------
   // One primary, one callback: the header's left segment, the global
-  // Mod+Enter handler, and the compact primary row all call this. Platform
-  // (PR) mode keeps its own row until PR6.
+  // Mod+Enter handler, and the compact primary row all call this.
   const busyWithDecision = isSendingFeedback || isApproving || isExiting;
 
   const noteDispatchInFlightRef = useRef(false);
@@ -1493,33 +1426,32 @@ const ReviewAppInner: React.FC = () => {
 
   // Note → scope:'general' CodeAnnotation at submit time: it rides the
   // existing export (## General) and the /api/feedback annotations array with
-  // no server change on either runtime (#1449 transport). Shape (sentinels,
-  // no PR context) lives in createGeneralReviewComment; deliberately NOT
+  // no server change. Shape (sentinels) lives in createGeneralReviewComment;
+  // deliberately NOT
   // recorded in review history — it lives for one submit.
   const commitReviewNote = useCallback((text: string): string | null => {
-    const note = createGeneralReviewComment(text, identity);
+    const note = createGeneralReviewComment(text);
     if (!note) return null;
     annotationsRef.current = [...annotationsRef.current, note];
     setAnnotations(annotationsRef.current);
     return note.id;
-  }, [identity]);
+  }, []);
 
   // Sidebar "+ General comment" — the durable human producer for a
-  // scope:'general' review-level comment (spec §3.3). Unlike the submit note
+  // scope:'general' review-level comment. Unlike the submit note
   // above, it goes through history (undoable, draft-persisted, deletable via
   // the sidebar's existing delete); like it, it is deliberately NOT
-  // withDiffContext-stamped, so it survives an in-place PR switch (see the
-  // factory's doc in reviewDecision.ts).
+  // withDiffContext-stamped, so it survives a diff switch.
   const handleAddGeneralComment = useCallback((text: string) => {
     // Mirrors the 'note' route's guard: a commit during an in-flight decision
     // POST would append an annotation the captured body never carries — the
     // server then deletes the draft and the comment vanishes from wire and
     // archive alike.
     if (submitted || busyWithDecision) return;
-    const note = createGeneralReviewComment(text, identity);
+    const note = createGeneralReviewComment(text);
     if (!note) return;
     addCodeAnnotationsWithHistory([note]);
-  }, [identity, addCodeAnnotationsWithHistory, busyWithDecision, submitted]);
+  }, [addCodeAnnotationsWithHistory, busyWithDecision, submitted]);
 
   // The commit above is a state write, so feedbackMarkdown/handleSendFeedback
   // (which close over `allAnnotations`) only see the note on the NEXT render.
@@ -1554,7 +1486,7 @@ const ReviewAppInner: React.FC = () => {
         return;
       }
       case 'close':
-        // The DecisionControl / compact ConfirmDialog has already confirmed
+        // The DecisionControl has already confirmed
         // when there was something to lose, so the exit warning is NOT raised
         // again here. Same in-flight guard as the sibling routes: a confirm
         // left open across an in-flight decision POST must not produce a
@@ -1563,7 +1495,7 @@ const ReviewAppInner: React.FC = () => {
         void handleExit();
         return;
       case 'approve-with-notes':
-        // PR5 delivery (spec §6.4): reachable only when the server advertised
+        // Reachable only when the server advertised
         // approvalNotesSupported — the session's consumer prints/sends the
         // approve-time feedback these carry. "Approve with notes" ships the
         // live annotations + their export; "Approve with a note…" ships the
@@ -1579,7 +1511,7 @@ const ReviewAppInner: React.FC = () => {
     gate: true, // review's primary positive decision IS approval
     count: totalAnnotationCount,
     hasFeedback: totalAnnotationCount > 0,
-    // The server advert (spec §6.4) — false until a capable server says so,
+    // The server advert — false until a capable server says so,
     // so approve-carrying items never render where notes would be discarded.
     approvalNotesSupported,
   }), [totalAnnotationCount, approvalNotesSupported]);
@@ -1593,29 +1525,11 @@ const ReviewAppInner: React.FC = () => {
     'close-session': () => runReviewDecisionAction('close-session'),
   }), [runReviewDecisionAction]);
 
-  // L2: the compact dialogs render from the LIVE spec; if the item behind an
-  // open dialog left the spec (annotation deleted, state flipped), the dialog
-  // closes instead of acting on a stale capture.
-  const compactComposerItem = compactDecisionComposer !== null
-    ? reviewDecisionSpec.items.find(
-        (item) => item.id === compactDecisionComposer && item.composer,
-      ) ?? null
-    : null;
-  const compactConfirmItem = compactDecisionConfirm !== null
-    ? reviewDecisionSpec.items.find(
-        (item) => item.id === compactDecisionConfirm && item.confirm,
-      ) ?? null
-    : null;
-  useEffect(() => {
-    if (compactDecisionComposer !== null && !compactComposerItem) setCompactDecisionComposer(null);
-    if (compactDecisionConfirm !== null && !compactConfirmItem) setCompactDecisionConfirm(null);
-  }, [compactComposerItem, compactConfirmItem, compactDecisionComposer, compactDecisionConfirm]);
-
 
   const canHandleReviewHistoryShortcut = useCallback((event: KeyboardEvent): boolean => {
     if (event.defaultPrevented || isNativeHistoryOwner(event)) return false;
     if (submitted || isSendingFeedback || isApproving || isExiting || isLoadingDiff) return false;
-    if (showWorktreeDialog || showNoAnnotationsDialog) return false;
+    if (showNoAnnotationsDialog) return false;
     return !hasActiveHistoryOverlay(document);
   }, [
     isApproving,
@@ -1623,7 +1537,6 @@ const ReviewAppInner: React.FC = () => {
     isLoadingDiff,
     isSendingFeedback,
     showNoAnnotationsDialog,
-    showWorktreeDialog,
     submitted,
   ]);
 
@@ -1645,8 +1558,8 @@ const ReviewAppInner: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Enter' || !(e.metaKey || e.ctrlKey)) return;
 
-      // Let an open confirmation dialog own Mod+Enter (PR2's idiom, the
-      // shared ConfirmDialog stamps this sentinel): its own window-level
+      // Let an open confirmation dialog own Mod+Enter (the shared
+      // ConfirmDialog stamps this sentinel): its own window-level
       // handler fires onConfirm from the SAME event, and stopPropagation
       // cannot stop same-target listeners — without this guard one keystroke
       // over the discard confirm would post TWO contradictory decisions
@@ -1662,7 +1575,7 @@ const ReviewAppInner: React.FC = () => {
       e.preventDefault();
 
       // Mod+Enter is the header's visible primary, always — the same
-      // submitPrimaryDecision the button and compact row call.
+      // submitPrimaryDecision the button calls.
       submitPrimaryDecision();
     };
 
@@ -1730,9 +1643,6 @@ const ReviewAppInner: React.FC = () => {
           isNavigatorOpen={isNavigatorOpen}
           repoInfo={repoInfo}
           origin={origin}
-          reviewMode={reviewMode}
-          diffError={diffError}
-          files={files}
           diffFreshness={diffFreshness}
           isLoadingDiff={isLoadingDiff}
           handleRefreshStaleDiff={handleRefreshStaleDiff}
@@ -1780,7 +1690,6 @@ const ReviewAppInner: React.FC = () => {
                 onSelectPanelView={handlePanelViewSelect}
                 showCommitsOption={commitsCapable}
                 onSelectAllFiles={handleSelectAllFiles}
-                isAllFilesActive={true}
                 onCopyRawDiff={handleCopyDiff}
                 canCopyRawDiff={!!diffData?.rawPatch}
                 copyRawDiffStatus={copyRawDiffStatus}
@@ -1831,13 +1740,12 @@ const ReviewAppInner: React.FC = () => {
                 files={files}
                 activeFileIndex={activeFileIndex}
                 onSelectAllFiles={handleSelectAllFiles}
-                isAllFilesActive={true}
                 scrollHighlightIndex={allFilesVisibleFile ? files.findIndex(f => f.path === allFilesVisibleFile) : undefined}
                 onSelectFile={(index) => handleFilePreview(index)}
                 onDoubleClickFile={(index) => handleFilePinned(index)}
                 annotations={allAnnotations}
                 enableKeyboardNav={hasSearchableFiles}
-                diffOptions={reviewMode === 'workspace' ? (workspaceDiffOptions ?? undefined) : gitContext?.diffOptions}
+                diffOptions={gitContext?.diffOptions}
                 activeDiffType={activeDiffBase}
                 onSelectDiff={(diffType) => handleDiffSwitch(diffType)}
                 isLoadingDiff={isLoadingDiff}
@@ -1868,7 +1776,7 @@ const ReviewAppInner: React.FC = () => {
                 activeSearchMatchId={hasSearchableFiles ? activeSearchMatchId : null}
                 onSelectSearchMatch={hasSearchableFiles ? (match) => handleSelectSearchMatch(match) : undefined}
                 onStepSearchMatch={hasSearchableFiles ? stepSearchMatch : undefined}
-                repoRoot={(activeWorktreePath ?? agentCwd ?? gitContext?.cwd ?? null)}
+                repoRoot={activeWorktreePath ?? gitContext?.cwd ?? null}
                 panelView={effectivePanelView}
                 onSwitchToSections={sectionsCapable ? handleSwitchToSections : undefined}
                 onSwitchToCommits={commitsCapable ? () => handlePanelViewSelect('commits') : undefined}
@@ -1975,10 +1883,6 @@ const ReviewAppInner: React.FC = () => {
                           {activeDiffBase === 'staged' && "No staged changes. Stage some files with git add."}
                           {activeDiffBase === 'unstaged' && "No unstaged changes. All changes are staged."}
                           {activeDiffBase === 'last-commit' && `No changes in the last commit${activeWorktreePath ? ' in this worktree' : ''}.`}
-                          {activeDiffBase === 'workspace-current' && "No current changes in the workspace repositories."}
-                          {activeDiffBase === 'workspace-staged' && "No staged changes in the workspace repositories."}
-                          {activeDiffBase === 'workspace-unstaged' && "No unstaged changes in the workspace repositories."}
-                          {activeDiffBase === 'workspace-last' && "No changes in the last change across workspace repositories."}
                           {activeDiffBase === 'branch' && `No changes vs ${selectedBase || gitContext?.defaultBranch || 'main'}${activeWorktreePath ? ' in this worktree' : ''}.`}
                           {activeDiffBase === 'merge-base' && `No changes vs ${selectedBase || gitContext?.defaultBranch || 'main'}${activeWorktreePath ? ' in this worktree' : ''}.`}
                           {activeDiffBase === 'all' && `No tracked files${activeWorktreePath ? ' in this worktree' : ' in this repository'}.`}
@@ -1986,7 +1890,7 @@ const ReviewAppInner: React.FC = () => {
                       </>
                     )}
                   </div>
-                  {((reviewMode === 'workspace' ? workspaceDiffOptions : gitContext?.diffOptions)?.length ?? 0) > 1 && (
+                  {(gitContext?.diffOptions?.length ?? 0) > 1 && (
                     <p className="text-xs text-muted-foreground/60">
                       Try selecting a different view from the dropdown.
                     </p>
@@ -2026,41 +1930,6 @@ const ReviewAppInner: React.FC = () => {
           variant="info"
         />
 
-        {/* Compact/touch decision surfaces: the note composer is a dialog
-            (never a textarea inside the scrolling header menu popup), the
-            discard confirm is the same ConfirmDialog the desktop control
-            raises. Desktop popover state lives inside DecisionControl. */}
-        {compactComposerItem?.composer && (
-          <DecisionNoteDialog
-            isOpen
-            onClose={() => setCompactDecisionComposer(null)}
-            composer={compactComposerItem.composer}
-            subtitle={compactComposerItem.subtitle}
-            disabled={busyWithDecision || !!submitted}
-            onSubmit={(note) => {
-              const item = compactComposerItem;
-              setCompactDecisionComposer(null);
-              runReviewDecisionAction(item.id, note);
-            }}
-          />
-        )}
-        {compactConfirmItem?.confirm && (
-          <ConfirmDialog
-            isOpen
-            onClose={() => setCompactDecisionConfirm(null)}
-            onConfirm={() => {
-              const item = compactConfirmItem;
-              setCompactDecisionConfirm(null);
-              runReviewDecisionAction(item.id);
-            }}
-            title={compactConfirmItem.confirm.title}
-            message={compactConfirmItem.confirm.message}
-            confirmText={compactConfirmItem.confirm.confirmText}
-            cancelText="Cancel"
-            variant="warning"
-            showCancel
-          />
-        )}
         {/* Completion overlay - shown after approve/feedback/exit */}
         <CompletionOverlay
           submitted={submitted}
@@ -2095,7 +1964,7 @@ const ReviewAppInner: React.FC = () => {
     </ThemeProvider>
   );};
 
-// Spec 03 step 5: Phosphor's default weight ("regular") is the app-wide
+// Phosphor's default weight ("regular") is the app-wide
 // default for every icon rendered under this root. Set once here instead of
 // repeating `weight="regular"` at each call site; only a control that
 // deliberately deviates overrides it per-call.

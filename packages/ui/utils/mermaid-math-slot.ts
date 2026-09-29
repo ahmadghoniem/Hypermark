@@ -4,16 +4,14 @@
  * Mermaid renders `$$...$$` labels through its own `import("katex")`
  * (`renderKatexUnsanitized` in the runtime; there is no config flag and no
  * hook for it, and chunk emission is static), so a host that registers a
- * `mathRendererLoader` and aliases `./math-default-loader` away still gets a
- * shared `katex-*.js` chunk out of the Mermaid runtime, and a math document
- * fetches two files: the host's loader chunk plus that shared chunk.
+ * `mathRendererLoader` and aliases the default KaTeX import away still gets a
+ * shared `katex-*.js` chunk out of the Mermaid runtime.
  *
  * This module is the alias target that removes it. A host redirects the
  * `katex` specifier, for importers inside the `mermaid` package ONLY, to
- * `@hypermark/ui/utils/mermaid-math-slot` (HANDOFF.md "Lazy renderers and
- * eager entries", item 2). Its default export has the one method Mermaid
+ * `@hypermark/ui/utils/mermaid-math-slot`. Its default export has the one method Mermaid
  * calls, `renderToString`, and delegates to whatever renderer fills the slot
- * in `./math`: the host's loader result, or the eager KaTeX registration.
+ * in `./math`: the lazily loaded renderer, or the eager KaTeX registration.
  * Mermaid's own options (`throwOnError: true`, `displayMode: true`, the
  * MathML `output` mode) are passed through untouched, so a KaTeX renderer
  * produces exactly the markup Mermaid produced from its direct import.

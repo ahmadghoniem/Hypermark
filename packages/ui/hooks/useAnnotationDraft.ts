@@ -19,24 +19,19 @@ import { draftStore } from '../components/CommentPopover';
 export const DEBOUNCE_MS = 500;
 
 /**
- * Transport for persisting annotation drafts. The default reproduces
- * Hypermark's `/api/draft` server protocol verbatim. A host (e.g. Workspaces)
- * may override it to persist drafts through its own backend.
- *
- * CONTRACT — a host overriding this MUST preserve the 3-party generation
- * protocol or ghost drafts resurrect:
- *  - `save` must be best-effort on page close (the default uses `keepalive`
- *    with a retry-without-keepalive on failure, gated by a generation match).
- *  - `remove(generation)` is a generation-gated TOMBSTONE: the host's store
- *    must reject any later `save` whose `draftGeneration` is <= the deleted
- *    generation (delete-on-submit + tombstoning). The hook pre-increments
- *    `draftGeneration` and threads `getDraftGeneration()` out to the host,
- *    which sends it on approve/deny/feedback/exit so the server deletes the
- *    draft with the right generation. Drop this and a debounced save landing
- *    after submit re-creates a draft the server just deleted.
+ * Transport for persisting annotation drafts through Hypermark's `/api/draft`
+ * server protocol, which uses a generation handshake so ghost drafts do not
+ * resurrect:
+ *  - `save` is best-effort on page close (`keepalive`, with a
+ *    retry-without-keepalive on failure gated by a generation match).
+ *  - `remove(generation)` is a generation-gated TOMBSTONE: the server rejects
+ *    any later `save` whose `draftGeneration` is <= the deleted generation.
+ *    The hook pre-increments `draftGeneration` and exposes it through
+ *    `getDraftGeneration()` so approve/deny/feedback/exit send it and the
+ *    server deletes the draft with the right generation.
  *  - `load` returns the raw stored body (or null) plus the generation the
- *    store reports when there is NO draft (the default reads `draftGeneration`
- *    from the 404 body) so the client can resume past a tombstone.
+ *    server reports when there is NO draft (read from the 404 body) so the
+ *    client can resume past a tombstone.
  */
 export interface DraftTransport {
   /** GET the draft. `data` is the raw stored body (null if none). `generation`
@@ -49,11 +44,10 @@ export interface DraftTransport {
 }
 
 /**
- * Default transport — Hypermark's `/api/draft` fetches, moved verbatim.
- * `save` rejects on failure (the keepalive retry stays in the hook so its
+ * The `/api/draft` fetches. `save` rejects on failure (the keepalive retry stays in the hook so its
  * generation-match gate is preserved); `remove` always resolves.
  */
-const defaultDraftTransport: DraftTransport = {
+const draftTransport: DraftTransport = {
   async load() {
     const res = await fetch('/api/draft');
     const data = (await res.json().catch(() => null)) as unknown;
@@ -80,28 +74,16 @@ const defaultDraftTransport: DraftTransport = {
   },
 };
 
-let draftTransport: DraftTransport = defaultDraftTransport;
-
-/** Read the active draft transport at call time (so a late override is honored). */
+/** The `/api/draft` transport. */
 export function getDraftTransport(): DraftTransport {
   return draftTransport;
-}
-
-/** Override the draft transport. Call once at app startup. */
-export function setDraftTransport(t: DraftTransport): void {
-  draftTransport = t;
-}
-
-/** Reset to the default `/api/draft` transport. Mainly for tests. */
-export function resetDraftTransport(): void {
-  draftTransport = defaultDraftTransport;
 }
 
 /** New format: full objects. */
 interface DraftData {
   annotations: Annotation[];
   codeAnnotations?: CodeAnnotation[];
-  /** Legacy field, read-only (spec 05 §4.1): images no longer write here —
+  /** Legacy field, read-only: images no longer write here —
       `normalizeDocumentAnnotations` folds any stored top-level images into a
       GLOBAL_COMMENT inside `annotations` on load, so this stays populated
       only by an old draft body written before the migration and is always
@@ -149,7 +131,7 @@ export function formatTimeAgo(ts: number): string {
 interface UseAnnotationDraftOptions {
   annotations: Annotation[];
   codeAnnotations?: CodeAnnotation[];
-  /** Legacy field, always empty from the host now (spec 05 §4.1): nothing
+  /** Legacy field, always empty now: nothing
       writes new top-level attachments any more, so this is only threaded
       through to keep the save payload's shape stable for old readers. */
   globalAttachments: ImageAttachment[];
@@ -263,7 +245,7 @@ export function useAnnotationDraft({
           return;
         }
 
-        // Spec 05 §4.1: images live only on individual comments now. A legacy
+        // Images live only on individual comments now. A legacy
         // top-level `globalAttachments` list (or decoded tuple `g`) carries no
         // comment/line anchor, so it is deterministically folded into one
         // image-only GLOBAL_COMMENT annotation rather than kept as a parallel
@@ -333,9 +315,8 @@ export function useAnnotationDraft({
       ts: Date.now(),
     };
 
-    // The transport moves the POST behind the seam; the keepalive retry-on-failure
-    // gate stays in the hook verbatim so a host transport that resolves/rejects on
-    // failure still won't resurrect a superseded save.
+    // The keepalive retry-on-failure is gated on the generation so a superseded
+    // save is never resurrected.
     getDraftTransport().save(payload, { keepalive }).catch(() => {
       // Chromium caps keepalive bodies (~64KB); retry without it. Completes
       // fine when the page was only backgrounded, best-effort on close.

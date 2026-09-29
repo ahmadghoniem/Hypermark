@@ -12,25 +12,18 @@
  *    stop every write.
  *  - "stateless annotate broken": HYPERMARK_ANNOTATE_HISTORY=0 must still
  *    mean "annotate sessions write nothing to the data dir".
- *  - "plan record cannot be joined to its plan": the record names a history
- *    version file instead of copying the plan text, so that path must resolve.
  *  - dismissals are recorded as decision-only lines.
  *
  * Every test sandboxes the archive under a temp HYPERMARK_DATA_DIR set
- * inside the test body. Plan version history is written by storage.ts, which
- * captures its data dir at import time, so the one plan test uses a unique
- * heading (unique slug) and removes only that slug directory afterwards.
+ * inside the test body.
  */
 
 import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { startHypermarkServer } from "./index";
 import { startReviewServer } from "./review";
 import { startAnnotateServer } from "./annotate";
-import { getPlanVersionPath } from "./storage";
-import { detectProjectName } from "./project";
 import { parseFeedbackIndex, type FeedbackRecord } from "@hypermark/shared/feedback-archive";
 import { getHypermarkDataDir } from "@hypermark/shared/data-dir";
 
@@ -49,7 +42,6 @@ const ENV_KEYS = [
   "HYPERMARK_DATA_DIR",
   "HYPERMARK_FEEDBACK_HISTORY",
   "HYPERMARK_ANNOTATE_HISTORY",
-  "HYPERMARK_AI",
   "HYPERMARK_PORT",
 ] as const;
 
@@ -80,13 +72,6 @@ function readOnlyIndex(dataDir: string): FeedbackRecord[] {
   return parseFeedbackIndex(readFileSync(indexPath, "utf-8"));
 }
 
-/** The single project bucket the archive created in this test. */
-function archivedProject(dataDir: string): string {
-  const projects = readdirSync(feedbackDir(dataDir));
-  expect(projects.length).toBe(1);
-  return projects[0];
-}
-
 function sidecarBody(dataDir: string, record: FeedbackRecord): string {
   const projects = readdirSync(feedbackDir(dataDir));
   return readFileSync(join(feedbackDir(dataDir), projects[0], record.recordFile!), "utf-8");
@@ -95,7 +80,6 @@ function sidecarBody(dataDir: string, record: FeedbackRecord): string {
 beforeEach(() => {
   for (const key of ENV_KEYS) saved[key] = process.env[key];
   delete process.env.HYPERMARK_PORT;
-  process.env.HYPERMARK_AI = "disabled";
   // A real ~/.hypermark/config.json must never decide these tests.
   process.env.HYPERMARK_FEEDBACK_HISTORY = "1";
   process.env.HYPERMARK_ANNOTATE_HISTORY = "1";
@@ -213,29 +197,6 @@ describe("code review submissions are archived", () => {
     }
   });
 
-  test("a PR-mode session buckets under the project, not the pool checkout", async () => {
-    // Regression: PR mode never sets gitContext, and `--local` points agentCwd
-    // at <sessionDir>/pool/pr-<n>, so deriving the project from the cwd filed
-    // every PR review under `pr-123`. The caller's detected project wins.
-    const dataDir = useTempDataDir();
-    const poolCwd = join(makeTempDir("hypermark-feedback-pool-"), "pool", "pr-123");
-    mkdirSync(poolCwd, { recursive: true });
-    const server = await startReview({ project: "hypermark", agentCwd: poolCwd });
-    try {
-      const response = await fetch(`${server.url}/api/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback: "Rebase before merging.", annotations: [] }),
-      });
-      expect(response.status).toBe(200);
-      expect(archivedProject(dataDir)).toBe("hypermark");
-      // The pool path is still recorded as provenance on the record itself.
-      expect(readOnlyIndex(dataDir)[0].target?.review?.cwd).toBe(poolCwd);
-    } finally {
-      server.stop();
-    }
-  });
-
   test("changedFiles counts a rename once", async () => {
     // Regression: extractChangedFiles unions the a/ and b/ sides (it exists to
     // resolve any path a reader mentions), so reusing it here reported a
@@ -281,14 +242,12 @@ describe("code review submissions are archived", () => {
 
   test("a failed archive write keeps the draft and still answers the reviewer with 200", async () => {
     const dataDir = useTempDataDir();
-    // The review project is derived from the review cwd; block exactly that
-    // archive directory by planting a FILE where the directory must go.
-    const repoDir = join(makeTempDir("hypermark-feedback-repo-"), "widgets");
-    mkdirSync(repoDir, { recursive: true });
+    // Block the review project's archive directory by planting a FILE where
+    // the directory must go.
     mkdirSync(feedbackDir(dataDir), { recursive: true });
     writeFileSync(join(feedbackDir(dataDir), "widgets"), "blocked", "utf-8");
 
-    const server = await startReview({ agentCwd: repoDir });
+    const server = await startReview({ project: "widgets" });
     try {
       await fetch(`${server.url}/api/draft`, {
         method: "POST",
@@ -437,88 +396,5 @@ describe("annotate submissions are archived", () => {
     } finally {
       server.stop();
     }
-  });
-});
-
-describe("plan decisions are archived", () => {
-  const createdSlugs: Array<{ project: string; slug: string }> = [];
-
-  afterAll(() => {
-    // Plan version history is written by storage.ts, whose data dir is fixed
-    // at import time — remove only the unique slug dirs these tests created.
-    for (const { project, slug } of createdSlugs) {
-      const versionPath = getPlanVersionPath(project, slug, 1);
-      if (versionPath) rmSync(join(versionPath, ".."), { recursive: true, force: true });
-    }
-  });
-
-  test("the record names the history version file the decision was made on", async () => {
-    const dataDir = useTempDataDir();
-    const heading = `Feedback archive plan ${Math.random().toString(36).slice(2, 10)}`;
-    const plan = `# ${heading}\n\nStep one.\n`;
-    const server = await startHypermarkServer({
-      plan,
-      htmlContent: MINIMAL_HTML,
-      origin: "claude-code",
-    });
-    try {
-      const response = await fetch(`${server.url}/api/deny`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback: "Split step one in two." }),
-      });
-      expect(response.status).toBe(200);
-
-      const records = readOnlyIndex(dataDir);
-      expect(records.length).toBe(1);
-      expect(records[0].surface).toBe("plan");
-      expect(records[0].decision).toBe("denied");
-      expect(records[0].feedback).toContain("Split step one in two.");
-
-      const slug = records[0].target!.slug!;
-      const project = (await detectProjectName()) ?? "_unknown";
-      createdSlugs.push({ project, slug });
-
-      expect(records[0].target?.planVersion).toBe(1);
-      const versionFile = records[0].target!.planVersionFile!;
-      expect(versionFile).toBe(getPlanVersionPath(project, slug, 1));
-      // The record is joinable to the plan text that was reviewed.
-      expect(readFileSync(versionFile, "utf-8")).toContain(heading);
-    } finally {
-      await server.stop();
-    }
-  });
-
-  test("repeat decisions on one plan append rather than overwrite", async () => {
-    // The legacy plans/ snapshot keys by slug and status, so approve → deny →
-    // approve keeps one file per status. The archive is a timeline.
-    const dataDir = useTempDataDir();
-    const heading = `Feedback archive repeat ${Math.random().toString(36).slice(2, 10)}`;
-    const plan = `# ${heading}\n\nStep one.\n`;
-    const first = await startHypermarkServer({ plan, htmlContent: MINIMAL_HTML });
-    try {
-      await fetch(`${first.url}/api/deny`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback: "no" }),
-      });
-    } finally {
-      await first.stop();
-    }
-    const second = await startHypermarkServer({ plan, htmlContent: MINIMAL_HTML });
-    try {
-      await fetch(`${second.url}/api/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-    } finally {
-      await second.stop();
-    }
-
-    const records = readOnlyIndex(dataDir);
-    expect(records.map((r) => r.decision)).toEqual(["denied", "approved"]);
-    const slug = records[0].target!.slug!;
-    createdSlugs.push({ project: (await detectProjectName()) ?? "_unknown", slug });
   });
 });

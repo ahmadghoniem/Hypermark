@@ -3,7 +3,6 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import {
-  annotateInputNamesExistingTarget,
   buildAmbiguousAnnotateArgsMessage,
   buildUnresolvedAnnotateArgsMessage,
   probeAnnotateToken,
@@ -98,34 +97,6 @@ describe("probeAnnotateToken", () => {
     expect(probeAnnotateToken("docs", root)).toBeNull();
     expect(probeAnnotateToken(".", root)).toBeNull();
     expect(probeAnnotateToken("docs/", root)).toBeNull();
-  });
-});
-
-describe("annotateInputNamesExistingTarget", () => {
-  test("true for anything the pipeline reaches a verdict on", () => {
-    expect(annotateInputNamesExistingTarget("plan.md", root)).toBe(true);
-    // Exists but unsupported: pipeline owns its specific error.
-    expect(annotateInputNamesExistingTarget("script.py", root)).toBe(true);
-  });
-
-  test("false for URLs and folders", () => {
-    expect(annotateInputNamesExistingTarget("docs", root)).toBe(false);
-    expect(annotateInputNamesExistingTarget("https://example.com", root)).toBe(false);
-  });
-
-  test("false for natural language and empty input", () => {
-    expect(annotateInputNamesExistingTarget("the aim doc", root)).toBe(false);
-    expect(annotateInputNamesExistingTarget("", root)).toBe(false);
-    expect(annotateInputNamesExistingTarget("   ", root)).toBe(false);
-  });
-
-  test("the whole un-split string wins over its own tokens", () => {
-    // "Meeting Notes.md" names a real file whose second token ("Notes.md")
-    // also resolves on its own; the pre-pass must prefer the whole string so
-    // OpenCode/Pi keep supporting unquoted paths with spaces.
-    expect(probeAnnotateToken("Notes.md", root)).not.toBeNull();
-    expect(annotateInputNamesExistingTarget("Meeting Notes.md", root)).toBe(true);
-    expect(probeAnnotateToken("Meeting Notes.md", root)).toBe(join(root, "Meeting Notes.md"));
   });
 });
 

@@ -24,7 +24,6 @@ import {
   getMathRendererSource,
   resetMathRenderer,
   setMathRenderer,
-  setMathRendererLoader,
   type MathRenderer,
 } from './math';
 
@@ -33,12 +32,10 @@ const savedSource = getMathRendererSource();
 
 beforeEach(() => {
   resetMathRenderer();
-  setMathRendererLoader(null);
 });
 
 afterEach(() => {
   resetMathRenderer();
-  setMathRendererLoader(null);
   if (savedRenderer) setMathRenderer(savedRenderer, savedSource ?? 'host');
 });
 

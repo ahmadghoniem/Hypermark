@@ -55,9 +55,6 @@ export const ANNOTATABLE_TEXT_REGEX = new RegExp(`${BUILTIN_TEXT_PATTERN}$`, "i"
  */
 export const ANNOTATABLE_DOC_REGEX = new RegExp(`${BUILTIN_DOC_PATTERN}$`, "i");
 
-/** Extensions a user may never register through config (see module comment). */
-export const DENIED_MARKDOWN_EXTENSIONS = [".env"] as const;
-
 /**
  * The dotenv family is denylisted as a family, not a single name: `.env`
  * itself, suffixed variants like `.prod.env`, and prefixed variants like

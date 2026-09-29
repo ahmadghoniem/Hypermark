@@ -13,7 +13,6 @@ import { join } from "node:path";
 import {
   resolveUseGlimpse,
   resolveAnnotateHistory,
-  resolveTodoProviderEnabled,
   loadConfig,
   saveConfig,
   getServerConfig,
@@ -31,41 +30,6 @@ describe("resolveDefaultDiffType", () => {
   });
 });
 
-const TODO_ENV = "HYPERMARK_TODO_PROVIDER";
-const originalTodoEnv = process.env[TODO_ENV];
-
-describe("resolveTodoProviderEnabled", () => {
-  beforeEach(() => {
-    delete process.env[TODO_ENV];
-  });
-  afterAll(() => {
-    if (originalTodoEnv === undefined) delete process.env[TODO_ENV];
-    else process.env[TODO_ENV] = originalTodoEnv;
-  });
-
-  test("defaults to enabled", () => {
-    expect(resolveTodoProviderEnabled({})).toBe(true);
-    expect(resolveTodoProviderEnabled({ todoProvider: "auto" })).toBe(true);
-  });
-
-  test("config key can turn the mirror off", () => {
-    expect(resolveTodoProviderEnabled({ todoProvider: "off" })).toBe(false);
-  });
-
-  test("env accepts the same off vocabulary as the other flags", () => {
-    for (const v of ["off", "OFF", "0", "false", "disabled"]) {
-      process.env[TODO_ENV] = v;
-      expect(resolveTodoProviderEnabled({})).toBe(false);
-    }
-  });
-
-  test("other env values keep the mirror on", () => {
-    for (const v of ["auto", "1", "true", "enabled"]) {
-      process.env[TODO_ENV] = v;
-      expect(resolveTodoProviderEnabled({ todoProvider: "off" })).toBe(true);
-    }
-  });
-});
 
 
 
@@ -167,14 +131,14 @@ describe("favicon config persistence", () => {
   test("persists and reads valid favicon styles via saveConfig and getServerConfig", () => {
     saveConfig({ favicon: "classic" });
     expect(loadConfig().favicon).toBe("classic");
-    expect(getServerConfig(null).favicon).toBe("classic");
+    expect(getServerConfig().favicon).toBe("classic");
   });
 
   test("omits unknown favicon styles from getServerConfig", () => {
     const unknownFavicon = "unknown" as unknown as HypermarkConfig["favicon"];
     saveConfig({ favicon: unknownFavicon });
     expect(loadConfig().favicon).toBe(unknownFavicon);
-    expect(getServerConfig(null).favicon).toBeUndefined();
+    expect(getServerConfig().favicon).toBeUndefined();
   });
 });
 
@@ -213,21 +177,21 @@ describe("saveConfig write serialization", () => {
       observedInsideWindow = { exists: existsSync(lockPath), exclusiveCreateFailed };
     });
 
-    saveConfig({ displayName: "held" });
+    saveConfig({ glimpse: true });
 
     expect(observedInsideWindow).toEqual({ exists: true, exclusiveCreateFailed: true });
     expect(existsSync(lockPath)).toBe(false);
-    expect(loadConfig().displayName).toBe("held");
+    expect(loadConfig().glimpse).toBe(true);
   });
 
   test("concurrent saves in one process all land", async () => {
     await Promise.all([
-      (async () => saveConfig({ displayName: "a" }))(),
+      (async () => saveConfig({ diffOptions: { diffStyle: "unified" } }))(),
       (async () => saveConfig({ glimpse: true }))(),
       (async () => saveConfig({ favicon: "classic" }))(),
     ]);
     const cfg = loadConfig();
-    expect(cfg.displayName).toBe("a");
+    expect(cfg.diffOptions?.diffStyle).toBe("unified");
     expect(cfg.glimpse).toBe(true);
     expect(cfg.favicon).toBe("classic");
   });
@@ -239,9 +203,9 @@ describe("saveConfig write serialization", () => {
     // Ancient by the shipping stale window; no timing dependence in the test.
     __setConfigLockTimingsForTest({ staleMs: 0, waitBudgetMs: 5000 });
 
-    saveConfig({ displayName: "after-takeover" });
+    saveConfig({ favicon: "classic" });
 
-    expect(loadConfig().displayName).toBe("after-takeover");
+    expect(loadConfig().favicon).toBe("classic");
     expect(existsSync(lockPath)).toBe(false);
   });
 
@@ -260,13 +224,13 @@ describe("saveConfig write serialization", () => {
     }) as typeof process.stderr.write);
     const startedAt = Date.now();
     try {
-      saveConfig({ displayName: "not-blocked" });
+      saveConfig({ favicon: "classic" });
     } finally {
       spy.mockRestore();
     }
 
     expect(Date.now() - startedAt).toBeLessThan(3000);
-    expect(loadConfig().displayName).toBe("not-blocked");
+    expect(loadConfig().favicon).toBe("classic");
     expect(writes.some((w) => w.includes("config.json lock unavailable"))).toBe(true);
     // Someone else's lock is left for them.
     expect(existsSync(lockPath)).toBe(true);

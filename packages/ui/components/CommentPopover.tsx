@@ -51,8 +51,6 @@ interface CommentPopoverProps {
   onClose: () => void;
   /** Opt-in: persist text + images across close/reopen, keyed by this string. Cleared on submit. */
   draftKey?: string;
-  /** Whether image attachments are available in this comment surface. */
-  allowImages?: boolean;
   /** Whether submitting empty text is allowed, for editors that support clearing. */
   allowEmptySubmit?: boolean;
   /** Opt-in (HTML multi-select): selected targets rendered as horizontally
@@ -192,7 +190,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   onDraftChange,
   onClose,
   draftKey,
-  allowImages = true,
   allowEmptySubmit = false,
   targetChips,
   onRemoveTargetChip,
@@ -216,14 +213,14 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   initialImagesRef.current = initialImages;
   const initialDraft = draftKey ? draftStore.get(draftKey) : undefined;
   const [text, setText] = useState(initialDraft?.text ?? initialText);
-  const [images, setImages] = useState<ImageAttachment[]>(allowImages ? initialDraft?.images ?? initialImages ?? [] : []);
+  const [images, setImages] = useState<ImageAttachment[]>(initialDraft?.images ?? initialImages ?? []);
   const [position, setPosition] = useState<CommentPopoverPosition | null>(null);
   // Direction of an open popover that has scrolled out of view, or null when on-screen.
   const [offscreen, setOffscreen] = useState<'above' | 'below' | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Spec 05 §3.2: a selected image lands in a strip inside this composer, not
+  // A selected image lands in a strip inside this composer, not
   // in the picker's own popover (which closes on selection) and never in the
   // document-level global attachments.
   const addImage = useCallback((image: ImageAttachment) => {
@@ -232,14 +229,13 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   const removeImage = useCallback((path: string) => {
     setImages((prev) => prev.filter((i) => i.path !== path));
   }, []);
-  const uploads = useAttachmentUploads({ images, onAdd: addImage, enabled: allowImages });
+  const uploads = useAttachmentUploads({ images, onAdd: addImage, enabled: true });
   const { attachFiles } = uploads;
 
   // Paste anywhere in the open composer attaches to *this* comment. Capture
   // phase + stopPropagation keeps the document-level handler in the host app
   // (which files pastes under globalAttachments) from seeing the same event.
   useEffect(() => {
-    if (!allowImages) return;
     const handlePaste = (e: ClipboardEvent) => {
       const target = e.target as Node | null;
       if (!target || !popoverRef.current?.contains(target)) return;
@@ -251,24 +247,22 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     };
     document.addEventListener('paste', handlePaste, true);
     return () => document.removeEventListener('paste', handlePaste, true);
-  }, [allowImages, attachFiles]);
+  }, [attachFiles]);
 
-  const composerDropProps = allowImages
-    ? {
-        onDragOver: (e: React.DragEvent) => {
-          if (e.dataTransfer?.types?.includes('Files')) e.preventDefault();
-        },
-        onDrop: (e: React.DragEvent) => {
-          const files = imageFilesFrom(e.dataTransfer);
-          if (files.length === 0) return;
-          e.preventDefault();
-          e.stopPropagation();
-          attachFiles(files);
-        },
-      }
-    : {};
+  const composerDropProps = {
+    onDragOver: (e: React.DragEvent) => {
+      if (e.dataTransfer?.types?.includes('Files')) e.preventDefault();
+    },
+    onDrop: (e: React.DragEvent) => {
+      const files = imageFilesFrom(e.dataTransfer);
+      if (files.length === 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      attachFiles(files);
+    },
+  };
 
-  const hasUnsavedContent = hasUnsavedCommentContent(text, allowImages ? images : []);
+  const hasUnsavedContent = hasUnsavedCommentContent(text, images);
 
   const showQuickLabels = !isGlobal && !!onQuickLabel && (quickLabels?.length ?? 0) > 0;
 
@@ -288,14 +282,14 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   useEffect(() => {
     const nextDraft = draftKey ? draftStore.get(draftKey) : undefined;
     setText(nextDraft?.text ?? initialText);
-    setImages(allowImages ? nextDraft?.images ?? initialImagesRef.current ?? [] : []);
-  }, [draftKey, initialText, allowImages]);
+    setImages(nextDraft?.images ?? initialImagesRef.current ?? []);
+  }, [draftKey, initialText]);
 
-  useCommentDraftSync(draftKey, text, allowImages ? images : []);
+  useCommentDraftSync(draftKey, text, images);
 
   useEffect(() => {
-    onDraftChange?.(text, allowImages ? images : undefined);
-  }, [allowImages, images, onDraftChange, text]);
+    onDraftChange?.(text, images);
+  }, [images, onDraftChange, text]);
 
   // Reset drag when anchor changes (new annotation) or mode switches
   useEffect(() => { resetDrag(); }, [anchorEl, anchorRect, resetDrag]);
@@ -451,8 +445,8 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   const handleClose = useCallback(
     (focusDisposition: 'restore-opener' | 'preserve-pointer-target' = 'restore-opener') => {
       if (draftKey) {
-        if (hasUnsavedCommentContent(text, allowImages ? images : [])) {
-          draftStore.set(draftKey, { text, images: allowImages ? images : [] });
+        if (hasUnsavedCommentContent(text, images)) {
+          draftStore.set(draftKey, { text, images: images });
         } else {
           draftStore.delete(draftKey);
           draftStore.notify(null);
@@ -461,7 +455,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       onClose();
       if (focusDisposition === 'restore-opener') restoreOpeningFocus();
     },
-    [allowImages, draftKey, images, onClose, restoreOpeningFocus, text],
+    [draftKey, images, onClose, restoreOpeningFocus, text],
   );
 
   // Click-outside for popover mode
@@ -597,10 +591,10 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
         draftStore.delete(draftKey);
         draftStore.notify(null);
       }
-      onSubmit(text, allowImages && images.length > 0 ? images : undefined);
+      onSubmit(text, images.length > 0 ? images : undefined);
       restoreOpeningFocus();
     }
-  }, [text, images, onSubmit, draftKey, allowImages, allowEmptySubmit, initialText, hasUnsavedContent, restoreOpeningFocus]);
+  }, [text, images, onSubmit, draftKey, allowEmptySubmit, initialText, hasUnsavedContent, restoreOpeningFocus]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Escape') {
@@ -740,29 +734,19 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           </div>
         </div>
 
-        {/* Action row. Attachments on the left; Ask sits right beside Save.
+        {/* Action row. Attachments on the left, Save on the right.
             Save sets the row's height, so attaching never moves it. */}
         <div className="flex items-center justify-between gap-3 pl-2.5 pr-2 pb-1.75 pt-1.5">
           <div className="flex min-w-0 items-center gap-0.5">
-            {allowImages && (
-              <CommentAttachStack
-                images={images}
-                pending={uploads.pending}
-                onFiles={attachFiles}
-                onRemove={removeImage}
-                onRemovePending={uploads.removePending}
-              />
-            )}
+            <CommentAttachStack
+              images={images}
+              pending={uploads.pending}
+              onFiles={attachFiles}
+              onRemove={removeImage}
+              onRemovePending={uploads.removePending}
+            />
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => {}}
-              title="Ask about this line"
-              className="rounded-md border border-destructive/30 bg-destructive/10 font-medium text-destructive transition-colors hover:bg-destructive/20 px-2 py-1 text-2xs"
-            >
-              Ask
-            </button>
             <button
               onClick={handleSubmit}
               disabled={!canSubmit}

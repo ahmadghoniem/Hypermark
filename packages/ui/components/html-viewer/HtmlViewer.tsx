@@ -10,7 +10,6 @@ import {
 import { createPortal } from "react-dom";
 import type { Annotation, ImageAttachment, InputMethod } from "../../types";
 import { AnnotationType } from "../../types";
-import { getIdentity } from "../../utils/identity";
 import { useQuickLabels } from "../../hooks/useQuickLabels";
 import {
   CommentPopover,
@@ -131,12 +130,10 @@ export interface HtmlViewerProps {
   diffActive?: boolean;
   /** Toggle the diff-highlighted view on/off. */
   onToggleDiff?: () => void;
-  /** Disable every annotation mutation entry point while preserving reading and navigation. */
-  readOnly?: boolean;
   /** Reports the full set of annotation ids with no live representation on
    *  the page (fail-closed anchors hide markers rather than guess). Called
    *  with the complete current set whenever it changes, including back to
-   *  empty on recovery. Fires in readOnly mode too. Complete over the
+   *  empty on recovery. Complete over the
    *  `annotations` prop: page rows with nothing to restore by (no quoted
    *  text, no element anchor) are reported even though the bridge never
    *  sees them, and an id this viewer minted for a local comment that the
@@ -214,7 +211,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       diffAvailable,
       diffActive,
       onToggleDiff,
-      readOnly = false,
       onUnanchoredChange,
       maxAdditionalTargets,
       scrollBehavior,
@@ -413,7 +409,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
     const [quickLabels] = useQuickLabels();
     const hook = useHtmlAnnotation({
       iframeRef,
-      enabled: !readOnly,
       annotations,
       onAddAnnotation,
       onSelectAnnotation,
@@ -438,7 +433,7 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       );
     }, [annotations, hook.createdAnnotationIds, deliverUnanchored]);
 
-    const multiSelectActive = !readOnly && !!hook.commentPopover && hook.draftTargets.length > 0;
+    const multiSelectActive = !!hook.commentPopover && hook.draftTargets.length > 0;
 
     // Track Shift while a multi-select draft composer is open; releasing it
     // (or losing window focus) always restores the composer.
@@ -530,7 +525,7 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       }
       window.addEventListener("message", handler);
       return () => window.removeEventListener("message", handler);
-    }, [readOnly]);
+    }, []);
 
     useEffect(() => {
       if (iframeReadyVersion === 0) return;
@@ -584,7 +579,7 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
     // their state is read from this render's closure, so an Esc that closed
     // one this same keydown is not double-consumed here.
     useEffect(() => {
-      if (readOnly || !annotateModeActive || !onAnnotateModeExit) return;
+      if (!annotateModeActive || !onAnnotateModeExit) return;
       const overlayOpen =
         !!hook.commentPopover || !!globalCommentPopover;
       const onKeyDown = (e: KeyboardEvent) => {
@@ -599,7 +594,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
       window.addEventListener('keydown', onKeyDown);
       return () => window.removeEventListener('keydown', onKeyDown);
     }, [
-      readOnly,
       annotateModeActive,
       onAnnotateModeExit,
       hook.commentPopover,
@@ -636,7 +630,6 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
 
     const handleGlobalCommentSubmit = useCallback(
       (text: string, images?: ImageAttachment[]) => {
-        if (readOnly) return;
         onAddAnnotation({
           id: `global-${Date.now()}`,
           blockId: "",
@@ -645,20 +638,13 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
           type: AnnotationType.GLOBAL_COMMENT,
           text: text.trim(),
           originalText: "",
-          author: getIdentity(),
           createdA: Date.now(),
           images,
         });
         setGlobalCommentPopover(null);
       },
-      [onAddAnnotation, readOnly],
+      [onAddAnnotation],
     );
-
-    useEffect(() => {
-      if (readOnly) setGlobalCommentPopover(null);
-    }, [readOnly]);
-
-    const hasActionButtons = !readOnly || Boolean(diffAvailable && onToggleDiff);
 
     // Document-level controls (attachments + global comment). Shared between the
     // normal layout (bar above the card) and full-viewport (floating overlay), so
@@ -677,23 +663,21 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
             <span>{diffActive ? "Hide changes" : "Show changes"}</span>
           </button>
         )}
-        {!readOnly && (
-          <button
-            ref={globalCommentButtonRef}
-            onClick={() => {
-              const anchorEl = globalCommentButtonRef.current;
-              if (!anchorEl) return;
-              setGlobalCommentPopover({ anchorEl, contextText: "" });
-            }}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors cursor-pointer"
-            title="Add global comment"
-          >
-            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-            </svg>
-            <span>Comment</span>
-          </button>
-        )}
+        <button
+          ref={globalCommentButtonRef}
+          onClick={() => {
+            const anchorEl = globalCommentButtonRef.current;
+            if (!anchorEl) return;
+            setGlobalCommentPopover({ anchorEl, contextText: "" });
+          }}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors cursor-pointer"
+          title="Add global comment"
+        >
+          <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+          </svg>
+          <span>Comment</span>
+        </button>
       </>
     );
 
@@ -704,7 +688,7 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
           style={fullViewport ? undefined : { maxWidth: maxWidth ?? undefined }}
         >
           {/* Action bar — above the iframe in normal mode (outside overflow:hidden). */}
-          {!fullViewport && hasActionButtons && (
+          {!fullViewport && (
             <div className="flex justify-end gap-1 md:gap-2 mb-2">
               {actionButtons}
             </div>
@@ -718,7 +702,7 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
                 Overlaid + pointer-transparent, so it never shifts layout and
                 never eats a click; an inset shadow on the article itself
                 would paint UNDER the covering iframe. */}
-            {!readOnly && annotateModeActive && (onAnnotateModeExit || onAnnotateModeToggle) && (
+            {annotateModeActive && (onAnnotateModeExit || onAnnotateModeToggle) && (
               <div
                 aria-hidden
                 data-annotate-armed-ring
@@ -729,7 +713,7 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
             {/* Full-viewport mode has no card chrome, so float the same controls
                 over the top-right of the iframe (with a backdrop so they read over
                 any HTML). The selection toolbar is portaled separately. */}
-            {fullViewport && !hideControls && hasActionButtons && (
+            {fullViewport && !hideControls && (
               <div
                 className="absolute top-3 right-3 z-10 flex items-center gap-1 md:gap-2 rounded-lg border border-border/50 bg-background/80 px-1.5 py-1 shadow-md backdrop-blur-sm"
               >
@@ -785,7 +769,7 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
         </div>
 
         {/* Comment popover portal */}
-        {!readOnly && hook.commentPopover &&
+        {hook.commentPopover &&
           createPortal(
             <CommentPopover
               anchorEl={hook.commentPopover.anchorEl}
@@ -810,7 +794,7 @@ export const HtmlViewer = forwardRef<ViewerHandle, HtmlViewerProps>(
           )}
 
         {/* Global comment popover portal */}
-        {!readOnly && globalCommentPopover &&
+        {globalCommentPopover &&
           createPortal(
             <CommentPopover
               anchorEl={globalCommentPopover.anchorEl}

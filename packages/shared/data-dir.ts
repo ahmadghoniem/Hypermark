@@ -14,7 +14,7 @@
  * hooks, sessions, debug logs, IPC registry, etc.) via a single variable —
  * useful for XDG-style home directory cleanliness on Unix systems.
  *
- * A FRESH ROOT (spec 06, decision D5). Hypermark starts at ~/.hypermark and
+ * A FRESH ROOT. Hypermark starts at ~/.hypermark and
  * never reads ~/.plannotator. Someone who ran Plannotator keeps their plans,
  * drafts, history, feedback and config exactly where they are; this product
  * simply does not look there. Nothing is copied, moved, merged, symlinked or

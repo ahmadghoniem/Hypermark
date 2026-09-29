@@ -21,7 +21,7 @@ export interface ThemeInfo {
 }
 
 /**
- * The SEVEN retained palette IDs in Hypermark (Spec 03 locked scope).
+ * The SEVEN retained palette IDs in Hypermark.
  * pierre (default & recovery), hypermark, catppuccin, github,
  * ayu-dark (dark-only), one-dark-pro (dark-only), tokyo-night (dark-only).
  */
@@ -102,56 +102,12 @@ export const BUILT_IN_THEMES: ThemeInfo[] = [
   },
 ];
 
-// User-supplied custom themes support
-const userThemes = new Map<string, ThemeInfo>();
-
-export function registerUserTheme(theme: ThemeInfo): void {
-  userThemes.set(theme.id, theme);
-}
-
-export function unregisterUserTheme(themeId: string): void {
-  userThemes.delete(themeId);
-}
-
-export function getUserThemes(): ThemeInfo[] {
-  return Array.from(userThemes.values());
-}
-
-export function getAllThemes(): ThemeInfo[] {
-  return [...BUILT_IN_THEMES, ...userThemes.values()];
-}
-
 /** Return the explicit mode a palette cannot render, if any. */
 export function getUnsupportedMode(themeId: string): 'light' | 'dark' | null {
-  const theme = BUILT_IN_THEMES.find(({ id }) => id === themeId) ?? userThemes.get(themeId);
+  const theme = BUILT_IN_THEMES.find(({ id }) => id === themeId);
   if (theme?.modeSupport === 'dark-only') return 'light';
   if (theme?.modeSupport === 'light-only') return 'dark';
   return null;
-}
-
-/**
- * Return whether a palette can honor a mode choice without coercion.
- *
- * @deprecated Every mode is always selectable now that a palette is assigned to
- * one half of a light/dark pair: a palette that cannot render a mode simply
- * never occupies that half. Use {@link themeSupportsHalf} to ask whether a
- * palette may be ASSIGNED to a half. Kept for published consumers.
- */
-export function isThemeModeAvailable(themeId: string, mode: Mode): boolean {
-  return mode === 'system' || getUnsupportedMode(themeId) !== mode;
-}
-
-/**
- * Keep System intact while coercing an unsupported explicit mode.
- *
- * @deprecated Modes are no longer coerced. Assign the palette to the half it
- * supports ({@link themeSupportsHalf}) and let {@link resolveThemeMode} handle
- * rendering. Kept for published consumers.
- */
-export function normalizeThemeMode(themeId: string, mode: Mode): Mode {
-  const unsupportedMode = getUnsupportedMode(themeId);
-  if (mode === 'system' || mode !== unsupportedMode) return mode;
-  return unsupportedMode === 'light' ? 'dark' : 'light';
 }
 
 /** Resolve the mode a palette actually renders. */
@@ -190,7 +146,7 @@ export const DEFAULT_THEME_PAIR: ThemePair = {
 
 /** Return whether a palette is registered. */
 export function isKnownTheme(themeId: unknown): themeId is string {
-  return typeof themeId === 'string' && (BUILT_IN_THEMES.some(({ id }) => id === themeId) || userThemes.has(themeId));
+  return typeof themeId === 'string' && BUILT_IN_THEMES.some(({ id }) => id === themeId);
 }
 
 /** Return whether a palette can occupy one half of the pair. */
@@ -272,7 +228,7 @@ export function resetDefaultThemePair(): void {
   defaultThemePair = DEFAULT_THEME_PAIR;
 }
 
-// --- Resolved Theme Descriptors (Spec 03 Step 2) -----------------------------
+// --- Resolved Theme Descriptors -----------------------------
 //
 // For every supported palette/mode, define these seven semantic groups explicitly:
 //   1. chrome/tree

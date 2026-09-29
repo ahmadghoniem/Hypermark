@@ -20,7 +20,6 @@ import type {
 } from "../../utils/planDiffEngine";
 import { AnnotationToolbar } from "../AnnotationToolbar";
 import { CommentPopover } from "../CommentPopover";
-import { getIdentity } from "../../utils/identity";
 
 interface PlanCleanDiffViewProps {
   blocks: PlanDiffBlock[];
@@ -153,7 +152,6 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
       text,
       originalText: content,
       createdA: now,
-      author: getIdentity(),
       images,
       diffContext,
       ...(quickLabelTip ? { quickLabelTip } : {}),

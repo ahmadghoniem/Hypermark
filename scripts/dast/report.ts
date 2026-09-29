@@ -293,7 +293,6 @@ function main(args: string[]): void {
           seededRoutes: [
             "/",
             "/api/plan",
-            "/api/ai/capabilities",
             "/api/definitely-missing",
           ],
         },

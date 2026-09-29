@@ -4,7 +4,6 @@ import {
   DEFAULT_COLOR_THEME,
   DEFAULT_THEME_PAIR,
   PALETTE_DESCRIPTORS,
-  ThemeInfo,
   getUnsupportedMode,
   isKnownTheme,
   themeSupportsHalf,
@@ -15,12 +14,10 @@ import {
   resolveModeDescriptor,
   resolveThemeDescriptor,
   getTerminalTheme,
-  registerUserTheme,
-  unregisterUserTheme,
 } from './themeRegistry';
 
 describe('BUILT_IN_THEMES', () => {
-  test('contains exactly the seven retained palette IDs from Spec 03', () => {
+  test('contains exactly the seven retained palette IDs', () => {
     const ids = BUILT_IN_THEMES.map(t => t.id);
     expect(ids).toEqual([
       'pierre',
@@ -203,30 +200,6 @@ describe('seedThemePair', () => {
       light: 'pierre',
       dark: 'pierre',
     });
-  });
-});
-
-describe('user-supplied themes support', () => {
-  test('registers and unregisters custom user themes', () => {
-    const customTheme: ThemeInfo = {
-      id: 'custom-solar',
-      name: 'Custom Solar',
-      builtIn: false,
-      modeSupport: 'both',
-      colors: {
-        dark: { primary: '#fff', secondary: '#000', accent: '#f00', background: '#111', foreground: '#eee' },
-        light: { primary: '#000', secondary: '#fff', accent: '#f00', background: '#eee', foreground: '#111' },
-      },
-    };
-
-    expect(isKnownTheme('custom-solar')).toBe(false);
-    registerUserTheme(customTheme);
-    expect(isKnownTheme('custom-solar')).toBe(true);
-    expect(themeSupportsHalf('custom-solar', 'light')).toBe(true);
-    expect(themeSupportsHalf('custom-solar', 'dark')).toBe(true);
-
-    unregisterUserTheme('custom-solar');
-    expect(isKnownTheme('custom-solar')).toBe(false);
   });
 });
 

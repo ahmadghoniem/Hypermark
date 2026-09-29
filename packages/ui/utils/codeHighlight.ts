@@ -29,7 +29,7 @@ type PierreModule = typeof import('@pierre/diffs');
 /**
  * Structural class on every fenced-code `<code>` element.
  *
- * `blockTargeting`, the vim navigation layer and the print stylesheet all
+ * `blockTargeting` and the print stylesheet both
  * address code blocks through `pre > code.pn-code`. It used to be `.hljs`,
  * which named a library the app no longer ships; the hook itself is unchanged,
  * only the name is. The `language-*` class alongside it is still how
@@ -268,26 +268,4 @@ export function applyHighlight(
     el.innerHTML = html;
     notifyHighlightSwap(el);
   });
-}
-
-/** Test seam: forget every cached attachment and module handle. */
-export function __resetCodeHighlightCacheForTests(): void {
-  ready.clear();
-  rejected.clear();
-  inflight.clear();
-  pierre = undefined;
-  pierreLoad = undefined;
-}
-
-/**
- * Test seam: stand in for `@pierre/diffs` so a test can drive real swaps
- * (including WHEN the async one lands) without loading Shiki's full bundle.
- * Pass `undefined` to go back to the real dynamic import.
- */
-export function __setCodeHighlightModuleForTests(mod: PierreModule | undefined): void {
-  ready.clear();
-  rejected.clear();
-  inflight.clear();
-  pierre = mod;
-  pierreLoad = mod ? Promise.resolve(mod) : undefined;
 }

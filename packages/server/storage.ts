@@ -1,5 +1,4 @@
 export {
-  generateSlug,
   getHistoryDir,
   saveToHistory,
   getPlanVersion,

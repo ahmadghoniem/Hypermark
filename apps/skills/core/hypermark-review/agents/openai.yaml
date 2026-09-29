@@ -1,5 +1,5 @@
 interface:
   display_name: "Hypermark Review"
-  short_description: "Open Hypermark code review for local changes or a PR."
+  short_description: "Open Hypermark code review for local changes."
 policy:
   allow_implicit_invocation: false
