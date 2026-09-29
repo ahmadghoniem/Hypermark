@@ -98,34 +98,34 @@ jobs:
       - name: Build UI
         run: |
           bun run build:review
-          bun run build:hook
+          bun run build:annotate
 
       - name: Compile binaries (cross-compile all targets)
         run: |
           VERSION=$(jq -r .version package.json)
 
           # macOS ARM64
-          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-darwin-arm64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-darwin-arm64
+          bun build src/cli/index.ts --compile --no-compile-autoload-bunfig --target=bun-darwin-arm64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-darwin-arm64
           sha256sum hypermark-darwin-arm64 > hypermark-darwin-arm64.sha256
 
           # macOS x64
-          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-darwin-x64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-darwin-x64
+          bun build src/cli/index.ts --compile --no-compile-autoload-bunfig --target=bun-darwin-x64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-darwin-x64
           sha256sum hypermark-darwin-x64 > hypermark-darwin-x64.sha256
 
           # Linux x64
-          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-linux-x64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-linux-x64
+          bun build src/cli/index.ts --compile --no-compile-autoload-bunfig --target=bun-linux-x64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-linux-x64
           sha256sum hypermark-linux-x64 > hypermark-linux-x64.sha256
 
           # Linux ARM64
-          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-linux-arm64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-linux-arm64
+          bun build src/cli/index.ts --compile --no-compile-autoload-bunfig --target=bun-linux-arm64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-linux-arm64
           sha256sum hypermark-linux-arm64 > hypermark-linux-arm64.sha256
 
           # Windows x64
-          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-windows-x64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-win32-x64.exe
+          bun build src/cli/index.ts --compile --no-compile-autoload-bunfig --target=bun-windows-x64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-win32-x64.exe
           sha256sum hypermark-win32-x64.exe > hypermark-win32-x64.exe.sha256
 
           # Windows ARM64 (native, via bun-windows-arm64 — stable since Bun v1.3.10)
-          bun build apps/hook/server/index.ts --compile --no-compile-autoload-bunfig --target=bun-windows-arm64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-win32-arm64.exe
+          bun build src/cli/index.ts --compile --no-compile-autoload-bunfig --target=bun-windows-arm64 --define "__CLI_VERSION__=\"$VERSION\"" --outfile hypermark-win32-arm64.exe
           sha256sum hypermark-win32-arm64.exe > hypermark-win32-arm64.exe.sha256
 
       - name: Upload artifacts

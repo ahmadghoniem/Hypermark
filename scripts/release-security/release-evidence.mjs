@@ -11,17 +11,7 @@ export const NATIVE_SUBJECTS = [
   "hypermark-win32-arm64.exe",
 ];
 
-export const RELEASE_WORKSPACES = [
-  "",
-  "apps/hook",
-  "apps/review",
-  "packages/core",
-  "packages/editor",
-  "packages/review-editor",
-  "packages/server",
-  "packages/shared",
-  "packages/ui",
-];
+export const RELEASE_WORKSPACES = [""];
 
 export const SBOM_SENTINELS = [
   "@joplin/turndown-plugin-gfm",

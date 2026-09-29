@@ -1,6 +1,6 @@
 ---
 name: pierre-guard
-description: Guard against breaking the @pierre/diffs integration in Hypermark's code review UI. Use this skill whenever modifying AllFilesCodeView.tsx, upgrading the @pierre/diffs package, changing unsafeCSS injection, adding new props to CodeView, or touching shadow DOM selectors or CSS variables that cross into Pierre's shadow boundary. Also trigger when someone asks "will this break the diff viewer", "is this safe to change", or when reviewing changes that touch the review-editor package.
+description: Guard against breaking the @pierre/diffs integration in Hypermark's code review UI. Use this skill whenever modifying AllFilesCodeView.tsx, upgrading the @pierre/diffs package, changing unsafeCSS injection, adding new props to CodeView, or touching shadow DOM selectors or CSS variables that cross into Pierre's shadow boundary. Also trigger when someone asks "will this break the diff viewer", "is this safe to change", or when reviewing changes that touch src/review.
 ---
 
 # Pierre Integration Guard
@@ -11,8 +11,8 @@ Hypermark's code review UI wraps `@pierre/diffs` — an open-source diff rendere
 
 - **Upstream repo**: https://github.com/pierrecomputer/pierre/tree/main/packages/diffs
 - **Local types**: `node_modules/@pierre/diffs/dist/` (`.d.ts` files)
-- **Integration point**: `packages/review-editor/components/AllFilesCodeView.tsx` (the rendering surface) and `packages/review-editor/workerPool.tsx` (the highlight worker pool)
-- **Current version**: check `packages/review-editor/package.json` for the pinned version
+- **Integration point**: `src/review/components/AllFilesCodeView.tsx` (the rendering surface) and `src/review/workerPool.tsx` (the highlight worker pool)
+- **Current version**: check `package.json` for the pinned version
 
 Always verify against the upstream repo or local `.d.ts` files — don't rely on memory of the API shape.
 
@@ -122,13 +122,13 @@ When reviewing changes that touch the Pierre integration, check:
 
 ### Theme Compliance
 - [ ] New UI elements must use theme tokens (`bg-border`, `bg-primary`, etc.), not hardcoded colors like `bg-blue-500`
-- [ ] The existing `ResizeHandle` component in `packages/ui/components/ResizeHandle.tsx` sets the visual convention — match it
+- [ ] The existing `ResizeHandle` component in `src/ui/components/ResizeHandle.tsx` sets the visual convention — match it
 
 ### Build & Runtime
 - [ ] Run `bun run dev:review` and verify the diff renders in both split and unified modes
 - [ ] Check the browser console for Pierre warnings (e.g., `parseLineType: Invalid firstChar`)
 - [ ] Test with add-only and delete-only files (Pierre doesn't render split grid for these)
-- [ ] If changing UI code, remember build order: `bun run --cwd apps/review build && bun run build:hook`
+- [ ] If changing UI code, rebuild: `bun run build`
 
 ## When Upgrading @pierre/diffs
 

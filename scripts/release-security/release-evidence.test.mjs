@@ -7,15 +7,17 @@ import { test } from "node:test";
 import { buildApplicability, finalizeSbom, RELEASE_WORKSPACES, SBOM_SENTINELS } from "./release-evidence.mjs";
 
 function workspaceLock() {
-  const workspaces = Object.fromEntries(
-    RELEASE_WORKSPACES.map((workspacePath, index) => [
-      workspacePath,
-      { name: index === 0 ? "hypermark" : `workspace-${index}`, dependencies: {} },
-    ]),
-  );
-  workspaces[""].dependencies = { runtime: "1.0.0", "workspace-1": "workspace:*" };
-  workspaces[""].devDependencies = { development: "1.0.0" };
-  workspaces[RELEASE_WORKSPACES[1]].dependencies = { nested: "1.0.0" };
+  const workspaces = {
+    "": {
+      name: "hypermark",
+      dependencies: { runtime: "1.0.0", "workspace-1": "workspace:*" },
+      devDependencies: { development: "1.0.0" },
+    },
+    internal: {
+      name: "workspace-1",
+      dependencies: { nested: "1.0.0" },
+    },
+  };
   return {
     workspaces,
     packages: {

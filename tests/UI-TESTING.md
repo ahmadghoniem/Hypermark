@@ -29,30 +29,28 @@ cd Hypermark
 bun install
 ```
 
-### Monorepo Structure
+### Project Structure
 
-The project uses a monorepo structure:
+The project structure:
 
-- **`packages/`** - Shared code
-  - `ui/` - Reusable React components, hooks, utilities
-  - `server/` - Server implementation (annotate/review servers)
-  - `editor/` - Annotate application logic
-  - `review-editor/` - Code review application logic
-
-- **`apps/`** - Deployable applications
-  - `hook/` - Claude Code plugin and `hypermark` CLI
-  - `review/` - Standalone review app
-  - `skills/` - Agent skills (Claude launchers, core, extra)
+- **`src/cli/`** - `hypermark` CLI implementation
+- **`src/server/`** - Server implementation (annotate/review servers)
+- **`src/shared/`** - Shared code and types
+- **`src/ui/`** - Reusable React components, hooks, utilities
+- **`src/annotate/`** - Annotate application logic
+- **`src/review/`** - Code review application logic
+- **`plugin/`** - Claude Code plugin
+- **`skills/`** - Agent skills (Claude launchers, core, extra)
 
 ### First Build Test
 
 Verify your setup works:
 
 ```bash
-bun run build:hook
+bun run build:annotate
 ```
 
-If successful, you'll see `apps/hook/dist/index.html` created.
+If successful, you'll see `dist/annotate/index.html` created.
 
 ---
 
@@ -62,22 +60,22 @@ If successful, you'll see `apps/hook/dist/index.html` created.
 
 **Shared components** (used by both annotate and review UIs):
 
-- Location: `packages/ui/components/`
+- Location: `src/ui/components/`
 - Examples: `TableOfContents.tsx`, `AnnotationToolbar.tsx`, `Viewer.tsx`
 
 **Annotate editor** (markdown/HTML annotation UI):
 
-- Location: `packages/editor/App.tsx`
+- Location: `src/annotate/App.tsx`
 - Main application logic for annotate sessions
 
 **Code review editor** (code review UI):
 
-- Location: `packages/review-editor/App.tsx`
+- Location: `src/review/App.tsx`
 - Main application logic for code review
 
 **Utilities and hooks**:
 
-- Location: `packages/ui/utils/`, `packages/ui/hooks/`
+- Location: `src/ui/utils/`, `src/ui/hooks/`
 - Examples: `parser.ts`, `useActiveSection.ts`, `annotationHelpers.ts`
 
 ### Development Servers (Hot Reload)
@@ -86,7 +84,7 @@ For rapid iteration, use development servers with hot reload:
 
 ```bash
 # Annotate UI (most common)
-bun run dev:hook
+bun run dev:annotate
 # Opens http://localhost:5173
 
 # Code review UI
@@ -102,37 +100,17 @@ When you're ready to test with actual plugin integration:
 
 ```bash
 # Build annotate UI
-bun run build:hook
-# Output: apps/hook/dist/index.html
+bun run build:annotate
+# Output: dist/annotate/index.html
 
 # Build code review UI
 bun run build:review
-# Output: apps/review/dist/index.html
+# Output: dist/review/index.html
 
-# Build everything, in order
+# Build everything
 bun run build
-# Runs build:review && build:hook
+# Runs build:review && build:annotate
 ```
-
-### Important Build Note
-
-**The hook build copies the pre-built `apps/review/dist/index.html`.**
-
-When making UI changes:
-
-✅ **Correct:**
-
-```bash
-bun run --cwd apps/review build && bun run build:hook
-```
-
-❌ **Incorrect:**
-
-```bash
-bun run build:hook  # Uses stale review HTML from the previous build!
-```
-
-Always rebuild the review app BEFORE the hook if you changed review UI code.
 
 ---
 
@@ -144,24 +122,24 @@ After a build, run the CLI from source against a fixture or a repo:
 
 ```bash
 # Annotate UI
-bun run apps/hook/server/index.ts annotate tests/test-fixtures/<fixture>.md
+bun run src/cli/index.ts annotate tests/test-fixtures/<fixture>.md
 
 # Code review UI (inside any git repo)
-bun run apps/hook/server/index.ts review
+bun run src/cli/index.ts review
 ```
 
 ### Manual Testing Workflow
 
-1. **Make your changes** in `packages/ui/` or `packages/editor/`
+1. **Make your changes** in `src/ui/` or `src/annotate/`
 
 2. **Choose testing method:**
    - **Option A:** Dev server (fast iteration)
      ```bash
-     bun run dev:hook
+     bun run dev:annotate
      ```
    - **Option B:** Build and run a real session (integration test)
      ```bash
-     bun run build:hook && bun run apps/hook/server/index.ts annotate tests/test-fixtures/<fixture>.md
+     bun run build:annotate && bun run src/cli/index.ts annotate tests/test-fixtures/<fixture>.md
      ```
 
 3. **Verify your changes** work correctly
@@ -222,21 +200,6 @@ netstat -ano | findstr :5173
 taskkill /PID <pid> /F
 ```
 
-#### Module Not Found
-
-**Error:**
-
-```
-Error: Cannot find module '@hypermark/ui'
-```
-
-**Solution:** Clean install dependencies
-
-```bash
-rm -rf node_modules
-bun install
-```
-
 #### Hot Reload Not Working
 
 **Symptom:** Changes don't appear in browser after saving file
@@ -244,7 +207,7 @@ bun install
 **Solutions:**
 
 1. Hard refresh browser: Cmd+Shift+R (Mac) or Ctrl+Shift+R (Windows/Linux)
-2. Restart dev server: Ctrl+C then `bun run dev:hook`
+2. Restart dev server: Ctrl+C then `bun run dev:annotate`
 3. Clear browser cache
 4. Check terminal for errors
 
@@ -256,7 +219,7 @@ bun install
 
 1. Check for typos in class names (Tailwind is strict)
 2. Verify Tailwind config includes your file paths
-3. Try rebuilding: `bun run build:hook`
+3. Try rebuilding: `bun run build:annotate`
 4. Check if another CSS rule is overriding (use DevTools Elements tab)
 5. Ensure you're using correct responsive prefixes (`sm:`, `md:`, `lg:`)
 

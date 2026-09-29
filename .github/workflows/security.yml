@@ -352,8 +352,8 @@ jobs:
             (.errors | length) == 0 and
             (.paths.scanned | length) >= 500 and
             all(.results[]; .extra.engine_kind == "OSS") and
-            any(.paths.scanned[]; startswith("/src/packages/server/")) and
-            any(.paths.scanned[]; startswith("/src/packages/ui/")) and
+            any(.paths.scanned[]; startswith("/src/src/server/")) and
+            any(.paths.scanned[]; startswith("/src/src/ui/")) and
             any(.paths.scanned[]; startswith("/src/scripts/"))
           ' "$output_dir/semgrep.json" >/dev/null || {
             echo 'Semgrep JSON failed its OSS-engine, error-free, target-count, or required-surface assertions.' >&2

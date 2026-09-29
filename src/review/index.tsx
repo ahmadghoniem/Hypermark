@@ -1,0 +1,35 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from '@/review/App';
+import { ReviewWorkerPoolProvider } from '@/review/workerPool';
+import '@/review/index.css';
+
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("Could not find root element to mount to");
+}
+
+const root = ReactDOM.createRoot(rootElement);
+root.render(
+  <React.StrictMode>
+    {/* Worker-pool syntax highlighting — tokenization off the main thread
+        (diffshub parity). Pierre's CodeView/FileDiff pick the pool up from
+        context automatically. */}
+    <ReviewWorkerPoolProvider>
+      <App />
+    </ReviewWorkerPoolProvider>
+  </React.StrictMode>
+);
+
+// Design panel. Loaded dynamically so `dialkit` and `motion` are tree-shaken
+// out of an ordinary production bundle instead of shipping dead; a build run
+// with HYPERMARK_DIALS=1 keeps it, which is how the `hypermark` CLI's bundle
+// gets dials.
+declare const __DIALS__: boolean;
+if (import.meta.env.DEV || __DIALS__) {
+  void import('@/ui/components/DialsMount').then(({ DialsMount }) => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    ReactDOM.createRoot(host).render(<DialsMount />);
+  });
+}

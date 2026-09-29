@@ -1,0 +1,787 @@
+/* Hypermark Theme System — imports all themes, provides Tailwind bridge + base styles */
+
+@import "katex/dist/katex.min.css";
+
+/* Theme files — each defines .theme-{name} (dark) and .theme-{name}.light */
+@import "./themes/pierre.css";
+@import "./themes/hypermark.css";
+@import "./themes/catppuccin.css";
+@import "./themes/github.css";
+@import "./themes/ayu-dark.css";
+@import "./themes/one-dark-pro.css";
+@import "./themes/tokyo-night.css";
+
+/* `dark:` follows the app theme, not the OS. ThemeProvider marks light mode
+ * with `.light` on <html>; everything else is dark. Stock `dark:` reads
+ * prefers-color-scheme, which disagrees whenever the user picks a theme mode
+ * that differs from the system one. */
+@custom-variant dark (&:where(:root:not(.light), :root:not(.light) *));
+
+/* Tailwind bridge — maps CSS vars to utility classes */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  /* Comment-annotation indicator color. Defaults to each theme's --accent
+   * (see :root below); a theme whose accent is a low-contrast neutral (e.g.
+   * "simple") overrides --annotation-comment directly. */
+  --color-annotation-comment: var(--annotation-comment);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Type scale — fonts excluded on purpose (themes own --font-sans/--font-mono) */
+@theme {
+  --text-sm: 0.875rem; --text-sm--line-height: 1.45;
+  --text-base: 1rem; --text-base--line-height: 1.55;
+  --text-lg: 1.0625rem; --text-lg--line-height: 1.45;
+  --text-xl: 1.1875rem; --text-xl--line-height: 1.4;
+  --text-2xl: 1.375rem; --text-2xl--line-height: 1.3;
+  --text-3xl: 1.625rem; --text-3xl--line-height: 1.2;
+  --text-4xl: 1.875rem; --text-4xl--line-height: 1.15;
+  --text-5xl: 2rem; --text-5xl--line-height: 1.1;
+
+  /* Chrome micro sizes below text-xs: counts, badges, eyebrows, meta lines.
+   * No line-height of their own; they inherit it, like the text-[Npx] they
+   * replace. (The review bundle bumps text-xs to 13px; these stay put.) */
+  --text-2xs: 0.6875rem; /* 11px */
+  --text-3xs: 0.625rem;  /* 10px */
+  --text-4xs: 0.5625rem; /* 9px */
+}
+
+/* Stacking layers for anything that must sit above page content. Local
+ * stacking inside a component (z-1 … z-40) stays numeric. Order matters more
+ * than the numbers: chrome < resize < panel-scrim < panel < menu < popover <
+ * popover-hint < dialog < overlay. */
+@theme {
+  --z-index-chrome: 50;       /* app header, document column, portaled menus and tooltips */
+  --z-index-resize: 55;       /* sidebar resize handles, above the document column */
+  --z-index-panel-scrim: 59;  /* backdrop behind the mobile annotation panel */
+  --z-index-panel: 60;        /* sticky header lane, mobile annotation panel */
+  --z-index-menu: 70;         /* inline action menus */
+  --z-index-popover: 100;     /* composer, toolbars, pickers, popovers */
+  --z-index-popover-hint: 101; /* "composer is offscreen" pill over the composer layer */
+  --z-index-dialog: 110;      /* modal dialogs */
+  --z-index-overlay: 200;     /* fullscreen image, diagram and code previews */
+}
+
+/* Plan document rhythm, Typeset-style: three variables drive block text size,
+ * line height and the space between blocks. Override them on a container to
+ * re-density everything inside.
+ * @theme inline keeps the var() references in the utilities, so a scoped
+ * override reaches the derived steps too. */
+:root {
+  --plan-size: 0.9375rem; /* 15px */
+  --plan-leading: 1.625;
+  --plan-flow: 1rem;
+}
+@theme inline {
+  --text-plan: var(--plan-size);
+  --text-plan--line-height: var(--plan-leading);
+  --spacing-plan: var(--plan-flow);                       /* paragraphs, quotes, tables, callouts */
+  --spacing-plan-wide: calc(var(--plan-flow) * 1.25);     /* code, math, diagrams */
+  --spacing-plan-rule: calc(var(--plan-flow) * 2);        /* horizontal rules */
+}
+
+/* Base styles — apply regardless of theme */
+@layer base {
+  /* Extended tokens — derived from Hypermark's theme vars so they adapt to
+   * all themes. These cover gaps between Hypermark's base token set and what
+   * the surface/sidebar-aware components expect. Themes that pin explicit
+   * values (e.g. "simple") override these. */
+  :root {
+    /* Mobile browser environment. Safe areas are CSS-owned because they are
+     * available before React mounts; the observed viewport values are written
+     * by useViewportEnvironment and fall back cleanly in the utilities below. */
+    --pn-safe-top: env(safe-area-inset-top, 0px);
+    --pn-safe-right: env(safe-area-inset-right, 0px);
+    --pn-safe-bottom: env(safe-area-inset-bottom, 0px);
+    --pn-safe-left: env(safe-area-inset-left, 0px);
+    --surface-0: color-mix(in oklch, var(--muted) 40%, var(--background));
+    --surface-1: var(--muted);
+    --surface-2: color-mix(in oklch, var(--muted) 70%, var(--foreground));
+    --sidebar: var(--card);
+    --sidebar-foreground: var(--foreground);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--muted);
+    --sidebar-accent-foreground: var(--foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
+    /* Comment-annotation color follows the theme's accent unless the theme
+     * overrides it (neutral themes whose accent is an illegible gray). */
+    --annotation-comment: var(--accent);
+    /* Sensible amber default so a "warning" color utility exists even for
+     * themes that don't define --warning. Matches the hypermark theme;
+     * per-theme files override these. */
+    --warning: oklch(0.75 0.15 85);
+    --warning-foreground: oklch(0.20 0.02 260);
+    --card-ring: rgba(255, 255, 255, 0.08);
+    --card-shadow:
+      0 0 0 1px var(--card-ring), 0 1px 3px 0 rgba(0, 0, 0, 0.2), 0 2px 8px -2px rgba(0, 0, 0, 0.3);
+  }
+
+  .light {
+    --warning: oklch(0.55 0.18 85);
+    --warning-foreground: oklch(0.18 0.02 260);
+    --card-ring: rgba(0, 0, 0, 0.06);
+    --card-shadow:
+      0 0 0 1px var(--card-ring), 0 1px 3px 0 rgba(0, 0, 0, 0.04),
+      0 2px 8px -2px rgba(0, 0, 0, 0.06);
+  }
+
+  * {
+    border-color: var(--border);
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--background);
+  color: var(--foreground);
+  font-feature-settings: "ss01", "ss02", "cv01";
+}
+
+/* Safari extends the page canvas beneath its floating browser controls. The
+ * plan document is a card-colored nested scroller, so leaving the outer canvas
+ * on `--background` produces an opaque dark band around those controls. Match
+ * the browser canvas to the active surface while preserving the incumbent
+ * background for grid, HTML, Review, loading, and non-editor consumers. */
+html:has([data-pn-browser-canvas="card"]),
+body:has([data-pn-browser-canvas="card"]) {
+  background-color: var(--card);
+}
+
+html:has([data-pn-browser-canvas="background"]),
+body:has([data-pn-browser-canvas="background"]) {
+  background-color: var(--background);
+}
+
+/* The application stage owns the top and lateral safe areas. Bottom-edge
+ * surfaces opt into `.pn-safe-bottom` themselves so the home-indicator inset
+ * is never counted twice. The ordered height declarations preserve desktop
+ * behavior and old-browser support before the observer publishes a value. */
+.pn-app-viewport {
+  box-sizing: border-box;
+  height: 100vh;
+  height: 100dvh;
+  height: var(--pn-viewport-height, 100vh);
+  padding-top: var(--pn-safe-top);
+  padding-right: var(--pn-safe-right);
+  padding-left: var(--pn-safe-left);
+}
+
+.pn-safe-top {
+  padding-top: var(--pn-safe-top);
+}
+
+.pn-safe-inline {
+  padding-right: var(--pn-safe-right);
+  padding-left: var(--pn-safe-left);
+}
+
+.pn-safe-bottom {
+  padding-bottom: var(--pn-safe-bottom);
+}
+
+.pn-viewport-bounded {
+  max-height: calc(
+    var(--pn-viewport-height, 100vh) - var(--pn-safe-top) - var(--pn-safe-bottom)
+  );
+}
+
+/* Portaled overlays cannot inherit the application root's safe-area padding.
+ * This utility gives them the same observed visible stage without assuming
+ * that the software keyboard is a rectangular bottom inset. */
+.pn-visible-viewport-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  width: var(--pn-viewport-width, 100vw);
+  height: var(--pn-viewport-height, 100vh);
+  padding-top: max(1rem, var(--pn-safe-top));
+  padding-right: max(1rem, var(--pn-safe-right));
+  padding-bottom: max(1rem, var(--pn-safe-bottom));
+  padding-left: max(1rem, var(--pn-safe-left));
+}
+
+/* iOS zooms focused text controls below 16px. Scope the correction to
+ * user-authored primary inputs so labels, counters, and diff text stay at the
+ * established desktop scale. The mirror selector keeps skill-token glyphs
+ * metrically identical to the transparent textarea above it. */
+@media (pointer: coarse), (max-width: 639px) {
+  [data-pn-mobile-editable],
+  [data-pn-mobile-editable-mirror] {
+    font-size: 1rem !important;
+  }
+}
+
+.math-inline {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  vertical-align: text-bottom;
+  line-height: 1;
+}
+
+/* Signal that a rendered formula is a clickable annotation target. */
+.math-annotatable {
+  cursor: pointer;
+}
+
+.math-block {
+  max-width: 100%;
+}
+
+.math-inline .katex,
+.math-block .katex {
+  color: inherit;
+  font-size: 1.02em;
+}
+
+.math-inline .katex {
+  line-height: inherit;
+}
+
+.math-block .katex-display {
+  margin: 0;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ */
+/* Scrollbars                                                         */
+/* ------------------------------------------------------------------ */
+/*
+ * All scroll containers use NATIVE OS scrollbars (the overlayscrollbars library
+ * was removed). <OverlayScrollArea> is now a thin native wrapper; everything is
+ * styled by the standard rule below.
+ *
+ * Note: transform/opacity were removed from global transitions in abc952f to
+ * prevent scroll jank. DO NOT re-add them.
+ */
+
+/* Native OS scrollbars — thin + themed via the standard properties (cross-browser:
+ * Chrome 121+, Safari 18.2+, Firefox). Deliberately NO `::-webkit-scrollbar { width }`
+ * override: the old 6px rail was the "can't grab the scrollbar" bug (#354); the
+ * standard `thin` stays grabbable. (Replaced the overlayscrollbars os-theme.) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/* Windows Chromium paints stepper arrows at both ends of every scrollbar, and
+   ignores every ::-webkit-scrollbar rule on an element whose scrollbar-width or
+   scrollbar-color is set. So on Windows (ThemeProvider sets data-platform) and
+   only in engines with ::-webkit-scrollbar, reset the standard properties and
+   draw the same thin rail with the pseudo-elements, buttons hidden. The 11px
+   rail matches `thin` and stays grabbable (#354). Firefox keeps the rule above. */
+@supports selector(::-webkit-scrollbar) {
+  html[data-platform="windows"] * {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+  html[data-platform="windows"] ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+  html[data-platform="windows"] ::-webkit-scrollbar-track,
+  html[data-platform="windows"] ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  html[data-platform="windows"] ::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    background-clip: padding-box;
+    border: 3px solid transparent;
+    border-radius: 9999px;
+  }
+  html[data-platform="windows"] ::-webkit-scrollbar-thumb:hover {
+    border-width: 2px;
+  }
+  html[data-platform="windows"] ::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}
+
+/* Selection */
+::selection {
+  background: oklch(from var(--primary) l c h / 0.3);
+}
+
+/* Suppress all color transitions until the app has mounted and the theme
+   is stable. Without this, the global * transition below fires on initial
+   load — className reassignments during React mount trigger a 150ms
+   transition from browser-default black to themed white, causing a visible
+   flash. ThemeProvider adds .transitions-ready after mount. */
+html:not(.transitions-ready) * {
+  transition-duration: 0s !important;
+}
+
+/* Interactive color motion — hover and focus feedback only.
+   This was a universal `*` rule, which meant a palette or mode switch
+   cross-faded the ENTIRE tree over 150ms. Every element interpolated
+   independently, so mid-transition the app genuinely rendered a mix of the
+   old and new theme, and a switch must never expose mixed chrome. Scoping it to elements that actually respond to pointer and
+   keyboard keeps the intentional motion and drops the theme-wide cross-fade:
+   non-interactive surfaces now repaint in the frame the theme class flips.
+   Only color properties — transform/opacity are handled per-component to
+   avoid interfering with scroll compositing. */
+:where(a, button, summary, label, input, select, textarea,
+       [role='button'], [role='tab'], [role='menuitem'], [role='menuitemcheckbox'],
+       [role='menuitemradio'], [role='option'], [role='switch'], [role='checkbox'],
+       [role='radio'], [role='link'], [tabindex]) {
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(a, button, summary, label, input, select, textarea,
+         [role='button'], [role='tab'], [role='menuitem'], [role='menuitemcheckbox'],
+         [role='menuitemradio'], [role='option'], [role='switch'], [role='checkbox'],
+         [role='radio'], [role='link'], [tabindex]) {
+    transition-duration: 0s;
+  }
+}
+
+/* Focus states */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* The comment composer's textarea already sits inside a bordered card that is
+   only ever shown while it holds focus, so the global ring drew a second frame
+   a few pixels inside the first. Tailwind's own `focus:outline-none` on the
+   element cannot win here: it lives in a @layer and this rule does not.
+   Buttons inside the composer keep their ring. */
+[data-comment-popover] textarea:focus-visible {
+  outline: none;
+}
+
+/* Shared file tree styling used by review and annotation sidebars. */
+.file-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem; /* 13px — file rows felt small vs. the rest of the app */
+  cursor: pointer;
+  color: var(--muted-foreground);
+}
+
+.file-tree-item:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.file-tree-item:disabled {
+  cursor: default;
+}
+
+.file-tree-item:disabled:hover {
+  background: transparent;
+}
+
+.file-tree-item.active {
+  background: oklch(from var(--primary) l c h / 0.3);
+  color: var(--primary);
+}
+
+.file-tree-item.has-annotations {
+  background: oklch(from var(--primary) l c h / 0.08);
+}
+
+.file-tree-item.has-annotations:hover {
+  background: var(--muted);
+}
+
+.file-tree-item.active.has-annotations {
+  background: oklch(from var(--primary) l c h / 0.3);
+}
+
+.file-tree-item .additions {
+  color: var(--success);
+}
+
+.file-tree-item .deletions {
+  color: var(--destructive);
+}
+
+
+/* Word-level diff markers inside modified plan-diff blocks. Emitted as
+   <ins>/<del> by PlanCleanDiffView's inline renderer; keep the decoration
+   compact across line wraps via box-decoration-break: clone. */
+.plan-diff-word-added,
+.plan-diff-word-removed {
+  padding: 0 2px;
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.plan-diff-word-added {
+  background-color: color-mix(in oklab, var(--success) 20%, transparent);
+  text-decoration: none;
+  color: inherit;
+}
+.plan-diff-word-removed {
+  background-color: color-mix(in oklab, var(--destructive) 15%, transparent);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in oklab, var(--destructive) 60%, transparent);
+  opacity: 0.75;
+  color: inherit;
+}
+
+/* Inline code pills inside diff wrappers carry their own solid background
+   which would otherwise cover the green/red tint on the surrounding
+   <ins>/<del>. Override the pill background so added code pills read clearly
+   green and removed pills read clearly red-struck. */
+.plan-diff-word-added code {
+  background-color: color-mix(in oklab, var(--success) 25%, var(--muted));
+}
+.plan-diff-word-removed code {
+  background-color: color-mix(in oklab, var(--destructive) 20%, var(--muted));
+}
+
+/* Annotation highlights */
+.annotation-highlight {
+  border-radius: 2px;
+  padding: 0 2px;
+  margin: 0 -2px;
+}
+
+.annotation-highlight.deletion {
+  background: oklch(from var(--destructive) l c h / 0.35);
+  text-decoration: line-through;
+  text-decoration-color: var(--destructive);
+  text-decoration-thickness: 2px;
+}
+
+.annotation-highlight.comment {
+  background: oklch(0.70 0.18 60 / 0.3);
+  border-bottom: 2px solid var(--accent);
+}
+
+/* Light mode: softer highlights */
+.light .annotation-highlight.deletion {
+  background: oklch(0.65 0.22 25 / 0.2);
+}
+
+.light .annotation-highlight.comment {
+  background: oklch(0.70 0.20 60 / 0.15);
+}
+
+.annotation-highlight.focused {
+  background: oklch(from var(--focus-highlight) l c h / 0.45) !important;
+  box-shadow: 0 0 8px oklch(from var(--focus-highlight) l c h / 0.4);
+  border-bottom: 2px solid var(--focus-highlight);
+  filter: none;
+}
+
+.light .annotation-highlight.focused {
+  background: oklch(0.70 0.22 200 / 0.3) !important;
+  box-shadow: 0 0 6px oklch(0.60 0.20 200 / 0.3);
+}
+
+.annotation-highlight:hover {
+  filter: brightness(1.2);
+  cursor: pointer;
+}
+
+/* ========================================
+   Plan Diff Styles
+   ======================================== */
+
+/* Clean diff view - added content */
+.plan-diff-added {
+  border-left: 3px solid var(--success);
+  background: oklch(from var(--success) l c h / 0.06);
+  padding-left: 0.75rem;
+  border-radius: 0 0.25rem 0.25rem 0;
+  margin: 0.25rem 0;
+}
+.light .plan-diff-added {
+  background: oklch(from var(--success) l c h / 0.06);
+}
+
+/* Clean diff view - removed content */
+.plan-diff-removed {
+  border-left: 3px solid var(--destructive);
+  background: oklch(from var(--destructive) l c h / 0.06);
+  padding-left: 0.75rem;
+  border-radius: 0 0.25rem 0.25rem 0;
+  margin: 0.25rem 0;
+}
+.light .plan-diff-removed {
+  background: oklch(from var(--destructive) l c h / 0.06);
+}
+
+/* Clean diff view - modified content (mix of additions and deletions in one
+   block, rendered inline via word-level diff).
+   Deliberate asymmetry with added/removed: add/remove are BLOCK-scope events
+   — the whole block matters, so a loud fill is the right signal. Modify is
+   a WORD-scope event — the words matter, and the inline red-struck /
+   green-highlighted word markers already grab attention. A block-level fill
+   would compete with that inline work; an amber gutter on a normal
+   background says "look inside, the change is in the text" while staying
+   consistent with the green/red/yellow diff convention. */
+.plan-diff-modified {
+  border-left: 3px solid oklch(from var(--warning) l c h / 0.75);
+  background: transparent;
+  padding-left: 0.75rem;
+  border-radius: 0 0.25rem 0.25rem 0;
+  margin: 0.25rem 0;
+}
+
+/* Clean diff view - unchanged (dimmed) */
+.plan-diff-unchanged {
+  /* handled via opacity in component */
+}
+
+/* Raw diff view - line styles */
+.plan-diff-line-added {
+  background: oklch(from var(--success) l c h / 0.15);
+  color: var(--success);
+}
+.plan-diff-line-removed {
+  background: oklch(from var(--destructive) l c h / 0.15);
+  color: var(--destructive);
+  opacity: 0.75;
+  text-decoration: line-through;
+  text-decoration-color: oklch(from var(--destructive) l c h / 0.4);
+}
+.light .plan-diff-line-added {
+  background: oklch(from var(--success) l c h / 0.12);
+}
+.light .plan-diff-line-removed {
+  background: oklch(from var(--destructive) l c h / 0.12);
+}
+
+/* Raw HTML blocks (CommonMark Type 6) rendered via dangerouslySetInnerHTML.
+   Minimal typography so <details>, <blockquote>, nested lists etc. inherit
+   sensible spacing without fighting the surrounding prose styles. */
+.html-block details {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+  background-color: color-mix(in oklab, var(--muted) 30%, transparent);
+}
+.html-block details[open] {
+  padding-bottom: 0.75rem;
+}
+.html-block summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--foreground);
+  list-style: revert;
+}
+.html-block summary::-webkit-details-marker {
+  color: color-mix(in oklab, var(--foreground) 60%, transparent);
+}
+.html-block details[open] > summary {
+  margin-bottom: 0.5rem;
+}
+.html-block p {
+  margin: 0.5rem 0;
+}
+.html-block ul,
+.html-block ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+.html-block ul { list-style: disc; }
+.html-block ol { list-style: decimal; }
+.html-block blockquote {
+  border-left: 2px solid color-mix(in oklab, var(--primary) 50%, transparent);
+  padding-left: 1rem;
+  margin: 0.75rem 0;
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+.html-block code {
+  background-color: var(--muted);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+.html-block pre {
+  background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+  border: 1px solid color-mix(in oklab, var(--border) 30%, transparent);
+  border-radius: 6px;
+  padding: 0.75rem;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+}
+.html-block pre code {
+  background: transparent;
+  padding: 0;
+}
+.html-block a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* While the table popout dialog is mounted, drop chrome that would
+   otherwise paint over the dialog behind it. :has() observes the dialog's
+   presence directly — no JS, no state sync. When the dialog unmounts the
+   selector stops matching and everything returns to natural stacking. */
+body:has([data-popout="true"]) [data-annotation-panel="true"],
+body:has([data-popout="true"]) [data-sticky-header-lane="true"],
+body:has([data-popout="true"]) [data-app-header="true"],
+body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
+  z-index: -1;
+}
+
+/* GitHub-style alerts: > [!NOTE] / [!TIP] / [!WARNING] / [!CAUTION] / [!IMPORTANT] */
+.alert-note      { border-left-color: #0969da; }
+.alert-note      .alert-title { color: #0969da; }
+.alert-tip       { border-left-color: #1a7f37; }
+.alert-tip       .alert-title { color: #1a7f37; }
+.alert-warning   { border-left-color: #9a6700; }
+.alert-warning   .alert-title { color: #9a6700; }
+.alert-caution   { border-left-color: #cf222e; }
+.alert-caution   .alert-title { color: #cf222e; }
+.alert-important { border-left-color: #8250df; }
+.alert-important .alert-title { color: #8250df; }
+
+/* Dark shades follow the app mode (.light on <html>), not the OS. */
+:root:not(.light) {
+  .alert-note      { border-left-color: #4493f8; }
+  .alert-note      .alert-title { color: #4493f8; }
+  .alert-tip       { border-left-color: #3fb950; }
+  .alert-tip       .alert-title { color: #3fb950; }
+  .alert-warning   { border-left-color: #d29922; }
+  .alert-warning   .alert-title { color: #d29922; }
+  .alert-caution   { border-left-color: #f85149; }
+  .alert-caution   .alert-title { color: #f85149; }
+  .alert-important { border-left-color: #ab7df8; }
+  .alert-important .alert-title { color: #ab7df8; }
+}
+
+/* Directive containers: :::kind ... ::: */
+.directive { border-color: var(--border); background: color-mix(in srgb, var(--muted) 50%, transparent); }
+.directive-title { color: var(--muted-foreground); }
+.directive-note, .directive-info { background: color-mix(in srgb, #3b82f6 10%, transparent); border-color: color-mix(in srgb, #3b82f6 40%, transparent); }
+.directive-note .directive-title, .directive-info .directive-title { color: #3b82f6; }
+.directive-tip, .directive-success { background: color-mix(in srgb, #10b981 10%, transparent); border-color: color-mix(in srgb, #10b981 40%, transparent); }
+.directive-tip .directive-title, .directive-success .directive-title { color: #10b981; }
+.directive-warning { background: color-mix(in srgb, #f59e0b 10%, transparent); border-color: color-mix(in srgb, #f59e0b 40%, transparent); }
+.directive-warning .directive-title { color: #f59e0b; }
+.directive-danger, .directive-caution { background: color-mix(in srgb, #ef4444 10%, transparent); border-color: color-mix(in srgb, #ef4444 40%, transparent); }
+.directive-danger .directive-title, .directive-caution .directive-title { color: #ef4444; }
+
+/* Annotation highlights — shared by the plan editor and the code-review
+   description annotations. (Moved here from src/annotate/index.css so both
+   surfaces render web-highlighter marks identically.) */
+.annotation-highlight {
+  border-radius: 2px;
+  padding: 0 2px;
+  margin: 0 -2px;
+}
+
+/* Math annotations style the rendered formula element directly rather than
+   wrapping text in a <mark>, so they need their own display handling. */
+.annotation-highlight.math-inline-annotation {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.annotation-highlight.math-block-annotation {
+  display: block;
+}
+
+.annotation-highlight.deletion {
+  background: oklch(from var(--destructive) l c h / 0.35);
+  text-decoration: line-through;
+  text-decoration-color: var(--destructive);
+  text-decoration-thickness: 2px;
+}
+
+.annotation-highlight.comment {
+  background: oklch(0.70 0.18 60 / 0.3);
+  border-bottom: 2px solid var(--accent);
+}
+
+/* Light mode: softer highlights */
+.light .annotation-highlight.deletion {
+  background: oklch(0.65 0.22 25 / 0.2);
+}
+
+.light .annotation-highlight.comment {
+  background: oklch(0.70 0.20 60 / 0.15);
+}
+
+.annotation-highlight.focused {
+  background: oklch(from var(--focus-highlight) l c h / 0.45) !important;
+  box-shadow: 0 0 8px oklch(from var(--focus-highlight) l c h / 0.4);
+  border-bottom: 2px solid var(--focus-highlight);
+  filter: none;
+}
+
+.light .annotation-highlight.focused {
+  background: oklch(0.70 0.22 200 / 0.3) !important;
+  box-shadow: 0 0 6px oklch(0.60 0.20 200 / 0.3);
+}
+
+.annotation-highlight:hover {
+  filter: brightness(1.2);
+  cursor: pointer;
+}
+
+/* Reduced motion: Base UI popups (dialogs, menus, popovers, tooltips) animate
+   via [data-starting-style]/[data-ending-style] transitions — those attributes
+   only exist during the enter/exit phases, so zeroing transitions here makes
+   open/close instant without touching any other transition in the app. Base UI
+   detects the absence of a running transition and unmounts immediately.
+   The doubled .popover-enter selector out-specifies the app-level keyframe
+   rule without !important. */
+@media (prefers-reduced-motion: reduce) {
+  [data-starting-style],
+  [data-ending-style] {
+    transition: none;
+  }
+  .popover-enter.popover-enter {
+    animation: none;
+  }
+}

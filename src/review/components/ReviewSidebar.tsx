@@ -1,0 +1,373 @@
+import React, { useRef, useState } from 'react';
+import { CodeAnnotation, type CodeAnnotationScope } from '@/ui/types';
+import { Button } from '@/ui/components/ui/button';
+import { DecisionNoteField } from '@/ui/components/DecisionControl';
+import { useDismissablePopover } from '@/ui/hooks/useDismissablePopover';
+import { submitHint } from '@/ui/utils/platform';
+import { CommentMeta } from './CommentMeta';
+import { CommentActions } from './CommentActions';
+import { commentCopyText } from '../utils/annotationDisplay';
+import { renderInlineMarkdown } from '../utils/renderInlineMarkdown';
+import { FileNameChip } from './FileNameChip';
+import { OverlayScrollArea } from '@/ui/components/OverlayScrollArea';
+import type { DiffFile } from '../types';
+import { copyTextToClipboard } from '@/ui/utils/clipboard';
+
+interface ReviewSidebarProps {
+  annotations: CodeAnnotation[];
+  files: DiffFile[];
+  selectedAnnotationId: string | null;
+  onSelectAnnotation: (id: string | null) => void;
+  /** Sidebar row click → select AND scroll the diff to the comment. */
+  onNavigateToAnnotation: (id: string | null) => void;
+  onDeleteAnnotation: (id: string) => void;
+  /** "+ General comment": commit a durable scope:'general' review-level
+   *  comment to the session. When present, the affordance renders
+   *  in the General section header AND in the all-empty state — the state it
+   *  is most useful in. */
+  onAddGeneralComment?: (text: string) => void;
+  feedbackMarkdown?: string;
+  width?: number;
+}
+
+/**
+ * "+ General comment" — the human producer for a durable review-level comment
+ * (the sole producer before this was Call Flow). The SAME button renders in
+ * both placements (General section header, all-empty state); the composer is
+ * the shared `DecisionNoteField` in a small anchored popover — the third
+ * consumer of the note field, which is why it is a separate export from
+ * `DecisionControl`.
+ *
+ * Fully controlled: `open`/`text` live in ReviewSidebar, shared by both
+ * placements, so the draft survives a dismissal (outside click / Escape), a
+ * placement flip (a comment arriving mid-sentence unmounts the empty-state
+ * instance and mounts the section-header one), and a tab switch. Only a commit
+ * clears it; collapsing the sidebar discards it (accepted). An empty commit
+ * never fires the callback — it refocuses the field, the same contract as the
+ * decision composers.
+ */
+const GeneralCommentComposer: React.FC<{
+  onAdd: (text: string) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  text: string;
+  onTextChange: (text: string) => void;
+  /** Popover alignment relative to the button: section header anchors right,
+   *  the centered empty-state button anchors center. */
+  align: 'right' | 'center';
+  /** The sidebar panel's width, for clamping the popover. */
+  panelWidth?: number;
+}> = ({ onAdd, open, onOpenChange, text, onTextChange, align, panelWidth }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  useDismissablePopover({ enabled: open, ref, onDismiss: () => onOpenChange(false) });
+
+  const submit = () => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      ref.current?.querySelector<HTMLTextAreaElement>('[data-decision-note-input]')?.focus();
+      return;
+    }
+    onAdd(trimmed);
+    onTextChange('');
+    onOpenChange(false);
+  };
+
+  // Width clamp — the popover lives inside OverlayScrollArea (overflow-x
+  // hidden) in a panel the user can persist anywhere in 200-600px, so an
+  // unclamped w-64 (256px) clips unrecoverably below ~276px. Cap it to the
+  // panel width minus 32px. Geometry at the extremes: the section-header
+  // anchor's right edge sits 24px in from the panel's right (p-2 + p-2 + px-2
+  // nesting), so at 200px the clamped 168px popover's left edge lands at
+  // 200-24-168 = 8px; the empty-state anchor is panel-centered, 100±84 =
+  // 16..184px. At 288px the clamp equals w-64 (256px, left edge 8px); wider
+  // panels keep the 256px cap. Inline style so it tracks live resizes.
+  const clampStyle = panelWidth !== undefined ? { maxWidth: panelWidth - 32 } : undefined;
+
+  return (
+    <div ref={ref} className="relative" data-review-general-composer={open ? 'open' : 'closed'}>
+      <button
+        type="button"
+        data-add-general-comment
+        onClick={() => onOpenChange(!open)}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        title="Add a review-level comment"
+        className="inline-flex items-center rounded-sm px-1.5 py-0.5 text-2xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      >
+        + General comment
+      </button>
+      {open && (
+        <div
+          className={`absolute top-full z-30 mt-1 w-64 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-popover p-2 shadow-xl ${
+            align === 'right' ? 'right-0' : 'left-1/2 -translate-x-1/2'
+          }`}
+          style={clampStyle}
+        >
+          <DecisionNoteField
+            text={text}
+            onTextChange={onTextChange}
+            onSubmit={submit}
+            onCancel={() => onOpenChange(false)}
+            placeholder="Add a general comment..."
+          />
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <span className="text-3xs/snug text-muted-foreground">{submitHint}</span>
+            <Button size="xs" data-general-comment-add onClick={submit} title="Add the comment to this review">
+              Add comment
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SCOPE_ORDER = { general: 0, file: 1, line: 2 } as const;
+
+function getAnnotationScope(annotation: CodeAnnotation): CodeAnnotationScope {
+  return annotation.scope ?? 'line';
+}
+
+function compareCodeAnnotations(a: CodeAnnotation, b: CodeAnnotation): number {
+  const aScope = getAnnotationScope(a);
+  const bScope = getAnnotationScope(b);
+
+  if (aScope !== bScope) {
+    return SCOPE_ORDER[aScope] - SCOPE_ORDER[bScope];
+  }
+
+  return aScope === 'line'
+    ? a.lineStart - b.lineStart
+    : b.createdAt - a.createdAt;
+}
+
+export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
+  annotations,
+  files,
+  selectedAnnotationId,
+  onSelectAnnotation,
+  onNavigateToAnnotation,
+  onDeleteAnnotation,
+  onAddGeneralComment,
+  feedbackMarkdown,
+  width,
+}) => {
+  const totalCount = annotations.length;
+  const [copied, setCopied] = useState(false);
+  // General-comment composer state lives HERE, not in GeneralCommentComposer:
+  // the two placements (empty state vs section header) are different branches,
+  // so a totalCount 0→1 flip mid-sentence or a tab switch unmounts the
+  // instance — parent state keeps the draft and open popover across both.
+  // Collapsing the sidebar unmounts this component and discards the draft
+  // (accepted).
+  const [generalComposerOpen, setGeneralComposerOpen] = useState(false);
+  const [generalDraft, setGeneralDraft] = useState('');
+  // Available panel width for the popover clamp.
+  const generalComposerPanelWidth = width ?? 288;
+
+  const handleQuickCopy = async () => {
+    if (!feedbackMarkdown) return;
+    if (await copyTextToClipboard(feedbackMarkdown)) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      console.error('Failed to copy');
+    }
+  };
+
+  // Split out general (review-level) comments — they belong to no file — then
+  // group the rest by file.
+  const { generalAnnotations, groupedAnnotations } = React.useMemo(() => {
+    const general: CodeAnnotation[] = [];
+    const placed: CodeAnnotation[] = [];
+    for (const ann of annotations) {
+      if ((ann.scope ?? 'line') === 'general') general.push(ann);
+      else placed.push(ann);
+    }
+    general.sort((a, b) => b.createdAt - a.createdAt);
+
+    const grouped = new Map<string, CodeAnnotation[]>();
+    for (const ann of placed) {
+      const existing = grouped.get(ann.filePath) || [];
+      existing.push(ann);
+      grouped.set(ann.filePath, existing);
+    }
+    for (const [, anns] of grouped) {
+      anns.sort(compareCodeAnnotations);
+    }
+
+    return { generalAnnotations: general, groupedAnnotations: grouped };
+  }, [annotations]);
+
+  function renderAnnotationCard(annotation: CodeAnnotation) {
+    const isSelected = selectedAnnotationId === annotation.id;
+    const scope = getAnnotationScope(annotation);
+    const isFileScope = scope === 'file';
+    const isGeneralScope = scope === 'general';
+    return (
+      <div
+        key={annotation.id}
+        onClick={() => onNavigateToAnnotation(annotation.id)}
+        className={`group relative p-2.5 rounded-sm border cursor-pointer transition-colors duration-150 ${
+          isSelected
+            ? 'bg-primary/5 border-primary/30'
+            : 'border-transparent hover:bg-muted/30'
+        }`}
+      >
+        <CommentMeta
+          leading={
+            isGeneralScope ? (
+              <span className="text-4xs font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary">
+                general
+              </span>
+            ) : isFileScope ? (
+              <span className="inline-flex items-center gap-1.5">
+                <FileNameChip path={annotation.filePath} />
+              </span>
+            ) : (
+              <span className="text-3xs font-mono text-muted-foreground">
+                {annotation.lineStart === annotation.lineEnd
+                  ? `L${annotation.lineStart}`
+                  : `L${annotation.lineStart}-${annotation.lineEnd}`}
+                {annotation.tokenText && (
+                  <span className="ml-1 text-primary/70">{`\`${annotation.tokenText.length > 30 ? annotation.tokenText.slice(0, 27) + '...' : annotation.tokenText}\``}</span>
+                )}
+              </span>
+            )
+          }
+          createdAt={annotation.createdAt}
+        />
+        {annotation.text && (
+          <div className="text-xs text-foreground/80 line-clamp-2 review-comment-markdown">
+            {renderInlineMarkdown(annotation.text)}
+          </div>
+        )}
+        <CommentActions
+          copyText={annotation.text ? commentCopyText(annotation, scope) : undefined}
+          onDelete={() => onDeleteAnnotation(annotation.id)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <aside
+      className="border-l border-border/50 bg-card/30 backdrop-blur-sm flex flex-col shrink-0"
+      style={{ width: width ?? 288 }}
+    >
+        {/* Header */}
+        <div
+          className="px-3 flex items-center border-b border-border/50"
+          style={{ height: 'var(--panel-header-h)' }}
+        >
+          <div className="flex items-center gap-2 w-full min-w-0">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate">
+              Annotations
+            </h2>
+            {totalCount > 0 && (
+              <span className="text-3xs font-mono bg-muted px-1.5 py-0.5 rounded-sm text-muted-foreground">
+                {totalCount}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Content */}
+        <OverlayScrollArea className="flex-1 min-h-0">
+          <div className="p-2 space-y-1.5">
+              {totalCount === 0 ? (
+                <div className="flex flex-col items-center justify-center h-40 text-center px-4">
+                  <div className="size-10 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+                    <svg className="size-5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                    </svg>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Click on lines to add annotations
+                  </p>
+                  {onAddGeneralComment && (
+                    <div className="mt-3">
+                      <GeneralCommentComposer
+                        onAdd={onAddGeneralComment}
+                        open={generalComposerOpen}
+                        onOpenChange={setGeneralComposerOpen}
+                        text={generalDraft}
+                        onTextChange={setGeneralDraft}
+                        align="center"
+                        panelWidth={generalComposerPanelWidth}
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-2 space-y-4">
+                  {(generalAnnotations.length > 0 || onAddGeneralComment) && (
+                    <div>
+                      {/* z above the sticky file headers (z-10/z-20) so the
+                          anchored composer popover is never painted under a
+                          later section's header. */}
+                      <div className="sticky top-0 z-25 bg-background/95 backdrop-blur-sm px-2 py-1 flex items-center justify-between gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">General</span>
+                        {onAddGeneralComment && (
+                          <GeneralCommentComposer
+                            onAdd={onAddGeneralComment}
+                            open={generalComposerOpen}
+                            onOpenChange={setGeneralComposerOpen}
+                            text={generalDraft}
+                            onTextChange={setGeneralDraft}
+                            align="right"
+                            panelWidth={generalComposerPanelWidth}
+                          />
+                        )}
+                      </div>
+                      {generalAnnotations.length > 0 && (
+                        <div className="space-y-1">
+                          {generalAnnotations.map((annotation) => renderAnnotationCard(annotation))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {Array.from(groupedAnnotations.entries()).map(([filePath, fileAnnotations]) => (
+                    <div key={filePath}>
+                      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-2 py-1 text-xs font-mono text-muted-foreground truncate">
+                        {filePath.split('/').pop()}
+                      </div>
+                      <div className="space-y-1">
+                        {fileAnnotations.map((annotation) => renderAnnotationCard(annotation))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+          </div>
+        </OverlayScrollArea>
+
+        {/* Quick Copy Footer */}
+        {feedbackMarkdown && totalCount > 0 && (
+          <div className="p-2 border-t border-border/50">
+            <button
+              onClick={handleQuickCopy}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-sm text-xs font-medium transition-all text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            >
+              {copied ? (
+                <>
+                  <svg className="size-3.5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Copied
+                </>
+              ) : (
+                <>
+                  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copy Feedback
+                </>
+              )}
+            </button>
+          </div>
+        )}
+    </aside>
+  );
+};

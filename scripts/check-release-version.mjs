@@ -5,8 +5,7 @@ import { resolve } from "node:path";
 
 const JSON_VERSION_PATHS = [
   "package.json",
-  "apps/hook/.claude-plugin/plugin.json",
-  "packages/server/package.json",
+  "plugin/.claude-plugin/plugin.json",
 ];
 const OPENPACKAGE_PATH = "openpackage.yml";
 const VERSION_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/;

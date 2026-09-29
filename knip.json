@@ -3,80 +3,25 @@
   "workspaces": {
     ".": {
       "entry": [
+        "src/cli/index.ts",
+        "src/annotate/index.tsx",
+        "src/review/index.tsx",
+        "src/*/vite.config.ts",
+        "src/annotate/dev-mock-api.ts",
         "scripts/shiki-wasm-stub.ts",
         "tests/setup/*.ts",
         "scripts/**/*.mjs",
-        "scripts/dast/target.ts"
+        "scripts/dast/target.ts",
+        "**/*.test.{ts,tsx}",
+        "src/shared/**/*.test-d.ts"
       ],
       "project": [
+        "src/**/*.{ts,tsx,css}",
         "scripts/**/*.{ts,mjs}",
         "tests/**/*.{ts,tsx}"
-      ]
-    },
-    "apps/hook": {
-      "entry": [
-        "dev-mock-api.ts",
-        "**/*.test.{ts,tsx}"
-      ],
-      "project": [
-        "**/*.{ts,tsx,css}"
-      ]
-    },
-    "apps/review": {
-      "project": [
-        "**/*.{ts,tsx,css}"
-      ]
-    },
-    "packages/core": {
-      "entry": [
-        "**/*.test.{ts,tsx}"
-      ],
-      "project": [
-        "**/*.{ts,tsx}"
-      ]
-    },
-    "packages/shared": {
-      "entry": [
-        "**/*.test.{ts,tsx}",
-        "**/*.test-d.ts"
-      ],
-      "project": [
-        "**/*.{ts,tsx}"
-      ]
-    },
-    "packages/server": {
-      "entry": [
-        "**/*.test.{ts,tsx}"
-      ],
-      "project": [
-        "**/*.{ts,tsx}"
-      ]
-    },
-    "packages/ui": {
-      "entry": [
-        "**/*.test.{ts,tsx}"
-      ],
-      "project": [
-        "**/*.{ts,tsx,css}"
       ],
       "ignoreDependencies": [
         "@happy-dom/global-registrator"
-      ]
-    },
-    "packages/editor": {
-      "entry": [
-        "**/*.test.{ts,tsx}"
-      ],
-      "project": [
-        "**/*.{ts,tsx,css}"
-      ]
-    },
-    "packages/review-editor": {
-      "entry": [
-        "**/*.test.{ts,tsx}"
-      ],
-      "project": [
-        "**/*.{ts,tsx,css}"
       ]
     }
   }

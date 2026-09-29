@@ -10,7 +10,7 @@
  * (`dist/highlighter/shared_highlighter.js` on the main thread and
  * `dist/worker/worker.js` inside the inlined worker). Hypermark pins
  * `preferredHighlighter: 'shiki-js'` everywhere — see
- * `packages/review-editor/workerPool.tsx` — and Pierre's own default is
+ * `src/review/workerPool.tsx` — and Pierre's own default is
  * `'shiki-js'`, so the Oniguruma branch never executes. But because the choice
  * is a runtime ternary, the bundler keeps the `import("shiki/wasm")` edge and
  * inlines `@shikijs/engine-oniguruma/wasm-inlined` — a ~622 KB base64 blob —

@@ -58,7 +58,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Run focused CLI tests
-        run: bun test apps/hook/server/cli.test.ts
+        run: bun test src/cli/cli.test.ts
 
 
   install-cmd-windows:
@@ -89,8 +89,8 @@ jobs:
         # install flow we care about), verify the replacement has:
         #   - hypermark-win32-x64.exe attached
         #   - hypermark-win32-x64.exe.sha256 attached
-        #   - the install.cmd and packages/shared/ layout your branch
-        #     under test expects to find in apps/skills/
+        #   - the install.cmd and src/shared/ layout your branch
+        #     under test expects to find in skills/
         # A missing or mismatched release asset surfaces as a curl 404
         # in this step with no obvious connection to the test's purpose.
         run: scripts\install.cmd v0.17.1 --skip-attestation

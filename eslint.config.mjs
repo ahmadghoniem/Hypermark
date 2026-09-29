@@ -89,19 +89,19 @@ export default defineConfig([
     linterOptions: { reportUnusedDisableDirectives: "off" },
   },
   {
-    // packages/ui is compiled through the editor's stylesheet (and review-editor's,
+    // src/ui is compiled through the editor's stylesheet (and review's,
     // which imports the same theme.css).
-    files: ["packages/ui/**/*.{ts,tsx}", "packages/editor/**/*.{ts,tsx}", "apps/hook/**/*.tsx"],
+    files: ["src/ui/**/*.{ts,tsx}", "src/annotate/**/*.{ts,tsx}"],
     ...tsx,
     plugins: { "better-tailwindcss": betterTailwind, "react-hooks": reactHooksStub },
-    settings: { "better-tailwindcss": { cwd: "packages/editor", entryPoint: "index.css" } },
+    settings: { "better-tailwindcss": { cwd: "src/annotate", entryPoint: "index.css" } },
     rules: tailwindRules,
   },
   {
-    files: ["packages/review-editor/**/*.{ts,tsx}", "apps/review/**/*.tsx"],
+    files: ["src/review/**/*.{ts,tsx}"],
     ...tsx,
     plugins: { "better-tailwindcss": betterTailwind, "react-hooks": reactHooksStub },
-    settings: { "better-tailwindcss": { cwd: "packages/review-editor", entryPoint: "index.css" } },
+    settings: { "better-tailwindcss": { cwd: "src/review", entryPoint: "index.css" } },
     rules: tailwindRules,
   },
 ]);

@@ -733,12 +733,12 @@ if ($runWizard -or $Extras -or $NoExtras -or $ModelInvocable) {
 if ((-not $skipSkillsResolved) -and ($extrasChoice -eq "yes") -and (-not $extrasPresent)) {
     if ($canPrompt -and (Get-Command npx -ErrorAction SilentlyContinue)) {
         Write-Host "Launching the skills CLI for the extras (pick your agents in its UI)..."
-        npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global
+        npx skills add ahmadghoniem/Hypermark/skills/extra --global
         if ($LASTEXITCODE -ne 0) {
-            Write-Host "skills CLI did not complete - install later with: npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global"
+            Write-Host "skills CLI did not complete - install later with: npx skills add ahmadghoniem/Hypermark/skills/extra --global"
         }
     } else {
-        Write-Host "Install the extras with: npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global"
+        Write-Host "Install the extras with: npx skills add ahmadghoniem/Hypermark/skills/extra --global"
     }
 }
 
@@ -856,36 +856,36 @@ try {
             # plain-clone fallback (#1238): that git has no sparse-checkout
             # subcommand, and the full checkout needs no narrowing.
             if ($sparseClone) {
-                & { $local:ErrorActionPreference = 'Continue'; git sparse-checkout set apps/skills 2>$null }
+                & { $local:ErrorActionPreference = 'Continue'; git sparse-checkout set skills 2>$null }
             }
 
-            # Claude Code reads apps/skills/claude/* (dynamic-context injection
+            # Claude Code reads skills/claude/* (dynamic-context injection
             # `!`hypermark ... $ARGUMENTS`` + allowed-tools, so /hypermark-*
             # run with no permission prompt - like the old slash commands). The
-            # shared-agent scope reads apps/skills/core/* (plain prose). The
+            # shared-agent scope reads skills/core/* (plain prose). The
             # `!`...`` injection is a Claude-Code-only extension, so the two are
             # sourced separately and are NOT interchangeable.
             # Route each through Copy-SkillIfPresent (which pre-removes the
             # existing target dir) so re-runs replace rather than nest.
-            if ((Test-Path "apps\skills\claude") -and (Get-ChildItem "apps\skills\claude" -ErrorAction SilentlyContinue)) {
+            if ((Test-Path "skills\claude") -and (Get-ChildItem "skills\claude" -ErrorAction SilentlyContinue)) {
                 New-Item -ItemType Directory -Force -Path $claudeSkillsDir | Out-Null
                 foreach ($skill in @("hypermark-review", "hypermark-annotate", "hypermark-last")) {
-                    Copy-SkillIfPresent "apps\skills\claude\$skill" $claudeSkillsDir
+                    Copy-SkillIfPresent "skills\claude\$skill" $claudeSkillsDir
                 }
                 # The hypermark knowledge skill (CLI reference) has no
                 # Claude-only injection form, so Claude installs the same
-                # single-sourced copy from apps\skills\core.
-                Copy-SkillIfPresent "apps\skills\core\hypermark" $claudeSkillsDir
+                # single-sourced copy from skills\core.
+                Copy-SkillIfPresent "skills\core\hypermark" $claudeSkillsDir
                 Write-Host "Installed Claude Code skills to $claudeSkillsDir\"
             } else {
                 Write-Host "Tag $latestTag predates the per-agent skill layout - skipping Claude Code skill install"
             }
-            if ((Test-Path "apps\skills\core") -and (Get-ChildItem "apps\skills\core" -ErrorAction SilentlyContinue)) {
+            if ((Test-Path "skills\core") -and (Get-ChildItem "skills\core" -ErrorAction SilentlyContinue)) {
                 New-Item -ItemType Directory -Force -Path $agentsSkillsDir | Out-Null
                 foreach ($skill in @("hypermark-review", "hypermark-annotate", "hypermark-last")) {
-                    Copy-SkillIfPresent "apps\skills\core\$skill" $agentsSkillsDir
+                    Copy-SkillIfPresent "skills\core\$skill" $agentsSkillsDir
                 }
-                Copy-SkillIfPresent "apps\skills\core\hypermark" $agentsSkillsDir
+                Copy-SkillIfPresent "skills\core\hypermark" $agentsSkillsDir
                 Write-Host "Installed shared agent skills to $agentsSkillsDir\"
             } else {
                 Write-Host "Tag $latestTag predates the core/extra skill layout - skipping shared agent skill install"
@@ -989,5 +989,5 @@ if ($skipSkillsResolved) {
 if ((-not $skipSkillsResolved) -and ($extrasChoice -ne "yes")) {
     Write-Host ""
     Write-Host "Optional skills (visual explainer):"
-    Write-Host "  npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global"
+    Write-Host "  npx skills add ahmadghoniem/Hypermark/skills/extra --global"
 }

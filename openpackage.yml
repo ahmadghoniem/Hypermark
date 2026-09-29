@@ -5,4 +5,4 @@ author: ahmadghoniem
 license: MIT/Apache2.0
 
 includes:
-  - apps/hook/**/*
+  - plugin/**/*

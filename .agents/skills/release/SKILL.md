@@ -108,16 +108,15 @@ Write the draft to `RELEASE_NOTES_v<VERSION>.md` in the repo root and tell the u
 
 ## Phase 2: Version Bump
 
-Bump the version string in these **4 files** (and only these — other package.json files use stub versions):
+Bump the version string in these **3 files**:
 
 | File | Field |
 |------|-------|
 | `package.json` (root) | `"version"` |
-| `apps/hook/.claude-plugin/plugin.json` | `"version"` |
+| `plugin/.claude-plugin/plugin.json` | `"version"` |
 | `openpackage.yml` (root) | `version:` |
-| `packages/server/package.json` | `"version"` |
 
-Read each file, confirm the current version matches expectations, then update all 4 atomically.
+Read each file, confirm the current version matches expectations, then update all 3 atomically.
 
 
 ---
@@ -128,7 +127,7 @@ Run builds in dependency order:
 
 ```bash
 bun run build:review    # 1. Code review editor (standalone Vite build)
-bun run build:hook      # 2. Plan review + hook server (copies review's built HTML into hook dist)
+bun run build:annotate  # 2. Annotate editor
 ```
 
 
@@ -141,7 +140,7 @@ Verify all builds succeed before proceeding.
    ```
    chore: bump version to X.Y.Z
    ```
-   Stage only the 4 version-bumped files. Do not stage the release notes file (it's untracked by design).
+   Stage only the 3 version-bumped files. Do not stage the release notes file (it's untracked by design).
 
 2. **Create and push the tag:**
    ```bash
@@ -218,7 +217,7 @@ Before tagging, verify:
 - [ ] All version files bumped consistently
 - [ ] Release notes drafted and reviewed
 - [ ] `bun run build:review` succeeded
-- [ ] `bun run build:hook` succeeded
+- [ ] `bun run build:annotate` succeeded
 - [ ] Version bump committed
 - [ ] No stale build artifacts (clean builds, no cache issues — run `bun install` first if dependencies changed)
 - [ ] The PR-safe `release-security` job generated a schema-valid, sentinel-complete SBOM and accepted the Grype policy with a fresh database

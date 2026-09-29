@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "hypermark",
-      "source": "./apps/hook",
+      "source": "./plugin",
       "description": "Annotate documents and Claude's messages, review code diffs in the browser, and send feedback to Claude Code."
     }
   ]

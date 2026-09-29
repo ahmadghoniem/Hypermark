@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { startAnnotateServer } from "../../packages/server/annotate";
+import { startAnnotateServer } from "../../src/server/annotate";
 
 const SCAN_PORT = 19432;
 const SENTINEL_PORT = 19433;
@@ -26,7 +26,7 @@ Object.assign(process.env, {
   BROWSER: "true",
 });
 
-const htmlPath = resolve("apps/hook/dist/index.html");
+const htmlPath = resolve("dist/annotate/index.html");
 const htmlContent = readFileSync(htmlPath, "utf8");
 
 const application = await startAnnotateServer({

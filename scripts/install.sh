@@ -998,10 +998,10 @@ fi
 if [ "$skip_skills" -eq 0 ] && [ "$extras_choice" = "yes" ] && [ "$extras_present" -eq 0 ]; then
     if [ "$can_prompt" -eq 1 ] && command -v npx >/dev/null 2>&1; then
         echo "Launching the skills CLI for the extras (pick your agents in its UI)..."
-        npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global < /dev/tty || \
-            echo "skills CLI did not complete — install later with: npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global"
+        npx skills add ahmadghoniem/Hypermark/skills/extra --global < /dev/tty || \
+            echo "skills CLI did not complete — install later with: npx skills add ahmadghoniem/Hypermark/skills/extra --global"
     else
-        echo "Install the extras with: npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global"
+        echo "Install the extras with: npx skills add ahmadghoniem/Hypermark/skills/extra --global"
     fi
 fi
 
@@ -1120,7 +1120,7 @@ checkout_failed=0
     fi
     cd repo || exit 1
     if [ "$sparse_clone" -eq 1 ]; then
-        if ! git sparse-checkout set apps/skills 2>"$git_err"; then
+        if ! git sparse-checkout set skills 2>"$git_err"; then
             surface_git_error
             exit 1
         fi
@@ -1132,31 +1132,31 @@ checkout_failed=0
     # installing the rest (matches install.ps1 and install.cmd, which guard
     # each block independently).
     # The two scopes consume different skill bodies. Claude Code reads the
-    # apps/skills/claude/* copies, which use dynamic-context injection
+    # skills/claude/* copies, which use dynamic-context injection
     # (`!`hypermark … $ARGUMENTS``) + allowed-tools so /hypermark-* run the
     # binary directly with no permission prompt. The shared scope reads
-    # apps/skills/core/*, whose prose bodies an agent follows via its own
+    # skills/core/*, whose prose bodies an agent follows via its own
     # shell; the `!`…`` injection is a Claude-Code-only extension, so the two
     # are sourced separately rather than sharing one body.
-    if [ -d "apps/skills/claude" ] && [ -n "$(ls -A apps/skills/claude 2>/dev/null)" ]; then
+    if [ -d "skills/claude" ] && [ -n "$(ls -A skills/claude 2>/dev/null)" ]; then
         mkdir -p "$CLAUDE_SKILLS_DIR"
-        copy_skill_if_present apps/skills/claude/hypermark-review "$CLAUDE_SKILLS_DIR"
-        copy_skill_if_present apps/skills/claude/hypermark-annotate "$CLAUDE_SKILLS_DIR"
-        copy_skill_if_present apps/skills/claude/hypermark-last "$CLAUDE_SKILLS_DIR"
+        copy_skill_if_present skills/claude/hypermark-review "$CLAUDE_SKILLS_DIR"
+        copy_skill_if_present skills/claude/hypermark-annotate "$CLAUDE_SKILLS_DIR"
+        copy_skill_if_present skills/claude/hypermark-last "$CLAUDE_SKILLS_DIR"
         # The hypermark knowledge skill (CLI reference) has no Claude-only
         # injection form — its body is pure prose — so Claude installs the
-        # same single-sourced copy the shared scope gets from apps/skills/core.
-        copy_skill_if_present apps/skills/core/hypermark "$CLAUDE_SKILLS_DIR"
+        # same single-sourced copy the shared scope gets from skills/core.
+        copy_skill_if_present skills/core/hypermark "$CLAUDE_SKILLS_DIR"
         echo "Installed Claude Code skills to ${CLAUDE_SKILLS_DIR}/"
     else
         echo "Tag ${latest_tag} predates the per-agent skill layout — skipping Claude Code skill install"
     fi
-    if [ -d "apps/skills/core" ] && [ -n "$(ls -A apps/skills/core 2>/dev/null)" ]; then
+    if [ -d "skills/core" ] && [ -n "$(ls -A skills/core 2>/dev/null)" ]; then
         mkdir -p "$AGENTS_SKILLS_DIR"
-        copy_skill_if_present apps/skills/core/hypermark-review "$AGENTS_SKILLS_DIR"
-        copy_skill_if_present apps/skills/core/hypermark-annotate "$AGENTS_SKILLS_DIR"
-        copy_skill_if_present apps/skills/core/hypermark-last "$AGENTS_SKILLS_DIR"
-        copy_skill_if_present apps/skills/core/hypermark "$AGENTS_SKILLS_DIR"
+        copy_skill_if_present skills/core/hypermark-review "$AGENTS_SKILLS_DIR"
+        copy_skill_if_present skills/core/hypermark-annotate "$AGENTS_SKILLS_DIR"
+        copy_skill_if_present skills/core/hypermark-last "$AGENTS_SKILLS_DIR"
+        copy_skill_if_present skills/core/hypermark "$AGENTS_SKILLS_DIR"
         echo "Installed shared agent skills to ${AGENTS_SKILLS_DIR}/"
     else
         echo "Tag ${latest_tag} predates the core/extra skill layout — skipping shared agent skill install"
@@ -1242,5 +1242,5 @@ fi
 if [ "$skip_skills" -eq 0 ] && [ "$extras_choice" != "yes" ]; then
     echo ""
     echo "Optional skills (visual explainer):"
-    echo "  npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global"
+    echo "  npx skills add ahmadghoniem/Hypermark/skills/extra --global"
 fi

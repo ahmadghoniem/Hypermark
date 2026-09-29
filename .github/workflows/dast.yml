@@ -42,7 +42,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build disposable target UI
-        run: bun run build:review && bun run build:hook
+        run: bun run build:review && bun run build:annotate
 
       - name: Pull and verify pinned runtime images
         shell: bash

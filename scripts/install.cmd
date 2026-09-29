@@ -722,8 +722,8 @@ REM name (/hypermark-review etc.), so no command files are written anymore.
 REM
 REM Install matrix (all copies verbatim, copy-if-present so older-tag pinned
 REM installs never fail when a source dir is absent):
-REM   %%USERPROFILE%%\.claude\skills            <- apps\skills\claude\* (3) + apps\skills\core\hypermark
-REM   %%USERPROFILE%%\.agents\skills            <- apps\skills\core\* (all 4)
+REM   %%USERPROFILE%%\.claude\skills            <- skills\claude\* (3) + skills\core\hypermark
+REM   %%USERPROFILE%%\.agents\skills            <- skills\core\* (all 4)
 REM ----------------------------------------------------------------------
 
 REM Aggressive cleanup on upgrade - echo each removal, ignore missing.
@@ -858,10 +858,10 @@ if "!SKIP_SKILLS!"=="0" if "!EXTRAS_CHOICE!"=="yes" if "!EXTRAS_PRESENT!"=="0" (
     if !ERRORLEVEL! equ 0 if "!RUN_WIZARD!"=="1" set "NPX_OK=1"
     if "!NPX_OK!"=="1" (
         echo Launching the skills CLI for the extras ^(pick your agents in its UI^)...
-        call npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global
-        if not !ERRORLEVEL! equ 0 echo skills CLI did not complete - install later with: npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global
+        call npx skills add ahmadghoniem/Hypermark/skills/extra --global
+        if not !ERRORLEVEL! equ 0 echo skills CLI did not complete - install later with: npx skills add ahmadghoniem/Hypermark/skills/extra --global
     ) else (
-        echo Install the extras with: npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global
+        echo Install the extras with: npx skills add ahmadghoniem/Hypermark/skills/extra --global
     )
 )
 
@@ -936,36 +936,36 @@ if "!SPARSE_UNSUPPORTED!"=="1" (
 
 if "!CLONE_OK!"=="1" (
     pushd "!SKILLS_TMP!\repo"
-    if "!SPARSE_CLONE!"=="1" git sparse-checkout set apps/skills >nul 2>&1
+    if "!SPARSE_CLONE!"=="1" git sparse-checkout set skills >nul 2>&1
 
-    REM Claude Code reads apps\skills\claude\* (injection `!`hypermark ... $ARGUMENTS``
+    REM Claude Code reads skills\claude\* (injection `!`hypermark ... $ARGUMENTS``
     REM + allowed-tools, so /hypermark-* run with no permission prompt); the
-    REM shared-agent scope reads apps\skills\core\* (prose). The `!`...`` injection
+    REM shared-agent scope reads skills\core\* (prose). The `!`...`` injection
     REM is Claude-Code-only, so the two are sourced separately and are NOT
     REM interchangeable. Replace on each run.
-    if exist "apps\skills\claude" (
+    if exist "skills\claude" (
         if not exist "!CLAUDE_SKILLS_DIR!" mkdir "!CLAUDE_SKILLS_DIR!"
         for %%S in (hypermark-review hypermark-annotate hypermark-last) do (
-            if exist "apps\skills\claude\%%S" (
+            if exist "skills\claude\%%S" (
                 if exist "!CLAUDE_SKILLS_DIR!\%%S" rmdir /s /q "!CLAUDE_SKILLS_DIR!\%%S" >nul 2>&1
-                xcopy /s /i /y /q "apps\skills\claude\%%S" "!CLAUDE_SKILLS_DIR!\%%S\" >nul 2>&1
+                xcopy /s /i /y /q "skills\claude\%%S" "!CLAUDE_SKILLS_DIR!\%%S\" >nul 2>&1
             )
         )
         REM The hypermark knowledge skill (CLI reference) has no Claude-only
         REM injection form, so Claude installs the single-sourced core copy.
-        if exist "apps\skills\core\hypermark" (
+        if exist "skills\core\hypermark" (
             if exist "!CLAUDE_SKILLS_DIR!\hypermark" rmdir /s /q "!CLAUDE_SKILLS_DIR!\hypermark" >nul 2>&1
-            xcopy /s /i /y /q "apps\skills\core\hypermark" "!CLAUDE_SKILLS_DIR!\hypermark\" >nul 2>&1
+            xcopy /s /i /y /q "skills\core\hypermark" "!CLAUDE_SKILLS_DIR!\hypermark\" >nul 2>&1
         )
         echo Installed Claude Code skills to !CLAUDE_SKILLS_DIR!\
     )
-    if exist "apps\skills\core" (
+    if exist "skills\core" (
         if not exist "!AGENTS_SKILLS_DIR!" mkdir "!AGENTS_SKILLS_DIR!"
         for %%S in (hypermark-review hypermark-annotate hypermark-last hypermark) do (
-            if exist "apps\skills\core\%%S" (
+            if exist "skills\core\%%S" (
                 REM Replace rather than merge so files removed upstream don't linger.
                 if exist "!AGENTS_SKILLS_DIR!\%%S" rmdir /s /q "!AGENTS_SKILLS_DIR!\%%S" >nul 2>&1
-                xcopy /s /i /y /q "apps\skills\core\%%S" "!AGENTS_SKILLS_DIR!\%%S\" >nul 2>&1
+                xcopy /s /i /y /q "skills\core\%%S" "!AGENTS_SKILLS_DIR!\%%S\" >nul 2>&1
             )
         )
         echo Installed shared agent skills to !AGENTS_SKILLS_DIR!\
@@ -1055,7 +1055,7 @@ if "!SKIP_SKILLS!"=="1" (
 if "!SKIP_SKILLS!"=="0" if not "!EXTRAS_CHOICE!"=="yes" (
     echo.
     echo Optional skills ^(visual explainer^):
-    echo   npx skills add ahmadghoniem/Hypermark/apps/skills/extra --global
+    echo   npx skills add ahmadghoniem/Hypermark/skills/extra --global
 )
 
 echo.

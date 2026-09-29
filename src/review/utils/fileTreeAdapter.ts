@@ -1,0 +1,211 @@
+/**
+ * @pierre/trees identity-safe adapter.
+ *
+ * This is the ONE place that maps this app's review identity — canonical
+ * `DiffFile.path`, display-only `oldPath`, status-independent change counts,
+ * annotation counts, and selection/reveal targeting — onto
+ * `@pierre/trees`' path-first API. Every version-sensitive `@pierre/trees`
+ * call (a live model's `getItem`/`focusPath`/`scrollToPath`/selection) lives
+ * here so a future beta bump only needs re-review of this one file.
+ *
+ * Identity rules this module exists to protect (see `buildFileTree.ts` and
+ * `App.tsx`'s `openDiffFile`, which this mirrors exactly):
+ *  - The tree is keyed on `DiffFile.path` ONLY. `oldPath` is resolved on the
+ *    way IN (a caller may hand us a stale `oldPath` from a rename) but is
+ *    NEVER used to place, select, or expand a tree node.
+ *  - Path comparison is exact-string (case-sensitive) — two case-distinct
+ *    paths are two distinct files, never collapsed.
+ *  - This module does not mutate `files` or `annotations`;
+ *    every export here is a pure read or a call into a caller-supplied
+ *    `@pierre/trees` model instance.
+ *
+ * Step 2 builds this adapter only. Wiring it into `FileTree.tsx`'s render
+ * path and applying the fixed `paths`/`initialExpansion`/... configuration is
+ * step 3 — nothing here changes any user-visible behavior yet.
+ */
+import type { FileTree as TreesFileTreeModel } from '@pierre/trees';
+import type { CodeAnnotation } from '@/ui/types';
+import type { DiffFile } from '../types';
+import { buildFileTree, getAncestorPaths, getVisualFileOrder } from './buildFileTree';
+
+/** A file resolved to its canonical identity: the single-file navigation target. */
+export interface FileTreeTarget {
+  /** `DiffFile.path` — canonical, never `oldPath`. */
+  canonicalPath: string;
+  /** Index into the `files` array this target was resolved against. */
+  fileIndex: number;
+  file: DiffFile;
+}
+
+/** A file's position in the "All files" surface, alongside its single-file identity. */
+export interface AllFilesTarget {
+  fileIndex: number;
+  /** Index within `getVisualFileOrder(buildFileTree(files))` — the same
+   *  folders-first order `AllFilesCodeView` re-derives for `fileOrder: 'tree'`. */
+  visualIndex: number;
+}
+
+/**
+ * Resolves an arbitrary identifier (a current `path` OR a rename's `oldPath`)
+ * to its canonical target, byte-for-byte mirroring `openDiffFile`'s
+ * resolution in `App.tsx`: match by `path` OR `oldPath`, then normalize to
+ * `file.path`. Every tree selection/reveal call must funnel through this (or
+ * `openDiffFile` itself) — the reverse viewport→tree sync matches by `path`
+ * only, so anything that selects a raw `oldPath` without this normalization
+ * would silently fail to re-highlight later.
+ */
+export function resolveFileTreeTarget(files: readonly DiffFile[], identifier: string): FileTreeTarget | null {
+  const file = files.find(candidate => candidate.path === identifier || candidate.oldPath === identifier);
+  if (!file) return null;
+  const fileIndex = files.findIndex(candidate => candidate.path === file.path);
+  if (fileIndex === -1) return null;
+  return { canonicalPath: file.path, fileIndex, file };
+}
+
+/**
+ * The `paths` input for `@pierre/trees`' `FileTreeOptions` — one canonical
+ * `DiffFile.path` per file, in `files` order. `oldPath` is never included:
+ * a rename places exactly one node, at its new path, exactly like
+ * `buildFileTree`'s trie does today.
+ */
+export function buildFileTreePaths(files: readonly DiffFile[]): string[] {
+  return files.map(file => file.path);
+}
+
+/**
+ * Where `identifier` lands in the "All files" visual order (the folders-first
+ * order `getVisualFileOrder`/`AllFilesCodeView` use), alongside its
+ * single-file `fileIndex`. Returns null when `identifier` does not resolve to
+ * any file in this set.
+ */
+export function getAllFilesTarget(files: readonly DiffFile[], identifier: string): AllFilesTarget | null {
+  const target = resolveFileTreeTarget(files, identifier);
+  if (!target) return null;
+  const visualOrder = getVisualFileOrder(buildFileTree(files as DiffFile[]));
+  const visualIndex = visualOrder.indexOf(target.fileIndex);
+  if (visualIndex === -1) return null;
+  return { fileIndex: target.fileIndex, visualIndex };
+}
+
+/**
+ * Status-independent per-file change counts, straight off `DiffFile`. Never
+ * derived from `DiffFileStatus` — a binary/generated/renamed file reports
+ * whatever `additions`/`deletions` its patch actually carries (typically 0/0
+ * for binary).
+ */
+export function getChangeCounts(file: DiffFile): { additions: number; deletions: number } {
+  return { additions: file.additions, deletions: file.deletions };
+}
+
+/**
+ * Per-canonical-path annotation counts, keyed by `CodeAnnotation.filePath`
+ * (always canonical — annotations are never authored against an `oldPath`).
+ * Mirrors `FileTree.tsx`'s existing `annotationCountMap`.
+ */
+export function buildAnnotationCountMap(annotations: readonly CodeAnnotation[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const annotation of annotations) {
+    counts.set(annotation.filePath, (counts.get(annotation.filePath) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/**
+ * The tree's selected-path set for a given `activeFileIndex`. Mirrors
+ * `FileTree.tsx`'s existing rule that `activeFileIndex` is forced to `-1`
+ * while the All files panel is active: returns an empty
+ * selection rather than guessing at a fallback file.
+ */
+export function getSelectedPaths(files: readonly DiffFile[], activeFileIndex: number): string[] {
+  const file = activeFileIndex >= 0 ? files[activeFileIndex] : undefined;
+  return file ? [file.path] : [];
+}
+
+/**
+ * Selects and reveals `identifier` (a path or oldPath) against a live
+ * `@pierre/trees` model instance: expands every ancestor directory, clears
+ * any existing selection and selects only the canonical path (this app is
+ * single-select even though the underlying model supports multi-select), and
+ * focuses/scrolls to it. Returns the resolved target — callers cross-check
+ * the single-file destination (`fileIndex`/`canonicalPath`) and the
+ * all-files destination via `getAllFilesTarget`. Does nothing and returns
+ * null when `identifier` does not resolve, so a stale reveal request can
+ * never partially mutate the model's selection/expansion state.
+ *
+ * This is the one place a live `@pierre/trees` model is driven for
+ * selection/reveal; step 3 wires this into `FileTree`'s presentation layer.
+ */
+export function revealFileInTree(
+  model: TreesFileTreeModel,
+  files: readonly DiffFile[],
+  identifier: string,
+): FileTreeTarget | null {
+  const target = resolveFileTreeTarget(files, identifier);
+  if (!target) return null;
+
+  for (const ancestorPath of getAncestorPaths(target.canonicalPath)) {
+    const item = model.getItem(ancestorPath);
+    if (item && 'expand' in item) item.expand();
+  }
+
+  for (const selectedPath of model.getSelectedPaths()) {
+    if (selectedPath !== target.canonicalPath) model.getItem(selectedPath)?.deselect();
+  }
+  model.getItem(target.canonicalPath)?.select();
+  model.focusPath(target.canonicalPath);
+  model.scrollToPath(target.canonicalPath);
+
+  return target;
+}
+
+/**
+ * Resolves a row identity from an event's composed path by walking the path
+ * for the first element carrying a `data-item-path` attribute, then mapping it
+ * to its canonical target via `resolveFileTreeTarget`.
+ *
+ * Traverses shadow DOM boundaries via `composedPath` so the adapter can
+ * resolve clicks/double-clicks occurring inside `@pierre/trees`' shadow root.
+ * Returns null if no element with `data-item-path` is found or if the path
+ * does not resolve to any file in `files`.
+ */
+export function resolveFileTreeTargetFromComposedPath(
+  files: readonly DiffFile[],
+  composedPath: readonly (EventTarget | { getAttribute?: (name: string) => string | null })[],
+): FileTreeTarget | null {
+  for (const target of composedPath) {
+    if (target && typeof (target as { getAttribute?: unknown }).getAttribute === 'function') {
+      const itemPath = (target as Element).getAttribute('data-item-path');
+      if (itemPath) {
+        return resolveFileTreeTarget(files, itemPath);
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Derives the visual keyboard navigation order from the files array
+ * (the same order that feeds `treePaths`), mapping back to canonical
+ * indices into the full `files` array.
+ */
+export function getKeyboardFileOrder(
+  files: readonly DiffFile[],
+  visibleFiles: readonly DiffFile[] = files,
+): number[] {
+  if (visibleFiles.length === 0) return [];
+  const tree = buildFileTree(visibleFiles as DiffFile[]);
+  const visualIndices = getVisualFileOrder(tree);
+  const result: number[] = [];
+  for (const idx of visualIndices) {
+    const file = visibleFiles[idx];
+    if (!file) continue;
+    const fileIndex = files.indexOf(file);
+    if (fileIndex !== -1) {
+      result.push(fileIndex);
+    } else {
+      const canonicalIndex = files.findIndex(f => f.path === file.path);
+      if (canonicalIndex !== -1) result.push(canonicalIndex);
+    }
+  }
+  return result;
+}

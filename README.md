@@ -132,7 +132,7 @@ Then finish the Claude Code step:
 /plugin install hypermark@hypermark
 ```
 
-Restart Claude Code. See [`apps/hook/README.md`](apps/hook/README.md) for
+Restart Claude Code. See [`plugin/README.md`](plugin/README.md) for
 details, and `scripts/install.sh --help` for every installer flag.
 
 ### Uninstall
@@ -304,35 +304,29 @@ export HYPERMARK_DATA_DIR=~/.local/share/hypermark
 ```bash
 bun install
 
-bun run dev:hook       # Annotate server
+bun run dev:annotate   # Annotate server
 bun run dev:review     # Code review editor
 ```
 
 ### Build
 
 ```bash
-bun run build          # build:review then build:hook, in that order
+bun run build          # build:review then build:annotate
 bun run build:review   # Code review editor
-bun run build:hook     # Single-file HTML for the hook server
-```
-
-Build order matters. The hook build copies pre-built HTML from `apps/review/dist/`. If you change UI code in `packages/ui/`, `packages/editor/`, or `packages/review-editor/`, rebuild the review app first:
-
-```bash
-bun run --cwd apps/review build && bun run build:hook
+bun run build:annotate # Single-file HTML for the annotate server
 ```
 
 Test the plugin locally:
 
 ```bash
-claude --plugin-dir ./apps/hook
+claude --plugin-dir ./plugin
 ```
 
 Full binary build:
 
 ```bash
-bun run --cwd apps/review build && bun run build:hook && \
-  bun build apps/hook/server/index.ts --compile --outfile ~/.local/bin/hypermark
+bun run build && \
+  bun build src/cli/index.ts --compile --outfile ~/.local/bin/hypermark
 ```
 
 
