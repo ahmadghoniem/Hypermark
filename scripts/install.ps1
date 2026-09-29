@@ -971,13 +971,6 @@ if ($skipSkillsResolved) {
 }
 Write-Host "=========================================="
 Write-Host ""
-Write-Host "Install the Claude Code plugin:"
-Write-Host "  /plugin marketplace add ahmadghoniem/Hypermark"
-Write-Host "  /plugin install hypermark@hypermark"
-Write-Host ""
-Write-Host "Upgrading from an older version? Also run /plugin marketplace update"
-Write-Host "so the plugin drops its old hypermark:* command entries."
-Write-Host ""
 if ($skipSkillsResolved) {
     Write-Host "Skills were skipped ($skipSkillsSource), so the /hypermark-review,"
     Write-Host "/hypermark-annotate, and /hypermark-last commands are NOT installed."

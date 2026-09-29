@@ -1226,11 +1226,6 @@ else
 fi
 echo "=========================================="
 echo ""
-echo "Install the Claude Code plugin:"
-echo "  /plugin marketplace add ahmadghoniem/Hypermark"
-echo "  /plugin install hypermark@hypermark"
-echo ""
-echo ""
 if [ "$skip_skills" -eq 1 ]; then
     echo "Skills were skipped (${skip_skills_source}), so the /hypermark-review,"
     echo "/hypermark-annotate, and /hypermark-last commands are NOT installed."

@@ -108,15 +108,7 @@ Write the draft to `RELEASE_NOTES_v<VERSION>.md` in the repo root and tell the u
 
 ## Phase 2: Version Bump
 
-Bump the version string in these **3 files**:
-
-| File | Field |
-|------|-------|
-| `package.json` (root) | `"version"` |
-| `plugin/.claude-plugin/plugin.json` | `"version"` |
-| `openpackage.yml` (root) | `version:` |
-
-Read each file, confirm the current version matches expectations, then update all 3 atomically.
+Bump `"version"` in the root `package.json`. Confirm the current version matches expectations first.
 
 
 ---

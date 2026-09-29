@@ -1036,13 +1036,6 @@ if "!SKIP_SKILLS!"=="0" if defined INVOCABLE_CHOICE if not "!INVOCABLE_CHOICE!"=
 )
 
 echo.
-echo Install the Claude Code plugin:
-echo   /plugin marketplace add ahmadghoniem/Hypermark
-echo   /plugin install hypermark@hypermark
-echo.
-echo Upgrading from an older version? Also run /plugin marketplace update
-echo so the plugin drops its old hypermark:* command entries.
-echo.
 REM Never claim the /hypermark-* skills are ready when nothing was installed -
 REM that false banner is exactly what the skills-checkout guard exists to prevent.
 if "!SKIP_SKILLS!"=="1" (

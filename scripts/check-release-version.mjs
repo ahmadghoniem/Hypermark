@@ -3,11 +3,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const JSON_VERSION_PATHS = [
-  "package.json",
-  "plugin/.claude-plugin/plugin.json",
-];
-const OPENPACKAGE_PATH = "openpackage.yml";
 const VERSION_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/;
 
 function parseArguments(argv) {
@@ -47,38 +42,11 @@ function readJsonVersion(root, relativePath) {
   return version;
 }
 
-function readOpenpackageVersion(root) {
-  const contents = readFileSync(resolve(root, OPENPACKAGE_PATH), "utf8");
-  const matches = [...contents.matchAll(/^version:\s*([^\s#]+)\s*(?:#.*)?$/gm)];
-  if (matches.length !== 1 || !matches[0]?.[1]) {
-    throw new Error(`${OPENPACKAGE_PATH} must contain exactly one top-level version field`);
-  }
-  return matches[0][1];
-}
-
 function checkReleaseVersion({ root, tag }) {
-  const versions = [
-    ...JSON_VERSION_PATHS.map((relativePath) => ({
-      relativePath,
-      version: readJsonVersion(root, relativePath),
-    })),
-    {
-      relativePath: OPENPACKAGE_PATH,
-      version: readOpenpackageVersion(root),
-    },
-  ];
-  const expectedVersion = versions[0].version;
+  const expectedVersion = readJsonVersion(root, "package.json");
 
   if (!VERSION_PATTERN.test(expectedVersion)) {
     throw new Error(`Invalid release version in package.json: ${expectedVersion}`);
-  }
-
-  const mismatches = versions.filter(({ version }) => version !== expectedVersion);
-  if (mismatches.length > 0) {
-    const details = versions
-      .map(({ relativePath, version }) => `  ${relativePath}: ${version}`)
-      .join("\n");
-    throw new Error(`Release-coupled versions do not match:\n${details}`);
   }
 
   if (tag !== undefined && tag !== `v${expectedVersion}`) {

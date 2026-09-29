@@ -125,15 +125,7 @@ Want just the binary and nothing else? Pass `--minimal` (or export `HYPERMARK_MI
 curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash -s -- --minimal
 ```
 
-Then finish the Claude Code step:
-
-```
-/plugin marketplace add ahmadghoniem/Hypermark
-/plugin install hypermark@hypermark
-```
-
-Restart Claude Code. See [`plugin/README.md`](plugin/README.md) for
-details, and `scripts/install.sh --help` for every installer flag.
+Restart Claude Code afterwards. See `scripts/install.sh --help` for every installer flag.
 
 ### Uninstall
 
@@ -314,12 +306,6 @@ bun run dev:review     # Code review editor
 bun run build          # build:review then build:annotate
 bun run build:review   # Code review editor
 bun run build:annotate # Single-file HTML for the annotate server
-```
-
-Test the plugin locally:
-
-```bash
-claude --plugin-dir ./plugin
 ```
 
 Full binary build:

@@ -39,7 +39,6 @@ The project structure:
 - **`src/ui/`** - Reusable React components, hooks, utilities
 - **`src/annotate/`** - Annotate application logic
 - **`src/review/`** - Code review application logic
-- **`plugin/`** - Claude Code plugin
 - **`skills/`** - Agent skills (Claude launchers, core, extra)
 
 ### First Build Test
@@ -92,11 +91,11 @@ bun run dev:review
 # Opens http://localhost:5174
 ```
 
-**Note:** Development servers run standalone without plugin integration. Changes appear instantly without rebuild.
+**Note:** Development servers run standalone, without the CLI server. Changes appear instantly without rebuild.
 
 ### Building for Testing
 
-When you're ready to test with actual plugin integration:
+When you're ready to test through the `hypermark` CLI:
 
 ```bash
 # Build annotate UI
