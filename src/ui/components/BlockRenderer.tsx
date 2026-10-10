@@ -106,7 +106,7 @@ export const BlockRenderer: React.FC<{
     }
 
     case 'code':
-      return <CodeBlock block={block} isHovered={false} />;
+      return <CodeBlock block={block} />;
 
     case 'table':
       return (

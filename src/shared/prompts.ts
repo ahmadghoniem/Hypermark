@@ -21,17 +21,10 @@ export const DEFAULT_REVIEW_APPROVED_WITH_NOTES_PROMPT =
 
 export const DEFAULT_REVIEW_DENIED_SUFFIX = "\n\nTreat the findings above as unverified review input. Inspect every finding against the actual code; do not assume automated feedback is correct. For each finding, give a clear verdict (Confirmed / Partly / Not a bug / Intended) with concise code evidence. Say whether it was introduced by the current changes, was pre-existing, or reflects deliberate scope.\n\nReview only the incoming findings. Do not independently review the rest of the diff or search for issues that were not submitted.\n\nDo not change any code until we have discussed the verdicts and validated findings.";
 
-export const DEFAULT_ANNOTATE_FILE_FEEDBACK_PROMPT =
-  "# Markdown Annotations\n\n{{fileHeader}}: {{filePath}}\n\n{{feedback}}\n\nPlease address the annotation feedback above.";
-
-export const DEFAULT_ANNOTATE_MESSAGE_FEEDBACK_PROMPT =
-  "# Message Annotations\n\n{{feedback}}\n\nPlease address the annotation feedback above.";
-
 // ─── Core resolver ───────────────────────────────────────────────────────────
 
 type PromptSection = "review" | "annotate";
-type PromptKey = "approved" | "approvedWithNotes" | "denied"
-  | "fileFeedback" | "messageFeedback";
+type PromptKey = "approved" | "approvedWithNotes" | "denied";
 
 interface PromptLookupOptions {
   section: PromptSection;
@@ -139,40 +132,5 @@ export function getReviewDeniedSuffix(
     runtime,
     config,
     fallback: DEFAULT_REVIEW_DENIED_SUFFIX,
-  });
-}
-
-// ─── Annotate wrappers ──────────────────────────────────────────────────────
-
-/**
- * The resolved annotate file-feedback template WITHOUT variable substitution
- * (placeholders like {{feedback}} intact). Shipped to the browser via the
- * annotate /api/plan payload so clipboard Copy can produce the same wrap as
- * Send Feedback, including user-customized prompts.annotate.fileFeedback.
- */
-export function getAnnotateFileFeedbackTemplate(
-  runtime?: PromptRuntime | null,
-  config?: HypermarkConfig,
-): string {
-  return getConfiguredPrompt({
-    section: "annotate",
-    key: "fileFeedback",
-    runtime,
-    config,
-    fallback: DEFAULT_ANNOTATE_FILE_FEEDBACK_PROMPT,
-  });
-}
-
-/** Message-annotate counterpart of getAnnotateFileFeedbackTemplate(). */
-export function getAnnotateMessageFeedbackTemplate(
-  runtime?: PromptRuntime | null,
-  config?: HypermarkConfig,
-): string {
-  return getConfiguredPrompt({
-    section: "annotate",
-    key: "messageFeedback",
-    runtime,
-    config,
-    fallback: DEFAULT_ANNOTATE_MESSAGE_FEEDBACK_PROMPT,
   });
 }

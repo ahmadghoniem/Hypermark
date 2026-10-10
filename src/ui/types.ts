@@ -7,11 +7,11 @@ export enum AnnotationType {
 export type InputMethod = 'drag' | 'pinpoint';
 
 /**
- * Compactness of the Viewer action button labels (Image / Comment / Copy).
+ * Compactness of the Viewer action button labels (Global comment).
  * Driven by measured plan-area width so the cluster collapses responsively
  * when the side panel squeezes the plan.
- *   full  → "Global comment" / "Copy plan"
- *   short → "Comment" / "Copy"
+ *   full  → "Global comment"
+ *   short → "Comment"
  *   icon  → labels hidden entirely
  */
 export type ActionsLabelMode = 'full' | 'short' | 'icon';

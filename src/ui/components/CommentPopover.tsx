@@ -287,6 +287,19 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 
   useCommentDraftSync(draftKey, text, images);
 
+  // The draft store still restores the text on the next open; this only adds
+  // the browser's "Leave site?" prompt while the composer holds unsent input.
+  const hasUnsentInput = text.trim().length > 0 || images.length > 0;
+  useEffect(() => {
+    if (!hasUnsentInput) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [hasUnsentInput]);
+
   useEffect(() => {
     onDraftChange?.(text, images);
   }, [images, onDraftChange, text]);

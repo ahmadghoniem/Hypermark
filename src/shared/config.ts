@@ -41,8 +41,6 @@ export interface PromptConfig {
     denied?: string;
   };
   annotate?: PromptSectionConfig & {
-    fileFeedback?: string;
-    messageFeedback?: string;
     approved?: string;
     approvedWithNotes?: string;
   };

@@ -6,14 +6,10 @@ import { useFenceTheme } from '../../hooks/useFenceTheme';
 
 interface CodeBlockProps {
   block: Block;
-  onHover?: (element: HTMLElement) => void;
-  onLeave?: () => void;
-  isHovered: boolean;
 }
 
-export const CodeBlock: React.FC<CodeBlockProps> = ({ block, onHover, onLeave }) => {
+export const CodeBlock: React.FC<CodeBlockProps> = ({ block }) => {
   const [copied, setCopied] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const codeRef = useRef<HTMLElement>(null);
   const fenceTheme = useFenceTheme();
 
@@ -35,22 +31,13 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ block, onHover, onLeave })
     }
   }, [block.content]);
 
-  const handleMouseEnter = () => {
-    if (containerRef.current && onHover) {
-      onHover(containerRef.current);
-    }
-  };
-
   // Build className for code element
   const codeClassName = codeBlockClassName(block.language);
 
   return (
     <div
-      ref={containerRef}
       className="relative group my-plan-wide"
       data-block-id={block.id}
-      onMouseEnter={onHover ? handleMouseEnter : undefined}
-      onMouseLeave={onLeave}
     >
       <button
         onClick={handleCopy}

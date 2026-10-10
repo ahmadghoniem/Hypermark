@@ -4,8 +4,9 @@ import { AnnotationType, type Annotation, type Block, type CodeAnnotation } from
 import { ImageThumbnail } from './ImageThumbnail';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { OverlayScrollArea } from './OverlayScrollArea';
-import { CommentPopover } from './CommentPopover';
+import { Button } from './ui/button';
 import { cn } from '../lib/utils';
+import { copyTextToClipboard } from '../utils/clipboard';
 import { resolveReplyParents, resolveThreadRootTimestamps } from '@/shared/annotation-threads';
 import { fileName as pathFileName } from '../utils/displayPath';
 import { formatRelativeTime, railPreview } from '../utils/messageRail';
@@ -50,6 +51,116 @@ const TrashCardIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
   </svg>
 );
+
+const CopyCardIcon = () => (
+  <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+  </svg>
+);
+
+const CheckCardIcon = () => (
+  <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+  </svg>
+);
+
+const CARD_ACTION_CLASS = "relative rounded-md p-1.5 text-muted-foreground transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:text-foreground";
+
+/** Bottom-right card actions: copy always, edit and delete unless read-only. */
+const CardActions: React.FC<{
+  copyText: string;
+  onEdit?: () => void;
+  onDelete?: () => void;
+}> = ({ copyText, onEdit, onDelete }) => {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="mt-1 -mb-1 flex items-center justify-end gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+      <button
+        type="button"
+        onClick={async (e: React.MouseEvent<HTMLButtonElement>) => {
+          e.stopPropagation();
+          if (!(await copyTextToClipboard(copyText))) return;
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }}
+        className={cn(CARD_ACTION_CLASS, copied && 'text-success hover:text-success')}
+        title={copied ? 'Copied' : 'Copy annotation'}
+        aria-label={copied ? 'Copied' : 'Copy annotation'}
+      >
+        {copied ? <CheckCardIcon /> : <CopyCardIcon />}
+      </button>
+      {onEdit && (
+        <button
+          type="button"
+          onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onEdit(); }}
+          className={CARD_ACTION_CLASS}
+          title="Edit annotation"
+          aria-label="Edit annotation"
+        >
+          <PencilIcon />
+        </button>
+      )}
+      {onDelete && (
+        <button
+          type="button"
+          onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onDelete(); }}
+          className={cn(CARD_ACTION_CLASS, 'hover:text-destructive')}
+          title="Delete annotation"
+          aria-label="Delete annotation"
+        >
+          <TrashCardIcon />
+        </button>
+      )}
+    </div>
+  );
+};
+
+/** In-place comment editor: Enter saves, Shift+Enter adds a line, Escape cancels. */
+const InlineCommentEditor: React.FC<{
+  initialText: string;
+  onSave: (text: string) => void;
+  onCancel: () => void;
+}> = ({ initialText, onSave, onCancel }) => {
+  const [text, setText] = useState(initialText);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, []);
+  const save = () => {
+    if (text.trim()) onSave(text);
+  };
+  return (
+    <div onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+      <textarea
+        data-pn-mobile-editable="true"
+        ref={textareaRef}
+        value={text}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value)}
+        onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+          if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+            e.preventDefault();
+            save();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopPropagation();
+            onCancel();
+          }
+        }}
+        placeholder="Add your comment..."
+        aria-label="Annotation comment"
+        className="w-full resize-none rounded-lg border border-border/50 bg-card px-2.5 py-2 text-[13px] leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary/40 focus:ring-1 focus:ring-primary/20"
+        style={{ fieldSizing: 'content', minHeight: 44 } as React.CSSProperties}
+      />
+      <div className="mt-1.5 flex justify-end gap-1.5">
+        <Button variant="ghost" size="xxs" onClick={onCancel}>Cancel</Button>
+        <Button size="xxs" disabled={!text.trim()} onClick={save}>Save</Button>
+      </div>
+    </div>
+  );
+};
 
 /**
  * Order annotations so every reply follows its parent (replies among
@@ -113,10 +224,6 @@ interface PanelProps {
    *  editor still drags its panel). Omitted, the `width` dial decides. */
   width?: number | string;
   onClose?: () => void;
-  /** Copy the full feedback payload. May resolve a success boolean; resolving
-    *  `false` suppresses the "Copied" flash. A void resolution (existing hosts)
-    *  is treated as success, preserving the original behavior. */
-  onQuickCopy?: () => Promise<void | boolean>;
   otherFileAnnotations?: { count: number; files: number };
   /** Ids of annotations with no live location in the document (e.g. the
     *  HTML viewer's onUnanchoredChange report after a refresh). Matching
@@ -137,7 +244,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
   onEditCodeAnnotation,
   width,
   onClose,
-  onQuickCopy,
   otherFileAnnotations,
   unanchoredIds,
   scope,
@@ -160,7 +266,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
   }, { id: 'cl-07', persist: true });
   const isMobile = useIsMobile();
   const mobilePanel = isMobile;
-  const [copiedText, setCopiedText] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (scope === 'all') setNow(Date.now());
@@ -210,16 +315,11 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
     >
       {/* Header */}
       <div>
-        <div className="flex h-10 items-center justify-between px-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xs font-medium text-foreground">
-              Annotations
-            </h2>
-            {totalCount > 0 && (
-              <span className="flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary/10 px-1 font-mono text-3xs font-medium tabular-nums text-primary">
-                {totalCount}
-              </span>
-            )}
+        <div className="flex h-10 items-center justify-between gap-2 px-3">
+          <h2 className="text-xs font-medium text-foreground">
+            Annotations
+          </h2>
+          <div className="flex items-center gap-1">
             {scope && onScopeChange && (
               <div
                 role="tablist"
@@ -237,7 +337,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  This message
+                  Current
                 </button>
                 <button
                   type="button"
@@ -254,19 +354,19 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                 </button>
               </div>
             )}
+            {mobilePanel && onClose && (
+              <button
+                onClick={onClose}
+                className="relative rounded-md p-1.5 text-muted-foreground transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:text-foreground md:hidden"
+                title="Close panel"
+                aria-label="Close panel"
+              >
+                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
-          {mobilePanel && onClose && (
-            <button
-              onClick={onClose}
-              className="relative rounded-md p-1.5 text-muted-foreground transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:text-foreground md:hidden"
-              title="Close panel"
-              aria-label="Close panel"
-            >
-              <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
         </div>
         {otherFileAnnotations && otherFileAnnotations.count > 0 && (
           <p className="px-3 pb-2 text-3xs text-muted-foreground">
@@ -416,41 +516,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
         )}
         </div>
       </OverlayScrollArea>
-
-      {/* Quick Actions Footer */}
-      {totalCount > 0 && (
-        <div className="border-t border-border/50 px-3 py-2 flex gap-1.5">
-          {onQuickCopy && (
-            <button
-              onClick={async () => {
-                const result = await onQuickCopy();
-                if (result === false) return;
-                setCopiedText(true);
-                setTimeout(() => setCopiedText(false), 2000);
-              }}
-              className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-medium transition-colors ${
-                copiedText ? 'text-success' : 'text-muted-foreground hover:bg-surface-1 hover:text-foreground'
-              }`}
-            >
-              {copiedText ? (
-                <>
-                  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Copied
-                </>
-              ) : (
-                <>
-                  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  Copy
-                </>
-              )}
-            </button>
-          )}
-        </div>
-      )}
     </aside>
   );
 
@@ -495,21 +560,29 @@ const AnnotationCard: React.FC<{
   /** The annotation has no live location in the document (host-reported). */
   unanchored?: boolean;
 }> = ({ annotation, isSelected, onSelect, onDelete, onEdit, readOnly = false, unanchored = false }) => {
-  const cardRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
-
-  const handleStartEdit = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsEditing(true);
-  };
 
   const typeColor = TYPE_COLOR[annotation.type] ?? 'text-muted-foreground';
   const typeLabel = TYPE_LABEL[annotation.type] ?? 'Note';
   const isGlobal = annotation.type === AnnotationType.GLOBAL_COMMENT;
+  const canEdit = !readOnly && !!onEdit && annotation.type !== AnnotationType.DELETION;
+  const copyText = annotation.type === AnnotationType.DELETION
+    ? annotation.originalText ?? ''
+    : annotation.text || annotation.originalText || '';
+
+  const editor = (
+    <InlineCommentEditor
+      initialText={annotation.text ?? ''}
+      onSave={(text) => {
+        onEdit?.({ text });
+        setIsEditing(false);
+      }}
+      onCancel={() => setIsEditing(false)}
+    />
+  );
 
   return (
     <div
-      ref={cardRef}
       data-annotation-id={annotation.id}
       role="button"
       tabIndex={0}
@@ -525,7 +598,7 @@ const AnnotationCard: React.FC<{
         isSelected ? 'bg-surface-1 ring-1 ring-border/50' : 'hover:bg-surface-1/50',
       )}
     >
-      {/* Header: type word + time + actions */}
+      {/* Header: type word + chips, time on the right */}
       <div className="mb-1.5 flex items-center gap-1.5">
         <span className={cn('text-2xs font-medium', typeColor)}>{typeLabel}</span>
         {annotation.diffContext && (
@@ -542,38 +615,18 @@ const AnnotationCard: React.FC<{
             Unanchored
           </span>
         )}
-        <span className="text-3xs text-muted-foreground/50 truncate">
+        <span className="ml-auto shrink-0 text-3xs text-muted-foreground/50">
           {formatTimestamp(annotation.createdA)}
         </span>
-        {!readOnly && (
-          <div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100">
-            {onEdit && annotation.type !== AnnotationType.DELETION && (
-              <button
-                type="button"
-                onClick={handleStartEdit}
-                className="relative rounded-md p-1.5 text-muted-foreground transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:text-foreground"
-                title="Edit annotation"
-              >
-                <PencilIcon />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onDelete(); }}
-              className="relative rounded-md p-1.5 text-muted-foreground transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:text-destructive"
-              title="Delete annotation"
-            >
-              <TrashCardIcon />
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Global Comment - show text directly */}
       {isGlobal ? (
-        <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/90">
-          {annotation.text}
-        </p>
+        isEditing ? editor : (
+          <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/90">
+            {annotation.text}
+          </p>
+        )
       ) : (
         <>
           {/* Quote — the annotated text */}
@@ -582,10 +635,12 @@ const AnnotationCard: React.FC<{
           </p>
 
           {/* Comment/Replacement Text */}
-          {annotation.type !== AnnotationType.DELETION && annotation.text && (
-            <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/90">
-              {annotation.text}
-            </p>
+          {annotation.type !== AnnotationType.DELETION && (
+            isEditing ? editor : annotation.text && (
+              <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/90">
+                {annotation.text}
+              </p>
+            )
           )}
         </>
       )}
@@ -606,19 +661,11 @@ const AnnotationCard: React.FC<{
         </div>
       )}
 
-      {isEditing && (
-        <CommentPopover
-          anchorEl={cardRef.current ?? undefined}
-          contextText={annotation.originalText ?? 'Global comment'}
-          isGlobal={annotation.type === AnnotationType.GLOBAL_COMMENT}
-          initialText={annotation.text}
-          initialImages={annotation.images}
-          draftKey={`edit:${annotation.id}`}
-          onSubmit={(text, images) => {
-            onEdit?.({ text, images });
-            setIsEditing(false);
-          }}
-          onClose={() => setIsEditing(false)}
+      {!isEditing && (
+        <CardActions
+          copyText={copyText}
+          onEdit={canEdit ? () => setIsEditing(true) : undefined}
+          onDelete={readOnly ? undefined : onDelete}
         />
       )}
     </div>
@@ -633,7 +680,6 @@ const CodeAnnotationCard: React.FC<{
   onEdit?: (updates: Partial<CodeAnnotation>) => void;
   readOnly?: boolean;
 }> = ({ annotation, isSelected, onSelect, onDelete, onEdit, readOnly = false }) => {
-  const cardRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
 
   const lineRange = annotation.lineStart === annotation.lineEnd
@@ -643,7 +689,6 @@ const CodeAnnotationCard: React.FC<{
 
   return (
     <div
-      ref={cardRef}
       data-annotation-id={annotation.id}
       role="button"
       tabIndex={0}
@@ -659,34 +704,12 @@ const CodeAnnotationCard: React.FC<{
         isSelected ? 'bg-surface-1 ring-1 ring-border/50' : 'hover:bg-surface-1/50',
       )}
     >
-      {/* Header: type word + time + actions */}
+      {/* Header: type word, time on the right */}
       <div className="mb-1.5 flex items-center gap-1.5">
         <span className="text-2xs font-medium text-primary">Code</span>
-        <span className="text-3xs text-muted-foreground/50 truncate">
+        <span className="ml-auto shrink-0 text-3xs text-muted-foreground/50">
           {formatTimestamp(annotation.createdAt)}
         </span>
-        {!readOnly && (
-          <div className="ml-auto flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100">
-            {onEdit && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
-                className="relative rounded-md p-1.5 text-muted-foreground transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:text-foreground"
-                title="Edit annotation"
-              >
-                <PencilIcon />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              className="relative rounded-md p-1.5 text-muted-foreground transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:text-destructive"
-              title="Delete annotation"
-            >
-              <TrashCardIcon />
-            </button>
-          </div>
-        )}
       </div>
 
       {/* File / line meta */}
@@ -694,7 +717,18 @@ const CodeAnnotationCard: React.FC<{
         {fileName} · {lineRange}
       </div>
 
-      {annotation.text && (
+      {isEditing ? (
+        <div className="mt-1.5">
+          <InlineCommentEditor
+            initialText={annotation.text ?? ''}
+            onSave={(text) => {
+              onEdit?.({ text });
+              setIsEditing(false);
+            }}
+            onCancel={() => setIsEditing(false)}
+          />
+        </div>
+      ) : annotation.text && (
         <p className="mt-1.5 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/90">
           {annotation.text}
         </p>
@@ -711,19 +745,11 @@ const CodeAnnotationCard: React.FC<{
         </div>
       )}
 
-      {isEditing && (
-        <CommentPopover
-          anchorEl={cardRef.current ?? undefined}
-          contextText={`${fileName} · ${lineRange}`}
-          isGlobal={false}
-          initialText={annotation.text}
-          initialImages={annotation.images}
-          draftKey={`edit:${annotation.id}`}
-          onSubmit={(text, images) => {
-            onEdit?.({ text, images });
-            setIsEditing(false);
-          }}
-          onClose={() => setIsEditing(false)}
+      {!isEditing && (
+        <CardActions
+          copyText={annotation.text || `${fileName} · ${lineRange}`}
+          onEdit={!readOnly && onEdit ? () => setIsEditing(true) : undefined}
+          onDelete={readOnly ? undefined : onDelete}
         />
       )}
     </div>

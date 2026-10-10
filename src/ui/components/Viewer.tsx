@@ -7,7 +7,6 @@ import { paintCodeBlockMark } from '../utils/codeBlockMark';
 import { useFenceTheme } from '../hooks/useFenceTheme';
 import { computeListIndices, groupBlocks, type Frontmatter } from '../utils/parser';
 import { buildHeadingSlugMap } from '../utils/slugify';
-import { copyTextToClipboard } from '../utils/clipboard';
 import { BlockRenderer } from './BlockRenderer';
 import { CodeBlock } from './blocks/CodeBlock';
 import { TableBlock } from './blocks/TableBlock';
@@ -15,25 +14,6 @@ import { TableToolbar } from './blocks/TableToolbar';
 import { TablePopout } from './blocks/TablePopout';
 import { CodePathValidationContext } from './CodePathValidationContext';
 import { useValidatedCodePaths } from '../hooks/useValidatedCodePaths';
-import { AnnotationToolbar } from './AnnotationToolbar';
-
-// Debug error boundary to catch silent toolbar crashes
-class ToolbarErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { error: Error | null }
-> {
-  state = { error: null as Error | null };
-  static getDerivedStateFromError(error: Error) { return { error }; }
-  componentDidCatch(error: Error) { console.error('AnnotationToolbar crashed:', error); }
-  render() {
-    if (this.state.error) {
-      return <div style={{ position: 'fixed', top: 10, left: 10, zIndex: 9999, background: 'red', color: 'white', padding: '8px 12px', borderRadius: 6, fontSize: 12 }}>
-        Toolbar error: {this.state.error.message}
-      </div>;
-    }
-    return this.props.children;
-  }
-}
 
 import { CommentPopover } from './CommentPopover';
 import { GraphvizBlock } from './GraphvizBlock';
@@ -105,8 +85,6 @@ export interface ViewerProps {
   showDemoBadge?: boolean;
   /** Max width in px for the plan card; null removes the cap entirely. */
   maxWidth?: number | null;
-  /** Label for the copy button (default: "Copy plan") */
-  copyLabel?: string;
   /**
    * Compactness of the action button labels. See ActionsLabelMode in
    * types.ts. Defaults to 'full' to preserve the original look for
@@ -124,12 +102,6 @@ export interface ViewerHandle {
   removeHighlight: (id: string) => void;
   clearAllHighlights: () => void;
   applySharedAnnotations: (annotations: Annotation[]) => void;
-}
-
-interface CodeBlockToolbarTarget {
-  readonly block: Block;
-  readonly element: HTMLElement;
-  readonly activation: 'pointer' | 'keyboard';
 }
 
 /**
@@ -299,14 +271,12 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   linkedDocInfo,
   imageBaseDir,
   codePathBaseDir,
-  copyLabel,
   actionsLabelMode = 'full',
   sourceInfo,
   onToggleCheckbox,
   checkboxOverrides,
 }, ref) => {
   const hasViewerAnnotationHeader = annotationHeader !== undefined;
-  const [copied, setCopied] = useState(false);
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
   const [locationHash, setLocationHash] = useState(() => window.location.hash);
   const globalCommentButtonRef = useRef<HTMLButtonElement>(null);
@@ -316,14 +286,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   const fenceThemeRef = useRef(fenceTheme);
   fenceThemeRef.current = fenceTheme;
 
-  const handleCopyPlan = async () => {
-    if (await copyTextToClipboard(markdown)) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } else {
-      console.error('Failed to copy');
-    }
-  };
   const containerRef = useRef<HTMLDivElement>(null);
   // The element that actually scrolls; shared by the sticky-header observer
   // and the reticle geometry.
@@ -359,9 +321,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   // `-1`/`-2`/... suffixes rather than colliding on the same id.
   const headingSlugMap = useMemo(() => buildHeadingSlugMap(blocks), [blocks]);
   const isTouchDevice = useMemo(() => window.matchMedia('(pointer: coarse)').matches, []);
-  const [codeBlockToolbar, setCodeBlockToolbar] =
-    useState<CodeBlockToolbarTarget | null>(null);
-  const [isCodeBlockToolbarExiting, setIsCodeBlockToolbarExiting] = useState(false);
   const [hoveredTable, setHoveredTable] = useState<{ block: Block; element: HTMLElement } | null>(null);
   const [isTableToolbarExiting, setIsTableToolbarExiting] = useState(false);
   const tableHoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -375,7 +334,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     isGlobal: boolean;
     codeBlock?: { block: Block; element: HTMLElement };
   } | null>(null);
-  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stickySentinelRef = useRef<HTMLDivElement>(null);
   const lastAutoScrolledHashRef = useRef<string | null>(null);
   const [isStuck, setIsStuck] = useState(false);
@@ -505,7 +463,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     });
   }, [blocks]);
 
-  const keyboardCodeBlockToolbarOpen = codeBlockToolbar?.activation === 'keyboard';
   const { hoverTarget } = usePinpoint({
     containerRef,
     inputMethod,
@@ -647,35 +604,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     applySharedAnnotations: applyAnnotations,
   }), [hookRemoveHighlight, clearAllHighlights, applyAnnotations, blocks]);
 
-  // --- Viewer-specific: code block annotation ---
-
-  const handleCodeBlockAnnotate = (type: AnnotationType) => {
-    if (!codeBlockToolbar) return;
-    const codeEl = codeBlockToolbar.element.querySelector('code');
-    if (!codeEl) return;
-    applyCodeBlockAnnotation(codeBlockToolbar.block.id, codeEl, type);
-    setCodeBlockToolbar(null);
-  };
-
-  const handleCodeBlockToolbarClose = () => {
-    setCodeBlockToolbar(null);
-  };
-
   // Viewer-specific comment popover handlers (code blocks + global comments)
-
-  const handleCodeBlockRequestComment = (initialChar?: string) => {
-    if (!codeBlockToolbar) return;
-    const codeText = codeBlockToolbar.element.querySelector('code')?.textContent || '';
-    setViewerCommentPopover({
-      anchorEl: codeBlockToolbar.element,
-      contextText: codeText.slice(0, 80),
-      selectedText: codeText,
-      initialText: initialChar,
-      isGlobal: false,
-      codeBlock: codeBlockToolbar,
-    });
-    setCodeBlockToolbar(null);
-  };
 
   const handleViewerCommentSubmit = (text: string, images?: ImageAttachment[]) => {
     if (!viewerCommentPopover) return;
@@ -736,29 +665,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
         </svg>
         {actionsLabelMode === 'full' && <span>Global comment</span>}
         {actionsLabelMode === 'short' && <span>Comment</span>}
-      </button>
-
-      <button
-        onClick={handleCopyPlan}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors"
-        title={copied ? 'Copied!' : copyLabel || (linkedDocInfo ? 'Copy file' : 'Copy plan')}
-      >
-        {copied ? (
-          <>
-            <svg className="size-3.5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-            Copied!
-          </>
-        ) : (
-          <>
-            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            {actionsLabelMode === 'full' && <span>{copyLabel || (linkedDocInfo ? 'Copy file' : 'Copy plan')}</span>}
-            {actionsLabelMode === 'short' && <span>Copy</span>}
-          </>
-        )}
       </button>
     </>
   );
@@ -884,46 +790,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               }}
             />
           ) : group.block.type === 'code' ? (
-            <CodeBlock
-              key={group.block.id}
-              block={group.block}
-              onHover={inputMethod === 'pinpoint' ? undefined : (element) => {
-                // Clear any pending leave timeout
-                if (hoverTimeoutRef.current) {
-                  clearTimeout(hoverTimeoutRef.current);
-                  hoverTimeoutRef.current = null;
-                }
-                // Cancel exit animation if re-entering
-                setIsCodeBlockToolbarExiting(false);
-                // Only show the hover toolbar while no selection composer is open
-                if (
-                  !hookCommentPopover
-                  && !keyboardCodeBlockToolbarOpen
-                ) {
-                  setCodeBlockToolbar({
-                    block: group.block,
-                    element,
-                    activation: 'pointer',
-                  });
-                }
-              }}
-              onLeave={inputMethod === 'pinpoint' ? undefined : () => {
-                if (keyboardCodeBlockToolbarOpen) return;
-                // Delay then start exit animation
-                hoverTimeoutRef.current = setTimeout(() => {
-                  setIsCodeBlockToolbarExiting(true);
-                  // After exit animation, unmount
-                  setTimeout(() => {
-                    setCodeBlockToolbar(null);
-                    setIsCodeBlockToolbarExiting(false);
-                  }, 150);
-                }, 100);
-              }}
-              isHovered={
-                inputMethod !== 'pinpoint'
-                && codeBlockToolbar?.block.id === group.block.id
-              }
-            />
+            <CodeBlock key={group.block.id} block={group.block} />
           ) : (
             <BlockRenderer imageBaseDir={imageBaseDir} onImageClick={(src, alt) => setLightbox({ src, alt })} key={group.block.id} block={group.block} onOpenLinkedDoc={onOpenLinkedDoc} onOpenCodeFile={onOpenCodeFile} onNavigateAnchor={scrollToAnchor} onToggleCheckbox={onToggleCheckbox} checkboxOverrides={checkboxOverrides} githubRepo={repoInfo?.display} headingAnchorId={headingSlugMap.get(group.block.id)} />
           )
@@ -962,38 +829,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
             }}
           />
         )}
-
-        {/* Code block hover toolbar */}
-        {codeBlockToolbar
-          && !hookCommentPopover
-          && (
-            <ToolbarErrorBoundary>
-              <AnnotationToolbar
-                element={codeBlockToolbar.element}
-                onAnnotate={handleCodeBlockAnnotate}
-                onClose={handleCodeBlockToolbarClose}
-                onRequestComment={handleCodeBlockRequestComment}
-                isExiting={isCodeBlockToolbarExiting}
-                onMouseEnter={() => {
-                  if (hoverTimeoutRef.current) {
-                    clearTimeout(hoverTimeoutRef.current);
-                    hoverTimeoutRef.current = null;
-                  }
-                  setIsCodeBlockToolbarExiting(false);
-                }}
-                onMouseLeave={() => {
-                  if (codeBlockToolbar.activation === 'keyboard') return;
-                  hoverTimeoutRef.current = setTimeout(() => {
-                    setIsCodeBlockToolbarExiting(true);
-                    setTimeout(() => {
-                      setCodeBlockToolbar(null);
-                      setIsCodeBlockToolbarExiting(false);
-                    }, 150);
-                  }, 100);
-                }}
-              />
-            </ToolbarErrorBoundary>
-          )}
 
         {/* Table popout dialog — portaled into containerRef so annotations */}
         {/* can walk into its text nodes the same way they do the inline table. */}

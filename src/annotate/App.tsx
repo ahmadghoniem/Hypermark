@@ -13,7 +13,6 @@ import { toast, Toaster } from 'sonner';
 import { type Origin, getAgentName } from '@/shared/agents';
 import { shouldStripFrontmatter } from '@/shared/annotatable';
 import { setExtraMarkdownExtensions } from '@/ui/utils/markdownExtensions';
-import { wrapFeedbackForClipboard, type AnnotateFeedbackTemplates } from '@/shared/feedback-templates';
 import { parseMarkdownToBlocks, extractFrontmatter, type LinkedDocAnnotationEntry, type MessageAnnotationEntry } from '@/ui/utils/parser';
 import { Viewer, ViewerHandle } from '@/ui/components/Viewer';
 import { HtmlViewer } from '@/ui/components/html-viewer';
@@ -25,7 +24,6 @@ import { TooltipProvider } from '@/ui/components/Tooltip';
 import { AnnotationToolstrip } from '@/ui/components/AnnotationToolstrip';
 import { StickyHeaderLane } from '@/ui/components/StickyHeaderLane';
 import { useActiveSection } from '@/ui/hooks/useActiveSection';
-import { copyTextToClipboard } from '@/ui/utils/clipboard';
 import { configStore } from '@/ui/config';
 import { CompletionOverlay } from '@/ui/components/CompletionOverlay';
 import { getUIPreferences } from '@/ui/utils/uiPreferences';
@@ -91,10 +89,6 @@ import {
 } from './hooks/usePlanDiffViewAutoExit';
 import { AppHeader } from './components/AppHeader';
 import { useAnnotateHtmlRefresh, type HtmlRefreshedDocument } from './hooks/useAnnotateHtmlRefresh';
-type AnnotateFeedbackTarget = {
-  fileHeader: 'File' | 'Folder';
-  filePath: string;
-};
 import {
   buildAnnotateApprovalBody,
   buildCompleteAnnotateFeedback,
@@ -287,9 +281,9 @@ const AppInner: React.FC = () => {
   // most twice across an entire drag (once per threshold crossing) instead
   // of on every pixel, which would chug the whole tree.
   //
-  //   full  → "Global comment" / "Copy plan"  — fits when planArea >= 800
-  //   short → "Comment" / "Copy"              — fits when planArea >= 680
-  //   icon  → labels hidden                    — fallback below that
+  //   full  → "Global comment"  — fits when planArea >= 800
+  //   short → "Comment"         — fits when planArea >= 680
+  //   icon  → labels hidden   — fallback below that
   const planAreaRef = useRef<HTMLDivElement>(null);
   const [actionsLabelMode, setActionsLabelMode] = useState<ActionsLabelMode>('full');
   const [isApiMode, setIsApiMode] = useState(false);
@@ -314,7 +308,6 @@ const AppInner: React.FC = () => {
   const [sourceInfo, setSourceInfo] = useState<string | undefined>();
   // Server-resolved annotate copy-wrapper templates (config-aware) so
   // clipboard Copy matches Send Feedback instead of the plan-deny wrap (#1107).
-  const [feedbackTemplates, setFeedbackTemplates] = useState<AnnotateFeedbackTemplates | null>(null);
   const [sourceConverted, setSourceConverted] = useState(false);
   const [renderAs, setRenderAs] = useState<'markdown' | 'html'>('markdown');
   // HTML plans render edge-to-edge (full-viewport) instead of in the centered,
@@ -932,7 +925,7 @@ const AppInner: React.FC = () => {
 
   // useLayoutEffect + synchronous getBoundingClientRect so the initial
   // bucket is set before the browser paints. Otherwise narrow viewports
-  // get a one-frame flash of "Global comment"/"Copy plan" labels before
+  // get a one-frame flash of the "Global comment" label before
   // the ResizeObserver callback collapses them.
   useLayoutEffect(() => {
     if (isLoading) return;
@@ -1110,7 +1103,7 @@ const AppInner: React.FC = () => {
         if (!res.ok) throw new Error('Not in API mode');
         return res.json();
       })
-      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last'; filePath?: string; sourceInfo?: string; sourceConverted?: boolean; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; renderAs?: 'html' | 'markdown'; rawHtml?: string; diffHtml?: string; convertHtml?: boolean; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; projectRoot?: string; markdownExtensions?: string[]; serverConfig?: Record<string, unknown>; recentMessages?: PickerMessage[]; feedbackTemplates?: AnnotateFeedbackTemplates }) => {
+      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last'; filePath?: string; sourceInfo?: string; sourceConverted?: boolean; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; renderAs?: 'html' | 'markdown'; rawHtml?: string; diffHtml?: string; convertHtml?: boolean; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; projectRoot?: string; markdownExtensions?: string[]; serverConfig?: Record<string, unknown>; recentMessages?: PickerMessage[] }) => {
         // Initialize config store with server-provided values (config file > cookie > default)
         configStore.init(data.serverConfig);
         // Extra extensions the user registered as markdown (#1307) — the
@@ -1150,7 +1143,6 @@ const AppInner: React.FC = () => {
           setSelectedMessageId(null);
         }
         setSourceInfo(data.sourceInfo ?? undefined);
-        setFeedbackTemplates(data.feedbackTemplates ?? null);
         setSourceConverted(!!data.sourceConverted);
         if (data.filePath) {
           setImageBaseDir(data.filePath.replace(/\/[^/]+$/, ''));
@@ -1210,40 +1202,6 @@ const AppInner: React.FC = () => {
   // paste (see CommentPopover's capture-phase listener); a paste with no
   // composer open now simply does nothing, rather than filing the image
   // under the document's top-level `globalAttachments`.
-
-  const getAnnotateFeedbackTarget = useCallback((): AnnotateFeedbackTarget => {
-    if (linkedDocHook.isActive && linkedDocHook.filepath) {
-      return { fileHeader: 'File', filePath: linkedDocHook.filepath };
-    }
-    if (sourceFilePath) {
-      return { fileHeader: 'File', filePath: sourceFilePath };
-    }
-    return { fileHeader: 'File', filePath: 'current file' };
-  }, [
-    linkedDocHook.filepath,
-    linkedDocHook.isActive,
-    sourceFilePath,
-  ]);
-
-  // Clipboard copy wrapper (#1107): wraps with the server-resolved template
-  // (the same one Send Feedback gets, including custom prompts.annotate.*
-  // config), falling back to the built-in annotate defaults when the server
-  // didn't ship one.
-  const wrapCopiedFeedback = useCallback((feedback: string) => {
-    if (annotateSource === 'message') {
-      return wrapFeedbackForClipboard(feedback, {
-        mode: 'annotate-message',
-        template: feedbackTemplates?.messageFeedback,
-      });
-    }
-    const target = getAnnotateFeedbackTarget();
-    return wrapFeedbackForClipboard(feedback, {
-      mode: 'annotate-file',
-      template: feedbackTemplates?.fileFeedback,
-      filePath: target.filePath,
-      fileHeader: target.fileHeader,
-    });
-  }, [annotateSource, feedbackTemplates, getAnnotateFeedbackTarget]);
 
   const hasFeedbackToSend = hasFeedbackContent;
 
@@ -1916,10 +1874,6 @@ const AppInner: React.FC = () => {
       messageGroups={isMessageScopeEligible ? messageGroups : undefined}
       unanchoredIds={isHtmlSurface && htmlUnanchoredIds.size > 0 ? htmlUnanchoredIds : undefined}
       onClose={() => setIsMobilePanelOpen(false)}
-      onQuickCopy={async () => {
-        const output = getCurrentFeedbackPayload();
-        return copyTextToClipboard(wrapCopiedFeedback(output));
-      }}
       otherFileAnnotations={otherFileAnnotations}
     />
   );
@@ -2130,7 +2084,6 @@ const AppInner: React.FC = () => {
                     }
                     imageBaseDir={imageBaseDir}
                     codePathBaseDir={activeDocBaseDir}
-                    copyLabel={annotateSource === 'message' ? 'Copy message' : annotateSource === 'file' ? 'Copy file' : undefined}
                     sourceInfo={sourceInfo}
                     onToggleCheckbox={checkbox.toggle}
                     checkboxOverrides={checkbox.overrides}

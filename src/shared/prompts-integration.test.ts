@@ -73,38 +73,6 @@ describe("prompts integration (config from disk)", () => {
     expect(JSON.parse(result)).toBe("\n\nFix everything now.");
   });
 
-  // ── Cross-section isolation ──────────────────────────────────────────
-
-  test("config sections don't bleed into each other", async () => {
-    writeConfig({
-      prompts: {
-        review: { denied: "Custom review denial: {{feedback}}" },
-        annotate: { fileFeedback: "Custom file feedback: {{feedback}}" },
-      },
-    });
-
-    // Review denied should use custom
-    const reviewDenied = await runScript(`
-      import { getReviewDeniedSuffix } from "./src/shared/prompts";
-      console.log(getReviewDeniedSuffix("claude-code"));
-    `);
-    expect(reviewDenied).toBe("Custom review denial: {{feedback}}");
-
-    // Annotate file feedback should use custom
-    const fileFeedback = await runScript(`
-      import { getAnnotateFileFeedbackTemplate } from "./src/shared/prompts";
-      console.log(getAnnotateFileFeedbackTemplate("claude-code"));
-    `);
-    expect(fileFeedback).toBe("Custom file feedback: {{feedback}}");
-
-    // Annotate message feedback should still be the default (not set in config)
-    const messageFeedback = await runScript(`
-      import { getAnnotateMessageFeedbackTemplate } from "./src/shared/prompts";
-      console.log(getAnnotateMessageFeedbackTemplate("claude-code"));
-    `);
-    expect(messageFeedback).toContain("# Message Annotations");
-  });
-
   // ── Malformed config resilience ──────────────────────────────────────
 
   test("malformed config.json falls back to defaults gracefully", async () => {

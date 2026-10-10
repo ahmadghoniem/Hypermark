@@ -65,7 +65,8 @@ export function parseRemoteHost(url: string): string | null {
  */
 export function getDirName(path: string): string | null {
 	if (!path) return null;
-	const trimmed = path.trim().replace(/\/+$/, "");
-	const parts = trimmed.split("/");
+	// Windows cwds use backslashes; split on both separators.
+	const trimmed = path.trim().replace(/[\\/]+$/, "");
+	const parts = trimmed.split(/[\\/]/);
 	return parts[parts.length - 1] || null;
 }

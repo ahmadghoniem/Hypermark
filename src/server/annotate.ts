@@ -22,7 +22,6 @@ import { getPlanVersion, getVersionCount, listVersions } from "@/shared/storage"
 import { computeAnnotateHistory, deriveAnnotateHistorySlug, persistAnnotateSubmission, type AnnotateHistoryResult } from "@/shared/annotate-history";
 import { htmlDiff } from "@/shared/html-diff";
 import { getAnnotateReferenceRootPaths } from "@/shared/annotate-reference-roots-node";
-import { getAnnotateFileFeedbackTemplate, getAnnotateMessageFeedbackTemplate } from "@/shared/prompts";
 import {
   ANNOTATE_CLIENT_LEASE_GRACE_MS,
   ANNOTATE_CLIENT_LEASE_HEARTBEAT_MS,
@@ -510,15 +509,6 @@ export async function startAnnotateServer(
               markdownExtensions: getExtraMarkdownExtensions(),
               serverConfig: getServerConfig(),
               ...(recentMessages ? { recentMessages } : {}),
-              // Resolved copy-wrapper templates (config-aware, placeholders
-              // intact) so clipboard Copy matches what Send Feedback produces
-              // instead of the plan-deny wrap (#1107). Resolved per request so
-              // config edits mid-session behave like Send Feedback (which
-              // resolves at submit time).
-              feedbackTemplates: {
-                fileFeedback: getAnnotateFileFeedbackTemplate(origin),
-                messageFeedback: getAnnotateMessageFeedbackTemplate(origin),
-              },
             });
           }
 
