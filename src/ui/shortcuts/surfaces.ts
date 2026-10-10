@@ -7,7 +7,6 @@ import { annotationPanelShortcuts } from './plan-review/annotationPanel.shortcut
 import { annotationToolbarShortcuts } from './plan-review/annotationToolbar.shortcuts';
 import { annotateSidebarShortcuts } from './plan-review/sidebar.shortcuts';
 import { commentPopoverShortcuts } from './plan-review/commentPopover.shortcuts';
-import { htmlAnnotateShortcuts } from './plan-review/htmlAnnotate.shortcuts';
 import { viewerShortcuts } from './plan-review/viewer.shortcuts';
 
 import { reviewAllFilesDiffShortcuts } from './code-review/allFilesDiff.shortcuts';
@@ -41,7 +40,6 @@ export const planShortcutRegistry: ShortcutRegistry = createShortcutRegistry([
   annotationPanelShortcuts,
   commentPopoverShortcuts,
   viewerShortcuts,
-  htmlAnnotateShortcuts,
 ]);
 
 /** Annotate: the same document surface, plus its own sidebar rail. */

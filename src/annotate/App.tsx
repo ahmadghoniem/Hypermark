@@ -15,7 +15,6 @@ import { shouldStripFrontmatter } from '@/shared/annotatable';
 import { setExtraMarkdownExtensions } from '@/ui/utils/markdownExtensions';
 import { parseMarkdownToBlocks, extractFrontmatter, type LinkedDocAnnotationEntry, type MessageAnnotationEntry } from '@/ui/utils/parser';
 import { Viewer, ViewerHandle } from '@/ui/components/Viewer';
-import { HtmlViewer } from '@/ui/components/html-viewer';
 import { AnnotationPanel, type AnnotationScope, type AnnotationMessageGroup } from '@/ui/components/AnnotationPanel';
 import { ConfirmDialog } from '@/ui/components/ConfirmDialog';
 import { Annotation, AnnotationType, type CodeAnnotation, type InputMethod, type ImageAttachment, type ActionsLabelMode } from '@/ui/types';
@@ -28,7 +27,6 @@ import { configStore } from '@/ui/config';
 import { CompletionOverlay } from '@/ui/components/CompletionOverlay';
 import { getUIPreferences } from '@/ui/utils/uiPreferences';
 import { getInputMethod, saveInputMethod } from '@/ui/utils/inputMethod';
-import { getHtmlChromeState, saveHtmlChromeState } from '@/ui/utils/htmlChrome';
 import { OverlayScrollArea } from '@/ui/components/OverlayScrollArea';
 import { ScrollViewportProvider } from '@/ui/hooks/useScrollViewport';
 import { useOverlayViewport } from '@/ui/hooks/useOverlayViewport';
@@ -61,7 +59,6 @@ import { DEMO_PLAN_CONTENT as DEFAULT_DEMO_PLAN_CONTENT } from './demoPlan';
 import { DIFF_DEMO_PLAN_CONTENT } from './demoPlanDiffDemo';
 import {
   useAnnotateSidebarShortcuts,
-  useHtmlAnnotateShortcuts,
   useHistoryShortcuts,
 } from '@/ui/shortcuts';
 import {
@@ -88,7 +85,6 @@ import {
   usePlanDiffViewAutoExit,
 } from './hooks/usePlanDiffViewAutoExit';
 import { AppHeader } from './components/AppHeader';
-import { useAnnotateHtmlRefresh, type HtmlRefreshedDocument } from './hooks/useAnnotateHtmlRefresh';
 import {
   buildAnnotateApprovalBody,
   buildCompleteAnnotateFeedback,
@@ -132,8 +128,6 @@ const createEmptyMessageState = (message: PickerMessage): MessageAnnotationState
   linkedDocSession: {
     root: {
       markdown: message.text,
-      renderAs: 'markdown',
-      rawHtml: '',
       annotations: [],
       selectedAnnotationId: null,
       globalAttachments: [],
@@ -158,8 +152,6 @@ const normalizeMessageState = (
       // Keep it as the source of truth so transient UI state cannot cache an
       // empty markdown value for a message.
       markdown: message.text,
-      renderAs: state.linkedDocSession.root.renderAs ?? 'markdown',
-      rawHtml: state.linkedDocSession.root.rawHtml ?? '',
     },
     docs: new Map(state.linkedDocSession.docs),
   },
@@ -306,36 +298,7 @@ const AppInner: React.FC = () => {
   const messageStateCacheRef = useRef<Map<string, MessageAnnotationState>>(new Map());
   const [cachedMessageAnnotationCounts, setCachedMessageAnnotationCounts] = useState<Map<string, number>>(new Map());
   const [sourceInfo, setSourceInfo] = useState<string | undefined>();
-  // Server-resolved annotate copy-wrapper templates (config-aware) so
-  // clipboard Copy matches Send Feedback instead of the plan-deny wrap (#1107).
   const [sourceConverted, setSourceConverted] = useState(false);
-  const [renderAs, setRenderAs] = useState<'markdown' | 'html'>('markdown');
-  // HTML plans render edge-to-edge (full-viewport) instead of in the centered,
-  // card-chromed markdown column. Branch the document-area containers on this.
-  const isHtmlSurface = renderAs === 'html';
-  const [rawHtml, setRawHtml] = useState('');
-  const [htmlDiffHtml, setHtmlDiffHtml] = useState<string | null>(null);
-  // Interact/Annotate mode for HTML surfaces. Armed = the bridge
-  // captures clicks for pinpoint annotation; disarmed (Interact) = clicks are
-  // fully native while committed markers stay visible/clickable and text
-  // drag-selection commenting stays live. Session-only, never persisted.
-  // Esc (or the header pen) drops to Interact.
-  const [htmlAnnotateArmed, setHtmlAnnotateArmed] = useState(true);
-  const handleHtmlAnnotateToggle = useCallback(() => setHtmlAnnotateArmed((v) => !v), []);
-  const handleHtmlAnnotateExit = useCallback(() => setHtmlAnnotateArmed(false), []);
-  // Session-level force-markdown preference (`--markdown`). When set, folder/linked HTML
-  // files are converted instead of rendered raw — threaded into /api/doc as &convert=1.
-  const [convertHtml, setConvertHtml] = useState(false);
-  // Gate for the chrome-persistence writer: only start saving once the persisted
-  // state has been applied, so a pre-restore render can't clobber the cookie.
-  const htmlChromeRestoredRef = useRef(false);
-  // The restore's own commit still renders pre-restore values; the writer
-  // consumes this flag to skip that exact run (see the save effect).
-  const skipNextHtmlChromeSaveRef = useRef(false);
-  // Header "Hide tools": removes ALL floating chrome over the page (sidebar
-  // tongue tabs + comment/attachments cluster) from the DOM. The header
-  // button itself is the way back, so hidden state can never strand.
-  const [htmlToolsHidden, setHtmlToolsHidden] = useState(false);
   const [imageBaseDir, setImageBaseDir] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -486,7 +449,6 @@ const AppInner: React.FC = () => {
   const linkedDocHook = useLinkedDoc({
     markdown, annotations, selectedAnnotationId, globalAttachments,
     setMarkdown, setAnnotations, setSelectedAnnotationId, setGlobalAttachments,
-    renderAs, rawHtml, setRenderAs, setRawHtml,
     viewerRef, sidebar: linkedDocSidebar, sourceFilePath, sourceConverted,
     onBeforeNavigate: handleBeforeDocumentNavigation,
   });
@@ -502,7 +464,6 @@ const AppInner: React.FC = () => {
   const activeDiffPreviousPlan = linkedDocHook.isActive ? linkedDocHook.diffPreviousPlan : previousPlan;
   const activeDiffVersionInfo = linkedDocHook.isActive ? linkedDocHook.diffVersionInfo : versionInfo;
   const activeDocFilepath = linkedDocHook.isActive ? linkedDocHook.filepath : null;
-  const activeHtmlPath = linkedDocHook.filepath ?? sourceFilePath ?? null;
 
   // Per-document version fetchers: only needed while a document with its own
   // diff baseline is active (folder annotate) — usePlanDiff's bare-endpoint
@@ -524,27 +485,22 @@ const AppInner: React.FC = () => {
     };
   }, [activeDocFilepath]);
 
-  // Plan diff computation. On the HTML surface the diff is rendered as the real
-  // page with inline highlights (htmlDiffHtml) instead of the markdown block diff,
-  // so suppress the markdown diff path there (markdown is empty for HTML).
-  // `activeDocFilepath` as the docKey resets the diff-base state whenever the
+  // Plan diff computation. `activeDocFilepath` as the docKey resets the diff-base state whenever the
   // active document changes, so a newly opened document starts from ITS OWN
   // baseline instead of inheriting whatever the previous document had.
   const planDiff = usePlanDiff(
     markdown,
-    isHtmlSurface ? null : activeDiffPreviousPlan,
-    isHtmlSurface ? null : activeDiffVersionInfo,
+    activeDiffPreviousPlan,
+    activeDiffVersionInfo,
     activeDocDiffFetchers,
     activeDocFilepath,
   );
   // Exit diff view when the active document switches to one with no diff
   // baseline (e.g. a history-less folder file) — otherwise the stale active
-  // flag hides the annotation toolstrip until Escape. Gated off HTML surfaces,
-  // whose diff view is driven by htmlDiffHtml (usePlanDiff is fed nulls there,
-  // so hasPreviousVersion is always false). See usePlanDiffViewAutoExit.
+  // flag hides the annotation toolstrip until Escape. See usePlanDiffViewAutoExit.
   const exitPlanDiffView = useCallback(() => setIsPlanDiffActive(false), []);
   usePlanDiffViewAutoExit(
-    isPlanDiffActive && !isHtmlSurface,
+    isPlanDiffActive,
     planDiff.hasPreviousVersion,
     exitPlanDiffView,
   );
@@ -587,40 +543,6 @@ const AppInner: React.FC = () => {
   useEffect(() => {
     annotationHistory.clear();
   }, [annotationHistory]);
-  // A Refresh lands the bytes and, for the root document, the version diff
-  // the server recomputed against them (previousPlan/versionInfo still name
-  // the saved baseline). The view returns to normal mode with the "Show
-  // changes" toggle available whenever a diff came back; a refresh of a
-  // linked doc keeps the root's version fields untouched, as before.
-  const applyRefreshedHtml = useCallback((refreshed: HtmlRefreshedDocument) => {
-    annotationHistory.clear();
-    setRawHtml(refreshed.rawHtml);
-    setIsPlanDiffActive(false);
-    if (linkedDocHook.isActive) {
-      setHtmlDiffHtml(null);
-      return;
-    }
-    setHtmlDiffHtml(refreshed.diffHtml ?? null);
-    setPreviousPlan(refreshed.previousPlan ?? null);
-    setVersionInfo(refreshed.versionInfo ?? null);
-  }, [annotationHistory, linkedDocHook.isActive]);
-  // Annotations a Refresh could no longer anchor: the panel shows an
-  // "Unanchored" chip on them. Set from the refresh's restore report only,
-  // so the chip is exactly the toast's list; a document change clears it.
-  const [htmlUnanchoredIds, setHtmlUnanchoredIds] = useState<ReadonlySet<string>>(() => new Set());
-  const handleHtmlRefreshUnanchored = useCallback((ids: string[]) => {
-    setHtmlUnanchoredIds(new Set(ids));
-  }, []);
-  useEffect(() => {
-    setHtmlUnanchoredIds((prev) => (prev.size === 0 ? prev : new Set()));
-  }, [activeHtmlPath]);
-  const htmlRefresh = useAnnotateHtmlRefresh({
-    enabled: isApiMode && isHtmlSurface,
-    activePath: activeHtmlPath,
-    onSnapshot: applyRefreshedHtml,
-    onUnanchored: handleHtmlRefreshUnanchored,
-  });
-
   // Shared gate for the chrome-level keyboard commands (sidebars, focus mode):
   // never while a dialog, an overlay, a submission, or a text field owns the
   // keystroke. Annotate-only commands layer their own conditions on top.
@@ -796,12 +718,12 @@ const AppInner: React.FC = () => {
       : imageBaseDir?.includes('/') ? imageBaseDir : undefined;
     if (baseDir) {
       linkedDocHook.open(docPath, (path) =>
-        `/api/doc?path=${encodeURIComponent(path)}&base=${encodeURIComponent(baseDir)}${convertHtml ? '&convert=1' : ''}`
+        `/api/doc?path=${encodeURIComponent(path)}&base=${encodeURIComponent(baseDir)}`
       );
     } else {
       linkedDocHook.open(docPath);
     }
-  }, [linkedDocHook, imageBaseDir, convertHtml]);
+  }, [linkedDocHook, imageBaseDir]);
 
   // Wrap linked doc back
   const handleLinkedDocBack = React.useCallback(() => {
@@ -881,47 +803,6 @@ const AppInner: React.FC = () => {
       codeAnnotations.length +
       linkedDocHook.docAnnotationCount +
       globalAttachments.length;
-
-  // Restore-on-entry: every time the session transitions ONTO an HTML surface
-  // (a root raw-HTML session, or a linked .html doc opened from markdown),
-  // apply the toolsHidden state the user last left an HTML session with
-  // (first-ever run: tools visible). A restored toolsHidden:true always has a
-  // way back: the header's eye toggle.
-  const prevHtmlChromeSurfaceRef = useRef(false);
-  useEffect(() => {
-    if (isLoading) return;
-    const wasHtml = prevHtmlChromeSurfaceRef.current;
-    prevHtmlChromeSurfaceRef.current = isHtmlSurface;
-    if (!isHtmlSurface || wasHtml) return;
-    const chrome = getHtmlChromeState();
-    skipNextHtmlChromeSaveRef.current = true;
-    setHtmlToolsHidden(chrome.toolsHidden);
-    htmlChromeRestoredRef.current = true;
-  }, [
-    isHtmlSurface,
-    isLoading,
-  ]);
-
-  // Persist the chrome the user leaves an HTML session in, so the next
-  // raw-HTML session opens exactly as they left this one. Gated on the restore
-  // having run — a pre-restore render must not save the transient defaults
-  // over the user's remembered state — and on being ON the HTML surface, so a
-  // linked markdown doc never writes here.
-  useEffect(() => {
-    if (!isHtmlSurface || !htmlChromeRestoredRef.current) return;
-    // The restore effect flips htmlChromeRestoredRef synchronously, but its
-    // state updates land a commit LATER — a save in the restore commit itself
-    // would still see pre-restore values and clobber the remembered state
-    // (self-corrected next flush, but a page ending in between would freeze
-    // the inverted value). Skip exactly that one run. If the restore changed
-    // any state, the changed deps re-run this effect and save then; if it
-    // changed nothing, the cookie already holds exactly those values.
-    if (skipNextHtmlChromeSaveRef.current) {
-      skipNextHtmlChromeSaveRef.current = false;
-      return;
-    }
-    saveHtmlChromeState({ toolsHidden: htmlToolsHidden });
-  }, [isHtmlSurface, htmlToolsHidden]);
 
   // useLayoutEffect + synchronous getBoundingClientRect so the initial
   // bucket is set before the browser paints. Otherwise narrow viewports
@@ -1044,57 +925,17 @@ const AppInner: React.FC = () => {
   }, [getDraftGeneration]);
 
   const handleInputMethodChange = (method: InputMethod) => {
-    // HTML surfaces pin the viewer to pinpoint (drag-selection commenting
-    // is simultaneously live there, so there is nothing to switch): the toolstrip
-    // is not rendered and the Alt shortcut must not flip state the surface ignores
-    // or write the html cookie.
-    if (isHtmlSurface) return;
     setInputMethod(method);
-    // Surface-scoped persistence: an explicit choice made on the HTML surface
-    // sticks for HTML sessions only; markdown keeps its own preference.
-    saveInputMethod(method, isHtmlSurface ? 'html' : 'markdown');
+    saveInputMethod(method);
   };
-
-  // Raw-HTML surfaces resolve their own input-method preference (default:
-  // Pinpoint — see utils/inputMethod.ts for the persistence decision). Applied
-  // whenever the surface flips (session load or linked-doc navigation), so a
-  // markdown-era "drag" cookie never suppresses the HTML default.
-  const prevSurfaceRef = useRef(isHtmlSurface);
-  useEffect(() => {
-    if (prevSurfaceRef.current === isHtmlSurface) return;
-    prevSurfaceRef.current = isHtmlSurface;
-    const method = getInputMethod(isHtmlSurface ? 'html' : 'markdown');
-    setInputMethod(method);
-  }, [isHtmlSurface]);
 
   // Alt/Option key: hold to temporarily switch, double-tap to toggle
   // Alt no longer switches Select/Pinpoint — it strikes a selection through on
   // release (useAnnotationHighlighter). Select/Pinpoint is the toolstrip's
   // pair of buttons.
 
-  // Gates the toolstrip's own render. HTML/live surfaces have no
-  // toolstrip at all: they are comment-only with pinpoint + drag both live,
-  // so there is no input method left to switch.
-  const toolstripVisible = useMemo(
-    () =>
-      !isPlanDiffActive && !isHtmlSurface,
-    [
-      isHtmlSurface,
-      isPlanDiffActive,
-    ],
-  );
-
-  // Interact/Annotate toggle (Mod+Shift+A) — HTML surfaces only.
-  // The bridge mirrors the same chord inside the iframe and forwards it, so
-  // this parent-side registration covers focus living in the editor chrome.
-  useHtmlAnnotateShortcuts({
-    handlers: {
-      toggleAnnotateMode: {
-        when: (event) => isHtmlSurface && canHandleDocumentChromeShortcut(event),
-        handle: handleHtmlAnnotateToggle,
-      },
-    },
-  });
+  // The toolstrip is hidden while browsing the plan diff.
+  const toolstripVisible = !isPlanDiffActive;
 
   // Check if we're in API mode (served from Bun hook server)
   useEffect(() => {
@@ -1103,22 +944,14 @@ const AppInner: React.FC = () => {
         if (!res.ok) throw new Error('Not in API mode');
         return res.json();
       })
-      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last'; filePath?: string; sourceInfo?: string; sourceConverted?: boolean; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; renderAs?: 'html' | 'markdown'; rawHtml?: string; diffHtml?: string; convertHtml?: boolean; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; projectRoot?: string; markdownExtensions?: string[]; serverConfig?: Record<string, unknown>; recentMessages?: PickerMessage[] }) => {
+      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last'; filePath?: string; sourceInfo?: string; sourceConverted?: boolean; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; projectRoot?: string; markdownExtensions?: string[]; serverConfig?: Record<string, unknown>; recentMessages?: PickerMessage[] }) => {
         // Initialize config store with server-provided values (config file > cookie > default)
         configStore.init(data.serverConfig);
         // Extra extensions the user registered as markdown (#1307) — the
         // renderer needs them to treat links to sibling `.livemd`-style docs
         // as openable local documents rather than external links.
         setExtraMarkdownExtensions(data.markdownExtensions);
-        // Session-level force-markdown preference (--markdown); threaded into folder/linked
-        // /api/doc requests so on-demand HTML files convert too.
-        setConvertHtml(data.convertHtml ?? false);
-        if (data.renderAs === 'html' && data.rawHtml) {
-          setRenderAs('html');
-          setRawHtml(data.rawHtml);
-          setHtmlDiffHtml(data.diffHtml ?? null);
-          setMarkdown('');
-        } else if (typeof data.plan === 'string') {
+        if (typeof data.plan === 'string') {
           const normalizedPlan = data.plan.replace(/\r\n?/g, '\n');
           setMarkdown(normalizedPlan);
         }
@@ -1364,14 +1197,6 @@ const AppInner: React.FC = () => {
       beforeSelection,
       afterSelection: selectionRef.current,
     });
-    // Annotation activity keeps the HTML chrome preference alive: re-stamp it
-    // so it only expires for users who have not annotated HTML within the
-    // staleness TTL (see preferenceTtl.ts).
-    if (isHtmlSurface) {
-      if (htmlChromeRestoredRef.current) {
-        saveHtmlChromeState({ toolsHidden: htmlToolsHidden });
-      }
-    }
   };
 
   // Keep selection behavior explicit across mobile/wide-mode transitions.
@@ -1773,10 +1598,7 @@ const AppInner: React.FC = () => {
     spec: annotateDecisionSpec,
     handlers: annotateDecisionHandlers,
     closeTitle: annotateCloseTitle,
-    // Framed surfaces: clicks inside the iframe never reach the parent
-    // document, so iframe focus dismisses the popover instead.
-    dismissOnIframeFocus: isHtmlSurface,
-  }), [annotateCloseTitle, annotateDecisionHandlers, annotateDecisionSpec, isHtmlSurface]);
+  }), [annotateCloseTitle, annotateDecisionHandlers, annotateDecisionSpec]);
 
   // Reading column. One width, dialled: the document is centred with a
   // gutter on each side, and the left gutter holds the table of contents.
@@ -1840,7 +1662,7 @@ const AppInner: React.FC = () => {
         linkedDocFilepath={linkedDocHook.filepath}
         onLinkedDocBack={linkedDocHook.isActive ? handleLinkedDocBack : undefined}
         backLabel={backLabel}
-        showVersionsTab={!isHtmlSurface && activeDiffVersionInfo !== null && activeDiffVersionInfo.totalVersions > 1}
+        showVersionsTab={activeDiffVersionInfo !== null && activeDiffVersionInfo.totalVersions > 1}
         versionInfo={activeDiffVersionInfo}
         versions={planDiff.versions}
         selectedBaseVersion={planDiff.diffBaseVersion}
@@ -1872,16 +1694,11 @@ const AppInner: React.FC = () => {
       scope={isMessageScopeEligible ? annotationScope : undefined}
       onScopeChange={isMessageScopeEligible ? setAnnotationScope : undefined}
       messageGroups={isMessageScopeEligible ? messageGroups : undefined}
-      unanchoredIds={isHtmlSurface && htmlUnanchoredIds.size > 0 ? htmlUnanchoredIds : undefined}
       onClose={() => setIsMobilePanelOpen(false)}
       otherFileAnnotations={otherFileAnnotations}
     />
   );
 
-  // Mobile Safari paints the browser-controls backdrop from the document/app
-  // canvas, not from the nested document scroller. Keep that canvas continuous
-  // with the active surface so a card-backed plan does not end in a dark band.
-  const browserCanvas = isHtmlSurface ? 'background' : 'card';
   if (isLoading) {
     return (
       <ThemeProvider defaultTheme="dark" manageFavicon>
@@ -1893,20 +1710,14 @@ const AppInner: React.FC = () => {
   return (
     <ThemeProvider defaultTheme="dark" manageFavicon>
       <TooltipProvider delayDuration={900} skipDelayDuration={200} disableHoverableContent>
+      {/* Mobile Safari paints the browser-controls backdrop from the app canvas,
+          so keep it the same card color as the document. */}
       <div
-        data-pn-browser-canvas={browserCanvas}
-        className={`pn-app-viewport flex flex-col overflow-hidden ${browserCanvas === 'card' ? 'bg-card' : 'bg-background'}`}
+        data-pn-browser-canvas="card"
+        className="pn-app-viewport flex flex-col overflow-hidden bg-card"
       >
         <AppHeader
           sticky
-          htmlSurface={isHtmlSurface}
-          htmlAnnotateArmed={htmlAnnotateArmed}
-          onToggleHtmlAnnotate={isHtmlSurface ? handleHtmlAnnotateToggle : undefined}
-          htmlToolsHidden={htmlToolsHidden}
-          onToggleHtmlTools={isHtmlSurface ? () => setHtmlToolsHidden((v) => !v) : undefined}
-          canRefreshHtml={htmlRefresh.canRefresh}
-          isRefreshingHtml={htmlRefresh.isRefreshing}
-          onRefreshHtml={htmlRefresh.refresh}
           isApiMode={isApiMode}
           origin={origin}
           isSubmitting={isSubmitting}
@@ -1948,7 +1759,7 @@ const AppInner: React.FC = () => {
           <div className="relative flex min-w-0 flex-1">
           <OverlayScrollArea
             element="main"
-            className={`flex-1 min-w-0 ${isHtmlSurface ? 'bg-background' : 'bg-card'}`}
+            className="flex-1 min-w-0 bg-card"
             overflowX="hidden"
             overflowY="auto"
             // Native scrollbars take layout width, so a document short enough
@@ -1958,7 +1769,7 @@ const AppInner: React.FC = () => {
             style={{ scrollbarGutter: 'stable' }}
             onViewportReady={handleDocumentViewportReady}
           >
-            <div ref={planAreaRef} className={`${isHtmlSurface ? 'h-full flex flex-col' : 'min-h-full flex flex-col items-center px-2 py-3 md:px-10 md:py-8 xl:px-16'} relative z-10`}>
+            <div ref={planAreaRef} className="min-h-full flex flex-col items-center px-2 py-3 md:px-10 md:py-8 xl:px-16 relative z-10">
               {/* Sticky header lane — ghost bar that pins the toolstrip +
                   badges at top: 12px once the user scrolls. Invisible at top
                   of doc; original toolstrip/badges remain the source of
@@ -1966,7 +1777,7 @@ const AppInner: React.FC = () => {
                   sticky actions are disabled. remountToken re-anchors the
                   ResizeObserver when Viewer swaps content (linked docs or
                   message switches). */}
-              {!isPlanDiffActive && !isHtmlSurface && uiPrefs.stickyActionsEnabled && (
+              {!isPlanDiffActive && uiPrefs.stickyActionsEnabled && (
                 <StickyHeaderLane
                   inputMethod={inputMethod}
                   onInputMethodChange={handleInputMethodChange}
@@ -1983,9 +1794,7 @@ const AppInner: React.FC = () => {
               )}
 
               {/* Annotation Toolstrip — the input method switcher (select / pinpoint).
-                  Markdown surfaces only: HTML/live surfaces are comment-only with
-                  pinpoint + drag both live, so no floating toolstrip ever overlays the
-                  rendered page. Hidden during plan diff browsing. */}
+                  Hidden during plan diff browsing. */}
               {toolstripVisible && (
                 <div
                   className="w-full mb-3 md:mb-4 flex items-center justify-start"
@@ -2019,77 +1828,48 @@ const AppInner: React.FC = () => {
                 </div>
               )}
               {/* Normal Plan View — always mounted, hidden during diff mode */}
-              <div className={`w-full relative ${isHtmlSurface ? 'flex-1 flex flex-col' : 'flex justify-center'}`} style={{ display: isPlanDiffActive && planDiff.diffBlocks ? 'none' : undefined }}>
-                {renderAs === 'html' ? (
-                  <HtmlViewer
-                    key={`${linkedDocHook.isActive ? `doc:${linkedDocHook.filepath}` : 'plan'}${isPlanDiffActive && htmlDiffHtml ? ':diff' : ''}:reload-${htmlRefresh.reloadGeneration}`}
-                    ref={viewerRef}
-                    rawHtml={isPlanDiffActive && htmlDiffHtml ? htmlDiffHtml : rawHtml}
-                    annotations={viewerAnnotations}
-                    onAddAnnotation={handleAddAnnotation}
-                    onSelectAnnotation={handleSelectAnnotation}
-                    selectedAnnotationId={selectedAnnotationId}
-                    // HTML surfaces are always pinpoint: armed = click
-                    // pins an element AND drag selects text (both live at
-                    // once); Interact (Esc) keeps clicks native while drag
-                    // commenting stays available. No input-method switch.
-                    inputMethod="pinpoint"
-                    annotateModeActive={htmlAnnotateArmed}
-                    onAnnotateModeExit={handleHtmlAnnotateExit}
-                    onAnnotateModeToggle={handleHtmlAnnotateToggle}
-                    maxWidth={isHtmlSurface ? null : planMaxWidth}
-                    fullViewport={isHtmlSurface}
-                    // The header's eye toggle is the way back, so a
-                    // restored toolsHidden:true is never a trap.
-                    hideControls={isHtmlSurface && htmlToolsHidden}
-                    diffAvailable={!!htmlDiffHtml}
-                    diffActive={isPlanDiffActive && !!htmlDiffHtml}
-                    onToggleDiff={() => setIsPlanDiffActive((v) => !v)}
-                    onUnanchoredChange={htmlRefresh.reportAnnotationRestore}
-                  />
-                ) : (
-                  <Viewer
-                    key={viewerContentKey}
-                    ref={viewerRef}
-                    blocks={blocks}
-                    markdown={displayedMarkdown}
-                    frontmatter={frontmatter}
-                    annotations={viewerAnnotations}
-                    onAddAnnotation={handleAddAnnotation}
-                    onSelectAnnotation={handleSelectAnnotation}
-                    selectedAnnotationId={selectedAnnotationId}
-                    inputMethod={effectiveInputMethod}
-                    repoInfo={repoInfo}
-                    stickyActions={uiPrefs.stickyActionsEnabled}
-                    planDiffStats={planDiff.diffStats}
-                    isPlanDiffActive={isPlanDiffActive}
-                    onPlanDiffToggle={() => setIsPlanDiffActive(!isPlanDiffActive)}
-                    hasPreviousVersion={planDiff.hasPreviousVersion}
-                    planDiffBaselineLabel="since last review"
-                    planDiffBaselineTooltip="Changes since you last reviewed this file"
-                    showDemoBadge={!isApiMode}
-                    maxWidth={planMaxWidth}
-                    onOpenLinkedDoc={handleOpenLinkedDoc}
-                    onOpenCodeFile={codeFilePopout.open}
-                    linkedDocInfo={
-                      linkedDocHook.isActive
-                        ? {
-                            filepath: linkedDocHook.filepath!,
-                            onBack: handleLinkedDocBack,
-                            label: undefined,
-                            backLabel,
-                            variant: 'breadcrumb',
-                          }
-                        : null
-                    }
-                    imageBaseDir={imageBaseDir}
-                    codePathBaseDir={activeDocBaseDir}
-                    sourceInfo={sourceInfo}
-                    onToggleCheckbox={checkbox.toggle}
-                    checkboxOverrides={checkbox.overrides}
-                    actionsLabelMode={actionsLabelMode}
-                  />
-                )}
+              <div className="w-full relative flex justify-center" style={{ display: isPlanDiffActive && planDiff.diffBlocks ? 'none' : undefined }}>
+                <Viewer
+                  key={viewerContentKey}
+                  ref={viewerRef}
+                  blocks={blocks}
+                  markdown={displayedMarkdown}
+                  frontmatter={frontmatter}
+                  annotations={viewerAnnotations}
+                  onAddAnnotation={handleAddAnnotation}
+                  onSelectAnnotation={handleSelectAnnotation}
+                  selectedAnnotationId={selectedAnnotationId}
+                  inputMethod={effectiveInputMethod}
+                  repoInfo={repoInfo}
+                  stickyActions={uiPrefs.stickyActionsEnabled}
+                  planDiffStats={planDiff.diffStats}
+                  isPlanDiffActive={isPlanDiffActive}
+                  onPlanDiffToggle={() => setIsPlanDiffActive(!isPlanDiffActive)}
+                  hasPreviousVersion={planDiff.hasPreviousVersion}
+                  planDiffBaselineLabel="since last review"
+                  planDiffBaselineTooltip="Changes since you last reviewed this file"
+                  showDemoBadge={!isApiMode}
+                  maxWidth={planMaxWidth}
+                  onOpenLinkedDoc={handleOpenLinkedDoc}
+                  onOpenCodeFile={codeFilePopout.open}
+                  linkedDocInfo={
+                    linkedDocHook.isActive
+                      ? {
+                          filepath: linkedDocHook.filepath!,
+                          onBack: handleLinkedDocBack,
+                          label: undefined,
+                          backLabel,
+                          variant: 'breadcrumb',
+                        }
+                      : null
+                  }
+                  imageBaseDir={imageBaseDir}
+                  codePathBaseDir={activeDocBaseDir}
+                  sourceInfo={sourceInfo}
+                  onToggleCheckbox={checkbox.toggle}
+                  checkboxOverrides={checkbox.overrides}
+                  actionsLabelMode={actionsLabelMode}
+                />
               </div>
             </div>
           </OverlayScrollArea>

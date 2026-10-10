@@ -8,7 +8,6 @@ export { annotationModeShortcuts } from './plan-review/annotationMode.shortcuts'
 export { annotationToolbarShortcuts } from './plan-review/annotationToolbar.shortcuts';
 export { annotationPanelShortcuts } from './plan-review/annotationPanel.shortcuts';
 export { commentPopoverShortcuts } from './plan-review/commentPopover.shortcuts';
-export { htmlAnnotateShortcuts, useHtmlAnnotateShortcuts } from './plan-review/htmlAnnotate.shortcuts';
 export { viewerShortcuts } from './plan-review/viewer.shortcuts';
 export { annotateSidebarShortcuts, useAnnotateSidebarShortcuts } from './plan-review/sidebar.shortcuts';
 

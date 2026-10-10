@@ -16,11 +16,10 @@ import { getRepoInfo } from "./repo";
 import type { Origin } from "@/shared/agents";
 import { handleImage, handleUpload, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
 import { handleDoc, handleDocExists, resolveAllowedDocPath } from "./reference-handlers";
-import { getExtraMarkdownExtensions, MAX_ANNOTATABLE_FILE_BYTES, resolveUserPath, warmFileListCache } from "@/shared/resolve-file";
+import { getExtraMarkdownExtensions, resolveUserPath, warmFileListCache } from "@/shared/resolve-file";
 import { contentHash, deleteDraft } from "@/shared/draft";
 import { getPlanVersion, getVersionCount, listVersions } from "@/shared/storage";
 import { computeAnnotateHistory, deriveAnnotateHistorySlug, persistAnnotateSubmission, type AnnotateHistoryResult } from "@/shared/annotate-history";
-import { htmlDiff } from "@/shared/html-diff";
 import { getAnnotateReferenceRootPaths } from "@/shared/annotate-reference-roots-node";
 import {
   ANNOTATE_CLIENT_LEASE_GRACE_MS,
@@ -38,7 +37,6 @@ import { saveConfig, getServerConfig, loadConfig, resolveAnnotateHistory, resolv
 import { appendFeedbackRecord, type FeedbackDecision, type FeedbackSurface } from "@/shared/feedback-archive";
 import { isFaviconStyle, type FaviconStyle } from "@/shared/favicon";
 import { dirname, resolve as resolvePath } from "path";
-import { createHtmlAssetRegistry } from "./html-assets";
 
 // Re-export utilities
 export { openBrowser } from "./browser";
@@ -47,7 +45,7 @@ export { handleServerReady as handleAnnotateServerReady } from "./shared-handler
 // --- Types ---
 
 export interface AnnotateServerOptions {
-  /** Markdown content of the file to annotate. Empty when rendering raw HTML. */
+  /** Markdown content of the file to annotate. */
   markdown: string;
   /** Original file path (for display purposes) */
   filePath: string;
@@ -100,13 +98,6 @@ export interface AnnotateServerOptions {
         graceMs?: number;
         isAlive?: (pid: number) => boolean;
       };
-  /** Raw HTML content for direct iframe rendering. */
-  rawHtml?: string;
-  /** Render HTML as-is in an iframe. */
-  renderHtml?: boolean;
-  /** Session-level force-markdown preference (`--markdown`). Exposed in /api/plan so the
-   *  frontend appends `&convert=1` when navigating folder/linked HTML files. */
-  convertHtml?: boolean;
   /** Project name for keying per-file version history (powers the annotate version diff). */
   project?: string;
   /** Called when server starts with the URL and port */
@@ -184,9 +175,6 @@ export async function startAnnotateServer(
     approvalNotesSupported = false,
     clientLeaseTestOverrides,
     parentWatch: parentWatchOption,
-    rawHtml,
-    renderHtml = false,
-    convertHtml = false,
     project,
     onReady,
   } = options;
@@ -196,8 +184,8 @@ export async function startAnnotateServer(
   // Per-file version history → powers the native version diff in annotate mode.
   // Unlike the plan flow (slug = first-heading + date), annotate keys history by
   // file path so re-opening the same file groups its versions across edits even
-  // when headings change. Diff content is the markdown, or the raw HTML source
-  // when rendering HTML. Only single local files (not URLs/folders/messages).
+  // when headings change. Diff content is the markdown. Only single local files
+  // (not URLs/folders/messages).
   const annotateProjectName = project ?? "_unknown";
   const annotateHistoryEnabled = resolveAnnotateHistory(loadConfig());
   // Single local file sessions are the only ones this eager gate covers.
@@ -206,25 +194,22 @@ export async function startAnnotateServer(
   const singleFileLocalAnnotate = mode === "annotate" && !/^https?:\/\//i.test(filePath);
   let annotateHistory: AnnotateHistoryResult | null = null;
   {
-    const historyContent = renderHtml && rawHtml ? rawHtml : markdown;
     const eligible =
       singleFileLocalAnnotate &&
-      historyContent.length > 0 &&
+      markdown.length > 0 &&
       annotateHistoryEnabled;
     // History is an enhancement, never a gate: a read-only/full data dir
     // must degrade to v0.22.0's stateless annotate (no version diff), not
     // fail the whole session before the UI ever opens. (computeAnnotateHistory
     // never throws — it logs and returns null on any storage error.)
     if (eligible) {
-      annotateHistory = computeAnnotateHistory(annotateProjectName, resolvePath(filePath), historyContent);
+      annotateHistory = computeAnnotateHistory(annotateProjectName, resolvePath(filePath), markdown);
     }
   }
 
   // Draft identity. Content-derived: the target has a document body in
-  // every remaining mode (single local file, its rendered HTML, or a last
-  // agent message).
-  const draftSource = renderHtml && rawHtml ? rawHtml : markdown;
-  const draftKey = contentHash(draftSource);
+  // every remaining mode (single local file or a last agent message).
+  const draftKey = contentHash(markdown);
 
   // Durable submit records (#678): the caller consuming waitForDecision() may
   // be gone (agent-side timeout) by the time the reviewer clicks submit —
@@ -327,64 +312,6 @@ export async function startAnnotateServer(
     // A failed write only holds the draft back when there was content to lose.
     return legacyDurable && (archived || !hasContent);
   };
-  const htmlAssets = createHtmlAssetRegistry();
-
-  // The fallback is silent to the reviewer, so the reason is logged once per
-  // process: a genuine bug in the read must not hide behind the snapshot.
-  let rootHtmlUnreadableWarned = false;
-  const warnRootHtmlUnreadable = (path: string, err: unknown) => {
-    if (rootHtmlUnreadableWarned) return;
-    rootHtmlUnreadableWarned = true;
-    const message = err instanceof Error ? err.message : String(err);
-    console.warn(`[hypermark] could not read the HTML root ${path}; serving the startup snapshot instead: ${message}`);
-  };
-
-  // A local rendered-HTML root is served from its CURRENT bytes, not the
-  // startup snapshot: the reviewer can Refresh in-app or reload the tab after
-  // an agent edits the file, and /api/plan must then describe the page the
-  // annotations were placed on. The snapshot is only
-  // the fallback when the file is gone or has grown past the annotate cap.
-  const rootHtmlSourcePath =
-    renderHtml && rawHtml && !/^https?:\/\//i.test(filePath) ? resolvePath(filePath) : null;
-  type RootHtmlRead =
-    | { kind: "current"; html: string }
-    | { kind: "snapshot"; reason: "missing" | "too-large" | "unreadable" };
-  async function readRootHtml(): Promise<RootHtmlRead | null> {
-    if (!rootHtmlSourcePath) return null;
-    // A present-but-unreadable root (permissions revoked, the path replaced
-    // by a directory) is the same fallback as a missing one: the startup
-    // snapshot, with its version diff. The read must never throw out of a
-    // request handler, which would turn a tab reload into a 500.
-    try {
-      const file = Bun.file(rootHtmlSourcePath);
-      if (!(await file.exists())) return { kind: "snapshot", reason: "missing" };
-      if (file.size > MAX_ANNOTATABLE_FILE_BYTES) return { kind: "snapshot", reason: "too-large" };
-      return { kind: "current", html: await file.text() };
-    } catch (err) {
-      warnRootHtmlUnreadable(rootHtmlSourcePath, err);
-      return { kind: "snapshot", reason: "unreadable" };
-    }
-  }
-
-  // The in-app Refresh re-reads the root through /api/doc. For the ROOT
-  // document only (linked docs are unchanged), the response also carries the
-  // version-diff fields /api/plan serves, recomputed against the bytes just
-  // read, so a refresh keeps the "Show changes" toggle exactly like a reload.
-  const rootHistory = annotateHistory;
-  const rootHtmlVersionDiff =
-    rootHtmlSourcePath && rootHistory
-      ? {
-          path: rootHtmlSourcePath,
-          compute: (currentHtml: string) => ({
-            previousPlan: rootHistory.previousPlan,
-            versionInfo: rootHistory.versionInfo,
-            ...(rootHistory.previousPlan
-              ? { diffHtml: htmlAssets.rewriteHtml(htmlDiff(rootHistory.previousPlan, currentHtml), filePath) }
-              : {}),
-          }),
-        }
-      : undefined;
-
   const initialSingleFileSourcePath = !/^https?:\/\//i.test(filePath) ? resolveUserPath(filePath) : null;
 
   const getReferenceRootPaths = () => getAnnotateReferenceRootPaths({
@@ -457,29 +384,6 @@ export async function startAnnotateServer(
 
           // API: Get plan content (reuse /api/plan so the plan editor UI works)
           if (url.pathname === "/api/plan" && req.method === "GET") {
-            // Local rendered-HTML roots serve their current bytes (see
-            // readRootHtml); every other session serves what it started with.
-            const rootRead = await readRootHtml();
-            const servedHtml = rootRead?.kind === "current" ? rootRead.html : rawHtml;
-            // The version-diff fields describe the SAVED baseline: previousPlan
-            // and versionInfo name the version history saved at startup, which
-            // stays the correct "previous version" however often the file is
-            // edited afterwards. When the served bytes differ from the startup
-            // snapshot the diff is RECOMPUTED against them (htmlDiff is pure,
-            // and a GET never writes history), so a tab reload after an agent
-            // edit keeps the "Show changes" toggle instead of losing it for
-            // the rest of the session. The in-app Refresh reads the same
-            // fields off /api/doc (rootHtmlVersionDiff), so refresh and
-            // reload converge on the same state.
-            const servedIsSnapshot = servedHtml === rawHtml;
-            const displayRawHtml = renderHtml && servedHtml ? htmlAssets.rewriteHtml(servedHtml, filePath) : undefined;
-            // For HTML, render the version diff as the real page with inline
-            // <ins>/<del> highlights (tag-aware htmlDiff), asset-rewritten the
-            // same way as the live page so it renders identically.
-            const diffHtml =
-              renderHtml && servedHtml && annotateHistory?.previousPlan
-                ? htmlAssets.rewriteHtml(htmlDiff(annotateHistory.previousPlan, servedHtml), filePath)
-                : undefined;
             return Response.json({
               plan: markdown,
               origin,
@@ -490,15 +394,11 @@ export async function startAnnotateServer(
               gate,
               approvalNotesSupported,
               clientLease: { enabled: true as const, reconnectGraceMs: clientLeaseGraceMs },
-              renderAs: displayRawHtml ? 'html' as const : 'markdown' as const,
-              ...(displayRawHtml ? { rawHtml: displayRawHtml } : {}),
-              ...(diffHtml ? { diffHtml } : {}),
-              convertHtml,
               ...(annotateHistory
                 ? {
                     previousPlan: annotateHistory.previousPlan,
                     versionInfo: annotateHistory.versionInfo,
-                    diffCurrent: servedIsSnapshot || !servedHtml ? annotateHistory.diffCurrent : servedHtml,
+                    diffCurrent: annotateHistory.diffCurrent,
                   }
                 : {}),
               repoInfo,
@@ -601,13 +501,8 @@ export async function startAnnotateServer(
             return handleImage(req);
           }
 
-          const htmlAssetResponse = await htmlAssets.handle(req, url);
-          if (htmlAssetResponse) {
-            return htmlAssetResponse;
-          }
-
           // API: Serve a linked markdown document. The annotate session owns the
-          // source-file base and --markdown preference, so enforce both here.
+          // source-file base, so enforce it here.
           if (url.pathname === "/api/doc" && req.method === "GET") {
             const docUrl = new URL(req.url);
             let changed = false;
@@ -615,15 +510,9 @@ export async function startAnnotateServer(
               docUrl.searchParams.set("base", dirname(filePath));
               changed = true;
             }
-            if (convertHtml && !docUrl.searchParams.has("convert")) {
-              docUrl.searchParams.set("convert", "1");
-              changed = true;
-            }
             const docReq = changed ? new Request(docUrl.toString()) : req;
             return handleDoc(docReq, {
-              rewriteHtml: htmlAssets.rewriteHtml,
               rootPaths: getReferenceRootPaths(),
-              rootHtmlVersionDiff,
             });
           }
 

@@ -7,11 +7,6 @@ import { useEffect } from 'react';
  * but the stale `isPlanDiffActive` flag would otherwise keep the annotation
  * toolstrip and sticky header hidden until the user pressed Escape.
  *
- * Callers must pass `active: false` for surfaces whose diff view is NOT
- * driven by usePlanDiff's markdown baseline (the --render-html surface uses
- * `htmlDiffHtml` with usePlanDiff fed nulls — auto-exiting there would kill
- * the HTML diff toggle immediately).
- *
  * Safe for plan review: the root document's baseline (`hasPreviousVersion`)
  * never goes false while the diff view is open there — versionInfo is stable
  * for the session and selectBaseVersion never clears the base plan — so this

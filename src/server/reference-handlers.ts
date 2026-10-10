@@ -18,26 +18,12 @@ import {
 	isAnnotatableTextPath,
 } from "@/shared/resolve-file";
 import { htmlToMarkdown } from "@/shared/html-to-markdown";
-import type { AnnotateHistoryResult } from "@/shared/annotate-history";
 import { preloadFile } from "@pierre/diffs/ssr";
 
 // --- Route handlers ---
 
 export interface HandleDocOptions {
-	rewriteHtml?: (html: string, filepath: string) => string;
 	rootPaths?: string[];
-	/**
-	 * Single-file rendered-HTML sessions: when /api/doc serves the session's
-	 * ROOT document (`path` equals the resolved root path) as raw HTML, merge
-	 * the version-diff fields `compute` derives from the bytes just read
-	 * (`previousPlan`/`versionInfo`/`diffHtml`, the same names /api/plan
-	 * uses) into the response. This is what lets the in-app Refresh keep the
-	 * version diff. Every other document is untouched.
-	 */
-	rootHtmlVersionDiff?: {
-		path: string;
-		compute: (currentHtml: string) => Record<string, unknown>;
-	};
 }
 
 interface HandleDocExistsOptions {
@@ -164,41 +150,6 @@ function resolveMarkdownFileFromAllowedRoots(input: string, roots: string[]): Ro
 	return { kind: "not_found", input };
 }
 
-type DocOptionsResult<T> = T & {
-	previousPlan?: string | null;
-	versionInfo?: AnnotateHistoryResult["versionInfo"];
-};
-
-function applyDocOptions<T extends Record<string, unknown>>(
-	data: T,
-	options: HandleDocOptions = {},
-): DocOptionsResult<T> {
-	const next: Record<string, unknown> = { ...data };
-	// Root-document version diff (see HandleDocOptions.rootHtmlVersionDiff):
-	// computed on the raw bytes, before the asset rewrite below, because the
-	// diff renderer rewrites its own output the same way.
-	if (
-		options.rootHtmlVersionDiff &&
-		data.renderAs === "html" &&
-		typeof data.rawHtml === "string" &&
-		data.filepath === options.rootHtmlVersionDiff.path
-	) {
-		Object.assign(next, options.rootHtmlVersionDiff.compute(data.rawHtml));
-	}
-	if (
-		typeof next.rawHtml === "string" &&
-		typeof next.filepath === "string" &&
-		options.rewriteHtml
-	) {
-		next.rawHtml = options.rewriteHtml(next.rawHtml, next.filepath);
-	}
-	return next as DocOptionsResult<T>;
-}
-
-function docJson(data: Record<string, unknown>, options?: HandleDocOptions): Response {
-	return Response.json(applyDocOptions(data, options));
-}
-
 /** Serve a linked markdown document. Resolves absolute, relative, or bare filename paths. */
 export async function handleDoc(req: Request, options: HandleDocOptions = {}): Promise<Response> {
 	const url = new URL(req.url);
@@ -218,9 +169,6 @@ export async function handleDoc(req: Request, options: HandleDocOptions = {}): P
 	// (used by annotate mode to resolve paths relative to the source file).
 	const base = url.searchParams.get("base");
 	const resolvedBase = getTrustedBaseDir(base, allowedRoots);
-	// HTML renders raw by default; `?convert=1` (set by the frontend when the session's
-	// --markdown preference is on) forces Turndown conversion instead.
-	const convert = url.searchParams.get("convert") === "1";
 	// `?doc=1` (set by the file browser) forces annotatable plain-text rendering
 	// for extensions that overlap CODE_FILE_REGEX (.yaml, .json, .toml, .ini,
 	// .xml). Without it, those paths keep the syntax-highlighted code-file
@@ -246,14 +194,8 @@ export async function handleDoc(req: Request, options: HandleDocOptions = {}): P
 				}
 				const raw = await file.text();
 				const isHtml = /\.html?$/i.test(requestedPath);
-				if (isHtml && !convert) {
-					return docJson({ rawHtml: raw, renderAs: "html", filepath: fromBase }, options);
-				}
 				const markdown = isHtml ? htmlToMarkdown(raw) : raw;
-				return docJson(
-					{ markdown, filepath: fromBase, isConverted: isHtml, renderAs: "markdown" },
-					options,
-				);
+				return Response.json({ markdown, filepath: fromBase, isConverted: isHtml });
 			}
 		} catch {
 			/* fall through to standard resolution */
@@ -270,12 +212,8 @@ export async function handleDoc(req: Request, options: HandleDocOptions = {}): P
 		try {
 			const file = Bun.file(resolvedHtml);
 			if (await file.exists()) {
-				const html = await file.text();
-				if (!convert) {
-					return docJson({ rawHtml: html, renderAs: "html", filepath: resolvedHtml }, options);
-				}
-				const markdown = htmlToMarkdown(html);
-				return docJson({ markdown, filepath: resolvedHtml, isConverted: true, renderAs: "markdown" }, options);
+				const markdown = htmlToMarkdown(await file.text());
+				return Response.json({ markdown, filepath: resolvedHtml, isConverted: true });
 			}
 		} catch { /* fall through */ }
 		return Response.json({ error: `File not found: ${requestedPath}` }, { status: 404 });
@@ -381,7 +319,7 @@ export async function handleDoc(req: Request, options: HandleDocOptions = {}): P
 			return Response.json({ error: "File too large (max 2MB)" }, { status: 413 });
 		}
 		const markdown = await file.text();
-		return docJson({ markdown, filepath: result.path, renderAs: "markdown" }, options);
+		return Response.json({ markdown, filepath: result.path });
 	} catch {
 		return Response.json({ error: "Failed to read file" }, { status: 500 });
 	}

@@ -31,7 +31,7 @@ describe("CLI top-level help", () => {
     expect(output).toContain("hypermark --version, -v");
     expect(output).toContain("hypermark review [--git]");
     expect(output).toContain("hypermark annotate <file.md | file.txt | file.html>");
-    expect(output).toContain("[--markdown] [--gate]");
+    expect(output).toContain("file.html> [--gate]");
     expect(output).toContain("hypermark annotate-last [--stdin]");
     expect(output).toContain("hypermark uninstall [--purge] [--yes]");
     expect(output).toContain("Run 'hypermark <command> --help' for command-specific usage.");
@@ -91,7 +91,7 @@ describe("CLI subcommand help", () => {
       "hypermark review [--git]",
     );
     expect(formatSubcommandHelp("review")).toContain("--git");
-    expect(formatSubcommandHelp("annotate")).toContain("--markdown");
+    expect(formatSubcommandHelp("annotate")).not.toContain("--markdown");
     expect(formatSubcommandHelp("annotate")).toContain("--require-approval");
     expect(formatSubcommandHelp("annotate")).toContain("--result-file <path>");
     expect(formatSubcommandHelp("annotate-last")).not.toContain(
@@ -214,7 +214,6 @@ describe("strict annotate CLI options", () => {
       "plan.md",
       "--gate",
       "--json",
-      "--markdown",
     ];
     expect(parseStrictAnnotateOptions(args)).toEqual({
       requireApproval: false,

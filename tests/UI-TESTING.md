@@ -297,13 +297,11 @@ zero annotations and n annotations — on desktop.
    decision. `Approve with a note…` / `Approve with notes` appear only when the session
    advertises approval-notes support.
 3. **Annotate last message** (`hypermark last`). Same control, same states.
-4. **HTML annotate** (`hypermark annotate page.html`). Open the caret menu, then click the framed page: the popover
-   dismisses (iframe focus is the dismissal signal — there is no parent pointerdown).
-5. **Review, agent mode** (`hypermark review`). `Approve` at zero, `Send Feedback · n` after
+4. **Review, agent mode** (`hypermark review`). `Approve` at zero, `Send Feedback · n` after
    annotating. With the composer open, `Escape` returns to the menu
    and does NOT collapse the file tree or close the sidebar; a second `Escape` closes the menu;
    a third runs the app's own ladder.
-6. **Sidebar general comment** (review). "+ General comment" is reachable at zero annotations
+5. **Sidebar general comment** (review). "+ General comment" is reachable at zero annotations
    (empty state) and from the General section header; creating one flips the header control to
    `Send Feedback · 1`.
 

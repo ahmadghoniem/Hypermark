@@ -131,10 +131,10 @@ describe('fromShareable — legacy tuple annotations', () => {
     expect('diffContext' in restored!).toBe(false);
   });
 
-  test('the tuple format never carried anchors, targets or reply links, and restore does not invent them', () => {
+  test('the tuple format never carried reply links, and restore does not invent them', () => {
     // A reply serialized as a plain comment on the same quote is the existing
-    // text-restore contract; the decoder must not resurrect threading or
-    // another viewer's DOM anchors from a payload that has neither.
+    // text-restore contract; the decoder must not resurrect threading from a
+    // payload that has none.
     const restored = fromShareable([
       ['C', 'quote', 'Parent', 'ramos'],
       ['C', 'quote', 'Reply', 'legacy-author'],
@@ -143,7 +143,5 @@ describe('fromShareable — legacy tuple annotations', () => {
     expect(restored[1]!.originalText).toBe('quote');
     expect(restored[1]!.text).toBe('Reply');
     expect(restored[1]!.inReplyTo).toBeUndefined();
-    expect(restored[1]!.htmlAnchor).toBeUndefined();
-    expect(restored[1]!.htmlAdditionalTargets).toBeUndefined();
   });
 });

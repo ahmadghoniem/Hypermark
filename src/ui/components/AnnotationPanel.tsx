@@ -225,10 +225,6 @@ interface PanelProps {
   width?: number | string;
   onClose?: () => void;
   otherFileAnnotations?: { count: number; files: number };
-  /** Ids of annotations with no live location in the document (e.g. the
-    *  HTML viewer's onUnanchoredChange report after a refresh). Matching
-    *  cards show a small "Unanchored" chip. Absent: no chip, DOM unchanged. */
-  unanchoredIds?: ReadonlySet<string>;
 }
 
 export const AnnotationPanel: React.FC<PanelProps> = ({
@@ -245,7 +241,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
   width,
   onClose,
   otherFileAnnotations,
-  unanchoredIds,
   scope,
   onScopeChange,
   messageGroups,
@@ -440,7 +435,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                             onDelete={() => onDeleteAnnotation(entry.annotation.id)}
                             onEdit={onEditAnnotation ? (updates: Partial<Annotation>) => onEditAnnotation(entry.annotation.id, updates) : undefined}
                             readOnly={!group.isCurrent}
-                            unanchored={group.isCurrent ? (unanchoredIds?.has(entry.annotation.id) ?? false) : false}
                           />
                         </div>
                       ) : (
@@ -452,7 +446,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                           onDelete={() => onDeleteAnnotation(entry.annotation.id)}
                           onEdit={onEditAnnotation ? (updates: Partial<Annotation>) => onEditAnnotation(entry.annotation.id, updates) : undefined}
                           readOnly={!group.isCurrent}
-                          unanchored={group.isCurrent ? (unanchoredIds?.has(entry.annotation.id) ?? false) : false}
                         />
                       )
                     ) : (
@@ -487,7 +480,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                       onSelect={() => onSelectAnnotation(entry.annotation.id)}
                       onDelete={() => onDeleteAnnotation(entry.annotation.id)}
                       onEdit={onEditAnnotation ? (updates: Partial<Annotation>) => onEditAnnotation(entry.annotation.id, updates) : undefined}
-                      unanchored={unanchoredIds?.has(entry.annotation.id) ?? false}
                     />
                   </div>
                 ) : (
@@ -498,7 +490,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                   onSelect={() => onSelectAnnotation(entry.annotation.id)}
                   onDelete={() => onDeleteAnnotation(entry.annotation.id)}
                   onEdit={onEditAnnotation ? (updates: Partial<Annotation>) => onEditAnnotation(entry.annotation.id, updates) : undefined}
-                  unanchored={unanchoredIds?.has(entry.annotation.id) ?? false}
                 />
                 )
               ) : (
@@ -557,9 +548,7 @@ const AnnotationCard: React.FC<{
   onDelete: () => void;
   onEdit?: (updates: Partial<Annotation>) => void;
   readOnly?: boolean;
-  /** The annotation has no live location in the document (host-reported). */
-  unanchored?: boolean;
-}> = ({ annotation, isSelected, onSelect, onDelete, onEdit, readOnly = false, unanchored = false }) => {
+}> = ({ annotation, isSelected, onSelect, onDelete, onEdit, readOnly = false }) => {
   const [isEditing, setIsEditing] = useState(false);
 
   const typeColor = TYPE_COLOR[annotation.type] ?? 'text-muted-foreground';
@@ -604,15 +593,6 @@ const AnnotationCard: React.FC<{
         {annotation.diffContext && (
           <span className="text-4xs px-1.5 py-0.5 rounded-sm font-medium bg-muted text-muted-foreground">
             diff
-          </span>
-        )}
-        {unanchored && (
-          <span
-            data-annotation-unanchored="true"
-            className="text-4xs px-1.5 py-0.5 rounded-sm font-medium bg-muted text-muted-foreground"
-            title="This comment no longer matches a location in the document"
-          >
-            Unanchored
           </span>
         )}
         <span className="ml-auto shrink-0 text-3xs text-muted-foreground/50">

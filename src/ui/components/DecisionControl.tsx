@@ -50,10 +50,6 @@ export interface DecisionControlProps {
   /** Spinner on the primary only. */
   isLoading: boolean;
   labelBreakpoint?: 'md' | 'lg';
-  /** The host says the surface is framed (raw-HTML srcdoc):
-   *  clicks inside the iframe never reach the parent document, so iframe
-   *  focus dismisses the popover instead. */
-  dismissOnIframeFocus?: boolean;
   /** Confirm surface override; defaults to the ui ConfirmDialog. */
   confirmDialog?: React.ComponentType<ConfirmDialogProps>;
 }
@@ -168,7 +164,6 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
   busy,
   isLoading,
   labelBreakpoint = 'md',
-  dismissOnIframeFocus = false,
   confirmDialog,
 }) => {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -199,7 +194,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
     if (options?.focusCaret) caretRef.current?.focus();
   }, []);
 
-  // Outside-dismissal (outside pointerdown, iframe focus, or an Escape whose
+  // Outside-dismissal (outside pointerdown, or an Escape whose
   // focus has already left the control) closes the WHOLE popover, composer
   // included: the user's attention has left the control, so restoring the
   // intermediate menu rung would fight where they are — and the draft is kept
@@ -211,7 +206,6 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
     enabled: popover !== null,
     ref: rootRef,
     onDismiss: dismiss,
-    dismissOnIframeFocus,
   });
 
   // Busy = a decision is in flight: nothing in the popover can do anything

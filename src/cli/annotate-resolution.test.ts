@@ -26,12 +26,11 @@ afterAll(() => {
 
 function resolve(
   rawFilePath: string,
-  overrides: { renderMarkdown?: boolean; extraMarkdownExtensions?: readonly string[] } = {},
+  overrides: { extraMarkdownExtensions?: readonly string[] } = {},
 ) {
   return resolveAnnotateTarget({
     rawFilePath,
     projectRoot: root,
-    renderMarkdown: overrides.renderMarkdown ?? false,
     extraMarkdownExtensions: overrides.extraMarkdownExtensions ?? [],
     log: () => {},
   });
@@ -66,17 +65,11 @@ describe("resolveAnnotateTarget", () => {
     }
   });
 
-  test("resolves an HTML file as raw HTML by default and markdown with --markdown", async () => {
-    const raw = await resolve("docs/page.html");
-    expect(raw.ok).toBe(true);
-    if (raw.ok) {
-      expect(raw.rawHtml).toBe("<p>hi</p>");
-      expect(raw.markdown).toBe("");
-    }
-    const converted = await resolve("docs/page.html", { renderMarkdown: true });
+  test("converts an HTML file to markdown", async () => {
+    const converted = await resolve("docs/page.html");
     expect(converted.ok).toBe(true);
     if (converted.ok) {
-      expect(converted.rawHtml).toBeUndefined();
+      expect(converted.markdown).toBe("hi");
       expect(converted.sourceConverted).toBe(true);
     }
   });

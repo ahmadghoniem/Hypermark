@@ -120,12 +120,11 @@ describe("annotatable plain-text files (#1029)", () => {
 		const file = writeTempFile(root, "config.yaml", "key: value\n");
 
 		const res = await getDoc(file, { rootPaths: [root], doc: true });
-		const data = await res.json() as { markdown?: string; codeFile?: boolean; renderAs?: string };
+		const data = await res.json() as { markdown?: string; codeFile?: boolean };
 
 		expect(res.status).toBe(200);
 		expect(data.codeFile).toBeUndefined();
 		expect(data.markdown).toBe("key: value\n");
-		expect(data.renderAs).toBe("markdown");
 	});
 
 	test("without doc=1, a .yaml path keeps the code-file popout response", async () => {

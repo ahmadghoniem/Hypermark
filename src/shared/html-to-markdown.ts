@@ -1,8 +1,8 @@
 /**
  * HTML-to-Markdown conversion via Turndown.
  *
- * Shared between URL fetching, `annotate --markdown`, and the server's
- * on-demand conversion for HTML files in folder mode.
+ * Shared between URL fetching, `annotate` on an HTML file, and the server's
+ * on-demand conversion for linked HTML files and folder mode.
  */
 
 import TurndownService from "turndown";

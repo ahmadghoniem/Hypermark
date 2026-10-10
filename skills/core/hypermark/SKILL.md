@@ -45,7 +45,7 @@ Reviews local VCS changes. Feedback and annotations come back on stdout when the
 ## hypermark annotate
 
 ```bash
-hypermark annotate <target> [--markdown] [--render-html] [--gate] [--json] [--hook]
+hypermark annotate <target> [--gate] [--json] [--hook]
 ```
 
 Opens one document in the annotation UI and returns the human's annotations on stdout.
@@ -56,7 +56,7 @@ Targets:
 
 - Markdown and text files: `.md`, `.mdx`, `.txt`.
 - Plain-text config and data files, rendered as text: `.yaml`, `.yml`, `.json`, `.jsonc`, `.json5`, `.toml`, `.ini`, `.cfg`, `.conf`, `.properties`, `.csv`, `.tsv`, `.log`, `.xml`, `.env.example`. `.env` itself is deliberately refused (it commonly holds secrets, and annotate history copies file contents). Source-code files belong to `hypermark review`, not annotate.
-- HTML files (`.html`, `.htm`): rendered as the raw page by default; `--markdown` converts to markdown instead. `--render-html` is accepted for compatibility; raw rendering is already the default.
+- HTML files (`.html`, `.htm`): converted to markdown.
 
 Single files are capped at 2MB. Files are read from disk at stable project paths; keep the reviewed source where it lives.
 

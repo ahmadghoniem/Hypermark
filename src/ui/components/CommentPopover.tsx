@@ -13,18 +13,6 @@ import type { QuickLabel } from '../utils/quickLabels';
 import { ComposerQuickLabels } from './ComposerQuickLabels';
 import { isDialKitTarget } from '../utils/dialkit';
 
-/** One selected target of a multi-target draft comment (HTML pinpoint multi-select). */
-export interface CommentTargetChip {
-  key: string;
-  /** Semantic label (hover-label cascade), e.g. "Button" / "rowchip". */
-  label?: string;
-  /** Short text excerpt of the target element. */
-  excerpt: string;
-}
-
-/** Composer-yield stage while the user is shift-selecting (see composerYield.ts). */
-export type CommentPopoverYieldState = 'none' | 'near' | 'over';
-
 interface CommentPopoverProps {
   /** Element to anchor the popover near (re-reads position on scroll) */
   anchorEl?: HTMLElement;
@@ -53,22 +41,6 @@ interface CommentPopoverProps {
   draftKey?: string;
   /** Whether submitting empty text is allowed, for editors that support clearing. */
   allowEmptySubmit?: boolean;
-  /** Opt-in (HTML multi-select): selected targets rendered as horizontally
-   *  scrollable chips above the textarea. Absent → byte-identical composer. */
-  targetChips?: CommentTargetChip[];
-  /** Remove a chip's target while composing. */
-  onRemoveTargetChip?: (key: string) => void;
-  /** Chip hover — host flashes the corresponding element in the page. */
-  onHoverTargetChip?: (key: string) => void;
-  /** Opt-in: bump to return focus to the textarea (after a shift-click add/remove). */
-  refocusToken?: number;
-  /** Opt-in: while open, a window-level printable keydown that would otherwise
-   *  go nowhere (focus on <body>) routes into the textarea, so the first
-   *  keystroke after a shift-click is never lost. */
-  captureStrayKeys?: boolean;
-  /** Opt-in composer yield while shift-selecting: 'near' fades the composer,
-   *  'over' makes it near-invisible and click-through. Undefined → no-op. */
-  yieldState?: CommentPopoverYieldState;
 }
 
 const MAX_POPOVER_WIDTH = 344;
@@ -191,12 +163,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   onClose,
   draftKey,
   allowEmptySubmit = false,
-  targetChips,
-  onRemoveTargetChip,
-  onHoverTargetChip,
-  refocusToken,
-  captureStrayKeys = false,
-  yieldState,
 }) => {
   const visibleBounds = useVisibleViewportBounds(16);
   const baseWidth = Math.min(MAX_POPOVER_WIDTH, visibleBounds.width);
@@ -474,7 +440,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   // Click-outside for popover mode
   useEffect(() => {
     if (mode !== 'popover') return;
-    const shiftSelectionActive = Boolean(targetChips?.length);
 
     const handlePointerDown = (e: PointerEvent) => {
       const target = e.target as Node | null;
@@ -485,117 +450,12 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       if (el.closest?.('[data-popover-layer]')) return;
       if (isDialKitTarget(e.target)) return;
       if (hasUnsavedContentRef.current) return;
-      // A same-document multi-select target receives pointerdown before click.
-      // Preserve the existing draft so the following Shift-click can extend
-      // it instead of silently replacing it with a new one.
-      if (shiftSelectionActive && e.shiftKey) return;
       handleClose('preserve-pointer-target');
     };
 
     document.addEventListener('pointerdown', handlePointerDown, true);
     return () => document.removeEventListener('pointerdown', handlePointerDown, true);
-  }, [handleClose, mode, targetChips?.length]);
-
-  // Focus choreography (multi-select): after a shift-click adds/removes a
-  // target, focus returns to the textarea so typing continues uninterrupted.
-  // Focus only — the caret stays wherever the user left it mid-edit.
-  const refocusSeenRef = useRef(refocusToken);
-  useEffect(() => {
-    if (refocusToken === undefined || refocusToken === refocusSeenRef.current) return;
-    refocusSeenRef.current = refocusToken;
-    textareaRef.current?.focus();
-  }, [refocusToken]);
-
-  // First-keystroke guard: while the draft is open, a printable keydown that
-  // lands nowhere (focus fell back to <body> after an iframe interaction)
-  // routes into the textarea instead of vanishing. Runs in capture phase so
-  // it claims the key before the app's shortcut dispatcher; the character
-  // lands at the textarea's remembered caret. Note that preventDefault here
-  // does not stop the dispatcher (it deliberately ignores defaultPrevented,
-  // see shortcuts/runtime.ts) — this guard is only safe because the
-  // plan-review scopes bind no bare printable single key. Any future single-
-  // key binding on this surface must be reconciled with this handler.
-  useEffect(() => {
-    if (!captureStrayKeys) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (!e.key || e.key.length !== 1) return;
-      const target = e.target;
-      const strayed =
-        target === null
-        || target === document.body
-        || target === document.documentElement;
-      if (!strayed) return;
-      const el = textareaRef.current;
-      if (!el || document.activeElement === el) return;
-      e.preventDefault();
-      const key = e.key;
-      const start = el.selectionStart ?? el.value.length;
-      const end = el.selectionEnd ?? start;
-      setText((prev) => prev.slice(0, start) + key + prev.slice(end));
-      el.focus();
-      requestAnimationFrame(() => {
-        el.selectionStart = el.selectionEnd = start + 1;
-      });
-    };
-    window.addEventListener('keydown', handler, true);
-    return () => window.removeEventListener('keydown', handler, true);
-  }, [captureStrayKeys]);
-
-  // Composer yield (multi-select): fade near the pointer, click-through over
-  // it. Class-driven so prefers-reduced-motion can kill the transition.
-  const yieldClass = yieldState === undefined
-    ? ''
-    : ` pn-composer-yieldable${yieldState === 'over' ? ' pn-composer-yield-over' : yieldState === 'near' ? ' pn-composer-yield-near' : ''}`;
-  const yieldStyleBlock = yieldState === undefined ? null : (
-    <style>{`
-      .pn-composer-yieldable { transition: opacity 180ms ease; }
-      @media (prefers-reduced-motion: reduce) {
-        .pn-composer-yieldable { transition: none; }
-      }
-      .pn-composer-yield-near { opacity: 0.4; }
-      .pn-composer-yield-over { opacity: 0.05; pointer-events: none; }
-    `}</style>
-  );
-
-  // Selected-target chips (multi-select): horizontally scrollable, primary
-  // first; each removable while composing.
-  const chipsRow = targetChips && targetChips.length > 0 ? (
-    <div
-      data-target-chips="true"
-      className="flex items-center gap-1.5 px-3 pt-2 overflow-x-auto whitespace-nowrap"
-    >
-      {targetChips.map((chip, i) => (
-        <span
-          key={chip.key}
-          data-target-chip={chip.key}
-          data-target-chip-primary={i === 0 ? 'true' : undefined}
-          onMouseEnter={() => onHoverTargetChip?.(chip.key)}
-          className={`inline-flex items-center gap-1 shrink-0 max-w-45 rounded-full border px-2 py-0.5 text-3xs ${
-            i === 0
-              ? 'border-primary/50 bg-primary/10 text-foreground'
-              : 'border-border bg-muted/50 text-muted-foreground'
-          }`}
-        >
-          <span className="font-semibold text-primary">{chip.label || 'Element'}</span>
-          <span className="truncate">{chip.excerpt}</span>
-          {onRemoveTargetChip && (
-            <button
-              type="button"
-              data-target-chip-remove={chip.key}
-              onClick={() => onRemoveTargetChip(chip.key)}
-              title="Remove this target"
-              className="shrink-0 rounded-full p-0.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <svg className="size-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          )}
-        </span>
-      ))}
-    </div>
-  ) : null;
+  }, [handleClose, mode]);
 
   const handleSubmit = useCallback(() => {
     const canSubmitEmpty = allowEmptySubmit && initialText.trim().length > 0;
@@ -682,7 +542,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       {/* Body - the inner tier. A card in its own right: fully rounded, its own
           hairline, its own near shadow. */}
       <div className="flex min-h-0 flex-col rounded-[13px] border border-border/50 bg-popover shadow-[0_1px_1px_rgb(0_0_0/0.16),0_2px_4px_-2px_rgb(0_0_0/0.3)]">
-        {chipsRow}
 
         {/* Textarea. The global composer has no strip, so its Close sits in this corner. */}
         <div className="relative px-3.25 pb-0.5 pt-2.5" {...composerDropProps}>
@@ -864,7 +723,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       <div
         ref={popoverRef}
         data-comment-popover="true"
-        className={`group/composer fixed z-popover bg-card border border-border rounded-xl shadow-[0_1px_2px_rgb(0_0_0/0.18),0_25px_50px_-12px_rgb(0_0_0/0.5)] flex flex-col${yieldClass}`}
+        className="group/composer fixed z-popover bg-card border border-border rounded-xl shadow-[0_1px_2px_rgb(0_0_0/0.18),0_25px_50px_-12px_rgb(0_0_0/0.5)] flex flex-col"
         style={dragPosition
           ? {
               top: dragPosition.top,
@@ -893,7 +752,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             to { opacity: 1; transform: translateY(-100%); }
           }
         `}</style>
-        {yieldStyleBlock}
 
         {composerCard}
 

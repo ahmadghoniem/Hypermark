@@ -6,7 +6,7 @@ Hypermark's shared document UI: markdown rendering, themes, the annotation edito
 
 ## Folders
 
-- `components/` React components (viewer, annotation panel, popovers, `html-viewer/`, `plan-diff/`, `sidebar/`, `ui/`, `icons/`).
+- `components/` React components (viewer, annotation panel, popovers, `plan-diff/`, `sidebar/`, `ui/`, `icons/`).
 - `config/` the settings store (`configStore`), setting definitions, and `useConfig`. Settings persist in cookies and sync to the server's `/api/config`.
 - `hooks/` shared hooks, including the annotation draft hooks that talk to `/api/draft`.
 - `utils/` helpers: cookie storage, image upload (`/api/upload`), math renderer slot, annotation serialization.

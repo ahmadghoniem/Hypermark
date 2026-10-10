@@ -31,7 +31,6 @@ import {
 interface AnnotateResolutionSuccess {
   ok: true;
   markdown: string;
-  rawHtml?: string;
   absolutePath: string;
   annotateMode: "annotate";
   sourceInfo?: string;
@@ -56,7 +55,6 @@ export const ANNOTATE_TAKES_FILE_PATH_MESSAGE = "hypermark annotate takes a file
 export async function resolveAnnotateTarget(options: {
   rawFilePath: string;
   projectRoot: string;
-  renderMarkdown: boolean;
   /**
    * Extra extensions the user registered as markdown (#1307). Defaults to the
    * process-wide set resolved from config.json; passed explicitly by callers
@@ -65,7 +63,7 @@ export async function resolveAnnotateTarget(options: {
   extraMarkdownExtensions?: readonly string[];
   log?: (line: string) => void;
 }): Promise<AnnotateResolutionResult> {
-  const { rawFilePath, projectRoot, renderMarkdown } = options;
+  const { rawFilePath, projectRoot } = options;
   const extraMarkdownExtensions =
     options.extraMarkdownExtensions ?? getExtraMarkdownExtensions();
   const log = options.log ?? ((line: string) => console.error(line));
@@ -116,26 +114,14 @@ export async function resolveAnnotateTarget(options: {
     const resolvedArg = resolveUserPath(htmlCandidate, projectRoot);
     const htmlFile = Bun.file(resolvedArg);
     const html = await htmlFile.text();
-    const renderHtmlForFile = !renderMarkdown;
-    let markdown: string;
-    let rawHtml: string | undefined;
-    let sourceConverted = false;
-    if (renderHtmlForFile) {
-      rawHtml = html;
-      markdown = "";
-    } else {
-      markdown = htmlToMarkdown(html);
-      sourceConverted = true;
-    }
-    log(`${renderHtmlForFile ? "Raw HTML" : "Converted"}: ${resolvedArg}`);
+    log(`Converted: ${resolvedArg}`);
     return {
       ok: true,
-      markdown,
-      rawHtml,
+      markdown: htmlToMarkdown(html),
       absolutePath: resolvedArg,
       annotateMode: "annotate",
       sourceInfo: path.basename(resolvedArg),
-      sourceConverted,
+      sourceConverted: true,
     };
   }
 

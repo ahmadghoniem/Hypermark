@@ -50,7 +50,7 @@ export const ANNOTATABLE_TEXT_REGEX = new RegExp(`${BUILTIN_TEXT_PATTERN}$`, "i"
 
 /**
  * Everything the annotate surfaces can open: the plain-text set plus
- * .html/.htm (which render as raw HTML via their own branch). Used by folder
+ * .html/.htm (which convert to markdown before display). Used by folder
  * discovery and the file-browser listing.
  */
 export const ANNOTATABLE_DOC_REGEX = new RegExp(`${BUILTIN_DOC_PATTERN}$`, "i");
@@ -192,7 +192,7 @@ export const MAX_ANNOTATABLE_FILE_BYTES = 2 * 1024 * 1024;
  * first document. Strip only for markdown sources (.md/.mdx, plus any
  * configured extra extension, which is markdown by definition) and for
  * sources without a file path (plans and agent messages are always markdown);
- * converted sources (URLs, .html via --markdown) keep stripping too since
+ * converted sources (URLs, .html files) keep stripping too since
  * their markdown is generated.
  */
 export function shouldStripFrontmatter(

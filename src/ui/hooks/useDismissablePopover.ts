@@ -4,24 +4,15 @@ import { isDialKitTarget } from '../utils/dialkit';
 /**
  * Outside-`pointerdown` + Escape dismissal for anchored popovers — the one
  * shared effect behind DecisionControl and ActionMenu.
- *
- * `dismissOnIframeFocus` is the explicit strategy for framed surfaces
- * (raw-HTML srcdoc): a click inside the iframe never produces
- * a `pointerdown` in the parent document, but it does move focus into the
- * frame, which fires `blur` on the parent window. The check runs on the next
- * task because `document.activeElement` is not yet updated inside the blur
- * handler.
  */
 export function useDismissablePopover({
   enabled,
   ref,
   onDismiss,
-  dismissOnIframeFocus,
 }: {
   enabled: boolean;
   ref: React.RefObject<HTMLElement | null>;
   onDismiss: () => void;
-  dismissOnIframeFocus?: boolean;
 }) {
   useEffect(() => {
     if (!enabled) return;
@@ -43,22 +34,12 @@ export function useDismissablePopover({
       onDismiss();
     };
 
-    let blurTimer: ReturnType<typeof setTimeout> | undefined;
-    const handleWindowBlur = () => {
-      blurTimer = setTimeout(() => {
-        if (document.activeElement?.tagName === 'IFRAME') onDismiss();
-      }, 0);
-    };
-
     document.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
-    if (dismissOnIframeFocus) window.addEventListener('blur', handleWindowBlur);
 
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
-      if (dismissOnIframeFocus) window.removeEventListener('blur', handleWindowBlur);
-      if (blurTimer !== undefined) clearTimeout(blurTimer);
     };
-  }, [enabled, ref, onDismiss, dismissOnIframeFocus]);
+  }, [enabled, ref, onDismiss]);
 }

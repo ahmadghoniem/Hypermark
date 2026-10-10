@@ -159,12 +159,12 @@ const hookIdx = args.indexOf("--hook");
 const hookFlag = hookIdx !== -1;
 if (hookFlag) args.splice(hookIdx, 1);
 if (hookFlag) gateFlag = true;
-const renderHtmlIdx = args.indexOf("--render-html");
-const renderHtmlFlag = renderHtmlIdx !== -1;
-if (renderHtmlFlag) args.splice(renderHtmlIdx, 1);
-const renderMarkdownIdx = args.indexOf("--markdown");
-const renderMarkdownFlag = renderMarkdownIdx !== -1;
-if (renderMarkdownFlag) args.splice(renderMarkdownIdx, 1);
+// Retired HTML flags: HTML always converts to markdown now. Strip them so an
+// old invocation is not read as a file token.
+for (const retired of ["--render-html", "--markdown"]) {
+  const idx = args.indexOf(retired);
+  if (idx !== -1) args.splice(idx, 1);
+}
 
 // Stdout matrix for annotate / annotate-last.
 //
@@ -490,7 +490,7 @@ if (args[0] === "sessions") {
 
   const rawFilePath = args[1];
   if (!rawFilePath) {
-    exitAnnotateStartupFailure("Usage: hypermark annotate <file.md | file.txt | file.html> [--markdown] [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]");
+    exitAnnotateStartupFailure("Usage: hypermark annotate <file.md | file.txt | file.html> [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]");
   }
 
   // Use HYPERMARK_CWD if set (original working directory before script cd'd)
@@ -535,7 +535,6 @@ if (args[0] === "sessions") {
       : await resolveAnnotateTarget({
           rawFilePath,
           projectRoot,
-          renderMarkdown: renderMarkdownFlag,
         });
 
   if (tolerantMultiToken) {
@@ -544,21 +543,15 @@ if (args[0] === "sessions") {
       resolution = await resolveAnnotateTarget({
         rawFilePath: selection.candidate.value,
         projectRoot,
-        renderMarkdown: renderMarkdownFlag,
       });
     } else if (selection.kind === "multiple") {
       exitAnnotateStartupFailure(buildAmbiguousAnnotateArgsMessage(selection.candidates));
     } else if (selection.kind === "none" && selection.words.length > 1) {
-      // Content flags only: transport flags (--gate/--json/--hook) describe
-      // this invocation's plumbing, and suggesting them would tell an agent
-      // to start a blocking interactive gate from a plain re-run.
-      const handoffFlags = [
-        ...(renderMarkdownFlag ? ["--markdown"] : []),
-        ...(renderHtmlFlag ? ["--render-html"] : []),
-      ];
+      // No flags are handed off: transport flags (--gate/--json/--hook)
+      // describe this invocation's plumbing, and suggesting them would tell
+      // an agent to start a blocking interactive gate from a plain re-run.
       const message = buildUnresolvedAnnotateArgsMessage({
         words: selection.words,
-        flags: handoffFlags,
         agentHandoff: true,
       });
       if (jsonFlag || hookFlag) {
@@ -581,7 +574,6 @@ if (args[0] === "sessions") {
     resolution = await resolveAnnotateTarget({
       rawFilePath,
       projectRoot,
-      renderMarkdown: renderMarkdownFlag,
     });
   }
 
@@ -591,7 +583,6 @@ if (args[0] === "sessions") {
 
   const {
     markdown,
-    rawHtml,
     absolutePath,
     annotateMode,
     sourceInfo,
@@ -614,9 +605,6 @@ if (args[0] === "sessions") {
       json: jsonFlag,
       hook: hookFlag,
     }),
-    rawHtml,
-    renderHtml: !!rawHtml,
-    convertHtml: renderMarkdownFlag,
     project: annotateProject,
     htmlContent: planHtmlContent,
     parentWatch: true,
