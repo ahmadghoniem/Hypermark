@@ -144,13 +144,12 @@ export const Gallery: React.FC = () => {
             id="composer"
             title="Composer"
             tall
-            note="Left: the real composer (click Open composer). Right: the new one. Ctrl+Enter adds, Escape discards, paste or drop images."
+            note="Left: the real composer (click Open composer). Right: the new one, with quick labels as a Tab completion and images as name chips. Ctrl+C copies the quote, Ctrl+Enter adds, Escape discards, paste or drop images."
             now={<NowComposer />}
             fluid={(
               <NewComposer
                 quote={QUOTE}
                 quickLabels={DEFAULT_QUICK_LABELS}
-                onQuickLabel={(l) => toast(`Label: ${l.text}`)}
                 onSubmit={(t, files) => toast(`Added: ${t || '(no text)'}${files.length ? ` + ${files.length} image(s)` : ''}`)}
               />
             )}
