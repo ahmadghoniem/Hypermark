@@ -41,6 +41,7 @@
     "@plannotator/web-highlighter": "^0.8.1",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-table": "^8.21.3",
+    "@untitledui/icons": "^0.0.23",
     "@viz-js/viz": "^3.25.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

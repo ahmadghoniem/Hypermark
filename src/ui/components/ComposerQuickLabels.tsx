@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { QuickLabel } from '../utils/quickLabels';
 
+/** Chip hues by position in the list (Tailwind 500s: green, amber, orange,
+ *  cyan, red, blue), so labels are told apart without a color picker. */
+const CHIP_HUES = ['#22c55e', '#f59e0b', '#f97316', '#06b6d4', '#ef4444', '#3b82f6'];
+
 interface ComposerQuickLabelsProps {
   labels: readonly QuickLabel[];
   onSelect: (label: QuickLabel) => void;
@@ -17,7 +21,8 @@ interface ComposerQuickLabelsProps {
 /**
  * One line of label chips along the bottom of the composer's text field. A
  * vertical wheel scrolls it sideways; the clipped edges fade. It hides as soon
- * as the field has content, without changing the field's height. No tooltips.
+ * as the field has content, without changing the field's height. Each chip is
+ * tinted with its position's hue mixed into the popover color. No tooltips.
  */
 export const ComposerQuickLabels: React.FC<ComposerQuickLabelsProps> = ({ labels, onSelect, hidden, chipHeight, gap, fade, className }) => {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -76,14 +81,14 @@ export const ComposerQuickLabels: React.FC<ComposerQuickLabelsProps> = ({ labels
         className="flex items-center overflow-x-auto overscroll-x-contain py-0.5 scrollbar-none [&::-webkit-scrollbar]:hidden"
         style={{ gap, ...(mask ? { maskImage: mask, WebkitMaskImage: mask } : {}) }}
       >
-        {labels.map((label) => (
+        {labels.map((label, i) => (
           <button
             key={label.id}
             type="button"
             tabIndex={hidden ? -1 : 0}
             onClick={() => onSelect(label)}
-            style={{ height: chipHeight }}
-            className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-border bg-card px-2.25 text-2xs font-medium text-foreground/85 shadow-[0_1px_2px_rgb(0_0_0/0.3),0_6px_14px_-6px_rgb(0_0_0/0.6)] transition-colors hover:bg-muted hover:text-foreground"
+            style={{ height: chipHeight, '--chip': CHIP_HUES[i % CHIP_HUES.length] } as React.CSSProperties}
+            className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-[color-mix(in_srgb,var(--chip)_15%,var(--popover))] px-2.5 text-2xs font-medium text-foreground/90 transition-colors hover:bg-[color-mix(in_srgb,var(--chip)_26%,var(--popover))] hover:text-foreground"
           >
             {label.text}
           </button>

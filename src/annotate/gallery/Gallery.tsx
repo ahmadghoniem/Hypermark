@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Copy, Download, FileText, Keyboard, Link, Moon, Settings, Tag } from 'lucide-react';
+import { Copy01 as Copy, Download01 as Download, File06 as FileText, Keyboard01 as Keyboard, Link01 as Link, Moon01 as Moon, Settings01 as Settings, Tag01 as Tag } from '@untitledui/icons';
 import { CopyIcon, DownloadSimpleIcon, LinkIcon } from '@phosphor-icons/react';
 import { toast, Toaster } from 'sonner';
 
@@ -137,7 +137,7 @@ export const Gallery: React.FC = () => {
           <h1 className="text-lg font-semibold">Fluid gallery</h1>
           <p className="mt-1 max-w-[70ch] text-xs text-muted-foreground">
             Each row puts the component Hypermark uses now next to the Fluid Functionalism one, both on the app theme.
-            Fluid's icons are Lucide here; ours are Phosphor. Dev only, not in the build.
+            The Fluid side uses Untitled UI icons; ours are Phosphor. Dev only, not in the build.
           </p>
 
           <Row
