@@ -2,8 +2,6 @@
 
 Hypermark's shared document UI: markdown rendering, themes, the annotation editor, settings, comments, and layout. It is used by `src/annotate` and `src/review`. It is private and not published.
 
-`@hypermark/core` sits underneath it: a small, browser-safe, zero-dependency package of pure utilities and types. Keep it free of `node:` imports.
-
 ## Folders
 
 - `components/` React components (viewer, annotation panel, popovers, `plan-diff/`, `sidebar/`, `ui/`, `icons/`).
