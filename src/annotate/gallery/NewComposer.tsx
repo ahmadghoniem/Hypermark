@@ -1,8 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { useDialKit } from 'dialkit';
 import { ArrowUp, Image01, ImagePlus, XClose } from '@untitledui/icons';
 import { Tooltip } from '@/ui/fluid/components/tooltip';
-import { FileThumbnail } from '@/ui/fluid/components/file-thumbnail';
 import { QuoteText } from '@/ui/components/QuoteText';
 import type { QuickLabel } from '@/ui/utils/quickLabels';
 import { copyTextToClipboard } from '@/ui/utils/clipboard';
@@ -20,18 +18,14 @@ const TIP = 'border border-border bg-popover text-foreground shadow-md';
 const TEXT = 'text-sm/normal';
 
 /**
- * The completion the field offers: the rest of the first label the text is a
- * prefix of (the first label when empty), or a cycle to the next label when
- * the text already is one. Matching ignores case.
+ * The rest of the first label the text is a prefix of (the first label when
+ * the field is empty), ignoring case. Nothing once the text is a whole label,
+ * so an accepted label stays put.
  */
 function suggestionFor(text: string, labels: readonly string[]) {
   const lower = text.toLowerCase();
-  const exact = labels.findIndex((l) => l.toLowerCase() === lower.trim());
-  if (exact !== -1) {
-    return labels.length > 1 ? { rest: '', next: labels[(exact + 1) % labels.length] } : null;
-  }
   const match = labels.find((l) => l.length > text.length && l.toLowerCase().startsWith(lower));
-  return match ? { rest: match.slice(text.length), next: match } : null;
+  return match ? { rest: match.slice(text.length), label: match } : null;
 }
 
 /** "screenshot.png" -> ["screenshot", ".png"], so the name truncates and the
@@ -44,13 +38,12 @@ function splitName(name: string): [string, string] {
 /**
  * Mock of the reworked composer, for the gallery only. One flat card with
  * InputMessage's 8px inset: the quoted text (Ctrl+C with nothing selected
- * copies it), the text field, a row with the attach icon and the attached
- * files as name chips, and the send icon alone in the bottom row.
+ * copies it), the text field, a row with the attached files as name chips
+ * followed by the attach icon, and the send icon alone in the bottom row.
  *
  * Quick labels have no chips: the field offers them as a ghost completion.
  * Empty, it shows the first label; typing narrows to the first label the text
- * starts; Tab accepts, and Tab on a whole label cycles to the next one.
- * Ctrl+Enter adds, Escape discards.
+ * starts. Tab accepts it. Ctrl+Enter adds, Escape discards.
  */
 export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, onSubmit }) => {
   const [text, setText] = useState('');
@@ -59,16 +52,6 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
   const [caretAtEnd, setCaretAtEnd] = useState(true);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const hasContent = text.trim().length > 0 || files.length > 0;
-  const dials = useDialKit('09 · Composer mock', {
-    fileLead: {
-      type: 'select',
-      options: [
-        { value: 'preview', label: 'image preview · rec' },
-        { value: 'icon', label: 'image icon' },
-      ],
-      default: 'preview',
-    },
-  }, { id: 'cl-09', persist: true });
 
   const labels = quickLabels.map((l) => l.text);
   const suggestion = caretAtEnd ? suggestionFor(text, labels) : null;
@@ -97,7 +80,7 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
       submit();
     } else if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && suggestion) {
       e.preventDefault();
-      setText(suggestion.next);
+      setText(suggestion.label);
       setCaretAtEnd(true);
     } else if (e.key === 'Escape') {
       e.preventDefault();
@@ -126,7 +109,7 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
         </QuoteText>
       </div>
 
-      <div className="relative px-1.5 pt-2">
+      <div className="relative px-1.5 pt-3">
         <textarea
           autoFocus
           value={text}
@@ -145,7 +128,7 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
         {/* Ghost completion: the typed text, invisible, so the rest lines up
             after it, then the Tab key. */}
         {suggestion && (
-          <div aria-hidden="true" className={`pointer-events-none absolute inset-x-1.5 top-2 whitespace-pre-wrap wrap-break-word ${TEXT}`}>
+          <div aria-hidden="true" className={`pointer-events-none absolute inset-x-1.5 top-3 whitespace-pre-wrap wrap-break-word ${TEXT}`}>
             <span className="invisible">{text}</span>
             <span className="text-muted-foreground">{suggestion.rest}</span>
             <kbd className="ml-1.5 inline-flex h-4 -translate-y-px items-center rounded-[5px] border border-border bg-background px-1 align-middle font-sans text-4xs text-muted-foreground">
@@ -155,36 +138,22 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
         )}
         {suggestion && (
           <span id="new-composer-suggestion" className="sr-only">
-            {suggestion.rest ? `Press Tab for ${suggestion.next}` : `Press Tab for the next label, ${suggestion.next}`}
+            Press Tab for {suggestion.label}
           </span>
         )}
       </div>
 
-      {/* Attach, then the attached files as name chips. */}
-      <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
-        <Tooltip content="Attach image" side="top" className={TIP}>
-          <button
-            type="button"
-            aria-label="Attach image"
-            onClick={() => fileInputRef.current?.click()}
-            className="grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <ImagePlus size={14} />
-          </button>
-        </Tooltip>
+      {/* The attached files as name chips, then the attach icon. */}
+      <div className="flex flex-wrap items-center gap-1.5 px-0.5 pt-3">
         {files.map((file, i) => {
           const [base, ext] = splitName(file.name);
           return (
             <span
               key={`${file.name}-${i}`}
               title={file.name}
-              className="inline-flex h-6 min-w-0 max-w-44 items-center gap-1.5 rounded-md border border-border/60 bg-muted/40 pl-1 pr-0.5 text-2xs text-foreground/90"
+              className="inline-flex h-6.5 min-w-0 max-w-48 items-center gap-1.5 rounded-md bg-muted/60 pl-2 pr-1 text-xs text-foreground/90"
             >
-              {dials.fileLead === 'icon' ? (
-                <Image01 size={14} className="ml-0.5 shrink-0 text-muted-foreground" />
-              ) : (
-                <FileThumbnail file={file} size={16} radius={3} className="shrink-0" />
-              )}
+              <Image01 size={14} className="shrink-0 text-muted-foreground" />
               <span className="flex min-w-0">
                 <span className="truncate">{base}</span>
                 <span className="shrink-0">{ext}</span>
@@ -193,13 +162,23 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
                 type="button"
                 aria-label={`Remove ${file.name}`}
                 onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
-                className="grid size-4.5 shrink-0 place-items-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="grid size-4.5 shrink-0 place-items-center rounded-sm text-muted-foreground transition-colors hover:text-foreground"
               >
-                <XClose size={11} />
+                <XClose size={12} />
               </button>
             </span>
           );
         })}
+        <Tooltip content="Attach image" side="top" className={TIP}>
+          <button
+            type="button"
+            aria-label="Attach image"
+            onClick={() => fileInputRef.current?.click()}
+            className="grid size-6.5 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ImagePlus size={15} />
+          </button>
+        </Tooltip>
         <input
           ref={fileInputRef}
           type="file"

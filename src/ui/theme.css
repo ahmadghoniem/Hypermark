@@ -673,8 +673,8 @@ body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
    inside the box so it doesn't shift the line.
    An inline background only covers the font's content area, well short of
    the line box the browser's own selection fills. Block padding stretches
-   the mark to the middle 95% of the line box, which inline padding does
-   without moving the layout.
+   the mark to the whole line box, like the selection, which inline padding
+   does without moving the layout.
    The padding is measured from the baseline, because Chrome doesn't center
    the content area in the line: it rounds the font's ascent and descent to
    whole pixels and floors the space above them. Centering on the content
@@ -707,8 +707,8 @@ body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
   --hl-descent: round(0.2421875em, 1px);
   color: inherit;
   background: oklch(0.86 0.17 95 / 0.35);
-  padding-top: max(0px, calc(var(--hl-base) - var(--hl-ascent) - var(--hl-lh) * 0.025));
-  padding-bottom: max(0px, calc(var(--hl-lh) * 0.975 - var(--hl-base) - var(--hl-descent)));
+  padding-top: calc(var(--hl-base) - var(--hl-ascent));
+  padding-bottom: calc(var(--hl-lh) - var(--hl-base) - var(--hl-descent));
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }

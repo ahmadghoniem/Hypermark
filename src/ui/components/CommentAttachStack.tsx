@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useDialKit } from 'dialkit';
 import type { ImageAttachment } from '../types';
 import { getImageSrc } from './ImageThumbnail';
 import type { PendingAttachment } from './AttachmentStrip';
@@ -49,48 +48,15 @@ export const CommentAttachStack: React.FC<CommentAttachStackProps> = ({
   const collapseTimer = useRef<number | null>(null);
   const lastRemovalAt = useRef(0);
   const [expanded, setExpanded] = useState(false);
-  const dials = useDialKit('02 · Attachment stack', {
-    tile: {
-      type: 'select',
-      options: [
-        { value: '20', label: '20' },
-        { value: '24', label: '24 · default · rec' },
-        { value: '28', label: '28' },
-        { value: '32', label: '32' },
-      ],
-      default: '24',
-    },
-    ring: [2, 1, 3, 0.5],
-    /** Corner radius of every tile in the stack: thumbnails, the +N tile and
-     *  the add tile. 6px read as too round on a 24px tile. */
-    imageRadius: {
-      type: 'select',
-      options: [
-        { value: '1', label: '1' },
-        { value: '2', label: '2' },
-        { value: '4', label: '4 · default · rec' },
-      ],
-      default: '4',
-    },
-    collapseDelay: {
-      type: 'select',
-      options: [
-        { value: '0', label: '0' },
-        { value: '100', label: '100' },
-        { value: '150', label: '150 · default' },
-        { value: '250', label: '250 · rec' },
-        { value: '400', label: '400' },
-      ],
-      default: '150',
-    },
-  }, { id: 'cl-02', persist: true });
-  const tile = Number(dials.tile);
-  const collapseDelay = Number(dials.collapseDelay);
-  const radius = Number(dials.imageRadius);
+  const tile = 24;
+  const collapseDelay = 150;
+  // Corner radius of every tile: thumbnails, the +N tile and the add tile.
+  // 6px read as too round on a 24px tile.
+  const radius = 4;
   const tileSize = { width: tile, height: tile };
   // The ring separates overlapping tiles; it is the card colour, not a border,
   // so it does not eat into the thumbnail.
-  const tileRing = `0 0 0 ${dials.ring}px var(--color-popover)`;
+  const tileRing = '0 0 0 2px var(--color-popover)';
 
   const tiles: Tile[] = [
     ...images.map((image): Tile => ({

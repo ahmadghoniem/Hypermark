@@ -11,7 +11,6 @@ import {
 } from '../hooks/useViewportEnvironment';
 import type { QuickLabel } from '../utils/quickLabels';
 import { ComposerQuickLabels } from './ComposerQuickLabels';
-import { isDialKitTarget } from '../utils/dialkit';
 import { copyTextToClipboard } from '../utils/clipboard';
 import { QuoteText } from './QuoteText';
 
@@ -316,7 +315,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       // Don't close if clicking inside a child portal
       const el = target as HTMLElement;
       if (el.closest?.('[data-popover-layer]')) return;
-      if (isDialKitTarget(e.target)) return;
       if (hasUnsavedContentRef.current) return;
       handleClose('preserve-pointer-target');
     };

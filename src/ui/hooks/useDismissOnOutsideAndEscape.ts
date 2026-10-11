@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { isDialKitTarget } from "../utils/dialkit";
 
 export function useDismissOnOutsideAndEscape({
   enabled,
@@ -29,9 +28,6 @@ export function useDismissOnOutsideAndEscape({
       const target = event.target as Node | null;
       if (!target) return;
       if (ref.current && ref.current.contains(target)) {
-        return;
-      }
-      if (isDialKitTarget(event.target)) {
         return;
       }
       onDismiss();

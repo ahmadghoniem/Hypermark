@@ -10,7 +10,6 @@
  */
 
 import React from "react";
-import { useDialKit } from "dialkit";
 import type { SidebarTab } from "../../hooks/useSidebar";
 import type { Block, Annotation } from "../../types";
 import type { VersionInfo, VersionEntry } from "../../hooks/usePlanDiff";
@@ -70,27 +69,12 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
   fetchingVersion,
   onFetchVersions,
 }) => {
-  // The contents list's indent step and row radius are fixed. Width stays
-  // dialled: it moves the document column, so it is still being tuned.
-  const dials = useDialKit('05 · Sidebar', {
-    width: {
-      type: 'select',
-      options: [
-        { value: '208', label: '208' },
-        { value: '224', label: '224' },
-        { value: '240', label: '240 · default' },
-        { value: '256', label: '256 · rec' },
-        { value: '288', label: '288' },
-      ],
-      default: '240',
-    },
-  }, { id: 'cl-05', persist: true });
   const showingVersions = activeTab === "versions" && !!showVersionsTab;
 
   return (
     <aside
       className="hidden lg:flex flex-col sticky top-12 h-[calc(100vh-3rem)] shrink-0 bg-card"
-      style={{ width: Number(dials.width) }}
+      style={{ width: 240 }}
     >
       {/* Header */}
       <div className="flex h-10 shrink-0 items-center gap-2 px-3.5">

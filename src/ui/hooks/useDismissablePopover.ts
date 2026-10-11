@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { isDialKitTarget } from '../utils/dialkit';
 
 /**
  * Outside-`pointerdown` + Escape dismissal for anchored popovers — the one
@@ -20,7 +19,6 @@ export function useDismissablePopover({
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node | null;
       if (target && ref.current && ref.current.contains(target)) return;
-      if (isDialKitTarget(event.target)) return;
       onDismiss();
     };
 

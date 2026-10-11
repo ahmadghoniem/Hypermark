@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useDialKit } from 'dialkit';
 import { AnnotationType, type Annotation, type Block, type CodeAnnotation } from '../types';
 import { ImageThumbnail } from './ImageThumbnail';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -238,20 +237,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
   onScopeChange,
   messageGroups,
 }) => {
-  const dials = useDialKit('07 · Annotations panel', {
-    width: {
-      type: 'select',
-      options: [
-        { value: '256', label: '256' },
-        { value: '288', label: '288 · default' },
-        { value: '304', label: '304' },
-        { value: '320', label: '320 · rec' },
-        { value: '336', label: '336' },
-        { value: '384', label: '384' },
-      ],
-      default: '288',
-    },
-  }, { id: 'cl-07', persist: true });
   const isMobile = useIsMobile();
   const mobilePanel = isMobile;
   const [now, setNow] = useState(() => Date.now());
@@ -299,7 +284,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
       className={`bg-card flex flex-col shrink-0 ${
         mobilePanel ? 'fixed top-12 bottom-0 right-0 z-panel w-full max-w-sm shadow-2xl' : ''
       }`}
-      style={mobilePanel ? undefined : { width: width ?? Number(dials.width) }}
+      style={mobilePanel ? undefined : { width: width ?? 288 }}
     >
       {/* Header */}
       <div>
