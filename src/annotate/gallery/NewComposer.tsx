@@ -178,12 +178,12 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
             <span
               key={`${file.name}-${i}`}
               title={file.name}
-              className="inline-flex h-6 min-w-0 max-w-44 items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 pl-1 pr-0.5 text-2xs text-foreground/90"
+              className="inline-flex h-6 min-w-0 max-w-44 items-center gap-1.5 rounded-md border border-border/60 bg-muted/40 pl-1 pr-0.5 text-2xs text-foreground/90"
             >
               {dials.fileLead === 'icon' ? (
                 <Image01 size={14} className="ml-0.5 shrink-0 text-muted-foreground" />
               ) : (
-                <FileThumbnail file={file} size={16} radius={8} className="shrink-0" />
+                <FileThumbnail file={file} size={16} radius={3} className="shrink-0" />
               )}
               <span className="flex min-w-0">
                 <span className="truncate">{base}</span>
@@ -193,7 +193,7 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
                 type="button"
                 aria-label={`Remove ${file.name}`}
                 onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
-                className="grid size-4.5 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="grid size-4.5 shrink-0 place-items-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <XClose size={11} />
               </button>
@@ -212,7 +212,7 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
 
       <div className="flex items-center justify-end pt-1">
         <Tooltip
-          side="left"
+          side="top"
           className={TIP}
           content={(
             <span className="flex items-center gap-2 whitespace-nowrap">
