@@ -49,8 +49,6 @@ interface CommentPopoverProps {
 const MAX_POPOVER_WIDTH = 344;
 /** rounded-xl with --radius 10px: the card's outer corner radius. */
 const CARD_RADIUS = 14;
-/** Corner radius just inside the card's 1px border. Nested corners subtract their inset from it. */
-const INNER_RADIUS = CARD_RADIUS - 1;
 const GAP = 8;
 
 // The quick-label row sits at the foot of the text field.
@@ -172,7 +170,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   const baseWidth = Math.min(MAX_POPOVER_WIDTH, visibleBounds.width);
   const textMinHeight = TEXT_MIN_HEIGHT;
   const fieldMinHeight = TEXT_MIN_HEIGHT + CHIP_HEIGHT + CHIP_GAP;
-  const closeRadius = Math.max(2, INNER_RADIUS - 4);
   const [mode, setMode] = useState<'popover' | 'dialog'>('popover');
   // Dialog mode origin: the anchor simply has no room for a popover and the
   // geometry FORCED it.
@@ -185,6 +182,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   const [text, setText] = useState(initialDraft?.text ?? initialText);
   const [images, setImages] = useState<ImageAttachment[]>(initialDraft?.images ?? initialImages ?? []);
   const [position, setPosition] = useState<CommentPopoverPosition | null>(null);
+  const [copyFlash, setCopyFlash] = useState(false);
   // Direction of an open popover that has scrolled out of view, or null when on-screen.
   const [offscreen, setOffscreen] = useState<'above' | 'below' | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -494,17 +492,20 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     }
     // Focus moves into the composer as soon as the highlight is made, so the
     // page selection is gone; Ctrl/Cmd+C copies the highlighted text instead.
+    // `code` matches the physical C key, so non-Latin layouts work too.
     const field = e.currentTarget;
     if (
       copyText &&
-      e.key.toLowerCase() === 'c' &&
+      (e.code === 'KeyC' || e.key.toLowerCase() === 'c') &&
       (e.metaKey || e.ctrlKey) &&
       !e.shiftKey &&
       !e.altKey &&
       field.selectionStart === field.selectionEnd
     ) {
       e.preventDefault();
-      void copyTextToClipboard(copyText);
+      void copyTextToClipboard(copyText).then((copied) => {
+        if (copied) setCopyFlash(true);
+      });
     }
   };
 
@@ -523,38 +524,24 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 
   const composerCard = (
     <div className="flex min-h-0 flex-col overflow-hidden rounded-[13px] bg-muted/40">
-      {/* Top strip - anchor mark, location, Close at the far right. Draggable by
-          the strip in popover mode. Not rendered for global comments. The
-          inset is the same on the top, bottom and right, and Close's radius is
-          concentric with the corner it sits in. */}
+      {/* Top strip - anchor mark and the quoted text. Draggable by the strip in
+          popover mode. Not rendered for global comments. The composer closes
+          with Escape, a click outside while empty, or by adding the comment.
+          The quote shimmers when Ctrl/Cmd+C copies the highlighted text. */}
       {!isGlobal && (
         <div
-          className="flex items-center gap-2 rounded-t-[13px] pl-3"
+          className="flex min-h-7 items-center gap-2 rounded-t-[13px] px-3 py-1"
           {...(mode === 'popover' ? dragHandleProps : {})}
-          style={{
-            paddingTop: 4,
-            paddingBottom: 4,
-            paddingRight: 4,
-          }}
         >
           <span className="flex shrink-0 text-primary" aria-hidden="true">
             <AnchorIcon size={12} />
           </span>
-          <span className="min-w-0 flex-1 truncate text-2xs/snug text-muted-foreground">
+          <span
+            className={`min-w-0 flex-1 truncate text-2xs/snug text-muted-foreground ${copyFlash ? 'copy-shimmer' : ''}`}
+            onAnimationEnd={() => setCopyFlash(false)}
+          >
             {headerLabel}
           </span>
-          {/* `relative z-2`: when the card opens above its anchor the arc grip
-              is at this corner, and Close must stay on top of it. */}
-          <button
-            type="button"
-            onClick={() => handleClose()}
-            className="relative z-2 grid shrink-0 place-items-center p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            style={{ width: 20, height: 20, borderRadius: closeRadius }}
-            title="Close"
-            aria-label="Close"
-          >
-            <CloseIcon size={12} />
-          </button>
         </div>
       )}
 
@@ -562,28 +549,8 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           hairline, its own near shadow. */}
       <div className="flex min-h-0 flex-col rounded-[13px] border border-border/50 bg-popover shadow-[0_1px_1px_rgb(0_0_0/0.16),0_2px_4px_-2px_rgb(0_0_0/0.3)]">
 
-        {/* Textarea. The global composer has no strip, so its Close sits in this corner. */}
+        {/* Textarea. */}
         <div className="relative px-3.25 pb-0.5 pt-2.5" {...composerDropProps}>
-          {isGlobal && (
-            <button
-              type="button"
-              onClick={() => handleClose()}
-              className="absolute z-1 grid place-items-center p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              style={{
-                // The body has its own 1px border, so inset − 1 puts this button
-                // the same distance from the card edge as the strip's Close.
-                top: 3,
-                right: 3,
-                width: 20,
-                height: 20,
-                borderRadius: closeRadius,
-              }}
-              title="Close"
-              aria-label="Close"
-            >
-              <CloseIcon size={12} />
-            </button>
-          )}
           <div
             className="flex flex-col justify-between"
             style={mode === 'dialog' ? undefined : { minHeight: fieldMinHeight }}
@@ -943,11 +910,5 @@ const AnchorIcon: React.FC<{ size: number }> = ({ size }) => (
   <svg style={{ width: size, height: size }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
     <polyline points="15 10 20 15 15 20" />
     <path d="M4 4v7a4 4 0 0 0 4 4h12" />
-  </svg>
-);
-
-const CloseIcon: React.FC<{ size: number }> = ({ size }) => (
-  <svg style={{ width: size, height: size }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
   </svg>
 );
