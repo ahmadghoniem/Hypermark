@@ -44,7 +44,7 @@ export function RefPicker({
             type="button"
             disabled={disabled}
             title={title}
-            className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-xs font-medium text-foreground border transition-colors focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-caption font-semibold text-foreground border transition-colors focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed ${
               isCustom ? 'bg-primary/10 border-primary/30' : 'bg-muted border-transparent'
             }`}
           />
@@ -69,7 +69,7 @@ export function RefPicker({
 
 /** Small uppercase label inside the trigger chip (`BASE`, `worktree`). */
 export function RefPickerTriggerLabel({ children }: { children: React.ReactNode }) {
-  return <span className="text-3xs uppercase tracking-wide opacity-60 shrink-0">{children}</span>;
+  return <span className="text-micro uppercase tracking-wide opacity-60 shrink-0">{children}</span>;
 }
 
 export function RefPickerSearch({
@@ -94,7 +94,7 @@ export function RefPickerSearch({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
         placeholder={placeholder}
-        className="w-full px-2 py-1.5 bg-muted rounded-sm text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+        className="w-full px-2 py-1.5 bg-muted rounded-sm text-caption text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
       />
     </div>
   );
@@ -105,17 +105,17 @@ export function RefPickerList({ children }: { children: React.ReactNode }) {
 }
 
 export function RefPickerGroupLabel({ children }: { children: React.ReactNode }) {
-  return <div className="px-3 pb-1 text-3xs uppercase tracking-wide text-muted-foreground">{children}</div>;
+  return <div className="px-3 pb-1 text-micro uppercase tracking-wide text-muted-foreground">{children}</div>;
 }
 
 export function RefPickerEmpty({ children }: { children: React.ReactNode }) {
-  return <div className="px-3 py-2 text-xs text-muted-foreground">{children}</div>;
+  return <div className="px-3 py-2 text-caption text-muted-foreground">{children}</div>;
 }
 
 /** Trailing badge on a row (`detected`, `commit`). */
 export function RefPickerTag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-3xs uppercase tracking-wide text-muted-foreground px-1 py-0.5 rounded-sm bg-muted">
+    <span className="text-micro uppercase tracking-wide text-muted-foreground px-1 py-0.5 rounded-sm bg-muted">
       {children}
     </span>
   );
@@ -138,8 +138,8 @@ export function RefPickerRow({
       type="button"
       onClick={onClick}
       title={title}
-      className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left hover:bg-muted focus:outline-none focus:bg-muted ${
-        isSelected ? 'text-foreground font-medium' : 'text-foreground/80'
+      className={`w-full flex items-center gap-2 px-3 py-1.5 text-caption text-left hover:bg-muted focus:outline-none focus:bg-muted ${
+        isSelected ? 'text-foreground font-semibold' : 'text-foreground/80'
       }`}
     >
       <span className="w-3 shrink-0">

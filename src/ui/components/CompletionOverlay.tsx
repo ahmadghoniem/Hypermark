@@ -43,7 +43,7 @@ export function CompletionOverlay({ submitted, title, subtitle, agentLabel }: Co
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold text-foreground">{title}</h2>
+          <h2 className="text-title font-semibold text-foreground">{title}</h2>
           <p className="text-muted-foreground">{subtitle}</p>
         </div>
 
@@ -53,19 +53,19 @@ export function CompletionOverlay({ submitted, title, subtitle, agentLabel }: Co
         <div className="pt-4 border-t border-border space-y-2">
           {state.phase === 'closeFailed' ? (
             <>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-body text-muted-foreground">
                 Could not close this tab automatically. Please close it manually.
               </p>
-              <p className="text-xs text-muted-foreground/60">
+              <p className="text-caption text-muted-foreground/60">
                 Auto-close works when the tab is opened by {agentLabel}.
               </p>
             </>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground">
-                You can close this tab and return to <span className="text-foreground font-medium">{agentLabel}</span>.
+              <p className="text-body text-muted-foreground">
+                You can close this tab and return to <span className="text-foreground font-semibold">{agentLabel}</span>.
               </p>
-              <p className="text-xs text-muted-foreground/60">Your response has been sent.</p>
+              <p className="text-caption text-muted-foreground/60">Your response has been sent.</p>
             </>
           )}
         </div>

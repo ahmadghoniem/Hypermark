@@ -34,16 +34,16 @@ const QUOTE = 'The session is still open and the link text runs into someCode() 
 const Row: React.FC<{ id: string; title: string; note: React.ReactNode; now: React.ReactNode; fluid: React.ReactNode; tall?: boolean }> = ({ id, title, note, now, fluid, tall }) => (
   <section id={id} className="border-t border-border py-6">
     <div className="mb-4 flex items-baseline gap-3">
-      <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-      <p className="text-xs text-muted-foreground">{note}</p>
+      <h2 className="text-body font-semibold text-foreground">{title}</h2>
+      <p className="text-caption text-muted-foreground">{note}</p>
     </div>
     <div className={`grid grid-cols-2 gap-6 ${tall ? 'min-h-110' : ''}`}>
       <div className="rounded-lg border border-dashed border-border p-5">
-        <div className="mb-3 text-3xs font-medium uppercase tracking-wider text-muted-foreground">Now</div>
+        <div className="mb-3 text-micro font-semibold uppercase tracking-wider text-muted-foreground">Now</div>
         <div className="flex flex-wrap items-start gap-3">{now}</div>
       </div>
       <div className="rounded-lg border border-dashed border-border p-5">
-        <div className="mb-3 text-3xs font-medium uppercase tracking-wider text-muted-foreground">Fluid</div>
+        <div className="mb-3 text-micro font-semibold uppercase tracking-wider text-muted-foreground">Fluid</div>
         <div className="flex flex-wrap items-start gap-3">{fluid}</div>
       </div>
     </div>
@@ -59,13 +59,13 @@ const NowScopeToggle: React.FC = () => {
       role="tab"
       aria-selected={scope === value}
       onClick={() => setScope(value)}
-      className={`rounded-sm px-1.5 py-0.5 font-medium transition-all ${scope === value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+      className={`rounded-sm px-1.5 py-0.5 font-semibold transition-all ${scope === value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
     >
       {label}
     </button>
   );
   return (
-    <div role="tablist" className="inline-flex items-center rounded-md bg-muted/60 p-0.5 text-3xs">
+    <div role="tablist" className="inline-flex items-center rounded-md bg-muted/60 p-0.5 text-micro">
       {tab('this', 'Current')}
       {tab('all', 'All')}
     </div>
@@ -75,7 +75,7 @@ const NowScopeToggle: React.FC = () => {
 /** The switch as DiffOptionsButton draws it. */
 const NowSwitch: React.FC<{ label: string; checked: boolean; onChange: (v: boolean) => void }> = ({ label, checked, onChange }) => (
   <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className="group flex w-56 items-center justify-between py-1">
-    <span className="text-2xs text-muted-foreground transition-colors group-hover:text-foreground">{label}</span>
+    <span className="text-micro text-muted-foreground transition-colors group-hover:text-foreground">{label}</span>
     <span className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${checked ? 'bg-primary' : 'bg-muted-foreground/25'}`}>
       <span className={`inline-block size-3 rounded-full shadow-sm transition-transform ${checked ? 'translate-x-3.5 bg-primary-foreground' : 'translate-x-0.5 bg-background dark:bg-foreground'}`} />
     </span>
@@ -98,7 +98,7 @@ const NowComposer: React.FC = () => {
   const [open, setOpen] = useState(false);
   return (
     <div className="flex flex-col gap-2">
-      <span ref={anchorRef} className="w-fit bg-[oklch(0.86_0.17_95/0.35)] text-sm">still open and the link text</span>
+      <span ref={anchorRef} className="w-fit bg-[oklch(0.86_0.17_95/0.35)] text-body">still open and the link text</span>
       <NowButton size="xs" variant="outline" onClick={() => setOpen(true)}>Open composer</NowButton>
       {open && anchorRef.current && (
         <CommentPopover
@@ -134,8 +134,8 @@ export const Gallery: React.FC = () => {
     <ThemeProvider defaultTheme="dark">
       <TooltipProvider delayDuration={300}>
         <div className="mx-auto max-w-275 px-8 pb-24 pt-10">
-          <h1 className="text-lg font-semibold">Fluid gallery</h1>
-          <p className="mt-1 max-w-[70ch] text-xs text-muted-foreground">
+          <h1 className="text-title font-semibold">Fluid gallery</h1>
+          <p className="mt-1 max-w-[70ch] text-caption text-muted-foreground">
             Each row puts the component Hypermark uses now next to the Fluid Functionalism one, both on the app theme.
             Both sides use Untitled UI icons. Dev only, not in the build.
           </p>
@@ -159,7 +159,7 @@ export const Gallery: React.FC = () => {
             id="input-message"
             title="Fluid InputMessage (reference)"
             note="Fluid's own composer, shown as-is for its attachment tiles and send button. Enter sends here."
-            now={<span className="text-xs text-muted-foreground">No equivalent.</span>}
+            now={<span className="text-caption text-muted-foreground">No equivalent.</span>}
             fluid={(
               <div className="w-full max-w-md">
                 <InputMessage
@@ -321,7 +321,7 @@ export const Gallery: React.FC = () => {
             id="checkbox"
             title="Checkbox group"
             note="Nothing like it in the app now; a candidate for the quick-label list."
-            now={<span className="text-xs text-muted-foreground">No equivalent.</span>}
+            now={<span className="text-caption text-muted-foreground">No equivalent.</span>}
             fluid={(
               <CheckboxGroup checkedIndices={checked}>
                 {DEFAULT_QUICK_LABELS.slice(0, 4).map((l, i) => (
@@ -338,7 +338,7 @@ export const Gallery: React.FC = () => {
             now={(
               <div className="flex flex-wrap gap-1.5">
                 {DEFAULT_QUICK_LABELS.map((l) => (
-                  <span key={l.id} className="inline-flex h-6 shrink-0 items-center whitespace-nowrap rounded-full border border-border bg-card px-2.25 text-2xs font-medium text-foreground/85">{l.text}</span>
+                  <span key={l.id} className="inline-flex h-6 shrink-0 items-center whitespace-nowrap rounded-full border border-border bg-card px-2.25 text-micro font-semibold text-foreground/85">{l.text}</span>
                 ))}
               </div>
             )}
@@ -358,7 +358,7 @@ export const Gallery: React.FC = () => {
             id="command"
             title="Command menu"
             note="Would replace the scattered top-bar settings with one searchable list."
-            now={<span className="text-xs text-muted-foreground">Settings are separate buttons in the top bar.</span>}
+            now={<span className="text-caption text-muted-foreground">Settings are separate buttons in the top bar.</span>}
             fluid={(
               <div className="h-80 w-full max-w-md overflow-hidden rounded-xl border border-border bg-popover">
                 <CommandMenu items={COMMANDS} onSelect={(item) => toast(item.label)}>
@@ -371,7 +371,7 @@ export const Gallery: React.FC = () => {
             )}
           />
 
-          <div className="mt-6 flex items-center gap-2 text-2xs text-muted-foreground">
+          <div className="mt-6 flex items-center gap-2 text-micro text-muted-foreground">
             <FileText size={12} /> Source: src/ui/fluid (vendored from fluidfunctionalism.com, MIT).
           </div>
         </div>

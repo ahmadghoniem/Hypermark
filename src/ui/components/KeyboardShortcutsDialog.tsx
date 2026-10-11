@@ -38,7 +38,7 @@ export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = (
         }}
       >
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <h3 id="hypermark-shortcuts-title" className="font-semibold text-sm">Keyboard Shortcuts</h3>
+          <h3 id="hypermark-shortcuts-title" className="font-semibold text-body">Keyboard Shortcuts</h3>
           <button
             type="button"
             aria-label="Close shortcuts"

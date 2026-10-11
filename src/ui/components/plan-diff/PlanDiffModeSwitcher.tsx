@@ -23,7 +23,7 @@ export const PlanDiffModeSwitcher: React.FC<PlanDiffModeSwitcherProps> = ({
       <button
         onClick={() => onChange("clean")}
         title="Word-level inline diff (experimental)"
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-caption font-semibold transition-all ${
           mode === "clean"
             ? "bg-background text-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground"
@@ -31,14 +31,14 @@ export const PlanDiffModeSwitcher: React.FC<PlanDiffModeSwitcherProps> = ({
       >
         <Eye className="size-3.5" />
         Rendered
-        <span className="text-4xs uppercase tracking-wider opacity-60 ml-0.5">
+        <span className="text-micro uppercase tracking-wider opacity-60 ml-0.5">
           exp
         </span>
       </button>
       <button
         onClick={() => onChange("classic")}
         title="Block-level stacked diff (old above new)"
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-caption font-semibold transition-all ${
           mode === "classic"
             ? "bg-background text-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground"
@@ -49,7 +49,7 @@ export const PlanDiffModeSwitcher: React.FC<PlanDiffModeSwitcherProps> = ({
       </button>
       <button
         onClick={() => onChange("raw")}
-        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-caption font-semibold transition-all ${
           mode === "raw"
             ? "bg-background text-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground"

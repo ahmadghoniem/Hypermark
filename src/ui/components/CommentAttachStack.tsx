@@ -196,7 +196,7 @@ export const CommentAttachStack: React.FC<CommentAttachStackProps> = ({
       })}
       {layout.overflow > 0 && (
         <span
-          className="grid shrink-0 place-items-center bg-muted font-mono text-4xs font-semibold text-muted-foreground"
+          className="grid shrink-0 place-items-center bg-muted font-mono text-micro font-semibold text-muted-foreground"
           style={{ ...tileSize, borderRadius: radius, boxShadow: tileRing, marginLeft: -9 }}
         >
           +{layout.overflow}

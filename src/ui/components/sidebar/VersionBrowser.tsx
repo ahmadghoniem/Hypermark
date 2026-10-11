@@ -57,7 +57,7 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
 
   if (!versionInfo) {
     return (
-      <div className="p-4 text-xs text-muted-foreground text-center">
+      <div className="p-4 text-caption text-muted-foreground text-center">
         No version history available.
       </div>
     );
@@ -70,10 +70,10 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
     <div className="p-3">
       {/* Current version info */}
       <div className="mb-3">
-        <div className="text-3xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
+        <div className="text-micro font-semibold text-muted-foreground uppercase tracking-wider mb-1">
           Current Plan
         </div>
-        <div className="text-xs text-foreground">
+        <div className="text-caption text-foreground">
           Version {currentVersion} of {totalVersions}
         </div>
       </div>
@@ -82,7 +82,7 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
       {hasPreviousVersion && !isPlanDiffActive && (
         <button
           onClick={onActivatePlanDiff}
-          className="w-full mb-3 px-3 py-1.5 text-xs font-medium rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors border border-primary/20"
+          className="w-full mb-3 px-3 py-1.5 text-caption font-semibold rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors border border-primary/20"
         >
           Show Changes
         </button>
@@ -91,12 +91,12 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
       {/* Version list */}
       {totalVersions > 1 && (
         <div className="mb-3">
-          <div className="text-3xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+          <div className="text-micro font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             Compare Against
           </div>
 
           {isLoading ? (
-            <div className="text-xs text-muted-foreground py-2 text-center">
+            <div className="text-caption text-muted-foreground py-2 text-center">
               Loading...
             </div>
           ) : (
@@ -110,14 +110,14 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
                     <button
                       key={v.version}
                       onClick={() => onSelectBaseVersion(v.version)}
-                      className={`w-full text-left px-2 py-1.5 rounded-sm text-xs transition-colors ${
+                      className={`w-full text-left px-2 py-1.5 rounded-sm text-caption transition-colors ${
                         isSelected
                           ? "bg-primary/10 text-primary border border-primary/30"
                           : "text-foreground hover:bg-muted/50 border border-transparent"
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-medium">
+                        <span className="font-semibold">
                           v{v.version}
                           {v.version === currentVersion - 1 && (
                             <span className="ml-1 text-muted-foreground font-normal">
@@ -125,7 +125,7 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
                             </span>
                           )}
                         </span>
-                        <span className="text-3xs text-muted-foreground">
+                        <span className="text-micro text-muted-foreground">
                           {fetchingVersion === v.version ? "Loading..." : relativeTime(v.timestamp)}
                         </span>
                       </div>

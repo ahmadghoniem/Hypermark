@@ -12,7 +12,7 @@ import { MessageTextSquare01 } from '@untitledui/icons';
  * flush at the row edge, stay tight together, and add-only rows leave no
  * phantom gap. */
 export const DiffCounts: React.FC<{ additions: number; deletions: number }> = ({ additions, deletions }) => (
-  <span className="min-w-[7ch] text-right whitespace-nowrap shrink-0 text-3xs tabular-nums">
+  <span className="min-w-[7ch] text-right whitespace-nowrap shrink-0 text-micro tabular-nums">
     {additions > 0 && <span className="additions">+{additions}</span>}
     {additions > 0 && deletions > 0 && <span> </span>}
     {deletions > 0 && <span className="deletions">-{deletions}</span>}
@@ -26,7 +26,7 @@ export const ChangeTypeLetter: React.FC<{
   oldPath?: string;
   untracked?: boolean;
 }> = ({ status, oldPath, untracked }) => (
-  <span className="w-3 text-center text-3xs shrink-0">
+  <span className="w-3 text-center text-micro shrink-0">
     {untracked ? (
       <span className="font-semibold text-muted-foreground/70" title="Untracked file">U</span>
     ) : status === 'added' ? (
@@ -66,7 +66,7 @@ export const TruncatedPath: React.FC<{ path: string }> = ({ path }) => {
 export const AnnotationBadge: React.FC<{ count: number }> = ({ count }) => {
   if (count <= 0) return null;
   return (
-    <span className="flex items-center gap-0.5 text-3xs text-primary shrink-0" title={`${count} annotation${count === 1 ? '' : 's'}`}>
+    <span className="flex items-center gap-0.5 text-micro text-primary shrink-0" title={`${count} annotation${count === 1 ? '' : 's'}`}>
       <MessageTextSquare01 className="size-3" />
       {count}
     </span>

@@ -24,7 +24,7 @@ export const CommentMeta: React.FC<CommentMetaProps> = ({
       {leading}
     </div>
     {createdAt != null && (
-      <span className="ml-auto flex-none text-3xs text-muted-foreground/50">
+      <span className="ml-auto flex-none text-micro text-muted-foreground/50">
         {formatRelativeTime(createdAt)}
       </span>
     )}

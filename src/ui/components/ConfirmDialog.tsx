@@ -95,11 +95,11 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <DialogTitle className="font-semibold tracking-normal">{title}</DialogTitle>
         </div>
         <div id={descriptionId}>
-          <div className="text-sm text-muted-foreground mb-2">
+          <div className="text-body text-muted-foreground mb-2">
             {message}
           </div>
           {subMessage && (
-            <div className="text-xs text-muted-foreground mb-6">
+            <div className="text-caption text-muted-foreground mb-6">
               {subMessage}
             </div>
           )}
@@ -111,7 +111,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               ref={cancelButtonRef}
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-md text-sm font-medium bg-muted text-muted-foreground [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted/80 transition-opacity"
+              className="px-4 py-2 rounded-md text-body font-semibold bg-muted text-muted-foreground [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted/80 transition-opacity"
             >
               {cancelText}
             </button>
@@ -126,7 +126,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 onClose();
               }
             }}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-opacity ${buttonColors[variant]}`}
+            className={`px-4 py-2 rounded-md text-body font-semibold transition-opacity ${buttonColors[variant]}`}
           >
             {confirmText}
           </button>

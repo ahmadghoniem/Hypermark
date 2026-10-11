@@ -81,7 +81,7 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
         <span className="flex shrink-0 text-muted-foreground" aria-hidden="true">
           {showingVersions ? <ClockIcon /> : <OutlineIcon />}
         </span>
-        <h2 className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground">
+        <h2 className="min-w-0 flex-1 truncate text-caption font-semibold text-foreground">
           {showingVersions ? "Versions" : "On this page"}
         </h2>
         {showVersionsTab && (

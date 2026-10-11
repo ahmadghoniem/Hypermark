@@ -415,7 +415,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
           tree, below the All files entry. */}
       <div className="px-3 flex items-center border-b border-border/50" style={{ height: 'var(--panel-header-h)' }}>
         {searchQuery.trim() ? (
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Results</span>
+          <span className="text-caption font-semibold text-muted-foreground uppercase tracking-wider">Results</span>
         ) : onSwitchToSections || onSwitchToCommits ? (
           <PanelViewToggle
             view={panelView}
@@ -428,7 +428,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
             }}
           />
         ) : (
-          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Files</span>
+          <span className="text-caption font-semibold text-muted-foreground uppercase tracking-wider">Files</span>
         )}
       </div>
 
@@ -469,7 +469,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
         activeDiffType &&
         compareTarget?.diffTypes.includes(activeDiffType) && (
           <div className="px-2 py-1.5 border-b border-border/30 flex items-center gap-2">
-            <span className="text-3xs uppercase tracking-wide text-muted-foreground shrink-0">
+            <span className="text-micro uppercase tracking-wide text-muted-foreground shrink-0">
               {compareTarget.picker.rowLabel}
             </span>
             <div className="flex-1 min-w-0">
@@ -509,7 +509,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
           <OverlayScrollArea className="flex-1 min-h-0">
             <div className="p-1">
               {isSearchPending ? (
-                <div className="py-6 text-center text-xs text-muted-foreground/50">Searching…</div>
+                <div className="py-6 text-center text-caption text-muted-foreground/50">Searching…</div>
               ) : searchGroups.length > 0 ? (
                 searchGroups.map((group) => (
                   <SearchFileGroup
@@ -521,7 +521,7 @@ export const FileTree: React.FC<FileTreeProps> = ({
                   />
                 ))
               ) : (
-                <div className="py-6 text-center text-xs text-muted-foreground/50">No matches found</div>
+                <div className="py-6 text-center text-caption text-muted-foreground/50">No matches found</div>
               )}
             </div>
           </OverlayScrollArea>
@@ -566,14 +566,14 @@ export const SearchFileGroup: React.FC<{
     <div className="mb-1">
       {/* File header */}
       <button
-        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-xs hover:bg-muted transition-colors group"
+        className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-caption hover:bg-muted transition-colors group"
         onClick={() => setCollapsed((prev) => !prev)}
       >
         <ChevronRight className={`size-3 text-muted-foreground/50 transition-transform shrink-0 ${collapsed ? '' : 'rotate-90'}`} />
         <File06 className="size-3.5 text-muted-foreground/60 shrink-0" />
-        <span className="truncate text-foreground font-medium">{fileName}</span>
-        {dirPath && <span className="truncate text-muted-foreground/50 text-3xs">{dirPath}</span>}
-        <span className="ml-auto shrink-0 text-3xs text-muted-foreground/50 bg-muted rounded-sm px-1.5 py-0.5">
+        <span className="truncate text-foreground font-semibold">{fileName}</span>
+        {dirPath && <span className="truncate text-muted-foreground/50 text-micro">{dirPath}</span>}
+        <span className="ml-auto shrink-0 text-micro text-muted-foreground/50 bg-muted rounded-sm px-1.5 py-0.5">
           {group.matches.length}
         </span>
       </button>
@@ -614,13 +614,13 @@ const SearchMatchRow: React.FC<{
 
   return (
     <button
-      className={`w-full text-left px-2 py-1 rounded-sm text-xs font-mono transition-colors flex items-start gap-1.5 ${
+      className={`w-full text-left px-2 py-1 rounded-sm text-caption font-mono transition-colors flex items-start gap-1.5 ${
         isActive ? 'bg-primary/15 text-foreground' : 'hover:bg-muted/50 text-muted-foreground'
       }`}
       onClick={onSelect}
     >
       <span className="shrink-0 text-muted-foreground/40 w-7 text-right tabular-nums">{match.lineNumber}</span>
-      <span className={`shrink-0 w-6 text-3xs font-semibold uppercase ${sideColor}`}>{sideLabel}</span>
+      <span className={`shrink-0 w-6 text-micro font-semibold uppercase ${sideColor}`}>{sideLabel}</span>
       <span className="truncate leading-relaxed">{highlightQuery(match.snippet, searchQuery)}</span>
     </button>
   );

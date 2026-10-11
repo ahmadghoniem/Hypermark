@@ -135,15 +135,15 @@ export const MessageRail: React.FC<MessageRailProps> = ({
               <span className="grid size-4.5 place-items-center rounded-full border border-border bg-muted text-muted-foreground">
                 <Terminal className="size-2.5" strokeWidth={2.5} />
               </span>
-              <span className="text-2xs text-muted-foreground">Assistant</span>
-              <span className="ml-auto flex items-center gap-2 text-2xs text-muted-foreground/60">
+              <span className="text-micro text-muted-foreground">Assistant</span>
+              <span className="ml-auto flex items-center gap-2 text-micro text-muted-foreground/60">
                 {activeCount > 0 && (
                   <span>{activeCount} annotation{activeCount === 1 ? '' : 's'}</span>
                 )}
                 {activeTime && <span>{activeTime}</span>}
               </span>
             </div>
-            <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-foreground">
+            <p className="line-clamp-2 text-body font-semibold text-foreground">
               {railPreview(active.text)}
             </p>
           </div>

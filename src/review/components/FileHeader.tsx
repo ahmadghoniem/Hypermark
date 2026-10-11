@@ -131,7 +131,7 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
       <div className="min-w-0 flex flex-1 items-center" onClick={onCollapseToggle} style={onCollapseToggle ? { cursor: 'pointer' } : undefined}>
         {collapseToggle}
         <span
-          className={`min-w-0 flex items-center text-xs/normal font-semibold whitespace-nowrap`}
+          className={`min-w-0 flex items-center text-caption/normal font-semibold whitespace-nowrap`}
           title={status === 'renamed' && oldPath ? `${oldPath} → ${filePath}` : filePath}
         >
           {/* Rename: dimmed old path → new path (diffshub treatment). Dropped
@@ -164,7 +164,7 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
               fileCommentButtonRef?.(el);
             }}
             onClick={() => fileCommentRef.current && onFileComment(fileCommentRef.current)}
-            className={`text-xs rounded-sm transition-colors flex items-center text-muted-foreground hover:text-foreground hover:bg-muted ${commentLabel ? 'gap-1 px-2 py-1' : 'px-1.5 py-1'}`}
+            className={`text-caption rounded-sm transition-colors flex items-center text-muted-foreground hover:text-foreground hover:bg-muted ${commentLabel ? 'gap-1 px-2 py-1' : 'px-1.5 py-1'}`}
             title="Add file-scoped comment"
           >
             <MessageDotsSquare className="size-3.5" />
@@ -172,14 +172,14 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
           </button>
         )}
         {(additions > 0 || deletions > 0 || (status && status !== 'modified') || isGenerated) && (
-          <span className="flex-none flex items-center gap-1.5 text-xs leading-none">
+          <span className="flex-none flex items-center gap-1.5 text-caption leading-none">
             {additions > 0 && <span className="font-mono text-success">+{additions}</span>}
             {deletions > 0 && <span className="font-mono text-destructive">-{deletions}</span>}
             {status && <FileStatusLetter status={status} oldPath={oldPath} />}
             {isGenerated && (
               <span
                 data-pn-generated-badge
-                className="flex-none rounded-sm border border-border/60 bg-muted/60 px-1.5 py-0.5 text-3xs font-medium leading-none text-muted-foreground"
+                className="flex-none rounded-sm border border-border/60 bg-muted/60 px-1.5 py-0.5 text-micro font-semibold leading-none text-muted-foreground"
                 title="Marked linguist-generated in .gitattributes"
               >
                 generated

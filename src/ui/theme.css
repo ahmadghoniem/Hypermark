@@ -65,8 +65,45 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* Type scale — fonts excluded on purpose (themes own --font-sans/--font-mono) */
+/* Type scale — fonts excluded on purpose (themes own --font-sans/--font-mono).
+ * The app's chrome (panels, menus, popovers, buttons) uses Fluid
+ * Functionalism's roles, display to micro, at Fluid's three weights: 400,
+ * semibold (550) and bold (700). The rendered document keeps text-xs to
+ * text-5xl below and the plan rhythm. The values match
+ * src/ui/fluid/lib/type-scale.ts, which the vendored components read through
+ * the same --fs-* / --lh-* variables. */
+:root {
+  --fs-display: 28px;
+  --lh-display: 34px;
+  --fs-title: 16px;
+  --lh-title: 22px;
+  --fs-subtitle: 14px;
+  --lh-subtitle: 20px;
+  --fs-body: 13px;
+  --lh-body: 20px;
+  --fs-caption: 12px;
+  --lh-caption: 16px;
+  --fs-micro: 11px;
+  --lh-micro: 14px;
+}
+
+@theme inline {
+  --text-display: var(--fs-display);
+  --text-display--line-height: var(--lh-display);
+  --text-title: var(--fs-title);
+  --text-title--line-height: var(--lh-title);
+  --text-subtitle: var(--fs-subtitle);
+  --text-subtitle--line-height: var(--lh-subtitle);
+  --text-body: var(--fs-body);
+  --text-body--line-height: var(--lh-body);
+  --text-caption: var(--fs-caption);
+  --text-caption--line-height: var(--lh-caption);
+  --text-micro: var(--fs-micro);
+  --text-micro--line-height: var(--lh-micro);
+}
+
 @theme {
+  --font-weight-semibold: 550;
   --text-sm: 0.875rem; --text-sm--line-height: 1.45;
   --text-base: 1rem; --text-base--line-height: 1.55;
   --text-lg: 1.0625rem; --text-lg--line-height: 1.45;
@@ -75,13 +112,6 @@
   --text-3xl: 1.625rem; --text-3xl--line-height: 1.2;
   --text-4xl: 1.875rem; --text-4xl--line-height: 1.15;
   --text-5xl: 2rem; --text-5xl--line-height: 1.1;
-
-  /* Chrome micro sizes below text-xs: counts, badges, eyebrows, meta lines.
-   * No line-height of their own; they inherit it, like the text-[Npx] they
-   * replace. (The review bundle bumps text-xs to 13px; these stay put.) */
-  --text-2xs: 0.6875rem; /* 11px */
-  --text-3xs: 0.625rem;  /* 10px */
-  --text-4xs: 0.5625rem; /* 9px */
 }
 
 /* Stacking layers for anything that must sit above page content. Local

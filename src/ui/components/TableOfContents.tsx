@@ -120,18 +120,18 @@ export function TableOfContents({
         {linkedDocFilepath && (
           <div className="mb-2 px-0.5 pb-1.5 border-b border-border/50">
             <div className="flex items-center justify-between">
-              <span className="text-3xs font-medium text-primary/80">Viewing</span>
+              <span className="text-micro font-semibold text-primary/80">Viewing</span>
               {onLinkedDocBack && (
                 <button
                   onClick={onLinkedDocBack}
-                  className="flex items-center gap-0.5 text-3xs font-medium text-primary hover:text-primary/80 transition-colors"
+                  className="flex items-center gap-0.5 text-micro font-semibold text-primary hover:text-primary/80 transition-colors"
                 >
                   <ArrowLeft className="size-2.5" strokeWidth={2.5} />
                   Back to {backLabel || 'plan'}
                 </button>
               )}
             </div>
-            <p className="text-2xs text-foreground/70 truncate mt-0.5" title={linkedDocFilepath}>
+            <p className="text-micro text-foreground/70 truncate mt-0.5" title={linkedDocFilepath}>
               {pathFileName(linkedDocFilepath)}
             </p>
           </div>
@@ -145,7 +145,7 @@ export function TableOfContents({
                 type="button"
                 onClick={() => handleNavigate(item.id)}
                 aria-current={isActive ? 'location' : undefined}
-                className={`flex items-center justify-between gap-2 px-2 py-1.5 text-left text-2xs/snug font-medium transition-colors ${itemClasses(
+                className={`flex items-center justify-between gap-2 px-2 py-1.5 text-left text-micro/snug font-semibold transition-colors ${itemClasses(
                   item.level,
                   isActive
                 )}`}
@@ -153,7 +153,7 @@ export function TableOfContents({
               >
                 <span className="line-clamp-2">{item.content}</span>
                 {item.annotationCount > 0 && (
-                  <span className="ml-1 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-primary/10 px-1 font-mono text-4xs text-primary">
+                  <span className="ml-1 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-primary/10 px-1 font-mono text-micro text-primary">
                     {item.annotationCount}
                   </span>
                 )}

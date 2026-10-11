@@ -114,15 +114,15 @@ const FrontmatterCard: React.FC<{ frontmatter: Frontmatter }> = ({ frontmatter }
 
   return (
     <div className="mt-4 mb-6 p-4 bg-muted/30 border border-border/50 rounded-lg">
-      <div className="grid gap-2 text-sm">
+      <div className="grid gap-2 text-body">
         {entries.map(([key, value]) => (
           <div key={key} className="flex gap-2">
-            <span className="font-medium text-muted-foreground min-w-20">{key}:</span>
+            <span className="font-semibold text-muted-foreground min-w-20">{key}:</span>
             <span className="text-foreground">
               {Array.isArray(value) ? (
                 <span className="flex flex-wrap gap-1">
                   {value.map((v, i) => (
-                    <span key={i} className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-sm text-xs">
+                    <span key={i} className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-sm text-caption">
                       {v}
                     </span>
                   ))}
@@ -656,7 +656,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
             isGlobal: true,
           });
         }}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 text-caption font-semibold text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors"
         title="Add global comment"
       >
         <Globe01 className="size-3.5" />
@@ -912,7 +912,7 @@ const ImageLightbox: React.FC<{ src: string; alt: string; onClose: () => void }>
       />
       {alt && (
         // eslint-disable-next-line better-tailwindcss/no-restricted-classes -- caption sits on the black lightbox scrim in both modes
-        <div className="mt-3 text-sm text-white/70 max-w-[90vw] text-center truncate">{alt}</div>
+        <div className="mt-3 text-body text-white/70 max-w-[90vw] text-center truncate">{alt}</div>
       )}
     </div>
   );

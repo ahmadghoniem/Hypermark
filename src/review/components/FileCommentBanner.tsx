@@ -106,14 +106,14 @@ export const FileCommentCard: React.FC<{
               if (e.key === 'Escape') { e.preventDefault(); setIsEditing(false); }
               else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveEdit(); }
             }}
-            className="w-full min-h-20 resize-y rounded-sm border border-border bg-background p-2 text-xs/relaxed focus:outline-none focus:ring-1 focus:ring-primary/40"
+            className="w-full min-h-20 resize-y rounded-sm border border-border bg-background p-2 text-caption/relaxed focus:outline-none focus:ring-1 focus:ring-primary/40"
             placeholder="File comment (markdown supported)…"
           />
           <div className="mt-1 flex items-center justify-end gap-2">
-            <button className="text-xs px-2 py-1 rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted" onClick={() => setIsEditing(false)}>
+            <button className="text-caption px-2 py-1 rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted" onClick={() => setIsEditing(false)}>
               Cancel
             </button>
-            <button className="text-xs px-2 py-1 rounded-sm bg-primary/15 text-primary hover:bg-primary/25" onClick={saveEdit}>
+            <button className="text-caption px-2 py-1 rounded-sm bg-primary/15 text-primary hover:bg-primary/25" onClick={saveEdit}>
               Save
             </button>
           </div>

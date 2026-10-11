@@ -441,7 +441,7 @@ const GutterAnnotationEntry: React.FC<GutterAnnotationEntryProps> = ({
         <div className="review-comment-body">{renderInlineMarkdown(metadata.text)}</div>
       )}
       {metadata.reasoning && (
-        <div className="review-comment-reasoning text-2xs/relaxed text-muted-foreground/60 mt-1.5">
+        <div className="review-comment-reasoning text-micro/relaxed text-muted-foreground/60 mt-1.5">
           {metadata.reasoning}
         </div>
       )}
@@ -453,7 +453,7 @@ const GutterAnnotationEntry: React.FC<GutterAnnotationEntryProps> = ({
               e.stopPropagation();
               onEdit(metadata.annotationId);
             }}
-            className="px-2 py-1 text-2xs font-medium rounded-md bg-primary text-primary-foreground hover:opacity-90"
+            className="px-2 py-1 text-micro font-semibold rounded-md bg-primary text-primary-foreground hover:opacity-90"
           >
             Edit
           </button>
@@ -463,7 +463,7 @@ const GutterAnnotationEntry: React.FC<GutterAnnotationEntryProps> = ({
               e.stopPropagation();
               onDelete(metadata.annotationId);
             }}
-            className="px-2 py-1 text-2xs rounded-md text-muted-foreground hover:text-destructive hover:bg-muted"
+            className="px-2 py-1 text-micro rounded-md text-muted-foreground hover:text-destructive hover:bg-muted"
           >
             Delete
           </button>

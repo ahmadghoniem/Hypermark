@@ -143,7 +143,7 @@ const InlineCommentEditor: React.FC<{
         }}
         placeholder="Add your comment..."
         aria-label="Annotation comment"
-        className="w-full resize-none rounded-lg border border-border/50 bg-card px-2.5 py-2 text-[13px] leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary/40 focus:ring-1 focus:ring-primary/20"
+        className="w-full resize-none rounded-lg border border-border/50 bg-card px-2.5 py-2 text-body text-foreground outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary/40 focus:ring-1 focus:ring-primary/20"
         style={{ fieldSizing: 'content', minHeight: 44 } as React.CSSProperties}
       />
       <div className="mt-1.5 flex justify-end gap-1.5">
@@ -289,7 +289,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
       {/* Header */}
       <div>
         <div className="flex h-10 items-center justify-between gap-2 px-3">
-          <h2 className="text-xs font-medium text-foreground">
+          <h2 className="text-caption font-semibold text-foreground">
             Annotations
           </h2>
           <div className="flex items-center gap-1">
@@ -297,14 +297,14 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
               <div
                 role="tablist"
                 aria-label="Annotation scope"
-                className="inline-flex items-center rounded-md bg-muted/60 p-0.5 text-3xs"
+                className="inline-flex items-center rounded-md bg-muted/60 p-0.5 text-micro"
               >
                 <button
                   type="button"
                   role="tab"
                   aria-selected={scope === 'this'}
                   onClick={() => onScopeChange('this')}
-                  className={`rounded-sm px-1.5 py-0.5 font-medium transition-all ${
+                  className={`rounded-sm px-1.5 py-0.5 font-semibold transition-all ${
                     scope === 'this'
                       ? 'bg-background text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
@@ -317,7 +317,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                   role="tab"
                   aria-selected={scope === 'all'}
                   onClick={() => onScopeChange('all')}
-                  className={`rounded-sm px-1.5 py-0.5 font-medium transition-all ${
+                  className={`rounded-sm px-1.5 py-0.5 font-semibold transition-all ${
                     scope === 'all'
                       ? 'bg-background text-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
@@ -340,7 +340,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
           </div>
         </div>
         {otherFileAnnotations && otherFileAnnotations.count > 0 && (
-          <p className="px-3 pb-2 text-3xs text-muted-foreground">
+          <p className="px-3 pb-2 text-micro text-muted-foreground">
             +{otherFileAnnotations.count} in {otherFileAnnotations.files} other file{otherFileAnnotations.files === 1 ? '' : 's'}
           </p>
         )}
@@ -351,10 +351,10 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
         <div ref={listRef} className="p-2 flex flex-col gap-1.5">
         {totalCount === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
-            <p className="text-xs text-muted-foreground/60">
+            <p className="text-caption text-muted-foreground/60">
               No annotations yet
             </p>
-            <p className="mt-1 text-2xs text-muted-foreground/40">
+            <p className="mt-1 text-micro text-muted-foreground/40">
               Select text to annotate
             </p>
           </div>
@@ -390,10 +390,10 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
               const relTime = formatRelativeTime(group.timestamp, now);
               return (
                 <div key={group.messageId} data-message-group={group.messageId} className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between gap-2 px-1 pt-2 pb-0.5 text-2xs font-medium text-muted-foreground">
+                  <div className="flex items-center justify-between gap-2 px-1 pt-2 pb-0.5 text-micro font-semibold text-muted-foreground">
                     <span className="truncate">{railPreview(group.text)}</span>
                     {relTime && (
-                      <span className="shrink-0 text-3xs text-muted-foreground/60">{relTime}</span>
+                      <span className="shrink-0 text-micro text-muted-foreground/60">{relTime}</span>
                     )}
                   </div>
                   {groupEntries.map((entry) => (
@@ -565,13 +565,13 @@ const AnnotationCard: React.FC<{
     >
       {/* Header: type word + chips, time on the right */}
       <div className="mb-1.5 flex items-center gap-1.5">
-        <span className={cn('text-2xs font-medium', typeColor)}>{typeLabel}</span>
+        <span className={cn('text-micro font-semibold', typeColor)}>{typeLabel}</span>
         {annotation.diffContext && (
-          <span className="text-4xs px-1.5 py-0.5 rounded-sm font-medium bg-muted text-muted-foreground">
+          <span className="text-micro px-1.5 py-0.5 rounded-sm font-semibold bg-muted text-muted-foreground">
             diff
           </span>
         )}
-        <span className="ml-auto shrink-0 text-3xs text-muted-foreground/50">
+        <span className="ml-auto shrink-0 text-micro text-muted-foreground/50">
           {formatTimestamp(annotation.createdA)}
         </span>
       </div>
@@ -579,21 +579,21 @@ const AnnotationCard: React.FC<{
       {/* Global Comment - show text directly */}
       {isGlobal ? (
         isEditing ? editor : (
-          <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/90">
+          <p className="whitespace-pre-wrap text-body text-foreground/90">
             {annotation.text}
           </p>
         )
       ) : (
         <>
           {/* Quote — the annotated text */}
-          <p className="mb-1.5 line-clamp-2 whitespace-pre-wrap font-mono text-2xs/relaxed text-muted-foreground/80">
+          <p className="mb-1.5 line-clamp-2 whitespace-pre-wrap font-mono text-micro/relaxed text-muted-foreground/80">
             "{annotation.originalText}"
           </p>
 
           {/* Comment/Replacement Text */}
           {annotation.type !== AnnotationType.DELETION && (
             isEditing ? editor : annotation.text && (
-              <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/90">
+              <p className="whitespace-pre-wrap text-body text-foreground/90">
                 {annotation.text}
               </p>
             )
@@ -611,7 +611,7 @@ const AnnotationCard: React.FC<{
                 size="sm"
                 showRemove={false}
               />
-              <div className="text-4xs text-muted-foreground truncate max-w-12" title={img.name}>{img.name}</div>
+              <div className="text-micro text-muted-foreground truncate max-w-12" title={img.name}>{img.name}</div>
             </div>
           ))}
         </div>
@@ -662,14 +662,14 @@ const CodeAnnotationCard: React.FC<{
     >
       {/* Header: type word, time on the right */}
       <div className="mb-1.5 flex items-center gap-1.5">
-        <span className="text-2xs font-medium text-primary">Code</span>
-        <span className="ml-auto shrink-0 text-3xs text-muted-foreground/50">
+        <span className="text-micro font-semibold text-primary">Code</span>
+        <span className="ml-auto shrink-0 text-micro text-muted-foreground/50">
           {formatTimestamp(annotation.createdAt)}
         </span>
       </div>
 
       {/* File / line meta */}
-      <div className="rounded-sm px-2 py-1 bg-surface-1 font-mono text-2xs text-muted-foreground truncate" title={annotation.filePath}>
+      <div className="rounded-sm px-2 py-1 bg-surface-1 font-mono text-micro text-muted-foreground truncate" title={annotation.filePath}>
         {fileName} · {lineRange}
       </div>
 
@@ -685,7 +685,7 @@ const CodeAnnotationCard: React.FC<{
           />
         </div>
       ) : annotation.text && (
-        <p className="mt-1.5 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground/90">
+        <p className="mt-1.5 whitespace-pre-wrap text-body text-foreground/90">
           {annotation.text}
         </p>
       )}
@@ -695,7 +695,7 @@ const CodeAnnotationCard: React.FC<{
           {annotation.images.map((img) => (
             <div key={img.path} className="text-center">
               <ImageThumbnail path={img.path} size="sm" showRemove={false} />
-              <div className="text-4xs text-muted-foreground truncate max-w-12" title={img.name}>{img.name}</div>
+              <div className="text-micro text-muted-foreground truncate max-w-12" title={img.name}>{img.name}</div>
             </div>
           ))}
         </div>

@@ -1,12 +1,12 @@
 import { type ClassValue, clsx } from "clsx";
 import { extendTailwindMerge } from "tailwind-merge";
 
-// Custom theme names from theme.css. Unregistered, text-2xs would be read as a
-// text colour and cn("text-2xs", "text-muted-foreground") would drop one.
+// Custom theme names from theme.css. Unregistered, text-micro would be read as a
+// text colour and cn("text-micro", "text-muted-foreground") would drop one.
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
-      "font-size": [{ text: ["2xs", "3xs", "4xs", "plan"] }],
+      "font-size": [{ text: ["display", "title", "subtitle", "body", "caption", "micro", "plan"] }],
       z: [{ z: ["chrome", "resize", "panel-scrim", "panel", "menu", "popover", "popover-hint", "dialog", "overlay"] }],
       m: [{ m: ["plan", "plan-wide", "plan-rule"] }],
       my: [{ my: ["plan", "plan-wide", "plan-rule"] }],

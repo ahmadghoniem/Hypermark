@@ -55,7 +55,7 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
     <div className="relative z-chrome w-full" style={maxWidth ? { maxWidth } : { maxWidth: 832 }}>
       <article className="w-full bg-card border border-border/50 rounded-xl shadow-xl p-5 md:p-8 lg:p-10 xl:p-12 relative">
         {/* Top-left: repo info + diff badge — matches Viewer layout (flex-col) so badge doesn't jump position */}
-        <div className="absolute top-3 left-3 md:top-4 md:left-5 flex flex-col items-start gap-1 text-4xs text-muted-foreground/50 font-mono">
+        <div className="absolute top-3 left-3 md:top-4 md:left-5 flex flex-col items-start gap-1 text-micro text-muted-foreground/50 font-mono">
           {repoInfo && (
             <div className="flex items-center gap-1.5">
               <span
@@ -87,10 +87,10 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
         <div className="float-right -mr-4 -mt-4 md:-mr-5 md:-mt-5 lg:-mr-7 lg:-mt-7 xl:-mr-9 xl:-mt-9 p-2">
           <button
             onClick={onPlanDiffToggle}
-            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-caption text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             title="Back to plan view"
           >
-            <span className="hidden md:inline text-3xs font-medium">Exit Diff</span>
+            <span className="hidden md:inline text-micro font-semibold">Exit Diff</span>
             <XClose className="size-3.5" />
           </button>
         </div>
@@ -99,7 +99,7 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
         <div className="my-6 flex items-center gap-3">
           <PlanDiffModeSwitcher mode={diffMode} onChange={onDiffModeChange} />
           {baseVersionLabel && (
-            <span className="text-3xs text-muted-foreground">
+            <span className="text-micro text-muted-foreground">
               vs {baseVersionLabel}
             </span>
           )}

@@ -656,7 +656,7 @@ const SimpleCodeBlock: React.FC<{ block: Block }> = ({ block }) => {
         </code>
       </pre>
       {block.language && (
-        <span className="absolute top-2 right-2 text-4xs font-mono text-muted-foreground/50">
+        <span className="absolute top-2 right-2 text-micro font-mono text-muted-foreground/50">
           {block.language}
         </span>
       )}

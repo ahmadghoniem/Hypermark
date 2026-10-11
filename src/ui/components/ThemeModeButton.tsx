@@ -54,7 +54,7 @@ const ThemePickerPanel: React.FC<{ closeMenu: () => void }> = () => {
           >
             <ArrowLeftIcon className="size-3.5" />
           </button>
-          <span className="text-xs font-medium text-foreground">{title}</span>
+          <span className="text-caption font-semibold text-foreground">{title}</span>
         </div>
 
         <div className="max-h-56 overflow-y-auto space-y-0.5 pr-0.5">
@@ -66,9 +66,9 @@ const ThemePickerPanel: React.FC<{ closeMenu: () => void }> = () => {
                 key={theme.id}
                 type="button"
                 onClick={() => setHalfTheme(activeHalf, theme.id)}
-                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs transition-colors text-left ${
+                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-caption transition-colors text-left ${
                   isSelected
-                    ? 'bg-primary/10 text-primary font-medium'
+                    ? 'bg-primary/10 text-primary font-semibold'
                     : 'text-foreground hover:bg-muted'
                 }`}
               >
@@ -104,7 +104,7 @@ const ThemePickerPanel: React.FC<{ closeMenu: () => void }> = () => {
             key={id}
             type="button"
             onClick={() => setMode(id)}
-            className={`flex-1 px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
+            className={`flex-1 px-2.5 py-1 text-caption rounded-md font-semibold transition-colors ${
               mode === id
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'
@@ -120,10 +120,10 @@ const ThemePickerPanel: React.FC<{ closeMenu: () => void }> = () => {
         <button
           type="button"
           onClick={() => setActiveHalf('light')}
-          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs hover:bg-muted transition-colors text-left group"
+          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-caption hover:bg-muted transition-colors text-left group"
         >
           <span className="text-muted-foreground">Light theme</span>
-          <span className="flex items-center gap-1 font-medium text-foreground">
+          <span className="flex items-center gap-1 font-semibold text-foreground">
             <span>{nameOf(lightTheme)}</span>
             <ChevronRightIcon className="size-3.5 text-muted-foreground/70 group-hover:text-foreground transition-colors" />
           </span>
@@ -132,10 +132,10 @@ const ThemePickerPanel: React.FC<{ closeMenu: () => void }> = () => {
         <button
           type="button"
           onClick={() => setActiveHalf('dark')}
-          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs hover:bg-muted transition-colors text-left group"
+          className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-caption hover:bg-muted transition-colors text-left group"
         >
           <span className="text-muted-foreground">Dark theme</span>
-          <span className="flex items-center gap-1 font-medium text-foreground">
+          <span className="flex items-center gap-1 font-semibold text-foreground">
             <span>{nameOf(darkTheme)}</span>
             <ChevronRightIcon className="size-3.5 text-muted-foreground/70 group-hover:text-foreground transition-colors" />
           </span>
@@ -151,7 +151,7 @@ const ThemePickerPanel: React.FC<{ closeMenu: () => void }> = () => {
           setHalfTheme('light', DEFAULT_COLOR_THEME);
           setHalfTheme('dark', DEFAULT_COLOR_THEME);
         }}
-        className="w-full px-2 py-1 text-2xs text-muted-foreground hover:text-foreground transition-colors text-center"
+        className="w-full px-2 py-1 text-micro text-muted-foreground hover:text-foreground transition-colors text-center"
       >
         Reset to default themes
       </button>

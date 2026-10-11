@@ -159,7 +159,7 @@ const CodeInlineAnnotation: React.FC<{
     <div
       data-code-annotation-id={annotation.id}
       onClick={() => onSelect?.(annotation.id)}
-      className={`group my-2 mx-3 rounded-lg border px-3 py-2 text-xs shadow-sm cursor-pointer transition-colors ${
+      className={`group my-2 mx-3 rounded-lg border px-3 py-2 text-caption shadow-sm cursor-pointer transition-colors ${
         isSelected ? 'border-primary/50' : 'border-border hover:border-border/80'
       }`}
       style={{
@@ -168,7 +168,7 @@ const CodeInlineAnnotation: React.FC<{
         opacity: 1,
       }}
     >
-      <div className="flex items-center gap-2 text-3xs uppercase tracking-wide text-muted-foreground">
+      <div className="flex items-center gap-2 text-micro uppercase tracking-wide text-muted-foreground">
         <span className="font-semibold text-primary">Comment</span>
         <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono normal-case text-foreground">
           {lineLabel(annotation.lineStart, annotation.lineEnd)}
@@ -221,7 +221,7 @@ const CodeInlineAnnotation: React.FC<{
               }
             }}
             rows={Math.min(editText.split('\n').length + 1, 8)}
-            className="w-full resize-none rounded-sm border border-border bg-background px-2 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+            className="w-full resize-none rounded-sm border border-border bg-background px-2 py-1.5 text-caption text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
           <div className="flex items-center gap-2">
             <button
@@ -230,7 +230,7 @@ const CodeInlineAnnotation: React.FC<{
                 e.stopPropagation();
                 save();
               }}
-              className="rounded-sm bg-primary px-2 py-1 text-3xs font-medium text-primary-foreground hover:opacity-90"
+              className="rounded-sm bg-primary px-2 py-1 text-micro font-semibold text-primary-foreground hover:opacity-90"
             >
               Save
             </button>
@@ -241,7 +241,7 @@ const CodeInlineAnnotation: React.FC<{
                 setIsEditing(false);
                 setEditText(annotation.text ?? '');
               }}
-              className="rounded-sm bg-muted px-2 py-1 text-3xs font-medium text-muted-foreground hover:bg-muted/80"
+              className="rounded-sm bg-muted px-2 py-1 text-micro font-semibold text-muted-foreground hover:bg-muted/80"
             >
               Cancel
             </button>
@@ -260,7 +260,7 @@ const CodeInlineAnnotation: React.FC<{
           {annotation.images.map((img) => (
             <div key={img.path} className="text-center">
               <ImageThumbnail path={img.path} size="sm" showRemove={false} />
-              <div className="max-w-12 truncate text-4xs text-muted-foreground" title={img.name}>
+              <div className="max-w-12 truncate text-micro text-muted-foreground" title={img.name}>
                 {img.name}
               </div>
             </div>
@@ -468,13 +468,13 @@ export const CodeFilePopout: React.FC<CodeFilePopoutProps> = ({
         container={container}
         className="w-[min(520px,calc(100vw-4rem))]"
       >
-        <div className="flex flex-col gap-2 px-5 py-6 text-sm">
-          <div className="font-medium text-foreground">{error}</div>
-          <code className="text-xs font-mono text-muted-foreground break-all">
+        <div className="flex flex-col gap-2 px-5 py-6 text-body">
+          <div className="font-semibold text-foreground">{error}</div>
+          <code className="text-caption font-mono text-muted-foreground break-all">
             {requestedPath ?? filepath}
           </code>
           {isNotFound && (
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-caption text-muted-foreground mt-1">
               The path was referenced in the document but no matching file was found
               in this project. It may describe a planned/future file.
             </p>
@@ -495,12 +495,12 @@ export const CodeFilePopout: React.FC<CodeFilePopoutProps> = ({
       <div className="flex items-center gap-3 px-5 pt-4 pb-3 pr-12">
         <div className="flex items-center gap-2 min-w-0">
           <Code02 className="size-4 shrink-0 text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground truncate" title={filepath}>
+          <span className="text-body font-semibold text-foreground truncate" title={filepath}>
             {relativePath}
           </span>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs text-muted-foreground tabular-nums">
+          <span className="text-caption text-muted-foreground tabular-nums">
             {lineCount} lines
           </span>
           <button

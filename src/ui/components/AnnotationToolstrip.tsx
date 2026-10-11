@@ -180,7 +180,7 @@ const ToolstripButton: React.FC<{
       >
         {icon}
         <span
-          className="text-xs font-medium"
+          className="text-caption font-semibold"
           style={{
             opacity: expanded ? 1 : 0,
             transition: mounted ? `opacity ${expanded ? DURATION : DURATION * 0.6}ms ease ${expanded ? '60ms' : '0ms'}` : 'none',
@@ -193,7 +193,7 @@ const ToolstripButton: React.FC<{
       {/* Hidden measurement span — rendered offscreen to get label pixel width */}
       <span
         ref={measureRef}
-        className="text-xs font-medium absolute pointer-events-none"
+        className="text-caption font-semibold absolute pointer-events-none"
         style={{ visibility: 'hidden', position: 'absolute', left: -9999 }}
         aria-hidden
       >

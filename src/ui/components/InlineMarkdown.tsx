@@ -124,7 +124,7 @@ const CodeSnippetPreview: React.FC<{
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      <div className="px-3 py-1.5 border-b border-border/50 text-3xs text-muted-foreground font-mono flex items-center justify-between gap-4 shrink-0">
+      <div className="px-3 py-1.5 border-b border-border/50 text-micro text-muted-foreground font-mono flex items-center justify-between gap-4 shrink-0">
         <span>{pathFileName(filepath)}</span>
         <span className="opacity-60">{lineEnd && lineEnd !== line ? `lines ${line}–${lineEnd}` : `line ${line}`}</span>
       </div>
@@ -246,7 +246,7 @@ const CodeFileLink: React.FC<{
         {display}
         <CodeFileIcon />
         {isAmbiguous && (
-          <sup className="text-4xs opacity-70 -ml-0.5">{(gate as { matches: string[] }).matches.length}</sup>
+          <sup className="text-micro opacity-70 -ml-0.5">{(gate as { matches: string[] }).matches.length}</sup>
         )}
       </code>
       {hoverPreview && hasLineRef && (

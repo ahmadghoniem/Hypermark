@@ -29,11 +29,11 @@ export const CommitDescriptionHeader: React.FC<{ info: CommitDiffInfo }> = ({ in
   return (
     <div className="border-b border-border/50 bg-card/30">
       <div className="px-4 py-3">
-        <div className="text-sm/snug font-semibold wrap-break-word">{info.subject}</div>
-        <div className="mt-1.5 flex items-center gap-2 min-w-0 text-xs text-muted-foreground">
+        <div className="text-body/snug font-semibold wrap-break-word">{info.subject}</div>
+        <div className="mt-1.5 flex items-center gap-2 min-w-0 text-caption text-muted-foreground">
           <Avatar src={info.avatarUrl} name={info.author} size={18} />
           <span className="truncate">{info.author}</span>
-          <span className="font-mono text-2xs" title={info.sha}>{info.shortSha}</span>
+          <span className="font-mono text-micro" title={info.sha}>{info.shortSha}</span>
           <span className="text-muted-foreground/70">{formatRelativeTime(info.committedAt)}</span>
         </div>
         {info.body && (
@@ -50,7 +50,7 @@ export const CommitDescriptionHeader: React.FC<{ info: CommitDiffInfo }> = ({ in
             {isLong && (
               <button
                 onClick={() => setExpanded((v) => !v)}
-                className="mt-1.5 text-2xs text-primary/80 underline underline-offset-2 decoration-primary/40 hover:text-primary transition-colors"
+                className="mt-1.5 text-micro text-primary/80 underline underline-offset-2 decoration-primary/40 hover:text-primary transition-colors"
               >
                 {expanded ? 'Show less' : 'Show more'}
               </button>

@@ -23,9 +23,9 @@ function SidebarActionRow({
     <button
       onClick={onClick}
       title={title}
-      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-xs transition-colors mb-0.5 ${
+      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-caption transition-colors mb-0.5 ${
         active
-          ? 'bg-primary/15 text-primary font-medium'
+          ? 'bg-primary/15 text-primary font-semibold'
           : 'text-muted-foreground hover:bg-muted hover:text-foreground'
       }`}
     >
@@ -55,7 +55,7 @@ export function AllFilesRow({
       <LayersTwo01 className="size-3.5 shrink-0" />
       <span>All files</span>
       {afterLabel}
-      <span className="ml-auto text-3xs tabular-nums opacity-60">
+      <span className="ml-auto text-micro tabular-nums opacity-60">
         <span className="text-success">+{additions}</span>{' '}
         <span className="text-destructive">-{deletions}</span>
       </span>

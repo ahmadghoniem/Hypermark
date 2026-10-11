@@ -1623,7 +1623,7 @@ const ReviewAppInner: React.FC = () => {
     return (
       <ThemeProvider defaultTheme="dark" manageFavicon>
         <div className="pn-app-viewport flex items-center justify-center bg-background">
-          <div className="text-muted-foreground text-sm">Loading diff...</div>
+          <div className="text-muted-foreground text-body">Loading diff...</div>
         </div>
       </ThemeProvider>
     );
@@ -1799,7 +1799,7 @@ const ReviewAppInner: React.FC = () => {
                 see useCommitsView's veilActive. */}
             {commitsView.veilActive && (
               <div className="absolute inset-0 z-20 bg-background/95 flex items-center justify-center">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 text-caption text-muted-foreground">
                   <Loading02 className="size-3.5 animate-spin" />
                   Loading commit…
                 </div>
@@ -1862,13 +1862,13 @@ const ReviewAppInner: React.FC = () => {
                   <div>
                     {diffError ? (
                       <>
-                        <h3 className="text-sm font-medium text-destructive">Failed to load diff</h3>
-                        <p className="text-xs text-muted-foreground mt-1 max-w-sm wrap-break-word line-clamp-3">{diffError}</p>
+                        <h3 className="text-body font-semibold text-destructive">Failed to load diff</h3>
+                        <p className="text-caption text-muted-foreground mt-1 max-w-sm wrap-break-word line-clamp-3">{diffError}</p>
                       </>
                     ) : (
                       <>
-                        <h3 className="text-sm font-medium text-foreground">No changes</h3>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <h3 className="text-body font-semibold text-foreground">No changes</h3>
+                        <p className="text-caption text-muted-foreground mt-1">
                           {activeDiffBase === 'since-base' && `No changes since ${selectedBase || gitContext?.defaultBranch || 'main'}${activeWorktreePath ? ' in this worktree' : ''} — committed, uncommitted, or untracked.`}
                           {showsLocalVsRemoteEmptyState && `Your local branch matches its remote-tracking branch${activeWorktreePath ? ' in this worktree' : ''}.`}
                           {activeDiffBase.startsWith('commit:') && 'This commit has no changes.'}
@@ -1884,7 +1884,7 @@ const ReviewAppInner: React.FC = () => {
                     )}
                   </div>
                   {(gitContext?.diffOptions?.length ?? 0) > 1 && (
-                    <p className="text-xs text-muted-foreground/60">
+                    <p className="text-caption text-muted-foreground/60">
                       Try selecting a different view from the dropdown.
                     </p>
                   )}

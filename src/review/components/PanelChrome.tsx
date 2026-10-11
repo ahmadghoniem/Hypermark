@@ -166,11 +166,11 @@ export function PanelSearchField({
           aria-label="Search diff"
           autoComplete="off"
           spellCheck={false}
-          className="w-full rounded-sm bg-muted py-1.5 px-7 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
+          className="w-full rounded-sm bg-muted py-1.5 px-7 text-caption text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
         />
         <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
           {hasQuery && !isPending && (
-            <span className="text-3xs tabular-nums text-muted-foreground/40">
+            <span className="text-micro tabular-nums text-muted-foreground/40">
               {resultCount}
             </span>
           )}

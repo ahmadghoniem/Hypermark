@@ -150,7 +150,7 @@ export const DecisionNoteField: React.FC<DecisionNoteFieldProps> = ({
       data-decision-note-input="true"
       data-pn-mobile-editable
       disabled={disabled}
-      className="block w-full resize-none overflow-y-auto rounded-md border border-border bg-background px-2.5 py-1.5 text-sm/snug text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring/40"
+      className="block w-full resize-none overflow-y-auto rounded-md border border-border bg-background px-2.5 py-1.5 text-body/snug text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring/40"
       style={{ maxHeight: NOTE_MAX_HEIGHT_PX }}
     />
   );
@@ -369,7 +369,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
           // breakpoint, unlike the labels.
           <span
             data-decision-count="true"
-            className="rounded-full bg-current/25 px-1.5 text-3xs/4 font-bold"
+            className="rounded-full bg-current/25 px-1.5 text-micro/4 font-bold"
           >
             {spec.primary.count}
           </span>
@@ -436,7 +436,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
                 type="button"
                 data-decision-composer-back="true"
                 onClick={backToMenu}
-                className="mb-1.5 flex items-center gap-1 rounded-sm px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                className="mb-1.5 flex items-center gap-1 rounded-sm px-1.5 py-1 text-caption text-muted-foreground transition-colors hover:text-foreground"
               >
                 <ChevronDown className="size-3 rotate-90" aria-hidden="true" />
                 {activeItem.composer.title}
@@ -451,7 +451,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
                 placeholder={activeItem.composer.placeholder}
               />
               <div className="mt-2 flex items-center justify-between gap-2 px-0.5">
-                <span className="text-2xs/snug text-muted-foreground">
+                <span className="text-micro/snug text-muted-foreground">
                   {submitHint} send · Esc back, note kept
                 </span>
                 <Button

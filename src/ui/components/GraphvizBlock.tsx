@@ -430,20 +430,20 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
           <svg className="size-4 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <span className="text-xs text-destructive font-medium">Graphviz Error</span>
+          <span className="text-caption text-destructive font-semibold">Graphviz Error</span>
           {runtimeUnavailable && (
             <button
               type="button"
               onClick={() => vizRetryEpoch.bump()}
-              className="ml-auto rounded-md border border-destructive/30 px-2 py-0.5 text-xs text-destructive hover:bg-destructive/10"
+              className="ml-auto rounded-md border border-destructive/30 px-2 py-0.5 text-caption text-destructive hover:bg-destructive/10"
               title="Retry loading the diagram renderer"
             >
               Retry
             </button>
           )}
         </div>
-        <pre className="p-3 text-xs text-destructive/80 overflow-x-auto">{error}</pre>
-        <pre className="p-3 text-xs text-muted-foreground bg-muted/30 border-t border-border/30 overflow-x-auto">
+        <pre className="p-3 text-caption text-destructive/80 overflow-x-auto">{error}</pre>
+        <pre className="p-3 text-caption text-muted-foreground bg-muted/30 border-t border-border/30 overflow-x-auto">
           <code>{block.content}</code>
         </pre>
       </div>
@@ -528,7 +528,7 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
           <span
             ref={zoomDisplayRef}
             hidden
-            className="min-w-10 rounded-sm bg-muted/85 px-1 py-0.5 text-3xs/tight text-center text-muted-foreground tabular-nums"
+            className="min-w-10 rounded-sm bg-muted/85 px-1 py-0.5 text-micro/tight text-center text-muted-foreground tabular-nums"
           />
         </>
       )}
@@ -568,7 +568,7 @@ export const GraphvizBlock: React.FC<{ block: Block }> = ({ block }) => {
       {!showSource && svg && isExpanded && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-overlay bg-background/90 backdrop-blur-sm p-4 md:p-6">
           <div className="mx-auto flex h-full max-w-[min(96vw,110rem)] flex-col gap-3">
-            <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between gap-4 text-caption text-muted-foreground">
               <span className="truncate">Graphviz diagram</span>
               <button
                 onClick={() => setIsExpanded(false)}

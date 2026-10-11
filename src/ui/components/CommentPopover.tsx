@@ -390,7 +390,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           <QuoteText
             flash={copyFlash}
             onDone={() => setCopyFlash(0)}
-            className="flex-1 text-2xs/snug text-muted-foreground"
+            className="flex-1 text-micro/snug text-muted-foreground"
           >
             {headerLabel}
           </QuoteText>
@@ -454,7 +454,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             <button
               onClick={handleSubmit}
               disabled={!canSubmit}
-              className="rounded-md bg-primary font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 px-2.75 py-1.25 text-2xs"
+              className="rounded-md bg-primary font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 px-2.75 py-1.25 text-micro"
             >
               {isGlobal ? 'Add' : 'Save'}
             </button>
@@ -531,7 +531,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           data-popover-layer="true"
           onClick={scrollToPopover}
           title="Scroll back to your open comment"
-          className={`fixed left-1/2 -translate-x-1/2 z-popover-hint flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-popover border border-border shadow-lg text-xs text-muted-foreground hover:text-foreground transition-colors ${offscreen === 'above' ? 'top-3' : 'bottom-3'}`}
+          className={`fixed left-1/2 -translate-x-1/2 z-popover-hint flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-popover border border-border shadow-lg text-caption text-muted-foreground hover:text-foreground transition-colors ${offscreen === 'above' ? 'top-3' : 'bottom-3'}`}
         >
           {offscreen === 'above' ? <ChevronUpIcon /> : <ChevronDownIcon />}
           <span>Open comment</span>

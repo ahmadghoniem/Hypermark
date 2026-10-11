@@ -126,7 +126,7 @@ export const QuickLabelsButton: React.FC = () => {
         {draft === null ? (
           <div>
             <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
-              <span className="text-xs font-semibold">Quick labels</span>
+              <span className="text-caption font-semibold">Quick labels</span>
             </div>
 
             <div ref={listRef} className="max-h-64 overflow-y-auto p-1.5 space-y-0.5">
@@ -146,7 +146,7 @@ export const QuickLabelsButton: React.FC = () => {
                     key={label.id}
                     data-label-row="true"
                     style={{ transform: offset ? `translateY(${offset}px)` : undefined }}
-                    className={`group/row flex items-center gap-2 px-2 py-1 rounded-md text-xs ${
+                    className={`group/row flex items-center gap-2 px-2 py-1 rounded-md text-caption ${
                       lifted
                         ? 'relative z-1 bg-popover shadow-[0_4px_12px_-4px_rgb(0_0_0/0.45)] ring-1 ring-border'
                         : `hover:bg-muted/50 ${settling ? '' : 'transition-transform'} ${drag ? '' : 'transition-colors'}`
@@ -195,7 +195,7 @@ export const QuickLabelsButton: React.FC = () => {
               })}
 
               {labels.length === 0 && (
-                <div className="px-2 py-3 text-2xs text-muted-foreground text-center">
+                <div className="px-2 py-3 text-micro text-muted-foreground text-center">
                   No labels yet. Add one to see it above the composer.
                 </div>
               )}
@@ -208,7 +208,7 @@ export const QuickLabelsButton: React.FC = () => {
                   setError(null);
                   setDraft({ text: '', tip: '' });
                 }}
-                className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 text-caption text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
               >
                 <Plus className="size-3.5" />
                 Add label
@@ -227,7 +227,7 @@ export const QuickLabelsButton: React.FC = () => {
             }}
           >
             <div>
-              <label className="block text-2xs font-medium text-muted-foreground mb-1">
+              <label className="block text-micro font-semibold text-muted-foreground mb-1">
                 Text
               </label>
               <input
@@ -246,12 +246,12 @@ export const QuickLabelsButton: React.FC = () => {
                   }
                 }}
                 placeholder="e.g. Needs tests"
-                className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full rounded-md border border-border bg-muted/40 px-2 py-1 text-caption text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 
             <div>
-              <label className="block text-2xs font-medium text-muted-foreground mb-1">
+              <label className="block text-micro font-semibold text-muted-foreground mb-1">
                 Tip
               </label>
               <textarea
@@ -263,15 +263,15 @@ export const QuickLabelsButton: React.FC = () => {
                   setError(null);
                 }}
                 placeholder="Cover this with..."
-                className="w-full resize-none rounded-md border border-border bg-muted/40 px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full resize-none rounded-md border border-border bg-muted/40 px-2 py-1 text-caption text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
-              <div className="flex items-center justify-between text-3xs text-muted-foreground mt-0.5">
+              <div className="flex items-center justify-between text-micro text-muted-foreground mt-0.5">
                 <span>Sent to the agent with the comment.</span>
                 <span>{QUICK_LABEL_MAX_TIP - draft.tip.length}</span>
               </div>
             </div>
 
-            {error && <div className="text-2xs text-destructive">{error}</div>}
+            {error && <div className="text-micro text-destructive">{error}</div>}
 
             <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/50">
               <button
@@ -280,14 +280,14 @@ export const QuickLabelsButton: React.FC = () => {
                   setDraft(null);
                   setError(null);
                 }}
-                className="px-2.5 py-1 text-xs rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="px-2.5 py-1 text-caption rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-2.5 py-1 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="px-2.5 py-1 text-caption font-semibold rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 Save
               </button>

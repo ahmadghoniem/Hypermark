@@ -88,14 +88,14 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
           <div className={'min-w-0 flex flex-1 items-center gap-2 lg:gap-3 overflow-hidden'}>
             {repoInfo.branch && (
               <span
-                className="text-xs font-mono text-foreground truncate"
+                className="text-caption font-mono text-foreground truncate"
                 title={repoInfo.branch}
               >
                 {repoInfo.branch}
               </span>
             )}
             <span
-              className="text-xs text-muted-foreground/60 inline-flex items-center gap-1 truncate max-w-55"
+              className="text-caption text-muted-foreground/60 inline-flex items-center gap-1 truncate max-w-55"
               title={repoInfo.display}
             >
               <RepoIcon className="size-3 shrink-0" />
@@ -103,7 +103,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
             </span>
           </div>
         ) : (
-          <span className={'text-xs text-muted-foreground/70'}>Review</span>
+          <span className={'text-caption text-muted-foreground/70'}>Review</span>
         )}
       </div>
 
@@ -116,12 +116,12 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
                 was computed (agent editing mid-review). Non-blocking; the
                 user refreshes when ready. */}
             {diffFreshness.isStale && !isLoadingDiff && (
-              <div className="flex items-center gap-2 text-xs text-foreground px-2 py-1 bg-warning/10 rounded-sm border border-warning/25">
+              <div className="flex items-center gap-2 text-caption text-foreground px-2 py-1 bg-warning/10 rounded-sm border border-warning/25">
                 <span className="hidden md:inline">Diff out of date</span>
                 <span className="md:hidden">Stale</span>
                 <button
                   onClick={handleRefreshStaleDiff}
-                  className="font-medium underline underline-offset-2 hover:text-muted-foreground transition-colors"
+                  className="font-semibold underline underline-offset-2 hover:text-muted-foreground transition-colors"
                   title="Re-run the diff with the current settings"
                 >
                   Refresh
@@ -142,18 +142,18 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
                 GitHub state. Fetch catches the tracking ref up and
                 recomputes the diff in place. */}
             {baseBehindRemote && !isLoadingDiff && (
-              <div className="flex items-center gap-2 text-xs text-foreground px-2 py-1 bg-warning/10 rounded-sm border border-warning/25">
+              <div className="flex items-center gap-2 text-caption text-foreground px-2 py-1 bg-warning/10 rounded-sm border border-warning/25">
                 <span className="hidden md:inline">Baseline is behind GitHub</span>
                 <span className="md:hidden">Base behind</span>
                 {isFetchingBase ? (
-                  <span className="flex items-center gap-1.5 font-medium">
+                  <span className="flex items-center gap-1.5 font-semibold">
                     <span className="inline-block size-3 border-[1.5px] border-current border-t-transparent rounded-full animate-spin" aria-hidden />
                     Fetching…
                   </span>
                 ) : (
                   <button
                     onClick={handleFetchBase}
-                    className="font-medium underline underline-offset-2 hover:text-muted-foreground transition-colors"
+                    className="font-semibold underline underline-offset-2 hover:text-muted-foreground transition-colors"
                     title="git fetch the default branch and recompute the diff"
                   >
                     Fetch
@@ -173,7 +173,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
         ) : (
           <button
             onClick={handleCopyFeedback}
-            className="px-2 py-1 md:px-2.5 rounded-md text-xs font-medium bg-muted hover:bg-muted/80 transition-colors flex items-center gap-1.5"
+            className="px-2 py-1 md:px-2.5 rounded-md text-caption font-semibold bg-muted hover:bg-muted/80 transition-colors flex items-center gap-1.5"
             title="Copy feedback for LLM"
           >
             {copyFeedback === 'Feedback copied!' ? (
@@ -204,7 +204,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
           >
             <MessageTextSquare01 className="size-4" />
             {totalAnnotationCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 flex items-center justify-center rounded-full bg-primary text-4xs font-bold text-primary-foreground px-0.5">
+              <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 flex items-center justify-center rounded-full bg-primary text-micro font-bold text-primary-foreground px-0.5">
                 {totalAnnotationCount > 99 ? '99+' : totalAnnotationCount}
               </span>
             )}

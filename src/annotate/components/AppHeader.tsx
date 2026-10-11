@@ -79,7 +79,7 @@ const AppHeaderLogo = () => (
       rel="noopener noreferrer"
       className="flex items-center gap-1.5 md:gap-2 hover:opacity-80 transition-opacity"
     >
-      <span className="text-sm font-semibold tracking-tight">Hypermark</span>
+      <span className="text-body font-semibold tracking-tight">Hypermark</span>
     </a>
   </div>
 );

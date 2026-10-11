@@ -67,7 +67,7 @@ export const PlanRawDiffView: React.FC<PlanRawDiffViewProps> = ({ blocks }) => {
   }, [blocks]);
 
   return (
-    <div className="font-mono text-[13px] leading-relaxed bg-muted/30 rounded-lg border border-border/30 overflow-x-auto">
+    <div className="font-mono text-body bg-muted/30 rounded-lg border border-border/30 overflow-x-auto">
       <div>
         {lines.map((line, index) => (
           <div
@@ -89,7 +89,7 @@ export const PlanRawDiffView: React.FC<PlanRawDiffViewProps> = ({ blocks }) => {
                   : " "}
             </div>
             {/* Line number */}
-            <div className="w-8 shrink-0 select-none text-muted-foreground/40 text-right pr-3 text-2xs">
+            <div className="w-8 shrink-0 select-none text-muted-foreground/40 text-right pr-3 text-micro">
               {line.lineNumber ?? ""}
             </div>
             {/* Content */}

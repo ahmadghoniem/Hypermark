@@ -149,10 +149,10 @@ const TablePopoutImpl: React.FC<TablePopoutProps> = ({
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
             placeholder="Filter rows…"
-            className="w-full pl-8 pr-3 py-1.5 text-sm bg-muted/40 border border-border/60 rounded-md focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50"
+            className="w-full pl-8 pr-3 py-1.5 text-body bg-muted/40 border border-border/60 rounded-md focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50"
           />
         </div>
-        <span className="text-xs text-muted-foreground tabular-nums">
+        <span className="text-caption text-muted-foreground tabular-nums">
           {visibleRows.length === totalRows
             ? `${totalRows} row${totalRows === 1 ? '' : 's'}`
             : `${visibleRows.length} of ${totalRows}`}
@@ -186,7 +186,7 @@ const TablePopoutImpl: React.FC<TablePopoutProps> = ({
                   ? 'Copy as CSV'
                   : `Copy ${visibleRows.length} row${visibleRows.length === 1 ? '' : 's'} as CSV`
             }
-            className={`px-2 py-1 rounded-md text-3xs font-bold tracking-tight uppercase leading-none transition-colors ${
+            className={`px-2 py-1 rounded-md text-micro font-bold tracking-tight uppercase leading-none transition-colors ${
               copiedCsv ? 'text-success' : 'text-primary hover:bg-primary/10'
             }`}
           >
@@ -221,7 +221,7 @@ const TablePopoutImpl: React.FC<TablePopoutProps> = ({
           <tbody>
             {visibleRows.length === 0 ? (
               <tr>
-                <td colSpan={columnIds.length} className="px-3 py-8 text-center text-sm text-muted-foreground">
+                <td colSpan={columnIds.length} className="px-3 py-8 text-center text-body text-muted-foreground">
                   No rows match the filter.
                 </td>
               </tr>
@@ -265,7 +265,7 @@ const SortIndicator: React.FC<{ dir: false | 'asc' | 'desc' }> = ({ dir }) => {
   const activeUp = dir === 'asc';
   const activeDown = dir === 'desc';
   return (
-    <span className="inline-flex flex-col leading-none text-4xs">
+    <span className="inline-flex flex-col leading-none text-micro">
       <span className={activeUp ? 'text-foreground' : 'text-muted-foreground/40'}>▲</span>
       <span className={activeDown ? 'text-foreground' : 'text-muted-foreground/40'}>▼</span>
     </span>

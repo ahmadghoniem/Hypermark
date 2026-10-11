@@ -1735,10 +1735,10 @@ const AppInner: React.FC = () => {
 
         {linkedDocHook.error && (
           <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 flex items-center gap-2 shrink-0">
-            <span className="text-xs text-destructive">{linkedDocHook.error}</span>
+            <span className="text-caption text-destructive">{linkedDocHook.error}</span>
             <button
               onClick={linkedDocHook.dismissError}
-              className="ml-auto text-xs text-destructive/60 hover:text-destructive"
+              className="ml-auto text-caption text-destructive/60 hover:text-destructive"
             >
               dismiss
             </button>

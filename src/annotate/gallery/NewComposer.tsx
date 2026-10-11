@@ -16,7 +16,7 @@ interface NewComposerProps {
 /** Dark tooltip with a border, in place of Fluid's inverted one. */
 const TIP = 'border border-border bg-popover text-foreground shadow-md';
 
-const TEXT = 'text-sm/normal';
+const TEXT = 'text-body/normal';
 
 /**
  * The rest of the first label the text is a prefix of (the first label when
@@ -107,7 +107,7 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
     >
       <div className="flex items-center gap-2 pl-1.5">
         <span aria-hidden="true" className="h-4 w-0.5 shrink-0 rounded-full bg-muted-foreground/35" />
-        <QuoteText flash={copyFlash} onDone={() => setCopyFlash(0)} className="flex-1 text-xs text-muted-foreground">
+        <QuoteText flash={copyFlash} onDone={() => setCopyFlash(0)} className="flex-1 text-caption text-muted-foreground">
           {quote}
         </QuoteText>
       </div>
@@ -134,7 +134,7 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
           <div aria-hidden="true" className={`pointer-events-none absolute inset-x-1.5 top-3 whitespace-pre-wrap wrap-break-word ${TEXT}`}>
             <span className="invisible">{text}</span>
             <span className="text-muted-foreground">{suggestion.rest}</span>
-            <kbd className="ml-1.5 inline-flex h-4 -translate-y-px items-center rounded-[5px] border border-border bg-background px-1 align-middle font-sans text-4xs text-muted-foreground">
+            <kbd className="ml-1.5 inline-flex h-4 -translate-y-px items-center rounded-[5px] border border-border bg-background px-1 align-middle font-sans text-micro text-muted-foreground">
               Tab
             </kbd>
           </div>
@@ -154,7 +154,7 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
             <span
               key={`${file.name}-${i}`}
               title={file.name}
-              className="inline-flex h-6.5 min-w-0 max-w-48 items-center gap-1.5 rounded-md bg-muted/60 pl-2 pr-1 text-xs text-foreground/90"
+              className="inline-flex h-6.5 min-w-0 max-w-48 items-center gap-1.5 rounded-md bg-muted/60 pl-2 pr-1 text-caption text-foreground/90"
             >
               <Image01 size={14} className="shrink-0 text-muted-foreground" />
               <span className="flex min-w-0">

@@ -93,7 +93,7 @@ const GeneralCommentComposer: React.FC<{
         aria-expanded={open}
         aria-haspopup="dialog"
         title="Add a review-level comment"
-        className="inline-flex items-center rounded-sm px-1.5 py-0.5 text-2xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        className="inline-flex items-center rounded-sm px-1.5 py-0.5 text-micro font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
       >
         + General comment
       </button>
@@ -112,7 +112,7 @@ const GeneralCommentComposer: React.FC<{
             placeholder="Add a general comment..."
           />
           <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="text-3xs/snug text-muted-foreground">{submitHint}</span>
+            <span className="text-micro/snug text-muted-foreground">{submitHint}</span>
             <Button size="xs" data-general-comment-add onClick={submit} title="Add the comment to this review">
               Add comment
             </Button>
@@ -218,7 +218,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
         <CommentMeta
           leading={
             isGeneralScope ? (
-              <span className="text-4xs font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary">
+              <span className="text-micro font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-sm bg-primary/10 text-primary">
                 general
               </span>
             ) : isFileScope ? (
@@ -226,7 +226,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
                 <FileNameChip path={annotation.filePath} />
               </span>
             ) : (
-              <span className="text-3xs font-mono text-muted-foreground">
+              <span className="text-micro font-mono text-muted-foreground">
                 {annotation.lineStart === annotation.lineEnd
                   ? `L${annotation.lineStart}`
                   : `L${annotation.lineStart}-${annotation.lineEnd}`}
@@ -239,7 +239,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
           createdAt={annotation.createdAt}
         />
         {annotation.text && (
-          <div className="text-xs text-foreground/80 line-clamp-2 review-comment-markdown">
+          <div className="text-caption text-foreground/80 line-clamp-2 review-comment-markdown">
             {renderInlineMarkdown(annotation.text)}
           </div>
         )}
@@ -262,11 +262,11 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
           style={{ height: 'var(--panel-header-h)' }}
         >
           <div className="flex items-center gap-2 w-full min-w-0">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate">
+            <h2 className="text-caption font-semibold uppercase tracking-wider text-muted-foreground truncate">
               Annotations
             </h2>
             {totalCount > 0 && (
-              <span className="text-3xs font-mono bg-muted px-1.5 py-0.5 rounded-sm text-muted-foreground">
+              <span className="text-micro font-mono bg-muted px-1.5 py-0.5 rounded-sm text-muted-foreground">
                 {totalCount}
               </span>
             )}
@@ -281,7 +281,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
                   <div className="size-10 rounded-full bg-muted/50 flex items-center justify-center mb-3">
                     <MessageTextSquare01 className="size-5 text-muted-foreground" />
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     Click on lines to add annotations
                   </p>
                   {onAddGeneralComment && (
@@ -306,7 +306,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
                           anchored composer popover is never painted under a
                           later section's header. */}
                       <div className="sticky top-0 z-25 bg-background/95 backdrop-blur-sm px-2 py-1 flex items-center justify-between gap-2">
-                        <span className="text-xs font-medium text-muted-foreground">General</span>
+                        <span className="text-caption font-semibold text-muted-foreground">General</span>
                         {onAddGeneralComment && (
                           <GeneralCommentComposer
                             onAdd={onAddGeneralComment}
@@ -328,7 +328,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
                   )}
                   {Array.from(groupedAnnotations.entries()).map(([filePath, fileAnnotations]) => (
                     <div key={filePath}>
-                      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-2 py-1 text-xs font-mono text-muted-foreground truncate">
+                      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-2 py-1 text-caption font-mono text-muted-foreground truncate">
                         {filePath.split('/').pop()}
                       </div>
                       <div className="space-y-1">
@@ -347,7 +347,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = /* React.memo */({
           <div className="p-2 border-t border-border/50">
             <button
               onClick={handleQuickCopy}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-sm text-xs font-medium transition-all text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-sm text-caption font-semibold transition-all text-muted-foreground hover:text-foreground hover:bg-muted/50"
             >
               {copied ? (
                 <>

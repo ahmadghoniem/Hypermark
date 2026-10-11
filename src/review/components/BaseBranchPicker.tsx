@@ -191,7 +191,7 @@ export const BaseBranchPicker: React.FC<BaseBranchPickerProps> = ({
           <button
             type="button"
             onClick={() => handleSelect(trimmedQuery)}
-            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left hover:bg-muted focus:outline-none focus:bg-muted text-foreground"
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-caption text-left hover:bg-muted focus:outline-none focus:bg-muted text-foreground"
           >
             <span className="flex-1 truncate">
               Use <span className="font-mono">{trimmedQuery}</span> as base
@@ -218,7 +218,7 @@ export const BaseBranchPicker: React.FC<BaseBranchPickerProps> = ({
           <button
             type="button"
             onClick={handleReset}
-            className="w-full text-left px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-sm"
+            className="w-full text-left px-2 py-1.5 text-caption text-muted-foreground hover:text-foreground hover:bg-muted rounded-sm"
           >
             Reset to detected ({detectedBase})
           </button>
@@ -238,9 +238,9 @@ const TabButton: React.FC<TabButtonProps> = ({ active, onClick, children }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`flex-1 px-3 py-1.5 text-xs transition-colors focus:outline-none ${
+    className={`flex-1 px-3 py-1.5 text-caption transition-colors focus:outline-none ${
       active
-        ? 'bg-popover text-foreground font-medium border-b-2 border-primary -mb-px'
+        ? 'bg-popover text-foreground font-semibold border-b-2 border-primary -mb-px'
         : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
     }`}
   >
@@ -291,7 +291,7 @@ const CommitList: React.FC<CommitListProps> = ({ commits, selectedBase, onSelect
       >
         <span className="font-mono text-muted-foreground shrink-0">{c.shortSha}</span>
         <span className="truncate flex-1">{c.subject}</span>
-        <span className="text-3xs text-muted-foreground shrink-0">{c.relativeDate}</span>
+        <span className="text-micro text-muted-foreground shrink-0">{c.relativeDate}</span>
       </RefPickerRow>
     ))}
   </div>

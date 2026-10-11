@@ -113,7 +113,7 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
         <button
           onClick={handleCopyCsv}
           title={copiedCsv ? 'Copied as CSV!' : 'Copy as CSV'}
-          className={`px-1.5 py-1 rounded-sm text-3xs font-bold tracking-tight uppercase leading-none transition-colors ${
+          className={`px-1.5 py-1 rounded-sm text-micro font-bold tracking-tight uppercase leading-none transition-colors ${
             copiedCsv ? 'text-success' : 'text-primary hover:bg-primary/10'
           }`}
         >

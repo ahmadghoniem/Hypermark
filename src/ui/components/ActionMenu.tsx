@@ -75,13 +75,13 @@ export const ActionMenuItem: React.FC<ActionMenuItemProps> = ({
     type="button"
     onClick={onClick}
     role={role}
-    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-muted${className ? ` ${className}` : ''}`}
+    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-caption transition-colors hover:bg-muted${className ? ` ${className}` : ''}`}
   >
     <span className="text-muted-foreground">{icon}</span>
     {subtitle ? (
       <span className="flex flex-1 flex-col gap-0.5">
         <span>{label}</span>
-        <span className="text-3xs text-muted-foreground">{subtitle}</span>
+        <span className="text-micro text-muted-foreground">{subtitle}</span>
       </span>
     ) : (
       <span className="flex-1">{label}</span>
