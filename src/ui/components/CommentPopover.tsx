@@ -572,7 +572,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
               minHeightPx={mode === 'popover' ? textMinHeight : null}
               // Keep text 4px clear of the global Close:
               // (inset − 1) + closeSize + 4 − 13px container padding.
-              padRight={isGlobal ? 14 : undefined}
               maxHeight={
                 mode === 'dialog'
                   ? `calc(${visibleBounds.height}px - 10rem)`
@@ -774,8 +773,6 @@ interface ComposerTextareaProps {
   minHeightPx?: number | null;
   /** Explicit max-height from positioning constraints. */
   maxHeight?: string | number | null;
-  /** Right padding in px; overrides the class padding. */
-  padRight?: number;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
@@ -789,7 +786,6 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
   heightPx = null,
   minHeightPx = null,
   maxHeight = null,
-  padRight,
   value,
   onChange,
   onKeyDown,
@@ -805,7 +801,6 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
         } as React.CSSProperties)
       : { height: heightPx }),
     ...(maxHeight != null ? { maxHeight } : {}),
-    ...(padRight != null ? { paddingRight: padRight } : {}),
   };
 
   return (
