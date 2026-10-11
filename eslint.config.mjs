@@ -81,7 +81,9 @@ const tsx = {
 
 export default defineConfig([
   {
-    ignores: ["**/node_modules/**", "**/dist/**", "**/*.test.*"],
+    // src/ui/fluid is vendored Fluid Functionalism source, kept as upstream wrote
+    // it; a component is cleaned up when it replaces one of ours.
+    ignores: ["**/node_modules/**", "**/dist/**", "**/*.test.*", "src/ui/fluid/**"],
   },
   {
     // The react-hooks disable comments look unused because those rules do not

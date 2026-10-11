@@ -1,0 +1,13 @@
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/geist-mono";
+@import "tailwindcss";
+
+@plugin "tailwindcss-animate";
+
+@source "../../ui/components/**/*.tsx";
+@source "../../ui/fluid/**/*.{ts,tsx}";
+@source "./*.tsx";
+@source "../gallery.html";
+
+@import "../../ui/theme.css";
+@import "../../ui/fluid/fluid.css";
