@@ -14,7 +14,6 @@ import type { Annotation, CodeAnnotation, ImageAttachment } from '../types';
 import { fromShareable, parseShareableImages } from '../utils/annotationSerialization';
 import type { ShareableAnnotation } from '../utils/annotationSerialization';
 import { normalizeDocumentAnnotations } from '../utils/attachmentNormalization';
-import { draftStore } from '../components/CommentPopover';
 
 export const DEBOUNCE_MS = 500;
 
@@ -89,8 +88,6 @@ interface DraftData {
       only by an old draft body written before the migration and is always
       empty going forward. Kept so old stored drafts still decode. */
   globalAttachments: ImageAttachment[];
-  /** In-progress open composer draft. */
-  composer?: { key: string; text: string; images: ImageAttachment[]; ts: number } | null;
   /** Client-side generation used to ignore stale saves after a draft delete. */
   draftGeneration?: number;
   ts: number;
@@ -181,7 +178,6 @@ export function useAnnotationDraft({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasMountedRef = useRef(false);
   const draftGenerationRef = useRef(0);
-  const latestComposerRef = useRef<{ key: string; text: string; images: ImageAttachment[] } | null>(null);
 
   // Latest-values ref so the stable scheduleDraftSave reads current data when
   // the debounce fires, without re-creating callbacks per keystroke.
@@ -206,13 +202,6 @@ export function useAnnotationDraft({
         if (!data) {
           hasMountedRef.current = true;
           return;
-        }
-
-        // Restore open composer into draftStore before annotations are applied
-        if (!isLegacyDraft(data) && (data as DraftData).composer?.key) {
-          const comp = (data as DraftData).composer!;
-          draftStore.set(comp.key, { text: comp.text, images: comp.images || [] });
-          latestComposerRef.current = { key: comp.key, text: comp.text, images: comp.images || [] };
         }
 
         let restoredAnnotations: Annotation[];
@@ -262,9 +251,8 @@ export function useAnnotationDraft({
         }
 
         const totalCount = restoredAnnotations.length + restoredCodeAnnotations.length + restoredGlobal.length;
-        const hasComposer = !isLegacyDraft(data) && !!(data as DraftData).composer && (((data as DraftData).composer!.text?.trim().length ?? 0) > 0 || ((data as DraftData).composer!.images?.length ?? 0) > 0);
 
-        if (totalCount > 0 || hasComposer) {
+        if (totalCount > 0) {
           const restoredDraftData: RestoredDraft = {
             annotations: restoredAnnotations,
             codeAnnotations: restoredCodeAnnotations,
@@ -289,12 +277,8 @@ export function useAnnotationDraft({
     // server just deleted, ghosting it into the next session for this plan.
     if (!canPersistRef.current) return;
     const { annotations, codeAnnotations, globalAttachments } = latestRef.current;
-    const composerEntry = latestComposerRef.current;
-    const composer = composerEntry && (composerEntry.text.trim().length > 0 || composerEntry.images.length > 0)
-      ? { key: composerEntry.key, text: composerEntry.text, images: composerEntry.images, ts: Date.now() }
-      : null;
 
-    if (annotations.length === 0 && codeAnnotations.length === 0 && globalAttachments.length === 0 && !composer) {
+    if (annotations.length === 0 && codeAnnotations.length === 0 && globalAttachments.length === 0) {
       // Everything was cleared (last annotation removed).
       // A stale draft left on disk would offer back content the user
       // explicitly threw away.
@@ -310,7 +294,6 @@ export function useAnnotationDraft({
       annotations,
       codeAnnotations,
       globalAttachments,
-      composer,
       draftGeneration,
       ts: Date.now(),
     };
@@ -377,14 +360,6 @@ export function useAnnotationDraft({
     scheduleDraftSave();
   }, [annotations, codeAnnotations, globalAttachments, isApiMode, isSharedSession, scheduleDraftSave]);
 
-  // Subscribe to open-composer changes from CommentPopover's draftStore
-  useEffect(() => {
-    return draftStore.subscribe((entry) => {
-      latestComposerRef.current = entry;
-      scheduleDraftSave();
-    });
-  }, [scheduleDraftSave]);
-
   // Clear any pending save on unmount.
   useEffect(() => {
     return () => {
@@ -417,7 +392,6 @@ export function useAnnotationDraft({
       timerRef.current = null;
     }
     draftDataRef.current = null;
-    latestComposerRef.current = null;
 
     getDraftTransport().remove(deletedGeneration, { keepalive: false }).catch(() => {});
   }, []);

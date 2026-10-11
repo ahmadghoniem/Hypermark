@@ -2021,7 +2021,6 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
           anchorEl={fileCommentAnchor.el}
           contextText={fileCommentAnchor.filePath.split('/').pop() || fileCommentAnchor.filePath}
           isGlobal={false}
-          draftKey={`file:${fileCommentAnchor.filePath}`}
           onSubmit={(text) => {
             onAddFileCommentForFile(fileCommentAnchor.filePath, text);
             setFileCommentAnchor(null);

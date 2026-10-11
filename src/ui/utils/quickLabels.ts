@@ -11,7 +11,6 @@ export interface QuickLabel {
   id: string;     // kebab-case identifier e.g. "needs-tests"
   emoji: string;  // single emoji e.g. "🧪", or '' for a label that carries none
   text: string;   // display text e.g. "Needs tests"
-  color: string;  // key into LABEL_COLOR_MAP
   tip?: string;   // optional instruction injected into feedback for the agent
 }
 
@@ -27,7 +26,7 @@ export function formatQuickLabel(label: QuickLabel): string {
 
 /**
  * The positive label the default set opens with. Ordinary in every way — it
- * can be renamed, recoloured, reordered and deleted like any other.
+ * can be renamed, reordered and deleted like any other.
  *
  * It carries no emoji: it reads as a plain verdict on the selection, not as a
  * reaction to it.
@@ -36,7 +35,6 @@ export const AGREED_LABEL: QuickLabel = {
   id: 'agreed',
   emoji: '',
   text: 'Agreed',
-  color: 'green',
 };
 
 /**
@@ -47,19 +45,17 @@ export const AGREED_LABEL: QuickLabel = {
  */
 export const DEFAULT_QUICK_LABELS: QuickLabel[] = [
   AGREED_LABEL,
-  { id: 'needs-explanation', emoji: '', text: 'Needs explanation', color: 'yellow', tip: 'Explain the reasoning behind this before going further.' },
-  { id: 'verify-this', emoji: '', text: 'Verify this', color: 'orange', tip: 'This seems like an assumption. Verify by reading the actual code before proceeding.' },
-  { id: 'give-an-example', emoji: '', text: 'Give an example', color: 'cyan', tip: 'This is too abstract. Show a before/after, a sample input/output, or a specific scenario so I can see how this actually works.' },
-  { id: 'out-of-scope', emoji: '', text: 'Out of scope', color: 'red', tip: 'This is not part of the current task. Remove it and stay focused on what was actually requested.' },
-  { id: 'needs-tests', emoji: '', text: 'Needs tests', color: 'blue' },
+  { id: 'needs-explanation', emoji: '', text: 'Needs explanation', tip: 'Explain the reasoning behind this before going further.' },
+  { id: 'verify-this', emoji: '', text: 'Verify this', tip: 'This seems like an assumption. Verify by reading the actual code before proceeding.' },
+  { id: 'give-an-example', emoji: '', text: 'Give an example', tip: 'This is too abstract. Show a before/after, a sample input/output, or a specific scenario so I can see how this actually works.' },
+  { id: 'out-of-scope', emoji: '', text: 'Out of scope', tip: 'This is not part of the current task. Remove it and stay focused on what was actually requested.' },
+  { id: 'needs-tests', emoji: '', text: 'Needs tests' },
 ];
 
 const STORAGE_KEY_QUICK_LABELS = 'hypermark-quick-labels';
 /** Cookies hold ~4KB; these caps keep the list well inside that. */
 export const QUICK_LABEL_MAX_TIP = 240;
 export const QUICK_LABEL_MAX_COUNT = 24;
-/** Dot colours offered in the editor; keys of DOT_CLASS in ComposerQuickLabels. */
-export const QUICK_LABEL_COLORS = ['green', 'yellow', 'orange', 'cyan', 'red', 'blue'] as const;
 
 /** kebab-case id derived from the text, made unique against `taken`. */
 export function quickLabelId(text: string, taken: readonly string[]): string {
@@ -85,7 +81,6 @@ export function parseQuickLabels(raw: string | null): QuickLabel[] {
         id: l.id,
         emoji: typeof l.emoji === 'string' ? l.emoji : '',
         text: l.text.slice(0, 60),
-        color: typeof l.color === 'string' ? l.color : 'blue',
         ...(l.tip ? { tip: String(l.tip).slice(0, QUICK_LABEL_MAX_TIP) } : {}),
       }));
     return labels;

@@ -2,23 +2,13 @@ import React, { useCallback, useRef, useState } from 'react';
 import { Popover, PopoverTrigger, PopoverContent } from './Popover';
 import { useQuickLabels } from '../hooks/useQuickLabels';
 import {
-  QUICK_LABEL_COLORS,
   QUICK_LABEL_MAX_COUNT,
   QUICK_LABEL_MAX_TIP,
   quickLabelId,
   type QuickLabel,
 } from '../utils/quickLabels';
 
-const DOT_CLASS: Record<string, string> = {
-  green: 'bg-success',
-  yellow: 'bg-warning',
-  orange: 'bg-orange-400',
-  cyan: 'bg-cyan-400',
-  red: 'bg-destructive',
-  blue: 'bg-primary',
-};
-
-type Draft = { id?: string; text: string; tip: string; color: string };
+type Draft = { id?: string; text: string; tip: string };
 
 export const QuickLabelsButton: React.FC = () => {
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -107,7 +97,6 @@ export const QuickLabelsButton: React.FC = () => {
       id,
       emoji: '',
       text,
-      color: draft.color,
       ...(tip ? { tip } : {}),
     };
     const next = draft.id
@@ -184,10 +173,6 @@ export const QuickLabelsButton: React.FC = () => {
                     >
                       <GripDots />
                     </button>
-                    <span
-                      aria-hidden="true"
-                      className={`size-2 shrink-0 rounded-full ${DOT_CLASS[label.color] ?? 'bg-primary'}`}
-                    />
                     <span className="min-w-0 truncate text-foreground flex-1">{label.text}</span>
                     <div className="flex items-center gap-0.5">
                       <button
@@ -198,7 +183,6 @@ export const QuickLabelsButton: React.FC = () => {
                             id: label.id,
                             text: label.text,
                             tip: label.tip ?? '',
-                            color: label.color,
                           });
                         }}
                         className="size-5 flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-opacity"
@@ -241,7 +225,7 @@ export const QuickLabelsButton: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setError(null);
-                  setDraft({ text: '', tip: '', color: 'blue' });
+                  setDraft({ text: '', tip: '' });
                 }}
                 className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
               >
@@ -305,26 +289,6 @@ export const QuickLabelsButton: React.FC = () => {
               <div className="flex items-center justify-between text-3xs text-muted-foreground mt-0.5">
                 <span>Sent to the agent with the comment.</span>
                 <span>{QUICK_LABEL_MAX_TIP - draft.tip.length}</span>
-              </div>
-            </div>
-
-            <div>
-              <span className="block text-2xs font-medium text-muted-foreground mb-1.5">Dot</span>
-              <div className="flex items-center gap-2">
-                {QUICK_LABEL_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setDraft({ ...draft, color: c })}
-                    className={`size-4 rounded-full ${DOT_CLASS[c] ?? 'bg-primary'} transition-all ${
-                      draft.color === c
-                        ? 'ring-2 ring-foreground ring-offset-2 ring-offset-popover'
-                        : 'opacity-80 hover:opacity-100 hover:scale-110'
-                    }`}
-                    aria-label={c}
-                    title={c}
-                  />
-                ))}
               </div>
             </div>
 

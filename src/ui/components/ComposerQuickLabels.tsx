@@ -1,16 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { QuickLabel } from '../utils/quickLabels';
 
-/** Dot colour per label colour key. */
-const DOT_CLASS: Record<string, string> = {
-  green: 'bg-success',
-  yellow: 'bg-warning',
-  orange: 'bg-orange-400',
-  cyan: 'bg-cyan-400',
-  red: 'bg-destructive',
-  blue: 'bg-primary',
-};
-
 interface ComposerQuickLabelsProps {
   labels: readonly QuickLabel[];
   onSelect: (label: QuickLabel) => void;
@@ -93,9 +83,8 @@ export const ComposerQuickLabels: React.FC<ComposerQuickLabelsProps> = ({ labels
             tabIndex={hidden ? -1 : 0}
             onClick={() => onSelect(label)}
             style={{ height: chipHeight }}
-            className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-card pl-2 pr-2.25 text-2xs font-medium text-foreground/85 shadow-[0_1px_2px_rgb(0_0_0/0.3),0_6px_14px_-6px_rgb(0_0_0/0.6)] transition-colors hover:bg-muted hover:text-foreground"
+            className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-border bg-card px-2.25 text-2xs font-medium text-foreground/85 shadow-[0_1px_2px_rgb(0_0_0/0.3),0_6px_14px_-6px_rgb(0_0_0/0.6)] transition-colors hover:bg-muted hover:text-foreground"
           >
-            <span aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${DOT_CLASS[label.color] ?? 'bg-muted-foreground'}`} />
             {label.text}
           </button>
         ))}

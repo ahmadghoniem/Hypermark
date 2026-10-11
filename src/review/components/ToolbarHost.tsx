@@ -81,11 +81,6 @@ export const ToolbarHost = forwardRef<ToolbarHostHandle, ToolbarHostProps>(funct
           initialImages={toolbar.editingImages}
           onSubmit={(text, images) => toolbar.submit(text, images)}
           onClose={toolbar.handleCancel}
-          draftKey={
-            toolbar.editingAnnotationId
-              ? `edit:${toolbar.editingAnnotationId}`
-              : `line:${filePath}:${toolbar.toolbarState.range.start}-${toolbar.toolbarState.range.end}`
-          }
         />
       )}
     </>

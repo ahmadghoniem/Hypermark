@@ -40,15 +40,11 @@ interface CommentPopoverProps {
   onDraftChange?: (text: string, images?: ImageAttachment[]) => void;
   /** Called when popover is closed/cancelled */
   onClose: () => void;
-  /** Opt-in: persist text + images across close/reopen, keyed by this string. Cleared on submit. */
-  draftKey?: string;
   /** Whether submitting empty text is allowed, for editors that support clearing. */
   allowEmptySubmit?: boolean;
 }
 
 const MAX_POPOVER_WIDTH = 344;
-/** rounded-xl with --radius 10px: the card's outer corner radius. */
-const CARD_RADIUS = 14;
 const GAP = 8;
 
 // The quick-label row sits at the foot of the text field.
@@ -58,61 +54,6 @@ const CHIP_GAP = 6;
  *  empty composer is exactly as tall as one being written in, so opening it,
  *  typing the first character and clearing it again never resize anything. */
 const TEXT_MIN_HEIGHT = 56;
-
-// Module-level draft store: survives popover unmount so reopening the same key restores in-progress text.
-export interface ComposerDraftEntry {
-  key: string;
-  text: string;
-  images: ImageAttachment[];
-}
-
-export type DraftStoreListener = (entry: ComposerDraftEntry | null) => void;
-
-class DraftStore {
-  private entries = new Map<string, { text: string; images: ImageAttachment[] }>();
-  private listeners = new Set<DraftStoreListener>();
-
-  get(key: string): { text: string; images: ImageAttachment[] } | undefined {
-    return this.entries.get(key);
-  }
-
-  set(key: string, value: { text: string; images: ImageAttachment[] }): void {
-    this.entries.set(key, value);
-  }
-
-  delete(key: string): void {
-    this.entries.delete(key);
-  }
-
-  notify(entry: ComposerDraftEntry | null): void {
-    for (const listener of this.listeners) {
-      listener(entry);
-    }
-  }
-
-  subscribe(listener: DraftStoreListener): () => void {
-    this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
-    };
-  }
-}
-
-export const draftStore = new DraftStore();
-
-/** Mirrors the latest text + images into `draftStore[draftKey]` so they outlive popover unmount. No-op without a key. */
-function useCommentDraftSync(draftKey: string | undefined, text: string, images: ImageAttachment[]) {
-  useEffect(() => {
-    if (!draftKey) return;
-    if (hasUnsavedCommentContent(text, images)) {
-      draftStore.set(draftKey, { text, images });
-      draftStore.notify({ key: draftKey, text, images });
-    } else {
-      draftStore.delete(draftKey);
-      draftStore.notify(null);
-    }
-  }, [draftKey, text, images]);
-}
 
 interface CommentPopoverPosition {
   top: number;
@@ -163,24 +104,19 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   onQuickLabel,
   onDraftChange,
   onClose,
-  draftKey,
   allowEmptySubmit = false,
 }) => {
   const visibleBounds = useVisibleViewportBounds(16);
   const baseWidth = Math.min(MAX_POPOVER_WIDTH, visibleBounds.width);
   const textMinHeight = TEXT_MIN_HEIGHT;
   const fieldMinHeight = TEXT_MIN_HEIGHT + CHIP_HEIGHT + CHIP_GAP;
+  // Dialog mode only when the anchor has no room for a popover.
   const [mode, setMode] = useState<'popover' | 'dialog'>('popover');
-  // Dialog mode origin: the anchor simply has no room for a popover and the
-  // geometry FORCED it.
-  const [dialogIsForced, setDialogIsForced] = useState(false);
-  const forcedDialog = dialogIsForced;
   // Read at reset time only: a fresh array identity per render must not re-run the reset.
   const initialImagesRef = useRef(initialImages);
   initialImagesRef.current = initialImages;
-  const initialDraft = draftKey ? draftStore.get(draftKey) : undefined;
-  const [text, setText] = useState(initialDraft?.text ?? initialText);
-  const [images, setImages] = useState<ImageAttachment[]>(initialDraft?.images ?? initialImages ?? []);
+  const [text, setText] = useState(initialText);
+  const [images, setImages] = useState<ImageAttachment[]>(initialImages ?? []);
   const [position, setPosition] = useState<CommentPopoverPosition | null>(null);
   const [copied, setCopied] = useState(false);
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -259,15 +195,12 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   );
 
   useEffect(() => {
-    const nextDraft = draftKey ? draftStore.get(draftKey) : undefined;
-    setText(nextDraft?.text ?? initialText);
-    setImages(nextDraft?.images ?? initialImagesRef.current ?? []);
-  }, [draftKey, initialText]);
+    setText(initialText);
+    setImages(initialImagesRef.current ?? []);
+  }, [initialText]);
 
-  useCommentDraftSync(draftKey, text, images);
-
-  // The draft store still restores the text on the next open; this only adds
-  // the browser's "Leave site?" prompt while the composer holds unsent input.
+  // Closing the composer discards its text; this adds the browser's
+  // "Leave site?" prompt while it holds unsent input.
   const hasUnsentInput = text.trim().length > 0 || images.length > 0;
   useEffect(() => {
     if (!hasUnsentInput) return;
@@ -297,7 +230,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       if (!rect) return;
       const nextPosition = computeCommentPopoverPosition(rect, visibleBounds);
       if (nextPosition.requiresExpanded) {
-        setDialogIsForced(true);
         setMode('dialog');
         return;
       }
@@ -330,73 +262,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   const scrollToPopover = useCallback(() => {
     anchorEl?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }, [anchorEl]);
-
-  // Arc grip: drag grows the composer right and into whichever direction the
-  // card already grows - down from the anchor, or up when the card opened
-  // above it. Double-click expands into the dialog. Height rides on the
-  // textarea, width on the card. Null = class/position size.
-  const [composerHeight, setComposerHeight] = useState<number | null>(null);
-  const [composerWidth, setComposerWidth] = useState<number | null>(null);
-
-  const beginGripResize = useCallback((event: React.PointerEvent) => {
-    // Left button only, and never let the strip's drag handler see it.
-    if (event.button !== 0) return;
-    event.preventDefault();
-    event.stopPropagation();
-    const startX = event.clientX;
-    const startY = event.clientY;
-    const startHeight = textareaRef.current?.getBoundingClientRect().height ?? 72;
-    const cardRect = popoverRef.current?.getBoundingClientRect();
-    const minWidth = baseWidth;
-    const startWidth = composerWidth ?? minWidth;
-    const maxWidth = Math.max(minWidth, Math.min(720, visibleBounds.right - (cardRect?.left ?? 0) - 16));
-    // Flipped above the anchor the card is placed by its bottom edge, so it
-    // grows upward and the grip is on the top-right: dragging up adds height.
-    const growsUp = !!position?.flipAbove && !dragPosition;
-
-    // A click is not a resize. Until the pointer has travelled past the
-    // threshold nothing is pinned: a 1px twitch during a plain click used to
-    // swap the textarea's content sizing for a fixed height and snap the empty
-    // field up to the floor.
-    let dragging = false;
-
-    const move = (e: PointerEvent) => {
-      const dx = e.clientX - startX;
-      const travel = e.clientY - startY;
-      if (!dragging) {
-        if (Math.abs(dx) < 3 && Math.abs(travel) < 3) return;
-        dragging = true;
-      }
-      const dy = growsUp ? -travel : travel;
-      // Proportional: the card keeps the shape it started the drag with. Each
-      // axis contributes its own travel as a fraction of that axis, and the
-      // mean drives both — so a diagonal drag scales, and a drag along one
-      // edge still moves the other axis, at half rate.
-      const scale = 1 + (dx / startWidth + dy / startHeight) / 2;
-      // Floored at one text line, which is what the field wrapper already
-      // reserves for it — anything higher would jump on the first pixel.
-      setComposerHeight(Math.max(textMinHeight, Math.min(480, Math.round(startHeight * scale))));
-      setComposerWidth(Math.max(minWidth, Math.min(maxWidth, Math.round(startWidth * scale))));
-    };
-    const end = () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', end);
-    };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', end);
-  }, [baseWidth, composerWidth, dragPosition, position?.flipAbove, textMinHeight, visibleBounds.right]);
-
-  const expandFromGrip = useCallback(() => {
-    setComposerHeight(null);
-    setComposerWidth(null);
-    setDialogIsForced(false);
-    setMode('dialog');
-  }, []);
-
-  const collapseFromGrip = useCallback(() => {
-    setDialogIsForced(false);
-    setMode('popover');
-  }, []);
 
   // Focus the textarea when it mounts (initial open and popover/dialog switches).
   // A ref callback rather than a mount effect: in popover mode the textarea only
@@ -436,18 +301,10 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 
   const handleClose = useCallback(
     (focusDisposition: 'restore-opener' | 'preserve-pointer-target' = 'restore-opener') => {
-      if (draftKey) {
-        if (hasUnsavedCommentContent(text, images)) {
-          draftStore.set(draftKey, { text, images: images });
-        } else {
-          draftStore.delete(draftKey);
-          draftStore.notify(null);
-        }
-      }
       onClose();
       if (focusDisposition === 'restore-opener') restoreOpeningFocus();
     },
-    [draftKey, images, onClose, restoreOpeningFocus, text],
+    [onClose, restoreOpeningFocus],
   );
 
   // Click-outside for popover mode
@@ -473,27 +330,15 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   const handleSubmit = useCallback(() => {
     const canSubmitEmpty = allowEmptySubmit && initialText.trim().length > 0;
     if (hasUnsavedContent || canSubmitEmpty) {
-      if (draftKey) {
-        draftStore.delete(draftKey);
-        draftStore.notify(null);
-      }
       onSubmit(text, images.length > 0 ? images : undefined);
       restoreOpeningFocus();
     }
-  }, [text, images, onSubmit, draftKey, allowEmptySubmit, initialText, hasUnsavedContent, restoreOpeningFocus]);
+  }, [text, images, onSubmit, allowEmptySubmit, initialText, hasUnsavedContent, restoreOpeningFocus]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Escape') {
       e.stopPropagation();
-      if (mode === 'dialog') {
-        // Collapsing a forced dialog is geometrically impossible, so Escape
-        // closes it (draft-preserving) instead of being swallowed by the
-        // re-expand.
-        if (forcedDialog) handleClose();
-        else setMode('popover');
-      } else {
-        handleClose();
-      }
+      handleClose();
       return;
     }
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
@@ -596,18 +441,13 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
               sizeClassName={
                 mode === 'dialog'
                   ? 'min-h-64 max-h-full text-[12.5px] leading-[1.45]'
-                  : composerHeight === null
-                    ? 'max-h-64 text-[12.5px] leading-[1.45]'
-                    : 'text-[12.5px] leading-[1.45]'
+                  : 'max-h-64 text-[12.5px] leading-[1.45]'
               }
-              heightPx={mode === 'popover' ? composerHeight : null}
               minHeightPx={mode === 'popover' ? textMinHeight : null}
-              // Keep text 4px clear of the global Close:
-              // (inset − 1) + closeSize + 4 − 13px container padding.
               maxHeight={
                 mode === 'dialog'
                   ? `calc(${visibleBounds.height}px - 10rem)`
-                  : composerHeight === null ? popoverMaxHeightStyle : undefined
+                  : popoverMaxHeightStyle
               }
             />
             {showQuickLabels && quickLabels && onQuickLabel && (
@@ -663,9 +503,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           onClick={() => handleClose()}
         />
 
-        {/* Dialog card, plus the arc that collapses it back to the popover. The
-            card clips its content, so the arc hangs off a wrapper instead. */}
-        <div className="group/composer relative flex max-h-full min-h-0">
+        <div className="relative flex max-h-full min-h-0">
           <div
             ref={popoverRef}
             role="dialog"
@@ -692,17 +530,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
             `}</style>
             {composerCard}
           </div>
-          {!forcedDialog && (
-            <ArcGrip
-              gap={4}
-              stroke={2}
-              span={60}
-              edge={0}
-              corner="bottom-right"
-              title="Double-click to collapse"
-              onDoubleClick={collapseFromGrip}
-            />
-          )}
         </div>
       </div>,
       document.body
@@ -712,16 +539,14 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   // Popover mode
   if (!position) return null;
 
-  const currentWidth = composerWidth ?? baseWidth;
+  const currentWidth = baseWidth;
   // position.left centres MAX_POPOVER_WIDTH on the anchor; re-centre for the
-  // dialled width. A resize keeps this left edge, so the card grows rightward.
+  // actual width.
   const centredLeft = Math.max(
     visibleBounds.left,
     Math.min(position.left + (position.width - baseWidth) / 2, visibleBounds.right - baseWidth),
   );
   const currentLeft = dragPosition ? dragPosition.left : centredLeft;
-  // Placed by its bottom edge, so it grows upward: the grip moves with it.
-  const growsUp = position.flipAbove && !dragPosition;
 
   return createPortal(
     <>
@@ -740,7 +565,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       <div
         ref={popoverRef}
         data-comment-popover="true"
-        className="group/composer fixed z-popover bg-card border border-border rounded-xl shadow-[0_1px_2px_rgb(0_0_0/0.18),0_25px_50px_-12px_rgb(0_0_0/0.5)] flex flex-col"
+        className="fixed z-popover bg-card border border-border rounded-xl shadow-[0_1px_2px_rgb(0_0_0/0.18),0_25px_50px_-12px_rgb(0_0_0/0.5)] flex flex-col"
         style={dragPosition
           ? {
               top: dragPosition.top,
@@ -771,20 +596,6 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
         `}</style>
 
         {composerCard}
-
-        {/* Arc grip on the corner the card grows from: bottom-right normally,
-            top-right when the card opened above its anchor. Drag resizes;
-            double-click expands into the dialog. */}
-        <ArcGrip
-          gap={4}
-          stroke={2}
-          span={60}
-          edge={1}
-          corner={growsUp ? 'top-right' : 'bottom-right'}
-          title="Drag to resize · double-click to expand"
-          onPointerDown={beginGripResize}
-          onDoubleClick={expandFromGrip}
-        />
       </div>
     </>,
     document.body
@@ -798,10 +609,8 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 const COMPOSER_TEXT_CLASSES = 'w-full bg-transparent px-1 py-0.5';
 
 interface ComposerTextareaProps {
-  /** Explicit height in px from the resize grip; null keeps the class-driven size. */
-  heightPx?: number | null;
   /** Floor for the content-sized box, so an empty composer is as tall as one
-   *  being written in. Ignored once `heightPx` pins the height. */
+   *  being written in. */
   minHeightPx?: number | null;
   /** Explicit max-height from positioning constraints. */
   maxHeight?: string | number | null;
@@ -815,7 +624,6 @@ interface ComposerTextareaProps {
 }
 
 const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
-  heightPx = null,
   minHeightPx = null,
   maxHeight = null,
   value,
@@ -825,15 +633,11 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
   sizeClassName,
   textareaRef,
 }) => {
-  const boxStyle: React.CSSProperties = {
-    ...(heightPx === null
-      ? ({
-          fieldSizing: 'content',
-          ...(minHeightPx != null ? { minHeight: minHeightPx } : {}),
-        } as React.CSSProperties)
-      : { height: heightPx }),
+  const boxStyle = {
+    fieldSizing: 'content',
+    ...(minHeightPx != null ? { minHeight: minHeightPx } : {}),
     ...(maxHeight != null ? { maxHeight } : {}),
-  };
+  } as React.CSSProperties;
 
   return (
     <textarea
@@ -846,74 +650,6 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
       className={`${COMPOSER_TEXT_CLASSES} placeholder:text-muted-foreground resize-none focus:outline-none overflow-y-auto ${sizeClassName}`}
       style={boxStyle}
     />
-  );
-};
-
-// ---------------------------------------------------------------------------
-// Arc grip
-// ---------------------------------------------------------------------------
-
-/** Width of the invisible band along the arc that takes the pointer. */
-const ARC_HIT_WIDTH = 12;
-
-interface ArcGripProps {
-  /** Distance from the card edge to the arc's stroke centre, px. */
-  gap: number;
-  stroke: number;
-  /** Angle the arc covers, centred on the corner's diagonal, degrees. */
-  span: number;
-  /** Border width of the element the grip is placed in: 1 inside the popover card, 0 on the dialog wrapper. */
-  edge: 0 | 1;
-  /** The corner the card grows from. */
-  corner: 'bottom-right' | 'top-right';
-  title: string;
-  onDoubleClick: () => void;
-  onPointerDown?: (event: React.PointerEvent) => void;
-}
-
-/** Arc concentric with one of the card's right-hand corners (radius
- *  CARD_RADIUS + gap), on the corner the card grows from. Only a band along
- *  the arc takes the pointer, so the grip does not cover the buttons behind
- *  it. Shown while the `group/composer` ancestor is hovered. */
-const ArcGrip: React.FC<ArcGripProps> = ({ gap, stroke, span, edge, corner, title, onDoubleClick, onPointerDown }) => {
-  const up = corner === 'top-right';
-  const r = CARD_RADIUS + gap;
-  const box = r + ARC_HIT_WIDTH / 2;
-  // The corner's centre of curvature inside the svg box: its top-left corner
-  // for the bottom-right grip, its bottom-left corner for the mirrored one.
-  // Angles run from 3 o'clock towards the corner.
-  const cy = up ? box : 0;
-  const point = (deg: number) => {
-    const rad = (deg * Math.PI) / 180;
-    const y = cy + r * Math.sin(rad) * (up ? -1 : 1);
-    return `${(r * Math.cos(rad)).toFixed(2)} ${y.toFixed(2)}`;
-  };
-  const d = `M ${point(45 - span / 2)} A ${r} ${r} 0 0 ${up ? 0 : 1} ${point(45 + span / 2)}`;
-  // Puts that centre of curvature CARD_RADIUS in from the card's outer edges.
-  const offset = CARD_RADIUS - edge - box;
-
-  return (
-    <svg
-      aria-hidden="true"
-      width={box}
-      height={box}
-      viewBox={`0 0 ${box} ${box}`}
-      className="pointer-events-none absolute z-1 overflow-visible text-muted-foreground/60 opacity-0 transition-[opacity,color] hover:text-foreground group-hover/composer:opacity-100"
-      style={{ right: offset, [up ? 'top' : 'bottom']: offset }}
-    >
-      <path d={d} fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" />
-      <path
-        d={d}
-        fill="none"
-        stroke="transparent"
-        strokeWidth={ARC_HIT_WIDTH}
-        style={{ pointerEvents: 'stroke', cursor: onPointerDown ? (up ? 'nesw-resize' : 'nwse-resize') : 'pointer' }}
-        onPointerDown={onPointerDown}
-        onDoubleClick={onDoubleClick}
-      >
-        <title>{title}</title>
-      </path>
-    </svg>
   );
 };
 

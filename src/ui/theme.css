@@ -672,9 +672,6 @@ body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
    open; a saved comment adds a darker band along the bottom edge, drawn
    inside the box so it doesn't shift the line. */
 .annotation-highlight {
-  border-radius: 2px;
-  padding: 0 2px;
-  margin: 0 -2px;
   color: inherit;
   background: oklch(0.86 0.17 95 / 0.35);
 }

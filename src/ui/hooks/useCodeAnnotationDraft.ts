@@ -6,13 +6,11 @@
  */
 
 import { useEffect, useCallback, useRef } from 'react';
-import type { CodeAnnotation, ImageAttachment } from '../types';
+import type { CodeAnnotation } from '../types';
 import { getDraftTransport, readDraftGeneration, formatTimeAgo, DEBOUNCE_MS } from './useAnnotationDraft';
-import { draftStore } from '../components/CommentPopover';
 
 interface DraftData {
   codeAnnotations: CodeAnnotation[];
-  composer?: { key: string; text: string; images: ImageAttachment[]; ts: number } | null;
   draftGeneration?: number;
   ts: number;
 }
@@ -48,7 +46,6 @@ export function useCodeAnnotationDraft({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasMountedRef = useRef(false);
   const draftGenerationRef = useRef(0);
-  const latestComposerRef = useRef<{ key: string; text: string; images: ImageAttachment[] } | null>(null);
   // True once the user has actually had annotations this session. Used to decide
   // whether an empty state is a real "cleared everything" edit (persist it) vs a
   // fresh/unengaged session (leave the server alone).
@@ -71,23 +68,9 @@ export function useCodeAnnotationDraft({
           draftGenerationRef.current = Math.max(draftGenerationRef.current, generation);
         }
 
-        // Restore open composer into draftStore before annotations are applied
-        if (data?.composer?.key) {
-          draftStore.set(data.composer.key, {
-            text: data.composer.text,
-            images: data.composer.images || [],
-          });
-          latestComposerRef.current = {
-            key: data.composer.key,
-            text: data.composer.text,
-            images: data.composer.images || [],
-          };
-        }
-
         const annotationCount = Array.isArray(data?.codeAnnotations) ? data.codeAnnotations.length : 0;
-        const hasComposer = !!data?.composer && (((data.composer.text?.trim().length ?? 0) > 0) || ((data.composer.images?.length ?? 0) > 0));
 
-        if (annotationCount > 0 || hasComposer) {
+        if (annotationCount > 0) {
           draftDataRef.current = data;
           onDraftLoadedRef.current?.(
             { annotations: data?.codeAnnotations ?? [] },
@@ -107,12 +90,7 @@ export function useCodeAnnotationDraft({
   const persistNow = useCallback((keepalive: boolean) => {
     if (!isApiMode || submitted) return;
 
-    const composerEntry = latestComposerRef.current;
-    const composer = composerEntry && (composerEntry.text.trim().length > 0 || composerEntry.images.length > 0)
-      ? { key: composerEntry.key, text: composerEntry.text, images: composerEntry.images, ts: Date.now() }
-      : null;
-
-    const isEmpty = annotations.length === 0 && !composer;
+    const isEmpty = annotations.length === 0;
     // Leave the server alone for an empty state until the user has actually had
     // annotations this session. This preserves an unrestored draft sitting on disk
     // at mount.
@@ -131,7 +109,6 @@ export function useCodeAnnotationDraft({
 
     const payload: DraftData = {
       codeAnnotations: annotations,
-      composer,
       draftGeneration,
       ts: Date.now(),
     };
@@ -158,14 +135,6 @@ export function useCodeAnnotationDraft({
 
     scheduleDraftSave();
   }, [annotations, isApiMode, submitted, scheduleDraftSave]);
-
-  // Subscribe to open-composer changes from CommentPopover's draftStore
-  useEffect(() => {
-    return draftStore.subscribe((entry) => {
-      latestComposerRef.current = entry;
-      scheduleDraftSave();
-    });
-  }, [scheduleDraftSave]);
 
   // Flush a pending save when the page is backgrounded or closed — mirrors
   // useAnnotationDraft so review drafts also survive tab close.
@@ -225,7 +194,6 @@ export function useCodeAnnotationDraft({
     const deletedGeneration = draftGenerationRef.current + 1;
     draftGenerationRef.current = deletedGeneration;
     draftDataRef.current = null;
-    latestComposerRef.current = null;
     getDraftTransport().remove(deletedGeneration, { keepalive: false }).catch(() => {});
   }, []);
 
