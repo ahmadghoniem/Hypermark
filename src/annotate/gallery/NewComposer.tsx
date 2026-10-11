@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { ArrowUp, Image01, ImagePlus, XClose } from '@untitledui/icons';
+import { ArrowUp, Image01, ImagePlus, MessageQuestionCircle, XClose } from '@untitledui/icons';
 import { Tooltip } from '@/ui/fluid/components/tooltip';
 import { QuoteText } from '@/ui/components/QuoteText';
 import type { QuickLabel } from '@/ui/utils/quickLabels';
@@ -39,7 +39,8 @@ function splitName(name: string): [string, string] {
  * Mock of the reworked composer, for the gallery only. One flat card with
  * InputMessage's 8px inset: the quoted text (Ctrl+C with nothing selected
  * copies it), the text field, a row with the attached files as name chips
- * followed by the attach icon, and the send icon alone in the bottom row.
+ * followed by the attach icon, and the send icon with the side-question icon
+ * to its right in the bottom row. The side question (/btw) does nothing yet.
  *
  * Quick labels have no chips: the field offers them as a ghost completion.
  * Empty, it shows the first label; typing narrows to the first label the text
@@ -189,7 +190,7 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
         />
       </div>
 
-      <div className="flex items-center justify-end pt-1">
+      <div className="flex items-center justify-end gap-1 pt-1">
         <Tooltip
           side="top"
           className={TIP}
@@ -208,6 +209,24 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
             className="grid size-7 place-items-center rounded-md bg-foreground/12 text-foreground transition-colors hover:bg-foreground/18 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-foreground/12"
           >
             <ArrowUp size={16} />
+          </button>
+        </Tooltip>
+        <Tooltip
+          side="top"
+          className={TIP}
+          content={(
+            <span className="flex items-center gap-2 whitespace-nowrap">
+              Ask a side question
+              <span className="text-muted-foreground">/btw</span>
+            </span>
+          )}
+        >
+          <button
+            type="button"
+            aria-label="Ask a side question"
+            className="grid size-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <MessageQuestionCircle size={16} />
           </button>
         </Tooltip>
       </div>
