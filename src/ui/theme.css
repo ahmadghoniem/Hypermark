@@ -669,7 +669,8 @@ body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
    description annotations. (Moved here from src/annotate/index.css so both
    surfaces render web-highlighter marks identically.)
    Every highlight is yellow, including the pending one while the composer is
-   open; a saved comment adds the bar underneath. */
+   open; a saved comment adds a darker band along the bottom edge, drawn
+   inside the box so it doesn't shift the line. */
 .annotation-highlight {
   border-radius: 2px;
   padding: 0 2px;
@@ -702,7 +703,7 @@ body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
 }
 
 .annotation-highlight.comment {
-  border-bottom: 2px solid oklch(0.82 0.16 88);
+  box-shadow: inset 0 -3px 0 oklch(0.78 0.16 88 / 0.8);
 }
 
 /* Light mode: softer highlights */
@@ -711,7 +712,7 @@ body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
 }
 
 .light .annotation-highlight.comment {
-  border-bottom-color: oklch(0.74 0.16 80);
+  box-shadow: inset 0 -3px 0 oklch(0.80 0.16 88 / 0.85);
 }
 
 .annotation-highlight.focused {
