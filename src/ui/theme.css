@@ -481,51 +481,6 @@ html:not(.transitions-ready) * {
   background-color: color-mix(in oklab, var(--destructive) 20%, var(--muted));
 }
 
-/* Annotation highlights */
-.annotation-highlight {
-  border-radius: 2px;
-  padding: 0 2px;
-  margin: 0 -2px;
-}
-
-.annotation-highlight.deletion {
-  background: oklch(from var(--destructive) l c h / 0.35);
-  text-decoration: line-through;
-  text-decoration-color: var(--destructive);
-  text-decoration-thickness: 2px;
-}
-
-.annotation-highlight.comment {
-  background: oklch(0.70 0.18 60 / 0.3);
-  border-bottom: 2px solid var(--accent);
-}
-
-/* Light mode: softer highlights */
-.light .annotation-highlight.deletion {
-  background: oklch(0.65 0.22 25 / 0.2);
-}
-
-.light .annotation-highlight.comment {
-  background: oklch(0.70 0.20 60 / 0.15);
-}
-
-.annotation-highlight.focused {
-  background: oklch(from var(--focus-highlight) l c h / 0.45) !important;
-  box-shadow: 0 0 8px oklch(from var(--focus-highlight) l c h / 0.4);
-  border-bottom: 2px solid var(--focus-highlight);
-  filter: none;
-}
-
-.light .annotation-highlight.focused {
-  background: oklch(0.70 0.22 200 / 0.3) !important;
-  box-shadow: 0 0 6px oklch(0.60 0.20 200 / 0.3);
-}
-
-.annotation-highlight:hover {
-  filter: brightness(1.2);
-  cursor: pointer;
-}
-
 /* ========================================
    Plan Diff Styles
    ======================================== */
@@ -712,11 +667,19 @@ body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
 
 /* Annotation highlights — shared by the plan editor and the code-review
    description annotations. (Moved here from src/annotate/index.css so both
-   surfaces render web-highlighter marks identically.) */
+   surfaces render web-highlighter marks identically.)
+   Every highlight is yellow, including the pending one while the composer is
+   open; a saved comment adds the bar underneath. */
 .annotation-highlight {
   border-radius: 2px;
   padding: 0 2px;
   margin: 0 -2px;
+  color: inherit;
+  background: oklch(0.86 0.17 95 / 0.35);
+}
+
+.light .annotation-highlight {
+  background: oklch(0.93 0.16 100 / 0.7);
 }
 
 /* Math annotations style the rendered formula element directly rather than
@@ -739,8 +702,7 @@ body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
 }
 
 .annotation-highlight.comment {
-  background: oklch(0.70 0.18 60 / 0.3);
-  border-bottom: 2px solid var(--accent);
+  border-bottom: 2px solid oklch(0.82 0.16 88);
 }
 
 /* Light mode: softer highlights */
@@ -749,7 +711,7 @@ body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
 }
 
 .light .annotation-highlight.comment {
-  background: oklch(0.70 0.20 60 / 0.15);
+  border-bottom-color: oklch(0.74 0.16 80);
 }
 
 .annotation-highlight.focused {

@@ -860,6 +860,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
             <CommentPopover
               anchorEl={hookCommentPopover.anchorEl}
               contextText={hookCommentPopover.contextText}
+              copyText={hookCommentPopover.selectedText}
               isGlobal={false}
               initialText={hookCommentPopover.initialText}
               draftKey={`plan:${commentDraftScope}:${hookCommentPopover.draftKey}`}

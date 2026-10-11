@@ -12,6 +12,7 @@ import {
 import type { QuickLabel } from '../utils/quickLabels';
 import { ComposerQuickLabels } from './ComposerQuickLabels';
 import { isDialKitTarget } from '../utils/dialkit';
+import { copyTextToClipboard } from '../utils/clipboard';
 
 interface CommentPopoverProps {
   /** Element to anchor the popover near (re-reads position on scroll) */
@@ -20,6 +21,8 @@ interface CommentPopoverProps {
   anchorRect?: DOMRect;
   /** Truncated selected text shown in header, or empty for global */
   contextText: string;
+  /** Full highlighted text. Ctrl/Cmd+C copies it while nothing is selected in the text field. */
+  copyText?: string;
   /** Whether this is a global comment */
   isGlobal: boolean;
   /** Pre-filled text (for type-to-comment) */
@@ -153,6 +156,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   anchorEl,
   anchorRect,
   contextText,
+  copyText,
   isGlobal,
   initialText = '',
   initialImages,
@@ -486,6 +490,21 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
       e.preventDefault();
       handleSubmit();
+      return;
+    }
+    // Focus moves into the composer as soon as the highlight is made, so the
+    // page selection is gone; Ctrl/Cmd+C copies the highlighted text instead.
+    const field = e.currentTarget;
+    if (
+      copyText &&
+      e.key.toLowerCase() === 'c' &&
+      (e.metaKey || e.ctrlKey) &&
+      !e.shiftKey &&
+      !e.altKey &&
+      field.selectionStart === field.selectionEnd
+    ) {
+      e.preventDefault();
+      void copyTextToClipboard(copyText);
     }
   };
 
