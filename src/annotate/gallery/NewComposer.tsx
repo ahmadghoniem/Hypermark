@@ -14,16 +14,20 @@ interface NewComposerProps {
   onQuickLabel: (label: QuickLabel) => void;
 }
 
-const THUMB = 44;
+/** Same height as the attach button, so the row keeps its height when images
+ *  replace the label chips. */
+const THUMB = 24;
 
 /** Dark tooltip with a border, in place of Fluid's inverted one. */
 const TIP = 'border border-border bg-popover text-foreground shadow-md';
 
 /**
- * Mock of the reworked composer, for the gallery only. One flat card: the
- * quote with a bar on the left and Copy on the right, the text field with the
- * quick-label row, image tiles, then an attach icon on the left and a square
- * send icon on the right. Ctrl+Enter adds, Escape discards.
+ * Mock of the reworked composer, for the gallery only. One flat card with
+ * InputMessage's 8px inset: the quote with a bar on the left and Copy on the
+ * right, the text field, then a row with the attach icon followed by the
+ * quick-label chips, or by the attached images once there are any. The bottom
+ * row holds only the square send icon on the right. Ctrl+Enter adds, Escape
+ * discards.
  */
 export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, onSubmit, onQuickLabel }) => {
   const [text, setText] = useState('');
@@ -73,12 +77,12 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
   return (
     <div
       data-comment-popover="true"
-      className="flex w-90 flex-col rounded-xl border border-border bg-popover shadow-[0_1px_2px_rgb(0_0_0/0.18),0_25px_50px_-12px_rgb(0_0_0/0.5)]"
+      className="flex w-90 flex-col rounded-xl border border-border bg-popover p-2 shadow-[0_1px_2px_rgb(0_0_0/0.18),0_25px_50px_-12px_rgb(0_0_0/0.5)]"
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => { e.preventDefault(); addFiles(imageFilesFrom(e.dataTransfer)); }}
     >
       {/* Quote row: a bar on the left, Copy on the right. */}
-      <div className="flex items-center gap-2.5 pl-3.5 pr-2 pt-2.5">
+      <div className="flex items-center gap-2 pl-1.5">
         <span aria-hidden="true" className="h-4 w-0.5 shrink-0 rounded-full bg-muted-foreground/35" />
         <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{quote}</span>
         <button
@@ -94,7 +98,7 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
         </button>
       </div>
 
-      <div className="flex min-h-20 flex-col justify-between px-3.5 pt-3">
+      <div className="flex flex-col px-1.5 pt-2">
         <textarea
           autoFocus
           value={text}
@@ -105,41 +109,53 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
             if (pasted.length > 0) { e.preventDefault(); addFiles(pasted); }
           }}
           placeholder="What's your feedback?"
-          className="max-h-64 min-h-12 w-full resize-none overflow-y-auto bg-transparent text-sm/normal placeholder:text-muted-foreground focus:outline-none"
+          className="max-h-64 min-h-10 w-full resize-none overflow-y-auto bg-transparent text-sm/normal placeholder:text-muted-foreground focus:outline-none"
           style={{ fieldSizing: 'content' } as React.CSSProperties}
         />
-        <ComposerQuickLabels labels={quickLabels} onSelect={onQuickLabel} hidden={hasContent} chipHeight={24} gap={6} fade={36} />
       </div>
 
-      {files.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 px-3.5 pt-2">
-          {files.map((file, i) => (
-            <div key={`${file.name}-${i}`} className="group relative">
-              <FileThumbnail file={file} size={THUMB} radius={6} />
-              <button
-                type="button"
-                aria-label={`Remove ${file.name}`}
-                onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
-                className="absolute -right-1.5 -top-1.5 grid size-4 place-items-center rounded-full border border-border bg-popover text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"
-              >
-                <XClose size={10} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between gap-3 px-2.5 pb-2.5 pt-2">
+      {/* Attach, then the label chips; attached images take the chips' place. */}
+      <div className="flex items-center gap-1.5 pt-1.5">
         <Tooltip content="Attach image" side="top" className={TIP}>
           <button
             type="button"
             aria-label="Attach image"
             onClick={() => fileInputRef.current?.click()}
-            className="grid size-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            <ImagePlus size={16} />
+            <ImagePlus size={14} />
           </button>
         </Tooltip>
+        {files.length > 0 ? (
+          <div className="flex min-w-0 flex-wrap gap-1.5">
+            {files.map((file, i) => (
+              <div key={`${file.name}-${i}`} className="group relative">
+                <FileThumbnail file={file} size={THUMB} radius={4} />
+                <button
+                  type="button"
+                  aria-label={`Remove ${file.name}`}
+                  onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
+                  className="absolute -right-1.25 -top-1.25 grid size-3.5 place-items-center rounded-full border border-border bg-popover text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"
+                >
+                  <XClose size={8} strokeWidth={3} />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <ComposerQuickLabels
+            className="min-w-0 flex-1"
+            labels={quickLabels}
+            onSelect={onQuickLabel}
+            hidden={hasContent}
+            chipHeight={20}
+            gap={4}
+            fade={24}
+          />
+        )}
+      </div>
+
+      <div className="flex items-center justify-end pt-1">
         <input
           ref={fileInputRef}
           type="file"

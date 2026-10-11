@@ -49,8 +49,8 @@ const MAX_POPOVER_WIDTH = 344;
 const GAP = 8;
 
 // The quick-label row sits at the foot of the text field.
-const CHIP_HEIGHT = 24;
-const CHIP_GAP = 6;
+const CHIP_HEIGHT = 20;
+const CHIP_GAP = 4;
 /** The text area's own floor — the same 56px the old `min-h-14` gave it. An
  *  empty composer is exactly as tall as one being written in, so opening it,
  *  typing the first character and clearing it again never resize anything. */

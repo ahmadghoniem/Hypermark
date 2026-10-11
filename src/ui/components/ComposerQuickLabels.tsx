@@ -88,7 +88,7 @@ export const ComposerQuickLabels: React.FC<ComposerQuickLabelsProps> = ({ labels
             tabIndex={hidden ? -1 : 0}
             onClick={() => onSelect(label)}
             style={{ height: chipHeight, '--chip': CHIP_HUES[i % CHIP_HUES.length] } as React.CSSProperties}
-            className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-[color-mix(in_srgb,var(--chip)_15%,var(--popover))] px-2.5 text-2xs font-medium text-foreground/90 transition-colors hover:bg-[color-mix(in_srgb,var(--chip)_26%,var(--popover))] hover:text-foreground"
+            className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-[color-mix(in_srgb,var(--chip)_15%,var(--popover))] px-2 text-2xs font-medium text-foreground/90 transition-colors hover:bg-[color-mix(in_srgb,var(--chip)_26%,var(--popover))] hover:text-foreground"
           >
             {label.text}
           </button>

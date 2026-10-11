@@ -137,7 +137,7 @@ export const Gallery: React.FC = () => {
           <h1 className="text-lg font-semibold">Fluid gallery</h1>
           <p className="mt-1 max-w-[70ch] text-xs text-muted-foreground">
             Each row puts the component Hypermark uses now next to the Fluid Functionalism one, both on the app theme.
-            The Fluid side uses Untitled UI icons; ours are Phosphor. Dev only, not in the build.
+            Both sides use Untitled UI icons. Dev only, not in the build.
           </p>
 
           <Row

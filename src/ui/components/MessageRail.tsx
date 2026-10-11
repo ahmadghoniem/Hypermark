@@ -136,9 +136,6 @@ export const MessageRail: React.FC<MessageRailProps> = ({
                 <Terminal className="size-2.5" strokeWidth={2.5} />
               </span>
               <span className="text-2xs text-muted-foreground">Assistant</span>
-              {activeIndex === selectedIndex && (
-                <span className="rounded-full bg-primary/12 px-1.5 py-px text-3xs font-medium text-primary">Open</span>
-              )}
               <span className="ml-auto flex items-center gap-2 text-2xs text-muted-foreground/60">
                 {activeCount > 0 && (
                   <span>{activeCount} annotation{activeCount === 1 ? '' : 's'}</span>
