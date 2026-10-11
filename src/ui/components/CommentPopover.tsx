@@ -182,7 +182,18 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   const [text, setText] = useState(initialDraft?.text ?? initialText);
   const [images, setImages] = useState<ImageAttachment[]>(initialDraft?.images ?? initialImages ?? []);
   const [position, setPosition] = useState<CommentPopoverPosition | null>(null);
-  const [copyFlash, setCopyFlash] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => clearTimeout(copiedTimerRef.current), []);
+  const copyQuote = useCallback(() => {
+    if (!copyText) return;
+    void copyTextToClipboard(copyText).then((ok) => {
+      if (!ok) return;
+      setCopied(true);
+      clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 1200);
+    });
+  }, [copyText]);
   // Direction of an open popover that has scrolled out of view, or null when on-screen.
   const [offscreen, setOffscreen] = useState<'above' | 'below' | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -503,9 +514,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       field.selectionStart === field.selectionEnd
     ) {
       e.preventDefault();
-      void copyTextToClipboard(copyText).then((copied) => {
-        if (copied) setCopyFlash(true);
-      });
+      copyQuote();
     }
   };
 
@@ -527,7 +536,8 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       {/* Top strip - anchor mark and the quoted text. Draggable by the strip in
           popover mode. Not rendered for global comments. The composer closes
           with Escape, a click outside while empty, or by adding the comment.
-          The quote shimmers when Ctrl/Cmd+C copies the highlighted text. */}
+          The Copy button (or Ctrl/Cmd+C) copies the highlighted text and
+          reads "Copied" for a moment. */}
       {!isGlobal && (
         <div
           className="flex min-h-7 items-center gap-2 rounded-t-[13px] px-3 py-1"
@@ -536,12 +546,34 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           <span className="flex shrink-0 text-primary" aria-hidden="true">
             <AnchorIcon size={12} />
           </span>
-          <span
-            className={`min-w-0 flex-1 truncate text-2xs/snug text-muted-foreground ${copyFlash ? 'copy-shimmer' : ''}`}
-            onAnimationEnd={() => setCopyFlash(false)}
-          >
+          <span className="min-w-0 flex-1 truncate text-2xs/snug text-muted-foreground">
             {headerLabel}
           </span>
+          {copyText && (
+            <button
+              type="button"
+              // Keep focus in the textarea so typing can continue.
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={copyQuote}
+              title="Copy the highlighted text (Ctrl+C)"
+              aria-label={copied ? 'Copied' : 'Copy the highlighted text'}
+              className="-mr-1.5 grid shrink-0 rounded-md px-1.5 py-0.5 text-2xs/snug text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <span
+                aria-hidden="true"
+                className={`col-start-1 row-start-1 justify-self-end transition-[opacity,translate] duration-150 motion-reduce:transition-none ${copied ? '-translate-y-1 opacity-0' : ''}`}
+              >
+                Copy
+              </span>
+              <span
+                aria-hidden="true"
+                className={`col-start-1 row-start-1 justify-self-end whitespace-nowrap text-success transition-[opacity,translate] duration-150 motion-reduce:transition-none ${copied ? '' : 'translate-y-1 opacity-0'}`}
+              >
+                Copied ✓
+              </span>
+            </button>
+          )}
+          <span className="sr-only" aria-live="polite">{copied ? 'Copied' : ''}</span>
         </div>
       )}
 
