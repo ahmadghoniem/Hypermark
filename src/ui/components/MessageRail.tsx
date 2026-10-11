@@ -28,7 +28,8 @@ interface MessageRailProps {
 /**
  * Tick-mark rail of recent assistant messages, oldest at the top. Hover or
  * keyboard focus grows the ticks near the pointer and shows a preview card to
- * the left, over the document; a click opens the message.
+ * the left, over the document; a click opens the message. Focus from a click
+ * doesn't hold the card open, so it goes away once the pointer leaves.
  */
 export const MessageRail: React.FC<MessageRailProps> = ({
   messages,
@@ -95,7 +96,7 @@ export const MessageRail: React.FC<MessageRailProps> = ({
               aria-current={selected ? 'true' : undefined}
               aria-label={count > 0 ? `${preview}, ${count} annotation${count === 1 ? '' : 's'}` : preview}
               onPointerEnter={() => setPointerIndex(index)}
-              onFocus={() => setFocusIndex(index)}
+              onFocus={(e) => setFocusIndex(e.currentTarget.matches(':focus-visible') ? index : null)}
               onBlur={() => setFocusIndex(null)}
               onClick={() => onSelect(message.messageId)}
               onKeyDown={(e) => handleKeyDown(e, index)}
@@ -137,23 +138,19 @@ export const MessageRail: React.FC<MessageRailProps> = ({
                 </svg>
               </span>
               <span className="text-2xs text-muted-foreground">Assistant</span>
-              {activeTime && <span className="ml-auto text-2xs text-muted-foreground/60">{activeTime}</span>}
+              {activeIndex === selectedIndex && (
+                <span className="rounded-full bg-primary/12 px-1.5 py-px text-3xs font-medium text-primary">Open</span>
+              )}
+              <span className="ml-auto flex items-center gap-2 text-2xs text-muted-foreground/60">
+                {activeCount > 0 && (
+                  <span>{activeCount} annotation{activeCount === 1 ? '' : 's'}</span>
+                )}
+                {activeTime && <span>{activeTime}</span>}
+              </span>
             </div>
             <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-foreground">
               {railPreview(active.text)}
             </p>
-            {(activeIndex === selectedIndex || activeCount > 0) && (
-              <div className="mt-2 flex items-center gap-2">
-                {activeIndex === selectedIndex && (
-                  <span className="rounded-full bg-primary/12 px-1.5 py-px text-3xs font-medium text-primary">Open</span>
-                )}
-                {activeCount > 0 && (
-                  <span className="text-3xs text-muted-foreground">
-                    {activeCount} annotation{activeCount === 1 ? '' : 's'}
-                  </span>
-                )}
-              </div>
-            )}
           </div>
         )}
       </div>
