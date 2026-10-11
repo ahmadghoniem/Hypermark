@@ -3,6 +3,7 @@ param(
     [string]$Version = "latest",
     [switch]$VerifyAttestation,
     [switch]$SkipAttestation,
+    # The extra skills are gone; still accepted so older commands work.
     [switch]$Extras,
     [switch]$NoExtras,
     [string]$ModelInvocable = "",
@@ -14,8 +15,7 @@ param(
     # Same shape as the per-agent switches, but scoped to the skills/slash
     # command sparse checkout rather than one agent's home: -SkipSkills turns
     # the whole fetch into a no-op for every scope it writes (Claude,
-    # ~/.agents), including the extras and the
-    # skill-scope cleanup sweeps. Mirrors install.sh's --skip-skills.
+    # ~/.agents), including the skill-scope cleanup sweeps. Mirrors install.sh's --skip-skills.
     [switch]$SkipSkills
 )
 
@@ -26,10 +26,6 @@ $ErrorActionPreference = "Stop"
 # one the user meant is worse than failing fast.
 if ($VerifyAttestation -and $SkipAttestation) {
     [Console]::Error.WriteLine("-VerifyAttestation and -SkipAttestation are mutually exclusive. Pass one or the other.")
-    exit 1
-}
-if ($Extras -and $NoExtras) {
-    [Console]::Error.WriteLine("-Extras and -NoExtras are mutually exclusive. Pass one or the other.")
     exit 1
 }
 if ($Minimal -and $NoMinimal) {
@@ -525,12 +521,9 @@ foreach ($junk in @("core", "extra")) {
     }
 }
 
-# Extras (visual-explainer and older extras) are no longer managed in
-# the Claude or shared-agent skill scopes. Remove previously default-installed
-# copies ONCE per machine - recorded in the migrations ledger under the
-# Hypermark data dir - because copies the user reinstalls via `npx skills
-# add` are byte-identical to ours and can only be told apart by remembering
-# that this cleanup already ran.
+# The extra skills no longer exist. Remove previously default-installed
+# copies ONCE per machine, recorded in the migrations ledger under the
+# Hypermark data dir.
 $claudeSkillsDir = if ($env:CLAUDE_CONFIG_DIR) { "$env:CLAUDE_CONFIG_DIR\skills" } else { "$env:USERPROFILE\.claude\skills" }
 $agentsSkillsDir = "$env:USERPROFILE\.agents\skills"
 $migrationsDir = Join-Path $configDir "migrations"
@@ -540,7 +533,7 @@ if (-not (Test-Path $extrasMigration)) {
         foreach ($scopeDir in @($claudeSkillsDir, $agentsSkillsDir)) {
             $extraSkillPath = Join-Path $scopeDir $skill
             if (Test-Path $extraSkillPath) {
-                Write-Host "Removing unmanaged extra skill $extraSkillPath (reinstall via npx skills add)"
+                Write-Host "Removing extra skill $extraSkillPath"
                 Remove-Item -Recurse -Force $extraSkillPath -ErrorAction SilentlyContinue
             }
         }
@@ -550,31 +543,17 @@ if (-not (Test-Path $extrasMigration)) {
 }
 
 # --- Guided install (interactive consoles only) ---
-# Mirrors install.sh: two questions (extras? model-invocable skills?), answers
+# Mirrors install.sh: one question (model-invocable skills?), the answer
 # persisted to install-prefs in the Hypermark data dir and reused silently on
 # re-runs. -Reconfigure re-opens the wizard; -NonInteractive forces silence;
 # redirected/CI runs never prompt. Flags win over everything.
 $prefsFile = Join-Path $configDir "install-prefs"
 $coreSkillNames = @("hypermark-review", "hypermark-annotate", "hypermark-last")
-$extraSkillNames = @("hypermark-visual-explainer")
 
-$savedExtras = ""
 $savedInvocable = ""
 if (Test-Path $prefsFile) {
     foreach ($line in Get-Content $prefsFile) {
-        if ($line -match '^extras=(.*)$') { $savedExtras = $Matches[1] }
         if ($line -match '^model_invocable=(.*)$') { $savedInvocable = $Matches[1] }
-    }
-}
-
-# Extras already on disk (pre-existing or previously npx-installed)? Then the
-# extras question is moot - they still count toward the checkbox list, and we
-# never launch the npx flow over them.
-$extrasPresent = $false
-foreach ($skill in $extraSkillNames) {
-    if ((Test-Path (Join-Path $claudeSkillsDir $skill)) -or (Test-Path (Join-Path $agentsSkillsDir $skill))) {
-        $extrasPresent = $true
-        break
     }
 }
 
@@ -677,7 +656,6 @@ function Select-SkillsCheckbox {
     }
 }
 
-$extrasChoice = ""
 $invocableChoice = ""
 
 if ($runWizard) {
@@ -686,25 +664,13 @@ if ($runWizard) {
     Write-Host "  HYPERMARK GUIDED INSTALL"
     Write-Host "=========================================="
     Write-Host ""
-    if ($extrasPresent) {
-        Write-Host "Extra skills already installed - keeping them."
-        $extrasChoice = "yes"
-    } elseif ($Extras -or $NoExtras) {
-        # Flag already answered this question - don't ask and then ignore.
-        $extrasChoice = if ($Extras) { "yes" } else { "no" }
-    } else {
-        $defaultExtras = if ($savedExtras) { $savedExtras } else { "no" }
-        $extrasChoice = Read-YesNo "Install the extra skills (visual explainer)?" $defaultExtras
-    }
-    $invocableList = $coreSkillNames
-    if ($extrasChoice -eq "yes") { $invocableList = $coreSkillNames + $extraSkillNames }
     if ($ModelInvocable) {
         # Flag already answered this question - don't ask and then ignore.
         $invocableChoice = $ModelInvocable
     } else {
         $wantInvocable = Read-YesNo "Make any skills callable by the model (instead of user-invoked only)?" "no"
         if ($wantInvocable -eq "yes") {
-            $invocableChoice = Select-SkillsCheckbox -Names $invocableList -Preselected $savedInvocable
+            $invocableChoice = Select-SkillsCheckbox -Names $coreSkillNames -Preselected $savedInvocable
         } else {
             $invocableChoice = "none"
         }
@@ -712,34 +678,14 @@ if ($runWizard) {
 }
 
 # Flags override the wizard and saved answers; otherwise saved, then defaults.
-if ($Extras) { $extrasChoice = "yes" }
-if ($NoExtras) { $extrasChoice = "no" }
 if ($ModelInvocable) { $invocableChoice = $ModelInvocable }
-if (-not $extrasChoice) { $extrasChoice = if ($savedExtras) { $savedExtras } else { "no" } }
 if (-not $invocableChoice) { $invocableChoice = if ($savedInvocable) { $savedInvocable } else { "none" } }
 
 # Persist only when the wizard ran or a flag set something - silent re-runs
 # must not clobber saved answers with defaults.
-if ($runWizard -or $Extras -or $NoExtras -or $ModelInvocable) {
+if ($runWizard -or $ModelInvocable) {
     New-Item -ItemType Directory -Force -Path $configDir | Out-Null
-    @("extras=$extrasChoice", "model_invocable=$invocableChoice") | Set-Content $prefsFile
-}
-
-# Extras install is delegated to the skills CLI (its UI picks the agents).
-# Interactive only - silent runs and CI get the printed command instead.
-# Never runs when the extras already exist. The extras ARE skills, so
-# -SkipSkills suppresses them too - a saved extras=yes preference must not
-# smuggle a skill install past the opt-out.
-if ((-not $skipSkillsResolved) -and ($extrasChoice -eq "yes") -and (-not $extrasPresent)) {
-    if ($canPrompt -and (Get-Command npx -ErrorAction SilentlyContinue)) {
-        Write-Host "Launching the skills CLI for the extras (pick your agents in its UI)..."
-        npx skills add ahmadghoniem/Hypermark/skills/extra --global
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "skills CLI did not complete - install later with: npx skills add ahmadghoniem/Hypermark/skills/extra --global"
-        }
-    } else {
-        Write-Host "Install the extras with: npx skills add ahmadghoniem/Hypermark/skills/extra --global"
-    }
+    @("model_invocable=$invocableChoice") | Set-Content $prefsFile
 }
 
 # Install skills and command stubs (requires git).
@@ -977,10 +923,4 @@ if ($skipSkillsResolved) {
     Write-Host "Re-run the installer without the opt-out to add them."
 } else {
     Write-Host "The /hypermark-review, /hypermark-annotate, and /hypermark-last commands are ready to use after you restart Claude Code!"
-}
-
-if ((-not $skipSkillsResolved) -and ($extrasChoice -ne "yes")) {
-    Write-Host ""
-    Write-Host "Optional skills (visual explainer):"
-    Write-Host "  npx skills add ahmadghoniem/Hypermark/skills/extra --global"
 }

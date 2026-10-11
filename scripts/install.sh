@@ -32,9 +32,8 @@ VERSION_EXPLICIT=0
 # -1 = flag not set yet (fall through to lower layers); 0 = disable; 1 = enable.
 VERIFY_ATTESTATION_FLAG=-1
 # Guided-install answers. Precedence: CLI flags > wizard (terminal, first run
-# or --reconfigure) > saved prefs from a previous run > defaults (no extras,
-# nothing model-invocable). Empty string = not set by a flag.
-EXTRAS_FLAG=""
+# or --reconfigure) > saved prefs from a previous run > defaults (nothing
+# model-invocable). Empty string = not set by a flag.
 MODEL_INVOCABLE_FLAG=""
 NON_INTERACTIVE=0
 RECONFIGURE=0
@@ -47,8 +46,8 @@ RECONFIGURE=0
 MINIMAL_FLAG=-1
 # Same shape, but scoped to the skills/slash-command sparse checkout rather
 # than one agent's home: --skip-skills turns the whole fetch into a no-op for
-# every scope it writes (Claude Code and ~/.agents), including the extras and
-# the skill-scope cleanup sweeps. Needed by any environment that
+# every scope it writes (Claude Code and ~/.agents), including the skill-scope
+# cleanup sweeps. Needed by any environment that
 # cannot reach github.com for the tag being installed — the release smoke test
 # installs a synthetic v9.9.9 whose tag has no GitHub counterpart.
 SKIP_SKILLS_FLAG=0
@@ -56,7 +55,7 @@ SKIP_SKILLS_FLAG=0
 usage() {
     cat <<'USAGE'
 Usage: install.sh [--version <tag>] [--verify-attestation | --skip-attestation]
-                  [--extras | --no-extras] [--model-invocable <list>|none]
+                  [--model-invocable <list>|none]
                   [--minimal | --no-minimal] [--skip-skills]
                   [--non-interactive] [--reconfigure] [--help]
        install.sh <tag>
@@ -70,8 +69,6 @@ Options:
                          not available or the check does not pass.
   --skip-attestation     Force-skip provenance verification even if enabled
                          via env var or ~/.hypermark/config.json.
-  --extras               Install the extra skills (visual-explainer) via `npx skills add` without asking.
-  --no-extras            Skip the extras without asking.
   --model-invocable <l>  Comma-separated skill names to make model-invocable
                          (e.g. hypermark-review,hypermark-last), or
                          "none". Skills are user-invoked-only by default.
@@ -86,8 +83,8 @@ Options:
                          set in the environment.
   --skip-skills          Do not fetch or write the /hypermark-* skills and
                          slash commands (the sparse checkout that feeds Claude
-                         Code and ~/.agents), the extras, or the skill-scope
-                         cleanup sweeps. Nothing already installed is removed.
+                         Code and ~/.agents) or the skill-scope cleanup
+                         sweeps. Nothing already installed is removed.
                          The binary, hooks, and Claude configuration still
                          install. Use it where
                          github.com cannot serve the tag being installed. Env
@@ -95,14 +92,14 @@ Options:
                          skipInstall.skills.
   --non-interactive      Never prompt, even in a terminal. Uses flags, then
                          saved answers from a previous run, then the defaults
-                         (no extras, nothing model-invocable).
+                         (nothing model-invocable).
   --reconfigure          Re-open the guided questions even if answers were
                          saved by a previous run.
   -h, --help             Show this help and exit.
 
 Guided install: when run in a terminal for the first time (or with
---reconfigure), the installer asks whether to install the extra skills and
-whether any skills should be callable by the model. Answers are saved to
+--reconfigure), the installer asks whether any skills should be callable by
+the model. Answers are saved to
 <data dir>/install-prefs and
 reused silently on re-runs. Piped/CI runs (no terminal) never prompt and
 keep the defaults.
@@ -121,7 +118,7 @@ authenticated fetch runs as the fallback.
 Examples:
   curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash
   curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash -s -- --version vX.Y.Z
-  curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash -s -- --no-extras --model-invocable none
+  curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash -s -- --model-invocable none
   bash install.sh vX.Y.Z
 USAGE
 }
@@ -181,12 +178,8 @@ while [ $# -gt 0 ]; do
             VERIFY_ATTESTATION_FLAG=0
             shift
             ;;
-        --extras)
-            EXTRAS_FLAG="yes"
-            shift
-            ;;
-        --no-extras)
-            EXTRAS_FLAG="no"
+        --extras|--no-extras)
+            # The extra skills are gone; still accepted so older commands work.
             shift
             ;;
         --model-invocable)
@@ -768,11 +761,9 @@ for junk in core extra; do
     fi
 done
 
-# Extras are no longer installed by this script anywhere. Remove
-# previously default-installed copies ONCE per machine — recorded in the
-# migrations ledger under the Hypermark data dir — because copies the user
-# reinstalls via `npx skills add` are byte-identical to ours and can only be
-# told apart by remembering that this cleanup already ran.
+# The extra skills no longer exist. Remove previously default-installed
+# copies ONCE per machine, recorded in the migrations ledger under the
+# Hypermark data dir.
 CLAUDE_SKILLS_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills"
 AGENTS_SKILLS_DIR="$HOME/.agents/skills"
 MIGRATIONS_DIR="$_config_dir/migrations"
@@ -782,7 +773,7 @@ if [ ! -f "$EXTRAS_MIGRATION" ]; then
         for skill in hypermark-setup-goal hypermark-visual-explainer; do
             if [ -d "$scope/$skill" ]; then
                 rm -rf "$scope/$skill"
-                echo "Removed extra Hypermark skill from ${scope}/$skill (reinstall via npx skills add)"
+                echo "Removed extra Hypermark skill from ${scope}/$skill"
             fi
         done
     done
@@ -791,31 +782,17 @@ if [ ! -f "$EXTRAS_MIGRATION" ]; then
 fi
 
 # --- Guided install (interactive terminals only) ---
-# Two questions: install the extra skills? make any skills callable by the
-# model? Answers persist to $PREFS_FILE and are reused silently on re-runs.
+# One question: make any skills callable by the model? The answer persists
+# to $PREFS_FILE and is reused silently on re-runs.
 # --reconfigure re-opens the wizard; --non-interactive forces silence; piped
 # CI runs without a terminal never prompt. CLI flags win over everything.
 PREFS_FILE="$_config_dir/install-prefs"
 CORE_SKILL_NAMES="hypermark-review hypermark-annotate hypermark-last"
-EXTRA_SKILL_NAMES="hypermark-visual-explainer"
 
-saved_extras=""
 saved_invocable=""
 if [ -f "$PREFS_FILE" ]; then
-    saved_extras=$(sed -n 's/^extras=//p' "$PREFS_FILE" | head -1)
     saved_invocable=$(sed -n 's/^model_invocable=//p' "$PREFS_FILE" | head -1)
 fi
-
-# Extras already on disk (pre-existing or previously npx-installed)? Then the
-# extras question is moot — they still count toward the checkbox list, and we
-# never launch the npx flow over them.
-extras_present=0
-for skill in $EXTRA_SKILL_NAMES; do
-    if [ -d "$CLAUDE_SKILLS_DIR/$skill" ] || [ -d "$AGENTS_SKILLS_DIR/$skill" ]; then
-        extras_present=1
-        break
-    fi
-done
 
 # A wizard needs a real human at the keyboard. Piped installs (curl | bash)
 # still have a terminal at /dev/tty even though stdin is the pipe; CI and
@@ -823,10 +800,10 @@ done
 # provisioner shells) DO expose an openable /dev/tty with nobody behind it —
 # opening /dev/tty succeeds, yet a read would block forever. The per-prompt
 # timeout below (see PROMPT_TIMEOUT / ask_yes_no) handles that: a mis-detected
-# terminal falls through to the safe non-interactive defaults (extras=no,
-# model-invocable=none) instead of wedging. We deliberately do NOT
+# terminal falls through to the safe non-interactive default
+# (model-invocable=none) instead of wedging. We deliberately do NOT
 # gate on $CI here — an exported CI var must not silently suppress an explicit
-# --reconfigure or --extras in an otherwise interactive shell.
+# --reconfigure in an otherwise interactive shell.
 can_prompt=0
 if [ "$NON_INTERACTIVE" -eq 0 ] && { : < /dev/tty; } 2>/dev/null; then
     can_prompt=1
@@ -932,7 +909,6 @@ select_skills_checkbox() {
     echo "${out:-none}"
 }
 
-extras_choice=""
 invocable_choice=""
 # Set if any wizard prompt times out / hits EOF (no human answered). A run whose
 # answers are synthetic timeout fallbacks must not be persisted as install-prefs.
@@ -946,26 +922,13 @@ if [ "$run_wizard" -eq 1 ]; then
         echo "=========================================="
         echo ""
     } > /dev/tty
-    if [ "$extras_present" -eq 1 ]; then
-        echo "Extra skills already installed — keeping them." > /dev/tty
-        extras_choice="yes"
-    elif [ -n "$EXTRAS_FLAG" ]; then
-        # Flag already answered this question — don't ask and then ignore.
-        extras_choice="$EXTRAS_FLAG"
-    else
-        extras_choice=$(ask_yes_no "Install the extra skills (visual explainer)?" "${saved_extras:-no}") || wizard_timed_out=1
-    fi
-    invocable_list="$CORE_SKILL_NAMES"
-    if [ "$extras_choice" = "yes" ]; then
-        invocable_list="$CORE_SKILL_NAMES $EXTRA_SKILL_NAMES"
-    fi
     if [ -n "$MODEL_INVOCABLE_FLAG" ]; then
         # Flag already answered this question — don't ask and then ignore.
         invocable_choice="$MODEL_INVOCABLE_FLAG"
     else
         want_invocable=$(ask_yes_no "Make any skills callable by the model (instead of user-invoked only)?" "no") || wizard_timed_out=1
         if [ "$want_invocable" = "yes" ]; then
-            invocable_choice=$(select_skills_checkbox "$invocable_list" "$saved_invocable")
+            invocable_choice=$(select_skills_checkbox "$CORE_SKILL_NAMES" "$saved_invocable")
         else
             invocable_choice="none"
         fi
@@ -973,36 +936,16 @@ if [ "$run_wizard" -eq 1 ]; then
 fi
 
 # Flags override the wizard and saved answers; otherwise saved, then defaults.
-[ -n "$EXTRAS_FLAG" ] && extras_choice="$EXTRAS_FLAG"
 [ -n "$MODEL_INVOCABLE_FLAG" ] && invocable_choice="$MODEL_INVOCABLE_FLAG"
-[ -z "$extras_choice" ] && extras_choice="${saved_extras:-no}"
 [ -z "$invocable_choice" ] && invocable_choice="${saved_invocable:-none}"
 
 # Persist only when the wizard ran with real answers, or a flag set something.
 # Silent re-runs must not clobber saved answers with defaults, and a wizard that
 # timed out to synthetic fallbacks (unattended /dev/tty) must not become sticky
 # prefs that suppress the wizard on a later genuine interactive install.
-if [ "$wizard_timed_out" -eq 0 ] && { [ "$run_wizard" -eq 1 ] || [ -n "$EXTRAS_FLAG" ] || [ -n "$MODEL_INVOCABLE_FLAG" ]; }; then
+if [ "$wizard_timed_out" -eq 0 ] && { [ "$run_wizard" -eq 1 ] || [ -n "$MODEL_INVOCABLE_FLAG" ]; }; then
     mkdir -p "$_config_dir"
-    {
-        echo "extras=$extras_choice"
-        echo "model_invocable=$invocable_choice"
-    } > "$PREFS_FILE"
-fi
-
-# Extras install is delegated to the skills CLI (its UI picks the agents).
-# Interactive only — the CLI needs the keyboard, so silent runs and CI get
-# the printed command instead. Never runs when the extras already exist.
-# The extras ARE skills, so --skip-skills suppresses them too — a saved
-# extras=yes preference must not smuggle a skill install past the opt-out.
-if [ "$skip_skills" -eq 0 ] && [ "$extras_choice" = "yes" ] && [ "$extras_present" -eq 0 ]; then
-    if [ "$can_prompt" -eq 1 ] && command -v npx >/dev/null 2>&1; then
-        echo "Launching the skills CLI for the extras (pick your agents in its UI)..."
-        npx skills add ahmadghoniem/Hypermark/skills/extra --global < /dev/tty || \
-            echo "skills CLI did not complete — install later with: npx skills add ahmadghoniem/Hypermark/skills/extra --global"
-    else
-        echo "Install the extras with: npx skills add ahmadghoniem/Hypermark/skills/extra --global"
-    fi
+    echo "model_invocable=$invocable_choice" > "$PREFS_FILE"
 fi
 
 # Skills/commands opt-out. HONEST reporting like the per-agent family: the
@@ -1232,10 +1175,4 @@ if [ "$skip_skills" -eq 1 ]; then
     echo "Re-run the installer without the opt-out to add them."
 else
     echo "The /hypermark-review, /hypermark-annotate, and /hypermark-last commands are ready to use after you restart Claude Code!"
-fi
-
-if [ "$skip_skills" -eq 0 ] && [ "$extras_choice" != "yes" ]; then
-    echo ""
-    echo "Optional skills (visual explainer):"
-    echo "  npx skills add ahmadghoniem/Hypermark/skills/extra --global"
 fi

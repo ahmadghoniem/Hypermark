@@ -14,7 +14,6 @@ REM -1 = flag not set (fall through); 0 = disable; 1 = enable.
 set "VERIFY_ATTESTATION_FLAG=-1"
 REM Guided-install answers. Precedence: CLI flags > wizard (interactive, first
 REM run or --reconfigure) > saved prefs from a previous run > defaults.
-set "EXTRAS_FLAG="
 set "MODEL_INVOCABLE_FLAG="
 set "NON_INTERACTIVE=0"
 set "RECONFIGURE=0"
@@ -25,7 +24,7 @@ set "MINIMAL_FLAG=-1"
 REM Same shape, but scoped to the skills/slash-command sparse checkout rather
 REM than one agent's home: --skip-skills turns the whole fetch into a no-op for
 REM every scope it writes (Claude, .agents), including
-REM the extras and the skill-scope cleanup sweeps.
+REM the skill-scope cleanup sweeps.
 set "SKIP_SKILLS_FLAG=0"
 
 :parse_args
@@ -66,13 +65,12 @@ if /i "%~1"=="--skip-attestation" (
     shift
     goto parse_args
 )
+REM The extra skills are gone; still accepted so older commands work.
 if /i "%~1"=="--extras" (
-    set "EXTRAS_FLAG=yes"
     shift
     goto parse_args
 )
 if /i "%~1"=="--no-extras" (
-    set "EXTRAS_FLAG=no"
     shift
     goto parse_args
 )
@@ -147,7 +145,7 @@ REM unquoted arg containing `&` would re-trigger metacharacter interpretation.
 set "CURRENT_ARG=%~1"
 if "!CURRENT_ARG:~0,1!"=="-" (
     echo Unknown option: "%~1" >&2
-    echo Usage: install.cmd [--version ^<tag^>] [--verify-attestation ^| --skip-attestation] [--extras ^| --no-extras] [--model-invocable ^<list^>] [--minimal ^| --no-minimal] [--skip-skills] [--non-interactive] [--reconfigure] >&2
+    echo Usage: install.cmd [--version ^<tag^>] [--verify-attestation ^| --skip-attestation] [--model-invocable ^<list^>] [--minimal ^| --no-minimal] [--skip-skills] [--non-interactive] [--reconfigure] >&2
     exit /b 1
 )
 REM Positional form: install.cmd vX.Y.Z (legacy interface).
@@ -751,11 +749,9 @@ for %%J in (core extra) do (
     )
 )
 
-REM Extras are no longer managed in the Claude / shared-agent scopes. Remove
-REM previously default-installed copies ONCE per machine - recorded in the
-REM migrations ledger under the Hypermark data dir - because copies the user
-REM reinstalls via `npx skills add` are byte-identical to ours and can only be
-REM told apart by remembering that this cleanup already ran.
+REM The extra skills no longer exist. Remove previously default-installed
+REM copies ONCE per machine, recorded in the migrations ledger under the
+REM Hypermark data dir.
 if defined CLAUDE_CONFIG_DIR (
     set "CLAUDE_SKILLS_DIR=%CLAUDE_CONFIG_DIR%\skills"
 ) else (
@@ -768,11 +764,11 @@ if not exist "!EXTRAS_MIGRATION!" (
     for %%S in (hypermark-setup-goal hypermark-visual-explainer) do (
         if exist "!CLAUDE_SKILLS_DIR!\%%S" (
             rmdir /s /q "!CLAUDE_SKILLS_DIR!\%%S" >nul 2>&1
-            echo Removed extra Hypermark skill from !CLAUDE_SKILLS_DIR!\%%S ^(reinstall via npx skills add^)
+            echo Removed extra Hypermark skill from !CLAUDE_SKILLS_DIR!\%%S
         )
         if exist "!AGENTS_SKILLS_DIR!\%%S" (
             rmdir /s /q "!AGENTS_SKILLS_DIR!\%%S" >nul 2>&1
-            echo Removed extra Hypermark skill from !AGENTS_SKILLS_DIR!\%%S ^(reinstall via npx skills add^)
+            echo Removed extra Hypermark skill from !AGENTS_SKILLS_DIR!\%%S
         )
     )
     if not exist "!MIGRATIONS_DIR!" mkdir "!MIGRATIONS_DIR!" >nul 2>&1
@@ -780,34 +776,23 @@ if not exist "!EXTRAS_MIGRATION!" (
 )
 
 REM --- Guided install (interactive consoles only) ---
-REM Mirrors install.sh: two questions (extras? model-invocable skills?),
-REM answers persisted to install-prefs in the Hypermark data dir and reused
+REM Mirrors install.sh: one question (model-invocable skills?), the answer
+REM persisted to install-prefs in the Hypermark data dir and reused
 REM silently on re-runs. --reconfigure re-opens the wizard; --non-interactive
 REM forces silence. `set /p` returns empty at EOF, so redirected/CI runs fall
 REM through to the defaults without hanging. Flags win over everything.
 REM No checkbox UI in batch - the skill picker uses numbered toggles instead.
 set "PREFS_FILE=!_CONFIG_DIR!\install-prefs"
-set "SAVED_EXTRAS="
 set "SAVED_INVOCABLE="
 if exist "!PREFS_FILE!" (
     for /f "usebackq tokens=1,* delims==" %%A in ("!PREFS_FILE!") do (
-        if /i "%%A"=="extras" set "SAVED_EXTRAS=%%B"
         if /i "%%A"=="model_invocable" set "SAVED_INVOCABLE=%%B"
     )
 )
 
-REM Extras already on disk? Then the extras question is moot - they still
-REM count toward the picker list, and we never launch the npx flow over them.
-set "EXTRAS_PRESENT=0"
-for %%S in (hypermark-visual-explainer) do (
-    if exist "!CLAUDE_SKILLS_DIR!\%%S" set "EXTRAS_PRESENT=1"
-    if exist "!AGENTS_SKILLS_DIR!\%%S" set "EXTRAS_PRESENT=1"
-)
-
 REM A wizard needs a real console. `timeout` exits non-zero when stdin is
 REM redirected ("Input redirection is not supported"), making it a reliable
-REM console probe - CI and redirected runs never see the wizard and never
-REM trigger the wizard-only installs (npx extras). The set /p
+REM console probe - CI and redirected runs never see the wizard. The set /p
 REM EOF-fallthrough remains as a second line of defense.
 set "CAN_PROMPT=0"
 timeout /t 0 >nul 2>&1
@@ -819,16 +804,11 @@ if "!CAN_PROMPT!"=="1" (
     if not exist "!PREFS_FILE!" set "RUN_WIZARD=1"
 )
 
-set "EXTRAS_CHOICE="
 set "INVOCABLE_CHOICE="
 if "!RUN_WIZARD!"=="1" call :guided_wizard
 
 REM Flags override the wizard and saved answers; otherwise saved, then defaults.
-if defined EXTRAS_FLAG set "EXTRAS_CHOICE=!EXTRAS_FLAG!"
 if defined MODEL_INVOCABLE_FLAG set "INVOCABLE_CHOICE=!MODEL_INVOCABLE_FLAG!"
-if not defined EXTRAS_CHOICE (
-    if defined SAVED_EXTRAS (set "EXTRAS_CHOICE=!SAVED_EXTRAS!") else (set "EXTRAS_CHOICE=no")
-)
 if not defined INVOCABLE_CHOICE (
     if defined SAVED_INVOCABLE (set "INVOCABLE_CHOICE=!SAVED_INVOCABLE!") else (set "INVOCABLE_CHOICE=none")
 )
@@ -837,31 +817,11 @@ REM Persist only when the wizard ran or a flag set something - silent re-runs
 REM must not clobber saved answers with defaults.
 set "DO_PERSIST=0"
 if "!RUN_WIZARD!"=="1" set "DO_PERSIST=1"
-if defined EXTRAS_FLAG set "DO_PERSIST=1"
 if defined MODEL_INVOCABLE_FLAG set "DO_PERSIST=1"
 if "!DO_PERSIST!"=="1" (
     if not exist "!_CONFIG_DIR!" mkdir "!_CONFIG_DIR!" >nul 2>&1
     > "!PREFS_FILE!" (
-        echo extras=!EXTRAS_CHOICE!
         echo model_invocable=!INVOCABLE_CHOICE!
-    )
-)
-
-REM Extras install is delegated to the skills CLI (its UI picks the agents).
-REM Interactive wizard runs only - silent runs and CI get the printed command.
-REM Never runs when the extras already exist. The extras ARE skills, so
-REM --skip-skills suppresses them too - a saved extras=yes preference must not
-REM smuggle a skill install past the opt-out.
-if "!SKIP_SKILLS!"=="0" if "!EXTRAS_CHOICE!"=="yes" if "!EXTRAS_PRESENT!"=="0" (
-    set "NPX_OK=0"
-    where npx >nul 2>&1
-    if !ERRORLEVEL! equ 0 if "!RUN_WIZARD!"=="1" set "NPX_OK=1"
-    if "!NPX_OK!"=="1" (
-        echo Launching the skills CLI for the extras ^(pick your agents in its UI^)...
-        call npx skills add ahmadghoniem/Hypermark/skills/extra --global
-        if not !ERRORLEVEL! equ 0 echo skills CLI did not complete - install later with: npx skills add ahmadghoniem/Hypermark/skills/extra --global
-    ) else (
-        echo Install the extras with: npx skills add ahmadghoniem/Hypermark/skills/extra --global
     )
 )
 
@@ -1045,11 +1005,6 @@ if "!SKIP_SKILLS!"=="1" (
 ) else (
     echo The /hypermark-review, /hypermark-annotate, and /hypermark-last skills are ready to use!
 )
-if "!SKIP_SKILLS!"=="0" if not "!EXTRAS_CHOICE!"=="yes" (
-    echo.
-    echo Optional skills ^(visual explainer^):
-    echo   npx skills add ahmadghoniem/Hypermark/skills/extra --global
-)
 
 echo.
 exit /b 0
@@ -1079,7 +1034,7 @@ goto :eof
 
 REM ======================================================================
 REM Guided-install wizard (called only on interactive first runs or with
-REM --reconfigure). Sets EXTRAS_CHOICE and INVOCABLE_CHOICE.
+REM --reconfigure). Sets INVOCABLE_CHOICE.
 REM ======================================================================
 :guided_wizard
 echo.
@@ -1087,22 +1042,6 @@ echo ==========================================
 echo   HYPERMARK GUIDED INSTALL
 echo ==========================================
 echo.
-if "!EXTRAS_PRESENT!"=="1" (
-    echo Extra skills already installed - keeping them.
-    set "EXTRAS_CHOICE=yes"
-) else if defined EXTRAS_FLAG (
-    REM Flag already answered this question - don't ask and then ignore.
-    set "EXTRAS_CHOICE=!EXTRAS_FLAG!"
-) else (
-    set "DEF_EXTRAS=no"
-    if defined SAVED_EXTRAS set "DEF_EXTRAS=!SAVED_EXTRAS!"
-    set "ANSWER="
-    set /p "ANSWER=Install the extra skills (visual explainer)? [y/N] "
-    set "EXTRAS_CHOICE=no"
-    if /i "!ANSWER!"=="y" set "EXTRAS_CHOICE=yes"
-    if /i "!ANSWER!"=="yes" set "EXTRAS_CHOICE=yes"
-    if "!ANSWER!"=="" set "EXTRAS_CHOICE=!DEF_EXTRAS!"
-)
 if defined MODEL_INVOCABLE_FLAG (
     REM Flag already answered this question - don't ask and then ignore.
     set "INVOCABLE_CHOICE=!MODEL_INVOCABLE_FLAG!"
@@ -1121,10 +1060,6 @@ set "SKILL_COUNT=3"
 set "SKILL_1=hypermark-review"
 set "SKILL_2=hypermark-annotate"
 set "SKILL_3=hypermark-last"
-if "!EXTRAS_CHOICE!"=="yes" (
-    set "SKILL_COUNT=4"
-    set "SKILL_4=hypermark-visual-explainer"
-)
 REM Preselect previously chosen skills. NOTE: no pipes here - each side of a
 REM cmd pipe runs in a child without delayed expansion, so !vars! would pass
 REM through literally. A substring-replace containment test avoids that trap.

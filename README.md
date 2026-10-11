@@ -117,7 +117,7 @@ curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts
 irm https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.ps1 | iex
 ```
 
-The installer downloads the binary from GitHub Releases. A full install also contacts GitHub for release resolution and the skills checkout, and npm for the extra skills. Pinning `--version` skips only GitHub API release resolution, not the release download.
+The installer downloads the binary from GitHub Releases. A full install also contacts GitHub for release resolution and the skills checkout. Pinning `--version` skips only GitHub API release resolution, not the release download.
 
 Want just the binary and nothing else? Pass `--minimal` (or export `HYPERMARK_MINIMAL=1`) to install only the `hypermark` binary to `~/.local/bin`, skipping every skill and slash command:
 
