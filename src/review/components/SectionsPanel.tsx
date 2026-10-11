@@ -22,6 +22,7 @@ import type { ReviewSearchFileGroup, ReviewSearchMatch } from '../utils/reviewSe
 import { OverlayScrollArea } from '@/ui/components/OverlayScrollArea';
 import type { DiffFile } from '../types';
 
+import { ChevronDown } from '@untitledui/icons';
 /**
  * The three-stack "All changes" (since-base) panel — the default view of a code review.
  *
@@ -353,15 +354,7 @@ export const SectionsPanel: React.FC<SectionsPanelProps> = ({
       onClick={() => toggleSection(group)}
       className="w-full flex items-center gap-1.5 px-2 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
     >
-      <svg
-        className={`size-2.5 transition-transform ${collapsed.has(group) ? '-rotate-90' : ''}`}
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2}
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-      </svg>
+      <ChevronDown className={`size-2.5 transition-transform ${collapsed.has(group) ? '-rotate-90' : ''}`} />
       <span className="text-2xs font-medium">{SECTION_META[group].label}</span>
     </button>
   );

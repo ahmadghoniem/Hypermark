@@ -3,6 +3,7 @@ import { Menu } from '@base-ui/react/menu';
 import { Tooltip } from '@/ui/components/Tooltip';
 import type { DiffOption } from '@/shared/types';
 
+import { Check, ChevronDown, InfoCircle, Loading02 } from '@untitledui/icons';
 interface DiffTypePickerProps {
   options: DiffOption[];
   activeDiffType: string;
@@ -62,14 +63,9 @@ export const DiffTypePicker: React.FC<DiffTypePickerProps> = ({
       >
           <span className="truncate flex-1 text-left">{activeLabel}</span>
           {isLoading ? (
-            <svg className="size-3.5 text-muted-foreground animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
+            <Loading02 className="size-3.5 text-muted-foreground animate-spin shrink-0" />
           ) : (
-            <svg className="size-3.5 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
+            <ChevronDown className="size-3.5 text-muted-foreground shrink-0" />
           )}
       </Menu.Trigger>
       <Menu.Portal>
@@ -88,9 +84,7 @@ export const DiffTypePicker: React.FC<DiffTypePickerProps> = ({
               >
                 <span className="w-3 shrink-0">
                   {isActive && (
-                    <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
+                    <Check className="size-3" strokeWidth={3} />
                   )}
                 </span>
                 <span className="truncate flex-1">{displayLabel(opt)}</span>
@@ -103,9 +97,7 @@ export const DiffTypePicker: React.FC<DiffTypePickerProps> = ({
                       onClick={(e) => e.stopPropagation()}
                     >
                       {/* Heroicons information-circle (outline) */}
-                      <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-                      </svg>
+                      <InfoCircle className="size-3.5" />
                     </span>
                   </Tooltip>
                 )}

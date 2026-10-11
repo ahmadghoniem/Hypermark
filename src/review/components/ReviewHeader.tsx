@@ -8,9 +8,9 @@ import { KeyboardShortcutsButton } from '@/ui/components/KeyboardShortcutsDialog
 import { configStore } from '@/ui/config';
 import type { DecisionActionId, DecisionSpec } from '@/ui/utils/decisionSpec';
 import type { UseSidebarReturn } from '@/ui/hooks/useSidebar';
-import { Tree } from '@phosphor-icons/react';
 import type { DiffFreshness } from '../hooks/useDiffFreshness';
 
+import { AlignVerticalCenter01, Check, ChevronSelectorVertical, Clipboard, Columns02, LayoutLeft, MessageTextSquare01, Rows01 } from '@untitledui/icons';
 interface ReviewHeaderProps {
   shouldShowFileTree: boolean;
   toggleNavigator: () => void;
@@ -79,7 +79,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
               aria-label={isNavigatorOpen ? 'Close review navigation' : 'Open review navigation'}
               aria-expanded={isNavigatorOpen}
             >
-              <Tree className="size-3.5" />
+              <LayoutLeft className="size-3.5" />
             </button>
             <div className="w-px h-5 bg-border/50 mx-1 hidden lg:block" />
           </>
@@ -178,16 +178,12 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
           >
             {copyFeedback === 'Feedback copied!' ? (
               <>
-                <svg className="size-3.5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
+                <Check className="size-3.5 text-success" />
                 <span className="hidden md:inline">Copied!</span>
               </>
             ) : (
               <>
-                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                <Clipboard className="size-3.5" />
                 <span className="hidden md:inline">Copy Feedback</span>
               </>
             )}
@@ -206,9 +202,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
             }`}
             title="Annotations"
           >
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-            </svg>
+            <MessageTextSquare01 className="size-4" />
             {totalAnnotationCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-3.5 h-3.5 flex items-center justify-center rounded-full bg-primary text-4xs font-bold text-primary-foreground px-0.5">
                 {totalAnnotationCount > 99 ? '99+' : totalAnnotationCount}
@@ -224,27 +218,11 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
           title={allFilesAllCollapsed ? 'Expand all files' : 'Collapse all files'}
           aria-label={allFilesAllCollapsed ? 'Expand all files' : 'Collapse all files'}
         >
-          <svg
-            className="size-3.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            {allFilesAllCollapsed ? (
-              <>
-                <path d="M7 9l5-5 5 5" />
-                <path d="M7 15l5 5 5-5" />
-              </>
-            ) : (
-              <>
-                <path d="M7 4l5 5 5-5" />
-                <path d="M7 20l5-5 5 5" />
-              </>
-            )}
-          </svg>
+          {allFilesAllCollapsed ? (
+            <ChevronSelectorVertical className="size-3.5" />
+          ) : (
+            <AlignVerticalCenter01 className="size-3.5" />
+          )}
         </button>
         <button
           type="button"
@@ -254,15 +232,9 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
           aria-label={(diffStyle ?? 'split') === 'split' ? 'Split diff (switch to unified)' : 'Unified diff (switch to split)'}
         >
           {(diffStyle ?? 'split') === 'split' ? (
-            <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <rect x="3" y="4" width="18" height="16" rx="2" />
-              <path d="M12 4v16" />
-            </svg>
+            <Columns02 className="size-4" />
           ) : (
-            <svg className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <rect x="3" y="4" width="18" height="16" rx="2" />
-              <path d="M7 9h10M7 15h10" strokeLinecap="round" />
-            </svg>
+            <Rows01 className="size-4" />
           )}
         </button>
 

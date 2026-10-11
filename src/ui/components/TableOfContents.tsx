@@ -13,6 +13,7 @@ import {
   useScrollViewport,
 } from '../hooks/useScrollViewport';
 
+import { ArrowLeft } from '@untitledui/icons';
 interface TableOfContentsProps {
   blocks: Block[];
   annotations: Annotation[];
@@ -125,9 +126,7 @@ export function TableOfContents({
                   onClick={onLinkedDocBack}
                   className="flex items-center gap-0.5 text-3xs font-medium text-primary hover:text-primary/80 transition-colors"
                 >
-                  <svg className="size-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-                  </svg>
+                  <ArrowLeft className="size-2.5" strokeWidth={2.5} />
                   Back to {backLabel || 'plan'}
                 </button>
               )}

@@ -14,6 +14,7 @@ import { ComposerQuickLabels } from './ComposerQuickLabels';
 import { isDialKitTarget } from '../utils/dialkit';
 import { copyTextToClipboard } from '../utils/clipboard';
 
+import { ChevronDown, ChevronUp, CornerDownRight } from '@untitledui/icons';
 interface CommentPopoverProps {
   /** Element to anchor the popover near (re-reads position on scroll) */
   anchorEl?: HTMLElement;
@@ -656,22 +657,15 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
 // Icons
 
 const ChevronUpIcon = () => (
-  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
-  </svg>
+  <ChevronUp className="size-3.5" />
 );
 
 const ChevronDownIcon = () => (
-  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-  </svg>
+  <ChevronDown className="size-3.5" />
 );
 
 /** Corner-down-right arrow: "this points at that". Not a quotation mark -
  *  the strip holds a place in a file, and a place is not a quote. */
 const AnchorIcon: React.FC<{ size: number }> = ({ size }) => (
-  <svg style={{ width: size, height: size }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="15 10 20 15 15 20" />
-    <path d="M4 4v7a4 4 0 0 0 4 4h12" />
-  </svg>
+  <CornerDownRight style={{ width: size, height: size }} />
 );

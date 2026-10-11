@@ -8,6 +8,7 @@ import {
   type QuickLabel,
 } from '../utils/quickLabels';
 
+import { Edit02, Plus, Tag01, XClose } from '@untitledui/icons';
 type Draft = { id?: string; text: string; tip: string };
 
 export const QuickLabelsButton: React.FC = () => {
@@ -119,19 +120,7 @@ export const QuickLabelsButton: React.FC = () => {
           />
         }
       >
-        <svg
-          className="size-4"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-          <line x1="7" y1="7" x2="7.01" y2="7" strokeWidth={2.5} />
-        </svg>
+        <Tag01 className="size-4" />
       </PopoverTrigger>
       <PopoverContent side="bottom" align="end" className="w-72 p-0">
         {draft === null ? (
@@ -189,13 +178,7 @@ export const QuickLabelsButton: React.FC = () => {
                         title="Edit label"
                         aria-label="Edit label"
                       >
-                        <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                          />
-                        </svg>
+                        <Edit02 className="size-3" />
                       </button>
                       <button
                         type="button"
@@ -204,9 +187,7 @@ export const QuickLabelsButton: React.FC = () => {
                         title="Delete label"
                         aria-label="Delete label"
                       >
-                        <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <XClose className="size-3" />
                       </button>
                     </div>
                   </div>
@@ -229,9 +210,7 @@ export const QuickLabelsButton: React.FC = () => {
                 }}
                 className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
               >
-                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
+                <Plus className="size-3.5" />
                 Add label
               </button>
             </div>

@@ -5,6 +5,7 @@ import { KeyboardShortcuts } from './KeyboardShortcuts';
 import { OverlayScrollArea } from './OverlayScrollArea';
 import { ShortcutsIcon } from './icons/headerIcons';
 
+import { XClose } from '@untitledui/icons';
 export interface KeyboardShortcutsDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -44,9 +45,7 @@ export const KeyboardShortcutsDialog: React.FC<KeyboardShortcutsDialogProps> = (
             onClick={onClose}
             className="p-1.5 rounded-md bg-muted hover:bg-muted/80 text-foreground transition-colors"
           >
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <XClose className="size-4" strokeWidth={2.5} />
           </button>
         </div>
 

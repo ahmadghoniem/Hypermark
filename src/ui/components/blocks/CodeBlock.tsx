@@ -4,6 +4,7 @@ import { copyTextToClipboard } from '../../utils/clipboard';
 import { applyHighlight, codeBlockClassName } from '../../utils/codeHighlight';
 import { useFenceTheme } from '../../hooks/useFenceTheme';
 
+import { Check, Copy01 } from '@untitledui/icons';
 interface CodeBlockProps {
   block: Block;
 }
@@ -45,13 +46,9 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ block }) => {
         title={copied ? 'Copied!' : 'Copy code'}
       >
         {copied ? (
-          <svg className="size-4 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
+          <Check className="size-4 text-success" />
         ) : (
-          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
+          <Copy01 className="size-4" />
         )}
       </button>
       <pre className="rounded-lg text-[13px] overflow-x-auto bg-muted/50 border border-border/30">

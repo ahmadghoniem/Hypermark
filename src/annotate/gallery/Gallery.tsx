@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Copy01 as Copy, Download01 as Download, File06 as FileText, Keyboard01 as Keyboard, Link01 as Link, Moon01 as Moon, Settings01 as Settings, Tag01 as Tag } from '@untitledui/icons';
-import { CopyIcon, DownloadSimpleIcon, LinkIcon } from '@phosphor-icons/react';
+import { Copy01, Download01, Link01 } from '@untitledui/icons';
 import { toast, Toaster } from 'sonner';
 
 import { Button as NowButton } from '@/ui/components/ui/button';
@@ -190,7 +190,7 @@ export const Gallery: React.FC = () => {
                 <NowButton variant="secondary">Secondary</NowButton>
                 <NowButton variant="outline">Feedback</NowButton>
                 <NowButton variant="ghost">Ghost</NowButton>
-                <NowButton size="sm" variant="outline" iconLeft={<CopyIcon />}>Copy</NowButton>
+                <NowButton size="sm" variant="outline" iconLeft={<Copy01 className="size-4" />}>Copy</NowButton>
               </>
             )}
             fluid={(
@@ -243,10 +243,10 @@ export const Gallery: React.FC = () => {
               <ActionMenu renderTrigger={({ toggleMenu }) => <NowButton size="sm" variant="outline" onClick={toggleMenu}>Export</NowButton>}>
                 {({ closeMenu }) => (
                   <>
-                    <ActionMenuItem icon={<CopyIcon />} label="Copy document" onClick={closeMenu} />
-                    <ActionMenuItem icon={<DownloadSimpleIcon />} label="Download" subtitle="Markdown file" onClick={closeMenu} />
+                    <ActionMenuItem icon={<Copy01 className="size-4" />} label="Copy document" onClick={closeMenu} />
+                    <ActionMenuItem icon={<Download01 className="size-4" />} label="Download" subtitle="Markdown file" onClick={closeMenu} />
                     <ActionMenuDivider />
-                    <ActionMenuItem icon={<LinkIcon />} label="Copy share link" onClick={closeMenu} />
+                    <ActionMenuItem icon={<Link01 className="size-4" />} label="Copy share link" onClick={closeMenu} />
                   </>
                 )}
               </ActionMenu>

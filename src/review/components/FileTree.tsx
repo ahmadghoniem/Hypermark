@@ -31,6 +31,7 @@ import { OverlayScrollArea } from '@/ui/components/OverlayScrollArea';
 import { AllFilesRow } from './PanelNavRows';
 import { PanelControlsRow, PanelSearchField } from './PanelChrome';
 
+import { ChevronRight, File06 } from '@untitledui/icons';
 interface FileTreeProps {
   files: DiffFile[];
   activeFileIndex: number;
@@ -568,28 +569,8 @@ export const SearchFileGroup: React.FC<{
         className="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-xs hover:bg-muted transition-colors group"
         onClick={() => setCollapsed((prev) => !prev)}
       >
-        <svg
-          className={`size-3 text-muted-foreground/50 transition-transform shrink-0 ${collapsed ? '' : 'rotate-90'}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
-        <svg
-          className="size-3.5 text-muted-foreground/60 shrink-0"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={1.5}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
-          />
-        </svg>
+        <ChevronRight className={`size-3 text-muted-foreground/50 transition-transform shrink-0 ${collapsed ? '' : 'rotate-90'}`} />
+        <File06 className="size-3.5 text-muted-foreground/60 shrink-0" />
         <span className="truncate text-foreground font-medium">{fileName}</span>
         {dirPath && <span className="truncate text-muted-foreground/50 text-3xs">{dirPath}</span>}
         <span className="ml-auto shrink-0 text-3xs text-muted-foreground/50 bg-muted rounded-sm px-1.5 py-0.5">

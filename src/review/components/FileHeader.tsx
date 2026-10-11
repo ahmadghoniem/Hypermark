@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { DiffFileStatus } from '../types';
 
+import { ArrowRight, MessageDotsSquare } from '@untitledui/icons';
 interface FileHeaderProps {
   filePath: string;
   patch: string;
@@ -140,15 +141,7 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
               <span className="min-w-0 overflow-hidden text-ellipsis text-muted-foreground/60">
                 {oldPath}
               </span>
-              <svg
-                className="size-3 mx-1 flex-none text-muted-foreground/60"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
-              </svg>
+              <ArrowRight className="size-3 mx-1 flex-none text-muted-foreground/60" />
             </>
           )}
           {!showFilenameOnly && directory && (
@@ -174,9 +167,7 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
             className={`text-xs rounded-sm transition-colors flex items-center text-muted-foreground hover:text-foreground hover:bg-muted ${commentLabel ? 'gap-1 px-2 py-1' : 'px-1.5 py-1'}`}
             title="Add file-scoped comment"
           >
-            <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-4 4v-4z" />
-            </svg>
+            <MessageDotsSquare className="size-3.5" />
             {commentLabel && <span>{commentLabel}</span>}
           </button>
         )}

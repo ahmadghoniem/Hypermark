@@ -8,7 +8,6 @@
 import '@/ui/utils/math-eager';
 import '@/ui/utils/mermaid-eager';
 import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
-import { IconContext } from '@phosphor-icons/react';
 import { toast, Toaster } from 'sonner';
 import { type Origin, getAgentName } from '@/shared/agents';
 import { shouldStripFrontmatter } from '@/shared/annotatable';
@@ -1954,14 +1953,6 @@ const AppInner: React.FC = () => {
   );
 };
 
-// Phosphor's default weight ("regular") is the app-wide
-// default for every icon rendered under this root. Set once here instead of
-// repeating `weight="regular"` at each call site; only a control that
-// deliberately deviates overrides it per-call.
-const App: React.FC = () => (
-  <IconContext.Provider value={{ weight: 'regular' }}>
-    <AppInner />
-  </IconContext.Provider>
-);
+const App: React.FC = () => <AppInner />;
 
 export default App;

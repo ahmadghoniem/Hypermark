@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, CaretDown, CircleNotch, PaperPlaneTilt } from '@phosphor-icons/react';
+import { Check, ChevronDown, Loading02, Send01 } from '@untitledui/icons';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from './ui/dialog';
 import { ActionMenuDivider, ActionMenuItem } from './ActionMenu';
@@ -58,7 +58,7 @@ const NOTE_MAX_HEIGHT_PX = 144;
 
 const ICONS: Record<'check' | 'send', React.ReactNode> = {
   check: <Check className="size-3.5" />,
-  send: <PaperPlaneTilt className="size-3.5" />,
+  send: <Send01 className="size-3.5" />,
 };
 
 function toneButtonVariant(tone: Exclude<DecisionTone, 'destructive'>): 'success' | 'default' {
@@ -343,7 +343,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
         data-decision-primary="true"
         iconLeft={
           isLoading
-            ? <CircleNotch className="size-3.5 animate-spin" />
+            ? <Loading02 className="size-3.5 animate-spin" />
             : spec.primary.icon ? ICONS[spec.primary.icon] : undefined
         }
         className="rounded-r-none border-r-0"
@@ -397,7 +397,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
         data-decision-caret="true"
         className="rounded-l-none px-1.5"
       >
-        <CaretDown
+        <ChevronDown
           className={cn('size-3.5 transition-transform duration-150', popover && 'rotate-180')}
           aria-hidden="true"
         />
@@ -438,7 +438,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
                 onClick={backToMenu}
                 className="mb-1.5 flex items-center gap-1 rounded-sm px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
               >
-                <CaretDown className="size-3 rotate-90" aria-hidden="true" />
+                <ChevronDown className="size-3 rotate-90" aria-hidden="true" />
                 {activeItem.composer.title}
               </button>
               <DecisionNoteField

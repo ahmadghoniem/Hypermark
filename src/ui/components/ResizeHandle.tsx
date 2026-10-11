@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import type { ResizeHandleProps as BaseProps } from '../hooks/useResizablePanel';
+import { ChevronLeft, ChevronRight } from '@untitledui/icons';
 
 interface Props extends BaseProps {
   className?: string;
@@ -111,13 +112,7 @@ export const ResizeHandle: React.FC<Props> = ({
           data-collapse={side}
           className="absolute top-1/2 left-1/2 z-20 flex h-6 w-4 -translate-1/2  items-center justify-center before:absolute before:-inset-2 before:content-[''] rounded-sm bg-surface-1 text-muted-foreground/60 opacity-0 ring-1 ring-border/40 transition-opacity hover:text-foreground group-hover:opacity-100 group-hover/sidebar:opacity-100"
         >
-          <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d={side === 'right' ? 'M9 5l7 7-7 7' : 'M15 19l-7-7 7-7'}
-            />
-          </svg>
+          {side === 'right' ? <ChevronRight className="size-3" /> : <ChevronLeft className="size-3" />}
         </button>
       )}
     </div>

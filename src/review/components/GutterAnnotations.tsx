@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { SEVERITY_STYLES, type DiffAnnotationMetadata } from '@/ui/types';
 import { renderInlineMarkdown } from '../utils/renderInlineMarkdown';
 
+import { MessageSquare01 } from '@untitledui/icons';
 /**
  * Gutter comment presentation for the code review diff.
  *
@@ -278,9 +279,7 @@ export const GutterAnnotationMarker: React.FC<GutterAnnotationMarkerProps> = ({
                 style={{ width: 5, height: 5, borderRadius: '50%', display: 'inline-block' }}
               />
             ) : (
-              <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2z" strokeLinejoin="round" />
-              </svg>
+              <MessageSquare01 size={10} />
             )}
             {count > 1 ? count : null}
           </span>

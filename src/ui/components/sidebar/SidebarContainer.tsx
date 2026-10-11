@@ -18,6 +18,7 @@ import { TableOfContents } from "../TableOfContents";
 import { VersionBrowser } from "./VersionBrowser";
 import { OverlayScrollArea } from "../OverlayScrollArea";
 
+import { Clock, List } from '@untitledui/icons';
 interface SidebarContainerProps {
   activeTab: SidebarTab;
   onTabChange: (tab: SidebarTab) => void;
@@ -151,16 +152,9 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
 
 /** Four lines, the middle two inset: an outline. */
 const OutlineIcon: React.FC = () => (
-  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round">
-    <path d="M4 5h16" />
-    <path d="M9 10h11" />
-    <path d="M9 15h11" />
-    <path d="M4 20h16" />
-  </svg>
+  <List className="size-3.5" />
 );
 
 const ClockIcon: React.FC = () => (
-  <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
+  <Clock className="size-3.5" />
 );

@@ -2,6 +2,7 @@ import React, { useCallback, useRef } from 'react';
 import type { ImageAttachment } from '../types';
 import { getImageSrc } from './ImageThumbnail';
 
+import { XClose } from '@untitledui/icons';
 /** An attachment that has been chosen but has not finished uploading. */
 export interface PendingAttachment {
   /** Stable id for the pending entry; not a path. */
@@ -31,9 +32,7 @@ interface AttachmentStripProps {
 
 /** Compact remove glyph, sized for the chip's trailing button. */
 const RemoveIcon: React.FC = () => (
-  <svg className="size-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-  </svg>
+  <XClose className="size-2.5" strokeWidth={3} />
 );
 
 /** The image standing in for itself, at favicon size. */

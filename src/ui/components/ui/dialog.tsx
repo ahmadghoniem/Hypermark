@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { X } from "@phosphor-icons/react";
+import { XClose } from "@untitledui/icons";
 import { cn } from "../../lib/utils";
 
 const Dialog = DialogPrimitive.Root;
@@ -58,7 +58,7 @@ const DialogContent = React.forwardRef<
           <DialogPrimitive.Close
             className="absolute top-3.5 right-3.5 inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground [@media(hover:hover)_and_(pointer:fine)]:hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
           >
-            <X className="size-4" />
+            <XClose className="size-4" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}

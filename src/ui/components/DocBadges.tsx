@@ -21,6 +21,7 @@ import type { PlanDiffStats } from '../utils/planDiffEngine';
 import { hostnameOrFallback } from '@/shared/project';
 import { fileName as pathFileName } from '../utils/displayPath';
 
+import { ArrowLeft, GitBranch01 } from '@untitledui/icons';
 export interface LinkedDocBadgeInfo {
   filepath: string;
   onBack: () => void;
@@ -95,9 +96,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
               className="px-1.5 py-0.5 bg-muted/30 rounded-sm max-w-30 flex items-center gap-1 overflow-hidden"
               title={repoInfo.branch}
             >
-              <svg className="size-2.5 shrink-0" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.493 2.493 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Zm-6 0a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Zm8.25-.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Z" />
-              </svg>
+              <GitBranch01 className="size-2.5 shrink-0" />
               <span className="truncate">{repoInfo.branch}</span>
             </span>
           )}
@@ -159,19 +158,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
               onClick={linkedDocInfo.onBack}
               className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-sm hover:bg-primary/20 transition-colors flex items-center gap-1"
             >
-              <svg
-                className="size-2.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
-                />
-              </svg>
+              <ArrowLeft className="size-2.5" strokeWidth={2.5} />
               {linkedDocInfo.backLabel || 'plan'}
             </button>
             <span className="px-1.5 py-0.5 bg-primary/10 text-primary/80 rounded-sm">

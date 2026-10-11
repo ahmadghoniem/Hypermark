@@ -1,6 +1,7 @@
 import React from 'react';
 import { Popover } from '@base-ui/react/popover';
 
+import { Check, ChevronDown } from '@untitledui/icons';
 /*
  * Shared chrome for the sidebar's git ref pickers (BaseBranchPicker,
  * WorktreePicker): the trigger chip, the popup, its search box, group labels,
@@ -50,9 +51,7 @@ export function RefPicker({
         }
       >
         {trigger}
-        <svg className="size-3.5 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
+        <ChevronDown className="size-3.5 text-muted-foreground shrink-0" />
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="start" sideOffset={4} className="z-chrome">
@@ -145,9 +144,7 @@ export function RefPickerRow({
     >
       <span className="w-3 shrink-0">
         {isSelected && (
-          <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
+          <Check className="size-3" strokeWidth={3} />
         )}
       </span>
       {children}

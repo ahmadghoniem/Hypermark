@@ -4,6 +4,7 @@ import { useTheme } from './ThemeProvider';
 import { THEME_MODES, type Mode } from './themeModes';
 import { themesForHalf, DEFAULT_COLOR_THEME, type ThemeHalf } from '../utils/themeRegistry';
 
+import { Check, ChevronLeft, ChevronRight } from '@untitledui/icons';
 const SEGMENTED_MODES: { id: Mode; label: string }[] = [
   { id: 'system', label: 'Auto' },
   { id: 'light', label: 'Light' },
@@ -11,21 +12,15 @@ const SEGMENTED_MODES: { id: Mode; label: string }[] = [
 ];
 
 const ChevronRightIcon: React.FC<{ className?: string }> = ({ className = 'size-3.5' }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-  </svg>
+  <ChevronRight className={className} />
 );
 
 const ArrowLeftIcon: React.FC<{ className?: string }> = ({ className = 'size-3.5' }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-  </svg>
+  <ChevronLeft className={className} />
 );
 
 const CheckIcon: React.FC<{ className?: string }> = ({ className = 'size-3.5' }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-  </svg>
+  <Check className={className} strokeWidth={2.5} />
 );
 
 const ThemePickerPanel: React.FC<{ closeMenu: () => void }> = () => {

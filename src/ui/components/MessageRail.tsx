@@ -11,6 +11,7 @@ import {
   railTickWidth,
 } from '../utils/messageRail';
 
+import { Terminal } from '@untitledui/icons';
 const RAIL_WIDTH = 36;
 const PITCH = 16;
 const TICK_SIZES = { open: 20, rest: 12, hoverMax: 32 };
@@ -132,10 +133,7 @@ export const MessageRail: React.FC<MessageRailProps> = ({
           >
             <div className="mb-1.5 flex items-center gap-2">
               <span className="grid size-4.5 place-items-center rounded-full border border-border bg-muted text-muted-foreground">
-                <svg className="size-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 17l6-6-6-6" />
-                  <path d="M12 19h8" />
-                </svg>
+                <Terminal className="size-2.5" strokeWidth={2.5} />
               </span>
               <span className="text-2xs text-muted-foreground">Assistant</span>
               {activeIndex === selectedIndex && (

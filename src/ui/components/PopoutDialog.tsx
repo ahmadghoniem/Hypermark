@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 
+import { XClose } from '@untitledui/icons';
 export const ANNOTATION_SELECTORS = [
   '.annotation-toolbar',
   '[data-comment-popover="true"]',
@@ -97,9 +98,7 @@ export const PopoutDialog: React.FC<PopoutDialogProps> = ({
               />
             }
           >
-            <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <XClose className="size-4" />
           </Dialog.Close>
 
           {children}

@@ -15,6 +15,7 @@ import { InlineMarkdown } from '../InlineMarkdown';
 import { PopoutDialog } from '../PopoutDialog';
 import { parseTableContent, buildCsvFromRows, buildMarkdownTable } from './TableBlock';
 
+import { Check, Copy01, SearchMd } from '@untitledui/icons';
 interface TablePopoutProps {
   block: Block;
   open: boolean;
@@ -142,9 +143,7 @@ const TablePopoutImpl: React.FC<TablePopoutProps> = ({
     >
       <div className="flex items-center gap-3 px-5 pt-4 pb-3 pr-12">
         <div className="relative max-w-sm flex-1">
-          <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M10 18a8 8 0 100-16 8 8 0 000 16z" />
-          </svg>
+          <SearchMd className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
           <input
             type="text"
             value={globalFilter}
@@ -173,13 +172,9 @@ const TablePopoutImpl: React.FC<TablePopoutProps> = ({
             }`}
           >
             {copiedMd ? (
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
+              <Check className="size-4" strokeWidth={2.5} />
             ) : (
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
+              <Copy01 className="size-4" />
             )}
           </button>
           <button

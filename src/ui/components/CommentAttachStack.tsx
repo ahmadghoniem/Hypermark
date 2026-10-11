@@ -8,6 +8,7 @@ import {
   stackLayout,
 } from '../utils/attachStack';
 
+import { ImagePlus, XClose } from '@untitledui/icons';
 /**
  * The composer's attachments, as an overlapping stack on the left of the
  * action row.
@@ -258,17 +259,10 @@ const AddTile: React.FC<{ onClick: () => void; style: React.CSSProperties }> = (
 );
 
 const RemoveGlyph: React.FC = () => (
-  <svg className="size-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3} aria-hidden="true">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-  </svg>
+  <XClose className="size-2.5" strokeWidth={3} />
 );
 
 /** Image placeholder with a plus in its bottom-right corner. */
 const ImagePlusGlyph: React.FC = () => (
-  <svg className="size-full p-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M13 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8" />
-    <circle cx="8.5" cy="8.5" r="1.5" />
-    <path d="M21 15l-5-5L5 21" />
-    <path d="M19 2v6M16 5h6" />
-  </svg>
+  <ImagePlus className="size-full p-0.5" />
 );

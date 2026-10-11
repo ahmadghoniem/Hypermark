@@ -9,6 +9,7 @@ import type { CodeAnnotation, ImageAttachment } from '../types';
 import { copyTextToClipboard } from '../utils/clipboard';
 import { fileName as pathFileName, shortPath } from '../utils/displayPath';
 
+import { Check, Code02, Copy01, Edit05, XClose } from '@untitledui/icons';
 export interface CodeFileAnnotationInput {
   filePath: string;
   lineStart: number;
@@ -183,9 +184,7 @@ const CodeInlineAnnotation: React.FC<{
               className="rounded-sm p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
               title="Edit comment"
             >
-              <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
+              <Edit05 className="size-3" />
             </button>
           )}
           {onDelete && (
@@ -198,9 +197,7 @@ const CodeInlineAnnotation: React.FC<{
               className="rounded-sm p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
               title="Delete comment"
             >
-              <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <XClose className="size-3" />
             </button>
           )}
         </div>
@@ -497,9 +494,7 @@ export const CodeFilePopout: React.FC<CodeFilePopoutProps> = ({
     >
       <div className="flex items-center gap-3 px-5 pt-4 pb-3 pr-12">
         <div className="flex items-center gap-2 min-w-0">
-          <svg className="size-4 shrink-0 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-          </svg>
+          <Code02 className="size-4 shrink-0 text-muted-foreground" />
           <span className="text-sm font-medium text-foreground truncate" title={filepath}>
             {relativePath}
           </span>
@@ -516,13 +511,9 @@ export const CodeFilePopout: React.FC<CodeFilePopoutProps> = ({
             }`}
           >
             {copied ? (
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
+              <Check className="size-4" strokeWidth={2.5} />
             ) : (
-              <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
+              <Copy01 className="size-4" />
             )}
           </button>
         </div>

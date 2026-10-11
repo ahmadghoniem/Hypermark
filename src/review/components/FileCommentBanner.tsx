@@ -6,6 +6,7 @@ import { CommentActions } from './CommentActions';
 import { FileNameChip } from './FileNameChip';
 import { commentCopyText } from '../utils/annotationDisplay';
 
+import { ChevronRight } from '@untitledui/icons';
 interface FileCommentBannerProps {
   /** File-scoped comments for ONE file (already filtered to scope === 'file'). */
   comments: CodeAnnotation[];
@@ -87,9 +88,7 @@ export const FileCommentCard: React.FC<{
               onClick={(e) => { e.stopPropagation(); setCollapsed((c) => !c); }}
               title={collapsed ? 'Expand comment' : 'Collapse comment'}
             >
-              <svg className={`size-3.5 transition-transform ${collapsed ? '' : 'rotate-90'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
+              <ChevronRight className={`size-3.5 transition-transform ${collapsed ? '' : 'rotate-90'}`} />
             </button>
             <FileNameChip path={comment.filePath} />
           </>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Moon, Monitor } from '@phosphor-icons/react';
+import { Monitor01, Moon01, Sun } from '@untitledui/icons';
 
 /**
  * Shared theme-mode icons (Sun / Moon / System).
@@ -8,14 +8,12 @@ import { Sun, Moon, Monitor } from '@phosphor-icons/react';
  * historically MobileMenu). They used to inline hand-rolled SVGs
  * independently, which meant any tweak to a glyph had to be hunted down
  * across files. Centralizing them here keeps the iconography consistent.
- * The SVG bodies were migrated to Phosphor; the exported
+ * The glyphs come from Untitled UI; the exported
  * component names and their `className`-only prop signature are unchanged
  * so ThemeTab does not need to change.
  *
  * Each icon takes an optional `className` so callers control sizing —
  * the dropdown segmented controls use w-3.5, the settings tab uses w-3.
- * Weight is fixed at Phosphor's default `regular` here to match the rest of
- * the app (see the ui-package IconContext.Provider default).
  */
 
 export interface IconProps {
@@ -23,13 +21,13 @@ export interface IconProps {
 }
 
 export const SunIcon: React.FC<IconProps> = ({ className = 'size-3.5' }) => (
-  <Sun className={className} weight="regular" />
+  <Sun className={className} />
 );
 
 export const MoonIcon: React.FC<IconProps> = ({ className = 'size-3.5' }) => (
-  <Moon className={className} weight="regular" />
+  <Moon01 className={className} />
 );
 
 export const SystemIcon: React.FC<IconProps> = ({ className = 'size-3.5' }) => (
-  <Monitor className={className} weight="regular" />
+  <Monitor01 className={className} />
 );

@@ -11,6 +11,7 @@ import { resolveReplyParents, resolveThreadRootTimestamps } from '@/shared/annot
 import { fileName as pathFileName } from '../utils/displayPath';
 import { formatRelativeTime, railPreview } from '../utils/messageRail';
 
+import { Check, Copy01, Edit05, Trash01, XClose } from '@untitledui/icons';
 export type AnnotationScope = 'this' | 'all';
 
 export interface AnnotationMessageGroup {
@@ -41,27 +42,19 @@ const TYPE_LABEL: Record<AnnotationType, string> = {
 };
 
 const PencilIcon = () => (
-  <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-  </svg>
+  <Edit05 className="size-3" />
 );
 
 const TrashCardIcon = () => (
-  <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-  </svg>
+  <Trash01 className="size-3" />
 );
 
 const CopyCardIcon = () => (
-  <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-  </svg>
+  <Copy01 className="size-3" />
 );
 
 const CheckCardIcon = () => (
-  <svg className="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-  </svg>
+  <Check className="size-3" />
 );
 
 const CARD_ACTION_CLASS = "relative rounded-md p-1.5 text-muted-foreground transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:text-foreground";
@@ -356,9 +349,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                 title="Close panel"
                 aria-label="Close panel"
               >
-                <svg className="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <XClose className="size-3.5" />
               </button>
             )}
           </div>

@@ -50,6 +50,7 @@ import {
   swapActiveSearchHighlight,
 } from '../utils/reviewSearchHighlight';
 
+import { ChevronRight } from '@untitledui/icons';
 /**
  * AllFilesCodeView (migration phases P1 + P2 + P3 + Phase 4)
  *
@@ -1802,15 +1803,7 @@ export const AllFilesCodeView: React.FC<AllFilesCodeViewProps> = ({
             className="flex items-center justify-center size-6 rounded-sm hover:bg-foreground/10 transition-colors shrink-0"
             title={collapsed ? 'Expand diff' : 'Collapse diff'}
           >
-            <svg
-              className={`size-3 transition-transform ${collapsed ? '' : 'rotate-90'}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
+            <ChevronRight className={`size-3 transition-transform ${collapsed ? '' : 'rotate-90'}`} />
           </button>
         }
         onCollapseToggle={() => toggleItemCollapsed(item.id)}

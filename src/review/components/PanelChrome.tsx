@@ -1,12 +1,12 @@
 import React from "react";
 import {
-  ArrowsInLineVertical,
-  ArrowsOutLineVertical,
+  AlignVerticalCenter01,
   Check,
-  Copy,
-  MagnifyingGlass,
-  X,
-} from "@phosphor-icons/react";
+  ChevronSelectorVertical,
+  Copy01,
+  SearchMd,
+  XClose,
+} from "@untitledui/icons";
 import { Tooltip } from "@/ui/components/Tooltip";
 
 /**
@@ -58,7 +58,7 @@ export function PanelControlsRow({
             aria-label="Search diff"
             title="Search diff (Cmd/Ctrl+F)"
           >
-            <MagnifyingGlass className="size-3.5" aria-hidden="true" />
+            <SearchMd className="size-3.5" aria-hidden="true" />
           </button>
         )}
         {onToggleAllFolders && (
@@ -79,9 +79,9 @@ export function PanelControlsRow({
             }
           >
             {areAllFoldersExpanded ? (
-              <ArrowsInLineVertical className="size-3.5" aria-hidden="true" />
+              <AlignVerticalCenter01 className="size-3.5" aria-hidden="true" />
             ) : (
-              <ArrowsOutLineVertical className="size-3.5" aria-hidden="true" />
+              <ChevronSelectorVertical className="size-3.5" aria-hidden="true" />
             )}
           </button>
         )}
@@ -103,9 +103,9 @@ export function PanelControlsRow({
               {copyRawDiffStatus === "success" ? (
                 <Check className="size-3.5" aria-hidden="true" />
               ) : copyRawDiffStatus === "error" ? (
-                <X className="size-3.5" aria-hidden="true" />
+                <XClose className="size-3.5" aria-hidden="true" />
               ) : (
-                <Copy className="size-3.5" aria-hidden="true" />
+                <Copy01 className="size-3.5" aria-hidden="true" />
               )}
             </button>
           </Tooltip>
@@ -152,7 +152,7 @@ export function PanelSearchField({
       data-panel-search-field
     >
       <div className="relative flex-1">
-        <MagnifyingGlass
+        <SearchMd
           className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60"
           aria-hidden="true"
         />
@@ -181,7 +181,7 @@ export function PanelSearchField({
             aria-label={actionLabel}
             title={actionLabel}
           >
-            <X className="size-3" aria-hidden="true" />
+            <XClose className="size-3" aria-hidden="true" />
           </button>
         </div>
       </div>

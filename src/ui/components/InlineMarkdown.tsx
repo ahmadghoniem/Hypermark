@@ -13,6 +13,7 @@ import { normalizeMathTex, renderMathToHtml } from "../utils/math";
 import { fileName as pathFileName } from "../utils/displayPath";
 import { useMathRenderer } from "../hooks/useMathRenderer";
 
+import { Code02, File06 } from '@untitledui/icons';
 export interface DocPreviewResult {
   contents?: string;
   filepath?: string;
@@ -278,16 +279,7 @@ function sanitizeLinkUrl(url: string): string | null {
 }
 
 const CodeFileIcon = () => (
-  <svg
-    className="size-3 opacity-50 shrink-0"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={2}
-    aria-hidden="true"
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-  </svg>
+  <Code02 className="size-3 opacity-50 shrink-0" />
 );
 
 const InlineMath: React.FC<{ tex: string }> = ({ tex }) => {
@@ -906,20 +898,7 @@ export const InlineMarkdown: React.FC<{
             title={`Open: ${target}`}
           >
             {display}
-            <svg
-              className="size-3 opacity-50 shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
-              />
-            </svg>
+            <File06 className="size-3 opacity-50 shrink-0" />
           </a>,
         );
       } else {
@@ -1044,20 +1023,7 @@ export const InlineMarkdown: React.FC<{
             title={`Open: ${linkUrl}`}
           >
             {linkText}
-            <svg
-              className="size-3 opacity-50 shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
-              />
-            </svg>
+            <File06 className="size-3 opacity-50 shrink-0" />
           </a>,
         );
       } else if (isCodeFile && onOpenCodeFile) {
