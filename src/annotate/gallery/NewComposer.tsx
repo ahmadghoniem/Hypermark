@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { ArrowUp, Image01, ImagePlus, MessageQuestionCircle, XClose } from '@untitledui/icons';
+import { Button } from '@/ui/fluid/components/button';
 import { Tooltip } from '@/ui/fluid/components/tooltip';
 import { QuoteText } from '@/ui/components/QuoteText';
 import type { QuickLabel } from '@/ui/utils/quickLabels';
@@ -39,8 +40,9 @@ function splitName(name: string): [string, string] {
  * Mock of the reworked composer, for the gallery only. One flat card with
  * InputMessage's 8px inset: the quoted text (Ctrl+C with nothing selected
  * copies it), the text field, a row with the attached files as name chips
- * followed by the attach icon, and the send icon with the side-question icon
- * to its right in the bottom row. The side question (/btw) does nothing yet.
+ * followed by the attach icon, and a bottom row with the side question (/btw,
+ * not wired yet) on the left and send on the right. The buttons are Fluid's,
+ * as in InputMessage: ghost for the icons, primary for send.
  *
  * Quick labels have no chips: the field offers them as a ghost completion.
  * Empty, it shows the first label; typing narrows to the first label the text
@@ -171,14 +173,9 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
           );
         })}
         <Tooltip content="Attach image" side="top" className={TIP}>
-          <button
-            type="button"
-            aria-label="Attach image"
-            onClick={() => fileInputRef.current?.click()}
-            className="grid size-6.5 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <ImagePlus size={15} />
-          </button>
+          <Button variant="ghost" size="icon-sm" aria-label="Attach image" onClick={() => fileInputRef.current?.click()}>
+            <ImagePlus />
+          </Button>
         </Tooltip>
         <input
           ref={fileInputRef}
@@ -190,27 +187,7 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
         />
       </div>
 
-      <div className="flex items-center justify-end gap-1 pt-1">
-        <Tooltip
-          side="top"
-          className={TIP}
-          content={(
-            <span className="flex items-center gap-2 whitespace-nowrap">
-              Add comment
-              <span className="text-muted-foreground">Ctrl Enter</span>
-            </span>
-          )}
-        >
-          <button
-            type="button"
-            aria-label="Add comment"
-            onClick={submit}
-            aria-disabled={!hasContent}
-            className="grid size-7 place-items-center rounded-md bg-foreground/12 text-foreground transition-colors hover:bg-foreground/18 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:bg-foreground/12"
-          >
-            <ArrowUp size={16} />
-          </button>
-        </Tooltip>
+      <div className="flex items-center justify-between pt-1">
         <Tooltip
           side="top"
           className={TIP}
@@ -221,13 +198,24 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
             </span>
           )}
         >
-          <button
-            type="button"
-            aria-label="Ask a side question"
-            className="grid size-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <MessageQuestionCircle size={16} />
-          </button>
+          <Button variant="ghost" size="icon-sm" aria-label="Ask a side question">
+            <MessageQuestionCircle />
+          </Button>
+        </Tooltip>
+        <Tooltip
+          side="top"
+          className={TIP}
+          content={(
+            <span className="flex items-center gap-2 whitespace-nowrap">
+              Add comment
+              <span className="text-muted-foreground">Ctrl Enter</span>
+            </span>
+          )}
+        >
+          <Button variant="primary" size="icon-sm" aria-label="Add comment" onClick={submit} disabled={!hasContent}>
+            {/* InputMessage's send glyph: 19px over icon-sm's 14px. */}
+            <ArrowUp size={19} className="size-4.75!" />
+          </Button>
         </Tooltip>
       </div>
     </div>
