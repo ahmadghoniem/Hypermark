@@ -16,7 +16,8 @@ interface NewComposerProps {
 /** Dark tooltip with a border, in place of Fluid's inverted one. */
 const TIP = 'border border-border bg-popover text-foreground shadow-md';
 
-const TEXT = 'text-body/normal';
+/** InputMessage's field: subtitle type with an 8px inset on every side. */
+const TEXT = 'px-2 py-2 text-subtitle';
 
 /**
  * The rest of the first label the text is a prefix of (the first label when
@@ -37,12 +38,13 @@ function splitName(name: string): [string, string] {
 }
 
 /**
- * Mock of the reworked composer, for the gallery only. One flat card with
- * InputMessage's 8px inset: the quoted text (Ctrl+C with nothing selected
- * copies it), the text field, a row with the attached files as name chips
- * followed by the attach icon, and a bottom row with the side question (/btw,
- * not wired yet) on the left and send on the right. The buttons are Fluid's,
- * as in InputMessage: ghost for the icons, primary for send.
+ * Mock of the reworked composer, for the gallery only. One flat card spaced
+ * like InputMessage (8px padding, 4px between rows, a one-row field with an
+ * 8px inset): the quoted text (Ctrl+C with nothing selected copies it), the
+ * text field, the attached files as name chips (only once there are some),
+ * and a bottom row with attach and the side question (/btw, not wired yet)
+ * on the left and send on the right. The buttons are Fluid's, as in
+ * InputMessage: ghost for the icons, primary for send.
  *
  * Quick labels have no chips: the field offers them as a ghost completion.
  * Empty, it shows the first label; typing narrows to the first label the text
@@ -101,20 +103,21 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
   return (
     <div
       data-comment-popover="true"
-      className="flex w-90 flex-col rounded-xl border border-border bg-popover p-2 shadow-[0_1px_2px_rgb(0_0_0/0.18),0_25px_50px_-12px_rgb(0_0_0/0.5)]"
+      className="flex w-90 flex-col gap-1 rounded-xl border border-border bg-popover p-2 shadow-[0_1px_2px_rgb(0_0_0/0.18),0_25px_50px_-12px_rgb(0_0_0/0.5)]"
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => { e.preventDefault(); addFiles(imageFilesFrom(e.dataTransfer)); }}
     >
-      <div className="flex items-center gap-2 pl-1.5">
+      <div className="flex items-center gap-2 px-2 pt-1">
         <span aria-hidden="true" className="h-4 w-0.5 shrink-0 rounded-full bg-muted-foreground/35" />
         <QuoteText flash={copyFlash} onDone={() => setCopyFlash(0)} className="flex-1 text-caption text-muted-foreground">
           {quote}
         </QuoteText>
       </div>
 
-      <div className="relative px-1.5 pt-3">
+      <div className="relative">
         <textarea
           autoFocus
+          rows={1}
           value={text}
           onChange={(e) => { setText(e.target.value); trackCaret(e.target); }}
           onSelect={(e) => trackCaret(e.currentTarget)}
@@ -125,16 +128,16 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
           }}
           placeholder={labels.length > 0 ? undefined : "What's your feedback?"}
           aria-describedby={suggestion ? 'new-composer-suggestion' : undefined}
-          className={`block max-h-64 min-h-10 w-full resize-none overflow-y-auto bg-transparent placeholder:text-muted-foreground focus:outline-none ${TEXT}`}
+          className={`block max-h-64 w-full resize-none overflow-y-auto bg-transparent placeholder:text-muted-foreground focus:outline-none ${TEXT}`}
           style={{ fieldSizing: 'content' } as React.CSSProperties}
         />
         {/* Ghost completion: the typed text, invisible, so the rest lines up
             after it, then the Tab key. */}
         {suggestion && (
-          <div aria-hidden="true" className={`pointer-events-none absolute inset-x-1.5 top-3 whitespace-pre-wrap wrap-break-word ${TEXT}`}>
+          <div aria-hidden="true" className={`pointer-events-none absolute inset-0 whitespace-pre-wrap wrap-break-word ${TEXT}`}>
             <span className="invisible">{text}</span>
             <span className="text-muted-foreground">{suggestion.rest}</span>
-            <kbd className="ml-1.5 inline-flex h-4 -translate-y-px items-center rounded-[5px] border border-border bg-background px-1 align-middle font-sans text-micro text-muted-foreground">
+            <kbd className="ml-1.5 inline-flex h-4.5 -translate-y-px items-center rounded-[5px] border border-border bg-background px-1 align-middle font-sans text-micro text-muted-foreground">
               Tab
             </kbd>
           </div>
@@ -146,62 +149,66 @@ export const NewComposer: React.FC<NewComposerProps> = ({ quote, quickLabels, on
         )}
       </div>
 
-      {/* The attached files as name chips, then the attach icon. */}
-      <div className="flex flex-wrap items-center gap-1.5 px-0.5 pt-3">
-        {files.map((file, i) => {
-          const [base, ext] = splitName(file.name);
-          return (
-            <span
-              key={`${file.name}-${i}`}
-              title={file.name}
-              className="inline-flex h-6.5 min-w-0 max-w-48 items-center gap-1.5 rounded-md bg-muted/60 pl-2 pr-1 text-caption text-foreground/90"
-            >
-              <Image01 size={14} className="shrink-0 text-muted-foreground" />
-              <span className="flex min-w-0">
-                <span className="truncate">{base}</span>
-                <span className="shrink-0">{ext}</span>
-              </span>
-              <button
-                type="button"
-                aria-label={`Remove ${file.name}`}
-                onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
-                className="grid size-4.5 shrink-0 place-items-center rounded-sm text-muted-foreground transition-colors hover:text-foreground"
+      {/* The attached files as name chips. */}
+      {files.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {files.map((file, i) => {
+            const [base, ext] = splitName(file.name);
+            return (
+              <span
+                key={`${file.name}-${i}`}
+                title={file.name}
+                className="inline-flex h-6.5 min-w-0 max-w-48 items-center gap-1.5 rounded-md bg-muted/60 pl-2 pr-1 text-caption text-foreground/90"
               >
-                <XClose size={12} />
-              </button>
-            </span>
-          );
-        })}
-        <Tooltip content="Attach image" side="top" className={TIP}>
-          <Button variant="ghost" size="icon-sm" aria-label="Attach image" onClick={() => fileInputRef.current?.click()}>
-            <ImagePlus />
-          </Button>
-        </Tooltip>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          hidden
-          onChange={(e) => { addFiles(Array.from(e.target.files ?? [])); e.target.value = ''; }}
-        />
-      </div>
+                <Image01 size={14} className="shrink-0 text-muted-foreground" />
+                <span className="flex min-w-0">
+                  <span className="truncate">{base}</span>
+                  <span className="shrink-0">{ext}</span>
+                </span>
+                <button
+                  type="button"
+                  aria-label={`Remove ${file.name}`}
+                  onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
+                  className="grid size-4.5 shrink-0 place-items-center rounded-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <XClose size={12} />
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        onChange={(e) => { addFiles(Array.from(e.target.files ?? [])); e.target.value = ''; }}
+      />
 
-      <div className="flex items-center justify-between pt-1">
-        <Tooltip
-          side="top"
-          className={TIP}
-          content={(
-            <span className="flex items-center gap-2 whitespace-nowrap">
-              Ask a side question
-              <span className="text-muted-foreground">/btw</span>
-            </span>
-          )}
-        >
-          <Button variant="ghost" size="icon-sm" aria-label="Ask a side question">
-            <MessageQuestionCircle />
-          </Button>
-        </Tooltip>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <Tooltip content="Attach image" side="top" className={TIP}>
+            <Button variant="ghost" size="icon-sm" aria-label="Attach image" onClick={() => fileInputRef.current?.click()}>
+              <ImagePlus />
+            </Button>
+          </Tooltip>
+          <Tooltip
+            side="top"
+            className={TIP}
+            content={(
+              <span className="flex items-center gap-2 whitespace-nowrap">
+                Ask a side question
+                <span className="text-muted-foreground">/btw</span>
+              </span>
+            )}
+          >
+            <Button variant="ghost" size="icon-sm" aria-label="Ask a side question">
+              <MessageQuestionCircle />
+            </Button>
+          </Tooltip>
+        </div>
         <Tooltip
           side="top"
           className={TIP}
