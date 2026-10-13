@@ -11,10 +11,9 @@
  */
 
 import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./server-port";
-import { existsSync, unlinkSync } from "fs";
 import { getRepoInfo } from "./repo";
 import type { Origin } from "@/shared/agents";
-import { handleImage, handleUpload, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
+import { handleImage, handleUpload, removeUnsentUploads, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
 import { handleDoc, handleDocExists, resolveAllowedDocPath } from "./reference-handlers";
 import { getExtraMarkdownExtensions, resolveUserPath, warmFileListCache } from "@/shared/resolve-file";
 import { contentHash, deleteDraft } from "@/shared/draft";
@@ -340,8 +339,13 @@ export async function startAnnotateServer(
     selectedMessageId?: string;
     feedbackScope?: "message" | "messages";
   }>((resolve) => {
-    resolveDecision = resolve;
+    resolveDecision = (result) => {
+      sentFeedback = result.feedback + JSON.stringify(result.annotations);
+      resolve(result);
+    };
   });
+  // What was submitted, so the uploads it attaches outlive the server.
+  let sentFeedback = "";
 
   // Every decision producer goes through this: connected tabs and the client
   // lease below race, and a producer that loses must not delete the reviewer's
@@ -726,13 +730,7 @@ export async function startAnnotateServer(
         }],
         ["session stream", () => sessionStream.closeSessions()],
         ["parent watch", () => parentWatch?.stop()],
-        ["session uploads", () => {
-          for (const uploadPath of sessionUploads) {
-            try {
-              if (existsSync(uploadPath)) unlinkSync(uploadPath);
-            } catch {}
-          }
-        }],
+        ["session uploads", () => removeUnsentUploads(sessionUploads, sentFeedback)],
       ],
       () => server.stop(),
     );

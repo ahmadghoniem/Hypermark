@@ -760,6 +760,94 @@ export function useAnnotationHighlighter({
 
   // --- Effects ---
 
+  // Hovering one mark of an annotation lights all of its marks. A highlight
+  // that crosses an inline code chip, a link or a line break is split into
+  // several marks, and :hover lit only the one under the pointer.
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root || !enabled) return;
+    let hovered: string | undefined;
+    const light = (id: string | undefined) => {
+      if (id === hovered) return;
+      root.querySelectorAll('.annotation-highlight.hovered').forEach((el) => el.classList.remove('hovered'));
+      hovered = id;
+      if (!id) return;
+      const escaped = CSS.escape(id);
+      root
+        .querySelectorAll(`.annotation-highlight[data-highlight-id="${escaped}"], .annotation-highlight[data-bind-id="${escaped}"]`)
+        .forEach((el) => el.classList.add('hovered'));
+    };
+    const handleOver = (e: MouseEvent) => {
+      const mark = (e.target as Element).closest<HTMLElement>('.annotation-highlight');
+      light(mark ? mark.dataset.bindId ?? mark.dataset.highlightId : undefined);
+    };
+    const handleLeave = () => light(undefined);
+    root.addEventListener('mouseover', handleOver);
+    root.addEventListener('mouseleave', handleLeave);
+    return () => {
+      root.removeEventListener('mouseover', handleOver);
+      root.removeEventListener('mouseleave', handleLeave);
+      light(undefined);
+    };
+  }, [containerRef, enabled]);
+
+  // A mark that reaches an inline-code chip's edge is tagged so the CSS can
+  // stretch it over the chip's left or right padding; otherwise the padding
+  // shows as a gap between the mark and the highlighted text next to the chip.
+  // A mark in a chip also has its top and bottom padding set so its band lines
+  // up with a mark beside the chip on the same line: the CSS band uses fixed
+  // font metrics, which drift up to 1px from the real ones when the page is
+  // zoomed, so the chip's band came out taller.
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root || !enabled) return;
+    // The band of a mark outside the chip on the same line as `line`.
+    const bandBeside = (code: HTMLElement, line: DOMRect) => {
+      for (const other of code.parentElement?.querySelectorAll('.annotation-highlight') ?? []) {
+        if (code.contains(other)) continue;
+        for (const r of other.getClientRects()) {
+          if (Math.min(r.bottom, line.bottom) - Math.max(r.top, line.top) > line.height / 2) return r;
+        }
+      }
+      return null;
+    };
+    const tagChipEdges = () => {
+      root.querySelectorAll<HTMLElement>(':not(pre) > code mark.annotation-highlight').forEach((mark) => {
+        const code = mark.closest('code');
+        if (!code) return;
+        const before = document.createRange();
+        before.setStart(code, 0);
+        before.setEndBefore(mark);
+        const after = document.createRange();
+        after.setStartAfter(mark);
+        after.setEnd(code, code.childNodes.length);
+        mark.toggleAttribute('data-chip-start', before.toString() === '');
+        mark.toggleAttribute('data-chip-end', after.toString() === '');
+        mark.style.paddingTop = '';
+        mark.style.paddingBottom = '';
+        const own = mark.getClientRects()[0];
+        const beside = own && bandBeside(code, own);
+        if (!beside) return;
+        // Rects are in zoomed pixels under CSS zoom, padding is not.
+        const zoom = (mark as HTMLElement & { currentCSSZoom?: number }).currentCSSZoom ?? 1;
+        const style = getComputedStyle(mark);
+        mark.style.paddingTop = `${parseFloat(style.paddingTop) + (own.top - beside.top) / zoom}px`;
+        mark.style.paddingBottom = `${parseFloat(style.paddingBottom) + (beside.bottom - own.bottom) / zoom}px`;
+      });
+    };
+    tagChipEdges();
+    const observer = new MutationObserver(tagChipEdges);
+    observer.observe(root, { childList: true, subtree: true });
+    // Zoom changes the metrics; it fires resize. Fonts can load late.
+    window.addEventListener('resize', tagChipEdges);
+    document.fonts.addEventListener('loadingdone', tagChipEdges);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', tagChipEdges);
+      document.fonts.removeEventListener('loadingdone', tagChipEdges);
+    };
+  }, [containerRef, enabled]);
+
   // Initialize web-highlighter (no callback deps — reads from refs)
   useEffect(() => {
     if (!containerRef.current || !enabled) return;

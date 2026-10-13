@@ -1,0 +1,8 @@
+/* The app's own stylesheet, so previews look as they do in the app, plus
+   Fluid for the comparison slots. */
+@import "../index.css";
+@import "../../ui/fluid/fluid.css";
+
+@source "./*.tsx";
+@source "../../ui/fluid/**/*.{ts,tsx}";
+@source "../canvas.html";

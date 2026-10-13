@@ -9,20 +9,13 @@
 import React, { useState } from "react";
 import type { PlanDiffBlock, PlanDiffStats } from "../../utils/planDiffEngine";
 import type { Annotation } from "../../types";
-import {
-  PlanDiffModeSwitcher,
-  type PlanDiffMode,
-} from "./PlanDiffModeSwitcher";
 import { PlanCleanDiffView } from "./PlanCleanDiffView";
-import { PlanRawDiffView } from "./PlanRawDiffView";
 import { PlanDiffBadge } from "./PlanDiffBadge";
 
 import { GitBranch01, XClose } from '@untitledui/icons';
 interface PlanDiffViewerProps {
   diffBlocks: PlanDiffBlock[];
   diffStats: PlanDiffStats;
-  diffMode: PlanDiffMode;
-  onDiffModeChange: (mode: PlanDiffMode) => void;
   onPlanDiffToggle: () => void;
   repoInfo?: { display: string; branch?: string } | null;
   baseVersionLabel?: string;
@@ -38,8 +31,6 @@ interface PlanDiffViewerProps {
 export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
   diffBlocks,
   diffStats,
-  diffMode,
-  onDiffModeChange,
   onPlanDiffToggle,
   repoInfo,
   baseVersionLabel,
@@ -95,9 +86,8 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
           </button>
         </div>
 
-        {/* Diff mode switcher + version label + VS Code button */}
+        {/* Version label */}
         <div className="my-6 flex items-center gap-3">
-          <PlanDiffModeSwitcher mode={diffMode} onChange={onDiffModeChange} />
           {baseVersionLabel && (
             <span className="text-micro text-muted-foreground">
               vs {baseVersionLabel}
@@ -105,19 +95,13 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
           )}
         </div>
 
-        {/* Diff content */}
-        {diffMode === "raw" ? (
-          <PlanRawDiffView blocks={diffBlocks} />
-        ) : (
-          <PlanCleanDiffView
-            blocks={diffBlocks}
-            annotations={annotations}
-            onAddAnnotation={onAddAnnotation}
-            onSelectAnnotation={onSelectAnnotation}
-            selectedAnnotationId={selectedAnnotationId}
-            wordLevel={diffMode === "clean"}
-          />
-        )}
+        <PlanCleanDiffView
+          blocks={diffBlocks}
+          annotations={annotations}
+          onAddAnnotation={onAddAnnotation}
+          onSelectAnnotation={onSelectAnnotation}
+          selectedAnnotationId={selectedAnnotationId}
+        />
       </article>
     </div>
   );

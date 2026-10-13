@@ -7,7 +7,7 @@
 // or reorder any of these lines.
 import '@/ui/utils/math-eager';
 import '@/ui/utils/mermaid-eager';
-import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { toast, Toaster } from 'sonner';
 import { type Origin, getAgentName } from '@/shared/agents';
 import { shouldStripFrontmatter } from '@/shared/annotatable';
@@ -16,16 +16,15 @@ import { parseMarkdownToBlocks, extractFrontmatter, type LinkedDocAnnotationEntr
 import { Viewer, ViewerHandle } from '@/ui/components/Viewer';
 import { AnnotationPanel, type AnnotationScope, type AnnotationMessageGroup } from '@/ui/components/AnnotationPanel';
 import { ConfirmDialog } from '@/ui/components/ConfirmDialog';
-import { Annotation, AnnotationType, type CodeAnnotation, type InputMethod, type ImageAttachment, type ActionsLabelMode } from '@/ui/types';
+import { Annotation, AnnotationType, type CodeAnnotation, type ImageAttachment } from '@/ui/types';
 import { ThemeProvider } from '@/ui/components/ThemeProvider';
+import { FluidRoot } from '@/ui/fluid/components/fluid-root';
 import { TooltipProvider } from '@/ui/components/Tooltip';
-import { AnnotationToolstrip } from '@/ui/components/AnnotationToolstrip';
 import { StickyHeaderLane } from '@/ui/components/StickyHeaderLane';
 import { useActiveSection } from '@/ui/hooks/useActiveSection';
 import { configStore } from '@/ui/config';
 import { CompletionOverlay } from '@/ui/components/CompletionOverlay';
-import { getUIPreferences } from '@/ui/utils/uiPreferences';
-import { getInputMethod, saveInputMethod } from '@/ui/utils/inputMethod';
+import { getUIPreferences, setShowShortMessages } from '@/ui/utils/uiPreferences';
 import { OverlayScrollArea } from '@/ui/components/OverlayScrollArea';
 import { ScrollViewportProvider } from '@/ui/hooks/useScrollViewport';
 import { useOverlayViewport } from '@/ui/hooks/useOverlayViewport';
@@ -48,8 +47,7 @@ import { MessageRail, type PickerMessage } from '@/ui/components/MessageRail';
 const MESSAGE_RAIL_INSET = 24;
 import { PlanDiffViewer } from '@/ui/components/plan-diff/PlanDiffViewer';
 import { CodeFilePopout, type CodeFileAnnotationInput } from '@/ui/components/CodeFilePopout';
-import type { PlanDiffMode } from '@/ui/components/plan-diff/PlanDiffModeSwitcher';
-import { observeActionsLabelMode } from './utils/actionsLabelMode';
+import { CommentPopover } from '@/ui/components/CommentPopover';
 // Demo content toggle. Default: the original Real-time Collaboration plan.
 // Opt-in diff-engine stress test: `VITE_DIFF_DEMO=1 bun run dev:hook` swaps
 // in the 20-case Auth Service Refactor test plan. dev-mock-api.ts reads the
@@ -262,21 +260,16 @@ const AppInner: React.FC = () => {
   // The annotations panel is permanent on desktop. This state is the MOBILE
   // drawer only: it opens when a comment is selected and closes on its own X.
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
-  const [inputMethod, setInputMethod] = useState<InputMethod>(getInputMethod);
   const [uiPrefs] = useState(() => getUIPreferences());
+  const [showShortMessages, setShowShortMessagesState] = useState(uiPrefs.showShortMessages);
+  const handleShowShortMessagesChange = useCallback((show: boolean) => {
+    setShowShortMessagesState(show);
+    setShowShortMessages(show);
+  }, []);
 
-  // Plan-area width (inside the OverlayScrollArea, after sidebar/panel
-  // shrinkage) drives the action button label compactness. ResizeObserver
-  // fires every frame during a resize drag, so we store only the BUCKET
-  // ('full' | 'short' | 'icon') in state — App.tsx then re-renders at
-  // most twice across an entire drag (once per threshold crossing) instead
-  // of on every pixel, which would chug the whole tree.
-  //
-  //   full  → "Global comment"  — fits when planArea >= 800
-  //   short → "Comment"         — fits when planArea >= 680
-  //   icon  → labels hidden   — fallback below that
   const planAreaRef = useRef<HTMLDivElement>(null);
-  const [actionsLabelMode, setActionsLabelMode] = useState<ActionsLabelMode>('full');
+  // Anchor of the global comment composer: the + in the annotations panel.
+  const [globalComposerAnchor, setGlobalComposerAnchor] = useState<HTMLElement | null>(null);
   const [isApiMode, setIsApiMode] = useState(false);
   const [origin, setOrigin] = useState<Origin | null>(null);
   // Legacy, read-only: the toolbar Images action and the
@@ -309,11 +302,9 @@ const AppInner: React.FC = () => {
   }, [repoInfo]);
 
   const [isPlanDiffActive, setIsPlanDiffActive] = useState(false);
-  const [planDiffMode, setPlanDiffMode] = useState<PlanDiffMode>('clean');
   const [previousPlan, setPreviousPlan] = useState<string | null>(null);
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const isMobile = useIsMobile();
-  const effectiveInputMethod = inputMethod;
 
   const viewerRef = useRef<ViewerHandle>(null);
   const historyContext = [
@@ -760,8 +751,7 @@ const AppInner: React.FC = () => {
 
   // Viewer identity must change when the rendered document changes: web-highlighter
   // mutates the Viewer DOM, so reconciling new content against the old subtree throws
-  // removeChild errors — a changed key remounts it cleanly instead. StickyHeaderLane
-  // observes a node inside Viewer, so it re-anchors off the same token.
+  // removeChild errors — a changed key remounts it cleanly instead.
   const viewerContentKey = linkedDocHook.isActive
     ? `doc:${linkedDocHook.filepath}`
     : annotateSource === 'message' && selectedMessageId
@@ -802,20 +792,6 @@ const AppInner: React.FC = () => {
       codeAnnotations.length +
       linkedDocHook.docAnnotationCount +
       globalAttachments.length;
-
-  // useLayoutEffect + synchronous getBoundingClientRect so the initial
-  // bucket is set before the browser paints. Otherwise narrow viewports
-  // get a one-frame flash of the "Global comment" label before
-  // the ResizeObserver callback collapses them.
-  useLayoutEffect(() => {
-    if (isLoading) return;
-
-    const el = planAreaRef.current;
-    if (!el) return;
-    return observeActionsLabelMode(el, (next) => {
-      setActionsLabelMode((prev) => (prev === next ? prev : next));
-    });
-  }, [isLoading]);
 
   // Auto-save annotation drafts
   const handleRestoreDraftRef = useRef<(loadedDraft?: any, meta?: any) => void>(() => {});
@@ -922,19 +898,6 @@ const AppInner: React.FC = () => {
     const separator = path.includes('?') ? '&' : '?';
     return `${path}${separator}draftGeneration=${getDraftGeneration()}`;
   }, [getDraftGeneration]);
-
-  const handleInputMethodChange = (method: InputMethod) => {
-    setInputMethod(method);
-    saveInputMethod(method);
-  };
-
-  // Alt/Option key: hold to temporarily switch, double-tap to toggle
-  // Alt no longer switches Select/Pinpoint — it strikes a selection through on
-  // release (useAnnotationHighlighter). Select/Pinpoint is the toolstrip's
-  // pair of buttons.
-
-  // The toolstrip is hidden while browsing the plan diff.
-  const toolstripVisible = !isPlanDiffActive;
 
   // Check if we're in API mode (served from Bun hook server)
   useEffect(() => {
@@ -1677,6 +1640,24 @@ const AppInner: React.FC = () => {
     );
   };
 
+  const handleGlobalCommentSubmit = (text: string, images?: ImageAttachment[]) => {
+    handleAddAnnotation({
+      // randomUUID, not Date.now(): two comments minted in the same
+      // millisecond (paste + submit, or a concurrent external write)
+      // would collide on a timestamp id.
+      id: generateId('global'),
+      blockId: '',
+      startOffset: 0,
+      endOffset: 0,
+      type: AnnotationType.GLOBAL_COMMENT,
+      text: text.trim(),
+      originalText: '',
+      createdA: Date.now(),
+      images,
+    });
+    setGlobalComposerAnchor(null);
+  };
+
   const renderAnnotationPanel = (isOpen = true) => (
     <AnnotationPanel
       isOpen={isOpen}
@@ -1695,6 +1676,7 @@ const AppInner: React.FC = () => {
       messageGroups={isMessageScopeEligible ? messageGroups : undefined}
       onClose={() => setIsMobilePanelOpen(false)}
       otherFileAnnotations={otherFileAnnotations}
+      onAddGlobalComment={setGlobalComposerAnchor}
     />
   );
 
@@ -1708,6 +1690,7 @@ const AppInner: React.FC = () => {
 
   return (
     <ThemeProvider defaultTheme="dark" manageFavicon>
+      <FluidRoot>
       <TooltipProvider delayDuration={900} skipDelayDuration={200} disableHoverableContent>
       {/* Mobile Safari paints the browser-controls backdrop from the app canvas,
           so keep it the same card color as the document. */}
@@ -1755,10 +1738,11 @@ const AppInner: React.FC = () => {
               never changes. Anchoring the rail to the scroller's content box
               moved it sideways whenever a message was short enough not to
               scroll. */}
-          <div className="relative flex min-w-0 flex-1">
+          <div className="relative flex min-w-0 flex-1 bg-card">
+          {/* The background sits on the wrapper so the edge fade only fades the document. */}
           <OverlayScrollArea
             element="main"
-            className="flex-1 min-w-0 bg-card"
+            className="scroll-fade flex-1 min-w-0"
             overflowX="hidden"
             overflowY="auto"
             // Native scrollbars take layout width, so a document short enough
@@ -1769,17 +1753,13 @@ const AppInner: React.FC = () => {
             onViewportReady={handleDocumentViewportReady}
           >
             <div ref={planAreaRef} className="min-h-full flex flex-col items-center px-2 py-3 md:px-10 md:py-8 xl:px-16 relative z-10">
-              {/* Sticky header lane — ghost bar that pins the toolstrip +
-                  badges at top: 12px once the user scrolls. Invisible at top
-                  of doc; original toolstrip/badges remain the source of
-                  truth there. Hidden in plan diff mode, or when
-                  sticky actions are disabled. remountToken re-anchors the
-                  ResizeObserver when Viewer swaps content (linked docs or
-                  message switches). */}
-              {!isPlanDiffActive && uiPrefs.stickyActionsEnabled && (
+              {/* Sticky header lane — ghost bar that pins the plan-diff badge
+                  at top: 12px once the user scrolls. Invisible at top of doc;
+                  the badges in the card remain the source of truth there.
+                  Only shown when there is a diff badge, and hidden in plan
+                  diff mode or when sticky actions are disabled. */}
+              {!isPlanDiffActive && uiPrefs.stickyActionsEnabled && planDiff.hasPreviousVersion && planDiff.diffStats && (
                 <StickyHeaderLane
-                  inputMethod={inputMethod}
-                  onInputMethodChange={handleInputMethodChange}
                   repoInfo={repoInfo}
                   planDiffStats={planDiff.diffStats}
                   isPlanDiffActive={isPlanDiffActive}
@@ -1788,22 +1768,7 @@ const AppInner: React.FC = () => {
                   planDiffBaselineLabel="since last review"
                   planDiffBaselineTooltip="Changes since you last reviewed this file"
                   maxWidth={planMaxWidth}
-                  remountToken={viewerContentKey}
                 />
-              )}
-
-              {/* Annotation Toolstrip — the input method switcher (select / pinpoint).
-                  Hidden during plan diff browsing. */}
-              {toolstripVisible && (
-                <div
-                  className="w-full mb-3 md:mb-4 flex items-center justify-start"
-                  style={{ maxWidth: planMaxWidth }}
-                >
-                  <AnnotationToolstrip
-                    inputMethod={inputMethod}
-                    onInputMethodChange={handleInputMethodChange}
-                  />
-                </div>
               )}
 
               {/* Plan Diff View — rendered when diff data exists, hidden when inactive */}
@@ -1812,8 +1777,6 @@ const AppInner: React.FC = () => {
                   <PlanDiffViewer
                     diffBlocks={planDiff.diffBlocks}
                     diffStats={planDiff.diffStats}
-                    diffMode={planDiffMode}
-                    onDiffModeChange={setPlanDiffMode}
                     onPlanDiffToggle={() => setIsPlanDiffActive(false)}
                     repoInfo={repoInfo}
                     baseVersionLabel={planDiff.diffBaseVersion != null ? `v${planDiff.diffBaseVersion}` : undefined}
@@ -1838,9 +1801,7 @@ const AppInner: React.FC = () => {
                   onAddAnnotation={handleAddAnnotation}
                   onSelectAnnotation={handleSelectAnnotation}
                   selectedAnnotationId={selectedAnnotationId}
-                  inputMethod={effectiveInputMethod}
                   repoInfo={repoInfo}
-                  stickyActions={uiPrefs.stickyActionsEnabled}
                   planDiffStats={planDiff.diffStats}
                   isPlanDiffActive={isPlanDiffActive}
                   onPlanDiffToggle={() => setIsPlanDiffActive(!isPlanDiffActive)}
@@ -1867,7 +1828,6 @@ const AppInner: React.FC = () => {
                   sourceInfo={sourceInfo}
                   onToggleCheckbox={checkbox.toggle}
                   checkboxOverrides={checkbox.overrides}
-                  actionsLabelMode={actionsLabelMode}
                 />
               </div>
             </div>
@@ -1883,6 +1843,8 @@ const AppInner: React.FC = () => {
                   selectedMessageId={selectedMessageId}
                   onSelect={handleSelectMessage}
                   annotationCounts={activeMessageAnnotationCounts}
+                  showShort={showShortMessages}
+                  onShowShortChange={handleShowShortMessagesChange}
                 />
               </div>
             </div>
@@ -1929,6 +1891,16 @@ const AppInner: React.FC = () => {
           }}
         />
 
+        {globalComposerAnchor && (
+          <CommentPopover
+            anchorEl={globalComposerAnchor}
+            contextText=""
+            isGlobal
+            onSubmit={handleGlobalCommentSubmit}
+            onClose={() => setGlobalComposerAnchor(null)}
+          />
+        )}
+
         {/* Completion overlay - shown after approve/deny */}
         <CompletionOverlay
           submitted={submitted}
@@ -1949,6 +1921,7 @@ const AppInner: React.FC = () => {
         />
       </div>
       </TooltipProvider>
+      </FluidRoot>
     </ThemeProvider>
   );
 };

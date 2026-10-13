@@ -11,7 +11,6 @@
 import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./server-port";
 import type { Origin } from "@/shared/agents";
 import { type DiffType, type GitContext, runVcsDiff, getVcsFileContentsForDiff, getVcsDiffFingerprint, resolveVcsCwd, validateFilePath, getVcsContext, detectRemoteDefaultCompareTarget, vcsOwnsDiffType, gitRuntime } from "./vcs";
-import { existsSync, unlinkSync } from "node:fs";
 import { SingleFlight } from "@/shared/single-flight";
 import {
   isSameCwdCommitSwitch,
@@ -33,7 +32,7 @@ import {
 import { createCommitAvatarResolver, type CommandRunner } from "@/shared/commit-avatars";
 import { detectGeneratedFiles, detectGeneratedFilesByName } from "@/shared/generated-files";
 import { getRepoInfo } from "./repo";
-import { handleImage, handleUpload, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
+import { handleImage, handleUpload, removeUnsentUploads, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
 import { contentHash, deleteDraft } from "@/shared/draft";
 import { loadConfig, saveConfig, getServerConfig, resolveFeedbackHistory } from "./config";
 import { appendFeedbackRecord, countChangedFiles, deriveFeedbackProject, type FeedbackDecision, type FeedbackReviewTarget } from "@/shared/feedback-archive";
@@ -580,8 +579,13 @@ export async function startReviewServer(
     annotations: unknown[];
     exit?: boolean;
   }>((resolve) => {
-    resolveDecision = resolve;
+    resolveDecision = (result) => {
+      sentFeedback = result.feedback + JSON.stringify(result.annotations);
+      resolve(result);
+    };
   });
+  // What was submitted, so the uploads it attaches outlive the server.
+  let sentFeedback = "";
 
   // Session-ended stream: announces on /api/session/stream when the parent
   // watcher below detects the Claude Code process that owns this review is
@@ -1102,11 +1106,7 @@ export async function startReviewServer(
   let parentWatch: ParentWatcher | null = null;
 
   const stop = () => {
-    for (const uploadPath of sessionUploads) {
-      try {
-        if (existsSync(uploadPath)) unlinkSync(uploadPath);
-      } catch {}
-    }
+    removeUnsentUploads(sessionUploads, sentFeedback);
     sessionStream.closeSessions();
     parentWatch?.stop();
     server.stop();

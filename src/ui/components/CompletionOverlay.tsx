@@ -47,9 +47,8 @@ export function CompletionOverlay({ submitted, title, subtitle, agentLabel }: Co
           <p className="text-muted-foreground">{subtitle}</p>
         </div>
 
-        {/* The tab closes itself the moment the submission lands, so this
-            panel is normally on screen for a frame or two. It has something to
-            say only when the browser refuses to close a tab it did not open. */}
+        {/* The tab closes itself three seconds after the submission lands,
+            unless the browser refuses to close a tab it did not open. */}
         <div className="pt-4 border-t border-border space-y-2">
           {state.phase === 'closeFailed' ? (
             <>
@@ -63,9 +62,9 @@ export function CompletionOverlay({ submitted, title, subtitle, agentLabel }: Co
           ) : (
             <>
               <p className="text-body text-muted-foreground">
-                You can close this tab and return to <span className="text-foreground font-semibold">{agentLabel}</span>.
+                Your response has been sent to <span className="text-foreground font-semibold">{agentLabel}</span>.
               </p>
-              <p className="text-caption text-muted-foreground/60">Your response has been sent.</p>
+              <p className="text-caption text-muted-foreground/60">This tab closes in 3 seconds.</p>
             </>
           )}
         </div>

@@ -127,6 +127,19 @@ describe("annotatable plain-text files (#1029)", () => {
 		expect(data.markdown).toBe("key: value\n");
 	});
 
+	test("an absolute code path under a folder with a space opens as code", async () => {
+		const root = makeTempDir("hypermark-doc-space-");
+		const file = writeTempFile(root, "First Last/src/app.ts", "app");
+
+		const res = await getDoc(`${file}:1`, { rootPaths: [root] });
+		const data = await res.json() as { codeFile?: boolean; contents?: string; line?: number };
+
+		expect(res.status).toBe(200);
+		expect(data.codeFile).toBe(true);
+		expect(data.contents).toBe("app");
+		expect(data.line).toBe(1);
+	});
+
 	test("without doc=1, a .yaml path keeps the code-file popout response", async () => {
 		const root = makeTempDir("hypermark-doc-yaml-code-");
 		writeTempFile(root, "config.yaml", "key: value\n");

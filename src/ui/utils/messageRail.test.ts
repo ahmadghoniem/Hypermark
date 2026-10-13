@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { formatRelativeTime, railPreview, railTickWidth } from './messageRail';
+import { createWheelStepper, formatRelativeTime, isShortMessage, railPreview, railTickWidth } from './messageRail';
 
 describe('railTickWidth', () => {
   test('at rest the open message is longer', () => {
@@ -29,6 +29,18 @@ describe('railPreview', () => {
   });
 });
 
+describe('isShortMessage', () => {
+  test('one line up to the cap', () => {
+    expect(isShortMessage('  Approved.  ')).toBe(true);
+    expect(isShortMessage('a'.repeat(200))).toBe(true);
+    expect(isShortMessage('a'.repeat(201))).toBe(false);
+  });
+  test('any line break makes it long', () => {
+    expect(isShortMessage('Done.\n\nTests pass.')).toBe(false);
+    expect(isShortMessage('Done.\n')).toBe(true);
+  });
+});
+
 describe('formatRelativeTime', () => {
   const now = Date.parse('2026-09-16T12:00:00Z');
   test('buckets', () => {
@@ -40,5 +52,26 @@ describe('formatRelativeTime', () => {
   test('missing or invalid', () => {
     expect(formatRelativeTime(undefined, now)).toBeNull();
     expect(formatRelativeTime('nope', now)).toBeNull();
+  });
+});
+
+describe('createWheelStepper', () => {
+  const run = (events: [deltaY: number, time: number, deltaMode?: number][]) => {
+    const stepper = createWheelStepper();
+    return events.map(([deltaY, timeStamp, deltaMode = 0]) => stepper({ deltaY, deltaMode, timeStamp }));
+  };
+  test('one mouse notch is one step, either way', () => {
+    expect(run([[100, 0]])).toEqual([1]);
+    expect(run([[-100, 0]])).toEqual([-1]);
+    expect(run([[3, 0, 1]])).toEqual([1]);
+  });
+  test('small trackpad amounts add up to one step', () => {
+    expect(run([[5, 0], [6, 16], [7, 32], [4, 48]])).toEqual([0, 0, 0, 1]);
+  });
+  test('a fast spin steps once per cooldown', () => {
+    expect(run([[100, 0], [100, 40], [100, 120], [100, 170], [100, 200]])).toEqual([1, 0, 1, 0, 0]);
+  });
+  test('amounts the other way cancel out', () => {
+    expect(run([[15, 0], [-10, 16], [10, 32], [5, 48]])).toEqual([0, 0, 0, 1]);
   });
 });

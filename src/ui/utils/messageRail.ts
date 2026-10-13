@@ -39,6 +39,15 @@ export function railPreview(text: string, max = 90): string {
   return flat.length > max ? `${flat.slice(0, max - 1).trimEnd()}…` : flat;
 }
 
+/**
+ * A message the rail can hide: one line with no line breaks, at most `max`
+ * characters ("Approved.", "API Error: …").
+ */
+export function isShortMessage(text: string, max = 200): boolean {
+  const trimmed = text.trim();
+  return !trimmed.includes('\n') && trimmed.length <= max;
+}
+
 /** "just now", "5m ago", "3h ago", "2d ago"; null for a missing or invalid time. */
 export function formatRelativeTime(timestamp: string | undefined, now: number): string | null {
   if (!timestamp) return null;
@@ -51,4 +60,33 @@ export function formatRelativeTime(timestamp: string | undefined, now: number): 
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
+}
+
+/** The parts of a WheelEvent the stepper reads. */
+export interface WheelStepInput {
+  deltaY: number;
+  deltaMode: number;
+  timeStamp: number;
+}
+
+/**
+ * Turns wheel events into steps of one message (-1 up, 1 down, 0 none).
+ * Scroll amounts add up until they pass `step` px, so a mouse notch (100px in
+ * Chrome) is one step and a trackpad's small events add up to one. After a
+ * step, amounts are dropped for `cooldown` ms, so a fast spin doesn't skip
+ * past messages.
+ */
+export function createWheelStepper({ step = 20, cooldown = 100 } = {}) {
+  let total = 0;
+  let lockedUntil = -Infinity;
+  return ({ deltaY, deltaMode, timeStamp }: WheelStepInput): -1 | 0 | 1 => {
+    if (timeStamp < lockedUntil) return 0;
+    // deltaMode 1 counts lines, 2 pages.
+    total += deltaY * (deltaMode === 1 ? 40 : deltaMode === 2 ? 800 : 1);
+    if (Math.abs(total) < step) return 0;
+    const direction = total > 0 ? 1 : -1;
+    total = 0;
+    lockedUntil = timeStamp + cooldown;
+    return direction;
+  };
 }

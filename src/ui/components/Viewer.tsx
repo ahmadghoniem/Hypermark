@@ -1,7 +1,6 @@
-import { generateId } from '../utils/generateId';
 import React, { useRef, useState, useEffect, useMemo, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { AnnotationType, type Block, type Annotation, type InputMethod, type ImageAttachment, type ActionsLabelMode } from '../types';
+import { AnnotationType, type Block, type Annotation, type ImageAttachment } from '../types';
 import { applyHighlight, codeBlockClassName, onCodeHighlightSwap } from '../utils/codeHighlight';
 import { paintCodeBlockMark } from '../utils/codeBlockMark';
 import { useFenceTheme } from '../hooks/useFenceTheme';
@@ -20,30 +19,18 @@ import { GraphvizBlock } from './GraphvizBlock';
 import { MermaidBlock } from './MermaidBlock';
 import { isGraphvizLanguage, isMermaidLanguage } from './diagramLanguages';
 import { useQuickLabels } from '../hooks/useQuickLabels';
-import { DocBadges, type DocBadgesProps, type LinkedDocBadgeInfo } from './DocBadges';
-import { PinpointOverlay } from './PinpointOverlay';
-import { usePinpoint } from '../hooks/usePinpoint';
+import { DocBadges, type LinkedDocBadgeInfo } from './DocBadges';
+import { BlockOutline } from './BlockOutline';
+import { TabHint } from './TabHint';
+import { useSelectionWidening } from '../hooks/useSelectionWidening';
 import { useAnnotationHighlighter } from '../hooks/useAnnotationHighlighter';
 import {
-  getScrollViewportIntersectionRoot,
   getScrollViewportRect,
   getScrollViewportTop,
   scrollViewportTo,
   useScrollViewport,
 } from '../hooks/useScrollViewport';
 import { decodeAnchorHash } from '../utils/anchors';
-import { AnnotationToolstrip } from './AnnotationToolstrip';
-import {
-  resolveCompactHeaderGeometry,
-  snapCompactHeaderWidth,
-} from './compactHeaderLayout';
-
-import { Globe01 } from '@untitledui/icons';
-/** Typed controls required for Viewer's opt-in, in-flow annotation header. */
-export interface ViewerAnnotationHeaderConfig {
-  /** Persist and apply a Select or Pinpoint input-method change. */
-  readonly onInputMethodChange: (method: InputMethod) => void;
-}
 
 /** Public properties for the Markdown document Viewer. */
 export interface ViewerProps {
@@ -54,17 +41,7 @@ export interface ViewerProps {
   onAddAnnotation: (ann: Annotation) => void;
   onSelectAnnotation: (id: string | null) => void;
   selectedAnnotationId: string | null;
-  inputMethod?: InputMethod;
   repoInfo?: { display: string; branch?: string; host?: string } | null;
-  stickyActions?: boolean;
-  /**
-   * Render compact annotation controls and the existing document actions in
-   * one measured, in-flow header owned by Viewer. The header reserves its
-   * responsive height before document content and follows `stickyActions`.
-   * Omit this prop to retain the legacy floating action bar exactly. Read-only
-   * viewers suppress the annotation header rather than expose dead controls.
-   */
-  annotationHeader?: ViewerAnnotationHeaderConfig;
   onOpenLinkedDoc?: (path: string) => void;
   onOpenCodeFile?: (path: string) => void;
   imageBaseDir?: string;
@@ -86,12 +63,6 @@ export interface ViewerProps {
   showDemoBadge?: boolean;
   /** Max width in px for the plan card; null removes the cap entirely. */
   maxWidth?: number | null;
-  /**
-   * Compactness of the action button labels. See ActionsLabelMode in
-   * types.ts. Defaults to 'full' to preserve the original look for
-   * callers that don't measure plan-area width.
-   */
-  actionsLabelMode?: ActionsLabelMode;
   /** Source attribution for HTML/URL annotations (e.g. URL or filename) */
   sourceInfo?: string;
   // Checkbox toggle props
@@ -138,109 +109,6 @@ const FrontmatterCard: React.FC<{ frontmatter: Frontmatter }> = ({ frontmatter }
   );
 };
 
-interface ViewerDocumentHeaderProps {
-  readonly config: ViewerAnnotationHeaderConfig;
-  readonly inputMethod: InputMethod;
-  readonly sticky: boolean;
-  readonly stuck: boolean;
-  readonly sentinelRef: React.RefObject<HTMLDivElement | null>;
-  readonly badges: Omit<DocBadgesProps, 'layout'>;
-  readonly actions: React.ReactNode;
-}
-
-/** Viewer-owned header that keeps leading controls and trailing actions in one flow. */
-const ViewerDocumentHeader: React.FC<ViewerDocumentHeaderProps> = ({
-  config,
-  inputMethod,
-  sticky,
-  stuck,
-  sentinelRef,
-  badges,
-  actions,
-}) => {
-  const headerRef = useRef<HTMLDivElement>(null);
-  const actionsRef = useRef<HTMLDivElement>(null);
-  const [headerWidth, setHeaderWidth] = useState(0);
-  const [actionsWidth, setActionsWidth] = useState(0);
-
-  useEffect(() => {
-    const header = headerRef.current;
-    if (!header) return;
-    const observer = new ResizeObserver(([entry]) => {
-      const next = snapCompactHeaderWidth(entry.contentRect.width);
-      setHeaderWidth((current) => current === next ? current : next);
-    });
-    observer.observe(header);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const actionCluster = actionsRef.current;
-    if (!actionCluster) return;
-    const observer = new ResizeObserver(([entry]) => {
-      const next = snapCompactHeaderWidth(entry.contentRect.width);
-      setActionsWidth((current) => current === next ? current : next);
-    });
-    observer.observe(actionCluster);
-    return () => observer.disconnect();
-  }, []);
-
-  const geometry = resolveCompactHeaderGeometry({
-    containerWidth: headerWidth,
-    trailingWidth: actionsWidth,
-    leadingInset: 0,
-  });
-  const narrow = geometry.layout === 'narrow';
-  const iconOnly = geometry.layout !== 'wide';
-
-  return (
-    <>
-      {sticky && <div ref={sentinelRef} className="size-0" aria-hidden="true" />}
-      <div
-        ref={headerRef}
-        data-annotation-exclude
-        data-viewer-document-header
-        data-header-layout={geometry.layout}
-        className={`annotation-exclude ${sticky ? 'sticky top-3' : 'relative'} z-40 mb-3 md:mb-4 rounded-lg transition-colors duration-150 ${
-          stuck ? 'bg-card/95 backdrop-blur-sm shadow-sm' : ''
-        }`}
-      >
-        <div className={`flex min-w-0 ${
-          narrow
-            ? 'flex-col items-stretch gap-2'
-            : 'flex-row items-start justify-between gap-4'
-        }`}>
-          <div
-            data-viewer-annotation-controls
-            className={`inline-flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 py-1 md:py-2 ${
-              narrow ? 'w-full' : 'flex-1'
-            }`}
-          >
-            <div className="shrink-0">
-              <AnnotationToolstrip
-                inputMethod={inputMethod}
-                onInputMethodChange={config.onInputMethodChange}
-                compact
-                iconOnly={iconOnly}
-              />
-            </div>
-            <DocBadges layout="header" {...badges} />
-          </div>
-          <div
-            ref={actionsRef}
-            data-sticky-actions
-            className={`flex shrink-0 items-start gap-1 rounded-lg p-1 md:gap-2 md:p-2 ${
-              narrow ? 'self-end' : ''
-            }`}
-          >
-            {actions}
-          </div>
-        </div>
-      </div>
-    </>
-  );
-};
-
 /**
  * Render and annotate a parsed Markdown document.
  *
@@ -255,10 +123,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   onAddAnnotation,
   onSelectAnnotation,
   selectedAnnotationId,
-  inputMethod = 'drag',
   repoInfo,
-  stickyActions = true,
-  annotationHeader,
   planDiffStats,
   isPlanDiffActive,
   onPlanDiffToggle,
@@ -272,15 +137,12 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   linkedDocInfo,
   imageBaseDir,
   codePathBaseDir,
-  actionsLabelMode = 'full',
   sourceInfo,
   onToggleCheckbox,
   checkboxOverrides,
 }, ref) => {
-  const hasViewerAnnotationHeader = annotationHeader !== undefined;
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
   const [locationHash, setLocationHash] = useState(() => window.location.hash);
-  const globalCommentButtonRef = useRef<HTMLButtonElement>(null);
   // Read through a ref: only the imperative removeHighlight path below needs
   // it, and CodeBlock re-highlights itself on palette change.
   const fenceTheme = useFenceTheme();
@@ -298,10 +160,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   const docBadgesRef = useRef<HTMLDivElement | null>(null);
   const [badgeClearance, setBadgeClearance] = useState(0);
   useEffect(() => {
-    if (hasViewerAnnotationHeader) {
-      setBadgeClearance(0);
-      return;
-    }
     const el = docBadgesRef.current;
     const article = containerRef.current;
     if (!el || !article) { setBadgeClearance(0); return; }
@@ -315,7 +173,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     ro.observe(el);
     window.addEventListener('resize', measure);
     return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
-  }, [hasViewerAnnotationHeader, repoInfo, hasPreviousVersion, showDemoBadge, linkedDocInfo, sourceInfo, planDiffStats]);
+  }, [repoInfo, hasPreviousVersion, showDemoBadge, linkedDocInfo, sourceInfo, planDiffStats]);
 
   // Per-doc heading slug map with dedup — computed once per blocks array so
   // anchor ids stay stable across re-renders and duplicate heading texts get
@@ -326,18 +184,15 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   const [isTableToolbarExiting, setIsTableToolbarExiting] = useState(false);
   const tableHoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [popoutTable, setPopoutTable] = useState<Block | null>(null);
-  // Viewer-specific comment popover state (global comments + code blocks)
+  // Viewer-specific comment popover state (code blocks)
   const [viewerCommentPopover, setViewerCommentPopover] = useState<{
     anchorEl: HTMLElement;
     contextText: string;
     selectedText?: string;
     initialText?: string;
-    isGlobal: boolean;
     codeBlock?: { block: Block; element: HTMLElement };
   } | null>(null);
-  const stickySentinelRef = useRef<HTMLDivElement>(null);
   const lastAutoScrolledHashRef = useRef<string | null>(null);
-  const [isStuck, setIsStuck] = useState(false);
   const [quickLabels] = useQuickLabels();
 
   // Shared annotation infrastructure via hook
@@ -449,7 +304,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     if (owner) paintCodeBlockMark(codeEl, owner.id, owner.type);
   }), []);
 
-  // Pinpoint mode: hover + click to select elements
+  // A code block taken whole (Tab while dragging) opens the comment popover on it.
   const handlePinpointCodeBlockClick = useCallback((blockId: string, element: HTMLElement) => {
     const block = blocks.find((candidate) => candidate.id === blockId);
     const codeEl = element.querySelector('code');
@@ -459,19 +314,16 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
       anchorEl: element,
       contextText: (codeEl.textContent || '').slice(0, 80),
       selectedText: codeEl.textContent || '',
-      isGlobal: false,
       codeBlock: { block, element },
     });
   }, [blocks]);
 
-  const { hoverTarget } = usePinpoint({
+  const widening = useSelectionWidening({
     containerRef,
-    inputMethod,
     enabled: !hookCommentPopover && !viewerCommentPopover && !(isPlanDiffActive ?? false),
     onSelectRange: highlightRange,
     onCodeBlockClick: handlePinpointCodeBlockClick,
   });
-  const pinpointOverlayTarget = inputMethod === 'pinpoint' ? hoverTarget : null;
 
   // Suppress native context menu on touch devices (prevents cut/copy/paste overlay on mobile)
   useEffect(() => {
@@ -485,23 +337,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     container.addEventListener('contextmenu', handleContextMenu);
     return () => container.removeEventListener('contextmenu', handleContextMenu);
   }, []);
-
-  // Detect when sticky action bar is "stuck" to show card background.
-  // The IntersectionObserver root must be the actual scroll element — the
-  // OverlayScrollArea viewport — not the <main> host, which doesn't scroll.
-  useEffect(() => {
-    if (!stickyActions) {
-      setIsStuck(false);
-      return;
-    }
-    if (!stickySentinelRef.current || !scrollViewport) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsStuck(!entry.isIntersecting),
-      { root: getScrollViewportIntersectionRoot(scrollViewport), threshold: 0 }
-    );
-    observer.observe(stickySentinelRef.current);
-    return () => observer.disconnect();
-  }, [hasViewerAnnotationHeader, stickyActions, scrollViewport]);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -523,27 +358,17 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     const target = document.getElementById(anchor);
     if (!target || !container.contains(target)) return false;
 
-    const documentHeader = stickyActions
-      ? container.querySelector<HTMLElement>('[data-viewer-document-header]')
-        ?? container.querySelector<HTMLElement>('[data-sticky-actions]')
-      : null;
-    const stickyTop = documentHeader
-      ? Number.parseFloat(window.getComputedStyle(documentHeader).top || '0') || 0
-      : 0;
-    const headerOffset = documentHeader
-      ? documentHeader.getBoundingClientRect().height + stickyTop
-      : 0;
     const containerRect = getScrollViewportRect(scrollViewport);
     const targetRect = target.getBoundingClientRect();
     const relativeTop = targetRect.top - containerRect.top;
-    const offsetPosition = getScrollViewportTop(scrollViewport) + relativeTop - headerOffset;
+    const offsetPosition = getScrollViewportTop(scrollViewport) + relativeTop;
 
     scrollViewportTo(scrollViewport, {
       top: Math.max(0, offsetPosition),
       behavior: 'smooth',
     });
     return true;
-  }, [scrollViewport, stickyActions]);
+  }, [scrollViewport]);
 
   useEffect(() => {
     if (!scrollViewport || !locationHash || lastAutoScrolledHashRef.current === locationHash) return;
@@ -605,28 +430,10 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     applySharedAnnotations: applyAnnotations,
   }), [hookRemoveHighlight, clearAllHighlights, applyAnnotations, blocks]);
 
-  // Viewer-specific comment popover handlers (code blocks + global comments)
+  // Viewer-specific comment popover handlers (code blocks)
 
   const handleViewerCommentSubmit = (text: string, images?: ImageAttachment[]) => {
-    if (!viewerCommentPopover) return;
-
-    if (viewerCommentPopover.isGlobal) {
-      const newAnnotation: Annotation = {
-        // randomUUID, not Date.now(): two comments minted in the same
-        // millisecond (paste + submit, or a concurrent external write)
-        // would collide on a timestamp id.
-        id: generateId('global'),
-        blockId: '',
-        startOffset: 0,
-        endOffset: 0,
-        type: AnnotationType.GLOBAL_COMMENT,
-        text: text.trim(),
-        originalText: '',
-        createdA: Date.now(),
-        images,
-      };
-      onAddAnnotation(newAnnotation);
-    } else if (viewerCommentPopover.codeBlock) {
+    if (viewerCommentPopover?.codeBlock) {
       const codeEl = viewerCommentPopover.codeBlock.element.querySelector('code');
       if (codeEl) {
         applyCodeBlockAnnotation(viewerCommentPopover.codeBlock.block.id, codeEl, AnnotationType.COMMENT, text, images);
@@ -642,42 +449,17 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
 
   const codePathValidation = useValidatedCodePaths(markdown, codePathBaseDir);
 
-  const documentActions = (
-    <>
-
-      <button
-        ref={globalCommentButtonRef}
-        onClick={() => {
-          const anchorEl = globalCommentButtonRef.current;
-          if (!anchorEl) return;
-          setViewerCommentPopover({
-            anchorEl,
-            contextText: '',
-            isGlobal: true,
-          });
-        }}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 text-caption font-semibold text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted rounded-md transition-colors"
-        title="Add global comment"
-      >
-        <Globe01 className="size-3.5" />
-        {actionsLabelMode === 'full' && <span>Global comment</span>}
-        {actionsLabelMode === 'short' && <span>Comment</span>}
-      </button>
-    </>
-  );
-
   return (
     <CodePathValidationContext.Provider value={codePathValidation}>
     <div className="relative z-chrome w-full" style={maxWidth === null ? undefined : { maxWidth: maxWidth ?? 832 }}>
       <article
         ref={containerRef}
-        className={`w-full bg-card rounded-xl py-5 md:py-8 lg:py-10 xl:py-12 relative ${inputMethod === 'pinpoint' ? 'cursor-pointer' : ''}`}
+        className="w-full bg-card rounded-xl py-5 md:py-8 lg:py-10 xl:py-12 relative"
         style={{
           WebkitTouchCallout: 'none',
         } as React.CSSProperties}
       >
-        {/* Legacy badge placement remains byte-for-byte opt-out behavior. */}
-        {!annotationHeader && (repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo || sourceInfo) && (
+        {(repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo || sourceInfo) && (
           <div ref={docBadgesRef} className="absolute top-3 md:top-4 left-0">
             <DocBadges
               layout="column"
@@ -695,37 +477,8 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
           </div>
         )}
 
-        {annotationHeader ? (
-          <ViewerDocumentHeader
-            config={annotationHeader}
-            inputMethod={inputMethod}
-            sticky={stickyActions}
-            stuck={isStuck}
-            sentinelRef={stickySentinelRef}
-            badges={{
-              repoInfo,
-              planDiffStats,
-              isPlanDiffActive,
-              hasPreviousVersion,
-              onPlanDiffToggle,
-              planDiffBaselineLabel,
-              planDiffBaselineTooltip,
-              showDemoBadge,
-              linkedDocInfo,
-              sourceInfo,
-            }}
-            actions={documentActions}
-          />
-        ) : (
-          <>
-            {badgeClearance > 0 && <div style={{ height: badgeClearance }} aria-hidden="true" />}
-            {stickyActions && <div ref={stickySentinelRef} className="size-0 float-right" aria-hidden="true" />}
-            <div data-sticky-actions className={`${stickyActions ? 'sticky top-3' : ''} z-30 float-right flex items-start gap-1 md:gap-2 rounded-lg p-1 md:p-2 transition-colors duration-150 ${isStuck ? 'bg-card/95 backdrop-blur-sm shadow-sm' : ''} -mr-1 md:-mr-2 mt-6 md:-mt-5 lg:-mt-7 xl:-mt-9`}>
-              {documentActions}
-            </div>
-          </>
-        )}
-        {frontmatter && <><div className="clear-right md:hidden" /><FrontmatterCard frontmatter={frontmatter} /></>}
+        {badgeClearance > 0 && <div style={{ height: badgeClearance }} aria-hidden="true" />}
+        {frontmatter && <FrontmatterCard frontmatter={frontmatter} />}
         {!frontmatter && blocks.length > 0 && blocks[0].type !== 'heading' && <div className="mt-4" />}
         {groupBlocks(blocks).map(group =>
           group.type === 'list-group' ? (
@@ -844,15 +597,11 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
           />
         )}
 
-        {/* Pinpoint hover overlay */}
-        {inputMethod === 'pinpoint' && (
-          <PinpointOverlay
-            target={pinpointOverlayTarget}
-            containerRef={containerRef}
-          />
-        )}
+        {/* Tab selection: the blocks release would take, and the Tab hint by the pointer */}
+        <BlockOutline blocks={widening.blocks} containerRef={containerRef} />
+        {widening.hint && <TabHint mode={widening.hint} pointer={widening.pointer} />}
 
-        {/* Comment popover — hook handles text selection, Viewer handles global + code block */}
+        {/* Comment popover — hook handles text selection, Viewer handles code blocks */}
         {hookCommentPopover && (
             <CommentPopover
               anchorEl={hookCommentPopover.anchorEl}
@@ -870,7 +619,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
           <CommentPopover
             anchorEl={viewerCommentPopover.anchorEl}
             contextText={viewerCommentPopover.contextText}
-            isGlobal={viewerCommentPopover.isGlobal}
+            isGlobal={false}
             initialText={viewerCommentPopover.initialText}
             onSubmit={handleViewerCommentSubmit}
             onClose={handleViewerCommentClose}

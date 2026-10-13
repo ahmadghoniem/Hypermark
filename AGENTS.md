@@ -35,6 +35,7 @@ A browser UI for annotating documents and Claude's messages (`src/annotate`) and
 
 ## Conventions
 
+- Commit only when the user asks; leave changes uncommitted otherwise.
 - Commit messages: `area: what changed`, lowercase, self-contained, with no spec numbers or pointers to planning docs.
 - Icons: Untitled UI (`@untitledui/icons`).
 - Type: chrome text uses Fluid's roles (`text-title`, `text-subtitle`, `text-body`, `text-caption`, `text-micro`) and three weights (normal, `font-semibold` = 550, `font-bold`). The rendered document (`BlockRenderer`, `InlineMarkdown`, plan diff, tables) keeps `text-sm` … `text-2xl` and the plan rhythm.

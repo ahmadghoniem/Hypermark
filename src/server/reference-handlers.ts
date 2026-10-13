@@ -4,10 +4,9 @@
  * Handles /api/doc. Extracted from index.ts for modularity.
  */
 
-import { parseCodePath } from "@/shared/code-file";
+import { hasCodeFileExtension, parseCodePath } from "@/shared/code-file";
 import {
 	isAbsoluteUserPath,
-	isCodeFilePath,
 	resolveCodeFile,
 	resolveMarkdownFile,
 	resolveUserPath,
@@ -176,7 +175,7 @@ export async function handleDoc(req: Request, options: HandleDocOptions = {}): P
 	const forceDoc = url.searchParams.get("doc") === "1";
 	const docExtensions = getAnnotatableDocRegex();
 	const wantsDocRender = (path: string) =>
-		docExtensions.test(path) && (forceDoc || !isCodeFilePath(path));
+		docExtensions.test(path) && (forceDoc || !hasCodeFileExtension(path));
 	if (
 		resolvedBase &&
 		!isAbsoluteUserPath(requestedPath) &&
@@ -224,7 +223,10 @@ export async function handleDoc(req: Request, options: HandleDocOptions = {}): P
 	// Skipped when the client asked for doc rendering (`?doc=1`) on an
 	// annotatable plain-text path — those fall through to the markdown
 	// resolution below and render like .txt.
-	if (isCodeFilePath(requestedPath) && !(forceDoc && isAnnotatableTextPath(requestedPath))) {
+	// The extension alone decides: a chip resolved to an absolute path under a
+	// folder with a space (C:/Users/First Last/...) failed the plausibility
+	// check that guards path detection in prose, and came back "File not found".
+	if (hasCodeFileExtension(requestedPath) && !(forceDoc && isAnnotatableTextPath(requestedPath))) {
 		const parsed = parseCodePath(requestedPath);
 		const cleanPath = parsed.filePath;
 		const literalPath = resolveUserPath(cleanPath, resolvedBase || projectRoot);

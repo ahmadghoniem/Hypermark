@@ -1,0 +1,24 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "base-nova",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/ui/fluid/fluid.css",
+    "baseColor": "neutral",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@/ui/fluid/components",
+    "ui": "@/ui/fluid/components",
+    "lib": "@/ui/fluid/lib",
+    "utils": "@/ui/fluid/lib/utils",
+    "hooks": "@/ui/fluid/hooks"
+  },
+  "registries": {
+    "@fluid": "https://www.fluidfunctionalism.com/r/{name}.json"
+  }
+}

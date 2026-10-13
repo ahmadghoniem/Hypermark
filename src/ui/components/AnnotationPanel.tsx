@@ -10,7 +10,7 @@ import { resolveReplyParents, resolveThreadRootTimestamps } from '@/shared/annot
 import { fileName as pathFileName } from '../utils/displayPath';
 import { formatRelativeTime, railPreview } from '../utils/messageRail';
 
-import { Check, Copy01, Edit05, Trash01, XClose } from '@untitledui/icons';
+import { Check, Copy01, Edit05, Plus, Trash01, XClose } from '@untitledui/icons';
 export type AnnotationScope = 'this' | 'all';
 
 export interface AnnotationMessageGroup {
@@ -217,6 +217,9 @@ interface PanelProps {
   width?: number | string;
   onClose?: () => void;
   otherFileAnnotations?: { count: number; files: number };
+  /** Shows a + next to the title that opens the global comment composer,
+   *  anchored to the button. */
+  onAddGlobalComment?: (anchorEl: HTMLElement) => void;
 }
 
 export const AnnotationPanel: React.FC<PanelProps> = ({
@@ -236,6 +239,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
   scope,
   onScopeChange,
   messageGroups,
+  onAddGlobalComment,
 }) => {
   const isMobile = useIsMobile();
   const mobilePanel = isMobile;
@@ -289,9 +293,22 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
       {/* Header */}
       <div>
         <div className="flex h-10 items-center justify-between gap-2 px-3">
-          <h2 className="text-caption font-semibold text-foreground">
-            Annotations
-          </h2>
+          <div className="flex items-center gap-1">
+            <h2 className="text-caption font-semibold text-foreground">
+              Annotations
+            </h2>
+            {onAddGlobalComment && (
+              <button
+                type="button"
+                onClick={(e) => onAddGlobalComment(e.currentTarget)}
+                className="relative rounded-md p-1 text-muted-foreground transition-colors before:absolute before:-inset-1 before:content-[''] hover:bg-muted hover:text-foreground"
+                title="Add global comment"
+                aria-label="Add global comment"
+              >
+                <Plus className="size-3.5" />
+              </button>
+            )}
+          </div>
           <div className="flex items-center gap-1">
             {scope && onScopeChange && (
               <div
@@ -585,10 +602,13 @@ const AnnotationCard: React.FC<{
         )
       ) : (
         <>
-          {/* Quote — the annotated text */}
-          <p className="mb-1.5 line-clamp-2 whitespace-pre-wrap font-mono text-micro/relaxed text-muted-foreground/80">
-            "{annotation.originalText}"
-          </p>
+          {/* Quote — the annotated text, behind the composer's quote bar */}
+          <div className="mb-1.5 flex gap-2">
+            <span aria-hidden="true" className="w-0.5 shrink-0 rounded-full bg-muted-foreground/35" />
+            <p className="line-clamp-2 whitespace-pre-wrap text-caption text-muted-foreground">
+              {annotation.originalText}
+            </p>
+          </div>
 
           {/* Comment/Replacement Text */}
           {annotation.type !== AnnotationType.DELETION && (

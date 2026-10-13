@@ -37,6 +37,9 @@ function requestGlimpseClose(): boolean {
   return false;
 }
 
+/** How long the sent screen stays up before the tab closes. */
+const CLOSE_DELAY_MS = 3000;
+
 function tryClose(onFail: () => void): void {
   const requestedNativeClose = requestGlimpseClose();
   if (requestedNativeClose) {
@@ -52,15 +55,13 @@ function tryClose(onFail: () => void): void {
 }
 
 /**
- * Closes the tab as soon as a submission lands.
+ * Closes the tab three seconds after a submission lands.
  *
- * There is no delay and no setting. Every caller awaits its POST before
- * flipping `active`, so by the time this runs the agent already has the
- * feedback — the completion screen was a receipt for something the tab's own
- * disappearance reports better. What survives is the failure path: a tab the
- * browser refuses to close (one the user opened by hand rather than one the
- * agent opened) reports `closeFailed`, which is the only case where the
- * overlay has something to say.
+ * Every caller awaits its POST before flipping `active`, so the agent already
+ * has the feedback; the delay only leaves the completion screen up long
+ * enough to read that it was sent. A tab the browser refuses to close (one
+ * the user opened by hand rather than one the agent opened) reports
+ * `closeFailed`.
  *
  * @param active - pass `true` once the submission has been accepted
  */
@@ -70,7 +71,8 @@ export function useAutoClose(active: boolean): UseAutoCloseReturn {
   useEffect(() => {
     if (!active) return;
     setState({ phase: 'closing' });
-    tryClose(() => setState({ phase: 'closeFailed' }));
+    const timer = setTimeout(() => tryClose(() => setState({ phase: 'closeFailed' })), CLOSE_DELAY_MS);
+    return () => clearTimeout(timer);
   }, [active]);
 
   return { state };

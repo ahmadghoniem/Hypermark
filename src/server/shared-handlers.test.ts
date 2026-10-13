@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
   handleFavicon,
   handleServerReady,
+  removeUnsentUploads,
   writeServerReadyMetadata,
 } from "./shared-handlers";
 import { CLASSIC_FAVICON_SVG } from "@/shared/favicon";
@@ -105,5 +106,22 @@ describe("handleFavicon", () => {
 
   test("does not let the payload be cached under the shared URL", () => {
     expect(handleFavicon().headers.get("cache-control")).toBe("no-cache");
+  });
+});
+
+describe("removeUnsentUploads", () => {
+  test("keeps the uploads the feedback mentions and deletes the rest", () => {
+    const dir = mkdtempSync(join(tmpdir(), "hm-uploads-"));
+    try {
+      const sent = join(dir, "sent.png");
+      const unsent = join(dir, "unsent.png");
+      writeFileSync(sent, "");
+      writeFileSync(unsent, "");
+      removeUnsentUploads([sent, unsent], `see [image-1] ${dir}/sent.png`);
+      expect(existsSync(sent)).toBe(true);
+      expect(existsSync(unsent)).toBe(false);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

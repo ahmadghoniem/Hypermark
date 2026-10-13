@@ -31,7 +31,15 @@ export function stripLineRef(input: string): string {
 }
 
 export function isCodeFilePath(input: string): boolean {
-	if (!isPlausibleCodeFilePath(input)) return false;
+	return isPlausibleCodeFilePath(input) && hasCodeFileExtension(input);
+}
+
+/**
+ * The extension test of `isCodeFilePath` without its plausibility check, for a
+ * path that is already known to be a path (one the client resolved), where a
+ * space in a folder name is real.
+ */
+export function hasCodeFileExtension(input: string): boolean {
 	return CODE_FILE_REGEX.test(stripLineRef(input))
 		&& !input.startsWith('http://') && !input.startsWith('https://');
 }

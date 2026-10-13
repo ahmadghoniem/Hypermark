@@ -4,18 +4,6 @@ export enum AnnotationType {
   GLOBAL_COMMENT = 'GLOBAL_COMMENT',
 }
 
-export type InputMethod = 'drag' | 'pinpoint';
-
-/**
- * Compactness of the Viewer action button labels (Global comment).
- * Driven by measured plan-area width so the cluster collapses responsively
- * when the side panel squeezes the plan.
- *   full  → "Global comment"
- *   short → "Comment"
- *   icon  → labels hidden entirely
- */
-export type ActionsLabelMode = 'full' | 'short' | 'icon';
-
 export interface ImageAttachment {
   path: string;
   name: string;

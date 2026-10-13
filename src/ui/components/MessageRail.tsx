@@ -6,12 +6,15 @@ export interface PickerMessage {
   timestamp?: string;
 }
 import {
+  createWheelStepper,
   formatRelativeTime,
+  isShortMessage,
   railPreview,
   railTickWidth,
 } from '../utils/messageRail';
 
-import { Terminal } from '@untitledui/icons';
+import { Eye, EyeOff, Terminal } from '@untitledui/icons';
+import { Tooltip } from './Tooltip';
 const RAIL_WIDTH = 36;
 const PITCH = 16;
 const TICK_SIZES = { open: 20, rest: 12, hoverMax: 32 };
@@ -24,13 +27,23 @@ interface MessageRailProps {
   annotationCounts?: ReadonlyMap<string, number>;
   /** Display classes from the host, e.g. `hidden lg:flex`. Must set display. */
   className?: string;
+  /** Whether short messages are shown, as dimmed ticks. */
+  showShort?: boolean;
+  /**
+   * Turns on hiding short messages (see `isShortMessage`), with an eye
+   * under the ticks. Without it every message is shown as before.
+   */
+  onShowShortChange?: (show: boolean) => void;
 }
 
 /**
  * Tick-mark rail of recent assistant messages, oldest at the top. Hover or
  * keyboard focus grows the ticks near the pointer and shows a preview card to
  * the left, over the document; a click opens the message. Focus from a click
- * doesn't hold the card open, so it goes away once the pointer leaves.
+ * doesn't hold the card open, so it goes away once the pointer leaves. The
+ * wheel over the rail opens the previous or next message, one per notch, and
+ * the card follows it; the page doesn't scroll. One-line messages can be
+ * hidden; the open message never is.
  */
 export const MessageRail: React.FC<MessageRailProps> = ({
   messages,
@@ -38,13 +51,52 @@ export const MessageRail: React.FC<MessageRailProps> = ({
   onSelect,
   annotationCounts,
   className = 'flex',
+  showShort = false,
+  onShowShortChange,
 }) => {
-  const ordered = useMemo(() => [...messages].reverse(), [messages]);
+  const ToggleIcon = showShort ? EyeOff : Eye;
+  const shortIds = useMemo(() => new Set(
+    onShowShortChange
+      ? messages.filter((m) => m.messageId !== selectedMessageId && isShortMessage(m.text)).map((m) => m.messageId)
+      : [],
+  ), [messages, selectedMessageId, onShowShortChange]);
+  const toggleLabel = showShort
+    ? 'Hide short messages'
+    : `Show ${shortIds.size} short message${shortIds.size === 1 ? '' : 's'}`;
+  const ordered = useMemo(
+    () => [...messages].reverse().filter((m) => showShort || !shortIds.has(m.messageId)),
+    [messages, shortIds, showShort],
+  );
   const selectedIndex = ordered.findIndex((m) => m.messageId === selectedMessageId);
   const [pointerIndex, setPointerIndex] = useState<number | null>(null);
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const tickRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const navRef = useRef<HTMLElement>(null);
+  // What the wheel listener, attached once, steps from.
+  const latest = useRef({ ordered, selectedIndex, onSelect });
+  useEffect(() => {
+    latest.current = { ordered, selectedIndex, onSelect };
+  });
+
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const stepWheel = createWheelStepper();
+    // Non-passive, so the wheel over the rail doesn't scroll the page.
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) return;
+      e.preventDefault();
+      const direction = stepWheel(e);
+      const { ordered: list, selectedIndex: from, onSelect: open } = latest.current;
+      const next = Math.max(0, Math.min(list.length - 1, (from >= 0 ? from : list.length - 1) + direction));
+      if (direction === 0 || next === from) return;
+      setPointerIndex(next);
+      open(list[next].messageId);
+    };
+    nav.addEventListener('wheel', handleWheel, { passive: false });
+    return () => nav.removeEventListener('wheel', handleWheel);
+  }, []);
 
   const activeIndex = pointerIndex ?? focusIndex;
   const tabStop = focusIndex ?? (selectedIndex >= 0 ? selectedIndex : ordered.length - 1);
@@ -77,6 +129,7 @@ export const MessageRail: React.FC<MessageRailProps> = ({
 
   return (
     <nav
+      ref={navRef}
       aria-label="Recent assistant messages"
       className={`relative z-panel shrink-0 flex-col justify-center ${className}`}
       style={{ width: RAIL_WIDTH }}
@@ -87,6 +140,7 @@ export const MessageRail: React.FC<MessageRailProps> = ({
           const count = annotationCounts?.get(message.messageId) ?? 0;
           const selected = index === selectedIndex;
           const lit = index === activeIndex;
+          const dim = shortIds.has(message.messageId);
           const preview = railPreview(message.text);
           return (
             <button
@@ -110,7 +164,7 @@ export const MessageRail: React.FC<MessageRailProps> = ({
               <span
                 aria-hidden="true"
                 className={`block rounded-full transition-[width] duration-150 motion-reduce:transition-none ${
-                  selected ? 'bg-primary' : lit ? 'bg-foreground/90' : 'bg-muted-foreground/60'
+                  selected ? 'bg-primary' : lit ? 'bg-foreground/90' : dim ? 'bg-muted-foreground/25' : 'bg-muted-foreground/60'
                 }`}
                 style={{
                   width: railTickWidth(index, activeIndex, selectedIndex, TICK_SIZES),
@@ -149,6 +203,20 @@ export const MessageRail: React.FC<MessageRailProps> = ({
           </div>
         )}
       </div>
+
+      {shortIds.size > 0 && (
+        <Tooltip side="left" content={toggleLabel}>
+          <button
+            type="button"
+            aria-pressed={showShort}
+            aria-label={toggleLabel}
+            onClick={() => onShowShortChange?.(!showShort)}
+            className="mt-1 flex h-5 items-center self-end rounded-[5px] px-1 text-muted-foreground/50 outline-none transition-colors hover:text-foreground focus-visible:ring-[1.5px] focus-visible:ring-primary/55"
+          >
+            <ToggleIcon className="size-3.5" />
+          </button>
+        </Tooltip>
+      )}
     </nav>
   );
 };

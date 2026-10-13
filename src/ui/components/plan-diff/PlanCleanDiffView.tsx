@@ -27,13 +27,6 @@ interface PlanCleanDiffViewProps {
   onAddAnnotation?: (ann: Annotation) => void;
   onSelectAnnotation?: (id: string | null) => void;
   selectedAnnotationId?: string | null;
-  /**
-   * When true (default), modified blocks that passed the qualification gate
-   * render with inline word-level highlights. When false, every modified
-   * block falls back to the stacked old-struck / new-green layout — the
-   * "Classic" diff view exposed in the mode switcher.
-   */
-  wordLevel?: boolean;
 }
 
 export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
@@ -42,7 +35,6 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
   onAddAnnotation,
   onSelectAnnotation,
   selectedAnnotationId = null,
-  wordLevel = true,
 }) => {
   const onAddAnnotationRef = useRef(onAddAnnotation);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -248,7 +240,6 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
           hoveredIndex={hoveredBlock?.index ?? null}
           hoveredDiffContext={hoveredBlock?.diffContext}
           isBlockAnnotated={isBlockAnnotated}
-          wordLevel={wordLevel}
           onHover={onAddAnnotation ? (el, diffContext) => handleHover(el, block, index, diffContext) : undefined}
           onLeave={onAddAnnotation ? handleLeave : undefined}
           onClick={onAddAnnotation ? (el, diffContext) => handleBlockClick(block, index, el, diffContext) : undefined}
@@ -297,15 +288,13 @@ interface DiffBlockRendererProps {
   hoveredIndex: number | null;
   hoveredDiffContext?: Annotation['diffContext'];
   isBlockAnnotated: (index: number) => boolean;
-  /** When false, force block-level fallback even if inlineTokens is populated. */
-  wordLevel: boolean;
   onHover?: (element: HTMLElement, diffContext: Annotation['diffContext']) => void;
   onLeave?: () => void;
   onClick?: (element: HTMLElement, diffContext: Annotation['diffContext']) => void;
 }
 
 const DiffBlockRenderer: React.FC<DiffBlockRendererProps> = ({
-  block, index, hoveredIndex, hoveredDiffContext, isBlockAnnotated, wordLevel, onHover, onLeave, onClick,
+  block, index, hoveredIndex, hoveredDiffContext, isBlockAnnotated, onHover, onLeave, onClick,
 }) => {
   const hoverProps = (diffContext: Annotation['diffContext']) => onHover ? {
     onMouseEnter: (e: React.MouseEvent<HTMLElement>) => onHover(e.currentTarget, diffContext),
@@ -358,7 +347,7 @@ const DiffBlockRenderer: React.FC<DiffBlockRendererProps> = ({
       // block with <ins>/<del> spans inside the structural wrapper. Falls
       // back to the stacked strike-through rendering when tokens are absent
       // (gate rejected: code/table/structural mismatch/inline-code hazard).
-      if (wordLevel && block.inlineTokens && block.inlineWrap) {
+      if (block.inlineTokens && block.inlineWrap) {
         return (
           <InlineModifiedBlock
             tokens={block.inlineTokens}

@@ -6,6 +6,7 @@ import { toast, Toaster } from 'sonner';
 import { Button as NowButton } from '@/ui/components/ui/button';
 import { Tooltip as NowTooltip, TooltipProvider } from '@/ui/components/Tooltip';
 import { ThemeProvider } from '@/ui/components/ThemeProvider';
+import { FluidRoot } from '@/ui/fluid/components/fluid-root';
 import { ConfirmDialog } from '@/ui/components/ConfirmDialog';
 import { ActionMenu, ActionMenuDivider, ActionMenuItem } from '@/ui/components/ActionMenu';
 import { CommentPopover } from '@/ui/components/CommentPopover';
@@ -27,7 +28,38 @@ import {
 } from '@/ui/fluid/components/command-menu';
 import { InputMessage } from '@/ui/fluid/components/input-message';
 
-import { NewComposer } from './NewComposer';
+import { ArrowUp, CornerDownLeft } from '@untitledui/icons';
+import { NewComposer, type Icon, type SendVariant } from './NewComposer';
+import { SIDE_CHAT_LAYOUTS, SideChatDemo } from './SideChat';
+import { RailDemo } from './RailDemo';
+
+interface Choice { name: string; icon?: Icon }
+
+const SEND_ICONS: Choice[] = [
+  { name: 'CornerDownLeft', icon: CornerDownLeft },
+  { name: 'ArrowUp', icon: ArrowUp },
+];
+
+const SEND_VARIANTS: { name: SendVariant }[] = [{ name: 'primary' }, { name: 'ghost' }];
+
+/** A row of choices for the composer mock. */
+const IconPicker: React.FC<{ label: string; options: Choice[]; value: number; onChange: (i: number) => void }> = ({ label, options, value, onChange }) => (
+  <div className="flex flex-wrap items-center gap-1.5">
+    <span className="w-24 text-caption text-muted-foreground">{label}</span>
+    {options.map(({ name, icon: I }, i) => (
+      <button
+        key={name}
+        type="button"
+        aria-pressed={value === i}
+        onClick={() => onChange(i)}
+        className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-caption transition-colors ${value === i ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+      >
+        {I && <I size={14} />}
+        {name}
+      </button>
+    ))}
+  </div>
+);
 
 const QUOTE = 'The session is still open and the link text runs into someCode() then wraps onto the next line';
 
@@ -122,6 +154,22 @@ export const Gallery: React.FC = () => {
   const [sw, setSw] = useState({ a: true, b: false });
   const [checked, setChecked] = useState<Set<number>>(new Set([0, 2]));
   const [view, setView] = useState(0);
+  const [sendIcon, setSendIcon] = useState(0);
+  const [sendVariant, setSendVariant] = useState(0);
+  const [chatLayout, setChatLayout] = useState(0);
+  const [labels, setLabels] = useState<QuickLabel[]>([...DEFAULT_QUICK_LABELS]);
+  const saveLabel = (text: string) => {
+    setLabels((prev) => [...prev, { id: text.toLowerCase().split(' ').join('-'), emoji: '', text }]);
+    toast(`Saved "${text}" as a quick label`);
+  };
+  const addComment = (t: string, files: File[]) => toast(`Added: ${t || '(no text)'}${files.length ? ` + ${files.length} image(s)` : ''}`);
+  const composerProps = {
+    quickLabels: labels,
+    sendIcon: SEND_ICONS[sendIcon].icon ?? CornerDownLeft,
+    sendVariant: SEND_VARIANTS[sendVariant].name,
+    onSubmit: addComment,
+    onSaveLabel: saveLabel,
+  };
   const [msg, setMsg] = useState('');
   const [msgFiles, setMsgFiles] = useState<File[]>([]);
   const toggleChecked = (i: number) => setChecked((prev) => {
@@ -132,6 +180,7 @@ export const Gallery: React.FC = () => {
 
   return (
     <ThemeProvider defaultTheme="dark">
+      <FluidRoot>
       <TooltipProvider delayDuration={300}>
         <div className="mx-auto max-w-275 px-8 pb-24 pt-10">
           <h1 className="text-title font-semibold">Fluid gallery</h1>
@@ -144,16 +193,45 @@ export const Gallery: React.FC = () => {
             id="composer"
             title="Composer"
             tall
-            note="Left: the real composer (click Open composer). Right: the new one, with quick labels as a Tab completion and images as name chips. Ctrl+C copies the quote, Ctrl+Enter adds, Escape discards, paste or drop images."
+            note="Left: the real composer (click Open composer). Right: the new one, with quick labels as a Tab completion and images as name chips. Type / and Tab for /btw: send turns into ArrowUp and asks a side question. Ctrl+C copies the quote, Ctrl+Enter adds, Escape discards, paste or drop images."
             now={<NowComposer />}
             fluid={(
-              <NewComposer
-                quote={QUOTE}
-                quickLabels={DEFAULT_QUICK_LABELS}
-                onSubmit={(t, files) => toast(`Added: ${t || '(no text)'}${files.length ? ` + ${files.length} image(s)` : ''}`)}
-              />
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                  <IconPicker label="Add comment" options={SEND_ICONS} value={sendIcon} onChange={setSendIcon} />
+                  <IconPicker label="Send style" options={SEND_VARIANTS} value={sendVariant} onChange={setSendVariant} />
+                </div>
+                <NewComposer quote={QUOTE} {...composerProps} onAsk={(q) => toast(`Side question: ${q || '(empty, opens the chat)'}`)} />
+              </div>
             )}
           />
+
+          <section id="side-chat" className="border-t border-border py-6">
+            <div className="mb-4 flex items-baseline gap-3">
+              <h2 className="text-body font-semibold text-foreground">Side chat</h2>
+              <p className="text-caption text-muted-foreground">
+                Four places it could open. Type /btw and a question in the composer, then click send or press Ctrl+Enter.
+                Enter sends a follow-up, Escape closes. Answers are canned, and the thread stays when you switch layouts.
+                The choices in the Composer row apply here too.
+              </p>
+            </div>
+            <div className="mb-3 flex flex-col gap-1">
+              <IconPicker label="Layout" options={SIDE_CHAT_LAYOUTS} value={chatLayout} onChange={setChatLayout} />
+              <p className="pl-24 text-caption text-muted-foreground">{SIDE_CHAT_LAYOUTS[chatLayout].note}</p>
+            </div>
+            <SideChatDemo layout={SIDE_CHAT_LAYOUTS[chatLayout].layout} quote={QUOTE} {...composerProps} />
+          </section>
+
+          <section id="rail-short" className="border-t border-border py-6">
+            <div className="mb-4 flex items-baseline gap-3">
+              <h2 className="text-body font-semibold text-foreground">Message rail: short messages</h2>
+              <p className="text-caption text-muted-foreground">
+                One-line messages up to 200 characters are hidden from the rail. Each frame is live: hover the ticks,
+                use the wheel, click the icon. In the app the choice is remembered between sessions.
+              </p>
+            </div>
+            <RailDemo />
+          </section>
 
           <Row
             id="input-message"
@@ -377,6 +455,7 @@ export const Gallery: React.FC = () => {
         </div>
         <Toaster theme="dark" position="bottom-center" />
       </TooltipProvider>
+      </FluidRoot>
     </ThemeProvider>
   );
 };

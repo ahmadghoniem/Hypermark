@@ -374,6 +374,10 @@ body:has([data-pn-browser-canvas="background"]) {
 ::selection {
   background: oklch(from var(--primary) l c h / 0.3);
 }
+/* While Tab has widened a drag, the outline shows what release takes. */
+[data-selection-widened] ::selection {
+  background: transparent;
+}
 
 /* Suppress all color transitions until the app has mounted and the theme
    is stable. Without this, the global * transition below fires on initial
@@ -746,6 +750,24 @@ body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
   --hl-ascent: round(1em, 1px);
   --hl-descent: round(0.295em, 1px);
 }
+/* A mark at the chip's edge covers the chip's padding (px-1.5) on that side,
+   so it joins the highlighted text outside the chip. The file-link chip is
+   inline-flex with an icon after the text, so it keeps its gaps. */
+:not(pre) > code:not(.code-file-link) .annotation-highlight[data-chip-start] {
+  margin-left: -0.375rem;
+  padding-left: 0.375rem;
+}
+:not(pre) > code:not(.code-file-link) .annotation-highlight[data-chip-end] {
+  margin-right: -0.375rem;
+  padding-right: 0.375rem;
+}
+/* The highlight is see-through, so a fully highlighted chip's grey box showed
+   inside the band as a shorter block (22px in a 24px band, off-center by a
+   fraction of a pixel). The chip drops its background while covered; the
+   monospace text still marks it as code. */
+:not(pre) > code:not(.code-file-link):has(> .annotation-highlight[data-chip-start]):has(> .annotation-highlight[data-chip-end]) {
+  background: transparent;
+}
 /* Fenced code and math are boxes, where padding would move the layout. */
 pre .annotation-highlight,
 .annotation-highlight.math-inline-annotation,
@@ -801,8 +823,12 @@ pre .annotation-highlight,
   box-shadow: 0 0 6px oklch(0.60 0.20 200 / 0.3);
 }
 
-.annotation-highlight:hover {
+/* .hovered is set on every mark of the annotation under the pointer
+   (useAnnotationHighlighter). */
+.annotation-highlight.hovered {
   filter: brightness(1.2);
+}
+.annotation-highlight:hover {
   cursor: pointer;
 }
 

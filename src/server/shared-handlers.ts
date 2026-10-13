@@ -5,8 +5,8 @@
  * responses, and the server-ready handler across all three server files.
  */
 
-import { appendFileSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { appendFileSync, existsSync, mkdirSync, unlinkSync } from "node:fs";
+import { basename, dirname } from "node:path";
 import { openBrowser as openBrowserImpl } from "./browser";
 import { validateImagePath, validateUploadExtension, UPLOAD_DIR } from "./image";
 import { saveDraft, loadDraft, deleteDraft, getDraftGeneration } from "@/shared/draft";
@@ -89,6 +89,19 @@ export async function handleUpload(req: Request, sessionUploads?: Set<string>): 
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upload failed";
     return Response.json({ error: message }, { status: 500 });
+  }
+}
+
+/**
+ * Delete the session's uploads that the submitted feedback doesn't mention.
+ * The agent reads the attached images after the server stops, so those stay.
+ */
+export function removeUnsentUploads(sessionUploads: Iterable<string>, sent: string): void {
+  for (const uploadPath of sessionUploads) {
+    if (sent.includes(basename(uploadPath))) continue;
+    try {
+      if (existsSync(uploadPath)) unlinkSync(uploadPath);
+    } catch {}
   }
 }
 
