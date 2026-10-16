@@ -9,6 +9,7 @@
  */
 
 import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./server-port";
+import { rejectNonLoopbackHost } from "./host-guard";
 import type { Origin } from "@/shared/agents";
 import { type DiffType, type GitContext, runVcsDiff, getVcsFileContentsForDiff, getVcsDiffFingerprint, resolveVcsCwd, validateFilePath, getVcsContext, detectRemoteDefaultCompareTarget, vcsOwnsDiffType, gitRuntime } from "./vcs";
 import { SingleFlight } from "@/shared/single-flight";
@@ -600,6 +601,8 @@ export async function startReviewServer(
         idleTimeout: 0,
 
         async fetch(req, server) {
+          const foreignHost = rejectNonLoopbackHost(req);
+          if (foreignHost) return foreignHost;
           const url = new URL(req.url);
 
           // API: Get diff content

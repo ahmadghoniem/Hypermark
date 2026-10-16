@@ -4,20 +4,16 @@
  * Handles /api/doc. Extracted from index.ts for modularity.
  */
 
-import { hasCodeFileExtension, parseCodePath } from "@/shared/code-file";
 import {
 	isAbsoluteUserPath,
-	resolveCodeFile,
 	resolveMarkdownFile,
 	resolveUserPath,
 	isWithinProjectRoot,
-	warmFileListCache,
 	getAnnotatableDocRegex,
 	MAX_ANNOTATABLE_FILE_BYTES,
-	isAnnotatableTextPath,
 } from "@/shared/resolve-file";
+import { realpathSync } from "node:fs";
 import { htmlToMarkdown } from "@/shared/html-to-markdown";
-import { preloadFile } from "@pierre/diffs/ssr";
 
 // --- Route handlers ---
 
@@ -25,10 +21,6 @@ export interface HandleDocOptions {
 	rootPaths?: string[];
 }
 
-interface HandleDocExistsOptions {
-	rootPath?: string;
-	rootPaths?: string[];
-}
 
 type RouteResolveResult =
 	| { kind: "found"; path: string }
@@ -51,6 +43,32 @@ function getAllowedRootPaths(options?: { rootPath?: string; rootPaths?: string[]
 
 function isWithinAllowedRoots(candidate: string, roots: string[]): boolean {
 	return roots.some((root) => isWithinProjectRoot(candidate, root));
+}
+
+/**
+ * The containment checks above are lexical, so a symlink inside a root can
+ * point at a file outside it. Run before every read: the file's real path
+ * must sit inside a root's real path. A path that does not exist passes, and
+ * the read that follows finds nothing.
+ */
+function isRealPathWithinAllowedRoots(candidate: string, roots: string[]): boolean {
+	let real: string;
+	try {
+		real = realpathSync(candidate);
+	} catch {
+		return true;
+	}
+	return roots.some((root) => {
+		let realRoot = root;
+		try {
+			realRoot = realpathSync(root);
+		} catch { /* keep the lexical root */ }
+		return isWithinProjectRoot(real, realRoot);
+	});
+}
+
+function accessDenied(): Response {
+	return Response.json({ error: "Access denied: path is outside project root" }, { status: 403 });
 }
 
 function getTrustedBaseDir(base: string | null, roots: string[]): string | null {
@@ -94,36 +112,6 @@ function relativizeToAllowedRoots(path: string, roots: string[]): string {
 	return path;
 }
 
-async function resolveCodeFileFromAllowedRoots(
-	input: string,
-	roots: string[],
-	baseDir: string | null,
-): Promise<RouteResolveResult> {
-	const found = new Set<string>();
-	const ambiguous = new Set<string>();
-	let unavailable = false;
-
-	for (const root of roots) {
-		const rootBase = baseDir && isWithinProjectRoot(baseDir, root) ? baseDir : undefined;
-		const result = await resolveCodeFile(input, root, rootBase);
-		if (result.kind === "found") {
-			if (isWithinProjectRoot(result.path, root)) found.add(result.path);
-		} else if (result.kind === "ambiguous") {
-			for (const match of result.matches) {
-				ambiguous.add(match);
-			}
-		} else if (result.kind === "unavailable") {
-			unavailable = true;
-		}
-	}
-
-	if (found.size === 1) return { kind: "found", path: [...found][0] };
-	if (found.size > 1) return { kind: "ambiguous", input, matches: [...found] };
-	if (ambiguous.size > 0) return { kind: "ambiguous", input, matches: [...ambiguous] };
-	if (unavailable) return { kind: "unavailable", input };
-	return { kind: "not_found", input };
-}
-
 function resolveMarkdownFileFromAllowedRoots(input: string, roots: string[]): RouteResolveResult {
 	const found = new Set<string>();
 	const ambiguous = new Set<string>();
@@ -158,32 +146,22 @@ export async function handleDoc(req: Request, options: HandleDocOptions = {}): P
 	}
 
 	const allowedRoots = getAllowedRootPaths(options);
-	// Side-channel: kick off a code-file walk for the project root so that any
-	// /api/doc/exists POST issued by the rendered linked-doc lands on warm cache.
-	for (const root of allowedRoots) {
-		void warmFileListCache(root, "code");
-	}
-
 	// If a base directory is provided, try resolving relative to it first
 	// (used by annotate mode to resolve paths relative to the source file).
 	const base = url.searchParams.get("base");
 	const resolvedBase = getTrustedBaseDir(base, allowedRoots);
-	// `?doc=1` (set by the file browser) forces annotatable plain-text rendering
-	// for extensions that overlap CODE_FILE_REGEX (.yaml, .json, .toml, .ini,
-	// .xml). Without it, those paths keep the syntax-highlighted code-file
-	// popout response, so code-file links inside documents are unaffected.
-	const forceDoc = url.searchParams.get("doc") === "1";
 	const docExtensions = getAnnotatableDocRegex();
-	const wantsDocRender = (path: string) =>
-		docExtensions.test(path) && (forceDoc || !hasCodeFileExtension(path));
 	if (
 		resolvedBase &&
 		!isAbsoluteUserPath(requestedPath) &&
-		wantsDocRender(requestedPath)
+		docExtensions.test(requestedPath)
 	) {
 		const fromBase = resolveUserPath(requestedPath, resolvedBase);
-		if (!isWithinAllowedRoots(fromBase, allowedRoots)) {
-			return Response.json({ error: "Access denied: path is outside project root" }, { status: 403 });
+		if (
+			!isWithinAllowedRoots(fromBase, allowedRoots) ||
+			!isRealPathWithinAllowedRoots(fromBase, allowedRoots)
+		) {
+			return accessDenied();
 		}
 		try {
 			const file = Bun.file(fromBase);
@@ -205,8 +183,11 @@ export async function handleDoc(req: Request, options: HandleDocOptions = {}): P
 	const projectRoot = allowedRoots[0];
 	if (/\.html?$/i.test(requestedPath)) {
 		const resolvedHtml = resolveUserPath(requestedPath, resolvedBase || projectRoot);
-		if (!isWithinAllowedRoots(resolvedHtml, allowedRoots)) {
-			return Response.json({ error: "Access denied: path is outside project root" }, { status: 403 });
+		if (
+			!isWithinAllowedRoots(resolvedHtml, allowedRoots) ||
+			!isRealPathWithinAllowedRoots(resolvedHtml, allowedRoots)
+		) {
+			return accessDenied();
 		}
 		try {
 			const file = Bun.file(resolvedHtml);
@@ -218,76 +199,8 @@ export async function handleDoc(req: Request, options: HandleDocOptions = {}): P
 		return Response.json({ error: `File not found: ${requestedPath}` }, { status: 404 });
 	}
 
-	// Code files: try literal resolve first; on miss, fall back to the smart
-	// resolver which walks the project for case-insensitive / suffix matches.
-	// Skipped when the client asked for doc rendering (`?doc=1`) on an
-	// annotatable plain-text path — those fall through to the markdown
-	// resolution below and render like .txt.
-	// The extension alone decides: a chip resolved to an absolute path under a
-	// folder with a space (C:/Users/First Last/...) failed the plausibility
-	// check that guards path detection in prose, and came back "File not found".
-	if (hasCodeFileExtension(requestedPath) && !(forceDoc && isAnnotatableTextPath(requestedPath))) {
-		const parsed = parseCodePath(requestedPath);
-		const cleanPath = parsed.filePath;
-		const literalPath = resolveUserPath(cleanPath, resolvedBase || projectRoot);
-		const literalAllowed = isWithinAllowedRoots(literalPath, allowedRoots);
-
-		let resolvedCode: string | null = null;
-		if (literalAllowed) {
-			try {
-				const file = Bun.file(literalPath);
-				if (await file.exists()) resolvedCode = literalPath;
-			} catch { /* fall through */ }
-		}
-
-		if (!resolvedCode) {
-			if (isAbsoluteUserPath(cleanPath) && !isWithinAllowedRoots(resolveUserPath(cleanPath), allowedRoots)) {
-				return Response.json({ error: "Access denied: path is outside project root" }, { status: 403 });
-			}
-			const result = await resolveCodeFileFromAllowedRoots(cleanPath, allowedRoots, resolvedBase);
-			if (result.kind === "found") {
-				resolvedCode = result.path;
-			} else if (result.kind === "ambiguous") {
-				const relative = result.matches.map((m) => relativizeToAllowedRoots(m, allowedRoots));
-				return Response.json(
-					{ error: `Ambiguous path '${requestedPath}'`, matches: relative },
-					{ status: 400 },
-				);
-			} else if (result.kind === "unavailable") {
-				return Response.json({ error: `Cannot scan project: ${requestedPath}`, reason: "unavailable" }, { status: 503 });
-			} else {
-				return Response.json({ error: `File not found: ${requestedPath}` }, { status: 404 });
-			}
-			if (!isWithinAllowedRoots(resolvedCode, allowedRoots)) {
-				return Response.json({ error: "Access denied: path is outside project root" }, { status: 403 });
-			}
-		}
-
-		try {
-			const file = Bun.file(resolvedCode);
-			if (file.size > MAX_ANNOTATABLE_FILE_BYTES) {
-				return Response.json({ error: "File too large (max 2MB)" }, { status: 413 });
-			}
-			const contents = await file.text();
-			const displayName = resolvedCode.split("/").pop() || resolvedCode;
-			let prerenderedHTML: string | undefined;
-			try {
-				const result = await preloadFile({
-					file: { name: displayName, contents },
-					options: { disableFileHeader: true },
-				});
-				prerenderedHTML = result.prerenderedHTML;
-			} catch {
-				// Fall back to client-side rendering
-			}
-			return Response.json({ codeFile: true, contents, filepath: resolvedCode, prerenderedHTML, line: parsed.line, lineEnd: parsed.lineEnd });
-		} catch {
-			return Response.json({ error: `File not found: ${requestedPath}` }, { status: 404 });
-		}
-	}
-
 	if (isAbsoluteUserPath(requestedPath) && !isWithinAllowedRoots(resolveUserPath(requestedPath), allowedRoots)) {
-		return Response.json({ error: "Access denied: path is outside project root" }, { status: 403 });
+		return accessDenied();
 	}
 	const result = resolveMarkdownFileFromAllowedRoots(requestedPath, allowedRoots);
 
@@ -315,6 +228,10 @@ export async function handleDoc(req: Request, options: HandleDocOptions = {}): P
 		);
 	}
 
+	if (!isRealPathWithinAllowedRoots(result.path, allowedRoots)) {
+		return accessDenied();
+	}
+
 	try {
 		const file = Bun.file(result.path);
 		if (file.size > MAX_ANNOTATABLE_FILE_BYTES) {
@@ -325,64 +242,4 @@ export async function handleDoc(req: Request, options: HandleDocOptions = {}): P
 	} catch {
 		return Response.json({ error: "Failed to read file" }, { status: 500 });
 	}
-}
-
-/**
- * Batch existence check for code-file paths the renderer wants to linkify.
- * POST /api/doc/exists with { paths: string[] } returns { results: { [path]: ValidationEntry } }.
- * Reads from the warm file-list cache populated at plan/annotate load.
- */
-export async function handleDocExists(req: Request, options?: HandleDocExistsOptions): Promise<Response> {
-	let body: unknown;
-	try {
-		body = await req.json();
-	} catch {
-		return Response.json({ error: "Invalid JSON" }, { status: 400 });
-	}
-	const paths = (body as { paths?: unknown })?.paths;
-	if (!Array.isArray(paths) || !paths.every((p) => typeof p === "string")) {
-		return Response.json({ error: "Expected { paths: string[] }" }, { status: 400 });
-	}
-	if (paths.length > 500) {
-		return Response.json({ error: "Too many paths (max 500)" }, { status: 400 });
-	}
-	const allowedRoots = getAllowedRootPaths(options);
-	const baseRaw = (body as { base?: unknown })?.base;
-	const baseDir = typeof baseRaw === "string" && baseRaw.length > 0
-		? getTrustedBaseDir(baseRaw, allowedRoots)
-		: null;
-	const results: Record<
-		string,
-		| { status: "found"; resolved: string }
-		| { status: "ambiguous"; matches: string[] }
-		| { status: "missing" }
-		| { status: "unavailable" }
-	> = {};
-
-	await Promise.all(
-		(paths as string[]).map(async (p) => {
-			const cleanP = parseCodePath(p).filePath;
-			if (isAbsoluteUserPath(cleanP) && !isWithinAllowedRoots(resolveUserPath(cleanP), allowedRoots)) {
-				results[p] = { status: "missing" };
-				return;
-			}
-			const r = await resolveCodeFileFromAllowedRoots(cleanP, allowedRoots, baseDir);
-			if (r.kind === "found") {
-				results[p] = isWithinAllowedRoots(r.path, allowedRoots)
-					? { status: "found", resolved: r.path }
-					: { status: "missing" };
-			} else if (r.kind === "ambiguous") {
-				results[p] = {
-					status: "ambiguous",
-					matches: r.matches.map((m) => relativizeToAllowedRoots(m, allowedRoots)),
-				};
-			} else if (r.kind === "unavailable") {
-				results[p] = { status: "unavailable" };
-			} else {
-				results[p] = { status: "missing" };
-			}
-		}),
-	);
-
-	return Response.json({ results });
 }

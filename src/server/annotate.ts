@@ -11,11 +11,12 @@
  */
 
 import { getServerHostname, startBunServerOnAvailablePort, buildAdvertisedUrl } from "./server-port";
+import { rejectNonLoopbackHost } from "./host-guard";
 import { getRepoInfo } from "./repo";
 import type { Origin } from "@/shared/agents";
 import { handleImage, handleUpload, removeUnsentUploads, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
-import { handleDoc, handleDocExists, resolveAllowedDocPath } from "./reference-handlers";
-import { getExtraMarkdownExtensions, resolveUserPath, warmFileListCache } from "@/shared/resolve-file";
+import { handleDoc, resolveAllowedDocPath } from "./reference-handlers";
+import { getExtraMarkdownExtensions, resolveUserPath } from "@/shared/resolve-file";
 import { contentHash, deleteDraft } from "@/shared/draft";
 import { getPlanVersion, getVersionCount, listVersions } from "@/shared/storage";
 import { computeAnnotateHistory, deriveAnnotateHistorySlug, persistAnnotateSubmission, type AnnotateHistoryResult } from "@/shared/annotate-history";
@@ -384,6 +385,8 @@ export async function startAnnotateServer(
         idleTimeout: 0,
 
         async fetch(req, server) {
+          const foreignHost = rejectNonLoopbackHost(req);
+          if (foreignHost) return foreignHost;
           const url = new URL(req.url);
 
           // API: Get plan content (reuse /api/plan so the plan editor UI works)
@@ -500,6 +503,11 @@ export async function startAnnotateServer(
             }
           }
 
+          // API: Side chat (/btw). The forked read-only agent is not built yet.
+          if (url.pathname === "/api/side-chat" && req.method === "POST") {
+            return Response.json({ error: "Side chat isn't connected yet" }, { status: 501 });
+          }
+
           // API: Serve images (local paths or temp uploads)
           if (url.pathname === "/api/image") {
             return handleImage(req);
@@ -518,11 +526,6 @@ export async function startAnnotateServer(
             return handleDoc(docReq, {
               rootPaths: getReferenceRootPaths(),
             });
-          }
-
-          // API: Batch existence check for code-file paths the renderer detected
-          if (url.pathname === "/api/doc/exists" && req.method === "POST") {
-            return handleDocExists(req, { rootPaths: getReferenceRootPaths() });
           }
 
           // API: Upload image -> save to temp -> return path
@@ -710,10 +713,6 @@ export async function startAnnotateServer(
 
   const port = server.port!;
   const serverUrl = buildAdvertisedUrl(port);
-
-  // The cache warm must never gate the listening socket. Its async filesystem
-  // walk yields between directories while requests remain serviceable.
-  void warmFileListCache(process.cwd(), "code");
 
   let parentWatch: ParentWatcher | null = null;
 

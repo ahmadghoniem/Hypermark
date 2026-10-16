@@ -130,6 +130,13 @@ describe("API route 404 guards", () => {
         expect(spaResponse.status).toBe(200);
         expect(spaResponse.headers.get("content-type")).toContain("text/html");
         expect(await spaResponse.text()).toBe(SPA_HTML);
+
+        // A DNS-rebinding page reaches the loopback port under its own Host.
+        const port = new URL(server.url).port;
+        const rebound = await fetch(`${server.url}${serverCase.knownApiPath}`, {
+          headers: { host: `evil.example:${port}` },
+        });
+        expect(rebound.status).toBe(403);
       } finally {
         server.stop();
       }

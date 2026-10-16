@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
-import { handleDoc, handleDocExists } from "./reference-handlers";
+import { join } from "node:path";
+import { handleDoc } from "./reference-handlers";
 
 const tempDirs: string[] = [];
 
@@ -17,19 +17,6 @@ function writeTempFile(root: string, relativePath: string, content = "x"): strin
 	mkdirSync(join(full, ".."), { recursive: true });
 	writeFileSync(full, content);
 	return full;
-}
-
-async function postDocExists(body: unknown, options: { rootPath?: string; rootPaths?: string[] }) {
-	const res = await handleDocExists(
-		new Request("http://localhost/api/doc/exists", {
-			method: "POST",
-			body: JSON.stringify(body),
-		}),
-		options,
-	);
-	return res.json() as Promise<{
-		results: Record<string, { status: "found"; resolved: string } | { status: "missing" }>;
-	}>;
 }
 
 async function getDoc(path: string, options: { base?: string; rootPaths?: string[]; doc?: boolean }) {
@@ -48,61 +35,7 @@ afterEach(() => {
 	}
 });
 
-describe("handleDocExists", () => {
-	test("does not reveal absolute files outside the allowed root", async () => {
-		const root = makeTempDir("hypermark-doc-exists-root-");
-		const outside = makeTempDir("hypermark-doc-exists-outside-");
-		const secret = writeTempFile(outside, "secret.ts", "secret");
-
-		const data = await postDocExists({ paths: [secret] }, { rootPath: root });
-
-		expect(data.results[secret]).toEqual({ status: "missing" });
-	});
-
-	test("allows absolute files inside the allowed root", async () => {
-		const root = makeTempDir("hypermark-doc-exists-root-");
-		const file = writeTempFile(root, "src/app.ts", "app");
-
-		const data = await postDocExists({ paths: [file] }, { rootPath: root });
-
-		expect(data.results[file]).toEqual({ status: "found", resolved: file });
-	});
-
-	test("ignores an out-of-root base directory", async () => {
-		const root = makeTempDir("hypermark-doc-exists-root-");
-		const outside = makeTempDir("hypermark-doc-exists-outside-");
-		writeTempFile(outside, "secret.ts", "secret");
-
-		const data = await postDocExists({ base: outside, paths: ["secret.ts"] }, { rootPath: root });
-
-		expect(data.results["secret.ts"]).toEqual({ status: "missing" });
-	});
-
-	test("resolves relative paths from an in-root base directory", async () => {
-		const root = makeTempDir("hypermark-doc-exists-root-");
-		const app = writeTempFile(root, "src/app.ts", "app");
-		const base = resolve(root, "docs/nested");
-		mkdirSync(base, { recursive: true });
-
-		const data = await postDocExists({ base, paths: ["../../src/app.ts"] }, { rootPath: root });
-
-		expect(data.results["../../src/app.ts"]).toEqual({ status: "found", resolved: app });
-	});
-
-	test("single-file annotate can validate repo paths outside the source file directory", async () => {
-		const root = makeTempDir("hypermark-doc-exists-root-");
-		const app = writeTempFile(root, "src/app.ts", "app");
-		const sourceDir = join(root, "docs");
-		mkdirSync(sourceDir, { recursive: true });
-
-		const data = await postDocExists(
-			{ base: sourceDir, paths: ["src/app.ts"] },
-			{ rootPaths: [root, sourceDir] },
-		);
-
-		expect(data.results["src/app.ts"]).toEqual({ status: "found", resolved: app });
-	});
-
+describe("handleDoc path containment", () => {
 	test("does not read a document through an out-of-root base directory", async () => {
 		const root = makeTempDir("hypermark-doc-root-");
 		const outside = makeTempDir("hypermark-doc-outside-");
@@ -111,6 +44,44 @@ describe("handleDocExists", () => {
 		const res = await getDoc("secret.md", { base: outside, rootPaths: [root] });
 
 		expect(res.status).toBe(404);
+	});
+
+	// Lexical containment alone would serve a symlink inside the root that
+	// points outside it.
+	test("does not read through a symlink that leaves the root", async () => {
+		const root = makeTempDir("hypermark-doc-root-");
+		const outside = makeTempDir("hypermark-doc-outside-");
+		const secret = writeTempFile(outside, "secret.md", "secret");
+		const link = join(root, "linked.md");
+		try {
+			symlinkSync(secret, link, "file");
+		} catch {
+			// Windows without Developer Mode cannot create symlinks.
+			return;
+		}
+
+		for (const res of [
+			await getDoc(link, { rootPaths: [root] }),
+			await getDoc("linked.md", { base: root, rootPaths: [root] }),
+			await getDoc("linked.md", { rootPaths: [root] }),
+		]) {
+			expect(res.status).toBe(403);
+		}
+	});
+
+	test("reads through a symlink that stays inside the root", async () => {
+		const root = makeTempDir("hypermark-doc-root-");
+		const target = writeTempFile(root, "docs/real.md", "inside");
+		const link = join(root, "alias.md");
+		try {
+			symlinkSync(target, link, "file");
+		} catch {
+			return;
+		}
+
+		const res = await getDoc(link, { rootPaths: [root] });
+		expect(res.status).toBe(200);
+		expect((await res.json() as { markdown: string }).markdown).toBe("inside");
 	});
 });
 
@@ -125,31 +96,6 @@ describe("annotatable plain-text files (#1029)", () => {
 		expect(res.status).toBe(200);
 		expect(data.codeFile).toBeUndefined();
 		expect(data.markdown).toBe("key: value\n");
-	});
-
-	test("an absolute code path under a folder with a space opens as code", async () => {
-		const root = makeTempDir("hypermark-doc-space-");
-		const file = writeTempFile(root, "First Last/src/app.ts", "app");
-
-		const res = await getDoc(`${file}:1`, { rootPaths: [root] });
-		const data = await res.json() as { codeFile?: boolean; contents?: string; line?: number };
-
-		expect(res.status).toBe(200);
-		expect(data.codeFile).toBe(true);
-		expect(data.contents).toBe("app");
-		expect(data.line).toBe(1);
-	});
-
-	test("without doc=1, a .yaml path keeps the code-file popout response", async () => {
-		const root = makeTempDir("hypermark-doc-yaml-code-");
-		writeTempFile(root, "config.yaml", "key: value\n");
-
-		const res = await getDoc("config.yaml", { rootPaths: [root] });
-		const data = await res.json() as { codeFile?: boolean; contents?: string };
-
-		expect(res.status).toBe(200);
-		expect(data.codeFile).toBe(true);
-		expect(data.contents).toBe("key: value\n");
 	});
 
 	test("non-code annotatable extensions serve as markdown without doc=1", async () => {
