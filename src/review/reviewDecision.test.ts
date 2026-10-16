@@ -46,80 +46,45 @@ describe("review decision handler exhaustiveness", () => {
       for (const item of spec.items) {
         const route = resolveReviewDecisionAction(item.id);
         expect(route).toBeDefined();
-        // A composer item routed anywhere but a note-carrying flow would drop
-        // the typed note on the floor; a confirm item must be the close flow
-        // (the one remaining guard dialog).
-        if (item.composer) {
-          expect(["note", "approve-with-notes"]).toContain(route.kind);
-        }
+        // A confirm item must be the close flow (the one remaining guard
+        // dialog).
         if (item.confirm) expect(route.kind).toBe("close");
       }
     }
   });
 
-  // Guards the single-transport matrix: request-changes and
-  // note-with-feedback differ only by state, never by route; the confirm item
-  // is the close flow; both approve-carrying ids land on the approve-with-notes
-  // path — routing one to the plain-note flow would misdeliver an approval as
-  // a change request — and fork only on WHAT rides the approval.
-  test("the routes fork only on approved, never on which menu state emitted them", () => {
-    expect(resolveReviewDecisionAction("note-with-feedback"))
-      .toEqual(resolveReviewDecisionAction("request-changes"));
-    expect(resolveReviewDecisionAction("request-changes").kind).toBe("note");
+  test("close and approve-with-notes route to their flows", () => {
     expect(resolveReviewDecisionAction("close-session").kind).toBe("close");
-    expect(resolveReviewDecisionAction("note-with-approval"))
-      .toEqual({ kind: "approve-with-notes", withAnnotations: false });
     expect(resolveReviewDecisionAction("approve-with-notes"))
-      .toEqual({ kind: "approve-with-notes", withAnnotations: true });
+      .toEqual({ kind: "approve-with-notes" });
   });
 
-  // The advert may only emit approve-carrying ids whose
-  // route DELIVERS the content. The refusal marker is gone, so the assertion
-  // is now about the wire body: under a true advert every approve-carrying
-  // item builds an approval payload that carries the reviewer's content —
-  // the composer note as the feedback, or the live annotations + their
-  // export — never an empty body and never the removed LGTM placeholder.
-  test("under a true advert, every approve-carrying item's payload delivers the content", () => {
+  // The advert may only emit approve-carrying ids whose route DELIVERS the
+  // content: under a true advert, "Approve with notes" posts the live
+  // annotations + their export, never an empty body and never the removed
+  // LGTM placeholder.
+  test("under a true advert, Approve with notes delivers the annotations", () => {
     const EXPORT = "# Code Review Feedback\n\n## General\n\n- overall note\n";
     const NOTE_ANNOTATION = createGeneralReviewComment("overall note")!;
-    for (const count of [0, 2]) {
-      const spec = buildDecisionSpec({
-        app: "review",
-        gate: true,
-        count,
-        hasFeedback: count > 0,
-        approvalNotesSupported: true,
-      });
-      const approveCarrying = spec.items.filter(
-        (item) => resolveReviewDecisionAction(item.id).kind === "approve-with-notes",
-      );
-      // A true advert must actually light an approve-carrying item in both
-      // states — otherwise delivery shipped but the menu never offers it.
-      expect(approveCarrying.length).toBeGreaterThan(0);
-      for (const item of approveCarrying) {
-        const route = resolveReviewDecisionAction(item.id);
-        if (route.kind !== "approve-with-notes") throw new Error("unreachable");
-        const body = buildReviewApprovalBody({
-          draftGeneration: 1,
-          note: item.composer ? "ship it, but rename the flag" : undefined,
-          withAnnotations: route.withAnnotations,
-          feedbackMarkdown: EXPORT,
-          annotations: [NOTE_ANNOTATION],
-        });
-        expect(body.approved).toBe(true);
-        if (route.withAnnotations) {
-          // "Approve with notes": the annotations ride for archive
-          // provenance, and their export is the feedback the consumer prints
-          // after the approved prompt.
-          expect(body.feedback).toBe(EXPORT);
-          expect(body.annotations).toEqual([NOTE_ANNOTATION]);
-        } else {
-          // "Approve with a note…": the note IS the feedback.
-          expect(body.feedback).toBe("ship it, but rename the flag");
-          expect(body.annotations).toEqual([]);
-        }
-      }
-    }
+    const spec = buildDecisionSpec({
+      app: "review",
+      gate: true,
+      count: 2,
+      hasFeedback: true,
+      approvalNotesSupported: true,
+    });
+    expect(spec.items.map((item) => item.id)).toContain("approve-with-notes");
+    const body = buildReviewApprovalBody({
+      draftGeneration: 1,
+      withAnnotations: true,
+      feedbackMarkdown: EXPORT,
+      annotations: [NOTE_ANNOTATION],
+    });
+    expect(body.approved).toBe(true);
+    // The annotations ride for archive provenance, and their export is the
+    // feedback the consumer prints after the approved prompt.
+    expect(body.feedback).toBe(EXPORT);
+    expect(body.annotations).toEqual([NOTE_ANNOTATION]);
   });
 
   // Compatibility matrix: old server / new client — a payload
@@ -153,27 +118,12 @@ describe("review decision handler exhaustiveness", () => {
     });
     expect(bare).toEqual({ draftGeneration: 3, approved: true, feedback: "", annotations: [] });
   });
-
-  // Stage-review m2: a note must never be silently discarded because
-  // annotations also ride — a future combined item (composer note + live
-  // annotations) folds the note in ahead of the export.
-  test("a note riding beside annotations is folded ahead of the export, never dropped", () => {
-    const body = buildReviewApprovalBody({
-      draftGeneration: 1,
-      note: "  ship it  ",
-      withAnnotations: true,
-      feedbackMarkdown: "# Code Review Feedback\n",
-      annotations: [createGeneralReviewComment("x")!],
-    });
-    expect(body.feedback).toBe("ship it\n\n# Code Review Feedback\n");
-    expect(body.annotations).toHaveLength(1);
-  });
 });
 
 describe("createGeneralReviewComment — the one review-level comment shape", () => {
-  // Guards the transport shape both human producers (header note + sidebar
-  // "+ General comment") depend on: the ''/0/0 sentinels keep it out of every
-  // file group and the payload tests pin the same shape on the wire.
+  // Guards the transport shape the sidebar's "+ General comment" depends on:
+  // the ''/0/0 sentinels keep it out of every file group and the payload
+  // tests pin the same shape on the wire.
   test("commits a trimmed scope:'general' comment with the sentinel anchor", () => {
     const note = createGeneralReviewComment("  Split this into two PRs.  ");
     expect(note).toMatchObject({
@@ -185,8 +135,8 @@ describe("createGeneralReviewComment — the one review-level comment shape", ()
       side: "new",
       text: "Split this into two PRs.",
     });
-    // Two commits in one millisecond must not collide: the deferred-submit
-    // effect keys on the id (why randomUUID, not Date.now()).
+    // Two commits in one millisecond must not collide (why randomUUID, not
+    // Date.now()).
     expect(createGeneralReviewComment("a")!.id).not.toBe(createGeneralReviewComment("a")!.id);
   });
 

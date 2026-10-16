@@ -8,7 +8,6 @@ interface AlertBlockProps {
   kind: AlertKind;
   body: string;
   onOpenLinkedDoc?: (path: string) => void;
-  onOpenCodeFile?: (path: string) => void;
   imageBaseDir?: string;
   onImageClick?: (src: string, alt: string) => void;
   githubRepo?: string;
@@ -37,7 +36,7 @@ const Icon: React.FC<{ kind: AlertKind }> = ({ kind }) => {
 };
 
 export const AlertBlock: React.FC<AlertBlockProps> = ({
-  blockId, kind, body, onOpenLinkedDoc, onOpenCodeFile, imageBaseDir, onImageClick, githubRepo, onNavigateAnchor,
+  blockId, kind, body, onOpenLinkedDoc, imageBaseDir, onImageClick, githubRepo, onNavigateAnchor,
 }) => {
   return (
     <div
@@ -50,7 +49,7 @@ export const AlertBlock: React.FC<AlertBlockProps> = ({
         <Icon kind={kind} />
         <span>{TITLE[kind]}</span>
       </div>
-      {renderProseBody({ body, imageBaseDir, onImageClick, onOpenLinkedDoc, onOpenCodeFile, onNavigateAnchor, githubRepo })}
+      {renderProseBody({ body, imageBaseDir, onImageClick, onOpenLinkedDoc, onNavigateAnchor, githubRepo })}
     </div>
   );
 };

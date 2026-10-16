@@ -9,15 +9,13 @@
  * Labels, subtitles and confirm strings are the approved prototype's
  * (DESIGN_final-proposal.html `spec()`), authoritative over any older branch
  * or mock copy — except where a later maintainer ruling supersedes it: the
- * non-gate empty menu carries ONE composer ("Send a note…"), and no
- * user-facing string uses an em dash.
+ * menu has no note composers, since a global comment (annotate) or a general
+ * comment (review) sent with the feedback does the same, and no user-facing
+ * string uses an em dash.
  */
 
 export type DecisionActionId =
   | 'primary'              // the left segment
-  | 'note-with-approval'   // "Approve with a note…" (approval flows only)
-  | 'request-changes'      // "Request changes…"
-  | 'note-with-feedback'   // "Send with a note…"
   | 'approve-with-notes'   // review + gate-annotate; capability-gated
   | 'close-session';       // "Close session" — dismisses, sends nothing
 
@@ -33,14 +31,6 @@ export interface DecisionPrimary {
   count?: number;           // rendered as the inline pill; omitted when 0
 }
 
-export interface DecisionComposer {
-  title: string;            // popover back-button title, e.g. 'Send with a note'
-  actionLabel: string;      // the composer's own button, e.g. 'Send feedback with note'
-  tone: Exclude<DecisionTone, 'destructive'>;
-  icon?: 'check' | 'send';
-  placeholder: string;      // 'Add a note...'
-}
-
 export interface DecisionConfirm {
   title: string;
   message: string;
@@ -54,7 +44,6 @@ export interface DecisionMenuItem {
   tone: DecisionTone;
   icon?: 'check' | 'send';
   dividerBefore?: boolean;
-  composer?: DecisionComposer;   // present ⇒ the item morphs the popover
   confirm?: DecisionConfirm;     // present ⇒ the item raises one confirm
 }
 
@@ -79,8 +68,6 @@ export interface DecisionSpecInput {
   approvalNotesSupported: boolean;
 }
 
-export const DECISION_NOTE_PLACEHOLDER = 'Add a note…';
-
 function annotationNoun(count: number): string {
   return count === 1 ? 'annotation' : 'annotations';
 }
@@ -88,124 +75,48 @@ function annotationNoun(count: number): string {
 /**
  * The empty state: no feedback to send, the primary is the positive finish.
  * `approvalFlow` (gate annotate, or review) makes it `Approve`; plain annotate
- * gets `All good`.
+ * gets `All good`. Either way the menu holds only Close session: changes are
+ * requested by annotating (or adding a global or general comment) and
+ * sending, which turns the primary into Send Feedback.
  */
 function buildEmptySpec(input: DecisionSpecInput, approvalFlow: boolean): DecisionSpec {
-  // "Approve with a note…" carries a note on the approve channel, which four
-  // runtimes still discard — it renders only where the advert says delivery
-  // works (never an item that silently drops content). Non-gate annotate has
-  // no approve channel and no positive-note item at all: the maintainer ruled
-  // the old "Done with a note…" / "Request changes…" pair collapsed into the
-  // single "Send a note…" below, because their only difference was framing on
-  // the same /api/feedback transport.
-  const positive: DecisionMenuItem | null = approvalFlow && input.approvalNotesSupported
-    ? {
-        id: 'note-with-approval',
-        label: 'Approve with a note…',
-        subtitle: 'A short note rides along',
-        tone: 'success',
-        icon: 'check',
-        composer: {
-          title: 'Approve with a note',
-          actionLabel: 'Approve',
-          tone: 'success',
-          icon: 'check',
-          placeholder: DECISION_NOTE_PLACEHOLDER,
-        },
-      }
-    : null;
-
-  const requestChanges: DecisionMenuItem = approvalFlow
-    ? {
-        id: 'request-changes',
-        // Frozen copy (maintainer-approved): 'Request changes…'.
-        label: 'Request changes…',
-        subtitle: 'Sent as a change request',
-        tone: 'primary',
-        icon: 'send',
-        dividerBefore: positive !== null,
-        composer: {
-          title: 'Request changes',
-          actionLabel: 'Send',
-          tone: 'primary',
-          icon: 'send',
-          placeholder: DECISION_NOTE_PLACEHOLDER,
-        },
-      }
-    : {
-        // Maintainer ruling (empty-menu collapse): the one non-gate composer.
-        // Same id and route as the old change request (plain /api/feedback,
-        // no approval framing) — only the copy is new. Free prose, NOT frozen.
-        id: 'request-changes',
-        label: 'Send a note…',
-        subtitle: 'Sent as feedback',
-        tone: 'primary',
-        icon: 'send',
-        dividerBefore: false,
-        composer: {
-          title: 'Send a note',
-          actionLabel: 'Send',
-          tone: 'primary',
-          icon: 'send',
-          placeholder: DECISION_NOTE_PLACEHOLDER,
-        },
-      };
+  if (!approvalFlow) {
+    return {
+      primary: {
+        id: 'primary',
+        // Frozen copy (maintainer-approved): 'All good'.
+        label: 'All good',
+        title: 'Finish with no feedback',
+        // Maintainer ruling (post-demo): All good without a gate is a positive
+        // finish, NOT an approval — no success tone, no check icon, so it
+        // can never be mistaken for the gate/review Approve.
+        tone: 'neutral',
+      },
+      items: [buildCloseItem(input.count, false)],
+    };
+  }
 
   return {
-    primary: approvalFlow
-      ? {
-          id: 'primary',
-          // Frozen copy (maintainer-approved): 'Approve'.
-          label: 'Approve',
-          title: 'Approve, no changes',
-          tone: 'success',
-          icon: 'check',
-        }
-      : {
-          id: 'primary',
-          // Frozen copy (maintainer-approved): 'All good'.
-          label: 'All good',
-          title: 'Finish with no feedback',
-          // Maintainer ruling (post-demo): All good without a gate is a positive
-          // finish, NOT an approval — no success tone, no check icon, so it
-          // can never be mistaken for the gate/review Approve.
-          tone: 'neutral',
-        },
-    items: [
-      ...(positive ? [positive, requestChanges] : [requestChanges]),
-      buildCloseItem(input.count, true),
-    ],
+    primary: {
+      id: 'primary',
+      // Frozen copy (maintainer-approved): 'Approve'.
+      label: 'Approve',
+      title: 'Approve, no changes',
+      tone: 'success',
+      icon: 'check',
+    },
+    items: [buildCloseItem(input.count, false)],
   };
 }
 
 /**
  * The feedback state: something to send, the primary is `Send Feedback`.
- * Identical across apps; only the discard item's verb follows the flow.
+ * Identical across apps.
  */
 function buildFeedbackSpec(input: DecisionSpecInput, approvalFlow: boolean): DecisionSpec {
   const { count } = input;
   const noun = annotationNoun(count);
-
-  const items: DecisionMenuItem[] = [
-    {
-      id: 'note-with-feedback',
-      label: 'Send with a note…',
-      subtitle: 'Add an overall note',
-      tone: 'primary',
-      icon: 'send',
-      composer: {
-        title: 'Send with a note',
-        actionLabel: 'Send',
-        tone: 'primary',
-        icon: 'send',
-        placeholder: DECISION_NOTE_PLACEHOLDER,
-      },
-    },
-  ];
-
-  // The divider separates "send" alternates from "approve away" alternates —
-  // it sits before whichever approve-flavoured item comes first.
-  let dividerPending = true;
+  const items: DecisionMenuItem[] = [];
 
   // Capability-gated only (F2 ruling, maintainer-confirmed): at count 0 the feedback is attachments, and a capable approve transport delivers those too,
   // so the item stays offered with zero-form copy — no "0 annotations"
@@ -221,12 +132,10 @@ function buildFeedbackSpec(input: DecisionSpecInput, approvalFlow: boolean): Dec
           : 'Edits as guidance',
       tone: 'success',
       icon: 'check',
-      dividerBefore: dividerPending,
     });
-    dividerPending = false;
   }
 
-  items.push(buildCloseItem(count, dividerPending));
+  items.push(buildCloseItem(count, items.length > 0));
 
   return {
     primary: {

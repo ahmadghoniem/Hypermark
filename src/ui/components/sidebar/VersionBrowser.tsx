@@ -7,6 +7,7 @@
 
 import React, { useEffect } from "react";
 import type { VersionInfo, VersionEntry } from "../../hooks/usePlanDiff";
+import { Button } from "../../fluid/components/button";
 
 interface VersionBrowserProps {
   versionInfo: VersionInfo | null;
@@ -80,12 +81,14 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
 
       {/* Show Diff button if not active */}
       {hasPreviousVersion && !isPlanDiffActive && (
-        <button
+        <Button
+          variant="secondary"
+          size="compact"
           onClick={onActivatePlanDiff}
-          className="w-full mb-3 px-3 py-1.5 text-caption font-semibold rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors border border-primary/20"
+          className="w-full mb-3 font-semibold"
         >
           Show Changes
-        </button>
+        </Button>
       )}
 
       {/* Version list */}
@@ -107,16 +110,16 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
                 .map((v) => {
                   const isSelected = selectedBaseVersion === v.version;
                   return (
-                    <button
+                    <Button
                       key={v.version}
+                      variant="ghost"
+                      size="compact"
+                      active={isSelected}
+                      aria-pressed={isSelected}
                       onClick={() => onSelectBaseVersion(v.version)}
-                      className={`w-full text-left px-2 py-1.5 rounded-sm text-caption transition-colors ${
-                        isSelected
-                          ? "bg-primary/10 text-primary border border-primary/30"
-                          : "text-foreground hover:bg-muted/50 border border-transparent"
-                      }`}
+                      className="w-full justify-start text-left text-foreground"
                     >
-                      <div className="flex items-center justify-between">
+                      <span className="flex w-full items-center justify-between gap-2">
                         <span className="font-semibold">
                           v{v.version}
                           {v.version === currentVersion - 1 && (
@@ -128,8 +131,8 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
                         <span className="text-micro text-muted-foreground">
                           {fetchingVersion === v.version ? "Loading..." : relativeTime(v.timestamp)}
                         </span>
-                      </div>
-                    </button>
+                      </span>
+                    </Button>
                   );
                 })}
             </div>

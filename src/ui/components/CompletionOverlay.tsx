@@ -1,4 +1,4 @@
-import { useAutoClose } from '../hooks/useAutoClose';
+import { CLOSE_DELAY_SECONDS, useAutoClose } from '../hooks/useAutoClose';
 
 import { Check, MessageDotsCircle } from '@untitledui/icons';
 // ---------------------------------------------------------------------------
@@ -30,6 +30,7 @@ export function CompletionOverlay({ submitted, title, subtitle, agentLabel }: Co
   if (!submitted) return null;
 
   const isApproved = submitted === 'approved';
+  const secondsLeft = state.phase === 'closing' ? state.secondsLeft : CLOSE_DELAY_SECONDS;
 
   return (
     <div className="fixed inset-0 z-popover bg-background flex items-center justify-center">
@@ -44,10 +45,10 @@ export function CompletionOverlay({ submitted, title, subtitle, agentLabel }: Co
 
         <div className="space-y-2">
           <h2 className="text-title font-semibold text-foreground">{title}</h2>
-          <p className="text-muted-foreground">{subtitle}</p>
+          <p className="text-body text-muted-foreground">{subtitle}</p>
         </div>
 
-        {/* The tab closes itself three seconds after the submission lands,
+        {/* The tab counts down and closes itself after the submission lands,
             unless the browser refuses to close a tab it did not open. */}
         <div className="pt-4 border-t border-border space-y-2">
           {state.phase === 'closeFailed' ? (
@@ -64,7 +65,11 @@ export function CompletionOverlay({ submitted, title, subtitle, agentLabel }: Co
               <p className="text-body text-muted-foreground">
                 Your response has been sent to <span className="text-foreground font-semibold">{agentLabel}</span>.
               </p>
-              <p className="text-caption text-muted-foreground/60">This tab closes in 3 seconds.</p>
+              <p className="text-caption text-muted-foreground/60 tabular-nums" aria-live="polite">
+                {secondsLeft > 0
+                  ? `This tab closes in ${secondsLeft} second${secondsLeft === 1 ? '' : 's'}.`
+                  : 'Closing this tab…'}
+              </p>
             </>
           )}
         </div>

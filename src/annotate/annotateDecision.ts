@@ -5,7 +5,7 @@ import type { DecisionActionId } from "@/ui/utils/decisionSpec";
  *
  * `buildDecisionSpec` decides WHAT the header offers; this module decides
  * WHERE each choice goes, on the two legacy transports and nothing else:
- * `Done` and every note stay on `/api/feedback` so
+ * `Done` and feedback stay on `/api/feedback` so
  * `formatAnnotateOutcome` shapes and strict-gate exit codes are untouched,
  * and only gate-mode approvals reach `/api/approve`. Kept pure (no React,
  * no App import) so the handler-exhaustiveness test runs in the plain
@@ -14,30 +14,15 @@ import type { DecisionActionId } from "@/ui/utils/decisionSpec";
  */
 export type AnnotateDecisionRoute =
   | { kind: "primary" }
-  /** Commit the note as a GLOBAL_COMMENT, then submit on the next render
-   *  (#1436 mechanism). `route` picks the endpoint. `approvalFraming` is kept
-   *  for the framing machinery (the App's discard path still frames its
-   *  positive finish), but since the empty-menu collapse no spec-emitted note
-   *  route sets it — every menu note posts plain, unframed feedback. */
-  | { kind: "note"; route: "feedback" | "approve"; approvalFraming: boolean }
   /** Direct approve with the live feedback riding along (gate + capability). */
   | { kind: "approve-with-notes" }
   /** Leave without sending: POST /api/exit, the session is dismissed. */
   | { kind: "close" };
 
-export function resolveAnnotateDecisionAction(
-  id: DecisionActionId,
-  ctx: { gate: boolean },
-): AnnotateDecisionRoute {
+export function resolveAnnotateDecisionAction(id: DecisionActionId): AnnotateDecisionRoute {
   switch (id) {
     case "primary":
       return { kind: "primary" };
-    case "note-with-approval":
-      return { kind: "note", route: "approve", approvalFraming: false };
-    case "request-changes":
-    case "note-with-feedback":
-      // The two differ only by state (empty vs feedback), never by transport.
-      return { kind: "note", route: "feedback", approvalFraming: false };
     case "approve-with-notes":
       return { kind: "approve-with-notes" };
     case "close-session":

@@ -1,8 +1,7 @@
 /**
- * Sample data for the canvas. Nothing here names a file: the viewer checks
- * file-like paths against /api/doc/exists, which the dev server doesn't serve.
+ * Sample data for the canvas.
  */
-import { AnnotationType, type Annotation, type CodeAnnotation } from '@/ui/types';
+import { AnnotationType, type Annotation, type ImageAttachment } from '@/ui/types';
 import type { PickerMessage } from '@/ui/components/MessageRail';
 import type { AnnotationMessageGroup } from '@/ui/components/AnnotationPanel';
 import type { VersionEntry, VersionInfo } from '@/ui/hooks/usePlanDiff';
@@ -11,6 +10,12 @@ const NOW = Date.now();
 const ago = (minutes: number) => NOW - minutes * 60_000;
 
 export const QUOTE = 'The session is still open and the link text runs into someCode() then wraps onto the next line';
+
+/** The dev mock API draws a placeholder for any `/api/image` path. */
+export const IMAGES: ImageAttachment[] = [
+  { path: '/mock/memory-graph.png', name: 'memory-graph.png' },
+  { path: '/mock/retry-timeline.png', name: 'retry-timeline.png' },
+];
 
 export const SAMPLE_MARKDOWN = [
   '# Retry the upload when the network drops',
@@ -75,25 +80,11 @@ export const annotation = (id: string, type: AnnotationType, originalText: strin
 });
 
 export const PANEL_ANNOTATIONS: Annotation[] = [
-  annotation('a-comment', AnnotationType.COMMENT, 'keeps the file in memory until the server confirms it', 'What about large files? Memory could get tight.', 9),
+  annotation('a-comment', AnnotationType.COMMENT, 'keeps the file in memory until the server confirms it', 'What about large files? Memory could get tight.', 9, { images: IMAGES.slice(0, 1) }),
   annotation('a-delete', AnnotationType.DELETION, 'and shows the user what is happening', undefined, 8),
-  annotation('a-label', AnnotationType.COMMENT, 'Three retries, waiting 1, 2 and 4 seconds.', 'Needs a test', 7, { quickLabelTip: 'Add a test that covers this.' }),
+  annotation('a-label', AnnotationType.COMMENT, 'Three retries, waiting 1, 2 and 4 seconds.', 'Needs a test', 7),
   annotation('a-reply', AnnotationType.COMMENT, 'keeps the file in memory until the server confirms it', 'Or stream it from disk again on retry.', 6, { inReplyTo: 'a-comment' }),
   annotation('a-global', AnnotationType.GLOBAL_COMMENT, '', 'Looks good overall. Keep the retry count in one place.', 5),
-];
-
-export const PANEL_CODE_ANNOTATIONS: CodeAnnotation[] = [
-  {
-    id: 'c-line',
-    type: 'comment',
-    scope: 'line',
-    filePath: 'upload/retry.ts',
-    lineStart: 5,
-    lineEnd: 5,
-    side: 'new',
-    text: 'Add jitter so clients don\'t retry together.',
-    createdAt: ago(4),
-  },
 ];
 
 export const RAIL_GROUPS: AnnotationMessageGroup[] = [
@@ -165,30 +156,6 @@ export const VERSIONS: VersionEntry[] = [
   { version: 2, timestamp: new Date(ago(55)).toISOString() },
   { version: 1, timestamp: new Date(ago(60 * 26)).toISOString() },
 ];
-
-export const CODE_PATH = 'upload/retry.ts';
-
-export const CODE_CONTENTS = [
-  'export async function sendWithRetry(file: Blob, send: (file: Blob) => Promise<Response>) {',
-  '  for (let attempt = 1; attempt <= 3; attempt++) {',
-  '    try {',
-  '      return await send(file);',
-  '    } catch (error) {',
-  '      if (!isNetworkError(error) || attempt === 3) throw error;',
-  '      await wait(2 ** (attempt - 1) * 1000);',
-  '    }',
-  '  }',
-  '  throw new Error(\'unreachable\');',
-  '}',
-  '',
-  'const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));',
-  '',
-  'function isNetworkError(error: unknown) {',
-  '  return error instanceof TypeError;',
-  '}',
-].join('\n');
-
-export const CODE_MATCHES = ['upload/retry.ts', 'legacy/upload/retry.ts', 'tests/upload/retry.ts'];
 
 export const TAB_MARKDOWN = [
   'The uploader keeps the file in memory until the server confirms it.',

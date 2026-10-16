@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
  * Phases of the close attempt that follows a form submission.
  *
  * - idle:        nothing submitted yet
- * - closing:     window.close() has been requested
+ * - closing:     counting down; window.close() is requested at 0
  * - closeFailed: the browser refused to close the tab
  */
 type AutoClosePhase =
   | { phase: 'idle' }
-  | { phase: 'closing' }
+  | { phase: 'closing'; secondsLeft: number }
   | { phase: 'closeFailed' };
 
 interface UseAutoCloseReturn {
@@ -38,7 +38,7 @@ function requestGlimpseClose(): boolean {
 }
 
 /** How long the sent screen stays up before the tab closes. */
-const CLOSE_DELAY_MS = 3000;
+export const CLOSE_DELAY_SECONDS = 3;
 
 function tryClose(onFail: () => void): void {
   const requestedNativeClose = requestGlimpseClose();
@@ -70,9 +70,16 @@ export function useAutoClose(active: boolean): UseAutoCloseReturn {
 
   useEffect(() => {
     if (!active) return;
-    setState({ phase: 'closing' });
-    const timer = setTimeout(() => tryClose(() => setState({ phase: 'closeFailed' })), CLOSE_DELAY_MS);
-    return () => clearTimeout(timer);
+    let secondsLeft = CLOSE_DELAY_SECONDS;
+    setState({ phase: 'closing', secondsLeft });
+    const timer = setInterval(() => {
+      secondsLeft -= 1;
+      setState({ phase: 'closing', secondsLeft });
+      if (secondsLeft > 0) return;
+      clearInterval(timer);
+      tryClose(() => setState({ phase: 'closeFailed' }));
+    }, 1000);
+    return () => clearInterval(timer);
   }, [active]);
 
   return { state };

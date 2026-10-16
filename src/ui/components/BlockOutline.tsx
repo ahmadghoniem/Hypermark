@@ -30,18 +30,22 @@ export const BlockOutline: React.FC<BlockOutlineProps> = ({ blocks, containerRef
     }
 
     const updatePosition = () => {
-      const containerRect = containerRef.current!.getBoundingClientRect();
+      const container = containerRef.current!;
+      const containerRect = container.getBoundingClientRect();
       const rects = blocks.map((block) => block.getBoundingClientRect());
       const top = Math.min(...rects.map((r) => r.top));
       const left = Math.min(...rects.map((r) => r.left));
       const right = Math.max(...rects.map((r) => r.right));
       const bottom = Math.max(...rects.map((r) => r.bottom));
+      // Rects are in screen pixels and the outline is placed in layout
+      // pixels; they differ inside a scaled ancestor (the canvas zoom).
+      const scale = container.offsetWidth > 0 ? containerRect.width / container.offsetWidth : 1;
 
       setPosition({
-        top: top - containerRect.top,
-        left: left - containerRect.left,
-        width: right - left,
-        height: bottom - top,
+        top: (top - containerRect.top) / scale,
+        left: (left - containerRect.left) / scale,
+        width: (right - left) / scale,
+        height: (bottom - top) / scale,
       });
     };
 

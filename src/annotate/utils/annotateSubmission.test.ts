@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { AnnotationType, type Annotation, type CodeAnnotation } from "@/ui/types";
+import { AnnotationType, type Annotation } from "@/ui/types";
 import { parseMarkdownToBlocks, type LinkedDocAnnotationEntry } from "@/ui/utils/parser";
 import {
   ANNOTATE_NO_FEEDBACK_SENTENCE,
@@ -13,7 +13,6 @@ describe("annotate approval submission", () => {
       draftGeneration: 4,
       feedback: "Keep the retry bounded.",
       annotations: [{ id: "a1" }],
-      codeAnnotations: [{ id: "c1" }],
     };
 
     expect(buildAnnotateApprovalBody({ supported: true, ...input })).toEqual(input);
@@ -28,7 +27,6 @@ describe("annotate approval submission", () => {
       draftGeneration: 4,
       feedback: "Scope this to the picked message.",
       annotations: [],
-      codeAnnotations: [],
     };
 
     expect(buildAnnotateApprovalBody({
@@ -96,23 +94,12 @@ describe("annotate approval submission", () => {
         markdown: "# Runbook\n\nRunbook",
       }],
     ]);
-    const codeAnnotation: CodeAnnotation = {
-      id: "c1",
-      type: "comment",
-      filePath: "src/retry.ts",
-      lineStart: 8,
-      lineEnd: 8,
-      side: "new",
-      text: "Cap this loop.",
-      createdAt: 1,
-    };
     const feedback = buildCompleteAnnotateFeedback({
       blocks,
       annotations: [annotation, globalImageAnnotation],
       // Always empty now — no writer populates this parallel list any more.
       globalAttachments: [],
       linkedDocuments,
-      codeAnnotations: [codeAnnotation],
       title: "File Feedback",
       subject: "file",
       sourceConverted: false,
@@ -121,7 +108,6 @@ describe("annotate approval submission", () => {
     expect(feedback).toContain("retry-diagram");
     expect(feedback).toContain("global-reference");
     expect(feedback).not.toContain("Reference Images");
-    expect(feedback).toContain("# Code File Feedback");
     expect(feedback).toContain("# Linked Document Feedback");
 
     expect(buildAnnotateApprovalBody({
@@ -129,12 +115,10 @@ describe("annotate approval submission", () => {
       draftGeneration: 4,
       feedback,
       annotations: [annotation],
-      codeAnnotations: [codeAnnotation],
     })).toMatchObject({
       draftGeneration: 4,
       feedback,
       annotations: [annotation],
-      codeAnnotations: [codeAnnotation],
     });
   });
 
@@ -174,7 +158,6 @@ describe("annotate approval submission", () => {
           markdown: yaml,
         }],
       ]),
-      codeAnnotations: [],
       title: "File Feedback",
       subject: "file",
       sourceConverted: false,
@@ -213,7 +196,6 @@ describe("annotate approval submission", () => {
           markdown,
         }],
       ]),
-      codeAnnotations: [],
       title: "File Feedback",
       subject: "file",
       sourceConverted: false,
@@ -242,7 +224,6 @@ describe("annotate approval submission", () => {
       annotations: [note],
       globalAttachments: [],
       linkedDocuments: new Map<string, LinkedDocAnnotationEntry>(),
-      codeAnnotations: [] as CodeAnnotation[],
       title: "File Feedback",
       subject: "file",
       sourceConverted: false,

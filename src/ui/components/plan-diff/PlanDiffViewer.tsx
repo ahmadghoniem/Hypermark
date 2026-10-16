@@ -11,6 +11,8 @@ import type { PlanDiffBlock, PlanDiffStats } from "../../utils/planDiffEngine";
 import type { Annotation } from "../../types";
 import { PlanCleanDiffView } from "./PlanCleanDiffView";
 import { PlanDiffBadge } from "./PlanDiffBadge";
+import { Button } from "../../fluid/components/button";
+import { Tooltip } from "../../fluid/components/tooltip";
 
 import { GitBranch01, XClose } from '@untitledui/icons';
 interface PlanDiffViewerProps {
@@ -76,14 +78,20 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
 
         {/* Top-right: back to plan view button */}
         <div className="float-right -mr-4 -mt-4 md:-mr-5 md:-mt-5 lg:-mr-7 lg:-mt-7 xl:-mr-9 xl:-mt-9 p-2">
-          <button
-            onClick={onPlanDiffToggle}
-            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-caption text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            title="Back to plan view"
-          >
-            <span className="hidden md:inline text-micro font-semibold">Exit Diff</span>
-            <XClose className="size-3.5" />
-          </button>
+          <Tooltip content="Back to plan view" side="bottom">
+            <Button
+              variant="ghost"
+              size="compact"
+              onClick={onPlanDiffToggle}
+              aria-label="Back to plan view"
+              className="px-2"
+            >
+              <span className="flex items-center gap-1">
+                <span className="hidden md:inline text-micro font-semibold">Exit Diff</span>
+                <XClose className="size-3.5" />
+              </span>
+            </Button>
+          </Tooltip>
         </div>
 
         {/* Version label */}

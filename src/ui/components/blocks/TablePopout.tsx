@@ -24,7 +24,6 @@ interface TablePopoutProps {
    *  hooks can walk into the popout's text nodes. Null falls back to body. */
   container?: HTMLElement | null;
   onOpenLinkedDoc?: (path: string) => void;
-  onOpenCodeFile?: (path: string) => void;
   onNavigateAnchor?: (hash: string) => void;
   imageBaseDir?: string;
   onImageClick?: (src: string, alt: string) => void;
@@ -39,7 +38,6 @@ const TablePopoutImpl: React.FC<TablePopoutProps> = ({
   onClose,
   container,
   onOpenLinkedDoc,
-  onOpenCodeFile,
   onNavigateAnchor,
   imageBaseDir,
   onImageClick,
@@ -81,7 +79,6 @@ const TablePopoutImpl: React.FC<TablePopoutProps> = ({
             onImageClick={onImageClick}
             text={info.getValue()}
             onOpenLinkedDoc={onOpenLinkedDoc}
-            onOpenCodeFile={onOpenCodeFile}
             onNavigateAnchor={onNavigateAnchor}
             githubRepo={githubRepo}
           />

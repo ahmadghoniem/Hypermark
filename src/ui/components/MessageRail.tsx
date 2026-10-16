@@ -14,7 +14,8 @@ import {
 } from '../utils/messageRail';
 
 import { Eye, EyeOff, Terminal } from '@untitledui/icons';
-import { Tooltip } from './Tooltip';
+import { Button } from '../fluid/components/button';
+import { Tooltip } from '../fluid/components/tooltip';
 const RAIL_WIDTH = 36;
 const PITCH = 16;
 const TICK_SIZES = { open: 20, rest: 12, hoverMax: 32 };
@@ -206,15 +207,16 @@ export const MessageRail: React.FC<MessageRailProps> = ({
 
       {shortIds.size > 0 && (
         <Tooltip side="left" content={toggleLabel}>
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon-compact"
             aria-pressed={showShort}
             aria-label={toggleLabel}
             onClick={() => onShowShortChange?.(!showShort)}
-            className="mt-1 flex h-5 items-center self-end rounded-[5px] px-1 text-muted-foreground/50 outline-none transition-colors hover:text-foreground focus-visible:ring-[1.5px] focus-visible:ring-primary/55"
+            className="mt-1 self-end"
           >
-            <ToggleIcon className="size-3.5" />
-          </button>
+            <ToggleIcon />
+          </Button>
         </Tooltip>
       )}
     </nav>

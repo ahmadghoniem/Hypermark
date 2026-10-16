@@ -33,6 +33,29 @@ type MathAnnotationSource = {
 const isMathAnnotationSource = (source: any): source is MathAnnotationSource =>
   source?.kind === 'math';
 
+/**
+ * A quote of only whitespace is not an annotation: it paints an invisible
+ * highlight, and the stored quote cannot be found again on restore. `\s`
+ * covers the non-breaking spaces a rendered document holds.
+ */
+const isBlankQuote = (value: string | null | undefined): boolean =>
+  (value ?? '').replace(/\s+/g, '') === '';
+
+/**
+ * web-highlighter serializes an element boundary as `childNodes[offset]`. The
+ * DOM allows `offset === childNodes.length` (after the last child), which
+ * leaves the library reading `undefined.parentNode` and throwing out of its
+ * own mouseup listener.
+ */
+const boundaryResolves = (node: Node, offset: number): boolean => {
+  if (node.nodeType === Node.TEXT_NODE || node.nodeType === Node.CDATA_SECTION_NODE || node.nodeType === Node.COMMENT_NODE) return true;
+  return offset >= 0 && offset < node.childNodes.length;
+};
+
+const isSerializableRange = (range: Range): boolean =>
+  boundaryResolves(range.startContainer, range.startOffset)
+  && boundaryResolves(range.endContainer, range.endOffset);
+
 
 type MathAnnotationTarget = {
   element: HTMLElement;
@@ -168,6 +191,18 @@ const ANNOTATION_EXCLUDED_SELECTOR = '.annotation-exclude';
 const isAnnotationExcludedTextNode = (node: Node): boolean =>
   Boolean(node.parentElement?.closest(ANNOTATION_EXCLUDED_SELECTOR));
 
+const stripWhitespace = (value: string): string => value.replace(/\s+/g, '');
+
+/**
+ * Stored positions count elements by tag across the whole document, so a
+ * draft restored into a DOM with a different element count (content that
+ * renders later, a changed document) lands on the wrong text. A restore is
+ * trusted only when the marked text matches the quote, ignoring whitespace:
+ * block boundaries add a newline to the quote and none to the DOM.
+ */
+const restoredTextMatches = (doms: HTMLElement[], quote: string): boolean =>
+  stripWhitespace(doms.map((dom) => dom.textContent ?? '').join('')) === stripWhitespace(quote);
+
 const applyMathAnnotationClass = (
   element: HTMLElement,
   id: string,
@@ -228,7 +263,7 @@ export interface UseAnnotationHighlighterReturn {
 
   commentPopover: CommentPopoverState | null;
 
-  handleCommentSubmit: (text: string, images?: ImageAttachment[], quickLabelTip?: string) => void;
+  handleCommentSubmit: (text: string, images?: ImageAttachment[]) => void;
   handleCommentQuickLabel: (label: QuickLabel) => void;
   handleCommentClose: () => void;
   /** Paint a caller-created DOM range through the same pipeline as pointer selection. */
@@ -266,6 +301,12 @@ export function useAnnotationHighlighter({
   /** Alt held when the selection was released: strike it through on the spot.
    *  Without it a release opens the comment composer. */
   const altOnReleaseRef = useRef(false);
+  /** Click count of the last mousedown, and whether it was a double or triple
+   *  click on an existing highlight. Those clicks belong to the first one,
+   *  which opened the annotation, so they neither reselect it nor start a new
+   *  annotation inside it. */
+  const clickCountRef = useRef(0);
+  const multiClickOnHighlightRef = useRef(false);
   const mouseDownMathRef = useRef<HTMLElement | null>(null);
 
   const [commentPopover, setCommentPopover] = useState<CommentPopoverState | null>(null);
@@ -298,8 +339,20 @@ export function useAnnotationHighlighter({
       lastMousePosRef.current = { x: e.clientX, y: e.clientY };
       altOnReleaseRef.current = e.altKey;
     };
+    const trackClicks = (e: MouseEvent) => {
+      clickCountRef.current = e.detail;
+      multiClickOnHighlightRef.current = e.detail >= 2
+        && !!(e.target as Element | null)?.closest?.('.annotation-highlight');
+      // A double or triple click on a highlight would select a word or line
+      // inside it; stop that selection before the browser makes it
+      if (multiClickOnHighlightRef.current) e.preventDefault();
+    };
     document.addEventListener('mouseup', track, true);
-    return () => document.removeEventListener('mouseup', track, true);
+    document.addEventListener('mousedown', trackClicks, true);
+    return () => {
+      document.removeEventListener('mouseup', track, true);
+      document.removeEventListener('mousedown', trackClicks, true);
+    };
   }, [clearPendingSelection]);
 
   // --- Helpers ---
@@ -417,6 +470,23 @@ export function useAnnotationHighlighter({
         return rangeFromTextOffsets(originalStart, originalEnd);
       }
 
+      // A quote spanning blocks holds a newline where the DOM's text nodes
+      // meet with none, so match with all whitespace removed.
+      const strippedMap: number[] = [];
+      let stripped = '';
+      for (let i = 0; i < fullText.length; i++) {
+        if (/\s/.test(fullText[i])) continue;
+        stripped += fullText[i];
+        strippedMap.push(i);
+      }
+      const strippedNeedle = stripWhitespace(needle);
+      const strippedIndex = strippedNeedle ? stripped.indexOf(strippedNeedle) : -1;
+      if (strippedIndex !== -1) {
+        const originalStart = strippedMap[strippedIndex];
+        const originalEnd = strippedMap[strippedIndex + strippedNeedle.length - 1] + 1;
+        return rangeFromTextOffsets(originalStart, originalEnd);
+      }
+
       return null;
     };
 
@@ -441,8 +511,8 @@ export function useAnnotationHighlighter({
     type: AnnotationType,
     text?: string,
     images?: ImageAttachment[],
-    quickLabelTip?: string,
   ) => {
+    if (isBlankQuote(source?.text)) return;
     const doms = highlighter.getDoms(source.id);
     let blockId = '';
     let startOffset = 0;
@@ -482,7 +552,6 @@ export function useAnnotationHighlighter({
           displayMode: target.displayMode,
         })),
       } : {}),
-      ...(quickLabelTip ? { quickLabelTip } : {}),
     };
 
     if (type === AnnotationType.DELETION) {
@@ -501,7 +570,6 @@ export function useAnnotationHighlighter({
     type: AnnotationType,
     text?: string,
     images?: ImageAttachment[],
-    quickLabelTip?: string,
   ) => {
     const id = annotationId();
     applyMathAnnotationClass(source.element, id, type, source.displayMode);
@@ -519,7 +587,6 @@ export function useAnnotationHighlighter({
       originalText: source.text,
       createdA: Date.now(),
       images,
-      ...(quickLabelTip ? { quickLabelTip } : {}),
     };
 
     justCreatedIdRef.current = newAnnotation.id;
@@ -600,6 +667,9 @@ export function useAnnotationHighlighter({
 
     anns.forEach(ann => {
       if (ann.type === AnnotationType.GLOBAL_COMMENT) return;
+      // An older draft can hold a whitespace-only quote; its stored positions
+      // may still resolve and would paint an invisible mark.
+      if (isBlankQuote(ann.originalText)) return;
 
       // Skip if already highlighted
       try {
@@ -617,11 +687,22 @@ export function useAnnotationHighlighter({
         }
       }
 
+      let range: Range | null = null;
       if (ann.startMeta && ann.endMeta) {
         try {
           highlighter.fromStore(ann.startMeta, ann.endMeta, ann.originalText, ann.id);
           const restoredDoms = highlighter.getDoms(ann.id);
           if (restoredDoms && restoredDoms.length > 0) {
+            // A mismatch moves to the quote's text match; with no match the
+            // stored positions are still the best guess (rendered math, for
+            // one, never matches its quote).
+            if (!restoredTextMatches(restoredDoms, ann.originalText)) {
+              highlighter.remove(ann.id);
+              range = findTextInDOM(ann.originalText);
+              if (!range) highlighter.fromStore(ann.startMeta, ann.endMeta, ann.originalText, ann.id);
+            }
+          }
+          if (!range && restoredDoms && restoredDoms.length > 0) {
             if (ann.type === AnnotationType.DELETION) {
               highlighter.addClass('deletion', ann.id);
             } else if (ann.type === AnnotationType.COMMENT) {
@@ -632,7 +713,7 @@ export function useAnnotationHighlighter({
         } catch {}
       }
 
-      const range = findTextInDOM(ann.originalText);
+      range ??= findTextInDOM(ann.originalText);
       if (!range) {
         console.warn(`Could not find text for annotation ${ann.id}: "${ann.originalText.slice(0, 50)}..."`);
         return;
@@ -645,7 +726,11 @@ export function useAnnotationHighlighter({
             ? range.commonAncestorContainer.parentNode!
             : range.commonAncestorContainer,
           NodeFilter.SHOW_TEXT,
-          null
+          {
+            acceptNode: (node) => isAnnotationExcludedTextNode(node)
+              ? NodeFilter.FILTER_REJECT
+              : NodeFilter.FILTER_ACCEPT,
+          },
         );
 
         let node: Text | null;
@@ -848,6 +933,55 @@ export function useAnnotationHighlighter({
     };
   }, [containerRef, enabled]);
 
+  // The browser's selection paints only text, so a chip's left and right
+  // padding showed as gaps in a drag across it. A chip whose edge the
+  // selection crosses is tagged, and the CSS paints that padding in the
+  // selection color, the way a mark at the chip's edge covers it.
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root || !enabled) return;
+    const tagged = new Set<HTMLElement>();
+    const tag = () => {
+      const sel = window.getSelection();
+      const range = sel && sel.rangeCount > 0 && !sel.isCollapsed ? sel.getRangeAt(0) : null;
+      const next = new Map<HTMLElement, [boolean, boolean]>();
+      if (range && root.contains(range.commonAncestorContainer)) {
+        root.querySelectorAll<HTMLElement>(':not(pre) > code').forEach((code) => {
+          if (!range.intersectsNode(code)) return;
+          const inner = document.createRange();
+          inner.selectNodeContents(code);
+          const overlap = range.cloneRange();
+          if (range.compareBoundaryPoints(Range.START_TO_START, inner) < 0) overlap.setStart(code, 0);
+          if (range.compareBoundaryPoints(Range.END_TO_END, inner) > 0) overlap.setEnd(code, code.childNodes.length);
+          if (overlap.toString() === '') return;
+          next.set(code, [
+            range.compareBoundaryPoints(Range.START_TO_START, inner) <= 0,
+            range.compareBoundaryPoints(Range.END_TO_END, inner) >= 0,
+          ]);
+        });
+      }
+      for (const code of tagged) {
+        if (next.has(code)) continue;
+        code.removeAttribute('data-sel-start');
+        code.removeAttribute('data-sel-end');
+        tagged.delete(code);
+      }
+      for (const [code, [start, end]] of next) {
+        code.toggleAttribute('data-sel-start', start);
+        code.toggleAttribute('data-sel-end', end);
+        tagged.add(code);
+      }
+    };
+    document.addEventListener('selectionchange', tag);
+    return () => {
+      document.removeEventListener('selectionchange', tag);
+      for (const code of tagged) {
+        code.removeAttribute('data-sel-start');
+        code.removeAttribute('data-sel-end');
+      }
+    };
+  }, [containerRef, enabled]);
+
   // Initialize web-highlighter (no callback deps — reads from refs)
   useEffect(() => {
     if (!containerRef.current || !enabled) return;
@@ -871,6 +1005,18 @@ export function useAnnotationHighlighter({
       if (type === 'from-store') return;
       if (sources.length > 0) {
         const source = sources[0];
+        if (multiClickOnHighlightRef.current) {
+          highlighter.remove(source.id);
+          window.getSelection()?.removeAllRanges();
+          return;
+        }
+        // Every producer lands here (mouse, touch bridge, highlightRange), so
+        // a blank quote is dropped once for all of them.
+        if (isBlankQuote(source.text)) {
+          highlighter.remove(source.id);
+          window.getSelection()?.removeAllRanges();
+          return;
+        }
         const doms = highlighter.getDoms(source.id);
         if (doms?.length > 0) {
           // Clean up previous pending
@@ -909,6 +1055,17 @@ export function useAnnotationHighlighter({
     });
 
     highlighter.run();
+
+    // Runs in the capture phase, before the library's own mouseup listener
+    // on the same root reads the live selection. Collapsing a blank or
+    // unserializable selection here makes the library's handler a no-op.
+    const handleUnusableSelection = () => {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
+      if (isBlankQuote(selection.toString()) || !isSerializableRange(selection.getRangeAt(0))) {
+        selection.removeAllRanges();
+      }
+    };
 
     const handleMathMouseDown = (event: MouseEvent) => {
       mouseDownMathRef.current = closestMathElement(event.target as Node, containerRef.current);
@@ -970,6 +1127,8 @@ export function useAnnotationHighlighter({
       });
     };
 
+    containerRef.current.addEventListener('mouseup', handleUnusableSelection, true);
+    containerRef.current.addEventListener('touchend', handleUnusableSelection, true);
     containerRef.current.addEventListener('mousedown', handleMathMouseDown, true);
     containerRef.current.addEventListener('mouseup', handleMathMouseUp, true);
 
@@ -983,7 +1142,9 @@ export function useAnnotationHighlighter({
             const sel = window.getSelection();
             if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
             if (!containerRef.current?.contains(sel.anchorNode)) return;
-            highlighter.fromRange(sel.getRangeAt(0));
+            const range = sel.getRangeAt(0);
+            if (isBlankQuote(sel.toString()) || !isSerializableRange(range)) return;
+            highlighter.fromRange(range);
           }, 400);
         }
       : null;
@@ -997,6 +1158,8 @@ export function useAnnotationHighlighter({
         clearTimeout(selectionTimer);
         document.removeEventListener('selectionchange', handleSelectionChange);
       }
+      containerRef.current?.removeEventListener('mouseup', handleUnusableSelection, true);
+      containerRef.current?.removeEventListener('touchend', handleUnusableSelection, true);
       containerRef.current?.removeEventListener('mousedown', handleMathMouseDown, true);
       containerRef.current?.removeEventListener('mouseup', handleMathMouseUp, true);
       highlighter.dispose();
@@ -1008,6 +1171,7 @@ export function useAnnotationHighlighter({
     const container = containerRef.current;
     if (!highlighter || !container || range.collapsed) return;
     if (!container.contains(range.commonAncestorContainer)) return;
+    if (!isSerializableRange(range)) return;
 
     const selection = window.getSelection();
     selection?.removeAllRanges();
@@ -1085,16 +1249,9 @@ export function useAnnotationHighlighter({
     });
   }, [annotations]);
 
-  // Scroll to selected annotation
+  // Scroll the selected annotation into view when it is off screen
   useEffect(() => {
-    if (!containerRef.current) return;
-
-    // Clear all previously focused highlights
-    containerRef.current.querySelectorAll('.annotation-highlight.focused').forEach(el => {
-      el.classList.remove('focused');
-    });
-
-    if (!selectedAnnotationId) return;
+    if (!containerRef.current || !selectedAnnotationId) return;
 
     // Skip scroll if we just created this annotation
     if (justCreatedIdRef.current === selectedAnnotationId) {
@@ -1121,18 +1278,15 @@ export function useAnnotationHighlighter({
 
     if (targetElements.length === 0) return;
 
-    targetElements.forEach(el => el.classList.add('focused'));
-    targetElements[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-    const timer = setTimeout(() => {
-      targetElements.forEach(el => el.classList.remove('focused'));
-    }, 2000);
-    return () => clearTimeout(timer);
+    const rect = targetElements[0].getBoundingClientRect();
+    if (rect.top < 64 || rect.bottom > window.innerHeight - 16) {
+      targetElements[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }, [selectedAnnotationId]);
 
   // --- Handlers ---
 
-  const handleCommentSubmit = (text: string, images?: ImageAttachment[], quickLabelTip?: string) => {
+  const handleCommentSubmit = (text: string, images?: ImageAttachment[]) => {
     if (!commentPopover) return;
     if (isMathAnnotationSource(commentPopover.source)) {
       createAnnotationFromMathSource(
@@ -1140,7 +1294,6 @@ export function useAnnotationHighlighter({
         AnnotationType.COMMENT,
         text,
         images,
-        quickLabelTip,
       );
       clearPendingSelection();
       window.getSelection()?.removeAllRanges();
@@ -1150,7 +1303,7 @@ export function useAnnotationHighlighter({
     if (commentPopover.source && highlighterRef.current) {
       createAnnotationFromSource(
         highlighterRef.current, commentPopover.source,
-        AnnotationType.COMMENT, text, images, quickLabelTip
+        AnnotationType.COMMENT, text, images
       );
       clearPendingSelection();
       window.getSelection()?.removeAllRanges();
@@ -1159,7 +1312,7 @@ export function useAnnotationHighlighter({
   };
 
   const handleCommentQuickLabel = (label: QuickLabel) => {
-    handleCommentSubmit(formatQuickLabel(label), undefined, label.tip);
+    handleCommentSubmit(formatQuickLabel(label));
   };
 
   const handleCommentClose = useCallback(() => {

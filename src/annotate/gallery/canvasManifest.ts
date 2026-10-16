@@ -4,7 +4,7 @@
  * CanvasRenderers type makes a missing or extra slot a type error.
  *
  * Each group shows one component (or one feature) across the states worth
- * comparing, with the Fluid version last where one exists.
+ * comparing. The header's command menu is the one Fluid version shown.
  */
 import type { ReactNode } from 'react';
 
@@ -27,20 +27,22 @@ export const CANVAS_GROUPS = [
       { id: 'now-quote', label: 'Now, on a highlight' },
       { id: 'now-edit', label: 'Now, editing a comment' },
       { id: 'now-global', label: 'Now, global comment' },
-      { id: 'fluid', label: 'Fluid' },
+      { id: 'images', label: 'Images attached' },
+      { id: 'upload-failed', label: 'An upload failed' },
+      { id: 'btw', label: 'A side question typed' },
+      { id: 'edit-images', label: 'Editing a comment with an image' },
     ],
   },
   {
     id: 'panel',
     title: 'Annotations panel',
-    columns: 5,
+    columns: 4,
     slotWidth: 300,
     slots: [
       { id: 'empty', label: 'Empty' },
       { id: 'cards', label: 'One card of each kind' },
       { id: 'selected', label: 'A card selected' },
       { id: 'all', label: 'All messages' },
-      { id: 'fluid-tabs', label: 'Fluid, the Current / All switch' },
     ],
   },
   {
@@ -79,34 +81,22 @@ export const CANVAS_GROUPS = [
   {
     id: 'toc',
     title: 'Table of contents',
-    columns: 3,
+    columns: 2,
     slotWidth: 260,
     slots: [
       { id: 'plain', label: 'No section active' },
       { id: 'active', label: 'A section active' },
-      { id: 'counts', label: 'With annotation counts' },
     ],
   },
   {
     id: 'dialogs',
     title: 'Dialogs',
-    columns: 4,
+    columns: 3,
     slotWidth: 260,
     slots: [
       { id: 'shortcuts', label: 'Keyboard shortcuts' },
       { id: 'labels', label: 'Quick labels' },
       { id: 'confirm', label: 'Confirm' },
-      { id: 'fluid', label: 'Fluid' },
-    ],
-  },
-  {
-    id: 'code',
-    title: 'Code files',
-    columns: 2,
-    slotWidth: 320,
-    slots: [
-      { id: 'popout', label: 'Popout' },
-      { id: 'picker', label: 'Picker, for a link that matches several files' },
     ],
   },
   {
@@ -168,27 +158,27 @@ export const CANVAS_GROUPS = [
   },
   {
     id: 'side-chat',
-    title: 'Side chat (proposal)',
-    columns: 2,
-    slotWidth: 900,
+    title: 'Side chat',
+    columns: 3,
+    slotWidth: 460,
     slots: [
-      { id: 'card', label: 'Corner card' },
-      { id: 'column', label: 'Column' },
-      { id: 'panel', label: 'In the panel' },
-      { id: 'inline', label: 'Under the highlight' },
+      { id: 'loading', label: 'Waiting for the answer' },
+      { id: 'answered', label: 'Answered. Reply for a canned answer.' },
+      { id: 'failed', label: 'Failed' },
     ],
   },
 ] as const satisfies readonly GroupSpec[];
 
 /** States and components left off the canvas, and why. */
 export const CANVAS_OMISSIONS: readonly { what: string; why: string }[] = [
-  { what: 'Images in the composer, cards and document', why: 'Image previews load from /api/image, which the dev server does not serve.' },
   { what: 'The narrow header', why: 'Its layout follows the window width, so a narrow frame on the canvas still shows the wide one.' },
+  { what: 'Escape in the shortcuts dialog with focus outside it', why: 'The dialog closes on Escape only while focus is inside it, as in the app.' },
+  { what: 'React strict mode', why: 'Its second ref pass empties the code view in the document samples.' },
   { what: 'Plan diff badge with no earlier version', why: 'It renders nothing.' },
   { what: 'Mermaid and Graphviz diagrams', why: 'They load large renderers on demand; they are document content more than app UI.' },
   { what: 'Review app components', why: 'This canvas covers the annotate app.' },
   { what: 'The proposed table of contents style', why: 'Waiting on a decision.' },
-  { what: 'Fluid versions of the panel, rail, TOC, plan diff and completion screen', why: 'None built yet.' },
+  { what: 'Fluid versions of the other components', why: 'The app uses Fluid components directly; only the command menu waits to replace ours.' },
 ];
 
 type Group = (typeof CANVAS_GROUPS)[number];

@@ -1,14 +1,12 @@
 import React, { useRef, useEffect } from "react";
-import { isCodeFilePath } from "@/shared/code-file";
 import type { Block } from "../../types";
 import { sanitizeBlockHtml } from "../../utils/sanitizeHtml";
-import { getImageSrc } from "../ImageThumbnail";
+import { getImageSrc } from "../../utils/imageSrc";
 
 interface HtmlBlockProps {
   block: Block;
   imageBaseDir?: string;
   onOpenLinkedDoc?: (path: string) => void;
-  onOpenCodeFile?: (path: string) => void;
   onNavigateAnchor?: (hash: string) => void;
 }
 
@@ -23,7 +21,6 @@ function rewriteRelativeRefs(
   root: HTMLElement,
   imageBaseDir?: string,
   onOpenLinkedDoc?: (path: string) => void,
-  onOpenCodeFile?: (path: string) => void,
   onNavigateAnchor?: (hash: string) => void,
 ): (() => void) {
   const cleanups: (() => void)[] = [];
@@ -59,15 +56,6 @@ function rewriteRelativeRefs(
       cleanups.push(() => a.removeEventListener('click', handler));
       return;
     }
-    if (onOpenCodeFile && isCodeFilePath(href)) {
-      const handler = (e: Event) => {
-        e.preventDefault();
-        onOpenCodeFile(href.replace(/#.*$/, ''));
-      };
-      a.addEventListener('click', handler);
-      cleanups.push(() => a.removeEventListener('click', handler));
-      return;
-    }
     if (onOpenLinkedDoc && /\.(mdx?|txt|html?)(#.*)?$/i.test(href)) {
       const handler = (e: Event) => {
         e.preventDefault();
@@ -87,7 +75,7 @@ function rewriteRelativeRefs(
 // re-set on every parent re-render would collapse any open <details> the
 // user just opened. Paired with React.memo below so the component itself
 // stops re-rendering unless the block content actually changes.
-const HtmlBlockImpl: React.FC<HtmlBlockProps> = ({ block, imageBaseDir, onOpenLinkedDoc, onOpenCodeFile, onNavigateAnchor }) => {
+const HtmlBlockImpl: React.FC<HtmlBlockProps> = ({ block, imageBaseDir, onOpenLinkedDoc, onNavigateAnchor }) => {
   const ref = useRef<HTMLDivElement>(null);
   const sanitized = React.useMemo(
     () => sanitizeBlockHtml(block.content),
@@ -98,9 +86,9 @@ const HtmlBlockImpl: React.FC<HtmlBlockProps> = ({ block, imageBaseDir, onOpenLi
     if (ref.current.innerHTML !== sanitized) {
       ref.current.innerHTML = sanitized;
     }
-    const cleanup = rewriteRelativeRefs(ref.current, imageBaseDir, onOpenLinkedDoc, onOpenCodeFile, onNavigateAnchor);
+    const cleanup = rewriteRelativeRefs(ref.current, imageBaseDir, onOpenLinkedDoc, onNavigateAnchor);
     return cleanup;
-  }, [sanitized, imageBaseDir, onOpenLinkedDoc, onOpenCodeFile, onNavigateAnchor]);
+  }, [sanitized, imageBaseDir, onOpenLinkedDoc, onNavigateAnchor]);
   return (
     <div
       ref={ref}
@@ -117,6 +105,5 @@ export const HtmlBlock = React.memo(
     prev.block.content === next.block.content &&
     prev.imageBaseDir === next.imageBaseDir &&
     prev.onOpenLinkedDoc === next.onOpenLinkedDoc &&
-    prev.onOpenCodeFile === next.onOpenCodeFile &&
     prev.onNavigateAnchor === next.onNavigateAnchor,
 );

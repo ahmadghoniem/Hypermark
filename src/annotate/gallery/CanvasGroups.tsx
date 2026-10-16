@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUp, Copy01, Download01, Keyboard01, Moon01, Plus, Settings01, Tag01 } from '@untitledui/icons';
+import React, { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Copy01, Download01, Keyboard01, Moon01, Plus, Settings01, Tag01 } from '@untitledui/icons';
 import { toast } from 'sonner';
 
 import { Button as NowButton } from '@/ui/components/ui/button';
@@ -13,8 +13,6 @@ import { TableOfContents } from '@/ui/components/TableOfContents';
 import { KeyboardShortcutsDialog } from '@/ui/components/KeyboardShortcutsDialog';
 import { QuickLabelsButton } from '@/ui/components/QuickLabelsSettings';
 import { ConfirmDialog } from '@/ui/components/ConfirmDialog';
-import { CodeFilePopout } from '@/ui/components/CodeFilePopout';
-import { CodeFilePicker } from '@/ui/components/CodeFilePicker';
 import { CompletionOverlay } from '@/ui/components/CompletionOverlay';
 import { Viewer } from '@/ui/components/Viewer';
 import { BlockRenderer } from '@/ui/components/BlockRenderer';
@@ -22,28 +20,23 @@ import { BlockOutline } from '@/ui/components/BlockOutline';
 import { TabHint } from '@/ui/components/TabHint';
 import { PlanDiffBadge } from '@/ui/components/plan-diff/PlanDiffBadge';
 import { PlanDiffViewer } from '@/ui/components/plan-diff/PlanDiffViewer';
+import { SideChatCard } from '@/ui/components/SideChatCard';
+import type { SideChatThread } from '@/ui/hooks/useSideChat';
 import { StickyHeaderLane } from '@/ui/components/StickyHeaderLane';
 import { VersionBrowser } from '@/ui/components/sidebar/VersionBrowser';
 import { parseMarkdownToBlocks } from '@/ui/utils/parser';
 import { computePlanDiff } from '@/ui/utils/planDiffEngine';
 import { DEFAULT_QUICK_LABELS, type QuickLabel } from '@/ui/utils/quickLabels';
-import { AnnotationType, type Annotation, type CodeAnnotation } from '@/ui/types';
+import type { Annotation, ImageAttachment } from '@/ui/types';
 
-import { Button } from '@/ui/fluid/components/button';
-import { TabsSubtle, TabsSubtleItem } from '@/ui/fluid/components/tabs-subtle';
-import {
-  Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogClose,
-} from '@/ui/fluid/components/dialog';
 import {
   CommandMenu, CommandMenuInput, CommandMenuList, CommandMenuEmpty, type CommandMenuItemData,
 } from '@/ui/fluid/components/command-menu';
 
-import { NewComposer } from './NewComposer';
-import { SideChatDemo, type SideChatLayout } from './SideChat';
 import type { CanvasRenderers } from './canvasManifest';
 import {
-  CODE_CONTENTS, CODE_MATCHES, CODE_PATH, PANEL_ANNOTATIONS, PANEL_CODE_ANNOTATIONS, PLAN_V1, PLAN_V2, QUOTE,
-  RAIL_GROUPS, RAIL_LONG_ONLY, RAIL_MESSAGES, SAMPLE_MARKDOWN, TAB_MARKDOWN, VERSIONS, VERSION_INFO, annotation,
+  IMAGES, PANEL_ANNOTATIONS, PLAN_V1, PLAN_V2, QUOTE,
+  RAIL_GROUPS, RAIL_LONG_ONLY, RAIL_MESSAGES, SAMPLE_MARKDOWN, TAB_MARKDOWN, VERSIONS, VERSION_INFO,
 } from './canvasData';
 
 const HIGHLIGHT = 'w-fit bg-[oklch(0.86_0.17_95/0.35)] text-body text-foreground';
@@ -56,11 +49,31 @@ const say = (message: string) => () => { toast(message); };
 /** Which composer is open. One at a time, as in the app. */
 const OpenComposer = createContext<[string | null, (id: string | null) => void]>([null, () => {}]);
 
+/** Puts the open composer's textarea into a state no prop reaches. */
+type Prepare = (textarea: HTMLTextAreaElement) => void;
+
+/** Pastes an image the dev mock API refuses, so the chip shows the error. */
+const pasteFailingUpload: Prepare = (textarea) => {
+  const data = new DataTransfer();
+  data.items.add(new File([new Uint8Array(64)], 'fail-too-large.png', { type: 'image/png' }));
+  textarea.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true }));
+};
+
+/** Types text the way a user would, so React sees the change. */
+const typeText = (text: string): Prepare => (textarea) => {
+  Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set?.call(textarea, text);
+  textarea.dispatchEvent(new Event('input', { bubbles: true }));
+};
+
+const typeSideQuestion = typeText('/btw why does the link text run into the code?');
+
 const NowComposerSlot: React.FC<{
   id: string;
   isGlobal?: boolean;
   initialText?: string;
-}> = ({ id, isGlobal = false, initialText }) => {
+  initialImages?: ImageAttachment[];
+  prepare?: Prepare;
+}> = ({ id, isGlobal = false, initialText, initialImages, prepare }) => {
   const [openId, setOpenId] = useContext(OpenComposer);
   // Anchored like the app: to the highlight, or to the + for a global comment.
   const highlightRef = useRef<HTMLSpanElement>(null);
@@ -68,6 +81,14 @@ const NowComposerSlot: React.FC<{
   const anchor = isGlobal ? buttonRef.current : highlightRef.current;
   const open = openId === id;
   const close = () => setOpenId(null);
+  useEffect(() => {
+    if (!open || !prepare) return;
+    const frame = requestAnimationFrame(() => {
+      const textarea = document.querySelector<HTMLTextAreaElement>('[data-comment-popover] textarea');
+      if (textarea) prepare(textarea);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [open, prepare]);
   return (
     <div className="flex flex-col items-start gap-3">
       {isGlobal ? (
@@ -86,9 +107,11 @@ const NowComposerSlot: React.FC<{
           copyText={isGlobal ? undefined : QUOTE}
           isGlobal={isGlobal}
           initialText={initialText}
+          initialImages={initialImages}
           quickLabels={DEFAULT_QUICK_LABELS}
           onQuickLabel={(label: QuickLabel) => { toast(`Label: ${label.text}`); close(); }}
-          onSubmit={(text) => { toast(`Saved: ${text}`); close(); }}
+          onAsk={isGlobal ? undefined : (question) => { toast(`Side question: ${question}`); close(); }}
+          onSubmit={(text, images) => { toast(`Saved: ${text}${images?.length ? ` + ${images.length} image(s)` : ''}`); close(); }}
           onClose={close}
         />
       )}
@@ -96,35 +119,14 @@ const NowComposerSlot: React.FC<{
   );
 };
 
-const useComposerProps = () => {
-  const [labels, setLabels] = useState<QuickLabel[]>([...DEFAULT_QUICK_LABELS]);
-  return {
-    quickLabels: labels,
-    sendIcon: ArrowUp,
-    sendVariant: 'primary' as const,
-    onSubmit: (text: string, files: File[]) => toast(`Added: ${text || '(no text)'}${files.length ? ` + ${files.length} image(s)` : ''}`),
-    onSaveLabel: (text: string) => {
-      setLabels((prev) => [...prev, { id: text.toLowerCase().split(' ').join('-'), emoji: '', text }]);
-      toast(`Saved "${text}" as a quick label`);
-    },
-  };
-};
-
-const FluidComposerSlot: React.FC = () => {
-  const props = useComposerProps();
-  return <NewComposer quote={QUOTE} {...props} autoFocus={false} onAsk={(q) => toast(`Side question: ${q || '(empty)'}`)} />;
-};
-
 // --- Annotations panel ------------------------------------------------------
 
 const PanelSlot: React.FC<{
   annotations?: Annotation[];
-  codeAnnotations?: CodeAnnotation[];
   selected?: string | null;
   scope?: AnnotationScope;
-}> = ({ annotations: initial = [], codeAnnotations: initialCode = [], selected = null, scope: initialScope }) => {
+}> = ({ annotations: initial = [], selected = null, scope: initialScope }) => {
   const [annotations, setAnnotations] = useState(initial);
-  const [codeAnnotations, setCodeAnnotations] = useState(initialCode);
   const [selectedId, setSelectedId] = useState<string | null>(selected);
   const [scope, setScope] = useState<AnnotationScope>(initialScope ?? 'this');
   return (
@@ -133,30 +135,16 @@ const PanelSlot: React.FC<{
         isOpen
         annotations={annotations}
         blocks={[]}
-        codeAnnotations={codeAnnotations}
         selectedId={selectedId}
         onSelectAnnotation={(id) => setSelectedId((prev) => (prev === id ? null : id))}
         onDeleteAnnotation={(id) => setAnnotations((prev) => prev.filter((a) => a.id !== id))}
-        onEditAnnotation={(id, updates) => setAnnotations((prev) => prev.map((a) => (a.id === id ? { ...a, ...updates } : a)))}
-        onSelectCodeAnnotation={(id) => setSelectedId((prev) => (prev === id ? null : id))}
-        onDeleteCodeAnnotation={(id) => setCodeAnnotations((prev) => prev.filter((a) => a.id !== id))}
-        onEditCodeAnnotation={(id, updates) => setCodeAnnotations((prev) => prev.map((a) => (a.id === id ? { ...a, ...updates } : a)))}
+        onOpenAnnotation={say('Opens the composer on this annotation')}
         scope={initialScope ? scope : undefined}
         onScopeChange={initialScope ? setScope : undefined}
         messageGroups={initialScope ? RAIL_GROUPS : undefined}
         onAddGlobalComment={say('Opens the global composer')}
       />
     </div>
-  );
-};
-
-const FluidScopeSlot: React.FC = () => {
-  const [tab, setTab] = useState(0);
-  return (
-    <TabsSubtle idPrefix="canvas-scope" size="compact" selectedIndex={tab} onSelect={setTab}>
-      <TabsSubtleItem index={0} label="Current" />
-      <TabsSubtleItem index={1} label="All" />
-    </TabsSubtle>
   );
 };
 
@@ -182,9 +170,6 @@ const RailSlot: React.FC<{ messages: PickerMessage[]; selected: string; showShor
 
 const DECISION_HANDLERS: Record<DecisionActionId, DecisionHandler> = {
   'primary': say('Primary action'),
-  'note-with-approval': (note) => toast(`Approve with a note: ${note ?? ''}`),
-  'request-changes': (note) => toast(`Request changes: ${note ?? ''}`),
-  'note-with-feedback': (note) => toast(`Send with a note: ${note ?? ''}`),
   'approve-with-notes': say('Approve with notes'),
   'close-session': say('Close session'),
 };
@@ -219,22 +204,13 @@ const HEADER_DECISION = {
 
 const useSampleBlocks = () => useMemo(() => parseMarkdownToBlocks(SAMPLE_MARKDOWN), []);
 
-const TocSlot: React.FC<{ active?: boolean; counts?: boolean }> = ({ active = false, counts = false }) => {
+const TocSlot: React.FC<{ active?: boolean }> = ({ active = false }) => {
   const blocks = useSampleBlocks();
   const headings = blocks.filter((b) => b.type === 'heading');
   const [activeId, setActiveId] = useState<string | null>(active ? headings[1]?.id ?? null : null);
-  const annotations = useMemo(() => {
-    if (!counts) return [];
-    const at = (content: string) => blocks.find((b) => b.content.startsWith(content))?.id ?? '';
-    return [
-      annotation('t1', AnnotationType.COMMENT, 'keeps the file', 'Memory?', 3, { blockId: at('The uploader') }),
-      annotation('t2', AnnotationType.DELETION, 'Three retries', undefined, 2, { blockId: at('Three retries') }),
-      annotation('t3', AnnotationType.COMMENT, 'toast', 'Yes, a toast.', 1, { blockId: at('Show a toast') }),
-    ];
-  }, [blocks, counts]);
   return (
     <div className={`${FRAME} w-60 bg-card`}>
-      <TableOfContents blocks={blocks} annotations={annotations} activeId={activeId} onNavigate={setActiveId} className="" />
+      <TableOfContents blocks={blocks} activeId={activeId} onNavigate={setActiveId} className="" />
     </div>
   );
 };
@@ -267,79 +243,6 @@ const ConfirmSlot: React.FC = () => {
         variant="warning"
       />
     </>
-  );
-};
-
-const FluidDialogSlot: React.FC = () => (
-  <Dialog>
-    <DialogTrigger render={<Button size="compact" variant="tertiary" className="self-start">Open dialog</Button>} />
-    <DialogContent size="sm">
-      <DialogHeader>
-        <DialogTitle>Discard annotations?</DialogTitle>
-        <DialogDescription>This removes all 4 annotations on this message.</DialogDescription>
-      </DialogHeader>
-      <DialogFooter>
-        <DialogClose render={<Button variant="ghost">Cancel</Button>} />
-        <DialogClose render={<Button>Discard</Button>} />
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
-);
-
-// --- Code files -------------------------------------------------------------
-
-const PopoutSlot: React.FC = () => {
-  const [open, setOpen] = useState(false);
-  const [annotations, setAnnotations] = useState<CodeAnnotation[]>(PANEL_CODE_ANNOTATIONS);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  return (
-    <>
-      <NowButton size="sm" variant="outline" className="self-start" onClick={() => setOpen(true)}>Open {CODE_PATH}</NowButton>
-      <CodeFilePopout
-        open={open}
-        onClose={() => setOpen(false)}
-        filepath={CODE_PATH}
-        contents={CODE_CONTENTS}
-        annotations={annotations}
-        selectedAnnotationId={selectedId}
-        onSelectAnnotation={setSelectedId}
-        onAddAnnotation={(input) => setAnnotations((prev) => [...prev, {
-          id: `c-${Date.now()}`,
-          type: 'comment',
-          scope: 'line',
-          side: 'new',
-          createdAt: Date.now(),
-          ...input,
-        }])}
-        onEditAnnotation={(id, updates) => setAnnotations((prev) => prev.map((a) => (a.id === id ? { ...a, ...updates } : a)))}
-        onDeleteAnnotation={(id) => setAnnotations((prev) => prev.filter((a) => a.id !== id))}
-      />
-    </>
-  );
-};
-
-const PickerSlot: React.FC = () => {
-  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-  return (
-    <div className="text-body text-foreground/90">
-      The loop lives in{' '}
-      <button
-        type="button"
-        onClick={(e) => setAnchor(anchor ? null : e.currentTarget)}
-        className="cursor-pointer font-mono text-[0.9em] text-primary underline decoration-primary/40 underline-offset-2"
-      >
-        retry.ts
-      </button>
-      .
-      {anchor && (
-        <CodeFilePicker
-          anchorEl={anchor}
-          matches={CODE_MATCHES}
-          onPick={(path) => { toast(`Opens ${path}`); setAnchor(null); }}
-          onDismiss={() => setAnchor(null)}
-        />
-      )}
-    </div>
   );
 };
 
@@ -515,9 +418,43 @@ const PlanDiffSlot: React.FC = () => {
 
 // --- Side chat --------------------------------------------------------------
 
-const SideChatSlot: React.FC<{ layout: SideChatLayout }> = ({ layout }) => {
-  const props = useComposerProps();
-  return <SideChatDemo layout={layout} quote={QUOTE} {...props} />;
+const SIDE_CHAT_QUESTION = 'Why does the link text run into the code?';
+const SIDE_CHAT_ANSWER = 'The link and the inline code are separate elements with no space between them in the source, '
+  + 'so they render touching. Adding a space after the link fixes it.';
+
+const SIDE_CHAT: Record<'loading' | 'answered' | 'failed', SideChatThread> = {
+  loading: { quote: QUOTE, messages: [{ role: 'user', text: SIDE_CHAT_QUESTION }], pending: true, error: null },
+  answered: {
+    quote: QUOTE,
+    messages: [{ role: 'user', text: SIDE_CHAT_QUESTION }, { role: 'assistant', text: SIDE_CHAT_ANSWER }],
+    pending: false,
+    error: null,
+  },
+  failed: { quote: QUOTE, messages: [{ role: 'user', text: SIDE_CHAT_QUESTION }], pending: false, error: 'Side chat isn\'t connected yet' },
+};
+
+/**
+ * The card in a frame the size of a short document area. Shown on click: its
+ * reply box takes focus when it mounts. A reply gets a canned answer.
+ */
+const SideChatSlot: React.FC<{ state: keyof typeof SIDE_CHAT }> = ({ state }) => {
+  const [thread, setThread] = useState<SideChatThread | null>(null);
+  const onSend = (question: string) => {
+    setThread((t) => t && { ...t, messages: [...t.messages, { role: 'user', text: question }], pending: true, error: null });
+    setTimeout(() => {
+      setThread((t) => t && { ...t, messages: [...t.messages, { role: 'assistant', text: SIDE_CHAT_ANSWER }], pending: false });
+    }, 1500);
+  };
+  return (
+    <div className="flex flex-col gap-3">
+      <NowButton size="xs" variant="outline" className="w-fit" onClick={() => setThread((t) => (t ? null : SIDE_CHAT[state]))}>
+        {thread ? 'Close' : 'Show'}
+      </NowButton>
+      <div className={`${FRAME} relative h-160`}>
+        {thread && <SideChatCard thread={thread} onSend={onSend} onClose={() => setThread(null)} />}
+      </div>
+    </div>
+  );
 };
 
 // --- Renderers --------------------------------------------------------------
@@ -527,14 +464,16 @@ export const CANVAS_RENDERERS: CanvasRenderers = {
     'now-quote': () => <NowComposerSlot id="quote" />,
     'now-edit': () => <NowComposerSlot id="edit" initialText="What about large files? Memory could get tight." />,
     'now-global': () => <NowComposerSlot id="global" isGlobal />,
-    'fluid': () => <FluidComposerSlot />,
+    'images': () => <NowComposerSlot id="images" initialImages={IMAGES} />,
+    'upload-failed': () => <NowComposerSlot id="upload-failed" prepare={pasteFailingUpload} />,
+    'btw': () => <NowComposerSlot id="btw" prepare={typeSideQuestion} />,
+    'edit-images': () => <NowComposerSlot id="edit-images" initialText="What about large files? Memory could get tight." initialImages={IMAGES.slice(0, 1)} />,
   },
   'panel': {
     'empty': () => <PanelSlot />,
-    'cards': () => <PanelSlot annotations={PANEL_ANNOTATIONS} codeAnnotations={PANEL_CODE_ANNOTATIONS} />,
-    'selected': () => <PanelSlot annotations={PANEL_ANNOTATIONS} codeAnnotations={PANEL_CODE_ANNOTATIONS} selected="a-comment" />,
+    'cards': () => <PanelSlot annotations={PANEL_ANNOTATIONS} />,
+    'selected': () => <PanelSlot annotations={PANEL_ANNOTATIONS} selected="a-comment" />,
     'all': () => <PanelSlot annotations={RAIL_GROUPS[0].annotations} scope="all" />,
-    'fluid-tabs': () => <FluidScopeSlot />,
   },
   'rail': {
     'shown': () => <RailSlot messages={RAIL_MESSAGES} selected="m2" showShort />,
@@ -567,17 +506,11 @@ export const CANVAS_RENDERERS: CanvasRenderers = {
   'toc': {
     'plain': () => <TocSlot />,
     'active': () => <TocSlot active />,
-    'counts': () => <TocSlot active counts />,
   },
   'dialogs': {
     'shortcuts': () => <ShortcutsSlot />,
     'labels': () => <div className="w-fit"><QuickLabelsButton /></div>,
     'confirm': () => <ConfirmSlot />,
-    'fluid': () => <FluidDialogSlot />,
-  },
-  'code': {
-    'popout': () => <PopoutSlot />,
-    'picker': () => <PickerSlot />,
   },
   'completion': {
     'approved': () => <CompletionSlot kind="approved" />,
@@ -612,10 +545,9 @@ export const CANVAS_RENDERERS: CanvasRenderers = {
     'rendered': () => <PlanDiffSlot />,
   },
   'side-chat': {
-    'card': () => <SideChatSlot layout="card" />,
-    'column': () => <SideChatSlot layout="column" />,
-    'panel': () => <SideChatSlot layout="panel" />,
-    'inline': () => <SideChatSlot layout="inline" />,
+    'loading': () => <SideChatSlot state="loading" />,
+    'answered': () => <SideChatSlot state="answered" />,
+    'failed': () => <SideChatSlot state="failed" />,
   },
 };
 

@@ -130,7 +130,6 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
     type: AnnotationType,
     text?: string,
     images?: ImageAttachment[],
-    quickLabelTip?: string,
   ) => {
     const content = getBlockContent(block, diffContext);
     const now = Date.now();
@@ -146,7 +145,6 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
       createdA: now,
       images,
       diffContext,
-      ...(quickLabelTip ? { quickLabelTip } : {}),
     };
 
     onAddAnnotationRef.current?.(newAnnotation);

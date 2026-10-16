@@ -371,8 +371,17 @@ body:has([data-pn-browser-canvas="background"]) {
 }
 
 /* Selection */
-::selection {
-  background: oklch(from var(--primary) l c h / 0.3);
+/* In the document only, a solid highlight yellow: no blue, and no darker
+   seams where lines overlap. The rest of the app (the composer, the panel,
+   the chrome) keeps the browser's selection color. */
+:root {
+  --selection: color-mix(in oklch, oklch(0.86 0.17 95) 35%, var(--background));
+}
+.light {
+  --selection: color-mix(in oklch, oklch(0.93 0.16 100) 70%, var(--background));
+}
+[data-annotation-root] ::selection {
+  background: var(--selection);
 }
 /* While Tab has widened a drag, the outline shows what release takes. */
 [data-selection-widened] ::selection {
@@ -415,11 +424,7 @@ html:not(.transitions-ready) * {
   }
 }
 
-/* Focus states */
-:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-}
+/* Focus rings come from fluid.css. */
 
 /* The comment composer's textarea already sits inside a bordered card that is
    only ever shown while it holds focus, so the global ring drew a second frame
@@ -428,6 +433,7 @@ html:not(.transitions-ready) * {
    Buttons inside the composer keep their ring. */
 [data-comment-popover] textarea:focus-visible {
   outline: none;
+  border-radius: 0; /* fluid.css rounds every focused element, which clipped the selection's corners */
 }
 
 /* Shared file tree styling used by review and annotation sidebars. */
@@ -702,83 +708,78 @@ body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
 /* Annotation highlights — shared by the plan editor and the code-review
    description annotations. (Moved here from src/annotate/index.css so both
    surfaces render web-highlighter marks identically.)
-   Every highlight is yellow, including the pending one while the composer is
-   open; a saved comment adds a darker band along the bottom edge, drawn
-   inside the box so it doesn't shift the line.
-   An inline background only covers the font's content area, well short of
-   the line box the browser's own selection fills. Block padding stretches
-   the mark to the whole line box, like the selection, which inline padding
-   does without moving the layout.
-   The padding is measured from the baseline, because Chrome doesn't center
-   the content area in the line: it rounds the font's ascent and descent to
-   whole pixels and floors the space above them. Centering on the content
-   area put the band up to 1px above the selection, so the text looked like
-   it dropped when the selection turned yellow. --hl-lh and --hl-base (the
-   baseline's offset from the line top) are taken from the text the mark sits
-   in: its parent, or the inline-code chip's parent for a mark inside one, so
-   that mark gets the same band as the text around it.
-   The ascent and descent below are Inter's and Geist Mono's, the fonts every
-   theme uses. */
+   Styled like the Web Highlights extension: an opaque yellow fill on the
+   font's content area only (no padding), so wrapped lines show a gap between
+   them, with black text on it in both themes. Every highlight is yellow,
+   including the pending one while the composer is open; a saved comment adds
+   a border along the bottom, 20% darker than the fill, which sits under the
+   descenders (g, j, p, q, y). Child elements (links, code, syntax tokens)
+   take the mark's text color so they stay readable on the fill. */
+.annotation-highlight {
+  color: #000;
+  background: #f5d75e;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.annotation-highlight * {
+  color: inherit;
+}
+/* The live selection fills the whole line box. --hl-lh is the line height of
+   the text a selection sits in (the inline-code chip's parent for a chip), so
+   the chip-edge paint below matches it. */
 @property --hl-lh {
   syntax: '<length>';
   inherits: true;
   initial-value: 0px;
 }
-@property --hl-base {
-  syntax: '<length>';
-  inherits: true;
-  initial-value: 0px;
-}
-:where(:not(code):has(> .annotation-highlight), :has(> code > .annotation-highlight)) {
+:where(:has(> code[data-sel-start]), :has(> code[data-sel-end])) {
   --hl-lh: 1lh;
-  --hl-base: calc(
-    round(down, (1lh - round(0.96875em, 1px) - round(0.2421875em, 1px)) / 2, 1px)
-    + round(0.96875em, 1px)
-  );
-}
-.annotation-highlight {
-  --hl-ascent: round(0.96875em, 1px);
-  --hl-descent: round(0.2421875em, 1px);
-  color: inherit;
-  background: oklch(0.86 0.17 95 / 0.35);
-  padding-top: calc(var(--hl-base) - var(--hl-ascent));
-  padding-bottom: calc(var(--hl-lh) - var(--hl-base) - var(--hl-descent));
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
-}
-:not(pre) > code .annotation-highlight {
-  --hl-ascent: round(1em, 1px);
-  --hl-descent: round(0.295em, 1px);
 }
 /* A mark at the chip's edge covers the chip's padding (px-1.5) on that side,
-   so it joins the highlighted text outside the chip. The file-link chip is
-   inline-flex with an icon after the text, so it keeps its gaps. */
-:not(pre) > code:not(.code-file-link) .annotation-highlight[data-chip-start] {
+   so it joins the highlighted text outside the chip. */
+:not(pre) > code .annotation-highlight[data-chip-start] {
   margin-left: -0.375rem;
   padding-left: 0.375rem;
 }
-:not(pre) > code:not(.code-file-link) .annotation-highlight[data-chip-end] {
+:not(pre) > code .annotation-highlight[data-chip-end] {
   margin-right: -0.375rem;
   padding-right: 0.375rem;
 }
-/* The highlight is see-through, so a fully highlighted chip's grey box showed
-   inside the band as a shorter block (22px in a 24px band, off-center by a
-   fraction of a pixel). The chip drops its background while covered; the
-   monospace text still marks it as code. */
-:not(pre) > code:not(.code-file-link):has(> .annotation-highlight[data-chip-start]):has(> .annotation-highlight[data-chip-end]) {
+/* A drag across a chip's edge paints that edge's padding in the selection
+   color (tagged by useAnnotationHighlighter), over the full line box like the
+   browser's selection. `top: auto` leaves the box at its static position, the
+   top of its line box as the browser lays it out, so the paint lines up with
+   the selection at any font metrics and zoom; a top computed from the font's
+   ascent could miss it by a device pixel. */
+:not(pre) > code:is([data-sel-start], [data-sel-end]) {
+  position: relative;
+}
+:not(pre) > code[data-sel-start]::before,
+:not(pre) > code[data-sel-end]::after {
+  content: '';
+  position: absolute;
+  top: auto;
+  height: var(--hl-lh);
+  width: 0.375rem;
+  background: var(--selection);
+  pointer-events: none;
+}
+:not(pre) > code[data-sel-start]::before {
+  left: 0;
+}
+:not(pre) > code[data-sel-end]::after {
+  right: 0;
+}
+[data-selection-widened] :not(pre) > code::before,
+[data-selection-widened] :not(pre) > code::after {
+  display: none;
+}
+/* The chip's grey box is taller than the mark's fill, so it showed above and
+   below a fully highlighted chip. The chip drops its background while
+   covered; the monospace text still marks it as code. */
+:not(pre) > code:has(> .annotation-highlight[data-chip-start]):has(> .annotation-highlight[data-chip-end]) {
   background: transparent;
 }
-/* Fenced code and math are boxes, where padding would move the layout. */
-pre .annotation-highlight,
-.annotation-highlight.math-inline-annotation,
-.annotation-highlight.math-block-annotation {
-  padding-block: 0;
-}
-
-.light .annotation-highlight {
-  background: oklch(0.93 0.16 100 / 0.7);
-}
-
 /* Math annotations style the rendered formula element directly rather than
    wrapping text in a <mark>, so they need their own display handling. */
 .annotation-highlight.math-inline-annotation {
@@ -792,6 +793,7 @@ pre .annotation-highlight,
 }
 
 .annotation-highlight.deletion {
+  color: inherit;
   background: oklch(from var(--destructive) l c h / 0.35);
   text-decoration: line-through;
   text-decoration-color: var(--destructive);
@@ -799,28 +801,26 @@ pre .annotation-highlight,
 }
 
 .annotation-highlight.comment {
-  box-shadow: inset 0 -3px 0 oklch(0.78 0.16 88 / 0.8);
+  border-bottom: 3px solid #c4ac4b;
 }
 
-/* Light mode: softer highlights */
 .light .annotation-highlight.deletion {
   background: oklch(0.65 0.22 25 / 0.2);
 }
 
-.light .annotation-highlight.comment {
-  box-shadow: inset 0 -3px 0 oklch(0.80 0.16 88 / 0.85);
-}
-
+/* The selected annotation: the theme's focus color, opaque, with its border
+   20% darker. Dark themes have bright focus colors, so the text stays black;
+   light themes' are dark, so the fill is mixed into the page and the text
+   keeps the page color. */
 .annotation-highlight.focused {
-  background: oklch(from var(--focus-highlight) l c h / 0.45) !important;
-  box-shadow: 0 0 8px oklch(from var(--focus-highlight) l c h / 0.4);
-  border-bottom: 2px solid var(--focus-highlight);
+  background: var(--focus-highlight) !important;
+  border-bottom: 3px solid oklch(from var(--focus-highlight) calc(l * 0.8) c h);
   filter: none;
 }
 
 .light .annotation-highlight.focused {
-  background: oklch(0.70 0.22 200 / 0.3) !important;
-  box-shadow: 0 0 6px oklch(0.60 0.20 200 / 0.3);
+  color: var(--foreground);
+  background: color-mix(in oklch, var(--focus-highlight) 30%, var(--background)) !important;
 }
 
 /* .hovered is set on every mark of the annotation under the pointer

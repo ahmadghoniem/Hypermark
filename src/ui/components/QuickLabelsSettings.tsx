@@ -1,20 +1,24 @@
 import React, { useCallback, useRef, useState } from 'react';
+import { Button } from '@/ui/fluid/components/button';
+import { ScrollArea } from '@/ui/fluid/components/scroll-area';
+import { Tooltip } from '@/ui/fluid/components/tooltip';
+import { popupViewportClass } from '@/ui/fluid/lib/popup';
 import { Popover, PopoverTrigger, PopoverContent } from './Popover';
 import { useQuickLabels } from '../hooks/useQuickLabels';
 import {
   QUICK_LABEL_MAX_COUNT,
-  QUICK_LABEL_MAX_TIP,
   quickLabelId,
   type QuickLabel,
 } from '../utils/quickLabels';
 
 import { Edit02, Plus, Tag01, XClose } from '@untitledui/icons';
-type Draft = { id?: string; text: string; tip: string };
+type Draft = { id?: string; text: string };
 
 export const QuickLabelsButton: React.FC = () => {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [labels, save] = useQuickLabels();
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   const moveLabel = (fromIdx: number, toIdx: number) => {
     const next = [...labels];
@@ -92,14 +96,8 @@ export const QuickLabelsButton: React.FC = () => {
       setError('That is as many labels as fit.');
       return;
     }
-    const tip = draft.tip.trim();
     const id = draft.id ?? quickLabelId(draft.text, labels.map((l) => l.id));
-    const newLabel: QuickLabel = {
-      id,
-      emoji: '',
-      text,
-      ...(tip ? { tip } : {}),
-    };
+    const newLabel: QuickLabel = { id, emoji: '', text };
     const next = draft.id
       ? labels.map((l) => (l.id === draft.id ? newLabel : l))
       : [...labels, newLabel];
@@ -109,19 +107,16 @@ export const QuickLabelsButton: React.FC = () => {
   };
 
   return (
-    <Popover onOpenChange={(open) => { if (!open) { setDraft(null); setError(null); } }}>
-      <PopoverTrigger
-        render={
-          <button
-            type="button"
-            className="flex h-7 items-center justify-center rounded-md px-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-popup-open:bg-muted data-popup-open:text-foreground"
-            title="Quick labels"
-            aria-label="Quick labels"
-          />
-        }
-      >
-        <Tag01 className="size-4" />
-      </PopoverTrigger>
+    <Popover open={open} onOpenChange={(next) => { setOpen(next); if (!next) { setDraft(null); setError(null); } }}>
+      <Tooltip content="Quick labels" side="bottom">
+        <PopoverTrigger
+          render={
+            <Button variant="ghost" size="icon-compact" active={open} aria-label="Quick labels" />
+          }
+        >
+          <Tag01 className="size-4" />
+        </PopoverTrigger>
+      </Tooltip>
       <PopoverContent side="bottom" align="end" className="w-72 p-0">
         {draft === null ? (
           <div>
@@ -129,7 +124,8 @@ export const QuickLabelsButton: React.FC = () => {
               <span className="text-caption font-semibold">Quick labels</span>
             </div>
 
-            <div ref={listRef} className="max-h-64 overflow-y-auto p-1.5 space-y-0.5">
+            <ScrollArea className="max-h-64 min-h-0" viewportClassName={popupViewportClass}>
+            <div ref={listRef} className="p-1.5 space-y-0.5">
               {labels.map((label, index) => {
                 const lifted = drag?.from === index;
                 // The grabbed row follows the pointer; the rows it passes slide
@@ -164,31 +160,34 @@ export const QuickLabelsButton: React.FC = () => {
                     </button>
                     <span className="min-w-0 truncate text-foreground flex-1">{label.text}</span>
                     <div className="flex items-center gap-0.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setError(null);
-                          setDraft({
-                            id: label.id,
-                            text: label.text,
-                            tip: label.tip ?? '',
-                          });
-                        }}
-                        className="size-5 flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-opacity"
-                        title="Edit label"
-                        aria-label="Edit label"
-                      >
-                        <Edit02 className="size-3" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => save(labels.filter((l) => l.id !== label.id))}
-                        className="size-5 flex items-center justify-center rounded-sm text-muted-foreground hover:text-destructive hover:bg-muted opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-opacity"
-                        title="Delete label"
-                        aria-label="Delete label"
-                      >
-                        <XClose className="size-3" />
-                      </button>
+                      <Tooltip content="Edit label" side="top">
+                        <Button
+                          variant="ghost"
+                          size="icon-compact"
+                          onClick={() => {
+                            setError(null);
+                            setDraft({
+                              id: label.id,
+                              text: label.text,
+                            });
+                          }}
+                          className="size-5 min-w-0 opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-opacity [&_svg]:size-3"
+                          aria-label="Edit label"
+                        >
+                          <Edit02 />
+                        </Button>
+                      </Tooltip>
+                      <Tooltip content="Delete label" side="top">
+                        <Button
+                          variant="ghost"
+                          size="icon-compact"
+                          onClick={() => save(labels.filter((l) => l.id !== label.id))}
+                          className="size-5 min-w-0 opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100 transition-opacity hover:text-destructive [&_svg]:size-3"
+                          aria-label="Delete label"
+                        >
+                          <XClose />
+                        </Button>
+                      </Tooltip>
                     </div>
                   </div>
                 );
@@ -200,19 +199,21 @@ export const QuickLabelsButton: React.FC = () => {
                 </div>
               )}
             </div>
+            </ScrollArea>
 
             <div className="p-1.5 border-t border-border/50">
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="compact"
+                leadingIcon={Plus}
+                className="w-full"
                 onClick={() => {
                   setError(null);
-                  setDraft({ text: '', tip: '' });
+                  setDraft({ text: '' });
                 }}
-                className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 text-caption text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
               >
-                <Plus className="size-3.5" />
                 Add label
-              </button>
+              </Button>
             </div>
           </div>
         ) : (
@@ -250,47 +251,22 @@ export const QuickLabelsButton: React.FC = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-micro font-semibold text-muted-foreground mb-1">
-                Tip
-              </label>
-              <textarea
-                rows={2}
-                maxLength={QUICK_LABEL_MAX_TIP}
-                value={draft.tip}
-                onChange={(e) => {
-                  setDraft({ ...draft, tip: e.target.value });
-                  setError(null);
-                }}
-                placeholder="Cover this with..."
-                className="w-full resize-none rounded-md border border-border bg-muted/40 px-2 py-1 text-caption text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              <div className="flex items-center justify-between text-micro text-muted-foreground mt-0.5">
-                <span>Sent to the agent with the comment.</span>
-                <span>{QUICK_LABEL_MAX_TIP - draft.tip.length}</span>
-              </div>
-            </div>
-
             {error && <div className="text-micro text-destructive">{error}</div>}
 
             <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/50">
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="compact"
                 onClick={() => {
                   setDraft(null);
                   setError(null);
                 }}
-                className="px-2.5 py-1 text-caption rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                className="px-2.5 py-1 text-caption font-semibold rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
+              </Button>
+              <Button variant="primary" size="compact" onClick={handleSave}>
                 Save
-              </button>
+              </Button>
             </div>
           </div>
         )}

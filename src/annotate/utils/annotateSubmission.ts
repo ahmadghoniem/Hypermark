@@ -1,12 +1,10 @@
 import type {
   Annotation,
   Block,
-  CodeAnnotation,
   ImageAttachment,
 } from "@/ui/types";
 import {
   exportAnnotations,
-  exportCodeFileAnnotations,
   exportLinkedDocAnnotations,
   exportMessageAnnotations,
   parseMarkdownToBlocks,
@@ -20,7 +18,6 @@ export interface AnnotateApprovalBodyInput {
   draftGeneration: number;
   feedback: string;
   annotations: unknown[];
-  codeAnnotations: unknown[];
   /** Which message the notes are about (annotate-last picker). */
   selectedMessageId?: string;
   /** "messages" when the notes span more than one selected message. */
@@ -42,7 +39,6 @@ export function buildAnnotateApprovalBody(
   draftGeneration: number;
   feedback?: string;
   annotations?: unknown[];
-  codeAnnotations?: unknown[];
   selectedMessageId?: string;
   feedbackScope?: "message" | "messages";
 } {
@@ -53,7 +49,6 @@ export function buildAnnotateApprovalBody(
     draftGeneration: input.draftGeneration,
     feedback: input.feedback,
     annotations: input.annotations,
-    codeAnnotations: input.codeAnnotations,
     // Notes must anchor to the same message Send Feedback would target.
     ...(input.selectedMessageId ? { selectedMessageId: input.selectedMessageId } : {}),
     ...(input.feedbackScope ? { feedbackScope: input.feedbackScope } : {}),
@@ -69,7 +64,6 @@ export interface CompleteAnnotateFeedbackInput {
       caller that hasn't gone through the restore-time normalizer. */
   globalAttachments: ImageAttachment[];
   linkedDocuments: Map<string, LinkedDocAnnotationEntry>;
-  codeAnnotations: CodeAnnotation[];
   title: string;
   subject: string;
   sourceConverted: boolean;
@@ -78,10 +72,8 @@ export interface CompleteAnnotateFeedbackInput {
    * Positive-finish framing. Non-gated annotate has no approve channel —
    * every outcome is one feedback string — so this prefixes the zero-state
    * sentence before the annotation sections (idempotent when the text already
-   * is the sentence). Since the empty-menu collapse (the maintainer merged
-   * "Done with a note…" into the single unframed "Send a note…"), the only
-   * caller is the non-gated discard path, which frames its positive finish
-   * over the annotations.
+   * is the sentence). The only caller is the non-gated discard path, which
+   * frames its positive finish over the annotations.
    */
   approvalFraming?: boolean;
 }
@@ -99,13 +91,8 @@ export function buildCompleteAnnotateFeedback(
     );
     const hasDocumentAnnotations =
       input.annotations.length > 0 || input.globalAttachments.length > 0;
-    const hasCodeAnnotations = input.codeAnnotations.length > 0;
 
-    if (
-      !hasDocumentAnnotations &&
-      !hasLinkedAnnotations &&
-      !hasCodeAnnotations
-    ) {
+    if (!hasDocumentAnnotations && !hasLinkedAnnotations) {
       annotationsText = ANNOTATE_NO_FEEDBACK_SENTENCE;
     } else {
       annotationsText = hasDocumentAnnotations
@@ -136,9 +123,6 @@ export function buildCompleteAnnotateFeedback(
             : entry);
         }
         annotationsText += exportLinkedDocAnnotations(enriched);
-      }
-      if (hasCodeAnnotations) {
-        annotationsText += exportCodeFileAnnotations(input.codeAnnotations);
       }
     }
   }

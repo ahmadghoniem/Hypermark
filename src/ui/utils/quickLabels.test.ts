@@ -4,7 +4,6 @@ import {
   DEFAULT_QUICK_LABELS,
   parseQuickLabels,
   quickLabelId,
-  QUICK_LABEL_MAX_TIP,
 } from './quickLabels';
 
 describe('parseQuickLabels', () => {
@@ -33,11 +32,9 @@ describe('parseQuickLabels', () => {
     expect(parseQuickLabels('[]')).toEqual([]);
   });
 
-  test('a long tip is truncated', () => {
-    const stored = JSON.stringify([
-      { id: 'x', emoji: '', text: 'X', color: 'blue', tip: 'y'.repeat(400) },
-    ]);
-    expect(parseQuickLabels(stored)[0]?.tip).toHaveLength(QUICK_LABEL_MAX_TIP);
+  test('a stored tip is dropped', () => {
+    const stored = JSON.stringify([{ id: 'x', emoji: '', text: 'X', tip: 'y' }]);
+    expect(parseQuickLabels(stored)).toEqual([{ id: 'x', emoji: '', text: 'X' }]);
   });
 });
 

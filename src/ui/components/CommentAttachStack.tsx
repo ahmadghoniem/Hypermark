@@ -1,234 +1,167 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { Image01, ImagePlus, XClose } from '@untitledui/icons';
 import type { ImageAttachment } from '../types';
-import { getImageSrc } from './ImageThumbnail';
 import type { PendingAttachment } from './AttachmentStrip';
-import {
-  isRemovalGuarded,
-  stackLayout,
-} from '../utils/attachStack';
+import { Button } from '../fluid/components/button';
+import { Tooltip } from '../fluid/components/tooltip';
+import { isRemovalGuarded } from '../utils/attachStack';
+import { ImageLightbox } from './ImageLightbox';
+import { getImageSrc } from '../utils/imageSrc';
 
-import { ImagePlus, XClose } from '@untitledui/icons';
 /**
- * The composer's attachments, as an overlapping stack on the left of the
- * action row.
- *
- * Empty, it is one image glyph that opens the file picker. Filled, it shows up
- * to three overlapping thumbnails and a +N tile. Hover or keyboard focus
- * spreads every tile in place, each with its own remove button; leaving
- * collapses it again. Nothing opens over the composer.
- *
- * Attachments are saved to disk locally, so a pending file draws the same tile
- * as a saved one; only its tooltip differs when the save failed.
- *
- * The action row's height is set by Save, and the tiles are shorter, so
- * attaching never moves the row — the reason the old shelf was always mounted.
+ * The composer's attachments: one name chip per image, under the text field.
+ * The row only exists once there is a file. A pending upload draws the same
+ * chip as a saved one. A saved chip's name is a button that opens the image;
+ * its fill lightens on hover. A pending chip's tooltip says "Uploading…", and
+ * a failed one gives the reason. The × says "Remove".
+ * Without `onRemove` the chips are read-only, as on the panel's cards.
  */
 
 interface CommentAttachStackProps {
   images: readonly ImageAttachment[];
   pending?: readonly PendingAttachment[];
-  onFiles: (files: File[]) => void;
-  onRemove: (path: string) => void;
+  onRemove?: (path: string) => void;
   onRemovePending?: (id: string) => void;
+  className?: string;
 }
 
-type Tile =
-  | { kind: 'image'; key: string; name: string; src: string; path: string }
-  | { kind: 'pending'; key: string; name: string; src: string; item: PendingAttachment };
+type Chip =
+  | { kind: 'image'; key: string; name: string; path: string }
+  | { kind: 'pending'; key: string; name: string; item: PendingAttachment };
+
+/** "screenshot.png" -> ["screenshot", ".png"], so the name truncates and the
+ *  extension stays visible. */
+function splitName(name: string): [string, string] {
+  const dot = name.lastIndexOf('.');
+  return dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ''];
+}
 
 export const CommentAttachStack: React.FC<CommentAttachStackProps> = ({
   images,
   pending = [],
-  onFiles,
   onRemove,
   onRemovePending,
+  className = 'px-0.5 pt-2',
 }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const collapseTimer = useRef<number | null>(null);
   const lastRemovalAt = useRef(0);
-  const [expanded, setExpanded] = useState(false);
-  const tile = 24;
-  const collapseDelay = 150;
-  // Corner radius of every tile: thumbnails, the +N tile and the add tile.
-  // 6px read as too round on a 24px tile.
-  const radius = 4;
-  const tileSize = { width: tile, height: tile };
-  // The ring separates overlapping tiles; it is the card colour, not a border,
-  // so it does not eat into the thumbnail.
-  const tileRing = '0 0 0 2px var(--color-popover)';
-
-  const tiles: Tile[] = [
-    ...images.map((image): Tile => ({
-      kind: 'image', key: image.path, name: image.name, src: getImageSrc(image.path), path: image.path,
-    })),
-    ...pending.map((item): Tile => ({
-      kind: 'pending', key: item.id, name: item.name, src: item.previewUrl, item,
-    })),
+  const [preview, setPreview] = useState<{ path: string; name: string } | null>(null);
+  const chips: Chip[] = [
+    ...images.map((image): Chip => ({ kind: 'image', key: image.path, name: image.name, path: image.path })),
+    ...pending.map((item): Chip => ({ kind: 'pending', key: item.id, name: item.name, item })),
   ];
-  const layout = stackLayout(tiles.length, expanded);
+  if (chips.length === 0) return null;
 
-  const cancelCollapse = useCallback(() => {
-    if (collapseTimer.current !== null) {
-      window.clearTimeout(collapseTimer.current);
-      collapseTimer.current = null;
-    }
-  }, []);
-
-  const scheduleCollapse = useCallback(() => {
-    cancelCollapse();
-    collapseTimer.current = window.setTimeout(() => setExpanded(false), collapseDelay);
-  }, [cancelCollapse, collapseDelay]);
-
-  useEffect(() => cancelCollapse, [cancelCollapse]);
-
-  useEffect(() => {
-    if (tiles.length === 0) setExpanded(false);
-  }, [tiles.length]);
-
-  // Touch: a tap outside collapses a spread stack.
-  useEffect(() => {
-    if (!expanded) return;
-    const handlePointerDown = (e: PointerEvent) => {
-      if (e.pointerType === 'mouse') return;
-      if (!rootRef.current?.contains(e.target as Node)) setExpanded(false);
-    };
-    document.addEventListener('pointerdown', handlePointerDown, true);
-    return () => document.removeEventListener('pointerdown', handlePointerDown, true);
-  }, [expanded]);
-
-  const openPicker = () => inputRef.current?.click();
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    if (files.length > 0) onFiles(files);
-    e.target.value = ''; // reset so the same file can be picked twice
-  };
-
-  const remove = (tile: Tile) => {
+  // Chips reflow when one goes, so a double click must not remove the next.
+  const remove = (chip: Chip) => {
     const now = Date.now();
     if (isRemovalGuarded(lastRemovalAt.current, now)) return;
     lastRemovalAt.current = now;
-    if (tile.kind === 'image') onRemove(tile.path);
-    else onRemovePending?.(tile.item.id);
+    if (chip.kind === 'image') onRemove?.(chip.path);
+    else onRemovePending?.(chip.item.id);
   };
-
-  const fileInput = (
-    <input
-      ref={inputRef}
-      type="file"
-      accept="image/*"
-      multiple
-      className="sr-only"
-      tabIndex={-1}
-      aria-hidden="true"
-      onChange={handleInputChange}
-    />
-  );
-
-  if (tiles.length === 0) {
-    return (
-      <>
-        {fileInput}
-        <AddTile onClick={openPicker} style={{ ...tileSize, borderRadius: radius }} />
-      </>
-    );
-  }
 
   return (
     <div
-      ref={rootRef}
       role="group"
-      aria-label={`${tiles.length} attached image${tiles.length === 1 ? '' : 's'}`}
+      aria-label={`${chips.length} attached image${chips.length === 1 ? '' : 's'}`}
       data-comment-attach-stack="true"
-      data-expanded={expanded ? 'true' : undefined}
-      tabIndex={expanded ? -1 : 0}
-      onPointerEnter={(e) => {
-        if (e.pointerType !== 'mouse') return;
-        cancelCollapse();
-        setExpanded(true);
-      }}
-      onPointerLeave={(e) => {
-        if (e.pointerType === 'mouse') scheduleCollapse();
-      }}
-      onPointerUp={(e) => {
-        if (e.pointerType !== 'mouse' && !expanded) setExpanded(true);
-      }}
-      onFocus={() => {
-        cancelCollapse();
-        setExpanded(true);
-      }}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) scheduleCollapse();
-      }}
-      className="-my-1.5 -ml-0.5 flex min-w-0 max-w-full items-center overflow-x-auto overscroll-x-contain rounded-md py-1.5 pl-0.5 pr-1.5 outline-none scrollbar-none focus-visible:ring-1 focus-visible:ring-ring [&::-webkit-scrollbar]:hidden"
-      style={{ gap: expanded ? 6 : 0 }}
+      className={`flex flex-wrap items-center gap-1.5 ${className}`}
     >
-      {fileInput}
-      {layout.visible.map((index, position) => {
-        const tile = tiles[index];
+      {chips.map((chip) => {
+        const [base, ext] = splitName(chip.name);
+        const failed = chip.kind === 'pending' && !!chip.item.error;
+        const label = (
+          <>
+            <Image01 size={14} className="shrink-0 text-muted-foreground" />
+            <span className="flex min-w-0">
+              <span className="truncate">{base}</span>
+              <span className="shrink-0">{ext}</span>
+            </span>
+          </>
+        );
         return (
           <span
-            key={tile.key}
-            title={tile.kind === 'pending' && tile.item.error ? tile.item.error : tile.name}
-            className="group/tile relative shrink-0 transition-[margin] duration-150 motion-reduce:transition-none"
-            style={{
-              ...tileSize,
-              borderRadius: radius,
-              boxShadow: tileRing,
-              marginLeft: position > 0 && !expanded ? -9 : 0,
-            }}
+            key={chip.key}
+            className={`inline-flex h-6.5 min-w-0 max-w-48 select-none items-center gap-1.5 rounded-md bg-muted/60 pl-2 ${onRemove ? 'pr-1' : 'pr-2'} text-caption transition-colors has-[[data-chip-view]:hover]:bg-foreground/10 ${
+              failed ? 'text-destructive' : 'text-foreground/90'
+            } ${chip.kind === 'pending' && !failed ? 'opacity-70' : ''}`}
           >
-            <img src={tile.src} alt={tile.name} className="object-cover" style={{ ...tileSize, borderRadius: radius }} />
-            {expanded && (
+            {chip.kind === 'image' ? (
               <button
                 type="button"
-                onClick={() => remove(tile)}
-                aria-label={`Remove ${tile.name}`}
-                title={`Remove ${tile.name}`}
-                className="absolute -right-1.25 -top-1.25 z-1 grid size-3.75 place-items-center rounded-full border border-border bg-popover p-0 text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover/tile:opacity-100 [@media(hover:none)]:opacity-100"
+                data-chip-view
+                aria-label={`View ${chip.name}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPreview({ path: chip.path, name: chip.name });
+                }}
+                className="flex min-w-0 cursor-pointer items-center gap-1.5 rounded-sm"
               >
-                <RemoveGlyph />
+                {label}
               </button>
+            ) : (
+              <Tooltip
+                content={failed ? chip.item.error : 'Uploading…'}
+                side="top"
+                className={COMPOSER_TOOLTIP}
+                contentClassName="z-popover-hint"
+              >
+                <span className="flex min-w-0 items-center gap-1.5">{label}</span>
+              </Tooltip>
+            )}
+            {onRemove && (
+              <Tooltip content="Remove" side="top" className={COMPOSER_TOOLTIP} contentClassName="z-popover-hint">
+                <button
+                  type="button"
+                  aria-label={`Remove ${chip.name}`}
+                  onClick={() => remove(chip)}
+                  className="grid size-4.5 shrink-0 place-items-center rounded-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <XClose size={12} />
+                </button>
+              </Tooltip>
             )}
           </span>
         );
       })}
-      {layout.overflow > 0 && (
-        <span
-          className="grid shrink-0 place-items-center bg-muted font-mono text-micro font-semibold text-muted-foreground"
-          style={{ ...tileSize, borderRadius: radius, boxShadow: tileRing, marginLeft: -9 }}
-        >
-          +{layout.overflow}
-        </span>
-      )}
-      {expanded && <AddTile onClick={openPicker} style={{ ...tileSize, borderRadius: radius }} />}
+      {preview && <ImageLightbox src={getImageSrc(preview.path)} alt={preview.name} onClose={() => setPreview(null)} />}
     </div>
   );
 };
 
-/** The glyph that opens the file picker: the empty stack, and the last tile of
- *  a spread one. Borderless — it fills the tile box, so the icon itself is the
- *  target rather than something floating inside a dashed ring. */
-const AddTile: React.FC<{ onClick: () => void; style: React.CSSProperties }> = ({ onClick, style }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    aria-label="Attach images"
-    title="Attach images"
-    data-comment-attach="true"
-    className="grid shrink-0 place-items-center p-0 text-muted-foreground transition-colors hover:text-foreground"
-    style={style}
-  >
-    <ImagePlusGlyph />
-  </button>
-);
+/** Dark tooltip with a border, in place of Fluid's inverted one. */
+export const COMPOSER_TOOLTIP = 'border border-border bg-popover text-foreground shadow-md';
 
-const RemoveGlyph: React.FC = () => (
-  <XClose className="size-2.5" strokeWidth={3} />
-);
-
-/** Image placeholder with a plus in its bottom-right corner. */
-const ImagePlusGlyph: React.FC = () => (
-  <ImagePlus className="size-full p-0.5" />
-);
+/** Ghost icon button that opens the image picker. */
+export const CommentAttachButton: React.FC<{ onFiles: (files: File[]) => void }> = ({ onFiles }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? []);
+          if (files.length > 0) onFiles(files);
+          e.target.value = ''; // reset so the same file can be picked twice
+        }}
+      />
+      <Tooltip content="Attach image" side="top" className={COMPOSER_TOOLTIP} contentClassName="z-popover-hint">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Attach image"
+          data-comment-attach="true"
+          onClick={() => inputRef.current?.click()}
+        >
+          <ImagePlus />
+        </Button>
+      </Tooltip>
+    </>
+  );
+};

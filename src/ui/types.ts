@@ -26,7 +26,6 @@ export interface Annotation {
   originalText: string; // The text that was selected
   createdA: number;
   images?: ImageAttachment[]; // Attached images with human-readable names
-  quickLabelTip?: string; // optional instruction tip from the label definition
   diffContext?: 'added' | 'removed' | 'modified'; // set when annotation created in plan diff view
   mathTargets?: Array<{
     blockId: string;

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Tooltip } from '@/ui/fluid/components/tooltip';
 import {
   formatShortcutBindingTokens,
   getShortcutRegistryForMode,
@@ -53,12 +54,9 @@ const ShortcutRow: React.FC<{ shortcut: ShortcutEntry }> = ({ shortcut }) => (
     <span className="text-caption text-muted-foreground">
       {shortcut.description}
       {shortcut.hint && (
-        <span className="relative group ml-1 inline-flex">
-          <span className="inline-flex items-center justify-center size-3.5 rounded-full text-micro font-semibold bg-muted-foreground/15 text-muted-foreground/60 cursor-default">?</span>
-          <span className="absolute bottom-full left-0 mb-1.5 px-2.5 py-1.5 rounded-sm bg-foreground text-background text-micro/snug w-80 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity shadow-lg z-chrome">
-            {shortcut.hint}
-          </span>
-        </span>
+        <Tooltip content={shortcut.hint} side="top" className="w-80 max-w-[calc(100vw-4rem)] text-micro/snug">
+          <span className="ml-1 inline-flex items-center justify-center size-3.5 rounded-full text-micro font-semibold bg-muted-foreground/15 text-muted-foreground/60 cursor-default">?</span>
+        </Tooltip>
       )}
     </span>
     <Bindings bindings={shortcut.bindings} />

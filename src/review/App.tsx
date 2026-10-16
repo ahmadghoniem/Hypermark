@@ -286,15 +286,6 @@ const ReviewAppInner: React.FC = () => {
   const [isApproving, setIsApproving] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [submitted, setSubmitted] = useState<'approved' | 'feedback' | 'exited' | false>(false);
-  // A committed review-level note waiting for its one-render deferred submit
-  // (the payload builders close over `allAnnotations`, so the send has to wait
-  // for the render that carries the note). L3: cleared only on submission
-  // SUCCESS — a failed POST keeps it armed and the next primary invocation
-  // retries; `dispatched` marks the one automatic submit after the commit.
-  const [pendingNoteSubmit, setPendingNoteSubmit] = useState<{
-    noteId: string;
-    dispatched: boolean;
-  } | null>(null);
   // Server capability advert: does this session's decision
   // consumer deliver approve-time feedback? Defaults false so an old server
   // that never sends the field renders no approve-carrying items; read off
@@ -1291,12 +1282,8 @@ const ReviewAppInner: React.FC = () => {
     }
   }, [totalAnnotationCount, feedbackMarkdown]);
 
-  // Send feedback to the agent session. Returns whether the POST landed so
-  // the deferred note submit can keep its captured decision armed on failure
-  // (L3). The old zero-count guard is gone: no send action is offered at zero
-  // (the empty-state primary is Approve), and leaving it would silently
-  // swallow a request-changes submission whose note has not yet landed in
-  // state.
+  // Send feedback to the agent session. Returns whether the POST landed. No
+  // send action is offered at zero (the empty-state primary is Approve).
   const handleSendFeedback = useCallback(async (): Promise<boolean> => {
     setIsSendingFeedback(true);
     try {
@@ -1350,14 +1337,13 @@ const ReviewAppInner: React.FC = () => {
   }, [flushDraft]);
   useSessionEndedStream(submitted === false, handleSessionEnded);
 
-  // Approve — bare (LGTM), with a composer note, or with the live annotations
-  // riding along. The old LGTM placeholder is gone:
+  // Approve — bare (LGTM), or with the live annotations riding along. The old LGTM placeholder is gone:
   // consumers now print approve-time feedback, so a bare approval must send
   // `feedback: ''` (which also makes the archive's `lgtm` decision reachable
   // and stops bare approvals writing a sidecar). Payload shape is the pure
   // buildReviewApprovalBody, so the delivery contract is testable without
   // mounting the App.
-  const handleApprove = useCallback(async (options?: { note?: string; withAnnotations?: boolean }) => {
+  const handleApprove = useCallback(async (options?: { withAnnotations?: boolean }) => {
     setIsApproving(true);
     try {
       const res = await fetch('/api/feedback', {
@@ -1365,7 +1351,6 @@ const ReviewAppInner: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildReviewApprovalBody({
           draftGeneration: getDraftGeneration(),
-          note: options?.note,
           withAnnotations: options?.withAnnotations === true,
           feedbackMarkdown,
           annotations: allAnnotations,
@@ -1389,61 +1374,24 @@ const ReviewAppInner: React.FC = () => {
   // Mod+Enter handler, and the compact primary row all call this.
   const busyWithDecision = isSendingFeedback || isApproving || isExiting;
 
-  const noteDispatchInFlightRef = useRef(false);
-  const dispatchPendingNote = useCallback(() => {
-    if (noteDispatchInFlightRef.current) return;
-    noteDispatchInFlightRef.current = true;
-    void (async () => {
-      try {
-        const ok = await handleSendFeedback();
-        if (ok) setPendingNoteSubmit(null); // L3: cleared only on success
-      } finally {
-        noteDispatchInFlightRef.current = false;
-      }
-    })();
-  }, [handleSendFeedback]);
-
   const submitPrimaryDecision = useCallback(() => {
     if (submitted || busyWithDecision) return;
-    if (pendingNoteSubmit) {
-      // A failed note submit stays armed; the next primary invocation retries
-      // that send (the note is already in `allAnnotations`, so the body is
-      // the captured decision, not a re-derivation).
-      dispatchPendingNote();
-      return;
-    }
     if (totalAnnotationCount === 0) void handleApprove();
     else void handleSendFeedback();
   }, [
     busyWithDecision,
-    dispatchPendingNote,
     handleApprove,
     handleSendFeedback,
-    pendingNoteSubmit,
     submitted,
     totalAnnotationCount,
   ]);
 
-  // Note → scope:'general' CodeAnnotation at submit time: it rides the
-  // existing export (## General) and the /api/feedback annotations array with
-  // no server change. Shape (sentinels) lives in createGeneralReviewComment;
-  // deliberately NOT
-  // recorded in review history — it lives for one submit.
-  const commitReviewNote = useCallback((text: string): string | null => {
-    const note = createGeneralReviewComment(text);
-    if (!note) return null;
-    annotationsRef.current = [...annotationsRef.current, note];
-    setAnnotations(annotationsRef.current);
-    return note.id;
-  }, []);
-
-  // Sidebar "+ General comment" — the durable human producer for a
-  // scope:'general' review-level comment. Unlike the submit note
-  // above, it goes through history (undoable, draft-persisted, deletable via
-  // the sidebar's existing delete); like it, it is deliberately NOT
+  // Sidebar "+ General comment" — the human producer for a scope:'general'
+  // review-level comment. It goes through history (undoable, draft-persisted,
+  // deletable via the sidebar's existing delete) and is deliberately NOT
   // withDiffContext-stamped, so it survives a diff switch.
   const handleAddGeneralComment = useCallback((text: string) => {
-    // Mirrors the 'note' route's guard: a commit during an in-flight decision
+    // A commit during an in-flight decision
     // POST would append an annotation the captured body never carries — the
     // server then deletes the draft and the comment vanishes from wire and
     // archive alike.
@@ -1453,38 +1401,12 @@ const ReviewAppInner: React.FC = () => {
     addCodeAnnotationsWithHistory([note]);
   }, [addCodeAnnotationsWithHistory, busyWithDecision, submitted]);
 
-  // The commit above is a state write, so feedbackMarkdown/handleSendFeedback
-  // (which close over `allAnnotations`) only see the note on the NEXT render.
-  // Submit from an effect once the note is actually in state. One automatic
-  // dispatch per arming; after a failure the armed decision waits for the
-  // next primary invocation (L3).
-  useEffect(() => {
-    const pending = pendingNoteSubmit;
-    if (!pending) return;
-    if (!allAnnotations.some((a) => a.id === pending.noteId)) {
-      // The note left state (sidebar delete, draft restore): the captured
-      // decision lost its note — disarm rather than posting without it.
-      setPendingNoteSubmit(null);
-      return;
-    }
-    if (pending.dispatched) return;
-    setPendingNoteSubmit({ ...pending, dispatched: true });
-    dispatchPendingNote();
-  }, [allAnnotations, dispatchPendingNote, pendingNoteSubmit]);
-
-  const runReviewDecisionAction = useCallback((id: DecisionActionId, note?: string) => {
+  const runReviewDecisionAction = useCallback((id: DecisionActionId) => {
     const action = resolveReviewDecisionAction(id);
     switch (action.kind) {
       case 'primary':
         submitPrimaryDecision();
         return;
-      case 'note': {
-        if (submitted || busyWithDecision) return;
-        const noteId = commitReviewNote(note ?? '');
-        if (!noteId) return; // the control never submits an empty note
-        setPendingNoteSubmit({ noteId, dispatched: false });
-        return;
-      }
       case 'close':
         // The DecisionControl has already confirmed
         // when there was something to lose, so the exit warning is NOT raised
@@ -1497,14 +1419,13 @@ const ReviewAppInner: React.FC = () => {
       case 'approve-with-notes':
         // Reachable only when the server advertised
         // approvalNotesSupported — the session's consumer prints/sends the
-        // approve-time feedback these carry. "Approve with notes" ships the
-        // live annotations + their export; "Approve with a note…" ships the
-        // composer note alone.
+        // approve-time feedback it carries: the live annotations + their
+        // export.
         if (submitted || busyWithDecision) return;
-        void handleApprove({ note, withAnnotations: action.withAnnotations });
+        void handleApprove({ withAnnotations: true });
         return;
     }
-  }, [busyWithDecision, commitReviewNote, handleApprove, submitPrimaryDecision, submitted]);
+  }, [busyWithDecision, handleApprove, submitPrimaryDecision, submitted]);
 
   const reviewDecisionSpec = useMemo(() => buildDecisionSpec({
     app: 'review',
@@ -1518,9 +1439,6 @@ const ReviewAppInner: React.FC = () => {
 
   const reviewDecisionHandlers = useMemo<Record<DecisionActionId, DecisionHandler>>(() => ({
     'primary': () => runReviewDecisionAction('primary'),
-    'note-with-approval': (note) => runReviewDecisionAction('note-with-approval', note),
-    'request-changes': (note) => runReviewDecisionAction('request-changes', note),
-    'note-with-feedback': (note) => runReviewDecisionAction('note-with-feedback', note),
     'approve-with-notes': () => runReviewDecisionAction('approve-with-notes'),
     'close-session': () => runReviewDecisionAction('close-session'),
   }), [runReviewDecisionAction]);

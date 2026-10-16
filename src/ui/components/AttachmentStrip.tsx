@@ -1,6 +1,6 @@
 import React, { useCallback, useRef } from 'react';
 import type { ImageAttachment } from '../types';
-import { getImageSrc } from './ImageThumbnail';
+import { getImageSrc } from '../utils/imageSrc';
 
 import { XClose } from '@untitledui/icons';
 /** An attachment that has been chosen but has not finished uploading. */

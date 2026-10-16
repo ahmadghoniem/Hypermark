@@ -16,7 +16,7 @@ import { parseMarkdownToBlocks, extractFrontmatter, type LinkedDocAnnotationEntr
 import { Viewer, ViewerHandle } from '@/ui/components/Viewer';
 import { AnnotationPanel, type AnnotationScope, type AnnotationMessageGroup } from '@/ui/components/AnnotationPanel';
 import { ConfirmDialog } from '@/ui/components/ConfirmDialog';
-import { Annotation, AnnotationType, type CodeAnnotation, type ImageAttachment } from '@/ui/types';
+import { Annotation, AnnotationType, type ImageAttachment } from '@/ui/types';
 import { ThemeProvider } from '@/ui/components/ThemeProvider';
 import { FluidRoot } from '@/ui/fluid/components/fluid-root';
 import { TooltipProvider } from '@/ui/components/Tooltip';
@@ -33,7 +33,6 @@ import { useViewportEnvironment } from '@/ui/hooks/useViewportEnvironment';
 import type { SidebarTab } from '@/ui/hooks/useSidebar';
 import { usePlanDiff, type VersionInfo, type VersionEntry, type PlanDiffFetchers } from '@/ui/hooks/usePlanDiff';
 import { useLinkedDoc, type LinkedDocSessionState } from '@/ui/hooks/useLinkedDoc';
-import { useCodeFilePopout } from '@/ui/hooks/useCodeFilePopout';
 import { useAnnotationDraft } from '@/ui/hooks/useAnnotationDraft';
 import { useSessionEndedStream } from '@/ui/hooks/useSessionEndedStream';
 import { useUndoHistory } from '@/ui/hooks/useUndoHistory';
@@ -46,8 +45,9 @@ import { MessageRail, type PickerMessage } from '@/ui/components/MessageRail';
  *  scrollbar is drawn or not so the rail never moves between messages. */
 const MESSAGE_RAIL_INSET = 24;
 import { PlanDiffViewer } from '@/ui/components/plan-diff/PlanDiffViewer';
-import { CodeFilePopout, type CodeFileAnnotationInput } from '@/ui/components/CodeFilePopout';
 import { CommentPopover } from '@/ui/components/CommentPopover';
+import { SideChatCard } from '@/ui/components/SideChatCard';
+import { useSideChat } from '@/ui/hooks/useSideChat';
 // Demo content toggle. Default: the original Real-time Collaboration plan.
 // Opt-in diff-engine stress test: `VITE_DIFF_DEMO=1 bun run dev:hook` swaps
 // in the 20-case Auth Service Refactor test plan. dev-mock-api.ts reads the
@@ -100,8 +100,6 @@ type MessageAnnotationState = {
   text: string;
   timestamp?: string;
   linkedDocSession: LinkedDocSessionState;
-  codeAnnotations: CodeAnnotation[];
-  selectedCodeAnnotationId: string | null;
 };
 
 const countLinkedDocSessionAnnotations = (session: LinkedDocSessionState): number => {
@@ -115,8 +113,7 @@ const countLinkedDocSessionAnnotations = (session: LinkedDocSessionState): numbe
 };
 
 const countMessageAnnotations = (state: MessageAnnotationState): number =>
-  countLinkedDocSessionAnnotations(state.linkedDocSession) +
-  state.codeAnnotations.length;
+  countLinkedDocSessionAnnotations(state.linkedDocSession);
 
 const createEmptyMessageState = (message: PickerMessage): MessageAnnotationState => ({
   messageId: message.messageId,
@@ -131,8 +128,6 @@ const createEmptyMessageState = (message: PickerMessage): MessageAnnotationState
     },
     docs: new Map(),
   },
-  codeAnnotations: [],
-  selectedCodeAnnotationId: null,
 });
 
 const normalizeMessageState = (
@@ -167,19 +162,12 @@ const buildMessageAnnotationCounts = (
 
 interface HistorySelection {
   annotationId: string | null;
-  codeAnnotationId: string | null;
 }
 
 type DocumentHistoryAction =
   | {
       kind: 'annotation';
       mutation: CollectionMutation<Annotation>;
-      beforeSelection: HistorySelection;
-      afterSelection: HistorySelection;
-    }
-  | {
-      kind: 'code-annotation';
-      mutation: CollectionMutation<CodeAnnotation>;
       beforeSelection: HistorySelection;
       afterSelection: HistorySelection;
     }
@@ -206,13 +194,9 @@ const AppInner: React.FC = () => {
   useEffect(() => {
     annotationsRef.current = annotations;
   }, [annotations]);
-  const [codeAnnotations, setCodeAnnotations] = useState<CodeAnnotation[]>([]);
-  const codeAnnotationsRef = useRef(codeAnnotations);
-  codeAnnotationsRef.current = codeAnnotations;
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
-  const [selectedCodeAnnotationId, setSelectedCodeAnnotationId] = useState<string | null>(null);
-  const selectionRef = useRef<HistorySelection>({ annotationId: null, codeAnnotationId: null });
-  selectionRef.current = { annotationId: selectedAnnotationId, codeAnnotationId: selectedCodeAnnotationId };
+  const selectionRef = useRef<HistorySelection>({ annotationId: null });
+  selectionRef.current = { annotationId: selectedAnnotationId };
   const restoreCheckboxOverridesRef = useRef<(snapshot: CheckboxOverrideSnapshot) => void>(() => {});
   const checkboxSelectionBeforeRef = useRef<HistorySelection | null>(null);
   const displayedMarkdown = markdown;
@@ -238,21 +222,6 @@ const AppInner: React.FC = () => {
     () => parseMarkdownToBlocks(displayedMarkdown, { frontmatter: parseFrontmatter }),
     [displayedMarkdown, parseFrontmatter],
   );
-  // The decision-control note flow (#1436 mechanism): the note is committed
-  // into `annotations` as a GLOBAL_COMMENT and submitted one render later,
-  // because the payload builders close over `allAnnotations`. The route is
-  // captured at menu-choice time — re-deriving it after the commit would see
-  // the note itself and misroute a gate "Approve with a note" to feedback.
-  // L3: cleared only on submission SUCCESS — a failed POST keeps the captured
-  // route/framing armed so a retry cannot silently reframe the decision.
-  // `dispatched` marks the one automatic submit after the commit lands;
-  // after a failure, retries go through the primary.
-  const [pendingDecisionSubmit, setPendingDecisionSubmit] = useState<{
-    noteId: string;
-    route: 'feedback' | 'approve';
-    approvalFraming: boolean;
-    dispatched: boolean;
-  } | null>(null);
   // The keydown effects mount above the decision callbacks; call through a
   // render-assigned ref (same pattern as headerHandlersRef) so keyboard and
   // header share literally one submitPrimaryDecision.
@@ -270,6 +239,13 @@ const AppInner: React.FC = () => {
   const planAreaRef = useRef<HTMLDivElement>(null);
   // Anchor of the global comment composer: the + in the annotations panel.
   const [globalComposerAnchor, setGlobalComposerAnchor] = useState<HTMLElement | null>(null);
+  // Composer reopened on an existing annotation, by a click on its highlight or
+  // on its panel card's edit button
+  const [editComposer, setEditComposer] = useState<{ annotation: Annotation; anchorEl: HTMLElement } | null>(null);
+  // Whether the edit composer's text or images differ from the saved annotation.
+  const editDirtyRef = useRef(false);
+  // Whether the global comment composer holds a draft.
+  const globalDirtyRef = useRef(false);
   const [isApiMode, setIsApiMode] = useState(false);
   const [origin, setOrigin] = useState<Origin | null>(null);
   // Legacy, read-only: the toolbar Images action and the
@@ -307,6 +283,11 @@ const AppInner: React.FC = () => {
   const isMobile = useIsMobile();
 
   const viewerRef = useRef<ViewerHandle>(null);
+  const sideChat = useSideChat();
+  const sideChatAsk = sideChat.ask;
+  const handleAskSideQuestion = useCallback((question: string, quote: string) => {
+    sideChatAsk(quote.trim(), quote.trim(), question);
+  }, [sideChatAsk]);
   const historyContext = [
     annotateSource ?? 'plan',
     selectedMessageId ?? 'message',
@@ -340,37 +321,27 @@ const AppInner: React.FC = () => {
       });
       const selection = direction === 'undo' ? action.beforeSelection : action.afterSelection;
       setSelectedAnnotationId(selection.annotationId);
-      setSelectedCodeAnnotationId(selection.codeAnnotationId);
       selectionRef.current = selection;
       return;
     }
 
     const selection = direction === 'undo' ? action.beforeSelection : action.afterSelection;
-    if (action.kind === 'code-annotation') {
-      setCodeAnnotations((current) => {
-        const next = applyCollectionMutation(current, action.mutation, direction, itemId);
-        codeAnnotationsRef.current = next;
-        return next;
-      });
-    } else {
-      setAnnotations((current) => {
-        const next = applyCollectionMutation(current, action.mutation, direction, itemId);
-        annotationsRef.current = next;
-        return next;
-      });
-      const annotation = action.mutation.kind === 'edit'
-        ? (direction === 'undo' ? action.mutation.before : action.mutation.after)
-        : action.mutation.item;
-      const shouldPaint = annotationOwnsHighlight(annotation)
-        && ((action.mutation.kind === 'add' && direction === 'redo')
-          || (action.mutation.kind === 'delete' && direction === 'undo')
-          || action.mutation.kind === 'edit');
-      if (annotationOwnsHighlight(annotation)) {
-        syncHistoryHighlight(viewerRef.current, annotation, shouldPaint);
-      }
+    setAnnotations((current) => {
+      const next = applyCollectionMutation(current, action.mutation, direction, itemId);
+      annotationsRef.current = next;
+      return next;
+    });
+    const annotation = action.mutation.kind === 'edit'
+      ? (direction === 'undo' ? action.mutation.before : action.mutation.after)
+      : action.mutation.item;
+    const shouldPaint = annotationOwnsHighlight(annotation)
+      && ((action.mutation.kind === 'add' && direction === 'redo')
+        || (action.mutation.kind === 'delete' && direction === 'undo')
+        || action.mutation.kind === 'edit');
+    if (annotationOwnsHighlight(annotation)) {
+      syncHistoryHighlight(viewerRef.current, annotation, shouldPaint);
     }
     setSelectedAnnotationId(selection.annotationId);
-    setSelectedCodeAnnotationId(selection.codeAnnotationId);
     selectionRef.current = selection;
   }, []);
   const annotationHistory = useUndoHistory<DocumentHistoryAction>({
@@ -512,24 +483,6 @@ const AppInner: React.FC = () => {
     setLinkedDocParsePath(linkedDocHook.filepath ?? null);
   }, [linkedDocHook.filepath]);
 
-  // Active document's directory — feeds both click-time popout fetches and
-  // the validator hook so they resolve against the same base. Drifting
-  // these would silently re-introduce the demote-correct-link bug.
-  const activeDocBaseDir = useMemo(
-    () => linkedDocHook.filepath
-      ? linkedDocHook.filepath.replace(/\/[^/]+$/, '')
-      : imageBaseDir?.includes('/') ? imageBaseDir : undefined,
-    [linkedDocHook.filepath, imageBaseDir],
-  );
-
-  // Code file popout (read-only syntax-highlighted overlay)
-  const codeFilePopout = useCodeFilePopout({
-    buildUrl: useCallback((codePath: string) => {
-      return activeDocBaseDir
-        ? `/api/doc?path=${encodeURIComponent(codePath)}&base=${encodeURIComponent(activeDocBaseDir)}`
-        : `/api/doc?path=${encodeURIComponent(codePath)}`;
-    }, [activeDocBaseDir]),
-  });
   useEffect(() => {
     annotationHistory.clear();
   }, [annotationHistory]);
@@ -594,16 +547,12 @@ const AppInner: React.FC = () => {
       text: msg.text,
       timestamp: msg.timestamp,
       linkedDocSession: snapshot,
-      codeAnnotations: [...codeAnnotations],
-      selectedCodeAnnotationId,
     }, msg);
   }, [
     annotateSource,
     selectedMessageId,
     recentMessages,
     linkedDocHook.snapshotSession,
-    codeAnnotations,
-    selectedCodeAnnotationId,
   ]);
 
   const getMessageStatesWithCurrent = React.useCallback((): Map<string, MessageAnnotationState> => {
@@ -649,7 +598,6 @@ const AppInner: React.FC = () => {
         globalAttachments: state.linkedDocSession.root.globalAttachments,
         blocks: parseMarkdownToBlocks(state.linkedDocSession.root.markdown),
         linkedDocs,
-        codeAnnotations: state.codeAnnotations,
       };
     });
   }, [annotateSource, recentMessages, getMessageStatesWithCurrent]);
@@ -690,8 +638,6 @@ const AppInner: React.FC = () => {
 
     setSelectedMessageId(messageId);
     linkedDocHook.restoreSession(targetState.linkedDocSession);
-    setCodeAnnotations([...targetState.codeAnnotations]);
-    setSelectedCodeAnnotationId(targetState.selectedCodeAnnotationId);
   }, [
     recentMessages,
     selectedMessageId,
@@ -774,14 +720,12 @@ const AppInner: React.FC = () => {
     () => messageMultiSelectMode
       ? messageFeedbackAnnotationCount > 0
       : allAnnotations.length > 0
-        || codeAnnotations.length > 0
         || linkedDocHook.docAnnotationCount > 0
         || globalAttachments.length > 0,
     [
       messageMultiSelectMode,
       messageFeedbackAnnotationCount,
       allAnnotations.length,
-      codeAnnotations.length,
       linkedDocHook.docAnnotationCount,
       globalAttachments.length,
     ],
@@ -789,7 +733,6 @@ const AppInner: React.FC = () => {
   const feedbackAnnotationCount = messageMultiSelectMode
     ? messageFeedbackAnnotationCount
     : allAnnotations.length +
-      codeAnnotations.length +
       linkedDocHook.docAnnotationCount +
       globalAttachments.length;
 
@@ -797,7 +740,6 @@ const AppInner: React.FC = () => {
   const handleRestoreDraftRef = useRef<(loadedDraft?: any, meta?: any) => void>(() => {});
   const { restoreDraft, scheduleDraftSave, scheduleDraftSaveAfterSubmitFailure, getDraftGeneration, discardDraft, flushDraft } = useAnnotationDraft({
     annotations: allAnnotations,
-    codeAnnotations,
     globalAttachments,
     isApiMode,
     // No share transport remains, so drafts always persist for a live session.
@@ -814,11 +756,7 @@ const AppInner: React.FC = () => {
     meta?: { count: number; timeAgo: string },
   ) => {
     annotationHistory.clear();
-    const {
-      annotations: restored,
-      codeAnnotations: restoredCode,
-    } = loadedDraft ?? restoreDraft();
-    if (restoredCode.length > 0) setCodeAnnotations(restoredCode);
+    const { annotations: restored } = loadedDraft ?? restoreDraft();
 
     if (restored.length > 0) {
       setAnnotations(restored);
@@ -840,7 +778,6 @@ const AppInner: React.FC = () => {
           onClick: () => {
             discardDraft();
             setAnnotations([]);
-            setCodeAnnotations([]);
             annotationHistory.clear();
             viewerRef.current?.applySharedAnnotations([]);
           },
@@ -871,7 +808,6 @@ const AppInner: React.FC = () => {
       annotations: discard ? [] : allAnnotations,
       globalAttachments: discard ? [] : globalAttachments,
       linkedDocuments: discard ? new Map() : linkedDocuments,
-      codeAnnotations: discard ? [] : codeAnnotations,
       title: annotateSource === 'message' ? 'Message Feedback' : 'File Feedback',
       subject: annotateSource ?? 'plan',
       sourceConverted: activeConverted,
@@ -885,7 +821,6 @@ const AppInner: React.FC = () => {
     annotateSource,
     blocks,
     buildMessageAnnotationEntries,
-    codeAnnotations,
     globalAttachments,
     linkedDocHook.filepath,
     linkedDocHook.getDocAnnotations,
@@ -1040,7 +975,6 @@ const AppInner: React.FC = () => {
           draftGeneration: getDraftGeneration(),
           feedback,
           annotations: discard ? [] : allAnnotations,
-          codeAnnotations: discard ? [] : codeAnnotations,
           ...getFeedbackMessageScope(),
         }),
       });
@@ -1076,7 +1010,6 @@ const AppInner: React.FC = () => {
           draftGeneration: getDraftGeneration(),
           feedback,
           annotations: discard ? [] : allAnnotations,
-          codeAnnotations: discard ? [] : codeAnnotations,
           ...getFeedbackMessageScope(),
         })),
       });
@@ -1141,7 +1074,7 @@ const AppInner: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-    submitted, isSubmitting, isExiting, isApiMode, linkedDocHook.isActive, annotations.length, codeAnnotations.length,
+    submitted, isSubmitting, isExiting, isApiMode, linkedDocHook.isActive, annotations.length,
     annotateSource, origin,
   ]);
 
@@ -1151,8 +1084,7 @@ const AppInner: React.FC = () => {
     annotationsRef.current = [...annotationsRef.current, ann];
     setAnnotations(annotationsRef.current);
     setSelectedAnnotationId(ann.id);
-    setSelectedCodeAnnotationId(null);
-    selectionRef.current = { annotationId: ann.id, codeAnnotationId: null };
+    selectionRef.current = { annotationId: ann.id };
     annotationHistory.record({
       kind: 'annotation',
       mutation: { kind: 'add', item: ann, index },
@@ -1169,107 +1101,18 @@ const AppInner: React.FC = () => {
       return;
     }
     setSelectedAnnotationId(id);
-    if (id) setSelectedCodeAnnotationId(null);
-    selectionRef.current = {
-      annotationId: id,
-      codeAnnotationId: id ? null : selectionRef.current.codeAnnotationId,
-    };
+    selectionRef.current = { annotationId: id };
     if (id && isMobile) setIsMobilePanelOpen(true);
   }, [isMobile, selectedMessageId, handleSelectMessage]);
-
-  const handleAddCodeAnnotation = React.useCallback((input: CodeFileAnnotationInput) => {
-    const annotation: CodeAnnotation = {
-      id: generateId('code-ann'),
-      type: 'comment',
-      scope: 'line',
-      filePath: input.filePath,
-      lineStart: input.lineStart,
-      lineEnd: input.lineEnd,
-      side: 'new',
-      text: input.text,
-      images: input.images,
-      createdAt: Date.now(),
-    };
-    const beforeSelection = selectionRef.current;
-    const index = codeAnnotationsRef.current.length;
-    codeAnnotationsRef.current = [...codeAnnotationsRef.current, annotation];
-    setCodeAnnotations(codeAnnotationsRef.current);
-    setSelectedAnnotationId(null);
-    setSelectedCodeAnnotationId(annotation.id);
-    selectionRef.current = { annotationId: null, codeAnnotationId: annotation.id };
-    annotationHistory.record({
-      kind: 'code-annotation',
-      mutation: { kind: 'add', item: annotation, index },
-      beforeSelection,
-      afterSelection: selectionRef.current,
-    });
-  }, [annotationHistory]);
-
-  // The code popout is full-viewport modal — the annotation panel is behind it.
-  // This handler only fires when the popout is closed (sidebar visible), so
-  // reopening the file via codeFilePopout.open() is the correct behavior.
-  const handleSelectCodeAnnotation = React.useCallback((id: string, messageId?: string) => {
-    if (messageId && messageId !== selectedMessageId) {
-      handleSelectMessage(messageId);
-      setPendingAnnotationSelection(id);
-      return;
-    }
-    const annotation = codeAnnotations.find(a => a.id === id);
-    if (!annotation) return;
-    setSelectedAnnotationId(null);
-    setSelectedCodeAnnotationId(id);
-    selectionRef.current = { annotationId: null, codeAnnotationId: id };
-    codeFilePopout.open(annotation.filePath);
-    if (isMobile) setIsMobilePanelOpen(true);
-  }, [codeAnnotations, codeFilePopout.open, isMobile, selectedMessageId, handleSelectMessage]);
 
   useEffect(() => {
     if (!pendingAnnotationSelection) return;
     const id = pendingAnnotationSelection;
     setPendingAnnotationSelection(null);
     requestAnimationFrame(() => {
-      const isCode = codeAnnotationsRef.current.some((a) => a.id === id);
-      if (isCode) {
-        handleSelectCodeAnnotation(id);
-      } else {
-        handleSelectAnnotation(id);
-      }
+      handleSelectAnnotation(id);
     });
-  }, [selectedMessageId, handleSelectAnnotation, handleSelectCodeAnnotation]);
-
-  const handleDeleteCodeAnnotation = React.useCallback((id: string) => {
-    const index = codeAnnotationsRef.current.findIndex((annotation) => annotation.id === id);
-    const annotation = codeAnnotationsRef.current[index];
-    if (!annotation) return;
-    const beforeSelection = selectionRef.current;
-    codeAnnotationsRef.current = codeAnnotationsRef.current.filter((item) => item.id !== id);
-    setCodeAnnotations(codeAnnotationsRef.current);
-    if (beforeSelection.codeAnnotationId === id) setSelectedCodeAnnotationId(null);
-    const afterSelection = beforeSelection.codeAnnotationId === id
-      ? { ...beforeSelection, codeAnnotationId: null }
-      : beforeSelection;
-    selectionRef.current = afterSelection;
-    annotationHistory.record({
-      kind: 'code-annotation',
-      mutation: { kind: 'delete', item: annotation, index },
-      beforeSelection,
-      afterSelection,
-    });
-  }, [annotationHistory]);
-
-  const handleEditCodeAnnotation = React.useCallback((id: string, updates: Partial<CodeAnnotation>) => {
-    const before = codeAnnotationsRef.current.find((annotation) => annotation.id === id);
-    if (!before) return;
-    const after = { ...before, ...updates };
-    codeAnnotationsRef.current = codeAnnotationsRef.current.map((annotation) => annotation.id === id ? after : annotation);
-    setCodeAnnotations(codeAnnotationsRef.current);
-    annotationHistory.record({
-      kind: 'code-annotation',
-      mutation: { kind: 'edit', before, after },
-      beforeSelection: selectionRef.current,
-      afterSelection: selectionRef.current,
-    });
-  }, [annotationHistory]);
+  }, [selectedMessageId, handleSelectAnnotation]);
 
   // Core annotation removal — highlight cleanup + state filter + selection clear
   const removeAnnotation = (id: string) => {
@@ -1292,8 +1135,7 @@ const AppInner: React.FC = () => {
       annotationsRef.current = [...annotationsRef.current, annotation];
       setAnnotations(annotationsRef.current);
       setSelectedAnnotationId(annotation.id);
-      setSelectedCodeAnnotationId(null);
-      selectionRef.current = { annotationId: annotation.id, codeAnnotationId: null };
+      selectionRef.current = { annotationId: annotation.id };
       return index;
     },
     removeAnnotation: (id) => {
@@ -1370,8 +1212,67 @@ const AppInner: React.FC = () => {
       afterSelection: selectionRef.current,
     });
   };
-  const handleEditAnnotation = (id: string, updates: Partial<Annotation>) =>
-    editAnnotation(id, updates);
+  // A panel card click selects the card's annotation, which scrolls its
+  // highlight into view when off screen; a click on the already selected card
+  // scrolls it again. Editing is the card's edit button (handleOpenAnnotation).
+  const handleSelectCard = (id: string, messageId?: string) => {
+    if (id !== selectedAnnotationId || (messageId && messageId !== selectedMessageId)) {
+      handleSelectAnnotation(id, messageId);
+      return;
+    }
+    const escaped = CSS.escape(id);
+    const highlight = Array.from(document.querySelectorAll<HTMLElement>(
+      `.annotation-highlight[data-highlight-id="${escaped}"], [data-bind-id="${escaped}"]`,
+    )).find((el) => el.getClientRects().length > 0);
+    const rect = highlight?.getBoundingClientRect();
+    if (rect && (rect.top < 64 || rect.bottom > window.innerHeight - 16)) {
+      highlight!.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  // Selects the annotation and opens the composer on it, anchored to its first
+  // visible highlight. A global comment anchors to the panel's +, where new
+  // ones open; a highlight scrolled out of the DOM (or a global comment with
+  // the + hidden) anchors to its panel card. A second click on the same
+  // annotation closes it. Only one composer is open at a time, and one holding
+  // a draft stays.
+  const handleOpenAnnotation = (id: string | null, messageId?: string) => {
+    if (id && editComposer?.annotation.id === id) {
+      if (!editDirtyRef.current) setEditComposer(null);
+      return;
+    }
+    handleSelectAnnotation(id, messageId);
+    if (!id || (messageId && messageId !== selectedMessageId)) return;
+    if ((editComposer && editDirtyRef.current) || (globalComposerAnchor && globalDirtyRef.current)) return;
+    const annotation = allAnnotations.find((item) => item.id === id);
+    if (!annotation || annotation.type === AnnotationType.DELETION) return;
+    const escaped = CSS.escape(id);
+    const isVisible = (el: Element) => el.getClientRects().length > 0;
+    const primary = Array.from(document.querySelectorAll<HTMLElement>(
+      annotation.type === AnnotationType.GLOBAL_COMMENT
+        ? '[data-global-comment-add]'
+        : `.annotation-highlight[data-highlight-id="${escaped}"], [data-bind-id="${escaped}"]`,
+    )).find(isVisible);
+    const anchorEl = primary
+      ?? Array.from(document.querySelectorAll<HTMLElement>(`[data-annotation-id="${escaped}"]`)).find(isVisible);
+    if (!anchorEl) return;
+    if (viewerRef.current && !viewerRef.current.closeComposer()) return;
+    setGlobalComposerAnchor(null);
+    editDirtyRef.current = false;
+    setEditComposer({ annotation, anchorEl });
+  };
+
+  const closeEditComposer = useCallback(() => setEditComposer(null), []);
+
+  // Opens the panel's global composer. Like handleOpenAnnotation, it replaces
+  // an open composer only when that composer holds no draft.
+  const handleAddGlobalComment = (anchorEl: HTMLElement) => {
+    if (editComposer && editDirtyRef.current) return;
+    if (viewerRef.current && !viewerRef.current.closeComposer()) return;
+    setEditComposer(null);
+    globalDirtyRef.current = false;
+    setGlobalComposerAnchor(anchorEl);
+  };
 
   const handleTocNavigate = (blockId: string) => {
     // Navigation handled by TableOfContents component
@@ -1402,120 +1303,26 @@ const AppInner: React.FC = () => {
   // The zero-state Done submit is the SAME /api/feedback
   // POST the keyboard-only silent submit made (byte-identical payload);
   // gate mode's empty primary is Approve on /api/approve.
-  // Runs one captured note decision on its captured route/framing. Cleared
-  // only on success (L3); the in-flight ref guards a double dispatch while a
-  // POST is outstanding.
-  const pendingDispatchInFlightRef = useRef(false);
-  const dispatchPendingDecision = useCallback((pending: {
-    route: 'feedback' | 'approve';
-    approvalFraming: boolean;
-  }) => {
-    if (pendingDispatchInFlightRef.current) return;
-    const { route, approvalFraming } = pending;
-    const run = async () => {
-      pendingDispatchInFlightRef.current = true;
-      try {
-        const ok = route === 'approve'
-          ? await headerHandlersRef.current.handleAnnotateApprove()
-          : await headerHandlersRef.current.handleAnnotateFeedback(
-              approvalFraming ? { approvalFraming: true } : undefined,
-            );
-        if (ok) setPendingDecisionSubmit(null);
-      } finally {
-        pendingDispatchInFlightRef.current = false;
-      }
-    };
-    void run();
-  }, []);
-
   const submitPrimaryDecision = useCallback(() => {
     if (isSubmitting || isExiting) return; // double-submit guard while in flight
-    if (pendingDecisionSubmit) {
-      // L3: a failed note submit stays armed with its captured route/framing;
-      // the next primary invocation retries THAT decision, never the bare
-      // primary (which would re-derive from live state — dropping a gate's
-      // captured approve route, or re-committing the note — once the note
-      // raised hasFeedbackToSend).
-      dispatchPendingDecision(pendingDecisionSubmit);
-      return;
-    }
     if (gate && !hasFeedbackToSend) {
       void headerHandlersRef.current.handleAnnotateApprove();
       return;
     }
     void headerHandlersRef.current.handleAnnotateFeedback();
   }, [
-    dispatchPendingDecision,
     gate,
     hasFeedbackToSend,
     isExiting,
     isSubmitting,
-    pendingDecisionSubmit,
   ]);
   submitPrimaryDecisionRef.current = submitPrimaryDecision;
 
-  // Note → GLOBAL_COMMENT at submit time (#1436): it rides exportAnnotations
-  // and the /api/feedback annotations array exactly like a composer-made
-  // global comment — zero server change on either runtime. Deliberately NOT
-  // annotationHistory.record: the note lives for one submit, and undoing it
-  // after the send would restore nothing the agent has not been told.
-  const commitSubmitNote = useCallback((text: string): string | null => {
-    const trimmed = text.trim();
-    if (!trimmed) return null;
-    const note: Annotation = {
-      id: generateId('global-note'),
-      blockId: '',
-      startOffset: 0,
-      endOffset: 0,
-      type: AnnotationType.GLOBAL_COMMENT,
-      text: trimmed,
-      originalText: '',
-      createdA: Date.now(),
-    };
-    annotationsRef.current = [...annotationsRef.current, note];
-    setAnnotations(annotationsRef.current);
-    return note.id;
-  }, []);
-
-  const queueNoteDecision = useCallback((
-    text: string | undefined,
-    route: 'feedback' | 'approve',
-    approvalFraming: boolean,
-  ) => {
-    if (isSubmitting || isExiting) return;
-    const noteId = commitSubmitNote(text ?? '');
-    if (!noteId) return; // the control never submits an empty note
-    setPendingDecisionSubmit({ noteId, route, approvalFraming, dispatched: false });
-  }, [commitSubmitNote, isExiting, isSubmitting]);
-
-  // The commit above is a state write, so the payload builders (which close
-  // over `allAnnotations`) only see the note on the NEXT render. Submit from
-  // an effect once the note is actually in state rather than guessing. One
-  // automatic dispatch per arming; after a failure the armed decision waits
-  // for the next primary invocation (L3).
-  useEffect(() => {
-    const pending = pendingDecisionSubmit;
-    if (!pending) return;
-    if (!annotations.some((a) => a.id === pending.noteId)) {
-      // The note left state (panel delete, draft restore, document switch):
-      // the captured decision lost its note — disarm rather than replaying
-      // its framing over someone else's payload.
-      setPendingDecisionSubmit(null);
-      return;
-    }
-    if (pending.dispatched) return;
-    setPendingDecisionSubmit({ ...pending, dispatched: true });
-    dispatchPendingDecision(pending);
-  }, [annotations, dispatchPendingDecision, pendingDecisionSubmit]);
-
-  const runAnnotateDecisionAction = useCallback((id: DecisionActionId, note?: string) => {
-    const action = resolveAnnotateDecisionAction(id, { gate });
+  const runAnnotateDecisionAction = useCallback((id: DecisionActionId) => {
+    const action = resolveAnnotateDecisionAction(id);
     switch (action.kind) {
       case 'primary':
         submitPrimaryDecision();
-        return;
-      case 'note':
-        queueNoteDecision(note, action.route, action.approvalFraming);
         return;
       case 'approve-with-notes': {
         void headerHandlersRef.current.handleAnnotateApprove();
@@ -1527,7 +1334,7 @@ const AppInner: React.FC = () => {
         return;
       }
     }
-  }, [gate, isExiting, isSubmitting, queueNoteDecision, submitPrimaryDecision, submitted]);
+  }, [isExiting, isSubmitting, submitPrimaryDecision, submitted]);
 
   const annotateDecisionSpec = useMemo(() => buildDecisionSpec({
     app: 'annotate',
@@ -1544,9 +1351,6 @@ const AppInner: React.FC = () => {
 
   const annotateDecisionHandlers = useMemo<Record<DecisionActionId, DecisionHandler>>(() => ({
     'primary': () => runAnnotateDecisionAction('primary'),
-    'note-with-approval': (note) => runAnnotateDecisionAction('note-with-approval', note),
-    'request-changes': (note) => runAnnotateDecisionAction('request-changes', note),
-    'note-with-feedback': (note) => runAnnotateDecisionAction('note-with-feedback', note),
     'approve-with-notes': () => runAnnotateDecisionAction('approve-with-notes'),
     'close-session': () => runAnnotateDecisionAction('close-session'),
   }), [runAnnotateDecisionAction]);
@@ -1591,16 +1395,12 @@ const AppInner: React.FC = () => {
             ...(state?.linkedDocSession.root.annotations ?? []),
             ...Array.from(state?.linkedDocSession.docs.values() ?? []).flatMap((d) => d.annotations),
           ];
-      const groupCodeAnnotations = isCurrent
-        ? codeAnnotations
-        : (state?.codeAnnotations ?? []);
       groups.push({
         messageId: msg.messageId,
         text: msg.text,
         timestamp: msg.timestamp,
         isCurrent,
         annotations: groupAnnotations,
-        codeAnnotations: groupCodeAnnotations,
       });
     }
     groups.sort((a, b) => {
@@ -1609,7 +1409,7 @@ const AppInner: React.FC = () => {
       return 0;
     });
     return groups;
-  }, [isMessageScopeEligible, getMessageStatesWithCurrent, selectedMessageId, recentMessages, allAnnotations, codeAnnotations]);
+  }, [isMessageScopeEligible, getMessageStatesWithCurrent, selectedMessageId, recentMessages, allAnnotations]);
 
   const renderPlanSidebar = () => {
     return (
@@ -1618,7 +1418,6 @@ const AppInner: React.FC = () => {
         onTabChange={handleNavigatorTabChange}
         showContentsTab
         blocks={blocks}
-        annotations={annotations}
         activeSection={activeSection}
         onTocNavigate={handleTocNavigate}
         linkedDocFilepath={linkedDocHook.filepath}
@@ -1663,20 +1462,16 @@ const AppInner: React.FC = () => {
       isOpen={isOpen}
       blocks={blocks}
       annotations={allAnnotations}
-      selectedId={selectedAnnotationId ?? selectedCodeAnnotationId}
-      onSelectAnnotation={handleSelectAnnotation}
+      selectedId={selectedAnnotationId}
+      onSelectAnnotation={handleSelectCard}
       onDeleteAnnotation={handleDeleteAnnotation}
-      onEditAnnotation={handleEditAnnotation}
-      codeAnnotations={codeAnnotations}
-      onSelectCodeAnnotation={handleSelectCodeAnnotation}
-      onDeleteCodeAnnotation={handleDeleteCodeAnnotation}
-      onEditCodeAnnotation={handleEditCodeAnnotation}
+      onOpenAnnotation={handleOpenAnnotation}
       scope={isMessageScopeEligible ? annotationScope : undefined}
       onScopeChange={isMessageScopeEligible ? setAnnotationScope : undefined}
       messageGroups={isMessageScopeEligible ? messageGroups : undefined}
       onClose={() => setIsMobilePanelOpen(false)}
       otherFileAnnotations={otherFileAnnotations}
-      onAddGlobalComment={setGlobalComposerAnchor}
+      onAddGlobalComment={handleAddGlobalComment}
     />
   );
 
@@ -1784,7 +1579,7 @@ const AppInner: React.FC = () => {
                     maxWidth={planMaxWidth}
                     annotations={diffAnnotations}
                     onAddAnnotation={handleAddAnnotation}
-                    onSelectAnnotation={handleSelectAnnotation}
+                    onSelectAnnotation={handleOpenAnnotation}
                     selectedAnnotationId={selectedAnnotationId}
                   />
                 </div>
@@ -1799,8 +1594,10 @@ const AppInner: React.FC = () => {
                   frontmatter={frontmatter}
                   annotations={viewerAnnotations}
                   onAddAnnotation={handleAddAnnotation}
-                  onSelectAnnotation={handleSelectAnnotation}
+                  onSelectAnnotation={handleOpenAnnotation}
                   selectedAnnotationId={selectedAnnotationId}
+                  onAskSideQuestion={handleAskSideQuestion}
+                  onComposerOpen={closeEditComposer}
                   repoInfo={repoInfo}
                   planDiffStats={planDiff.diffStats}
                   isPlanDiffActive={isPlanDiffActive}
@@ -1811,7 +1608,6 @@ const AppInner: React.FC = () => {
                   showDemoBadge={!isApiMode}
                   maxWidth={planMaxWidth}
                   onOpenLinkedDoc={handleOpenLinkedDoc}
-                  onOpenCodeFile={codeFilePopout.open}
                   linkedDocInfo={
                     linkedDocHook.isActive
                       ? {
@@ -1824,7 +1620,6 @@ const AppInner: React.FC = () => {
                       : null
                   }
                   imageBaseDir={imageBaseDir}
-                  codePathBaseDir={activeDocBaseDir}
                   sourceInfo={sourceInfo}
                   onToggleCheckbox={checkbox.toggle}
                   checkboxOverrides={checkbox.overrides}
@@ -1849,6 +1644,16 @@ const AppInner: React.FC = () => {
               </div>
             </div>
           )}
+          {/* The /btw card sits in the document's corner so it never covers the panel. */}
+          {sideChat.thread && sideChat.openKey && (
+            <SideChatCard
+              key={sideChat.openKey}
+              thread={sideChat.thread}
+              onSend={(question) => sideChat.send(sideChat.openKey!, sideChat.thread!.quote, question)}
+              onClose={sideChat.close}
+              clearRail={annotateSource === 'message' && recentMessages.length > 1}
+            />
+          )}
           </div>
 
           {/* Annotation Panel — permanent on desktop; on mobile it is a drawer
@@ -1857,21 +1662,6 @@ const AppInner: React.FC = () => {
         </div>
         </ScrollViewportProvider>
 
-        {/* Code File Popout */}
-        {codeFilePopout.popoutProps && (
-          <CodeFilePopout
-            {...codeFilePopout.popoutProps}
-            annotations={codeAnnotations.filter((ann) => ann.filePath === codeFilePopout.popoutProps?.filepath)}
-            selectedAnnotationId={selectedCodeAnnotationId}
-            onAddAnnotation={handleAddCodeAnnotation}
-            onEditAnnotation={handleEditCodeAnnotation}
-            onDeleteAnnotation={handleDeleteCodeAnnotation}
-            onSelectAnnotation={(id) => {
-              setSelectedAnnotationId(null);
-              setSelectedCodeAnnotationId(id);
-            }}
-          />
-        )}
 
         <Toaster
           position="top-right"
@@ -1896,8 +1686,36 @@ const AppInner: React.FC = () => {
             anchorEl={globalComposerAnchor}
             contextText=""
             isGlobal
+            onDraftChange={(text, images) => {
+              globalDirtyRef.current = text.trim() !== '' || (images?.length ?? 0) > 0;
+            }}
             onSubmit={handleGlobalCommentSubmit}
             onClose={() => setGlobalComposerAnchor(null)}
+          />
+        )}
+
+        {editComposer && (
+          <CommentPopover
+            key={editComposer.annotation.id}
+            anchorEl={editComposer.anchorEl}
+            contextText={editComposer.annotation.originalText.slice(0, 80)}
+            copyText={editComposer.annotation.originalText}
+            isGlobal={editComposer.annotation.type === AnnotationType.GLOBAL_COMMENT}
+            initialText={editComposer.annotation.text ?? ''}
+            initialImages={editComposer.annotation.images}
+            onDraftChange={(text, images) => {
+              const saved = editComposer.annotation;
+              editDirtyRef.current = text.trim() !== (saved.text ?? '').trim()
+                || (images?.length ?? 0) !== (saved.images?.length ?? 0);
+            }}
+            onSubmit={(text, images) => {
+              editAnnotation(editComposer.annotation.id, {
+                text: text.trim(),
+                images: images?.length ? images : undefined,
+              });
+              setEditComposer(null);
+            }}
+            onClose={() => setEditComposer(null)}
           />
         )}
 

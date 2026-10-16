@@ -27,6 +27,9 @@ interface DialogProps {
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
   modal?: boolean;
+  /** Keep the dialog open on a click outside it; Escape and the controls
+   *  still close it. For confirmations that must be answered. */
+  disablePointerDismissal?: boolean;
   children?: ReactNode;
 }
 
@@ -36,6 +39,7 @@ function Dialog({
   defaultOpen,
   onOpenChange,
   modal,
+  disablePointerDismissal,
 }: DialogProps) {
   // Base UI's Root handles controlled/uncontrolled state internally. We only
   // narrow the (open, eventDetails) callback to (open) for our public prop.
@@ -45,6 +49,7 @@ function Dialog({
       defaultOpen={defaultOpen}
       onOpenChange={(next) => onOpenChange?.(next)}
       modal={modal}
+      disablePointerDismissal={disablePointerDismissal}
     >
       {children}
     </DialogPrimitive.Root>

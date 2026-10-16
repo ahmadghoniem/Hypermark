@@ -1,5 +1,4 @@
 import React, { useRef, useState, useEffect, useMemo, forwardRef, useImperativeHandle, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { AnnotationType, type Block, type Annotation, type ImageAttachment } from '../types';
 import { applyHighlight, codeBlockClassName, onCodeHighlightSwap } from '../utils/codeHighlight';
 import { paintCodeBlockMark } from '../utils/codeBlockMark';
@@ -11,10 +10,9 @@ import { CodeBlock } from './blocks/CodeBlock';
 import { TableBlock } from './blocks/TableBlock';
 import { TableToolbar } from './blocks/TableToolbar';
 import { TablePopout } from './blocks/TablePopout';
-import { CodePathValidationContext } from './CodePathValidationContext';
-import { useValidatedCodePaths } from '../hooks/useValidatedCodePaths';
 
 import { CommentPopover } from './CommentPopover';
+import { ImageLightbox } from './ImageLightbox';
 import { GraphvizBlock } from './GraphvizBlock';
 import { MermaidBlock } from './MermaidBlock';
 import { isGraphvizLanguage, isMermaidLanguage } from './diagramLanguages';
@@ -43,12 +41,7 @@ export interface ViewerProps {
   selectedAnnotationId: string | null;
   repoInfo?: { display: string; branch?: string; host?: string } | null;
   onOpenLinkedDoc?: (path: string) => void;
-  onOpenCodeFile?: (path: string) => void;
   imageBaseDir?: string;
-  /** Directory the active document lives in — used by the code-path validator
-   *  so out-of-tree relative references (e.g. `../foo.ts` in a linked doc)
-   *  resolve against the doc's own directory rather than only cwd. */
-  codePathBaseDir?: string;
   linkedDocInfo?: LinkedDocBadgeInfo | null;
   // Plan diff props
   planDiffStats?: { additions: number; deletions: number; modifications: number } | null;
@@ -68,12 +61,18 @@ export interface ViewerProps {
   // Checkbox toggle props
   onToggleCheckbox?: (blockId: string, checked: boolean) => void;
   checkboxOverrides?: Map<string, boolean>;
+  /** Turns on `/btw` in the composer. Called with the question and the highlighted text. */
+  onAskSideQuestion?: (question: string, quote: string) => void;
+  /** Called when the viewer opens a composer for a new selection. */
+  onComposerOpen?: () => void;
 }
 
 export interface ViewerHandle {
   removeHighlight: (id: string) => void;
   clearAllHighlights: () => void;
   applySharedAnnotations: (annotations: Annotation[]) => void;
+  /** Closes the viewer's composer unless it holds a draft. Returns false when it stays open. */
+  closeComposer: () => boolean;
 }
 
 /**
@@ -133,13 +132,13 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   showDemoBadge,
   maxWidth,
   onOpenLinkedDoc,
-  onOpenCodeFile,
   linkedDocInfo,
   imageBaseDir,
-  codePathBaseDir,
   sourceInfo,
   onToggleCheckbox,
   checkboxOverrides,
+  onComposerOpen,
+  onAskSideQuestion,
 }, ref) => {
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
   const [locationHash, setLocationHash] = useState(() => window.location.hash);
@@ -194,6 +193,10 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   } | null>(null);
   const lastAutoScrolledHashRef = useRef<string | null>(null);
   const [quickLabels] = useQuickLabels();
+  const composerDirtyRef = useRef(false);
+  const handleComposerDraftChange = useCallback((text: string, images?: ImageAttachment[]) => {
+    composerDirtyRef.current = text.trim() !== '' || (images?.length ?? 0) > 0;
+  }, []);
 
   // Shared annotation infrastructure via hook
   const {
@@ -223,7 +226,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     type: AnnotationType,
     text?: string,
     images?: ImageAttachment[],
-    quickLabelTip?: string,
   ) => {
     const id = `codeblock-${Date.now()}`;
     const codeText = codeEl.textContent || '';
@@ -240,7 +242,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
       originalText: codeText,
       createdA: Date.now(),
       images,
-      ...(quickLabelTip ? { quickLabelTip } : {}),
     };
 
     onAddAnnotationRef.current(newAnnotation);
@@ -400,6 +401,14 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     return () => document.removeEventListener('copy', handleCopy);
   }, [hookCommentPopover]);
 
+  const composerOpen = !!hookCommentPopover || !!viewerCommentPopover;
+  const onComposerOpenRef = useRef(onComposerOpen);
+  onComposerOpenRef.current = onComposerOpen;
+  useEffect(() => {
+    composerDirtyRef.current = false;
+    if (composerOpen) onComposerOpenRef.current?.();
+  }, [composerOpen, hookCommentPopover, viewerCommentPopover]);
+
   // Imperative handle — delegates to hook, extends removeHighlight for code blocks
   useImperativeHandle(ref, () => ({
     removeHighlight: (id: string) => {
@@ -428,7 +437,13 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     },
     clearAllHighlights,
     applySharedAnnotations: applyAnnotations,
-  }), [hookRemoveHighlight, clearAllHighlights, applyAnnotations, blocks]);
+    closeComposer: () => {
+      if (composerDirtyRef.current) return false;
+      if (hookCommentPopover) hookCommentClose();
+      setViewerCommentPopover(null);
+      return true;
+    },
+  }), [hookRemoveHighlight, clearAllHighlights, applyAnnotations, blocks, hookCommentPopover, hookCommentClose]);
 
   // Viewer-specific comment popover handlers (code blocks)
 
@@ -447,13 +462,11 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     setViewerCommentPopover(null);
   }, []);
 
-  const codePathValidation = useValidatedCodePaths(markdown, codePathBaseDir);
-
   return (
-    <CodePathValidationContext.Provider value={codePathValidation}>
     <div className="relative z-chrome w-full" style={maxWidth === null ? undefined : { maxWidth: maxWidth ?? 832 }}>
       <article
         ref={containerRef}
+        data-annotation-root
         className="w-full bg-card rounded-xl py-5 md:py-8 lg:py-10 xl:py-12 relative"
         style={{
           WebkitTouchCallout: 'none',
@@ -494,7 +507,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
                       block={block}
                       orderedIndex={indices[i]}
                       onOpenLinkedDoc={onOpenLinkedDoc}
-                      onOpenCodeFile={onOpenCodeFile}
                       onToggleCheckbox={onToggleCheckbox}
                       checkboxOverrides={checkboxOverrides}
                       githubRepo={repoInfo?.display}
@@ -516,7 +528,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               imageBaseDir={imageBaseDir}
               onImageClick={(src, alt) => setLightbox({ src, alt })}
               onOpenLinkedDoc={onOpenLinkedDoc}
-              onOpenCodeFile={onOpenCodeFile}
               githubRepo={repoInfo?.display}
               onNavigateAnchor={scrollToAnchor}
               onHover={(element) => {
@@ -542,7 +553,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
           ) : group.block.type === 'code' ? (
             <CodeBlock key={group.block.id} block={group.block} />
           ) : (
-            <BlockRenderer imageBaseDir={imageBaseDir} onImageClick={(src, alt) => setLightbox({ src, alt })} key={group.block.id} block={group.block} onOpenLinkedDoc={onOpenLinkedDoc} onOpenCodeFile={onOpenCodeFile} onNavigateAnchor={scrollToAnchor} onToggleCheckbox={onToggleCheckbox} checkboxOverrides={checkboxOverrides} githubRepo={repoInfo?.display} headingAnchorId={headingSlugMap.get(group.block.id)} />
+            <BlockRenderer imageBaseDir={imageBaseDir} onImageClick={(src, alt) => setLightbox({ src, alt })} key={group.block.id} block={group.block} onOpenLinkedDoc={onOpenLinkedDoc} onNavigateAnchor={scrollToAnchor} onToggleCheckbox={onToggleCheckbox} checkboxOverrides={checkboxOverrides} githubRepo={repoInfo?.display} headingAnchorId={headingSlugMap.get(group.block.id)} />
           )
         )}
 
@@ -591,7 +602,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
             imageBaseDir={imageBaseDir}
             onImageClick={(src, alt) => setLightbox({ src, alt })}
             onOpenLinkedDoc={onOpenLinkedDoc}
-            onOpenCodeFile={onOpenCodeFile}
             githubRepo={repoInfo?.display}
             onNavigateAnchor={scrollToAnchor}
           />
@@ -611,8 +621,13 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               initialText={hookCommentPopover.initialText}
               onSubmit={hookCommentSubmit}
               onClose={hookCommentClose}
+              onDraftChange={handleComposerDraftChange}
               quickLabels={quickLabels}
               onQuickLabel={hookCommentQuickLabel}
+              onAsk={onAskSideQuestion && ((question) => {
+                onAskSideQuestion(question, hookCommentPopover.selectedText ?? hookCommentPopover.contextText);
+                hookCommentClose();
+              })}
             />
           )}
         {viewerCommentPopover && (
@@ -623,46 +638,19 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
             initialText={viewerCommentPopover.initialText}
             onSubmit={handleViewerCommentSubmit}
             onClose={handleViewerCommentClose}
+            onDraftChange={handleComposerDraftChange}
+            onAsk={onAskSideQuestion && ((question) => {
+              onAskSideQuestion(question, viewerCommentPopover.selectedText ?? viewerCommentPopover.contextText);
+              handleViewerCommentClose();
+            })}
           />
         )}
 
       </article>
 
       {/* Image lightbox */}
-      {lightbox && createPortal(
-        <ImageLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />,
-        document.body
-      )}
+      {lightbox && <ImageLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />}
     </div>
-    </CodePathValidationContext.Provider>
   );
 });
 
-/** Simple lightbox overlay for enlarged image viewing. */
-const ImageLightbox: React.FC<{ src: string; alt: string; onClose: () => void }> = ({ src, alt, onClose }) => {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
-
-  return (
-    <div
-      className="fixed inset-0 z-overlay flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm cursor-zoom-out"
-      onClick={onClose}
-    >
-      <img
-        src={src}
-        alt={alt}
-        className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      />
-      {alt && (
-        // eslint-disable-next-line better-tailwindcss/no-restricted-classes -- caption sits on the black lightbox scrim in both modes
-        <div className="mt-3 text-body text-white/70 max-w-[90vw] text-center truncate">{alt}</div>
-      )}
-    </div>
-  );
-};

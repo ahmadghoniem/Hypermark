@@ -11,7 +11,6 @@ export interface QuickLabel {
   id: string;     // kebab-case identifier e.g. "needs-tests"
   emoji: string;  // single emoji e.g. "🧪", or '' for a label that carries none
   text: string;   // display text e.g. "Needs tests"
-  tip?: string;   // optional instruction injected into feedback for the agent
 }
 
 /**
@@ -39,22 +38,21 @@ export const AGREED_LABEL: QuickLabel = {
 
 /**
  * The labels floating above an anchored composer. One click saves a comment
- * with the label's text and tip. Agreed comes first and carries no tip.
+ * with the label's text. Agreed comes first.
  * These are only the starting point: the settings popover writes the whole
  * list, and a stored list replaces this one outright.
  */
 export const DEFAULT_QUICK_LABELS: QuickLabel[] = [
   AGREED_LABEL,
-  { id: 'needs-explanation', emoji: '', text: 'Needs explanation', tip: 'Explain the reasoning behind this before going further.' },
-  { id: 'verify-this', emoji: '', text: 'Verify this', tip: 'This seems like an assumption. Verify by reading the actual code before proceeding.' },
-  { id: 'give-an-example', emoji: '', text: 'Give an example', tip: 'This is too abstract. Show a before/after, a sample input/output, or a specific scenario so I can see how this actually works.' },
-  { id: 'out-of-scope', emoji: '', text: 'Out of scope', tip: 'This is not part of the current task. Remove it and stay focused on what was actually requested.' },
+  { id: 'needs-explanation', emoji: '', text: 'Needs explanation' },
+  { id: 'verify-this', emoji: '', text: 'Verify this' },
+  { id: 'give-an-example', emoji: '', text: 'Give an example' },
+  { id: 'out-of-scope', emoji: '', text: 'Out of scope' },
   { id: 'needs-tests', emoji: '', text: 'Needs tests' },
 ];
 
 const STORAGE_KEY_QUICK_LABELS = 'hypermark-quick-labels';
 /** Cookies hold ~4KB; these caps keep the list well inside that. */
-export const QUICK_LABEL_MAX_TIP = 240;
 export const QUICK_LABEL_MAX_COUNT = 24;
 
 /** kebab-case id derived from the text, made unique against `taken`. */
@@ -81,7 +79,6 @@ export function parseQuickLabels(raw: string | null): QuickLabel[] {
         id: l.id,
         emoji: typeof l.emoji === 'string' ? l.emoji : '',
         text: l.text.slice(0, 60),
-        ...(l.tip ? { tip: String(l.tip).slice(0, QUICK_LABEL_MAX_TIP) } : {}),
       }));
     return labels;
   } catch {

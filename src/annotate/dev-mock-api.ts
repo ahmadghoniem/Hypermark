@@ -29,8 +29,6 @@
 import type { Plugin } from 'vite';
 import { existsSync, readFileSync, statSync } from 'fs';
 import { resolve } from 'path';
-import { isCodeFilePath } from '../shared/code-file';
-import { preloadFile } from '@pierre/diffs/ssr';
 
 // ─── Default plans (Real-time Collaboration) ─────────────────────────────
 // What every dev sees when running `bun run dev:hook` without any flag.
@@ -593,6 +591,49 @@ export function devMockApi(): Plugin {
           return;
         }
 
+        if (req.url === '/api/side-chat' && req.method === 'POST') {
+          req.resume();
+          req.on('end', () => {
+            setTimeout(() => {
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({
+                reply: 'This is a canned reply from the dev mock API. The real side chat will answer from the conversation, '
+                  + 'read-only, and nothing here is added to your feedback.',
+              }));
+            }, 1500);
+          });
+          return;
+        }
+
+        // Uploads store nothing: the reply names a mock path, and /api/image
+        // draws a placeholder for any path. A file named with "fail" is refused.
+        if (req.url === '/api/upload' && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: Buffer) => { body += chunk.toString('latin1'); });
+          req.on('end', () => {
+            const name = /filename="([^"]*)"/.exec(body)?.[1] || 'image.png';
+            res.setHeader('Content-Type', 'application/json');
+            if (name.includes('fail')) {
+              res.statusCode = 413;
+              res.end(JSON.stringify({ error: 'File too large' }));
+              return;
+            }
+            res.end(JSON.stringify({ path: `/mock/${name}`, originalName: name }));
+          });
+          return;
+        }
+
+        if (req.url?.startsWith('/api/image?')) {
+          const name = new URL(req.url, 'http://localhost').searchParams.get('path')?.split('/').pop() ?? '';
+          const label = name.replace(/[<>&"]/g, '');
+          res.setHeader('Content-Type', 'image/svg+xml');
+          res.end(`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">`
+            + `<rect width="640" height="400" fill="#3b4252"/><circle cx="200" cy="150" r="48" fill="#88c0d0"/>`
+            + `<path d="M0 400 L230 210 L380 330 L480 250 L640 400 Z" fill="#5e81ac"/>`
+            + `<text x="320" y="380" fill="#eceff4" font-family="sans-serif" font-size="22" text-anchor="middle">${label}</text></svg>`);
+          return;
+        }
+
         if (req.url === '/api/plan') {
           res.setHeader('Content-Type', 'application/json');
           res.end(JSON.stringify({
@@ -649,20 +690,7 @@ export function devMockApi(): Plugin {
           }
           const contents = readFileSync(resolved, 'utf-8');
           res.setHeader('Content-Type', 'application/json');
-          if (isCodeFilePath(reqPath)) {
-            const displayName = resolved.split('/').pop() || resolved;
-            let prerenderedHTML: string | undefined;
-            try {
-              const result = await preloadFile({
-                file: { name: displayName, contents },
-                options: { disableFileHeader: true },
-              });
-              prerenderedHTML = result.prerenderedHTML;
-            } catch { /* fall back to client-side rendering */ }
-            res.end(JSON.stringify({ codeFile: true, contents, filepath: resolved, prerenderedHTML }));
-          } else {
-            res.end(JSON.stringify({ markdown: contents, filepath: resolved }));
-          }
+          res.end(JSON.stringify({ markdown: contents, filepath: resolved }));
           return;
         }
 

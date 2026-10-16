@@ -10,8 +10,10 @@
 @source "./*.tsx";
 @source "./components/**/*.tsx";
 @source "./utils/**/*.tsx";
+@source "../ui/fluid/**/*.{ts,tsx}";
 
 @import "../ui/theme.css";
+@import "../ui/fluid/fluid.css";
 
 /* =====================================================
    Code Review Specific Styles

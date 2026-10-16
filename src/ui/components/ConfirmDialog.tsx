@@ -2,10 +2,11 @@
  * Reusable confirmation dialog component
  */
 
-import React, { useEffect, useId, useRef } from 'react';
-import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
-
+import React, { useEffect, useId } from 'react';
 import { AlertTriangle, MessageTextSquare01 } from '@untitledui/icons';
+import { Button } from '@/ui/fluid/components/button';
+import { Dialog, DialogContent, DialogTitle } from '@/ui/fluid/components/dialog';
+
 export interface ConfirmDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -19,6 +20,16 @@ export interface ConfirmDialogProps {
   showCancel?: boolean;
   wide?: boolean;
 }
+
+const ICON_COLORS = {
+  info: 'bg-accent/20 text-accent',
+  warning: 'bg-warning/20 text-warning',
+};
+
+const ICONS = {
+  info: <MessageTextSquare01 className="size-5" />,
+  warning: <AlertTriangle className="size-5" />,
+};
 
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   isOpen,
@@ -34,8 +45,6 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   wide = false,
 }) => {
   const descriptionId = useId();
-  const cancelButtonRef = useRef<HTMLButtonElement>(null);
-  const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -51,27 +60,6 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     return () => window.removeEventListener('keydown', handleKey);
   }, [isOpen, onConfirm, onClose]);
 
-  if (!isOpen) return null;
-
-  const iconColors = {
-    info: 'bg-accent/20 text-accent',
-    warning: 'bg-warning/20 text-warning',
-  };
-
-  const buttonColors = {
-    info: 'bg-primary text-primary-foreground [@media(hover:hover)_and_(pointer:fine)]:hover:opacity-90',
-    warning: 'bg-warning text-warning-foreground [@media(hover:hover)_and_(pointer:fine)]:hover:opacity-90',
-  };
-
-  const icons = {
-    info: (
-      <MessageTextSquare01 className="size-5" />
-    ),
-    warning: (
-      <AlertTriangle className="size-5" />
-    ),
-  };
-
   return (
     <Dialog
       open={isOpen}
@@ -80,19 +68,19 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         if (!open) onClose();
       }}
     >
+      {/* Focus starts on the first button in the DOM: Cancel when it is
+          shown, otherwise the confirm button. */}
       <DialogContent
-        hideClose
+        showCloseButton={false}
         aria-describedby={descriptionId}
-        initialFocus={() => (showCancel ? cancelButtonRef.current : confirmButtonRef.current)}
-        backdropClassName="bg-background/80 backdrop-blur-sm"
-        className={`bg-card text-foreground rounded-xl shadow-2xl p-6 transition-none ${wide ? 'max-w-md' : 'max-w-sm'}`}
+        className={wide ? 'max-w-md' : undefined}
         data-hypermark-confirm-dialog="true"
       >
         <div className="flex items-center gap-3 mb-4">
-          <div className={`size-10 shrink-0 rounded-full flex items-center justify-center ${iconColors[variant]}`}>
-            {icons[variant]}
+          <div className={`size-10 shrink-0 rounded-full flex items-center justify-center ${ICON_COLORS[variant]}`}>
+            {ICONS[variant]}
           </div>
-          <DialogTitle className="font-semibold tracking-normal">{title}</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
         </div>
         <div id={descriptionId}>
           <div className="text-body text-muted-foreground mb-2">
@@ -107,18 +95,12 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         </div>
         <div className="flex justify-end gap-2">
           {showCancel && (
-            <button
-              ref={cancelButtonRef}
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-md text-body font-semibold bg-muted text-muted-foreground [@media(hover:hover)_and_(pointer:fine)]:hover:bg-muted/80 transition-opacity"
-            >
+            <Button variant="secondary" onClick={onClose}>
               {cancelText}
-            </button>
+            </Button>
           )}
-          <button
-            ref={confirmButtonRef}
-            type="button"
+          <Button
+            variant="primary"
             onClick={() => {
               if (onConfirm) {
                 onConfirm();
@@ -126,10 +108,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 onClose();
               }
             }}
-            className={`px-4 py-2 rounded-md text-body font-semibold transition-opacity ${buttonColors[variant]}`}
           >
             {confirmText}
-          </button>
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

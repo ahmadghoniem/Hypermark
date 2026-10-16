@@ -1,10 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
-import type { Block, Annotation } from '../types';
-import {
-  buildTocHierarchy,
-  getAnnotationCountBySection,
-  type TocItem,
-} from '../utils/annotationHelpers';
+import type { Block } from '../types';
+import { buildTocHierarchy, type TocItem } from '../utils/annotationHelpers';
 import { fileName as pathFileName } from '../utils/displayPath';
 import {
   getScrollViewportRect,
@@ -16,7 +12,6 @@ import {
 import { ArrowLeft } from '@untitledui/icons';
 interface TableOfContentsProps {
   blocks: Block[];
-  annotations: Annotation[];
   activeId: string | null;
   onNavigate: (blockId: string) => void;
   className?: string;
@@ -58,7 +53,6 @@ function itemClasses(level: number, isActive: boolean): string {
 
 export function TableOfContents({
   blocks,
-  annotations,
   activeId,
   onNavigate,
   className = '',
@@ -69,18 +63,9 @@ export function TableOfContents({
   indent = 12,
   radius = 8,
 }: TableOfContentsProps) {
-  // Annotation count per section (kept — production feature).
-  const annotationCounts = useMemo(
-    () => getAnnotationCountBySection(blocks, annotations),
-    [blocks, annotations]
-  );
-
-  // Build the hierarchy (filters to heading levels ≤ 3 and attaches counts),
-  // then flatten to a plain list.
-  const tocItems = useMemo(
-    () => flattenToc(buildTocHierarchy(blocks, annotationCounts)),
-    [blocks, annotationCounts]
-  );
+  // Build the hierarchy (filters to heading levels ≤ 3), then flatten to a
+  // plain list.
+  const tocItems = useMemo(() => flattenToc(buildTocHierarchy(blocks)), [blocks]);
 
   // The real scroll element is the OverlayScrollArea viewport, not <main>.
   const scrollViewport = useScrollViewport();
@@ -145,18 +130,13 @@ export function TableOfContents({
                 type="button"
                 onClick={() => handleNavigate(item.id)}
                 aria-current={isActive ? 'location' : undefined}
-                className={`flex items-center justify-between gap-2 px-2 py-1.5 text-left text-micro/snug font-semibold transition-colors ${itemClasses(
+                className={`flex items-center gap-2 px-2 py-1.5 text-left text-micro/snug font-semibold transition-colors ${itemClasses(
                   item.level,
                   isActive
                 )}`}
                 style={{ marginLeft: item.level <= 1 ? 0 : (item.level === 2 ? indent : indent * 2), borderRadius: radius }}
               >
                 <span className="line-clamp-2">{item.content}</span>
-                {item.annotationCount > 0 && (
-                  <span className="ml-1 flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-primary/10 px-1 font-mono text-micro text-primary">
-                    {item.annotationCount}
-                  </span>
-                )}
               </button>
             );
           })}

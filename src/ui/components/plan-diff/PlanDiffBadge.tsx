@@ -7,6 +7,8 @@
 
 import React from "react";
 import type { PlanDiffStats } from "../../utils/planDiffEngine";
+import { Button } from "../../fluid/components/button";
+import { Tooltip } from "../../fluid/components/tooltip";
 
 interface PlanDiffBadgeProps {
   stats: PlanDiffStats | null;
@@ -41,29 +43,33 @@ export const PlanDiffBadge: React.FC<PlanDiffBadgeProps> = ({
   if (!hasChanges) return null;
 
   return (
-    <button
-      onClick={onToggle}
-      className={`px-1.5 py-0.5 rounded-sm text-micro font-mono transition-colors cursor-pointer ${
-        isActive
-          ? "bg-primary/15"
-          : "bg-muted/50 hover:bg-muted"
-      }`}
-      title={
+    <Tooltip
+      content={
         isActive
           ? "Exit plan diff view"
           : baselineTooltip ?? "Show what changed from previous version"
       }
+      side="bottom"
     >
-      <span className={isActive ? "text-success" : "text-success/70"}>
-        +{stats.additions}
-      </span>
-      <span className="text-muted-foreground/50 mx-0.5">/</span>
-      <span className={isActive ? "text-destructive" : "text-destructive/70"}>
-        -{stats.deletions}
-      </span>
-      {baselineLabel && (
-        <span className="text-muted-foreground/60 ml-1">{baselineLabel}</span>
-      )}
-    </button>
+      <Button
+        variant="ghost"
+        size="compact"
+        active={isActive}
+        aria-pressed={isActive}
+        onClick={onToggle}
+        className="h-5 px-1.5 text-micro font-mono"
+      >
+        <span className={isActive ? "text-success" : "text-success/70"}>
+          +{stats.additions}
+        </span>
+        <span className="text-muted-foreground/50 mx-0.5">/</span>
+        <span className={isActive ? "text-destructive" : "text-destructive/70"}>
+          -{stats.deletions}
+        </span>
+        {baselineLabel && (
+          <span className="text-muted-foreground/60 ml-1">{baselineLabel}</span>
+        )}
+      </Button>
+    </Tooltip>
   );
 };

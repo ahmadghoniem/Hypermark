@@ -31,49 +31,18 @@ describe("annotate decision handler exhaustiveness", () => {
   test("every id the spec can emit resolves to a route", () => {
     for (const input of annotateInputs()) {
       const spec = buildDecisionSpec(input);
-      expect(resolveAnnotateDecisionAction("primary", { gate: input.gate })).toBeDefined();
+      expect(resolveAnnotateDecisionAction("primary")).toBeDefined();
       for (const item of spec.items) {
-        const route = resolveAnnotateDecisionAction(item.id, { gate: input.gate });
+        const route = resolveAnnotateDecisionAction(item.id);
         expect(route).toBeDefined();
-        // A composer item routed anywhere but the note flow would drop the
-        // typed note on the floor; a confirm item must be the close flow.
-        if (item.composer) expect(route.kind).toBe("note");
+        // A confirm item must be the close flow.
         if (item.confirm) expect(route.kind).toBe("close");
       }
     }
   });
 
-  // Guards the endpoint matrix: Done and every note stay on
-  // /api/feedback so formatAnnotateOutcome shapes and strict-gate exit codes
-  // are untouched; only gate-mode approvals reach /api/approve.
-  test("note routes follow the gate's transport; no menu note ever carries approval framing", () => {
-    const gated = { gate: true };
-    const ungated = { gate: false };
-
-    expect(resolveAnnotateDecisionAction("note-with-approval", gated))
-      .toEqual({ kind: "note", route: "approve", approvalFraming: false });
-    // The non-gate arm is dead code by construction since the empty-menu
-    // collapse. Assert the unreachability itself (so this pin cannot pass
-    // vacuously over a route the spec quietly resurrects)…
-    for (const input of annotateInputs()) {
-      if (input.gate) continue;
-      expect(buildDecisionSpec(input).items.map((item) => item.id))
-        .not.toContain("note-with-approval");
-    }
-    expect(resolveAnnotateDecisionAction("note-with-approval", ungated))
-      .toEqual({ kind: "note", route: "approve", approvalFraming: false });
-
-    for (const ctx of [gated, ungated]) {
-      // The two differ only by state, never by transport or framing.
-      expect(resolveAnnotateDecisionAction("request-changes", ctx))
-        .toEqual({ kind: "note", route: "feedback", approvalFraming: false });
-      expect(resolveAnnotateDecisionAction("note-with-feedback", ctx))
-        .toEqual(resolveAnnotateDecisionAction("request-changes", ctx));
-    }
-
-    // Close never varies by gate: it dismisses, it never approves.
-    for (const ctx of [gated, ungated]) {
-      expect(resolveAnnotateDecisionAction("close-session", ctx)).toEqual({ kind: "close" });
-    }
+  // Close dismisses, it never approves.
+  test("close routes to the close flow", () => {
+    expect(resolveAnnotateDecisionAction("close-session")).toEqual({ kind: "close" });
   });
 });

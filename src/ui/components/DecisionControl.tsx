@@ -1,15 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, Loading02, Send01 } from '@untitledui/icons';
 import { Button } from './ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from './ui/dialog';
 import { ActionMenuDivider, ActionMenuItem } from './ActionMenu';
 import { ConfirmDialog, type ConfirmDialogProps } from './ConfirmDialog';
+import { AutoGrowBox } from './AutoGrowBox';
 import { useDismissablePopover } from '../hooks/useDismissablePopover';
-import { submitHint } from '../utils/platform';
 import { cn } from '../lib/utils';
 import type {
   DecisionActionId,
-  DecisionComposer,
   DecisionMenuItem,
   DecisionSpec,
   DecisionTone,
@@ -18,7 +16,7 @@ import type {
 /**
  * The unified header decision control: one joined split pill — the incumbent
  * primary on the left, a caret on the right whose popover carries the
- * alternate decisions and the in-place note composer. Rendered entirely from a
+ * alternate decisions. Rendered entirely from a
  * `DecisionSpec` (see `utils/decisionSpec.ts`); the host owns the handlers.
  *
  * NOT host-supported surface (like ActionMenu/ConfirmDialog): session/transport
@@ -28,18 +26,11 @@ import type {
  * Interaction contract (the load-bearing rules):
  * - The left segment never opens the popover and never changes meaning within
  *   a state; the caret owns the popover.
- * - Choosing a composer item MORPHS the same popover into the note composer —
- *   same element, children swap, never a second popover.
- * - Esc ladder: composer → back to the menu keeping the draft; menu → close,
- *   focus returns to the caret. The event is consumed (stopPropagation) on
- *   exactly those two rungs; with nothing open the host app's own Escape
- *   ladder still runs.
- * - Mod+Enter in the note field fires the composer's labelled action; plain
- *   Enter is a newline, always.
- * - An empty note never submits and never grays the action: the click
- *   refocuses the field instead.
+ * - Escape in the menu closes it and returns focus to the caret. The event is
+ *   consumed (stopPropagation); with the menu closed the host app's own
+ *   Escape ladder still runs.
  */
-export type DecisionHandler = (note?: string) => void;
+export type DecisionHandler = () => void;
 
 export interface DecisionControlProps {
   spec: DecisionSpec;
@@ -71,17 +62,6 @@ function itemToneClass(tone: DecisionTone): string | undefined {
   return undefined;
 }
 
-function useAutoGrow(text: string) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = `${Math.min(el.scrollHeight, NOTE_MAX_HEIGHT_PX)}px`;
-  }, [text]);
-  return ref;
-}
-
 export interface DecisionNoteFieldProps {
   text: string;
   onTextChange: (value: string) => void;
@@ -97,9 +77,8 @@ export interface DecisionNoteFieldProps {
 
 /**
  * The shared multi-line note field: two rows at rest, grows to 144px, then
- * scrolls. Controlled — the owner keeps the text so stepping back does not
- * discard a half-typed note. Exported separately because a third consumer
- * (the review sidebar's "+ General comment") composes it outside the control.
+ * scrolls. Controlled: the owner keeps the text. Used by the review sidebar's
+ * "+ General comment".
  */
 export const DecisionNoteField: React.FC<DecisionNoteFieldProps> = ({
   text,
@@ -110,7 +89,7 @@ export const DecisionNoteField: React.FC<DecisionNoteFieldProps> = ({
   disabled = false,
   autoFocus = true,
 }) => {
-  const ref = useAutoGrow(text);
+  const ref = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (autoFocus) ref.current?.focus();
@@ -139,24 +118,29 @@ export const DecisionNoteField: React.FC<DecisionNoteFieldProps> = ({
   );
 
   return (
-    <textarea
-      ref={ref}
-      rows={2}
-      value={text}
-      onChange={(event) => onTextChange(event.target.value)}
-      onKeyDown={handleKeyDown}
-      placeholder={placeholder}
-      aria-label={placeholder}
-      data-decision-note-input="true"
-      data-pn-mobile-editable
-      disabled={disabled}
-      className="block w-full resize-none overflow-y-auto rounded-md border border-border bg-background px-2.5 py-1.5 text-body/snug text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring/40"
-      style={{ maxHeight: NOTE_MAX_HEIGHT_PX }}
-    />
+    <AutoGrowBox value={text}>
+      <textarea
+        ref={ref}
+        rows={2}
+        value={text}
+        onChange={(event) => onTextChange(event.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        data-decision-note-input="true"
+        data-pn-mobile-editable
+        disabled={disabled}
+        className="block w-full resize-none overflow-y-auto rounded-md border border-border bg-background px-2.5 py-1.5 text-body/snug text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring/40"
+        style={{
+          fieldSizing: 'content',
+          // Two lines at rest: field-sizing ignores `rows`.
+          minHeight: 'calc(2lh + 0.75rem + 2px)',
+          maxHeight: NOTE_MAX_HEIGHT_PX,
+        } as React.CSSProperties}
+      />
+    </AutoGrowBox>
   );
 };
-
-type PopoverState = null | 'menu' | 'composer';
 
 export const DecisionControl: React.FC<DecisionControlProps> = ({
   spec,
@@ -169,11 +153,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
   const rootRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const caretRef = useRef<HTMLButtonElement>(null);
-  const [popover, setPopover] = useState<PopoverState>(null);
-  const [activeItemId, setActiveItemId] = useState<DecisionMenuItem['id'] | null>(null);
-  // Drafts are keyed per item so stepping back from a composer (Esc, back
-  // button, even closing the popover) keeps the half-typed note.
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [menuOpen, setMenuOpen] = useState(false);
   // L2: only the ID is state — the confirm's title/message/handler resolve
   // from the LIVE spec at render, so a spec update while the dialog is up
   // can never confirm stale copy (e.g. an outdated count).
@@ -183,27 +163,17 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
       ? spec.items.find((item) => item.id === confirmItemId && item.confirm) ?? null
       : null;
 
-  const activeItem =
-    popover === 'composer' && activeItemId
-      ? spec.items.find((item) => item.id === activeItemId) ?? null
-      : null;
-
   const closePopover = useCallback((options?: { focusCaret?: boolean }) => {
-    setPopover(null);
-    setActiveItemId(null);
+    setMenuOpen(false);
     if (options?.focusCaret) caretRef.current?.focus();
   }, []);
 
-  // Outside-dismissal (outside pointerdown, or an Escape whose
-  // focus has already left the control) closes the WHOLE popover, composer
-  // included: the user's attention has left the control, so restoring the
-  // intermediate menu rung would fight where they are — and the draft is kept
-  // in `drafts` either way. The three-rung Esc ladder applies only while
-  // focus is inside the popover (handlePopoverKeyDown / the note field).
+  // Outside pointerdown, or an Escape whose focus has already left the
+  // control, closes the menu.
   const dismiss = useCallback(() => closePopover(), [closePopover]);
 
   useDismissablePopover({
-    enabled: popover !== null,
+    enabled: menuOpen,
     ref: rootRef,
     onDismiss: dismiss,
   });
@@ -212,100 +182,51 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
   // anymore, so it must not hang over a disabled pill.
   useEffect(() => {
     if (busy) {
-      setPopover(null);
-      setActiveItemId(null);
+      setMenuOpen(false);
       setConfirmItemId(null);
     }
   }, [busy]);
 
   // F6: the spec is live — an annotation delete (or an external write) can
-  // remove the item the open composer or confirm belongs to. Morph gracefully
-  // instead of rendering a dead surface: both step back to the menu (the
-  // composer draft is kept, keyed by item id, in case the item returns).
+  // remove the item an open confirm belongs to; it steps back to the menu.
   // buildDecisionSpec guarantees at least one item, so the menu is always a
-  // valid fallback (L4 ruling: no empty-menu branch for a spec shape that
-  // cannot occur). Lives in the control rather than the adopting apps so the
-  // annotate and review wirings cannot diverge on it.
-  useEffect(() => {
-    if (popover !== 'composer') return;
-    const stillPresent =
-      activeItemId !== null &&
-      spec.items.some((item) => item.id === activeItemId && item.composer);
-    if (stillPresent) return;
-    setPopover('menu');
-    setActiveItemId(null);
-  }, [activeItemId, popover, spec]);
-
+  // valid fallback.
   useEffect(() => {
     if (confirmItemId === null) return;
     if (spec.items.some((item) => item.id === confirmItemId && item.confirm)) return;
     setConfirmItemId(null);
-    setPopover('menu');
+    setMenuOpen(true);
   }, [confirmItemId, spec]);
 
   // Roving focus entry point: whenever the menu (re)appears — caret click,
-  // back from the composer, confirm cancel — focus its first row.
+  // confirm cancel — focus its first row.
   useEffect(() => {
-    if (popover !== 'menu') return;
+    if (!menuOpen) return;
     popoverRef.current
       ?.querySelector<HTMLButtonElement>('[role="menuitem"]')
       ?.focus();
-  }, [popover]);
+  }, [menuOpen]);
 
   const selectItem = useCallback((item: DecisionMenuItem) => {
-    if (item.composer) {
-      setActiveItemId(item.id);
-      setPopover('composer');
-      return;
-    }
     if (item.confirm) {
       // The confirm replaces the popover; cancel reopens the menu so one
       // decision stays one click away.
       setConfirmItemId(item.id);
-      setPopover(null);
+      setMenuOpen(false);
       return;
     }
     closePopover();
     handlers[item.id]?.();
   }, [closePopover, handlers]);
 
-  const submitComposer = useCallback(() => {
-    if (!activeItem) return;
-    const trimmed = (drafts[activeItem.id] ?? '').trim();
-    if (trimmed.length === 0) {
-      // Empty note: the action stays visually enabled and the click puts the
-      // cursor back in the field — never a disabled-gray submit.
-      popoverRef.current
-        ?.querySelector<HTMLTextAreaElement>('[data-decision-note-input]')
-        ?.focus();
-      return;
-    }
-    setDrafts((prev) => {
-      const next = { ...prev };
-      delete next[activeItem.id];
-      return next;
-    });
-    closePopover();
-    handlers[activeItem.id]?.(trimmed);
-  }, [activeItem, closePopover, drafts, handlers]);
-
-  const backToMenu = useCallback(() => {
-    setPopover('menu');
-    setActiveItemId(null);
-  }, []);
-
   const handlePopoverKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key === 'Escape') {
-        // The two consuming rungs of the Esc ladder. (The note field consumes
-        // its own Escape before it reaches here — same first rung.)
         event.preventDefault();
         event.stopPropagation();
-        if (popover === 'composer') backToMenu();
-        else closePopover({ focusCaret: true });
+        closePopover({ focusCaret: true });
         return;
       }
-      if (popover !== 'menu') return;
       const keys = ['ArrowDown', 'ArrowUp', 'Home', 'End'];
       if (!keys.includes(event.key)) return;
       const items = Array.from(
@@ -322,7 +243,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
       else next = items.length - 1;
       items[next]?.focus();
     },
-    [backToMenu, closePopover, popover],
+    [closePopover],
   );
 
   const primaryVariant = toneButtonVariant(spec.primary.tone);
@@ -387,86 +308,44 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
         variant={primaryVariant}
         size="xs"
         onClick={() => {
-          if (popover) closePopover();
-          else setPopover('menu');
+          if (menuOpen) closePopover();
+          else setMenuOpen(true);
         }}
         disabled={busy}
         aria-haspopup="menu"
-        aria-expanded={popover !== null}
+        aria-expanded={menuOpen}
         aria-label="More decisions"
         data-decision-caret="true"
         className="rounded-l-none px-1.5"
       >
         <ChevronDown
-          className={cn('size-3.5 transition-transform duration-150', popover && 'rotate-180')}
+          className={cn('size-3.5 transition-transform duration-150', menuOpen && 'rotate-180')}
           aria-hidden="true"
         />
       </Button>
 
-      {popover !== null && (
-        // One popover element for both states: choosing a composer item swaps
-        // the children in place (morph), never mounts a second popover.
+      {menuOpen && (
         <div
           ref={popoverRef}
-          role={popover === 'menu' ? 'menu' : undefined}
-          data-decision-popover={popover}
+          role="menu"
+          data-decision-popover="menu"
           data-pn-dismissable-popover="true"
           onKeyDown={handlePopoverKeyDown}
-          className="absolute right-0 top-full z-menu mt-1.5 w-64 rounded-lg border border-border bg-popover shadow-xl"
+          className="absolute right-0 top-full z-menu mt-1.5 w-64 rounded-lg border border-border bg-popover py-1 shadow-xl"
         >
-          {popover === 'menu' ? (
-            <div className="py-1">
-              {spec.items.map((item) => (
-                <React.Fragment key={item.id}>
-                  {item.dividerBefore ? <ActionMenuDivider /> : null}
-                  <ActionMenuItem
-                    role="menuitem"
-                    icon={item.icon ? ICONS[item.icon] : undefined}
-                    label={item.label}
-                    subtitle={item.subtitle}
-                    className={itemToneClass(item.tone)}
-                    onClick={() => selectItem(item)}
-                  />
-                </React.Fragment>
-              ))}
-            </div>
-          ) : activeItem?.composer ? (
-            <div className="p-2">
-              <button
-                type="button"
-                data-decision-composer-back="true"
-                onClick={backToMenu}
-                className="mb-1.5 flex items-center gap-1 rounded-sm px-1.5 py-1 text-caption text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <ChevronDown className="size-3 rotate-90" aria-hidden="true" />
-                {activeItem.composer.title}
-              </button>
-              <DecisionNoteField
-                text={drafts[activeItem.id] ?? ''}
-                onTextChange={(value) =>
-                  setDrafts((prev) => ({ ...prev, [activeItem.id]: value }))
-                }
-                onSubmit={submitComposer}
-                onCancel={backToMenu}
-                placeholder={activeItem.composer.placeholder}
+          {spec.items.map((item) => (
+            <React.Fragment key={item.id}>
+              {item.dividerBefore ? <ActionMenuDivider /> : null}
+              <ActionMenuItem
+                role="menuitem"
+                icon={item.icon ? ICONS[item.icon] : undefined}
+                label={item.label}
+                subtitle={item.subtitle}
+                className={itemToneClass(item.tone)}
+                onClick={() => selectItem(item)}
               />
-              <div className="mt-2 flex items-center justify-between gap-2 px-0.5">
-                <span className="text-micro/snug text-muted-foreground">
-                  {submitHint} send · Esc back, note kept
-                </span>
-                <Button
-                  variant={toneButtonVariant(activeItem.composer.tone)}
-                  size="xs"
-                  data-decision-composer-send="true"
-                  onClick={submitComposer}
-                  title={activeItem.composer.actionLabel}
-                  iconLeft={activeItem.composer.icon ? ICONS[activeItem.composer.icon] : undefined}
-                >
-                  {activeItem.composer.actionLabel}
-                </Button>
-              </div>
-            </div>
-          ) : null}
+            </React.Fragment>
+          ))}
         </div>
       )}
 
@@ -475,7 +354,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
           isOpen
           onClose={() => {
             setConfirmItemId(null);
-            setPopover('menu');
+            setMenuOpen(true);
           }}
           onConfirm={() => {
             const id = confirmItem.id;

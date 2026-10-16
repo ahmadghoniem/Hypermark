@@ -11,11 +11,13 @@
 
 import React from "react";
 import type { SidebarTab } from "../../hooks/useSidebar";
-import type { Block, Annotation } from "../../types";
+import type { Block } from "../../types";
 import type { VersionInfo, VersionEntry } from "../../hooks/usePlanDiff";
 import { TableOfContents } from "../TableOfContents";
 import { VersionBrowser } from "./VersionBrowser";
 import { OverlayScrollArea } from "../OverlayScrollArea";
+import { Button } from "../../fluid/components/button";
+import { Tooltip } from "../../fluid/components/tooltip";
 
 import { Clock, List } from '@untitledui/icons';
 interface SidebarContainerProps {
@@ -24,7 +26,6 @@ interface SidebarContainerProps {
   // TOC props
   showContentsTab?: boolean;
   blocks: Block[];
-  annotations: Annotation[];
   activeSection: string | null;
   onTocNavigate: (blockId: string) => void;
   linkedDocFilepath?: string | null;
@@ -50,7 +51,6 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
   onTabChange,
   showContentsTab = true,
   blocks,
-  annotations,
   activeSection,
   onTocNavigate,
   linkedDocFilepath,
@@ -85,16 +85,18 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
           {showingVersions ? "Versions" : "On this page"}
         </h2>
         {showVersionsTab && (
-          <button
-            type="button"
-            onClick={() => onTabChange(showingVersions ? "toc" : "versions")}
-            title={showingVersions ? "Back to contents" : "Plan versions"}
-            aria-label={showingVersions ? "Back to contents" : "Plan versions"}
-            aria-pressed={showingVersions}
-            className="grid size-5.5 shrink-0 place-items-center rounded-md p-0 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            {showingVersions ? <OutlineIcon /> : <ClockIcon />}
-          </button>
+          <Tooltip content={showingVersions ? "Back to contents" : "Plan versions"} side="bottom">
+            <Button
+              variant="ghost"
+              size="icon-compact"
+              onClick={() => onTabChange(showingVersions ? "toc" : "versions")}
+              aria-label={showingVersions ? "Back to contents" : "Plan versions"}
+              aria-pressed={showingVersions}
+              className="shrink-0"
+            >
+              {showingVersions ? <OutlineIcon /> : <ClockIcon />}
+            </Button>
+          </Tooltip>
         )}
       </div>
 
@@ -103,7 +105,6 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
         {!showingVersions && showContentsTab && (
           <TableOfContents
             blocks={blocks}
-            annotations={annotations}
             activeId={activeSection}
             onNavigate={onTocNavigate}
             className=""

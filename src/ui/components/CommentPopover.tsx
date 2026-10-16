@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { ImageAttachment } from '../types';
-import { CommentAttachStack } from './CommentAttachStack';
+import { ArrowUp, ChevronDown, ChevronUp, CornerDownLeft } from '@untitledui/icons';
+import { CommentAttachButton, CommentAttachStack, COMPOSER_TOOLTIP } from './CommentAttachStack';
+import { Button } from '../fluid/components/button';
+import { Tooltip } from '../fluid/components/tooltip';
 import { imageFilesFrom, useAttachmentUploads } from '../hooks/useAttachmentUploads';
 import { useDraggable } from '../hooks/useDraggable';
 import { hasUnsavedCommentContent } from '../utils/commentContent';
@@ -10,11 +13,11 @@ import {
   type VisibleViewportBounds,
 } from '../hooks/useViewportEnvironment';
 import type { QuickLabel } from '../utils/quickLabels';
-import { ComposerQuickLabels } from './ComposerQuickLabels';
+import { ComposerGhostCompletion, suggestionFor } from './ComposerQuickLabels';
 import { copyTextToClipboard } from '../utils/clipboard';
 import { QuoteText } from './QuoteText';
+import { AutoGrowBox } from './AutoGrowBox';
 
-import { ChevronDown, ChevronUp, CornerDownRight } from '@untitledui/icons';
 interface CommentPopoverProps {
   /** Element to anchor the popover near (re-reads position on scroll) */
   anchorEl?: HTMLElement;
@@ -32,11 +35,16 @@ interface CommentPopoverProps {
   initialImages?: ImageAttachment[];
   /** Called on submit with comment text and optional images */
   onSubmit: (text: string, images?: ImageAttachment[]) => void;
-  /** Label chips floating above an anchored composer. A click saves a comment
-   *  with that label; the host creates the annotation and closes the composer.
-   *  Ignored for global comments. */
+  /** Labels the field offers as a ghost Tab completion on a new anchored
+   *  comment. Sending text that is exactly a label calls `onQuickLabel`, and
+   *  the host creates the annotation and closes the composer. Ignored for
+   *  global comments and when editing. */
   quickLabels?: readonly QuickLabel[];
   onQuickLabel?: (label: QuickLabel) => void;
+  /** Turns on `/btw`: typing `/` completes to `/btw `, and sending text that
+   *  starts with it (or Alt+Enter) calls this with the question and clears the
+   *  field instead of adding a comment. */
+  onAsk?: (question: string) => void;
   /** Optional live draft observer for submit paths outside the popover. */
   onDraftChange?: (text: string, images?: ImageAttachment[]) => void;
   /** Called when popover is closed/cancelled */
@@ -45,16 +53,20 @@ interface CommentPopoverProps {
   allowEmptySubmit?: boolean;
 }
 
+const highlightIdOf = (el: Element | null | undefined): string | null => {
+  const mark = el?.closest?.('.annotation-highlight, [data-bind-id], [data-annotation-id]');
+  return mark?.getAttribute('data-highlight-id')
+    ?? mark?.getAttribute('data-bind-id')
+    ?? mark?.getAttribute('data-annotation-id')
+    ?? null;
+};
+
 const MAX_POPOVER_WIDTH = 344;
 const GAP = 8;
+// The composer wants this much height on the side of the anchor it opens on.
+const MIN_POPOVER_SPACE = 280;
 
-// The quick-label row sits at the foot of the text field.
-const CHIP_HEIGHT = 20;
-const CHIP_GAP = 4;
-/** The text area's own floor — the same 56px the old `min-h-14` gave it. An
- *  empty composer is exactly as tall as one being written in, so opening it,
- *  typing the first character and clearing it again never resize anything. */
-const TEXT_MIN_HEIGHT = 56;
+const TEXT = 'text-body/normal';
 
 interface CommentPopoverPosition {
   top: number;
@@ -62,7 +74,6 @@ interface CommentPopoverPosition {
   flipAbove: boolean;
   width: number;
   maxHeight: number;
-  requiresExpanded: boolean;
 }
 
 export function computeCommentPopoverPosition(
@@ -71,16 +82,24 @@ export function computeCommentPopoverPosition(
 ): CommentPopoverPosition {
   const spaceBelow = Math.max(0, bounds.bottom - anchorRect.bottom - GAP);
   const spaceAbove = Math.max(0, anchorRect.top - bounds.top - GAP);
-  const flipAbove = spaceBelow < 280 && spaceAbove > spaceBelow;
+  const flipAbove = spaceBelow < MIN_POPOVER_SPACE && spaceAbove > spaceBelow;
   const width = Math.min(MAX_POPOVER_WIDTH, bounds.width);
 
-  const top = flipAbove
+  let top = flipAbove
     ? anchorRect.top - GAP
     : anchorRect.bottom + GAP;
 
   let left = anchorRect.left + anchorRect.width / 2 - width / 2;
   left = Math.max(bounds.left, Math.min(left, bounds.right - width));
-  const maxHeight = flipAbove ? spaceAbove : spaceBelow;
+  let maxHeight = flipAbove ? spaceAbove : spaceBelow;
+
+  // Neither side has room (a highlight taller than the window, or a short
+  // window): the composer overlaps the anchor at that edge of the window.
+  const minHeight = Math.min(MIN_POPOVER_SPACE, bounds.height);
+  if (maxHeight < minHeight) {
+    top = flipAbove ? bounds.top + minHeight : bounds.bottom - minHeight;
+    maxHeight = minHeight;
+  }
 
   return {
     top,
@@ -88,7 +107,6 @@ export function computeCommentPopoverPosition(
     flipAbove,
     width,
     maxHeight,
-    requiresExpanded: maxHeight < 280,
   };
 }
 
@@ -103,16 +121,13 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   onSubmit,
   quickLabels,
   onQuickLabel,
+  onAsk,
   onDraftChange,
   onClose,
   allowEmptySubmit = false,
 }) => {
   const visibleBounds = useVisibleViewportBounds(16);
   const baseWidth = Math.min(MAX_POPOVER_WIDTH, visibleBounds.width);
-  const textMinHeight = TEXT_MIN_HEIGHT;
-  const fieldMinHeight = TEXT_MIN_HEIGHT + CHIP_HEIGHT + CHIP_GAP;
-  // Dialog mode only when the anchor has no room for a popover.
-  const [mode, setMode] = useState<'popover' | 'dialog'>('popover');
   // Read at reset time only: a fresh array identity per render must not re-run the reset.
   const initialImagesRef = useRef(initialImages);
   initialImagesRef.current = initialImages;
@@ -121,6 +136,8 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   const [position, setPosition] = useState<CommentPopoverPosition | null>(null);
   // Bumped on each copy to restart the quote's copy signal; 0 when idle.
   const [copyFlash, setCopyFlash] = useState(0);
+  // The ghost completion only shows while the caret is at the end of the text.
+  const [caretAtEnd, setCaretAtEnd] = useState(true);
   const copyQuote = useCallback(() => {
     if (!copyText) return;
     void copyTextToClipboard(copyText).then((ok) => {
@@ -176,11 +193,27 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 
   const hasUnsavedContent = hasUnsavedCommentContent(text, images);
 
-  const showQuickLabels = !isGlobal && !!onQuickLabel && (quickLabels?.length ?? 0) > 0;
+  // Labels are for a new anchored comment, not for editing one.
+  const showQuickLabels = !isGlobal && !!onQuickLabel && (quickLabels?.length ?? 0) > 0 && initialText.trim().length === 0;
+  const trimmedText = text.trim();
+  const btw = !!onAsk && /^\/btw(\s|$)/i.test(trimmedText);
+  // "/" completes to the side-question command the way text completes to a label.
+  const completions = onAsk && text.startsWith('/')
+    ? ['/btw ']
+    : showQuickLabels && quickLabels ? quickLabels.map((l) => l.text) : [];
+  const suggestion = caretAtEnd ? suggestionFor(text, completions) : null;
+  const trackCaret = (el: HTMLTextAreaElement) =>
+    setCaretAtEnd(el.selectionStart === el.selectionEnd && el.selectionEnd === el.value.length);
 
-
-  const hasUnsavedContentRef = useRef(hasUnsavedContent);
-  hasUnsavedContentRef.current = hasUnsavedContent;
+  // Editing: only a change from the saved comment counts as unsaved.
+  const savedImages = initialImagesRef.current ?? [];
+  const isDirty = initialText.trim()
+    ? text !== initialText
+      || images.length !== savedImages.length
+      || images.some((image, i) => image.path !== savedImages[i]?.path)
+    : hasUnsavedContent;
+  const isDirtyRef = useRef(isDirty);
+  isDirtyRef.current = isDirty;
   const { dragPosition, dragHandleProps, wasDragged, reset: resetDrag } = useDraggable(popoverRef);
   const openingFocusRef = useRef<HTMLElement | null>(
     typeof document !== 'undefined'
@@ -189,6 +222,15 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       && document.activeElement !== document.documentElement
       ? document.activeElement
       : anchorEl ?? null,
+  );
+  // A button clicked with the pointer (the panel's +, a card's edit button)
+  // takes focus without a focus ring. Focusing it again after a keyboard send
+  // would show the ring and its tooltip, so focus goes back only to an opener
+  // reached with the keyboard.
+  const openerFocusVisibleRef = useRef(
+    typeof document !== 'undefined' && openingFocusRef.current === document.activeElement
+      ? openingFocusRef.current?.matches(':focus-visible') ?? false
+      : true,
   );
 
   useEffect(() => {
@@ -213,24 +255,18 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     onDraftChange?.(text, images);
   }, [images, onDraftChange, text]);
 
-  // Reset drag when anchor changes (new annotation) or mode switches
+  // Reset drag when anchor changes (new annotation)
   useEffect(() => { resetDrag(); }, [anchorEl, anchorRect, resetDrag]);
-  useEffect(() => { if (mode === 'popover') resetDrag(); }, [mode, resetDrag]);
 
-  // Track anchor position on scroll and observed viewport changes (popover
-  // mode only, not after user drag).
+  // Track anchor position on scroll and observed viewport changes (not after
+  // user drag).
   useEffect(() => {
-    if (mode !== 'popover' || wasDragged) return;
+    if (wasDragged) return;
 
     const update = () => {
       const rect = anchorEl?.getBoundingClientRect() ?? anchorRect;
       if (!rect) return;
-      const nextPosition = computeCommentPopoverPosition(rect, visibleBounds);
-      if (nextPosition.requiresExpanded) {
-        setMode('dialog');
-        return;
-      }
-      setPosition(nextPosition);
+      setPosition(computeCommentPopoverPosition(rect, visibleBounds));
     };
 
     update();
@@ -238,13 +274,12 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     return () => {
       window.removeEventListener('scroll', update, true);
     };
-  }, [anchorEl, anchorRect, mode, visibleBounds, wasDragged]);
+  }, [anchorEl, anchorRect, visibleBounds, wasDragged]);
 
   // Surface a "jump back" arrow when an open popover scrolls out of view.
   // Re-measures whenever the popover repositions (position updates every scroll
   // step in tracked mode) so the indicator is accurate at rest, plus on resize.
   useEffect(() => {
-    if (mode !== 'popover') { setOffscreen(null); return; }
     const measure = () => {
       const el = popoverRef.current;
       if (!el) return;
@@ -254,17 +289,16 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       else setOffscreen(null);
     };
     measure();
-  }, [position, dragPosition, mode, visibleBounds]);
+  }, [position, dragPosition, visibleBounds]);
 
   const scrollToPopover = useCallback(() => {
     anchorEl?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }, [anchorEl]);
 
-  // Focus the textarea when it mounts (initial open and popover/dialog switches).
-  // A ref callback rather than a mount effect: in popover mode the textarea only
-  // renders after `position` is measured, and WebKit fires 0ms timers ahead of
-  // that commit, so an effect keyed on mode alone can run before the textarea
-  // exists and never focus it (e.g. in WKWebView hosts like Glimpse).
+  // Focus the textarea when it mounts. A ref callback rather than a mount
+  // effect: the textarea only renders after `position` is measured, and WebKit
+  // fires 0ms timers ahead of that commit, so a mount effect can run before the
+  // textarea exists and never focus it (e.g. in WKWebView hosts like Glimpse).
   const shouldAutoFocus = true;
   const focusOnMountRef = useCallback((el: HTMLTextAreaElement | null) => {
     textareaRef.current = el;
@@ -276,20 +310,9 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     }, 0);
   }, [shouldAutoFocus]);
 
-  // A touch-opened composer deliberately does not focus the textarea (and
-  // summon the software keyboard), but hardware-keyboard users still need a
-  // coherent focus target and Escape dismissal.
-  useEffect(() => {
-    if (mode !== 'dialog' || shouldAutoFocus) return;
-    const timer = setTimeout(() => {
-      if (!popoverRef.current?.isConnected) return;
-      popoverRef.current.focus({ preventScroll: true });
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [mode, shouldAutoFocus]);
-
   const restoreOpeningFocus = useCallback(() => {
     const target = openingFocusRef.current;
+    if (!openerFocusVisibleRef.current) return;
     requestAnimationFrame(() => {
       if (!target?.isConnected) return;
       target.focus({ preventScroll: true });
@@ -304,32 +327,108 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     [onClose, restoreOpeningFocus],
   );
 
-  // Click-outside for popover mode
+  // Click-outside. While the composer holds unsaved changes,
+  // a press in the document (a new selection, a click on a highlight), on a
+  // panel card or on a card's edit button is refused: its mousedown, mouseup
+  // and click are swallowed, so
+  // no text is selected and no other composer opens, and the composer shakes and takes
+  // the focus back. Other controls (buttons, the header) work as usual.
   useEffect(() => {
-    if (mode !== 'popover') return;
+    let refusing = false;
+    const refuse = () => {
+      const el = popoverRef.current;
+      if (!el) return;
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      el.animate(
+        reduce
+          ? [{ outline: '2px solid var(--ring)' }, { outline: '2px solid transparent' }]
+          : [{ translate: '0' }, { translate: '-6px' }, { translate: '5px' }, { translate: '-3px' }, { translate: '2px' }, { translate: '0' }],
+        { duration: reduce ? 600 : 320, easing: 'ease-in-out' },
+      );
+      textareaRef.current?.focus({ preventScroll: true });
+    };
+    const swallow = (e: Event) => {
+      if (!refusing) return;
+      // On window, ahead of the document-level listeners (selection widening).
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.type === 'click') refusing = false;
+    };
 
     const handlePointerDown = (e: PointerEvent) => {
+      refusing = false;
       const target = e.target as Node | null;
       if (!target) return;
       if (popoverRef.current?.contains(target)) return;
       // Don't close if clicking inside a child portal
       const el = target as HTMLElement;
       if (el.closest?.('[data-popover-layer]')) return;
-      if (hasUnsavedContentRef.current) return;
+      if (isDirtyRef.current) {
+        const card = el.closest?.('[data-annotation-id]');
+        if (el.closest?.('[data-annotation-root]') || (card && (!el.closest('button') || el.closest('[data-annotation-open]')))) {
+          refusing = true;
+          refuse();
+        }
+        return;
+      }
+      // A click on the annotation the composer is anchored to (its highlight
+      // or its panel card) is the host's to handle: it toggles the composer
+      const anchorId = highlightIdOf(anchorEl);
+      if (anchorId && highlightIdOf(el) === anchorId) return;
       handleClose('preserve-pointer-target');
     };
 
     document.addEventListener('pointerdown', handlePointerDown, true);
-    return () => document.removeEventListener('pointerdown', handlePointerDown, true);
-  }, [handleClose, mode]);
+    window.addEventListener('mousedown', swallow, true);
+    window.addEventListener('mouseup', swallow, true);
+    window.addEventListener('click', swallow, true);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      window.removeEventListener('mousedown', swallow, true);
+      window.removeEventListener('mouseup', swallow, true);
+      window.removeEventListener('click', swallow, true);
+    };
+  }, [handleClose, anchorEl]);
+
+  // Escape closes the composer after focus has left it, e.g. after a click in
+  // the document. With focus inside, the field's own handler closes it; focus
+  // in another field or dialog leaves Escape to that.
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      const active = document.activeElement as HTMLElement | null;
+      if (active && popoverRef.current?.contains(active)) return;
+      if (active?.closest('input, textarea, select, [contenteditable="true"], [role="dialog"], [data-popover-layer]')) return;
+      e.preventDefault();
+      handleClose('preserve-pointer-target');
+    };
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [handleClose]);
+
+  const ask = useCallback((question: string) => {
+    if (!onAsk || question.length === 0) return;
+    onAsk(question);
+    setText('');
+  }, [onAsk]);
 
   const handleSubmit = useCallback(() => {
+    if (btw) {
+      ask(trimmedText.slice(4).trim());
+      return;
+    }
     const canSubmitEmpty = allowEmptySubmit && initialText.trim().length > 0;
     if (hasUnsavedContent || canSubmitEmpty) {
-      onSubmit(text, images.length > 0 ? images : undefined);
+      // Text that is exactly a quick label is saved as that label (emoji
+      // included), the way the old chips did.
+      const label = showQuickLabels && images.length === 0
+        ? quickLabels?.find((l) => l.text.toLowerCase() === trimmedText.toLowerCase())
+        : undefined;
+      if (label && onQuickLabel) onQuickLabel(label);
+      else onSubmit(text, images.length > 0 ? images : undefined);
       restoreOpeningFocus();
     }
-  }, [text, images, onSubmit, allowEmptySubmit, initialText, hasUnsavedContent, restoreOpeningFocus]);
+  }, [btw, ask, trimmedText, text, images, onSubmit, onQuickLabel, quickLabels, showQuickLabels, allowEmptySubmit, initialText, hasUnsavedContent, restoreOpeningFocus]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Escape') {
@@ -337,9 +436,20 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       handleClose();
       return;
     }
+    if (e.key === 'Enter' && e.altKey && onAsk && !e.nativeEvent.isComposing) {
+      e.preventDefault();
+      ask(trimmedText.replace(/^\/btw\s*/i, ''));
+      return;
+    }
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
       e.preventDefault();
       handleSubmit();
+      return;
+    }
+    if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && suggestion) {
+      e.preventDefault();
+      setText(suggestion.label);
+      setCaretAtEnd(true);
       return;
     }
     // Focus moves into the composer as soon as the highlight is made, so the
@@ -359,11 +469,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     }
   };
 
-  const headerLabel = isGlobal
-    ? 'Global Comment'
-    : contextText
-      ? `"${contextText.length > 50 ? contextText.slice(0, 50) + '...' : contextText}"`
-      : 'Comment';
+  const headerLabel = contextText || 'Comment';
 
   const canSubmit =
     hasUnsavedContent ||
@@ -372,146 +478,88 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   const maxAllowedHeight = dragPosition ? visibleBounds.height : position?.maxHeight;
   const popoverMaxHeightStyle = maxAllowedHeight != null ? `calc(${maxAllowedHeight}px - 8rem)` : undefined;
 
+  const sendLabel = btw
+    ? 'Ask a side question'
+    : initialText.trim().length > 0 ? 'Save comment' : 'Add comment';
+  const SendIcon = btw ? ArrowUp : CornerDownLeft;
+
+  // The text field and the image chips follow their content's height
+  // smoothly: new lines, chips appearing or going. The action row sits below
+  // that box and slides with it.
   const composerCard = (
-    <div className="flex min-h-0 flex-col overflow-hidden rounded-[13px] bg-muted/40">
-      {/* Top strip - anchor mark and the quoted text. Draggable by the strip in
-          popover mode. Not rendered for global comments. The composer closes
-          with Escape, a click outside while empty, or by adding the comment.
+    <div className="flex flex-col p-2" {...composerDropProps}>
+      {/* Quote bar - the highlighted text. Draggable by the bar. Not
+          rendered for global comments. The composer closes with
+          Escape, a click outside while empty, or by adding the comment.
           Ctrl/Cmd+C with nothing selected in the field copies the highlighted
           text, and the quote animates to confirm it. */}
       {!isGlobal && (
         <div
-          className="flex min-h-7 items-center gap-2 rounded-t-[13px] px-3 py-1"
-          {...(mode === 'popover' ? dragHandleProps : {})}
+          className="flex items-center gap-2 px-1.5 py-0.5"
+          {...dragHandleProps}
         >
-          <span className="flex shrink-0 text-primary" aria-hidden="true">
-            <AnchorIcon size={12} />
-          </span>
+          <span aria-hidden="true" className="h-4 w-0.5 shrink-0 rounded-full bg-muted-foreground/35" />
           <QuoteText
             flash={copyFlash}
             onDone={() => setCopyFlash(0)}
-            className="flex-1 text-micro/snug text-muted-foreground"
+            className="flex-1 text-caption text-muted-foreground"
           >
             {headerLabel}
           </QuoteText>
         </div>
       )}
 
-      {/* Body - the inner tier. A card in its own right: fully rounded, its own
-          hairline, its own near shadow. */}
-      <div className="flex min-h-0 flex-col rounded-[13px] border border-border/50 bg-popover shadow-[0_1px_1px_rgb(0_0_0/0.16),0_2px_4px_-2px_rgb(0_0_0/0.3)]">
-
-        {/* Textarea. */}
-        <div className="relative px-3.25 pb-0.5 pt-2.5" {...composerDropProps}>
-          <div
-            className="flex flex-col justify-between"
-            style={mode === 'dialog' ? undefined : { minHeight: fieldMinHeight }}
-          >
+      <AutoGrowBox value={text}>
+        <div className={`flex min-h-0 flex-col px-1.5 ${isGlobal ? 'pt-0.5' : 'pt-2'}`}>
+          <div className="relative">
             <ComposerTextarea
               textareaRef={focusOnMountRef}
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => { setText(e.target.value); trackCaret(e.target); }}
+              onSelect={(e) => trackCaret(e.currentTarget)}
               onKeyDown={handleKeyDown}
-              placeholder={isGlobal ? "What's your feedback overall?" : "What's your feedback?"}
-              sizeClassName={
-                mode === 'dialog'
-                  ? 'min-h-64 max-h-full text-[12.5px] leading-[1.45]'
-                  : 'max-h-64 text-[12.5px] leading-[1.45]'
-              }
-              minHeightPx={mode === 'popover' ? textMinHeight : null}
-              maxHeight={
-                mode === 'dialog'
-                  ? `calc(${visibleBounds.height}px - 10rem)`
-                  : popoverMaxHeightStyle
-              }
+              placeholder={completions.length > 0 ? undefined : isGlobal ? "What's your feedback overall?" : "What's your feedback?"}
+              describedBy={suggestion ? SUGGESTION_ID : undefined}
+              sizeClassName="min-h-10 max-h-64"
+              maxHeight={popoverMaxHeightStyle}
             />
-            {showQuickLabels && quickLabels && onQuickLabel && (
-              <ComposerQuickLabels
-                labels={quickLabels}
-                onSelect={onQuickLabel}
-                hidden={hasUnsavedContent}
-                chipHeight={CHIP_HEIGHT}
-                gap={CHIP_GAP}
-                fade={36}
-              />
+            {suggestion && (
+              <ComposerGhostCompletion text={text} suggestion={suggestion} id={SUGGESTION_ID} textClassName={TEXT} />
             )}
           </div>
         </div>
 
-        {/* Action row. Attachments on the left, Save on the right.
-            Save sets the row's height, so attaching never moves it. */}
-        <div className="flex items-center justify-between gap-3 pl-2.5 pr-2 pb-1.75 pt-1.5">
-          <div className="flex min-w-0 items-center gap-0.5">
-            <CommentAttachStack
-              images={images}
-              pending={uploads.pending}
-              onFiles={attachFiles}
-              onRemove={removeImage}
-              onRemovePending={uploads.removePending}
-            />
-          </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <button
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-              className="rounded-md bg-primary font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 px-2.75 py-1.25 text-micro"
-            >
-              {isGlobal ? 'Add' : 'Save'}
-            </button>
-          </div>
-        </div>
+        <CommentAttachStack
+          images={images}
+          pending={uploads.pending}
+          onRemove={removeImage}
+          onRemovePending={uploads.removePending}
+        />
+      </AutoGrowBox>
+
+      {/* Action row. Attach on the left, send on the right. */}
+      <div className="flex items-center justify-between pt-1.5">
+        <CommentAttachButton onFiles={attachFiles} />
+        <Tooltip
+          side="top"
+          className={COMPOSER_TOOLTIP}
+          contentClassName="z-popover-hint"
+          content={(
+            <span className="flex items-center gap-2 whitespace-nowrap">
+              {sendLabel}
+              <span className="text-muted-foreground">Ctrl Enter</span>
+            </span>
+          )}
+        >
+          <Button variant="primary" size="icon-sm" aria-label={sendLabel} onClick={handleSubmit} disabled={!canSubmit}>
+            {/* InputMessage's send glyph: 19px over icon-sm's 14px. */}
+            <SendIcon size={19} className="size-4.75!" />
+          </Button>
+        </Tooltip>
       </div>
     </div>
   );
 
-  if (mode === 'dialog') {
-    return createPortal(
-      <div
-        data-comment-popover="true"
-        className="pn-visible-viewport-overlay z-popover flex items-center justify-center"
-      >
-        {/* Backdrop */}
-        <button
-          type="button"
-          aria-label="Dismiss comment"
-          className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-          onClick={() => handleClose()}
-        />
-
-        <div className="relative flex max-h-full min-h-0">
-          <div
-            ref={popoverRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label={isGlobal ? 'Global comment' : 'Comment'}
-            tabIndex={-1}
-            className="relative w-[min(720px,calc(100vw-2rem))] max-h-full min-h-0 bg-popover border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden"
-            style={{
-              animation: 'comment-dialog-in 0.15s ease-out',
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key !== 'Escape') return;
-              e.preventDefault();
-              e.stopPropagation();
-              handleClose();
-            }}
-          >
-            <style>{`
-              @keyframes comment-dialog-in {
-                from { opacity: 0; transform: scale(0.95); }
-                to { opacity: 1; transform: scale(1); }
-              }
-            `}</style>
-            {composerCard}
-          </div>
-        </div>
-      </div>,
-      document.body
-    );
-  }
-
-  // Popover mode
   if (!position) return null;
 
   const currentWidth = baseWidth;
@@ -540,7 +588,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       <div
         ref={popoverRef}
         data-comment-popover="true"
-        className="fixed z-popover bg-card border border-border rounded-xl shadow-[0_1px_2px_rgb(0_0_0/0.18),0_25px_50px_-12px_rgb(0_0_0/0.5)] flex flex-col"
+        className="fixed z-popover bg-popover rounded-xl shadow-[var(--fl-shadow-2),0_25px_50px_-12px_rgb(0_0_0/0.25)] flex flex-col"
         style={dragPosition
           ? {
               top: dragPosition.top,
@@ -581,36 +629,35 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 // Composer textarea
 // ---------------------------------------------------------------------------
 
-const COMPOSER_TEXT_CLASSES = 'w-full bg-transparent px-1 py-0.5';
+const SUGGESTION_ID = 'comment-popover-suggestion';
 
 interface ComposerTextareaProps {
-  /** Floor for the content-sized box, so an empty composer is as tall as one
-   *  being written in. */
-  minHeightPx?: number | null;
   /** Explicit max-height from positioning constraints. */
   maxHeight?: string | number | null;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  placeholder: string;
+  onSelect: (e: React.SyntheticEvent<HTMLTextAreaElement>) => void;
+  placeholder?: string;
+  describedBy?: string;
   /** Mode-specific min/max height classes. */
   sizeClassName: string;
   textareaRef: (el: HTMLTextAreaElement | null) => void;
 }
 
 const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
-  minHeightPx = null,
   maxHeight = null,
   value,
   onChange,
   onKeyDown,
+  onSelect,
   placeholder,
+  describedBy,
   sizeClassName,
   textareaRef,
 }) => {
   const boxStyle = {
     fieldSizing: 'content',
-    ...(minHeightPx != null ? { minHeight: minHeightPx } : {}),
     ...(maxHeight != null ? { maxHeight } : {}),
   } as React.CSSProperties;
 
@@ -621,8 +668,10 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
       value={value}
       onChange={onChange}
       onKeyDown={onKeyDown}
+      onSelect={onSelect}
       placeholder={placeholder}
-      className={`${COMPOSER_TEXT_CLASSES} placeholder:text-muted-foreground resize-none focus:outline-none overflow-y-auto ${sizeClassName}`}
+      aria-describedby={describedBy}
+      className={`block w-full bg-transparent placeholder:text-muted-foreground resize-none focus:outline-none overflow-y-auto ${TEXT} ${sizeClassName}`}
       style={boxStyle}
     />
   );
@@ -638,8 +687,3 @@ const ChevronDownIcon = () => (
   <ChevronDown className="size-3.5" />
 );
 
-/** Corner-down-right arrow: "this points at that". Not a quotation mark -
- *  the strip holds a place in a file, and a place is not a quote. */
-const AnchorIcon: React.FC<{ size: number }> = ({ size }) => (
-  <CornerDownRight style={{ width: size, height: size }} />
-);
