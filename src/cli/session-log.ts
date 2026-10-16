@@ -14,7 +14,13 @@
  * sees rendered in chat.
  */
 
-import { readdirSync, statSync, readFileSync, existsSync } from "node:fs";
+import {
+  readdirSync,
+  statSync,
+  readFileSync,
+  accessSync,
+  constants as fsConstants,
+} from "node:fs";
 import { join, dirname, basename } from "node:path";
 import { homedir } from "node:os";
 import { createDefaultGetParentPid } from "@/server";
@@ -165,19 +171,100 @@ interface SessionMetadata {
   startedAt: number;
 }
 
-/**
- * Read a Claude Code session metadata file for a given PID.
- * Returns null if the file doesn't exist or can't be parsed.
- */
+export type ClaudeSessionLogResolution =
+  | { status: "unavailable" }
+  | { status: "blocked"; source: "cwd-metadata" }
+  | {
+      status: "identified";
+      sessionId: string;
+      logPath: string | null;
+      source: "ancestor-pid" | "cwd-metadata";
+    };
+
+/** An ancestor-PID resolution, plus the PID whose metadata matched (Claude Code's). */
+type AncestorPidResolution =
+  | ClaudeSessionLogResolution
+  | (ClaudeSessionLogResolution & { status: "identified"; ancestorPid: number });
+
+export interface ClaudeSessionLogResolutionOptions {
+  startPid?: number;
+  cwd?: string;
+  sessionsDir?: string;
+  projectsDir?: string;
+  getParentPid?: (pid: number) => number | null;
+  maxHops?: number;
+  /** Called before a metadata read is retried (test seam). */
+  beforeMetadataRetry?: (path: string) => void;
+}
+
+function parseSessionMetadata(value: unknown): SessionMetadata | null {
+  if (!value || typeof value !== "object") return null;
+  const meta = value as Record<string, unknown>;
+  if (
+    typeof meta.pid !== "number" ||
+    !Number.isFinite(meta.pid) ||
+    typeof meta.sessionId !== "string" ||
+    !meta.sessionId ||
+    typeof meta.cwd !== "string" ||
+    !meta.cwd ||
+    typeof meta.startedAt !== "number" ||
+    !Number.isFinite(meta.startedAt)
+  ) {
+    return null;
+  }
+  return {
+    pid: meta.pid,
+    sessionId: meta.sessionId,
+    cwd: meta.cwd,
+    startedAt: meta.startedAt,
+  };
+}
+
+type SessionMetadataReadResult =
+  | { status: "absent" }
+  | { status: "invalid" }
+  | { status: "valid"; metadata: SessionMetadata };
+
+// Claude rewrites its metadata file in place, so a read can land mid-write.
+const SESSION_METADATA_RETRY_MS = 50;
+
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/** Read `<pid>.json`, retrying once if it is unreadable or malformed. */
 function readSessionMetadata(
   pid: number,
-  sessionsDir: string
-): SessionMetadata | null {
+  sessionsDir: string,
+  beforeRetry?: (path: string) => void,
+): SessionMetadataReadResult {
+  const first = readSessionMetadataOnce(pid, sessionsDir);
+  if (first.status !== "invalid") return first;
+  beforeRetry?.(join(sessionsDir, `${pid}.json`));
+  sleepSync(SESSION_METADATA_RETRY_MS);
+  return readSessionMetadataOnce(pid, sessionsDir);
+}
+
+function readSessionMetadataOnce(
+  pid: number,
+  sessionsDir: string,
+): SessionMetadataReadResult {
   const metaPath = join(sessionsDir, `${pid}.json`);
+  let content: string;
   try {
-    return JSON.parse(readFileSync(metaPath, "utf-8"));
+    content = readFileSync(metaPath, "utf-8");
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "ENOENT"
+      ? { status: "absent" }
+      : { status: "invalid" };
+  }
+  try {
+    const metadata = parseSessionMetadata(JSON.parse(content));
+    return metadata
+      ? { status: "valid", metadata }
+      : { status: "invalid" };
   } catch {
-    return null;
+    return { status: "invalid" };
   }
 }
 
@@ -206,32 +293,63 @@ export function getAncestorPids(
   return chain;
 }
 
+type SessionRegistrationStatus = "registered" | "unregistered" | "unknown";
+
 /**
- * Check if a sessionId is referenced by any metadata file in the sessions dir.
- * Used to distinguish "ghost" sessions (created by /clear but never registered
+ * Check whether a sessionId is referenced by any metadata file in the sessions
+ * dir. Distinguishes "ghost" sessions (created by /clear but never registered
  * in metadata) from legitimate concurrent sessions (which have their own PID's
- * metadata file).
+ * metadata file). "unknown" when a metadata file stays unparsable: it could be
+ * a sibling caught mid-rewrite, so it must not be read as "unregistered".
  */
-function isSessionRegistered(
+function resolveSessionRegistration(
   sessionId: string,
-  sessionsDir: string
-): boolean {
+  sessionsDir: string,
+  beforeRetry?: (path: string) => void,
+): SessionRegistrationStatus {
+  let files: string[];
   try {
-    const files = readdirSync(sessionsDir).filter((f) => f.endsWith(".json"));
-    for (const f of files) {
+    files = readdirSync(sessionsDir).filter((f) => f.endsWith(".json"));
+  } catch {
+    return "unknown";
+  }
+
+  for (const f of files) {
+    const path = join(sessionsDir, f);
+    let content: string;
+    try {
+      content = readFileSync(path, "utf-8");
+    } catch {
+      // Unreadable metadata cannot be attributed to a session.
+      continue;
+    }
+    let value: unknown;
+    try {
+      value = JSON.parse(content);
+    } catch {
+      // Likely caught mid-rewrite. If it stays unparsable it could belong to
+      // the sibling, so keep the session's own transcript rather than risk
+      // returning another live session's conversation.
+      beforeRetry?.(path);
+      sleepSync(SESSION_METADATA_RETRY_MS);
       try {
-        const meta: SessionMetadata = JSON.parse(
-          readFileSync(join(sessionsDir, f), "utf-8")
-        );
-        if (meta?.sessionId === sessionId) return true;
+        value = JSON.parse(readFileSync(path, "utf-8"));
       } catch {
-        // Malformed file — skip
+        return "unknown";
       }
     }
-  } catch {
-    // sessionsDir unreadable
+    // Match on the id alone so a record with other invalid fields still
+    // counts as registering its session.
+    if (
+      value &&
+      typeof value === "object" &&
+      (value as Record<string, unknown>).sessionId === sessionId
+    ) {
+      return "registered";
+    }
   }
-  return false;
+
+  return "unregistered";
 }
 
 /** A session log resolved by walking ancestor PIDs, with the PID it matched on. */
@@ -242,30 +360,24 @@ export interface AncestorSessionMatch {
 }
 
 /**
- * Resolve a session log path by walking up the PID chain, checking
- * `~/.claude/sessions/<pid>.json` at each hop for a session metadata match.
+ * Resolve a session by walking up the PID chain, checking
+ * `~/.claude/sessions/<pid>.json` at each hop for session metadata.
  *
- * When the matched log is not the most recently modified file in the project
- * directory, checks whether the newer file is a "ghost" session — one created
- * by /clear that was never registered in any metadata file. If so, prefers the
- * ghost (it's the current session). If the newer file belongs to a registered
- * concurrent session, keeps the PID-based result.
+ * The session id is looked up across project folders, because a session
+ * continued from another directory (or a moved worktree) keeps writing its
+ * original log. When the exact log has a newer sibling, an unregistered
+ * sibling is a "ghost" session created by /clear and wins; a registered one
+ * is a concurrent session and doesn't.
  *
- * Also returns the matched ancestor PID — that PID is Claude Code's, and the
- * parent watcher (src/server/parent-watch.ts) uses the same PID to
- * detect when that Claude Code process exits.
+ * A metadata file that stays malformed after a retry ends the walk as
+ * "unavailable", so the cwd scan decides rather than an unrelated outer
+ * session further up the tree.
  */
-export function resolveSessionLogByAncestorPids(
-  opts: {
-    startPid?: number;
-    sessionsDir?: string;
-    projectsDir?: string;
-    getParentPid?: (pid: number) => number | null;
-    maxHops?: number;
-  } = {}
-): AncestorSessionMatch | null {
+function resolveSessionLogByAncestorPidsDetailed(
+  opts: ClaudeSessionLogResolutionOptions = {},
+): AncestorPidResolution {
   const startPid = opts.startPid ?? process.ppid;
-  if (!startPid) return null;
+  if (!startPid) return { status: "unavailable" };
   const sessionsDir = opts.sessionsDir ?? DEFAULT_SESSIONS_DIR;
   // Fresh closure per call: each resolver invocation gets its own snapshot,
   // so the process table can't go stale between unrelated lookups.
@@ -274,48 +386,85 @@ export function resolveSessionLogByAncestorPids(
 
   const pids = getAncestorPids(startPid, maxHops, getParent);
   for (const pid of pids) {
-    const meta = readSessionMetadata(pid, sessionsDir);
-    if (!meta?.sessionId || !meta?.cwd) continue;
+    const metadata = readSessionMetadata(pid, sessionsDir, opts.beforeMetadataRetry);
+    if (metadata.status === "absent") continue;
+    if (metadata.status === "invalid") return { status: "unavailable" };
+    const meta = metadata.metadata;
 
-    const candidates = findSessionLogsForCwd(meta.cwd, opts.projectsDir);
-    const match = candidates.find((p) => p.includes(meta.sessionId));
-    if (!match) {
-      // A session continued from another directory keeps writing its original
-      // log, so the cwd in its metadata points at the wrong project folder.
-      const moved = findSessionLogById(meta.sessionId, opts.projectsDir);
-      if (moved) return { logPath: moved, ancestorPid: pid };
+    const identified = (sessionId: string, logPath: string | null): AncestorPidResolution => ({
+      status: "identified",
+      sessionId,
+      logPath,
+      source: "ancestor-pid",
+      ancestorPid: pid,
+    });
+
+    const match = findClaudeSessionLogById(meta.sessionId, opts.projectsDir);
+    if (!match) return identified(meta.sessionId, null);
+    const preciseMatch = identified(meta.sessionId, match);
+
+    // Check for stale metadata: if a newer sibling log has no registered
+    // metadata, it's a ghost session from /clear — prefer it.
+    const candidates = findSessionLogs(dirname(match));
+    let matchMtime: number;
+    try {
+      matchMtime = statSync(match).mtimeMs;
+    } catch {
+      return preciseMatch;
     }
-    if (match) {
-      // Check for stale metadata: if a newer log exists that has no
-      // registered metadata, it's a ghost session from /clear — prefer it.
-      if (candidates[0] !== match) {
-        const newestSessionId = basename(candidates[0], ".jsonl");
-        if (!isSessionRegistered(newestSessionId, sessionsDir)) {
-          return { logPath: candidates[0], ancestorPid: pid };
-        }
+    for (const candidate of candidates) {
+      if (candidate === match) break;
+      try {
+        if (statSync(candidate).mtimeMs <= matchMtime) break;
+        const candidateSessionId = basename(candidate, ".jsonl");
+        const registration = resolveSessionRegistration(
+          candidateSessionId,
+          sessionsDir,
+          opts.beforeMetadataRetry,
+        );
+        if (registration === "unknown") return preciseMatch;
+        if (registration === "unregistered") return identified(candidateSessionId, candidate);
+      } catch {
+        return preciseMatch;
       }
-      return { logPath: match, ancestorPid: pid };
     }
+
+    return preciseMatch;
   }
-  return null;
+  return { status: "unavailable" };
 }
 
 /**
- * Resolve a session log path by scanning all `~/.claude/sessions/*.json`
- * metadata files, filtering to those whose `cwd` matches, and picking the
- * session with the most recent `startedAt`.
+ * The ancestor-PID resolution as a log path plus Claude Code's PID (which the
+ * parent watcher, src/server/parent-watch.ts, uses to detect when that Claude
+ * Code process exits). Null when no ancestor's metadata leads to a log.
+ */
+export function resolveSessionLogByAncestorPids(
+  opts: ClaudeSessionLogResolutionOptions = {},
+): AncestorSessionMatch | null {
+  const resolution = resolveSessionLogByAncestorPidsDetailed(opts);
+  return resolution.status === "identified" && resolution.logPath && "ancestorPid" in resolution
+    ? { logPath: resolution.logPath, ancestorPid: resolution.ancestorPid }
+    : null;
+}
+
+/**
+ * Resolve a session by scanning all `~/.claude/sessions/*.json` metadata
+ * files, filtering to those whose `cwd` matches, and picking the session with
+ * the most recent `startedAt`.
  *
  * Better than "newest jsonl mtime in the project dir" because it uses
  * session-level metadata rather than file modification time, which can be
  * touched by unrelated processes or resumed sessions.
+ *
+ * A session with no transcript yet (opened, no messages) is skipped so it
+ * can't shadow the active session in the same directory. A matching-cwd record
+ * that is malformed blocks the scan, and a transcript that can't be resolved
+ * unambiguously stops it.
  */
-export function resolveSessionLogByCwdScan(
-  opts: {
-    cwd?: string;
-    sessionsDir?: string;
-    projectsDir?: string;
-  } = {}
-): string | null {
+function resolveSessionLogByCwdScanDetailed(
+  opts: ClaudeSessionLogResolutionOptions = {},
+): ClaudeSessionLogResolution {
   const cwd = opts.cwd ?? process.cwd();
   const sessionsDir = opts.sessionsDir ?? DEFAULT_SESSIONS_DIR;
 
@@ -323,60 +472,155 @@ export function resolveSessionLogByCwdScan(
   try {
     files = readdirSync(sessionsDir).filter((f) => f.endsWith(".json"));
   } catch {
-    return null;
+    return { status: "unavailable" };
   }
 
   const normalizedTarget = normalizeCwdForCompare(cwd);
   const candidates: SessionMetadata[] = [];
   for (const f of files) {
+    let value: unknown;
     try {
-      const meta: SessionMetadata = JSON.parse(
-        readFileSync(join(sessionsDir, f), "utf-8")
-      );
-      if (
-        meta?.sessionId &&
-        meta?.cwd &&
-        normalizeCwdForCompare(meta.cwd) === normalizedTarget
-      ) {
-        candidates.push(meta);
-      }
+      value = JSON.parse(readFileSync(join(sessionsDir, f), "utf-8"));
     } catch {
-      // Malformed metadata file — skip
+      // Cannot associate unreadable or malformed metadata with this cwd.
+      continue;
     }
+    if (!value || typeof value !== "object") continue;
+    const rawCwd = (value as Record<string, unknown>).cwd;
+    if (
+      typeof rawCwd !== "string" ||
+      normalizeCwdForCompare(rawCwd) !== normalizedTarget
+    ) {
+      continue;
+    }
+    const meta = parseSessionMetadata(value);
+    if (!meta) return { status: "blocked", source: "cwd-metadata" };
+    candidates.push(meta);
   }
 
-  // Newest sessions first — pick the most recently started session that has a matching jsonl
   candidates.sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0));
 
-  const logs = findSessionLogsForCwd(cwd, opts.projectsDir);
   for (const meta of candidates) {
-    const match = logs.find((p) => p.includes(meta.sessionId));
-    if (match) return match;
+    const lookup = lookupClaudeSessionLogById(meta.sessionId, opts.projectsDir);
+    if (lookup.status === "missing") continue;
+    return {
+      status: "identified",
+      sessionId: meta.sessionId,
+      logPath: lookup.status === "found" ? lookup.logPath : null,
+      source: "cwd-metadata",
+    };
+  }
+  return { status: "unavailable" };
+}
+
+export function resolveSessionLogByCwdScan(
+  opts: ClaudeSessionLogResolutionOptions = {},
+): string | null {
+  const resolution = resolveSessionLogByCwdScanDetailed(opts);
+  return resolution.status === "identified" ? resolution.logPath : null;
+}
+
+/**
+ * Identify the invoking Claude session: ancestor-PID metadata first, then the
+ * cwd scan. "unavailable" means no metadata identifies a session, the only
+ * case where the caller should fall back to guessing by file time.
+ */
+export function resolveClaudeSessionLog(
+  opts: ClaudeSessionLogResolutionOptions = {},
+): ClaudeSessionLogResolution {
+  const ancestor = resolveSessionLogByAncestorPidsDetailed(opts);
+  if (ancestor.status === "identified" && "ancestorPid" in ancestor) {
+    const { ancestorPid: _pid, ...resolution } = ancestor;
+    return resolution;
+  }
+  if (ancestor.status !== "unavailable") return ancestor;
+  return resolveSessionLogByCwdScanDetailed(opts);
+}
+
+/**
+ * Explain why a Claude session resolution produced no transcript, or null
+ * when there is nothing more specific to say than "no message found".
+ */
+export function describeClaudeSessionResolutionFailure(
+  resolution: ClaudeSessionLogResolution,
+): string | null {
+  if (resolution.status === "blocked") {
+    return "Claude session metadata for this directory could not be used, so the current session is ambiguous. Try again in a moment.";
+  }
+  if (resolution.status === "identified" && !resolution.logPath) {
+    return `No unique readable transcript found for Claude session ${resolution.sessionId} (a new session has none until its first message).`;
   }
   return null;
+}
+
+type ClaudeSessionLogLookup =
+  | { status: "found"; logPath: string }
+  | { status: "missing" }
+  // Invalid id, unreadable file, or the id exists under more than one folder.
+  | { status: "unknown" };
+
+function lookupClaudeSessionLogById(
+  sessionId: string,
+  projectsDirOverride?: string,
+): ClaudeSessionLogLookup {
+  if (
+    typeof sessionId !== "string" ||
+    !sessionId ||
+    sessionId.includes("/") ||
+    sessionId.includes("\\") ||
+    sessionId.includes("\0") ||
+    basename(sessionId) !== sessionId
+  ) {
+    return { status: "unknown" };
+  }
+
+  const projectsDir = projectsDirOverride ?? DEFAULT_PROJECTS_DIR;
+  let projectDirs: string[];
+  try {
+    projectDirs = readdirSync(projectsDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "ENOENT"
+      ? { status: "missing" }
+      : { status: "unknown" };
+  }
+
+  const matches: string[] = [];
+  for (const projectDir of projectDirs) {
+    const candidate = join(projectsDir, projectDir, `${sessionId}.jsonl`);
+    try {
+      if (statSync(candidate).isFile()) {
+        accessSync(candidate, fsConstants.R_OK);
+        matches.push(candidate);
+      }
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "ENOENT" && code !== "ENOTDIR") return { status: "unknown" };
+    }
+    if (matches.length > 1) return { status: "unknown" };
+  }
+
+  return matches[0]
+    ? { status: "found", logPath: matches[0] }
+    : { status: "missing" };
 }
 
 /**
  * Find `{sessionId}.jsonl` in any project folder. The file name is the session
- * id, so a hit can only be that session's log.
+ * id, so a hit can only be that session's log. Null unless exactly one
+ * project folder holds a readable file by that name.
  */
-export function findSessionLogById(
+export function findClaudeSessionLogById(
   sessionId: string,
-  projectsDirOverride?: string
+  projectsDirOverride?: string,
 ): string | null {
-  const projectsDir = projectsDirOverride ?? DEFAULT_PROJECTS_DIR;
-  let dirs: string[];
-  try {
-    dirs = readdirSync(projectsDir);
-  } catch {
-    return null;
-  }
-  for (const d of dirs) {
-    const path = join(projectsDir, d, `${sessionId}.jsonl`);
-    if (existsSync(path)) return path;
-  }
-  return null;
+  const lookup = lookupClaudeSessionLogById(sessionId, projectsDirOverride);
+  return lookup.status === "found" ? lookup.logPath : null;
 }
+
+/** Alias of findClaudeSessionLogById. */
+export const findSessionLogById = findClaudeSessionLogById;
 
 /**
  * Walk up the directory tree from `cwd` trying each ancestor as a project slug.
