@@ -1,6 +1,0 @@
-/* The app's own stylesheet (which brings in Fluid), so previews look as they
-   do in the app. */
-@import "../index.css";
-
-@source "./*.tsx";
-@source "../canvas.html";
