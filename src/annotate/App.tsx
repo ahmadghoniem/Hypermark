@@ -6,9 +6,8 @@
 // not import that entry). Guarded by tests/entry-assets.test.ts; do not drop
 // or reorder any of these lines.
 import '@/ui/utils/math-eager';
-import '@/ui/utils/mermaid-eager';
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { toast, Toaster } from 'sonner';
+import { Toaster } from 'sonner';
 import { type Origin, getAgentName } from '@/shared/agents';
 import { shouldStripFrontmatter } from '@/shared/annotatable';
 import { setExtraMarkdownExtensions } from '@/ui/utils/markdownExtensions';
@@ -31,12 +30,13 @@ import { useOverlayViewport } from '@/ui/hooks/useOverlayViewport';
 import { useIsMobile } from '@/ui/hooks/useIsMobile';
 import { useViewportEnvironment } from '@/ui/hooks/useViewportEnvironment';
 import type { SidebarTab } from '@/ui/hooks/useSidebar';
-import { usePlanDiff, type VersionInfo, type VersionEntry, type PlanDiffFetchers } from '@/ui/hooks/usePlanDiff';
+import { usePlanDiff, type VersionInfo, type VersionEntry } from '@/ui/hooks/usePlanDiff';
 import { useLinkedDoc, type LinkedDocSessionState } from '@/ui/hooks/useLinkedDoc';
 import { useAnnotationDraft } from '@/ui/hooks/useAnnotationDraft';
 import { useSessionEndedStream } from '@/ui/hooks/useSessionEndedStream';
 import { useUndoHistory } from '@/ui/hooks/useUndoHistory';
 import { generateId } from '@/ui/utils/generateId';
+import { copyTextToClipboard } from '@/ui/utils/clipboard';
 import { SidebarContainer } from '@/ui/components/sidebar/SidebarContainer';
 import { MessageRail, type PickerMessage } from '@/ui/components/MessageRail';
 
@@ -44,10 +44,11 @@ import { MessageRail, type PickerMessage } from '@/ui/components/MessageRail';
  *  11px native scrollbar plus the rail's own 12px gutter, reserved whether the
  *  scrollbar is drawn or not so the rail never moves between messages. */
 const MESSAGE_RAIL_INSET = 24;
-import { PlanDiffViewer } from '@/ui/components/plan-diff/PlanDiffViewer';
+import { PlanDiffCard } from '@/ui/components/plan-diff/PlanDiffCard';
 import { CommentPopover } from '@/ui/components/CommentPopover';
 import { SideChatCard } from '@/ui/components/SideChatCard';
 import { useSideChat } from '@/ui/hooks/useSideChat';
+import { useQuickLabels } from '@/ui/hooks/useQuickLabels';
 // Demo content toggle. Default: the original Real-time Collaboration plan.
 // Opt-in diff-engine stress test: `VITE_DIFF_DEMO=1 bun run dev:hook` swaps
 // in the 20-case Auth Service Refactor test plan. dev-mock-api.ts reads the
@@ -242,8 +243,11 @@ const AppInner: React.FC = () => {
   // Composer reopened on an existing annotation, by a click on its highlight or
   // on its panel card's edit button
   const [editComposer, setEditComposer] = useState<{ annotation: Annotation; anchorEl: HTMLElement } | null>(null);
-  // Whether the edit composer's text or images differ from the saved annotation.
+  // Whether the edit composer's text or images differ from the saved
+  // annotation; a cleared one doesn't count, since closing it deletes it.
   const editDirtyRef = useRef(false);
+  // The annotation whose edit composer has been cleared of text and images.
+  const clearedEditRef = useRef<string | null>(null);
   // Whether the global comment composer holds a draft.
   const globalDirtyRef = useRef(false);
   const [isApiMode, setIsApiMode] = useState(false);
@@ -265,8 +269,6 @@ const AppInner: React.FC = () => {
   const [pendingAnnotationSelection, setPendingAnnotationSelection] = useState<string | null>(null);
   const messageStateCacheRef = useRef<Map<string, MessageAnnotationState>>(new Map());
   const [cachedMessageAnnotationCounts, setCachedMessageAnnotationCounts] = useState<Map<string, number>>(new Map());
-  const [sourceInfo, setSourceInfo] = useState<string | undefined>();
-  const [sourceConverted, setSourceConverted] = useState(false);
   const [imageBaseDir, setImageBaseDir] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -283,6 +285,7 @@ const AppInner: React.FC = () => {
   const isMobile = useIsMobile();
 
   const viewerRef = useRef<ViewerHandle>(null);
+  const [quickLabels] = useQuickLabels();
   const sideChat = useSideChat();
   const sideChatAsk = sideChat.ask;
   const handleAskSideQuestion = useCallback((question: string, quote: string) => {
@@ -410,51 +413,21 @@ const AppInner: React.FC = () => {
   const linkedDocHook = useLinkedDoc({
     markdown, annotations, selectedAnnotationId, globalAttachments,
     setMarkdown, setAnnotations, setSelectedAnnotationId, setGlobalAttachments,
-    viewerRef, sidebar: linkedDocSidebar, sourceFilePath, sourceConverted,
+    viewerRef, sidebar: linkedDocSidebar, sourceFilePath,
     onBeforeNavigate: handleBeforeDocumentNavigation,
   });
 
-  // Active document's version-diff baseline: the root document's own
-  // previousPlan/versionInfo (set once from /api/plan) when no linked/folder
-  // doc is open, or the active document's own baseline when one is —
-  // captured from its /api/doc response and cached across navigation by
-  // useLinkedDoc. /api/doc only ever populates these for eligible folder
-  // files, so any other linked doc naturally resolves to null/null here,
-  // same as the (now-removed) blanket "linkedDocHook.isActive ? null : ..."
-  // suppression used to force.
-  const activeDiffPreviousPlan = linkedDocHook.isActive ? linkedDocHook.diffPreviousPlan : previousPlan;
-  const activeDiffVersionInfo = linkedDocHook.isActive ? linkedDocHook.diffVersionInfo : versionInfo;
-  const activeDocFilepath = linkedDocHook.isActive ? linkedDocHook.filepath : null;
+  // Only the root document has a version-diff baseline (from /api/plan); a
+  // linked doc has none.
+  const activeDiffPreviousPlan = linkedDocHook.isActive ? null : previousPlan;
+  const activeDiffVersionInfo = linkedDocHook.isActive ? null : versionInfo;
 
-  // Per-document version fetchers: only needed while a document with its own
-  // diff baseline is active (folder annotate) — usePlanDiff's bare-endpoint
-  // defaults already cover the root document.
-  const activeDocDiffFetchers = useMemo<PlanDiffFetchers | undefined>(() => {
-    if (!activeDocFilepath) return undefined;
-    const filepath = activeDocFilepath;
-    return {
-      fetchVersion: async (version: number) => {
-        const res = await fetch(`/api/plan/version?v=${version}&path=${encodeURIComponent(filepath)}`);
-        if (!res.ok) throw new Error(`Failed to load version ${version}.`);
-        return (await res.json()) as { plan: string; version: number };
-      },
-      fetchVersions: async () => {
-        const res = await fetch(`/api/plan/versions?path=${encodeURIComponent(filepath)}`);
-        if (!res.ok) throw new Error('Failed to load versions.');
-        return (await res.json()) as { project: string; slug: string; versions: VersionEntry[] };
-      },
-    };
-  }, [activeDocFilepath]);
-
-  // Plan diff computation. `activeDocFilepath` as the docKey resets the diff-base state whenever the
-  // active document changes, so a newly opened document starts from ITS OWN
-  // baseline instead of inheriting whatever the previous document had.
+  // Plan diff computation. Only the plan's own versions feed it; a linked
+  // document has no version info, so it gets no diff.
   const planDiff = usePlanDiff(
     markdown,
     activeDiffPreviousPlan,
     activeDiffVersionInfo,
-    activeDocDiffFetchers,
-    activeDocFilepath,
   );
   // Exit diff view when the active document switches to one with no diff
   // baseline (e.g. a history-less folder file) — otherwise the stale active
@@ -737,7 +710,7 @@ const AppInner: React.FC = () => {
       globalAttachments.length;
 
   // Auto-save annotation drafts
-  const handleRestoreDraftRef = useRef<(loadedDraft?: any, meta?: any) => void>(() => {});
+  const handleRestoreDraftRef = useRef<(loadedDraft?: any) => void>(() => {});
   const { restoreDraft, scheduleDraftSave, scheduleDraftSaveAfterSubmitFailure, getDraftGeneration, discardDraft, flushDraft } = useAnnotationDraft({
     annotations: allAnnotations,
     globalAttachments,
@@ -748,12 +721,11 @@ const AppInner: React.FC = () => {
     // land after the server's draft delete and ghost a draft
     // into the next session for this plan. Saving resumes if it fails.
     submitted: !!submitted || isSubmitting,
-    onDraftLoaded: (draft, meta) => handleRestoreDraftRef.current(draft, meta),
+    onDraftLoaded: (draft) => handleRestoreDraftRef.current(draft),
   });
 
   const handleRestoreDraft = React.useCallback((
     loadedDraft?: ReturnType<typeof restoreDraft>,
-    meta?: { count: number; timeAgo: string },
   ) => {
     annotationHistory.clear();
     const { annotations: restored } = loadedDraft ?? restoreDraft();
@@ -766,25 +738,7 @@ const AppInner: React.FC = () => {
       }, 100);
     }
     scheduleDraftSave();
-
-    if (meta) {
-      const parts = [
-        meta.count > 0 ? `${meta.count} annotation${meta.count !== 1 ? 's' : ''}` : '',
-      ].filter(Boolean);
-      const desc = parts.length > 0 ? parts.join(' and ') : 'draft content';
-      toast(`Restored ${desc} from ${meta.timeAgo}`, {
-        action: {
-          label: 'Discard',
-          onClick: () => {
-            discardDraft();
-            setAnnotations([]);
-            annotationHistory.clear();
-            viewerRef.current?.applySharedAnnotations([]);
-          },
-        },
-      });
-    }
-  }, [annotationHistory, restoreDraft, scheduleDraftSave, discardDraft]);
+  }, [annotationHistory, restoreDraft, scheduleDraftSave]);
   handleRestoreDraftRef.current = handleRestoreDraft;
 
   const hasFeedbackContent = hasAnyAnnotations;
@@ -800,9 +754,6 @@ const AppInner: React.FC = () => {
   ): string => {
     const discard = options?.discardAnnotations === true;
     const linkedDocuments = linkedDocHook.getDocAnnotations();
-    const activeConverted = linkedDocHook.isActive
-      ? (linkedDocuments.get(linkedDocHook.filepath ?? '')?.isConverted ?? false)
-      : sourceConverted;
     return buildCompleteAnnotateFeedback({
       blocks,
       annotations: discard ? [] : allAnnotations,
@@ -810,7 +761,6 @@ const AppInner: React.FC = () => {
       linkedDocuments: discard ? new Map() : linkedDocuments,
       title: annotateSource === 'message' ? 'Message Feedback' : 'File Feedback',
       subject: annotateSource ?? 'plan',
-      sourceConverted: activeConverted,
       ...(messageMultiSelectMode && !discard
         ? { messageEntries: buildMessageAnnotationEntries() }
         : {}),
@@ -822,11 +772,8 @@ const AppInner: React.FC = () => {
     blocks,
     buildMessageAnnotationEntries,
     globalAttachments,
-    linkedDocHook.filepath,
     linkedDocHook.getDocAnnotations,
-    linkedDocHook.isActive,
     messageMultiSelectMode,
-    sourceConverted,
   ]);
 
   const withDraftGeneration = useCallback((path: string): string => {
@@ -841,7 +788,7 @@ const AppInner: React.FC = () => {
         if (!res.ok) throw new Error('Not in API mode');
         return res.json();
       })
-      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last'; filePath?: string; sourceInfo?: string; sourceConverted?: boolean; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; projectRoot?: string; markdownExtensions?: string[]; serverConfig?: Record<string, unknown>; recentMessages?: PickerMessage[] }) => {
+      .then((data: { plan: string; origin?: Origin; mode?: 'annotate' | 'annotate-last'; filePath?: string; gate?: boolean; approvalNotesSupported?: boolean; clientLease?: AnnotateClientLeaseConfig; repoInfo?: { display: string; branch?: string; host?: string }; previousPlan?: string | null; versionInfo?: { version: number; totalVersions: number; project: string }; projectRoot?: string; markdownExtensions?: string[]; serverConfig?: Record<string, unknown>; recentMessages?: PickerMessage[] }) => {
         // Initialize config store with server-provided values (config file > cookie > default)
         configStore.init(data.serverConfig);
         // Extra extensions the user registered as markdown (#1307) — the
@@ -872,8 +819,6 @@ const AppInner: React.FC = () => {
           setRecentMessages([]);
           setSelectedMessageId(null);
         }
-        setSourceInfo(data.sourceInfo ?? undefined);
-        setSourceConverted(!!data.sourceConverted);
         if (data.filePath) {
           setImageBaseDir(data.filePath.replace(/\/[^/]+$/, ''));
           if (data.mode === 'annotate') {
@@ -1230,6 +1175,17 @@ const AppInner: React.FC = () => {
     }
   };
 
+  // Closing an edit composer whose text was cleared, by any route, deletes
+  // its annotation, undoably like the card's delete button.
+  const deleteAnnotationRef = useRef(deleteAnnotation);
+  deleteAnnotationRef.current = deleteAnnotation;
+  const closeEditComposer = useCallback(() => {
+    const cleared = clearedEditRef.current;
+    clearedEditRef.current = null;
+    if (cleared) deleteAnnotationRef.current(cleared);
+    setEditComposer(null);
+  }, []);
+
   // Selects the annotation and opens the composer on it, anchored to its first
   // visible highlight. A global comment anchors to the panel's +, where new
   // ones open; a highlight scrolled out of the DOM (or a global comment with
@@ -1238,7 +1194,7 @@ const AppInner: React.FC = () => {
   // a draft stays.
   const handleOpenAnnotation = (id: string | null, messageId?: string) => {
     if (id && editComposer?.annotation.id === id) {
-      if (!editDirtyRef.current) setEditComposer(null);
+      if (!editDirtyRef.current) closeEditComposer();
       return;
     }
     handleSelectAnnotation(id, messageId);
@@ -1258,18 +1214,17 @@ const AppInner: React.FC = () => {
     if (!anchorEl) return;
     if (viewerRef.current && !viewerRef.current.closeComposer()) return;
     setGlobalComposerAnchor(null);
+    closeEditComposer();
     editDirtyRef.current = false;
     setEditComposer({ annotation, anchorEl });
   };
-
-  const closeEditComposer = useCallback(() => setEditComposer(null), []);
 
   // Opens the panel's global composer. Like handleOpenAnnotation, it replaces
   // an open composer only when that composer holds no draft.
   const handleAddGlobalComment = (anchorEl: HTMLElement) => {
     if (editComposer && editDirtyRef.current) return;
     if (viewerRef.current && !viewerRef.current.closeComposer()) return;
-    setEditComposer(null);
+    closeEditComposer();
     globalDirtyRef.current = false;
     setGlobalComposerAnchor(anchorEl);
   };
@@ -1472,6 +1427,7 @@ const AppInner: React.FC = () => {
       onClose={() => setIsMobilePanelOpen(false)}
       otherFileAnnotations={otherFileAnnotations}
       onAddGlobalComment={handleAddGlobalComment}
+      onCopyAll={() => copyTextToClipboard(getCurrentFeedbackPayload())}
     />
   );
 
@@ -1569,13 +1525,13 @@ const AppInner: React.FC = () => {
               {/* Plan Diff View — rendered when diff data exists, hidden when inactive */}
               {planDiff.diffBlocks && planDiff.diffStats && (
                 <div className="w-full flex justify-center" style={{ display: isPlanDiffActive ? undefined : 'none' }}>
-                  <PlanDiffViewer
+                  <PlanDiffCard
                     diffBlocks={planDiff.diffBlocks}
                     diffStats={planDiff.diffStats}
                     onPlanDiffToggle={() => setIsPlanDiffActive(false)}
                     repoInfo={repoInfo}
+                    baselineTooltip="Changes since you last reviewed this file"
                     baseVersionLabel={planDiff.diffBaseVersion != null ? `v${planDiff.diffBaseVersion}` : undefined}
-                    baseVersion={planDiff.diffBaseVersion ?? undefined}
                     maxWidth={planMaxWidth}
                     annotations={diffAnnotations}
                     onAddAnnotation={handleAddAnnotation}
@@ -1603,8 +1559,8 @@ const AppInner: React.FC = () => {
                   isPlanDiffActive={isPlanDiffActive}
                   onPlanDiffToggle={() => setIsPlanDiffActive(!isPlanDiffActive)}
                   hasPreviousVersion={planDiff.hasPreviousVersion}
-                  planDiffBaselineLabel="since last review"
                   planDiffBaselineTooltip="Changes since you last reviewed this file"
+                  planDiffBaseVersionLabel={planDiff.diffBaseVersion != null ? `v${planDiff.diffBaseVersion}` : undefined}
                   showDemoBadge={!isApiMode}
                   maxWidth={planMaxWidth}
                   onOpenLinkedDoc={handleOpenLinkedDoc}
@@ -1620,7 +1576,6 @@ const AppInner: React.FC = () => {
                       : null
                   }
                   imageBaseDir={imageBaseDir}
-                  sourceInfo={sourceInfo}
                   onToggleCheckbox={checkbox.toggle}
                   checkboxOverrides={checkbox.overrides}
                 />
@@ -1650,6 +1605,7 @@ const AppInner: React.FC = () => {
               key={sideChat.openKey}
               thread={sideChat.thread}
               onSend={(question) => sideChat.send(sideChat.openKey!, sideChat.thread!.quote, question)}
+              onStop={() => sideChat.stop(sideChat.openKey!)}
               onClose={sideChat.close}
               clearRail={annotateSource === 'message' && recentMessages.length > 1}
             />
@@ -1705,8 +1661,10 @@ const AppInner: React.FC = () => {
             initialImages={editComposer.annotation.images}
             onDraftChange={(text, images) => {
               const saved = editComposer.annotation;
-              editDirtyRef.current = text.trim() !== (saved.text ?? '').trim()
-                || (images?.length ?? 0) !== (saved.images?.length ?? 0);
+              const cleared = text.trim() === '' && !images?.length;
+              clearedEditRef.current = cleared ? saved.id : null;
+              editDirtyRef.current = !cleared && (text.trim() !== (saved.text ?? '').trim()
+                || (images?.length ?? 0) !== (saved.images?.length ?? 0));
             }}
             onSubmit={(text, images) => {
               editAnnotation(editComposer.annotation.id, {
@@ -1715,7 +1673,19 @@ const AppInner: React.FC = () => {
               });
               setEditComposer(null);
             }}
-            onClose={() => setEditComposer(null)}
+            quickLabels={quickLabels}
+            onQuickLabel={(label) => {
+              editAnnotation(editComposer.annotation.id, { text: label.text, images: undefined });
+              setEditComposer(null);
+            }}
+            // `/btw` replaced the comment in the box, so the side question
+            // takes the annotation's place.
+            onAsk={editComposer.annotation.type === AnnotationType.GLOBAL_COMMENT ? undefined : (question) => {
+              handleAskSideQuestion(question, editComposer.annotation.originalText);
+              clearedEditRef.current = editComposer.annotation.id;
+              closeEditComposer();
+            }}
+            onClose={closeEditComposer}
           />
         )}
 

@@ -102,7 +102,7 @@ describe("annotate approval submission", () => {
       linkedDocuments,
       title: "File Feedback",
       subject: "file",
-      sourceConverted: false,
+
     });
 
     expect(feedback).toContain("retry-diagram");
@@ -160,7 +160,7 @@ describe("annotate approval submission", () => {
       ]),
       title: "File Feedback",
       subject: "file",
-      sourceConverted: false,
+
     });
 
     expect(feedback).toContain("(lines 2–3) ");
@@ -198,7 +198,7 @@ describe("annotate approval submission", () => {
       ]),
       title: "File Feedback",
       subject: "file",
-      sourceConverted: false,
+
     });
 
     expect(feedback).toContain("(line 5) ");
@@ -226,7 +226,7 @@ describe("annotate approval submission", () => {
       linkedDocuments: new Map<string, LinkedDocAnnotationEntry>(),
       title: "File Feedback",
       subject: "file",
-      sourceConverted: false,
+
     };
 
     const changeRequest = buildCompleteAnnotateFeedback(base);

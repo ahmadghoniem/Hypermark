@@ -593,14 +593,18 @@ export function devMockApi(): Plugin {
 
         if (req.url === '/api/side-chat' && req.method === 'POST') {
           req.resume();
+          // Streams a canned answer word by word after a pause, like the real one.
           req.on('end', () => {
-            setTimeout(() => {
-              res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({
-                reply: 'This is a canned reply from the dev mock API. The real side chat will answer from the conversation, '
-                  + 'read-only, and nothing here is added to your feedback.',
-              }));
+            const words = ('This is a canned reply from the dev mock API. The real side chat answers from the conversation, '
+              + 'writes nothing to it, and nothing here is added to your feedback.').split(/(?<= )/);
+            res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+            let i = 0;
+            let timer = setTimeout(function next() {
+              if (i === words.length) { res.end(); return; }
+              res.write(words[i++]);
+              timer = setTimeout(next, 60);
             }, 1500);
+            res.on('close', () => clearTimeout(timer));
           });
           return;
         }

@@ -66,7 +66,6 @@ export interface CompleteAnnotateFeedbackInput {
   linkedDocuments: Map<string, LinkedDocAnnotationEntry>;
   title: string;
   subject: string;
-  sourceConverted: boolean;
   messageEntries?: MessageAnnotationEntry[];
   /**
    * Positive-finish framing. Non-gated annotate has no approve channel —
@@ -102,7 +101,6 @@ export function buildCompleteAnnotateFeedback(
             input.globalAttachments,
             input.title,
             input.subject,
-            { sourceConverted: input.sourceConverted },
           )
         : "";
 
