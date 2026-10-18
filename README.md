@@ -59,12 +59,6 @@ Review local changes. Comment on diffs. Your comments go back to the agent.
 </tr>
 </table>
 
-## Annotate HTML Artifacts
-
-<p align="center">
-  <img src=".github/assets/html.webp" alt="Annotating a rendered HTML artifact" width="720" />
-</p>
-
 ## Commands
 
 
@@ -196,7 +190,7 @@ The fastest way to see what Hypermark does is to invoke it yourself, right now, 
 ```
 /hypermark-last                   # annotate the agent's last reply
 /hypermark-review                 # review your current diff
-/hypermark-annotate report.html   # annotate any local file
+/hypermark-annotate notes.md      # annotate a local document
 ```
 
 

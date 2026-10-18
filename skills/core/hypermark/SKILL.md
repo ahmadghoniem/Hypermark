@@ -15,7 +15,7 @@ This skill is the knowledge layer. The `hypermark-review`, `hypermark-annotate`,
 | --- | --- |
 | Review and explicitly approve a spec/document saved as a file | `hypermark annotate <file> --gate --json` |
 | Review current code changes | `hypermark review` |
-| Annotate a markdown, text, config, or HTML file | `hypermark annotate <file>` |
+| Annotate a markdown, text, or config file | `hypermark annotate <file>` |
 | Annotate your latest assistant message | `hypermark last` |
 | Reopen or list live sessions | `hypermark sessions` |
 
@@ -55,8 +55,7 @@ Plain `annotate` is feedback-only: it shows **Close** but no **Approve** button.
 Targets:
 
 - Markdown and text files: `.md`, `.mdx`, `.txt`.
-- Plain-text config and data files, rendered as text: `.yaml`, `.yml`, `.json`, `.jsonc`, `.json5`, `.toml`, `.ini`, `.cfg`, `.conf`, `.properties`, `.csv`, `.tsv`, `.log`, `.xml`, `.env.example`. `.env` itself is deliberately refused (it commonly holds secrets, and annotate history copies file contents). Source-code files belong to `hypermark review`, not annotate.
-- HTML files (`.html`, `.htm`): converted to markdown.
+- Plain-text config and data files, rendered as text: `.yaml`, `.yml`, `.json`, `.jsonc`, `.json5`, `.toml`, `.ini`, `.cfg`, `.conf`, `.properties`, `.csv`, `.tsv`, `.log`, `.xml`, `.env.example`. `.env` itself is deliberately refused (it commonly holds secrets, and annotate history copies file contents). Source-code files belong to `hypermark review`, not annotate. HTML files and URLs are refused.
 
 Single files are capped at 2MB. Files are read from disk at stable project paths; keep the reviewed source where it lives.
 

@@ -1,6 +1,6 @@
 ---
 name: hypermark-annotate
-description: Open Hypermark's annotation UI for a markdown file or HTML file and then respond to the returned annotations.
+description: Open Hypermark's annotation UI for a markdown, text, or config file and then respond to the returned annotations.
 allowed-tools: Bash(hypermark:*)
 disable-model-invocation: true
 ---

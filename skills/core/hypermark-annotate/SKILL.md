@@ -1,6 +1,6 @@
 ---
 name: hypermark-annotate
-description: Open Hypermark's annotation UI for a markdown file, plain-text config file (.yaml, .json, .toml, .ini, .csv, .log, …), or HTML file and then respond to the returned annotations.
+description: Open Hypermark's annotation UI for a markdown file, plain-text config file (.yaml, .json, .toml, .ini, .csv, .log, …) and then respond to the returned annotations.
 disable-model-invocation: true
 ---
 
