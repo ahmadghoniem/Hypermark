@@ -1,11 +1,18 @@
 import type { Block, Annotation, CodeAnnotation, ImageAttachment } from '../types';
-import { resolveReplyParents } from '@/shared/annotation-threads';
+
+/**
+ * Parsed YAML frontmatter value: scalar string, array, or nested map.
+ */
+export type FrontmatterValue =
+  | string
+  | FrontmatterValue[]
+  | { [key: string]: FrontmatterValue };
 
 /**
  * Parsed YAML frontmatter as key-value pairs.
  */
 export interface Frontmatter {
-  [key: string]: string | string[];
+  [key: string]: FrontmatterValue;
 }
 
 /** Number of leading whitespace characters on a line. */
@@ -79,6 +86,71 @@ function parseBlockScalar(
 }
 
 /**
+ * A one-line YAML list (`[a, "b, c", 'd']`) as its items; any other value
+ * unchanged. Commas inside quotes don't split, and quotes around an item are
+ * dropped. Nested lists and maps aren't parsed: an item keeps its brackets.
+ */
+function parseFlowSequence(value: string): FrontmatterValue {
+  if (!value.startsWith('[') || !value.endsWith(']')) return value;
+  const inner = value.slice(1, -1).trim();
+  if (!inner) return [];
+  const items: string[] = [];
+  let current = '';
+  let quote: string | null = null;
+  for (const ch of inner) {
+    if (quote) {
+      if (ch === quote) quote = null;
+      current += ch;
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+      current += ch;
+    } else if (ch === ',') {
+      items.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  items.push(current);
+  return items
+    .map((item) => item.trim())
+    .filter((item) => item !== '')
+    .map((item) => (/^(["']).*\1$/.test(item) ? item.slice(1, -1) : item));
+}
+
+/**
+ * Parse a simple `key: value` pair from a line. Returns null if the line
+ * is not a valid YAML mapping entry (e.g. scalar URLs or quoted strings).
+ */
+function parseKeyValue(str: string): { key: string; value: string } | null {
+  // A QUOTED KEY is still a mapping entry: `"title": "Doc"` must yield
+  // { title: "Doc" }, not nothing. Only a line that is nothing but a quoted
+  // scalar (`"just a string"`) is not an entry — which is the case the char
+  // after the closing quote distinguishes.
+  const quote = str[0];
+  if (quote === '"' || quote === "'") {
+    const closing = str.indexOf(quote, 1);
+    if (closing === -1) return null;
+    if (str[closing + 1] !== ':') return null;
+    // Same rule the unquoted branch applies: `key:value` is a scalar, not a
+    // mapping entry. A colon at end of line (empty value) is fine.
+    const afterColon = str[closing + 2];
+    if (afterColon !== undefined && afterColon !== ' ' && afterColon !== '\t') {
+      return null;
+    }
+    return { key: str.slice(1, closing), value: str.slice(closing + 2).trim() };
+  }
+  const colonIndex = str.indexOf(':');
+  if (colonIndex <= 0) return null;
+  if (colonIndex < str.length - 1 && str[colonIndex + 1] !== ' ' && str[colonIndex + 1] !== '\t') {
+    return null;
+  }
+  const key = str.slice(0, colonIndex).trim();
+  const value = str.slice(colonIndex + 1).trim();
+  return { key, value };
+}
+
+/**
  * Extract YAML frontmatter from markdown if present.
  * Returns the parsed frontmatter, the remaining markdown, and the 1-based
  * line number where content begins in the original file (so downstream
@@ -109,57 +181,127 @@ export function extractFrontmatter(markdown: string): { frontmatter: Frontmatter
   const consumedTotal = leadingChars + consumedInTrimmed;
   const contentStartLine = (markdown.slice(0, consumedTotal).match(/\n/g) || []).length + 1;
 
-  // Parse simple YAML (key: value pairs)
+  // Parse simple YAML (key: value pairs, indentation-aware)
   const frontmatter: Frontmatter = {};
-  let currentKey: string | null = null;
-  let currentArray: string[] | null = null;
+  const mapStack: { indent: number; map: { [key: string]: FrontmatterValue } }[] = [
+    { indent: -1, map: frontmatter },
+  ];
+  const arrayStack: { indent: number; array: FrontmatterValue[] }[] = [];
+  let pendingKey: {
+    key: string;
+    indent: number;
+    parentMap: { [key: string]: FrontmatterValue };
+  } | null = null;
 
   const lines = frontmatterRaw.split('\n');
   for (let i = 0; i < lines.length; i++) {
-    const rawLine = lines[i];
+    const rawLine = lines[i].replace(/\r$/, '');
     const trimmedLine = rawLine.trim();
 
-    // Array item (- value)
-    if (trimmedLine.startsWith('- ') && currentKey) {
-      const value = trimmedLine.slice(2).trim();
-      if (!currentArray) {
-        currentArray = [];
-        frontmatter[currentKey] = currentArray;
+    if (!trimmedLine) continue;
+
+    const lineIndent = indentWidth(rawLine);
+
+    // Array item (- value or - key: value)
+    if (trimmedLine.startsWith('- ')) {
+      const afterDash = trimmedLine.slice(2).trim();
+      const kv = parseKeyValue(afterDash);
+
+      if (pendingKey && lineIndent >= pendingKey.indent) {
+        const newArray: FrontmatterValue[] = [];
+        pendingKey.parentMap[pendingKey.key] = newArray;
+        arrayStack.push({ indent: lineIndent, array: newArray });
+        pendingKey = null;
+      } else {
+        pendingKey = null;
+        while (arrayStack.length > 0 && arrayStack[arrayStack.length - 1].indent > lineIndent) {
+          arrayStack.pop();
+        }
       }
-      currentArray.push(value);
+
+      while (mapStack.length > 1 && mapStack[mapStack.length - 1].indent >= lineIndent) {
+        mapStack.pop();
+      }
+
+      const targetArray = arrayStack.length > 0 ? arrayStack[arrayStack.length - 1].array : null;
+
+      if (kv) {
+        const blockScalar = kv.value.match(/^([|>])[+-]?$/);
+        let scalarVal = kv.value;
+        if (blockScalar) {
+          const { value: parsedScalar, endIndex } = parseBlockScalar(
+            lines,
+            i + 1,
+            lineIndent,
+            blockScalar[1] === '>',
+          );
+          scalarVal = parsedScalar;
+          i = endIndex;
+        }
+
+        const mapElem: { [key: string]: FrontmatterValue } = {};
+        if (scalarVal) {
+          mapElem[kv.key] = blockScalar ? scalarVal : parseFlowSequence(scalarVal);
+        } else {
+          // The key sits two columns right of the dash (`- meta:`), so that —
+          // not the dash's own indent — is the indent its nested block must be
+          // measured against. Recording `lineIndent` here made the nested map
+          // swallow the item's later sibling keys, because a sibling indented
+          // to the key's column never dedented past the dash.
+          pendingKey = { key: kv.key, indent: lineIndent + 2, parentMap: mapElem };
+        }
+
+        if (targetArray) {
+          targetArray.push(mapElem);
+        }
+        mapStack.push({ indent: lineIndent, map: mapElem });
+      } else {
+        if (targetArray) {
+          targetArray.push(afterDash);
+        }
+      }
       continue;
     }
 
     // Key: value pair
-    const colonIndex = trimmedLine.indexOf(':');
-    if (colonIndex > 0) {
-      currentKey = trimmedLine.slice(0, colonIndex).trim();
-      const value = trimmedLine.slice(colonIndex + 1).trim();
-      currentArray = null;
+    const kv = parseKeyValue(trimmedLine);
+    if (kv) {
+      if (pendingKey) {
+        if (lineIndent > pendingKey.indent) {
+          const newMap: { [key: string]: FrontmatterValue } = {};
+          pendingKey.parentMap[pendingKey.key] = newMap;
+          mapStack.push({ indent: pendingKey.indent, map: newMap });
+        }
+        pendingKey = null;
+      }
 
-      // Block scalar: `|` (literal, keep newlines) or `>` (folded, join with
-      // spaces), each with optional chomping indicator (`-`/`+`). The value
-      // spans the following lines indented deeper than the key, e.g.
-      //   description: >-
-      //     line one
-      //     line two
-      // Without this, the indicator (">-") was stored verbatim and the body
-      // silently dropped.
-      const blockScalar = value.match(/^([|>])[+-]?$/);
+      while (arrayStack.length > 0 && arrayStack[arrayStack.length - 1].indent >= lineIndent) {
+        arrayStack.pop();
+      }
+      while (mapStack.length > 1 && mapStack[mapStack.length - 1].indent >= lineIndent) {
+        mapStack.pop();
+      }
+
+      const parentMap = mapStack[mapStack.length - 1].map;
+
+      // Block scalar: `|` or `>`
+      const blockScalar = kv.value.match(/^([|>])[+-]?$/);
       if (blockScalar) {
         const { value: scalarValue, endIndex } = parseBlockScalar(
           lines,
           i + 1,
-          indentWidth(rawLine),
+          lineIndent,
           blockScalar[1] === '>',
         );
-        frontmatter[currentKey] = scalarValue;
+        parentMap[kv.key] = scalarValue;
         i = endIndex;
         continue;
       }
 
-      if (value) {
-        frontmatter[currentKey] = value;
+      if (kv.value) {
+        parentMap[kv.key] = parseFlowSequence(kv.value);
+      } else {
+        pendingKey = { key: kv.key, indent: lineIndent, parentMap };
       }
     }
   }
@@ -589,10 +731,13 @@ export const parseMarkdownToBlocks = (markdown: string, options?: ParseMarkdownO
     const prevLineWasBlank = lastLineWasBlank;
     lastLineWasBlank = false;
 
-    // Headings
-    if (trimmed.startsWith('#')) {
+    // Headings: one to six `#` followed by a space or the end of the line
+    // (CommonMark ATX). `#123 fixed`, `#hashtag` and `#!/bin/sh` are text,
+    // so an issue ref that starts a line keeps its link.
+    const headingMatch = trimmed.match(/^(#{1,6})(?:\s|$)/);
+    if (headingMatch) {
       flush();
-      const level = trimmed.match(/^#+/)?.[0].length || 1;
+      const level = headingMatch[1].length;
       blocks.push({
         id: `block-${currentId++}`,
         type: 'heading',
@@ -656,62 +801,63 @@ export const parseMarkdownToBlocks = (markdown: string, options?: ParseMarkdownO
       continue;
     }
 
-    // Blockquotes — consecutive `>` lines merge into one block so wrapped
-    // paragraph quotes render as a single continuous quote box. A blank line
-    // breaks the blockquote so the next `>` starts a fresh one.
+    // Blockquotes: a run of consecutive `>` lines (blank `>` lines included)
+    // is ONE quote block, the way GitHub renders it: one quote, one bar. A
+    // truly blank line ends the run, so the next `>` starts a fresh quote; a
+    // line without `>` is not a lazy continuation (it starts a paragraph).
     //
-    // Exception: if the stripped content starts with a block-level marker
-    // (list item, heading, code fence, nested blockquote) we do NOT merge.
-    // Our flat block model can't render a list-inside-a-quote as an actual
-    // nested list, so merging would flatten the markers into run-on inline
-    // text. Leaving them as separate blockquote blocks preserves each line's
-    // visual identity (a stacked-box layout) — imperfect but legible. A
-    // proper recursive blockquote parser is tracked as a follow-up.
+    // `content` is the quote's own markdown: each line with its `>` marker and
+    // one following space or tab removed (deeper indentation is kept, so a
+    // fenced code block or a nested list inside the quote keeps its shape) and
+    // trailing whitespace trimmed, one content line per source line. Blank
+    // lines at the quote's edges are dropped (`startLine` moves past leading
+    // ones), so the block's line span is the quote's text. The renderer
+    // (`BlockquoteBlock`) parses `content` again with this function and draws
+    // the inner blocks (paragraphs, code fences, lists, nested quotes) inside
+    // the one quote, while the quote stays a single annotatable block with a
+    // single `data-block-id`.
+    //
+    // GitHub alerts (`> [!KIND]` as the run's first line) are unchanged: the
+    // marker line tags the block, and the body is every later line fully
+    // `>`-stripped and trimmed, empty leading lines skipped, exactly as the
+    // line-by-line merge produced it. AlertBlock renders it.
     if (trimmed.startsWith('>')) {
       flush();
-      const stripped = trimmed.replace(/^>\s*/, '');
-      // List markers require trailing whitespace to avoid matching inline
-      // text like "-hyphen" or "1.5 seconds"; headings, code fences, and
-      // nested blockquote markers don't require it (``` can be followed
-      // directly by a language tag, # can start a dense heading).
-      const blockMarkerRe = /^(?:(?:\*|-|\d+\.)\s|#|```|>)/;
-      const hasBlockMarker = blockMarkerRe.test(stripped);
-      const prevBlock = blocks.length > 0 ? blocks[blocks.length - 1] : null;
-      // Don't merge into a previous blockquote whose content itself starts
-      // with a block marker — otherwise a `> some text` line following a
-      // `> 1. item` line would get glued onto the list-item block.
-      const prevIsMarkerQuote =
-        prevBlock?.type === 'blockquote' && blockMarkerRe.test(prevBlock.content);
-      // Alerts own their body: once a blockquote is tagged as an alert,
-      // subsequent `>` lines always merge into it (until a blank line).
-      // Without this, `> [!NOTE]\n> - item` splits the list item off into
-      // a separate plain quote, losing the callout.
-      const prevIsAlert = prevBlock?.type === 'blockquote' && !!prevBlock.alertKind;
-      const shouldMergeIntoAlert = prevIsAlert && !prevLineWasBlank;
-      const shouldMergeNormal =
-        !hasBlockMarker &&
-        !prevIsMarkerQuote &&
-        !prevLineWasBlank &&
-        prevBlock?.type === 'blockquote';
-      if (shouldMergeIntoAlert || shouldMergeNormal) {
-        prevBlock!.content = prevBlock!.content
-          ? prevBlock!.content + '\n' + stripped
-          : stripped;
-      } else {
-        // GitHub alert marker: a blockquote whose first line is [!KIND].
-        // We strip the marker from content and tag the block; rendering decides the style.
-        const alertMatch = stripped.match(/^\[!(NOTE|TIP|WARNING|CAUTION|IMPORTANT)\]\s*$/i);
+      let runEnd = i;
+      while (runEnd + 1 < lines.length && lines[runEnd + 1].trim().startsWith('>')) runEnd++;
+      const run = lines.slice(i, runEnd + 1);
+      const quoteStartLine = currentLineNum;
+      i = runEnd;
+      const alertMatch = trimmed
+        .replace(/^>\s*/, '')
+        .match(/^\[!(NOTE|TIP|WARNING|CAUTION|IMPORTANT)\]\s*$/i);
+      if (alertMatch) {
+        const body = run.slice(1).reduce((acc, raw) => {
+          const stripped = raw.trim().replace(/^>\s*/, '');
+          return acc ? acc + '\n' + stripped : stripped;
+        }, '');
         blocks.push({
           id: `block-${currentId++}`,
           type: 'blockquote',
-          content: alertMatch ? '' : stripped,
-          alertKind: alertMatch
-            ? (alertMatch[1].toLowerCase() as 'note' | 'tip' | 'warning' | 'caution' | 'important')
-            : undefined,
+          content: body,
+          alertKind: alertMatch[1].toLowerCase() as 'note' | 'tip' | 'warning' | 'caution' | 'important',
           order: currentId,
-          startLine: currentLineNum
+          startLine: quoteStartLine,
         });
+        continue;
       }
+      const inner = run.map((raw) => raw.replace(/^\s*>[ \t]?/, '').trimEnd());
+      let first = 0;
+      while (first < inner.length - 1 && inner[first] === '') first++;
+      let last = inner.length - 1;
+      while (last > first && inner[last] === '') last--;
+      blocks.push({
+        id: `block-${currentId++}`,
+        type: 'blockquote',
+        content: inner.slice(first, last + 1).join('\n'),
+        order: currentId,
+        startLine: quoteStartLine + first,
+      });
       continue;
     }
     
@@ -1074,10 +1220,6 @@ export function groupBlocks(blocks: Block[]): RenderGroup[] {
   return groups;
 }
 
-export interface ExportAnnotationsOptions {
-  sourceConverted?: boolean;
-}
-
 /** Compute the end line of a block from its content and type. */
 const blockEndLine = (block: Block): number => {
   if (block.sourceLineCount && block.sourceLineCount > 0) {
@@ -1109,7 +1251,6 @@ export const exportAnnotations = (
   globalAttachments: ImageAttachment[] = [],
   title: string = 'Plan Feedback',
   subject: string = 'plan',
-  opts: ExportAnnotationsOptions = {},
 ): string => {
   if (annotations.length === 0 && globalAttachments.length === 0) {
     return 'No changes detected.';
@@ -1125,10 +1266,6 @@ export const exportAnnotations = (
 
   let output = `# ${title}\n\n`;
 
-  if (opts.sourceConverted) {
-    output += `> Note: Line numbers below refer to the converted markdown, not the original HTML/URL source.\n\n`;
-  }
-
   // A standalone "Reference Images" section is no longer
   // emitted here. Legacy top-level `globalAttachments` are decoded (see
   // `normalizeDocumentAnnotations`) into one image-only GLOBAL_COMMENT
@@ -1141,70 +1278,8 @@ export const exportAnnotations = (
     output += `I've reviewed this ${subject} and have ${annotations.length} piece${annotations.length > 1 ? 's' : ''} of feedback:\n\n`;
   }
 
-  const annotationNumbers = new Map<any, number>(
-    sortedAnns.map((ann, index) => [ann, index + 1]),
-  );
-  let emitOrder = sortedAnns;
-
-  // Threaded replies (`inReplyTo`): a reply is emitted as a nested exchange
-  // under its parent's entry rather than as its own numbered entry, so the
-  // coding agent reads the conversation in order. The threading rule is the
-  // shared one (resolveReplyParents): a reply whose parent is not in the
-  // export, a self-reference, and every member of an inReplyTo cycle render
-  // as ordinary entries in original order, so no annotation is ever dropped
-  // and the header count always equals what is emitted. With no `inReplyTo`
-  // anywhere the output is byte-identical to the ungrouped export.
-  const replyParents = resolveReplyParents(sortedAnns as any[]);
-  const isReply = (a: any) => replyParents.get(a.id) != null;
-  const hasReplies = sortedAnns.some(isReply);
-  // Children are grouped once (creation order within a parent); the old
-  // per-level re-filter and re-sort of the whole list made a long thread
-  // quadratic in both time and output size.
-  const repliesByParent = new Map<string, any[]>();
-  if (hasReplies) {
-    for (const a of sortedAnns as any[]) {
-      const parent = replyParents.get(a.id);
-      if (!parent) continue;
-      const list = repliesByParent.get(parent) ?? [];
-      list.push(a);
-      repliesByParent.set(parent, list);
-    }
-    for (const list of repliesByParent.values()) list.sort((a: any, b: any) => a.createdA - b.createdA);
-    emitOrder = emitOrder.filter((a) => !isReply(a));
-    // Numbers stay consecutive over the entries that are actually emitted.
-    annotationNumbers.clear();
-    emitOrder.forEach((ann, index) => annotationNumbers.set(ann, index + 1));
-  }
-  // Nesting indent is capped so the export stays linear in the thread size
-  // (an uncapped indent on a 5,000-deep chain is 25 MB of whitespace) and
-  // the emission is an explicit stack rather than recursion, so a deep chain
-  // costs neither stack frames nor repeated string copies.
-  const MAX_REPLY_INDENT_DEPTH = 8;
-  const replyBlock = (parent: any): string => {
-    const parts: string[] = [];
-    const stack: Array<{ reply: any; depth: number }> = [];
-    const pushReplies = (of: any, depth: number) => {
-      const replies = repliesByParent.get(of.id);
-      if (!replies) return;
-      for (let i = replies.length - 1; i >= 0; i--) stack.push({ reply: replies[i], depth });
-    };
-    pushReplies(parent, 0);
-    while (stack.length > 0) {
-      const { reply, depth } = stack.pop()!;
-      const indent = '  '.repeat(Math.min(depth, MAX_REPLY_INDENT_DEPTH));
-      parts.push(`${indent}- **Reply:** ${String(reply.text ?? '').replace(/\r?\n/g, `\n${indent}  `)}\n`);
-      if (reply.images && reply.images.length > 0) {
-        reply.images.forEach((img: ImageAttachment) => {
-          parts.push(`${indent}  - [${img.name}] \`${img.path}\`\n`);
-        });
-      }
-      pushReplies(reply, depth + 1);
-    }
-    return parts.join('');
-  };
-
-  emitOrder.forEach((ann) => {
-    output += `## ${annotationNumbers.get(ann)}. `;
+  sortedAnns.forEach((ann, index) => {
+    output += `## ${index + 1}. `;
 
     // Add diff context label if annotation was created in diff view
     if (ann.diffContext) {
@@ -1244,12 +1319,6 @@ export const exportAnnotations = (
       });
     }
 
-    // Threaded replies nest under the entry they answer.
-    if (hasReplies) {
-      const thread = replyBlock(ann);
-      if (thread) output += `**Replies:**\n${thread}`;
-    }
-
     output += '\n';
   });
 
@@ -1263,7 +1332,6 @@ export interface LinkedDocAnnotationEntry {
   globalAttachments: ImageAttachment[];
   markdown?: string;
   blocks?: Block[];
-  isConverted?: boolean;
 }
 
 export const exportLinkedDocAnnotations = (
@@ -1271,10 +1339,10 @@ export const exportLinkedDocAnnotations = (
 ): string => {
   let output = `\n# Linked Document Feedback\n\nThe following feedback is on documents referenced in the plan.\n\n`;
 
-  for (const [filepath, { annotations, globalAttachments, blocks: docBlocks, isConverted }] of docAnnotations) {
+  for (const [filepath, { annotations, globalAttachments, blocks: docBlocks }] of docAnnotations) {
     if (annotations.length === 0 && globalAttachments.length === 0) continue;
 
-    output += `## ${filepath}${isConverted ? ' (converted from HTML — line numbers refer to converted markdown)' : ''}\n\n`;
+    output += `## ${filepath}\n\n`;
 
     // No standalone "Reference Images" section — legacy
     // top-level images are decoded into a GLOBAL_COMMENT annotation and

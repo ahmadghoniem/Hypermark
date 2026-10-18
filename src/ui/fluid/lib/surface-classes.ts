@@ -17,47 +17,47 @@
  */
 
 export const SURFACE_BG: Record<number, string> = {
-  1: "bg-fl-surface-1",
-  2: "bg-fl-surface-2",
-  3: "bg-fl-surface-3",
-  4: "bg-fl-surface-4",
-  5: "bg-fl-surface-5",
-  6: "bg-fl-surface-6",
-  7: "bg-fl-surface-7",
-  8: "bg-fl-surface-8",
+  1: "bg-surface-1",
+  2: "bg-surface-2",
+  3: "bg-surface-3",
+  4: "bg-surface-4",
+  5: "bg-surface-5",
+  6: "bg-surface-6",
+  7: "bg-surface-7",
+  8: "bg-surface-8",
 };
 
 export const SURFACE_SHADOW: Record<number, string> = {
-  1: "shadow-fl-surface-1",
-  2: "shadow-fl-surface-2",
-  3: "shadow-fl-surface-3",
-  4: "shadow-fl-surface-4",
-  5: "shadow-fl-surface-5",
-  6: "shadow-fl-surface-6",
-  7: "shadow-fl-surface-7",
-  8: "shadow-fl-surface-8",
+  1: "shadow-surface-1",
+  2: "shadow-surface-2",
+  3: "shadow-surface-3",
+  4: "shadow-surface-4",
+  5: "shadow-surface-5",
+  6: "shadow-surface-6",
+  7: "shadow-surface-7",
+  8: "shadow-surface-8",
 };
 
 export const SURFACE_HOVER_BG: Record<number, string> = {
-  1: "hover:bg-fl-surface-1",
-  2: "hover:bg-fl-surface-2",
-  3: "hover:bg-fl-surface-3",
-  4: "hover:bg-fl-surface-4",
-  5: "hover:bg-fl-surface-5",
-  6: "hover:bg-fl-surface-6",
-  7: "hover:bg-fl-surface-7",
-  8: "hover:bg-fl-surface-8",
+  1: "hover:bg-surface-1",
+  2: "hover:bg-surface-2",
+  3: "hover:bg-surface-3",
+  4: "hover:bg-surface-4",
+  5: "hover:bg-surface-5",
+  6: "hover:bg-surface-6",
+  7: "hover:bg-surface-7",
+  8: "hover:bg-surface-8",
 };
 
 export const SURFACE_HOVER_SHADOW: Record<number, string> = {
-  1: "hover:shadow-fl-surface-1",
-  2: "hover:shadow-fl-surface-2",
-  3: "hover:shadow-fl-surface-3",
-  4: "hover:shadow-fl-surface-4",
-  5: "hover:shadow-fl-surface-5",
-  6: "hover:shadow-fl-surface-6",
-  7: "hover:shadow-fl-surface-7",
-  8: "hover:shadow-fl-surface-8",
+  1: "hover:shadow-surface-1",
+  2: "hover:shadow-surface-2",
+  3: "hover:shadow-surface-3",
+  4: "hover:shadow-surface-4",
+  5: "hover:shadow-surface-5",
+  6: "hover:shadow-surface-6",
+  7: "hover:shadow-surface-7",
+  8: "hover:shadow-surface-8",
 };
 
 export function surfaceClasses(bgLevel: number, shadowLevel: number = bgLevel): string {

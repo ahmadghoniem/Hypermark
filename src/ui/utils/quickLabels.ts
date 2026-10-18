@@ -9,30 +9,15 @@ import { storage } from './storage';
 
 export interface QuickLabel {
   id: string;     // kebab-case identifier e.g. "needs-tests"
-  emoji: string;  // single emoji e.g. "🧪", or '' for a label that carries none
   text: string;   // display text e.g. "Needs tests"
-}
-
-/**
- * The text a quick label writes into an annotation: "🧪 Needs tests", or just
- * "Agreed" for a label with no emoji. Every call site that used to inline
- * `${emoji} ${text}` goes through here so an empty emoji cannot leave a
- * leading space in the stored annotation text.
- */
-export function formatQuickLabel(label: QuickLabel): string {
-  return label.emoji ? `${label.emoji} ${label.text}` : label.text;
 }
 
 /**
  * The positive label the default set opens with. Ordinary in every way — it
  * can be renamed, reordered and deleted like any other.
- *
- * It carries no emoji: it reads as a plain verdict on the selection, not as a
- * reaction to it.
  */
 export const AGREED_LABEL: QuickLabel = {
   id: 'agreed',
-  emoji: '',
   text: 'Agreed',
 };
 
@@ -44,11 +29,11 @@ export const AGREED_LABEL: QuickLabel = {
  */
 export const DEFAULT_QUICK_LABELS: QuickLabel[] = [
   AGREED_LABEL,
-  { id: 'needs-explanation', emoji: '', text: 'Needs explanation' },
-  { id: 'verify-this', emoji: '', text: 'Verify this' },
-  { id: 'give-an-example', emoji: '', text: 'Give an example' },
-  { id: 'out-of-scope', emoji: '', text: 'Out of scope' },
-  { id: 'needs-tests', emoji: '', text: 'Needs tests' },
+  { id: 'needs-explanation', text: 'Needs explanation' },
+  { id: 'verify-this', text: 'Verify this' },
+  { id: 'give-an-example', text: 'Give an example' },
+  { id: 'out-of-scope', text: 'Out of scope' },
+  { id: 'needs-tests', text: 'Needs tests' },
 ];
 
 const STORAGE_KEY_QUICK_LABELS = 'hypermark-quick-labels';
@@ -77,7 +62,6 @@ export function parseQuickLabels(raw: string | null): QuickLabel[] {
       .slice(0, QUICK_LABEL_MAX_COUNT)
       .map((l) => ({
         id: l.id,
-        emoji: typeof l.emoji === 'string' ? l.emoji : '',
         text: l.text.slice(0, 60),
       }));
     return labels;

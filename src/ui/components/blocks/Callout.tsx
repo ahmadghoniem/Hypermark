@@ -11,7 +11,6 @@ interface CalloutProps {
   onOpenLinkedDoc?: (path: string) => void;
   imageBaseDir?: string;
   onImageClick?: (src: string, alt: string) => void;
-  githubRepo?: string;
   onNavigateAnchor?: (hash: string) => void;
 }
 
@@ -25,7 +24,6 @@ export const Callout: React.FC<CalloutProps> = ({
   onOpenLinkedDoc,
   imageBaseDir,
   onImageClick,
-  githubRepo,
   onNavigateAnchor,
 }) => {
   const kindAttr =
@@ -50,7 +48,6 @@ export const Callout: React.FC<CalloutProps> = ({
         onImageClick,
         onOpenLinkedDoc,
         onNavigateAnchor,
-        githubRepo,
       })}
     </div>
   );

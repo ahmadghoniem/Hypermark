@@ -1,20 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 import { transformPlainText } from './inlineTransforms';
 
-describe('transformPlainText — emoji shortcodes', () => {
-  test('replaces known shortcode with unicode emoji', () => {
-    expect(transformPlainText('hello :wave:')).toBe('hello 👋');
-  });
-
-  test('leaves unknown shortcode untouched', () => {
-    expect(transformPlainText('hello :notaknownemoji:')).toBe('hello :notaknownemoji:');
-  });
-
-  test('replaces multiple shortcodes in one string', () => {
-    expect(transformPlainText(':rocket: to the :star:')).toBe('🚀 to the ⭐');
-  });
-});
-
 describe('transformPlainText — smart punctuation', () => {
   test('converts triple dots to ellipsis', () => {
     expect(transformPlainText('wait...')).toBe('wait…');

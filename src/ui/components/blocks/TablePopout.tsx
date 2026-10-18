@@ -27,7 +27,6 @@ interface TablePopoutProps {
   onNavigateAnchor?: (hash: string) => void;
   imageBaseDir?: string;
   onImageClick?: (src: string, alt: string) => void;
-  githubRepo?: string;
 }
 
 type Row = Record<string, string>;
@@ -41,7 +40,6 @@ const TablePopoutImpl: React.FC<TablePopoutProps> = ({
   onNavigateAnchor,
   imageBaseDir,
   onImageClick,
-  githubRepo,
 }) => {
   const { headers, rows } = useMemo(() => parseTableContent(block.content), [block.content]);
 
@@ -80,12 +78,11 @@ const TablePopoutImpl: React.FC<TablePopoutProps> = ({
             text={info.getValue()}
             onOpenLinkedDoc={onOpenLinkedDoc}
             onNavigateAnchor={onNavigateAnchor}
-            githubRepo={githubRepo}
           />
         ),
       }),
     );
-  }, [columnIds, headers, imageBaseDir, onImageClick, onOpenLinkedDoc, onNavigateAnchor, githubRepo]);
+  }, [columnIds, headers, imageBaseDir, onImageClick, onOpenLinkedDoc, onNavigateAnchor]);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
@@ -254,8 +251,7 @@ export const TablePopout = React.memo(
     prev.block.content === next.block.content &&
     prev.open === next.open &&
     prev.container === next.container &&
-    prev.imageBaseDir === next.imageBaseDir &&
-    prev.githubRepo === next.githubRepo,
+    prev.imageBaseDir === next.imageBaseDir,
 );
 
 const SortIndicator: React.FC<{ dir: false | 'asc' | 'desc' }> = ({ dir }) => {

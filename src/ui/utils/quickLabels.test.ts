@@ -1,6 +1,5 @@
 import { describe, test, expect } from 'bun:test';
 import {
-  AGREED_LABEL,
   DEFAULT_QUICK_LABELS,
   parseQuickLabels,
   quickLabelId,
@@ -15,8 +14,8 @@ describe('parseQuickLabels', () => {
 
   test('a stored list replaces the defaults outright, Agreed included', () => {
     const stored = JSON.stringify([
-      { id: 'needs-tests', emoji: '', text: 'Needs tests', color: 'blue' },
-      { id: 'agreed', emoji: '', text: 'Sounds right', color: 'green' },
+      { id: 'needs-tests', text: 'Needs tests', color: 'blue' },
+      { id: 'agreed', text: 'Sounds right', color: 'green' },
     ]);
     const labels = parseQuickLabels(stored);
     expect(labels).toHaveLength(2);
@@ -24,17 +23,13 @@ describe('parseQuickLabels', () => {
     expect(labels[1]?.text).toBe('Sounds right');
   });
 
-  test('Agreed seeds the defaults', () => {
-    expect(parseQuickLabels(null)[0]).toEqual(AGREED_LABEL);
-  });
-
   test('an emptied list stays empty', () => {
     expect(parseQuickLabels('[]')).toEqual([]);
   });
 
   test('a stored tip is dropped', () => {
-    const stored = JSON.stringify([{ id: 'x', emoji: '', text: 'X', tip: 'y' }]);
-    expect(parseQuickLabels(stored)).toEqual([{ id: 'x', emoji: '', text: 'X' }]);
+    const stored = JSON.stringify([{ id: 'x', text: 'X', tip: 'y' }]);
+    expect(parseQuickLabels(stored)).toEqual([{ id: 'x', text: 'X' }]);
   });
 });
 

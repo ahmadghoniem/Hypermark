@@ -6,12 +6,6 @@ describe('decodeAnchorHash', () => {
     expect(decodeAnchorHash('#section-overview')).toBe('section-overview');
   });
 
-  test('drops query-string suffixes (e.g. share callback params)', () => {
-    expect(decodeAnchorHash('#section-overview?cb=https://example.com&ct=token')).toBe(
-      'section-overview',
-    );
-  });
-
   test('percent-decodes unicode', () => {
     expect(decodeAnchorHash('#caf%C3%A9')).toBe('café');
   });

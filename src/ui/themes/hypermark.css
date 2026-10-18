@@ -19,9 +19,6 @@
   --accent-foreground: oklch(0.15 0.02 260);
 
   /* Surfaces */
-  --surface-0: oklch(0.19 0.02 260);
-  --surface-1: oklch(0.26 0.02 260);
-  --surface-2: oklch(0.32 0.02 260);
 
   /* Sidebar / Tree */
   --sidebar: oklch(0.22 0.02 260);
@@ -88,9 +85,6 @@
   --accent-foreground: oklch(0.18 0.02 260);
 
   /* Surfaces */
-  --surface-0: oklch(0.95 0.007 260);
-  --surface-1: oklch(0.92 0.01 260);
-  --surface-2: oklch(0.88 0.01 260);
 
   /* Sidebar / Tree */
   --sidebar: oklch(1 0 0);

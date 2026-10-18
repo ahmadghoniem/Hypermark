@@ -50,9 +50,6 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --color-surface-0: var(--surface-0);
-  --color-surface-1: var(--surface-1);
-  --color-surface-2: var(--surface-2);
   /* Comment-annotation indicator color. Defaults to each theme's --accent
    * (see :root below); a theme whose accent is a low-contrast neutral (e.g.
    * "simple") overrides --annotation-comment directly. */
@@ -162,9 +159,6 @@
     --pn-safe-right: env(safe-area-inset-right, 0px);
     --pn-safe-bottom: env(safe-area-inset-bottom, 0px);
     --pn-safe-left: env(safe-area-inset-left, 0px);
-    --surface-0: color-mix(in oklch, var(--muted) 40%, var(--background));
-    --surface-1: var(--muted);
-    --surface-2: color-mix(in oklch, var(--muted) 70%, var(--foreground));
     --sidebar: var(--card);
     --sidebar-foreground: var(--foreground);
     --sidebar-primary: var(--primary);
@@ -876,5 +870,35 @@ body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
   }
   .popover-enter.popover-enter {
     animation: none;
+  }
+}
+
+/* Mermaid diagrams (Pele) on the theme's colors and font. */
+.pele {
+  --pele-bg: transparent;
+  --pele-fg: var(--foreground);
+  --pele-muted: var(--muted-foreground);
+  --pele-line: var(--muted-foreground);
+  --pele-surface: var(--card);
+  --pele-surface-alt: var(--muted);
+  --pele-border: color-mix(in oklab, var(--foreground) 25%, transparent);
+  --pele-accent: var(--accent);
+  --pele-font: var(--font-sans);
+  --pele-font-mono: var(--font-mono);
+  --pele-radius: calc(var(--radius) - 2px);
+}
+
+/* Fluid's scroll-fade on the top edge only: the side chat thread fades under
+   its header once scrolled, and its newest text stays sharp at the bottom. */
+.scroll-fade-top {
+  --scroll-fade-size: 24px;
+}
+@supports (animation-timeline: scroll()) {
+  .scroll-fade-top {
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, var(--sf-start)) 0, #000 var(--scroll-fade-size));
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, var(--sf-start)) 0, #000 var(--scroll-fade-size));
+    animation: sf-reveal-start both linear;
+    animation-timeline: scroll(self);
+    animation-range: 0 var(--scroll-fade-size);
   }
 }

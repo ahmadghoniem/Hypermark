@@ -9,7 +9,7 @@ import { useEffect, useRef, useState, useCallback, type RefObject } from 'react'
 import Highlighter from '@plannotator/web-highlighter';
 import type { Annotation, ImageAttachment } from '../types';
 import { AnnotationType } from '../types';
-import { formatQuickLabel, type QuickLabel } from '../utils/quickLabels';
+import type { QuickLabel } from '../utils/quickLabels';
 import { transformPlainText } from '../utils/inlineTransforms';
 
 // --- Exported state types ---
@@ -491,9 +491,9 @@ export function useAnnotationHighlighter({
     };
 
     // First try the literal text. If that misses, re-try with the same
-    // transform the renderer applies to plain text (emoji shortcodes +
-    // smart punctuation) so annotations made before those transforms
-    // shipped can still re-bind to their target after reload.
+    // transform the renderer applies to plain text (smart punctuation) so
+    // annotations made before that transform shipped can still re-bind to
+    // their target after reload.
     const direct = searchOnce(searchText);
     if (direct) return direct;
 
@@ -891,7 +891,7 @@ export function useAnnotationHighlighter({
       for (const other of code.parentElement?.querySelectorAll('.annotation-highlight') ?? []) {
         if (code.contains(other)) continue;
         for (const r of other.getClientRects()) {
-          if (Math.min(r.bottom, line.bottom) - Math.max(r.top, line.top) > line.height / 2) return r;
+          if (Math.min(r.bottom, line.bottom) - Math.max(r.top, line.top) > line.height / 2) return { rect: r, mark: other };
         }
       }
       return null;
@@ -914,10 +914,16 @@ export function useAnnotationHighlighter({
         const beside = own && bandBeside(code, own);
         if (!beside) return;
         // Rects are in zoomed pixels under CSS zoom, padding is not.
+        // The bands are compared without their bottom borders: the comment
+        // border is added by class after the marks are inserted, so one mark
+        // can be measured with it and its neighbour without, which left the
+        // chip's fill 3px taller than the band beside it.
         const zoom = (mark as HTMLElement & { currentCSSZoom?: number }).currentCSSZoom ?? 1;
         const style = getComputedStyle(mark);
-        mark.style.paddingTop = `${parseFloat(style.paddingTop) + (own.top - beside.top) / zoom}px`;
-        mark.style.paddingBottom = `${parseFloat(style.paddingBottom) + (beside.bottom - own.bottom) / zoom}px`;
+        const besideBorder = parseFloat(getComputedStyle(beside.mark).borderBottomWidth) * zoom;
+        const ownBorder = parseFloat(style.borderBottomWidth) * zoom;
+        mark.style.paddingTop = `${parseFloat(style.paddingTop) + (own.top - beside.rect.top) / zoom}px`;
+        mark.style.paddingBottom = `${parseFloat(style.paddingBottom) + ((beside.rect.bottom - besideBorder) - (own.bottom - ownBorder)) / zoom}px`;
       });
     };
     tagChipEdges();
@@ -1312,7 +1318,7 @@ export function useAnnotationHighlighter({
   };
 
   const handleCommentQuickLabel = (label: QuickLabel) => {
-    handleCommentSubmit(formatQuickLabel(label));
+    handleCommentSubmit(label.text);
   };
 
   const handleCommentClose = useCallback(() => {

@@ -97,7 +97,7 @@ export const QuickLabelsButton: React.FC = () => {
       return;
     }
     const id = draft.id ?? quickLabelId(draft.text, labels.map((l) => l.id));
-    const newLabel: QuickLabel = { id, emoji: '', text };
+    const newLabel: QuickLabel = { id, text };
     const next = draft.id
       ? labels.map((l) => (l.id === draft.id ? newLabel : l))
       : [...labels, newLabel];

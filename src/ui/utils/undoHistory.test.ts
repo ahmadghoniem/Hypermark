@@ -12,7 +12,6 @@ import {
 interface TestItem {
   id: string;
   text: string;
-  inReplyTo?: string;
 }
 
 const getId = (item: TestItem): string => item.id;
@@ -35,7 +34,7 @@ describe('undo history', () => {
 
   it('restores add, edit, and delete at their original positions', () => {
     const parent = { id: 'parent', text: 'Parent' };
-    const reply = { id: 'reply', text: 'Reply', inReplyTo: parent.id };
+    const reply = { id: 'reply', text: 'Reply' };
     const sibling = { id: 'sibling', text: 'Sibling' };
     const deleted: CollectionMutation<TestItem> = { kind: 'delete', item: reply, index: 1 };
     const withoutReply = applyCollectionMutation([parent, reply, sibling], deleted, 'redo', getId);
@@ -55,9 +54,9 @@ describe('undo history', () => {
     expect(applyCollectionMutation([parent, reply, sibling], added, 'undo', getId)).toEqual([parent, sibling]);
   });
 
-  it('inverts compound additions without changing reply relationships', () => {
+  it('inverts compound additions', () => {
     const parent = { id: 'parent', text: 'Parent' };
-    const reply = { id: 'reply', text: 'Reply', inReplyTo: parent.id };
+    const reply = { id: 'reply', text: 'Reply' };
     const mutations: CollectionMutation<TestItem>[] = [
       { kind: 'add', item: parent, index: 0 },
       { kind: 'add', item: reply, index: 1 },
@@ -65,7 +64,6 @@ describe('undo history', () => {
     const added = applyCollectionMutations([], mutations, 'redo', getId);
     expect(added).toEqual([parent, reply]);
     expect(applyCollectionMutations(added, mutations, 'undo', getId)).toEqual([]);
-    expect(applyCollectionMutations([], mutations, 'redo', getId)[1]?.inReplyTo).toBe('parent');
   });
 
 });

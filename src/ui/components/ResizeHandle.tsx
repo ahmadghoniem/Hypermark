@@ -91,7 +91,7 @@ export const ResizeHandle: React.FC<Props> = ({
       {showTip && typeof document !== 'undefined' && createPortal(
         <div
           style={{ position: 'fixed', left: tip.x + 14, top: tip.y + 16, zIndex: 100 }}
-          className="pointer-events-none whitespace-nowrap rounded-md bg-surface-1 px-2 py-1 text-caption text-foreground shadow-md ring-1 ring-border/60"
+          className="pointer-events-none whitespace-nowrap rounded-md bg-surface-4 px-2 py-1 text-caption text-foreground shadow-md ring-1 ring-border/60"
         >
           {tooltip}
         </div>,
@@ -110,7 +110,7 @@ export const ResizeHandle: React.FC<Props> = ({
           title="Collapse sidebar"
           aria-label="Collapse sidebar"
           data-collapse={side}
-          className="absolute top-1/2 left-1/2 z-20 flex h-6 w-4 -translate-1/2  items-center justify-center before:absolute before:-inset-2 before:content-[''] rounded-sm bg-surface-1 text-muted-foreground/60 opacity-0 ring-1 ring-border/40 transition-opacity hover:text-foreground group-hover:opacity-100 group-hover/sidebar:opacity-100"
+          className="absolute top-1/2 left-1/2 z-20 flex h-6 w-4 -translate-1/2  items-center justify-center before:absolute before:-inset-2 before:content-[''] rounded-sm bg-surface-3 text-muted-foreground/60 opacity-0 ring-1 ring-border/40 transition-opacity hover:text-foreground group-hover:opacity-100 group-hover/sidebar:opacity-100"
         >
           {side === 'right' ? <ChevronRight className="size-3" /> : <ChevronLeft className="size-3" />}
         </button>

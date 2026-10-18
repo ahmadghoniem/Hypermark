@@ -32,7 +32,6 @@ export interface Annotation {
     tex: string;
     displayMode: boolean;
   }>; // math elements covered by a mixed text+formula selection
-  inReplyTo?: string; // id of the annotation this one replies to; a reply inherits its parent's anchor, renders indented under it in the panel, and exports grouped under it. Additive: annotations without it render and export exactly as before.
   // web-highlighter metadata for cross-element selections
   startMeta?: AnnotationTextMeta;
   endMeta?: AnnotationTextMeta;

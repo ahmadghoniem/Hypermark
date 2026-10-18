@@ -6,6 +6,7 @@ import { CodeBlock } from "./blocks/CodeBlock";
 import { HtmlBlock } from "./blocks/HtmlBlock";
 import { Callout } from "./blocks/Callout";
 import { AlertBlock } from "./blocks/AlertBlock";
+import { BlockquoteBlock } from "./blocks/BlockquoteBlock";
 import { TableBlock } from "./blocks/TableBlock";
 import { MathBlock } from "./blocks/MathBlock";
 
@@ -17,10 +18,9 @@ export const BlockRenderer: React.FC<{
   onToggleCheckbox?: (blockId: string, checked: boolean) => void;
   checkboxOverrides?: Map<string, boolean>;
   orderedIndex?: number | null;
-  githubRepo?: string;
   headingAnchorId?: string;
   onNavigateAnchor?: (hash: string) => void;
-}> = ({ block, onOpenLinkedDoc, imageBaseDir, onImageClick, onToggleCheckbox, checkboxOverrides, orderedIndex, githubRepo, headingAnchorId, onNavigateAnchor }) => {
+}> = ({ block, onOpenLinkedDoc, imageBaseDir, onImageClick, onToggleCheckbox, checkboxOverrides, orderedIndex, headingAnchorId, onNavigateAnchor }) => {
   switch (block.type) {
     case 'heading': {
       const Tag = `h${block.level || 1}` as React.ElementType;
@@ -36,7 +36,7 @@ export const BlockRenderer: React.FC<{
           data-block-id={block.id}
           data-block-type="heading"
         >
-          <InlineMarkdown imageBaseDir={imageBaseDir} onImageClick={onImageClick} text={block.content} onOpenLinkedDoc={onOpenLinkedDoc} githubRepo={githubRepo} onNavigateAnchor={onNavigateAnchor} />
+          <InlineMarkdown imageBaseDir={imageBaseDir} onImageClick={onImageClick} text={block.content} onOpenLinkedDoc={onOpenLinkedDoc} onNavigateAnchor={onNavigateAnchor} />
         </Tag>
       );
     }
@@ -51,25 +51,20 @@ export const BlockRenderer: React.FC<{
             onOpenLinkedDoc={onOpenLinkedDoc}
             imageBaseDir={imageBaseDir}
             onImageClick={onImageClick}
-            githubRepo={githubRepo}
             onNavigateAnchor={onNavigateAnchor}
           />
         );
       }
-      // Content may span multiple merged `>` lines. Split on blank-line
-      // paragraph breaks so `> a\n>\n> b` renders as two <p> children.
-      const paragraphs = block.content.split(/\n\n+/);
+      // One quote whatever it holds: its content is the quote's own markdown
+      // (paragraphs, code fences, lists, nested quotes), see BlockquoteBlock.
       return (
-        <blockquote
-          className="border-l-2 border-primary/50 pl-4 my-plan text-muted-foreground italic"
-          data-block-id={block.id}
-        >
-          {paragraphs.map((para, i) => (
-            <p key={i} className={i > 0 ? 'mt-2' : ''}>
-              <InlineMarkdown imageBaseDir={imageBaseDir} onImageClick={onImageClick} text={para} onOpenLinkedDoc={onOpenLinkedDoc} githubRepo={githubRepo} onNavigateAnchor={onNavigateAnchor} />
-            </p>
-          ))}
-        </blockquote>
+        <BlockquoteBlock
+          block={block}
+          onOpenLinkedDoc={onOpenLinkedDoc}
+          imageBaseDir={imageBaseDir}
+          onImageClick={onImageClick}
+          onNavigateAnchor={onNavigateAnchor}
+        />
       );
     }
 
@@ -81,7 +76,7 @@ export const BlockRenderer: React.FC<{
         : block.checked;
       const isInteractive = isCheckbox && !!onToggleCheckbox;
       const textClass = `text-sm leading-relaxed ${isCheckbox && isChecked ? 'text-muted-foreground line-through' : 'text-foreground/90'}`;
-      const inlineProps = { imageBaseDir, onImageClick, onOpenLinkedDoc, githubRepo, onNavigateAnchor };
+      const inlineProps = { imageBaseDir, onImageClick, onOpenLinkedDoc, onNavigateAnchor };
       return (
         <div
           className="flex items-start gap-3 my-1.5"
@@ -113,7 +108,6 @@ export const BlockRenderer: React.FC<{
           imageBaseDir={imageBaseDir}
           onImageClick={onImageClick}
           onOpenLinkedDoc={onOpenLinkedDoc}
-          githubRepo={githubRepo}
           onNavigateAnchor={onNavigateAnchor}
         />
       );
@@ -140,7 +134,6 @@ export const BlockRenderer: React.FC<{
           onOpenLinkedDoc={onOpenLinkedDoc}
           imageBaseDir={imageBaseDir}
           onImageClick={onImageClick}
-          githubRepo={githubRepo}
           onNavigateAnchor={onNavigateAnchor}
         />
       );
@@ -152,7 +145,7 @@ export const BlockRenderer: React.FC<{
           className="mb-plan text-plan text-foreground/90"
           data-block-id={block.id}
         >
-          <InlineMarkdown imageBaseDir={imageBaseDir} onImageClick={onImageClick} text={block.content} onOpenLinkedDoc={onOpenLinkedDoc} githubRepo={githubRepo} onNavigateAnchor={onNavigateAnchor} />
+          <InlineMarkdown imageBaseDir={imageBaseDir} onImageClick={onImageClick} text={block.content} onOpenLinkedDoc={onOpenLinkedDoc} onNavigateAnchor={onNavigateAnchor} />
         </p>
       );
   }

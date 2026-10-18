@@ -648,7 +648,7 @@ const InputMessage = forwardRef<HTMLDivElement, InputMessageProps>(
     // composer holds its lift across states. Applied inline (not via a Tailwind
     // `shadow-*` utility, which mangles multi-layer arbitrary values) with the
     // precedence drag > focus > hover; when none are active, the className's
-    // `shadow-fl-surface-2` supplies the resting edge.
+    // `shadow-surface-2` supplies the resting edge.
     const EDGE_DROP = "0 1px 1px -0.5px var(--shadow-color)";
     const edgeShadow = dragOver
       ? `0 0 0 1px #6B97FF, ${EDGE_DROP}`

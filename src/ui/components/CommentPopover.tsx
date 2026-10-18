@@ -17,6 +17,7 @@ import { ComposerGhostCompletion, suggestionFor } from './ComposerQuickLabels';
 import { copyTextToClipboard } from '../utils/clipboard';
 import { QuoteText } from './QuoteText';
 import { AutoGrowBox } from './AutoGrowBox';
+import { ModShortcut } from './ModShortcut';
 
 interface CommentPopoverProps {
   /** Element to anchor the popover near (re-reads position on scroll) */
@@ -35,10 +36,10 @@ interface CommentPopoverProps {
   initialImages?: ImageAttachment[];
   /** Called on submit with comment text and optional images */
   onSubmit: (text: string, images?: ImageAttachment[]) => void;
-  /** Labels the field offers as a ghost Tab completion on a new anchored
-   *  comment. Sending text that is exactly a label calls `onQuickLabel`, and
-   *  the host creates the annotation and closes the composer. Ignored for
-   *  global comments and when editing. */
+  /** Labels the field offers as a ghost Tab completion on an anchored
+   *  comment: a new one, or one being edited once its text is cleared.
+   *  Sending text that is exactly a label calls `onQuickLabel`, and the host
+   *  saves the label and closes the composer. Ignored for global comments. */
   quickLabels?: readonly QuickLabel[];
   onQuickLabel?: (label: QuickLabel) => void;
   /** Turns on `/btw`: typing `/` completes to `/btw `, and sending text that
@@ -132,6 +133,9 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   const initialImagesRef = useRef(initialImages);
   initialImagesRef.current = initialImages;
   const [text, setText] = useState(initialText);
+  // An edit offers the labels once its text has been cleared, and keeps
+  // offering them while a label is typed over it.
+  const [cleared, setCleared] = useState(initialText.trim().length === 0);
   const [images, setImages] = useState<ImageAttachment[]>(initialImages ?? []);
   const [position, setPosition] = useState<CommentPopoverPosition | null>(null);
   // Bumped on each copy to restart the quote's copy signal; 0 when idle.
@@ -193,10 +197,12 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 
   const hasUnsavedContent = hasUnsavedCommentContent(text, images);
 
-  // Labels are for a new anchored comment, not for editing one.
-  const showQuickLabels = !isGlobal && !!onQuickLabel && (quickLabels?.length ?? 0) > 0 && initialText.trim().length === 0;
+  const showQuickLabels = !isGlobal && !!onQuickLabel && (quickLabels?.length ?? 0) > 0 && cleared;
   const trimmedText = text.trim();
   const btw = !!onAsk && /^\/btw(\s|$)/i.test(trimmedText);
+  // The command at the start of the field, drawn in the accent color.
+  const command = onAsk ? /^(\s*)(\/btw)(?=\s|$)/i.exec(text) : null;
+  const [fieldScroll, setFieldScroll] = useState(0);
   // "/" completes to the side-question command the way text completes to a label.
   const completions = onAsk && text.startsWith('/')
     ? ['/btw ']
@@ -205,12 +211,13 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
   const trackCaret = (el: HTMLTextAreaElement) =>
     setCaretAtEnd(el.selectionStart === el.selectionEnd && el.selectionEnd === el.value.length);
 
-  // Editing: only a change from the saved comment counts as unsaved.
+  // Editing: only a change from the saved comment counts as unsaved, and a
+  // cleared one doesn't, since the host deletes the annotation on close.
   const savedImages = initialImagesRef.current ?? [];
   const isDirty = initialText.trim()
-    ? text !== initialText
+    ? hasUnsavedContent && (text !== initialText
       || images.length !== savedImages.length
-      || images.some((image, i) => image.path !== savedImages[i]?.path)
+      || images.some((image, i) => image.path !== savedImages[i]?.path))
     : hasUnsavedContent;
   const isDirtyRef = useRef(isDirty);
   isDirtyRef.current = isDirty;
@@ -235,6 +242,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 
   useEffect(() => {
     setText(initialText);
+    setCleared(initialText.trim().length === 0);
     setImages(initialImagesRef.current ?? []);
   }, [initialText]);
 
@@ -329,7 +337,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 
   // Click-outside. While the composer holds unsaved changes,
   // a press in the document (a new selection, a click on a highlight), on a
-  // panel card or on a card's edit button is refused: its mousedown, mouseup
+  // panel card, on a card's edit button or on the panel's `+` is refused: its mousedown, mouseup
   // and click are swallowed, so
   // no text is selected and no other composer opens, and the composer shakes and takes
   // the focus back. Other controls (buttons, the header) work as usual.
@@ -365,7 +373,11 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       if (el.closest?.('[data-popover-layer]')) return;
       if (isDirtyRef.current) {
         const card = el.closest?.('[data-annotation-id]');
-        if (el.closest?.('[data-annotation-root]') || (card && (!el.closest('button') || el.closest('[data-annotation-open]')))) {
+        if (
+          el.closest?.('[data-annotation-root]')
+          || el.closest?.('[data-global-comment-add]')
+          || (card && (!el.closest('button') || el.closest('[data-annotation-open]')))
+        ) {
           refusing = true;
           refuse();
         }
@@ -419,8 +431,8 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     }
     const canSubmitEmpty = allowEmptySubmit && initialText.trim().length > 0;
     if (hasUnsavedContent || canSubmitEmpty) {
-      // Text that is exactly a quick label is saved as that label (emoji
-      // included), the way the old chips did.
+      // Text that is exactly a quick label is saved as that label, the way
+      // the old chips did.
       const label = showQuickLabels && images.length === 0
         ? quickLabels?.find((l) => l.text.toLowerCase() === trimmedText.toLowerCase())
         : undefined;
@@ -512,12 +524,27 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       <AutoGrowBox value={text}>
         <div className={`flex min-h-0 flex-col px-1.5 ${isGlobal ? 'pt-0.5' : 'pt-2'}`}>
           <div className="relative">
+            {command && (
+              <ComposerCommandText
+                text={text}
+                lead={command[1]}
+                command={command[2]}
+                scrollTop={fieldScroll}
+                textClassName={TEXT}
+              />
+            )}
             <ComposerTextarea
               textareaRef={focusOnMountRef}
               value={text}
-              onChange={(e) => { setText(e.target.value); trackCaret(e.target); }}
+              onChange={(e) => {
+                setText(e.target.value);
+                if (e.target.value.trim().length === 0) setCleared(true);
+                trackCaret(e.target);
+              }}
               onSelect={(e) => trackCaret(e.currentTarget)}
+              onScroll={(e) => setFieldScroll(e.currentTarget.scrollTop)}
               onKeyDown={handleKeyDown}
+              hideText={!!command}
               placeholder={completions.length > 0 ? undefined : isGlobal ? "What's your feedback overall?" : "What's your feedback?"}
               describedBy={suggestion ? SUGGESTION_ID : undefined}
               sizeClassName="min-h-10 max-h-64"
@@ -547,7 +574,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
           content={(
             <span className="flex items-center gap-2 whitespace-nowrap">
               {sendLabel}
-              <span className="text-muted-foreground">Ctrl Enter</span>
+              <ModShortcut keyName="Enter" />
             </span>
           )}
         >
@@ -588,7 +615,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
       <div
         ref={popoverRef}
         data-comment-popover="true"
-        className="fixed z-popover bg-popover rounded-xl shadow-[var(--fl-shadow-2),0_25px_50px_-12px_rgb(0_0_0/0.25)] flex flex-col"
+        className="fixed z-popover bg-popover rounded-xl shadow-[var(--shadow-3),0_6px_18px_0_rgb(0_0_0/0.12)] flex flex-col"
         style={dragPosition
           ? {
               top: dragPosition.top,
@@ -638,6 +665,9 @@ interface ComposerTextareaProps {
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onSelect: (e: React.SyntheticEvent<HTMLTextAreaElement>) => void;
+  onScroll: (e: React.UIEvent<HTMLTextAreaElement>) => void;
+  /** Leaves only the caret and selection visible, for `ComposerCommandText` to draw the text. */
+  hideText?: boolean;
   placeholder?: string;
   describedBy?: string;
   /** Mode-specific min/max height classes. */
@@ -651,6 +681,8 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
   onChange,
   onKeyDown,
   onSelect,
+  onScroll,
+  hideText = false,
   placeholder,
   describedBy,
   sizeClassName,
@@ -669,13 +701,36 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
       onChange={onChange}
       onKeyDown={onKeyDown}
       onSelect={onSelect}
+      onScroll={onScroll}
       placeholder={placeholder}
+      aria-label="Comment"
       aria-describedby={describedBy}
-      className={`block w-full bg-transparent placeholder:text-muted-foreground resize-none focus:outline-none overflow-y-auto ${TEXT} ${sizeClassName}`}
+      className={`relative block w-full bg-transparent placeholder:text-muted-foreground resize-none focus:outline-none overflow-y-auto ${hideText ? 'text-transparent caret-foreground' : ''} ${TEXT} ${sizeClassName}`}
       style={boxStyle}
     />
   );
 };
+
+/**
+ * The field's text with a leading slash command in the accent color. It sits
+ * behind the transparent text of the field, so it must use the same font,
+ * padding and wrapping (`textClassName`), and follows the field's scroll.
+ */
+const ComposerCommandText: React.FC<{
+  text: string;
+  lead: string;
+  command: string;
+  scrollTop: number;
+  textClassName: string;
+}> = ({ text, lead, command, scrollTop, textClassName }) => (
+  <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div className={`whitespace-pre-wrap wrap-break-word text-foreground ${textClassName}`} style={{ transform: `translateY(${-scrollTop}px)` }}>
+      {lead}
+      <span className="text-primary">{command}</span>
+      {text.slice(lead.length + command.length)}
+    </div>
+  </div>
+);
 
 // Icons
 

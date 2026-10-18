@@ -78,8 +78,8 @@ export function trimUrlTail(url: string): string {
 }
 
 // Scan a plain-text chunk for bare https?:// URLs at word boundaries and emit
-// them as links. Other text passes through transformPlainText for emoji
-// shortcodes + smart punctuation.
+// them as links. Other text passes through transformPlainText for smart
+// punctuation.
 function emitPlainTextWithBareUrls(
   text: string,
   previousChar: string,
@@ -140,9 +140,9 @@ function emitPlainTextWithBareUrls(
  * Scanner that walks a text string and emits React nodes for inline markdown:
  * emphasis (**bold**, *italic*, _italic_, ***both***), `code`, ~~strikethrough~~,
  * [label](url) / ![alt](src) / <autolink>, bare https:// URLs, [[wiki-links]],
- * inline math ($...$), hex color swatches (#fff / #123abc), @mentions, #issue-refs, and backslash
+ * inline math ($...$), hex color swatches (#fff / #123abc), and backslash
  * escapes. Plain-text chunks outside these patterns pass through
- * `transformPlainText` for emoji shortcodes + smart punctuation.
+ * `transformPlainText` for smart punctuation.
  */
 export const InlineMarkdown: React.FC<{
   text: string;
@@ -166,8 +166,7 @@ export const InlineMarkdown: React.FC<{
   onNavigateAnchor?: (hash: string) => void;
   imageBaseDir?: string;
   onImageClick?: (src: string, alt: string) => void;
-  githubRepo?: string;
-}> = ({ text, onOpenLinkedDoc, resolveLinkedDoc, onNavigateAnchor, imageBaseDir, onImageClick, githubRepo }) => {
+}> = ({ text, onOpenLinkedDoc, resolveLinkedDoc, onNavigateAnchor, imageBaseDir, onImageClick }) => {
   const parts: React.ReactNode[] = [];
   let remaining = text;
   let key = 0;
@@ -334,7 +333,6 @@ export const InlineMarkdown: React.FC<{
             onOpenLinkedDoc={onOpenLinkedDoc}
             resolveLinkedDoc={resolveLinkedDoc}
             onNavigateAnchor={onNavigateAnchor}
-            githubRepo={githubRepo}
           />
         </del>,
       );
@@ -356,7 +354,6 @@ export const InlineMarkdown: React.FC<{
               onOpenLinkedDoc={onOpenLinkedDoc}
               resolveLinkedDoc={resolveLinkedDoc}
               onNavigateAnchor={onNavigateAnchor}
-              githubRepo={githubRepo}
             />
           </em>
         </strong>,
@@ -378,7 +375,6 @@ export const InlineMarkdown: React.FC<{
             onOpenLinkedDoc={onOpenLinkedDoc}
             resolveLinkedDoc={resolveLinkedDoc}
             onNavigateAnchor={onNavigateAnchor}
-            githubRepo={githubRepo}
           />
         </strong>,
       );
@@ -399,7 +395,6 @@ export const InlineMarkdown: React.FC<{
             onOpenLinkedDoc={onOpenLinkedDoc}
             resolveLinkedDoc={resolveLinkedDoc}
             onNavigateAnchor={onNavigateAnchor}
-            githubRepo={githubRepo}
           />
         </em>,
       );
@@ -421,7 +416,6 @@ export const InlineMarkdown: React.FC<{
             onOpenLinkedDoc={onOpenLinkedDoc}
             resolveLinkedDoc={resolveLinkedDoc}
             onNavigateAnchor={onNavigateAnchor}
-            githubRepo={githubRepo}
           />
         </em>,
       );
@@ -447,7 +441,7 @@ export const InlineMarkdown: React.FC<{
       continue;
     }
 
-    // Hex color swatch — 3/4-digit forms need an a-f letter to avoid matching issue refs like #123.
+    // Hex color swatch — 3/4-digit forms need an a-f letter, so annotation numbers like #123 stay text.
     match = remaining.match(
       /^(#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|(?=[0-9a-fA-F]*[a-fA-F])[0-9a-fA-F]{4}|(?=[0-9a-fA-F]*[a-fA-F])[0-9a-fA-F]{3}))(?![0-9a-fA-F\w])/,
     );
@@ -471,68 +465,6 @@ export const InlineMarkdown: React.FC<{
       remaining = remaining.slice(match[0].length);
       previousChar = match[0][match[0].length - 1] || previousChar;
       continue;
-    }
-
-    // Issue / PR reference: #123 — only at word boundary, digits only.
-    // Hex-swatch branch above already consumed #fff / #123abc etc., so a bare
-    // #\d+ here is safe to treat as an issue ref.
-    if (!/\w/.test(previousChar)) {
-      match = remaining.match(/^#(\d+)(?!\w)/);
-      if (match) {
-        const num = match[1];
-        const href = githubRepo && githubRepo.includes('/')
-          ? `https://github.com/${githubRepo}/issues/${num}`
-          : null;
-        const label = `#${num}`;
-        parts.push(
-          href ? (
-            <a
-              key={key++}
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary font-medium hover:underline"
-            >
-              {label}
-            </a>
-          ) : (
-            <span key={key++} className="text-primary font-medium">{label}</span>
-          ),
-        );
-        remaining = remaining.slice(match[0].length);
-        previousChar = match[0][match[0].length - 1];
-        continue;
-      }
-    }
-
-    // @mention — only at word boundary. GitHub-style handle pattern.
-    if (!/\w/.test(previousChar)) {
-      match = remaining.match(/^@([a-zA-Z][a-zA-Z0-9_-]{0,38})(?!\w)/);
-      if (match) {
-        const handle = match[1];
-        const href = githubRepo && githubRepo.includes('/')
-          ? `https://github.com/${handle}`
-          : null;
-        const label = `@${handle}`;
-        parts.push(
-          href ? (
-            <a
-              key={key++}
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary font-medium hover:underline"
-            >
-              {label}
-            </a>
-          ) : (
-            <span key={key++} className="text-primary font-medium">{label}</span>
-          ),
-        );
-        remaining = remaining.slice(match[0].length);
-        previousChar = match[0][match[0].length - 1];
-        continue;
-      }
     }
 
     // Wikilinks: [[filename]] or [[filename|display text]]
@@ -659,7 +591,7 @@ export const InlineMarkdown: React.FC<{
         continue;
       }
 
-      // Local doc: .md / .mdx / .txt / .html / .htm, optionally with #fragment.
+      // Local doc: .md / .mdx / .txt (plus configured extensions), optionally with #fragment.
       // Fragment is stripped before handing to onOpenLinkedDoc (overlay has
       // no anchor-scroll support today).
       const isLocalDoc =
@@ -744,7 +676,6 @@ export const InlineMarkdown: React.FC<{
             onOpenLinkedDoc={onOpenLinkedDoc}
             resolveLinkedDoc={resolveLinkedDoc}
             onNavigateAnchor={onNavigateAnchor}
-            githubRepo={githubRepo}
             imageBaseDir={imageBaseDir}
             onImageClick={onImageClick}
           />,
@@ -758,8 +689,8 @@ export const InlineMarkdown: React.FC<{
 
     // Find next special character or consume one regular character.
     // `h` is intentionally NOT in this class — plain-text chunks may contain
-    // `h` mid-word (e.g. ":heart:", "hello"), and splitting on it breaks
-    // multi-char patterns like emoji shortcodes. Bare URLs are instead
+    // `h` mid-word (e.g. "hello"), and splitting on it breaks multi-char
+    // patterns in the plain-text transforms. Bare URLs are instead
     // detected inline via emitPlainTextWithBareUrls() below.
     const nextSpecial = remaining.slice(1).search(/[\*_`\[!~\\<#@$]/);
     const plainText = nextSpecial === -1 ? remaining : remaining.slice(0, nextSpecial + 1);

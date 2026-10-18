@@ -27,7 +27,7 @@ interface ElevatedProps extends ComponentPropsWithoutRef<"div"> {
    *
    * Pass a fixed value when the component should keep a constant shadow
    * weight regardless of how deeply it's nested — e.g. a dropdown always
-   * reads `shadow-fl-surface-3` whether it opens on the page or inside a
+   * reads `shadow-surface-3` whether it opens on the page or inside a
    * dialog, even though its background tracks the substrate.
    */
   shadowLevel?: number;

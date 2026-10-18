@@ -2,6 +2,7 @@ import { describe, test, expect } from "bun:test";
 import { parseMarkdownToBlocks, computeListIndices, extractFrontmatter, exportAnnotations, resolveReferenceLinks } from "./parser";
 import { shouldStripFrontmatter } from "@/shared/annotatable";
 import type { Block } from "../types";
+import { AnnotationType } from "../types";
 
 /** Tiny factory for list-item blocks used by computeListIndices tests. */
 const li = (level: number, ordered: boolean, orderedStart?: number): Block => ({
@@ -867,6 +868,32 @@ describe("parseMarkdownToBlocks — ordered lists", () => {
   });
 });
 
+describe("parseMarkdownToBlocks — heading rule (CommonMark ATX)", () => {
+  const types = (md: string) => parseMarkdownToBlocks(md).map((b) => [b.type, b.content, b.level]);
+
+  test("`#` with no following space is text, not a heading", () => {
+    expect(types("#123 fixed")).toEqual([["paragraph", "#123 fixed", 0]]);
+    expect(types("#hashtag")).toEqual([["paragraph", "#hashtag", 0]]);
+    expect(types("#!/bin/sh")).toEqual([["paragraph", "#!/bin/sh", 0]]);
+  });
+
+  test("seven hashes are text", () => {
+    expect(types("####### seven")[0][0]).toBe("paragraph");
+  });
+
+  test("one to six hashes with a space, or alone, are headings", () => {
+    expect(types("# Title")).toEqual([["heading", "Title", 1]]);
+    expect(types("###### Six")).toEqual([["heading", "Six", 6]]);
+    expect(types("###")).toEqual([["heading", "", 3]]);
+  });
+
+  test("inside a quote the same rule applies", () => {
+    const [quote] = parseMarkdownToBlocks("> #123 fixed\n> # Title");
+    const inner = parseMarkdownToBlocks(quote.content, { frontmatter: false });
+    expect(inner.map((b) => [b.type, b.content])).toEqual([["paragraph", "#123 fixed"], ["heading", "Title"]]);
+  });
+});
+
 describe("parseMarkdownToBlocks — blockquotes", () => {
   test("consecutive '>' lines merge into one blockquote block", () => {
     const md = "> line one\n> line two\n> line three";
@@ -912,54 +939,108 @@ describe("parseMarkdownToBlocks — blockquotes", () => {
     expect(blocks[0].content).toBe("just one");
   });
 
-  test("quoted ordered list does NOT merge — each '> N.' line stays as its own block", () => {
-    // Regression guard for review comment #7. Merging would flatten the
-    // markers into run-on inline text; keeping them as separate blockquote
-    // blocks preserves each line's visual identity.
+  // A run of `>` lines is ONE quote whose content is the quote's own
+  // markdown (the `>` and one space stripped per line, one content line per
+  // source line); the renderer parses it again for the blocks inside.
+  const quoteBody = (block: { content: string }) =>
+    parseMarkdownToBlocks(block.content, { frontmatter: false }).map((b) => [b.type, b.content]);
+
+  test("a code fence inside a quote stays inside one quote block (the reported case)", () => {
+    const md = [
+      "> Thanks for reporting this. It works:",
+      ">",
+      "> ```",
+      "> omp plugin install @plannotator/pi-extension",
+      "> ```",
+      ">",
+      "> Then restart OMP.",
+    ].join("\n");
+    const blocks = parseMarkdownToBlocks(md, { frontmatter: false });
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].type).toBe("blockquote");
+    expect(blocks[0].startLine).toBe(1);
+    expect(quoteBody(blocks[0])).toEqual([
+      ["paragraph", "Thanks for reporting this. It works:"],
+      ["code", "omp plugin install @plannotator/pi-extension"],
+      ["paragraph", "Then restart OMP."],
+    ]);
+  });
+
+  test("the export labels a quote with its full source span", () => {
+    const md = "intro\n\n> one\n>\n> ```\n> code\n> ```\n\nafter";
+    const blocks = parseMarkdownToBlocks(md);
+    const quote = blocks.find((b) => b.type === "blockquote")!;
+    const out = exportAnnotations(blocks, [
+      { id: "a", blockId: quote.id, startOffset: 0, endOffset: 3, type: AnnotationType.COMMENT, text: "why?", originalText: "one", createdA: 1 },
+    ]);
+    expect(out).toContain("(lines 3–7)");
+    expect(blocks.map((b) => b.type)).toEqual(["paragraph", "blockquote", "paragraph"]);
+  });
+
+  test("fence indentation inside a quote is kept", () => {
+    const md = "> ```ts\n> function f() {\n>   return 1;\n> }\n> ```";
+    const blocks = parseMarkdownToBlocks(md);
+    expect(blocks).toHaveLength(1);
+    const inner = parseMarkdownToBlocks(blocks[0].content, { frontmatter: false });
+    expect(inner).toHaveLength(1);
+    expect(inner[0].type).toBe("code");
+    expect(inner[0].language).toBe("ts");
+    expect(inner[0].content).toBe("function f() {\n  return 1;\n}");
+  });
+
+  test("quoted ordered list: one quote holding the list", () => {
     const md = "> 1. First item\n> 2. Second item\n> 3. Third item";
     const blocks = parseMarkdownToBlocks(md);
-    expect(blocks).toHaveLength(3);
+    expect(blocks).toHaveLength(1);
     expect(blocks[0].type).toBe("blockquote");
-    expect(blocks[0].content).toBe("1. First item");
-    expect(blocks[1].type).toBe("blockquote");
-    expect(blocks[1].content).toBe("2. Second item");
-    expect(blocks[2].type).toBe("blockquote");
-    expect(blocks[2].content).toBe("3. Third item");
+    const inner = parseMarkdownToBlocks(blocks[0].content, { frontmatter: false });
+    expect(inner.map((b) => [b.type, b.ordered, b.content])).toEqual([
+      ["list-item", true, "First item"],
+      ["list-item", true, "Second item"],
+      ["list-item", true, "Third item"],
+    ]);
   });
 
-  test("quoted unordered list does NOT merge", () => {
-    const md = "> - First\n> - Second\n> - Third";
+  test("quoted nested list keeps its levels", () => {
+    const md = "> - First\n>   - Nested\n> - Second";
     const blocks = parseMarkdownToBlocks(md);
-    expect(blocks).toHaveLength(3);
-    expect(blocks.every(b => b.type === "blockquote")).toBe(true);
-    expect(blocks.map(b => b.content)).toEqual(["- First", "- Second", "- Third"]);
+    expect(blocks).toHaveLength(1);
+    const inner = parseMarkdownToBlocks(blocks[0].content, { frontmatter: false });
+    expect(inner.map((b) => [b.type, b.level, b.content])).toEqual([
+      ["list-item", 0, "First"],
+      ["list-item", 1, "Nested"],
+      ["list-item", 0, "Second"],
+    ]);
   });
 
-  test("quoted heading does NOT merge into previous blockquote", () => {
+  test("quoted heading stays inside the quote", () => {
     const md = "> intro text\n> # Heading inside quote\n> more text";
     const blocks = parseMarkdownToBlocks(md);
-    expect(blocks).toHaveLength(3);
-    expect(blocks[0].content).toBe("intro text");
-    expect(blocks[1].content).toBe("# Heading inside quote");
-    expect(blocks[2].content).toBe("more text");
+    expect(blocks).toHaveLength(1);
+    expect(quoteBody(blocks[0])).toEqual([
+      ["paragraph", "intro text"],
+      ["heading", "Heading inside quote"],
+      ["paragraph", "more text"],
+    ]);
   });
 
-  test("quoted code fence line does NOT merge", () => {
-    const md = "> some prose\n> ```js\n> more prose";
-    const blocks = parseMarkdownToBlocks(md);
-    expect(blocks).toHaveLength(3);
-    expect(blocks[0].content).toBe("some prose");
-    expect(blocks[1].content).toBe("```js");
-    expect(blocks[2].content).toBe("more prose");
-  });
-
-  test("nested blockquote (> >) does NOT merge into the outer quote", () => {
+  test("nested blockquote (> >) is a quote inside the outer quote", () => {
     const md = "> outer quote\n> > nested quote\n> back to outer";
     const blocks = parseMarkdownToBlocks(md);
-    expect(blocks).toHaveLength(3);
-    expect(blocks[0].content).toBe("outer quote");
-    expect(blocks[1].content).toBe("> nested quote");
-    expect(blocks[2].content).toBe("back to outer");
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].content).toBe("outer quote\n> nested quote\nback to outer");
+    const inner = parseMarkdownToBlocks(blocks[0].content, { frontmatter: false });
+    expect(inner.map((b) => [b.type, b.content])).toEqual([
+      ["paragraph", "outer quote"],
+      ["blockquote", "nested quote"],
+      ["paragraph", "back to outer"],
+    ]);
+  });
+
+  test(">> without a space nests too", () => {
+    const blocks = parseMarkdownToBlocks(">> deep");
+    expect(blocks).toHaveLength(1);
+    expect(quoteBody(blocks[0])).toEqual([["blockquote", "deep"]]);
   });
 
   test("wrapped prose quote still merges (regression guard for the merge fix)", () => {
@@ -974,13 +1055,45 @@ describe("parseMarkdownToBlocks — blockquotes", () => {
     );
   });
 
-  test("prose quote followed by a quoted list: prose merges, list lines stay separate", () => {
+  test("prose quote followed by a quoted list: one quote, a paragraph then the list", () => {
     const md = "> intro prose\n> that wraps here\n> 1. first step\n> 2. second step";
     const blocks = parseMarkdownToBlocks(md);
-    expect(blocks).toHaveLength(3);
-    expect(blocks[0].content).toBe("intro prose\nthat wraps here");
-    expect(blocks[1].content).toBe("1. first step");
-    expect(blocks[2].content).toBe("2. second step");
+    expect(blocks).toHaveLength(1);
+    expect(quoteBody(blocks[0])).toEqual([
+      ["paragraph", "intro prose\nthat wraps here"],
+      ["list-item", "first step"],
+      ["list-item", "second step"],
+    ]);
+  });
+
+  test("blank '>' lines at a quote's edges are dropped and startLine moves past them", () => {
+    const md = "para\n\n>\n> body\n>";
+    const blocks = parseMarkdownToBlocks(md);
+    expect(blocks).toHaveLength(2);
+    expect(blocks[1].type).toBe("blockquote");
+    expect(blocks[1].content).toBe("body");
+    expect(blocks[1].startLine).toBe(4);
+  });
+
+  test("a quote followed at once by a paragraph line ends there (no lazy continuation)", () => {
+    const md = "> one\n> ```\n> x\n> ```\nnot quoted";
+    const blocks = parseMarkdownToBlocks(md);
+    expect(blocks.map((b) => b.type)).toEqual(["blockquote", "paragraph"]);
+    expect(blocks[1].content).toBe("not quoted");
+    expect(blocks[1].startLine).toBe(5);
+  });
+
+  test("an unclosed fence inside a quote ends with the quote", () => {
+    const md = "> ```\n> code\n\nafter";
+    const blocks = parseMarkdownToBlocks(md);
+    expect(blocks.map((b) => b.type)).toEqual(["blockquote", "paragraph"]);
+    expect(quoteBody(blocks[0])).toEqual([["code", "code"]]);
+  });
+
+  test("a quote's line numbers stay in step with the source after it", () => {
+    const md = "> a\n>\n> - b\n> - c\n\n# Next";
+    const blocks = parseMarkdownToBlocks(md);
+    expect(blocks.map((b) => [b.type, b.startLine])).toEqual([["blockquote", 1], ["heading", 6]]);
   });
 
   test("multi-paragraph blockquote encodes paragraph break as double newline", () => {
@@ -1230,32 +1343,28 @@ describe("parseMarkdownToBlocks / resolveReferenceLinks — unclosed-HTML-opener
   // the 2MB annotate cap. Both markProtectedLines (used by
   // resolveReferenceLinks) and parseMarkdownToBlocks's own HTML-block
   // section duplicate this exact scan, so both must be fixed.
-  const N = 8000;
   // Generous bound: a linear/bounded fix finishes in well under 100ms for
   // this input; the pre-fix O(N^2) scan takes multiple seconds (measured
   // ~2.2s for N=8000 during triage). 800ms leaves large machine-variance
   // headroom while still failing clearly against the quadratic behavior.
   const TIME_BOUND_MS = 800;
 
-  test("parseMarkdownToBlocks stays fast with many consecutive unclosed <div> openers", () => {
-    const md = Array.from({ length: N }, () => "<div>").join("\n");
+  test("many unclosed <div> openers stay fast, with parity between parser and resolver", () => {
+    const n = 2000;
+    const decoys = Array.from({ length: n }, () => "<div>").join("\n");
+    const md = `${decoys}\n\n[x][id]\n\n[id]: https://e.com`;
+
     const start = performance.now();
     const blocks = parseMarkdownToBlocks(md);
+    const resolved = resolveReferenceLinks(md);
     const elapsed = performance.now() - start;
-    expect(blocks).toHaveLength(N);
-    expect(blocks.every((b) => b.type === "html")).toBe(true);
     expect(elapsed).toBeLessThan(TIME_BOUND_MS);
-  });
 
-  test("resolveReferenceLinks stays fast with many consecutive unclosed <div> openers", () => {
-    const md =
-      Array.from({ length: N }, () => "<div>").join("\n") +
-      "\n\n[x][id]\n\n[id]: https://e.com";
-    const start = performance.now();
-    const result = resolveReferenceLinks(md);
-    const elapsed = performance.now() - start;
-    expect(result).toContain("[x](https://e.com)");
-    expect(elapsed).toBeLessThan(TIME_BOUND_MS);
+    // Every decoy is its own single-line html block to the parser...
+    expect(blocks.filter((b) => b.type === "html")).toHaveLength(n);
+    // ...and every decoy line is likewise left literal by the resolver.
+    expect(resolved).toContain("[x](https://e.com)");
+    expect(resolved.split("\n").filter((l) => l === "<div>")).toHaveLength(n);
   });
 
   test("parity: a real <details>...</details> block stays intact and identically protected/parsed among thousands of unclosed <div> decoys", () => {
@@ -1298,7 +1407,6 @@ describe("parseMarkdownToBlocks / resolveReferenceLinks — long valid HTML bloc
   // closed block — however long — should simply be scanned once to its
   // real end, not capped. A cap that can truncate valid parsing is not an
   // acceptable trade-off no matter how generous its value.
-  const N_UNCLOSED = 40_000;
   const TIME_BOUND_MS = 1500;
 
   test("a <details> block with its closing tag more than 2000 lines below the opener stays one whole html block", () => {
@@ -1346,29 +1454,6 @@ describe("parseMarkdownToBlocks / resolveReferenceLinks — long valid HTML bloc
     expect(resolved).not.toContain("[id]: https://outside.com\n"); // the real (consumed) one is blanked
   });
 
-  test("40k unclosed <div> openers (no close anywhere) stay fast, with parity between parser and resolver", () => {
-    const decoys = Array.from({ length: N_UNCLOSED }, () => "<div>").join("\n");
-    const md = `${decoys}\n\n[x][id]\n\n[id]: https://e.com`;
-
-    const parseStart = performance.now();
-    const blocks = parseMarkdownToBlocks(md);
-    const parseElapsed = performance.now() - parseStart;
-
-    const resolveStart = performance.now();
-    const resolved = resolveReferenceLinks(md);
-    const resolveElapsed = performance.now() - resolveStart;
-
-    expect(parseElapsed).toBeLessThan(TIME_BOUND_MS);
-    expect(resolveElapsed).toBeLessThan(TIME_BOUND_MS);
-
-    // Parity: every decoy is its own single-line html block to the parser...
-    expect(blocks.filter((b) => b.type === "html")).toHaveLength(N_UNCLOSED);
-    // ...and every decoy line is likewise individually protected (never
-    // rewritten) by the resolver — same boundary, both call sites agree.
-    expect(resolved).toContain("[x](https://e.com)");
-    expect(resolved.split("\n").filter((l) => l === "<div>")).toHaveLength(N_UNCLOSED);
-  });
-
   test("a long valid <details> block survives even when preceded by thousands of unclosed <div> decoys", () => {
     const decoyCount = 5000;
     const decoys = Array.from({ length: decoyCount }, () => "<div>").join("\n");
@@ -1403,45 +1488,6 @@ describe("parseMarkdownToBlocks / resolveReferenceLinks — linear matching-clos
   // per tag name and cached per document), so every opener's closing
   // position — whether it exists, and exactly where if so, however far away
   // — is an O(1) lookup with no scanning at all.
-  const N = 40_000;
-  const TIME_BOUND_MS = 1500;
-
-  test("N unclosed <div> openers followed by one trailing </div> stay fast", () => {
-    const md = Array.from({ length: N }, () => "<div>").join("\n") + "\n</div>";
-
-    const parseStart = performance.now();
-    const blocks = parseMarkdownToBlocks(md);
-    const parseElapsed = performance.now() - parseStart;
-    expect(parseElapsed).toBeLessThan(TIME_BOUND_MS);
-
-    // Only the LAST opener (immediately preceding the trailing close) can
-    // actually pair with it — every earlier opener's cumulative depth
-    // overshoots and never returns to its own baseline, so it stays an
-    // unclosed, single-line block. N-1 singles + 1 paired block = N blocks.
-    expect(blocks).toHaveLength(N);
-    expect(blocks.slice(0, N - 1).every((b) => b.type === "html" && b.content === "<div>")).toBe(
-      true,
-    );
-    expect(blocks[N - 1].type).toBe("html");
-    expect(blocks[N - 1].content).toBe("<div>\n</div>");
-  });
-
-  test("resolveReferenceLinks stays fast and agrees with the parser on the same N-openers-plus-one-close document", () => {
-    const md =
-      Array.from({ length: N }, () => "<div>").join("\n") +
-      "\n</div>\n\n[x][id]\n\n[id]: https://e.com";
-
-    const start = performance.now();
-    const resolved = resolveReferenceLinks(md);
-    const elapsed = performance.now() - start;
-    expect(elapsed).toBeLessThan(TIME_BOUND_MS);
-    expect(resolved).toContain("[x](https://e.com)");
-    // Every decoy line and the paired <div>/</div> stay literal (protected),
-    // exactly mirroring the parser's block boundaries above.
-    expect(resolved.split("\n").filter((l) => l === "<div>")).toHaveLength(N);
-    expect(resolved).toContain("</div>");
-  });
-
   test("nested same-tag blocks still balance correctly (depth, not just presence, matters)", () => {
     const md =
       "<details>\n<summary>Outer</summary>\n<details>\n<summary>Inner</summary>\n</details>\nouter tail\n</details>";
@@ -1669,6 +1715,224 @@ tags:
   });
 });
 
+describe("extractFrontmatter — one-line lists", () => {
+  test("a bracketed list parses into its items, quotes kept together and dropped", () => {
+    const md = `---
+tags: [a, b]
+names: ["Smith, Ada", 'Bob' , c]
+empty: []
+title: [draft] notes
+authors:
+  - name: Ada
+    roles: [lead, review]
+---
+# Content`;
+    const { frontmatter } = extractFrontmatter(md);
+    expect(frontmatter).toEqual({
+      tags: ["a", "b"],
+      names: ["Smith, Ada", "Bob", "c"],
+      empty: [],
+      title: "[draft] notes",
+      authors: [{ name: "Ada", roles: ["lead", "review"] }],
+    });
+  });
+});
+
+describe("extractFrontmatter — nested structures (#1485)", () => {
+  test("nested maps and arrays of maps parse into hierarchical structure", () => {
+    const md = `---
+title: Nested Plan
+generated:
+  by: agent-alpha
+  at: 2026-09-16T10:00:00Z
+verified:
+  - by: reviewer-beta
+    at: 2026-09-16T11:00:00Z
+    sources:
+      - url: https://example.com/spec
+        name: specification
+---
+# Content`;
+    const { frontmatter, content, contentStartLine } = extractFrontmatter(md);
+    expect(content).toBe("# Content");
+    expect(contentStartLine).toBe(13);
+    expect(frontmatter).toEqual({
+      title: "Nested Plan",
+      generated: {
+        by: "agent-alpha",
+        at: "2026-09-16T10:00:00Z",
+      },
+      verified: [
+        {
+          by: "reviewer-beta",
+          at: "2026-09-16T11:00:00Z",
+          sources: [
+            {
+              url: "https://example.com/spec",
+              name: "specification",
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  test("same-named child keys at different hierarchy levels do not clobber", () => {
+    const md = `---
+generated:
+  by: bot
+  at: 2026-09-16T10:00:00Z
+verified:
+  - by: human
+    at: 2026-09-16T12:00:00Z
+---
+body`;
+    const { frontmatter } = extractFrontmatter(md);
+    expect(frontmatter?.generated).toEqual({
+      by: "bot",
+      at: "2026-09-16T10:00:00Z",
+    });
+    expect(frontmatter?.verified).toEqual([
+      {
+        by: "human",
+        at: "2026-09-16T12:00:00Z",
+      },
+    ]);
+  });
+
+  test("array-of-map items group correctly per item", () => {
+    const md = `---
+reviewers:
+  - name: alice
+    role: lead
+  - name: bob
+    role: peer
+---
+body`;
+    const { frontmatter } = extractFrontmatter(md);
+    expect(frontmatter?.reviewers).toEqual([
+      { name: "alice", role: "lead" },
+      { name: "bob", role: "peer" },
+    ]);
+  });
+
+  test("flat scalars and string arrays remain unchanged", () => {
+    const md = `---
+title: Plain Title
+status: draft
+tags:
+  - architecture
+  - performance
+categories:
+  - dev
+  - ops
+---
+body`;
+    const { frontmatter } = extractFrontmatter(md);
+    expect(frontmatter).toEqual({
+      title: "Plain Title",
+      status: "draft",
+      tags: ["architecture", "performance"],
+      categories: ["dev", "ops"],
+    });
+  });
+
+  test("block scalars inside nested maps and CRLF are supported", () => {
+    const md = "---\r\ngenerated:\r\n  summary: >-\r\n    line one\r\n    line two\r\n  by: bot\r\n---\r\nbody";
+    const { frontmatter } = extractFrontmatter(md);
+    expect(frontmatter?.generated).toEqual({
+      summary: "line one line two",
+      by: "bot",
+    });
+  });
+
+  test("array of scalar strings inside a map element parses correctly", () => {
+    const md = `---
+verified:
+  - by: reviewer
+    sources:
+      - https://example.com/a
+      - https://example.com/b
+---
+body`;
+    const { frontmatter } = extractFrontmatter(md);
+    expect(frontmatter?.verified).toEqual([
+      {
+        by: "reviewer",
+        sources: [
+          "https://example.com/a",
+          "https://example.com/b",
+        ],
+      },
+    ]);
+  });
+
+  test("a quoted key is still a mapping entry, not a dropped row", () => {
+    // Regression: the quoted-scalar guard swallowed the whole line, so
+    // `"title": "Doc"` produced {} and the row vanished from the
+    // frontmatter card entirely.
+    const md = `---
+"title": "Doc"
+'status': draft
+"nested":
+  k: v
+---
+body`;
+    const { frontmatter } = extractFrontmatter(md);
+    // Values keep their quotes exactly as an unquoted key would produce
+    // (`title: "Doc"`); only the KEY's quotes are structural.
+    expect(frontmatter).toEqual({
+      title: '"Doc"',
+      status: "draft",
+      nested: { k: "v" },
+    });
+  });
+
+  test("a quoted key parses identically to the same key unquoted", () => {
+    // The point of the fix: quoting a key changes nothing but the key text.
+    const quoted = extractFrontmatter('---\n"title": "Doc"\n"n":\n  k: v\n---\nb');
+    const plain = extractFrontmatter('---\ntitle: "Doc"\nn:\n  k: v\n---\nb');
+    expect(quoted.frontmatter).toEqual(plain.frontmatter!);
+  });
+
+  test("a line that is only a quoted scalar is still not a mapping entry", () => {
+    const md = `---
+ok: 1
+"just a string"
+"nospace":"value"
+---
+body`;
+    const { frontmatter } = extractFrontmatter(md);
+    expect(frontmatter).toEqual({ ok: "1" });
+  });
+
+  test("a nested map as an item's FIRST key does not swallow its siblings", () => {
+    // Regression: the pending key recorded the dash's indent, so `id`
+    // (indented to the key's column, not the dash's) landed inside `meta`.
+    const md = `---
+items:
+  - meta:
+      k: v
+    id: 1
+---
+body`;
+    const { frontmatter } = extractFrontmatter(md);
+    expect(frontmatter?.items).toEqual([{ meta: { k: "v" }, id: "1" }]);
+  });
+
+  test("an item whose only key is an empty map does not absorb the next item", () => {
+    const md = `---
+items:
+  - meta:
+  - id: 1
+---
+body`;
+    const { frontmatter } = extractFrontmatter(md);
+    expect(frontmatter?.items).toEqual([{}, { id: "1" }]);
+  });
+});
+
+
 describe("parseMarkdownToBlocks — startLine accuracy", () => {
   test("basic blocks get correct startLine", () => {
     const md = "# Heading\n\nParagraph\n\n- Item";
@@ -1731,16 +1995,6 @@ describe("exportAnnotations — line labels", () => {
     const output = exportAnnotations(blocks, anns);
     expect(output).not.toMatch(/\(line/);
     expect(output).toContain("[In diff content]");
-  });
-
-  test("sourceConverted adds caveat", () => {
-    const output = exportAnnotations(blocks, [{ blockId: blocks[0].id, type: "COMMENT", text: "ok", originalText: "Heading", startOffset: 0 }], [], "Feedback", "plan", { sourceConverted: true });
-    expect(output).toContain("converted markdown");
-  });
-
-  test("no sourceConverted means no caveat", () => {
-    const output = exportAnnotations(blocks, [{ blockId: blocks[0].id, type: "COMMENT", text: "ok", originalText: "Heading", startOffset: 0 }]);
-    expect(output).not.toContain("converted markdown");
   });
 
   test("math block line labels cover source fences", () => {

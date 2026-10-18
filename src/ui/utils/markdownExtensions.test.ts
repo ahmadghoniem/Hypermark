@@ -14,7 +14,7 @@ describe("hasLinkedDocExtension", () => {
 	test("built-in document extensions are recognized without registration", () => {
 		expect(hasLinkedDocExtension("notes.md")).toBe(true);
 		expect(hasLinkedDocExtension("guide.mdx")).toBe(true);
-		expect(hasLinkedDocExtension("page.html")).toBe(true);
+		expect(hasLinkedDocExtension("page.html")).toBe(false);
 		// Markdown links may carry a fragment; wiki-link targets may not (a
 		// fragment-less `[[notes]]` is what gets `.md` appended).
 		expect(hasLinkedDocExtension("notes.md#section", { allowFragment: true })).toBe(true);

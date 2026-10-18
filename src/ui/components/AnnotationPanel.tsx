@@ -8,7 +8,6 @@ import { COMPOSER_TOOLTIP, CommentAttachStack } from './CommentAttachStack';
 import { TabsSubtle, TabsSubtleItem } from '../fluid/components/tabs-subtle';
 import { cn } from '../lib/utils';
 import { copyTextToClipboard } from '../utils/clipboard';
-import { resolveReplyParents, resolveThreadRootTimestamps } from '@/shared/annotation-threads';
 import { formatRelativeTime, railPreview } from '../utils/messageRail';
 
 import { Check, Copy01, Edit05, Plus, Trash01, XClose } from '@untitledui/icons';
@@ -104,49 +103,6 @@ const CardActions: React.FC<{
   );
 };
 
-/**
- * Order annotations so every reply follows its parent (replies among
- * themselves stay in creation order). The threading rule is the shared one
- * (resolveReplyParents, also what the export applies): a reply whose parent
- * is absent, a self-reference, and every member of an `inReplyTo` cycle
- * render as top-level cards in input order, so nothing is ever dropped.
- * Without any `inReplyTo` the input order is returned unchanged, so
- * annotations without replies render exactly as before.
- */
-export function threadReplies(sorted: Annotation[]): Array<{ annotation: Annotation; isReply: boolean }> {
-  if (!sorted.some((a) => a.inReplyTo)) return sorted.map((annotation) => ({ annotation, isReply: false }));
-  const parents = resolveReplyParents(sorted);
-  const byParent = new Map<string, Annotation[]>();
-  for (const a of sorted) {
-    const parent = parents.get(a.id);
-    if (!parent) continue;
-    const list = byParent.get(parent) ?? [];
-    list.push(a);
-    byParent.set(parent, list);
-  }
-  // Depth-first, iteratively: a 5,000-deep chain must not recurse 5,000
-  // frames deep. The stack holds each node's replies in reverse so they pop
-  // in creation order.
-  const out: Array<{ annotation: Annotation; isReply: boolean }> = [];
-  const stack: Array<{ annotation: Annotation; isReply: boolean }> = [];
-  const pushReplies = (a: Annotation) => {
-    const replies = byParent.get(a.id);
-    if (!replies) return;
-    for (let i = replies.length - 1; i >= 0; i--) stack.push({ annotation: replies[i], isReply: true });
-  };
-  for (const a of sorted) {
-    if (parents.get(a.id)) continue;
-    out.push({ annotation: a, isReply: false });
-    pushReplies(a);
-    while (stack.length > 0) {
-      const next = stack.pop()!;
-      out.push(next);
-      pushReplies(next.annotation);
-    }
-  }
-  return out;
-}
-
 interface PanelProps {
   isOpen: boolean;
   annotations: Annotation[];
@@ -168,7 +124,33 @@ interface PanelProps {
   /** Shows a + next to the title that opens the global comment composer,
    *  anchored to the button. */
   onAddGlobalComment?: (anchorEl: HTMLElement) => void;
+  /** Shows a copy button next to the title, while there are annotations,
+   *  that copies the full feedback. Resolving `false` skips the "Copied" state. */
+  onCopyAll?: () => Promise<boolean>;
 }
+
+/** Header button that copies every annotation as the feedback text. */
+const CopyAllButton: React.FC<{ onCopy: () => Promise<boolean> }> = ({ onCopy }) => {
+  const [copied, setCopied] = useState(false);
+  const label = copied ? 'Copied' : 'Copy all annotations';
+  return (
+    <PanelTip label={label}>
+      <Button
+        variant="ghost"
+        size="icon-compact"
+        aria-label={label}
+        className={cn(copied && 'text-success hover:text-success')}
+        onClick={async () => {
+          if (!(await onCopy())) return;
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }}
+      >
+        {copied ? <Check /> : <Copy01 />}
+      </Button>
+    </PanelTip>
+  );
+};
 
 export const AnnotationPanel: React.FC<PanelProps> = ({
   isOpen,
@@ -184,6 +166,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
   onScopeChange,
   messageGroups,
   onAddGlobalComment,
+  onCopyAll,
 }) => {
   const isMobile = useIsMobile();
   const mobilePanel = isMobile;
@@ -193,21 +176,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
   }, [scope]);
   const listRef = useRef<HTMLDivElement>(null);
   const sortedAnnotations = [...annotations].sort((a, b) => a.createdA - b.createdA);
-  // Replies (`inReplyTo`) thread under their parent: each reply is lifted to
-  // sit right after its parent (and the parent's earlier replies) at the
-  // parent's timeline position. With no replies the order is untouched.
-  const threadedAnnotations = threadReplies(sortedAnnotations);
-  // Thread timestamps are resolved once per render, linearly (shared helper),
-  // and the comparator only reads the map: resolving each chain inside the
-  // comparator with a linear parent lookup was O(n^2 log n) and froze the
-  // tab on a few thousand threaded comments.
-  const threadRootTs = resolveThreadRootTimestamps(sortedAnnotations);
-  const timelineEntries = [
-    ...threadedAnnotations.map(({ annotation, isReply }) => ({ ts: annotation.createdA, threadTs: threadRootTs.get(annotation.id) ?? annotation.createdA, annotation, isReply })),
-  ].sort((a, b) => {
-    if (a.threadTs !== b.threadTs) return a.threadTs - b.threadTs;
-    return a.ts - b.ts;
-  });
   const totalCount = scope === 'all' && messageGroups
     ? messageGroups.reduce((acc, g) => acc + g.annotations.length, 0)
     : annotations.length;
@@ -227,7 +195,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
     <aside
       data-annotation-panel="true"
       data-plan-sidebar="right"
-      className={`bg-card flex flex-col shrink-0 ${
+      className={`bg-surface-1 flex flex-col shrink-0 ${
         mobilePanel ? 'fixed top-12 bottom-0 right-0 z-panel w-full max-w-sm shadow-2xl' : ''
       }`}
       style={mobilePanel ? undefined : { width: width ?? 288 }}
@@ -252,6 +220,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
                 </Button>
               </PanelTip>
             )}
+            {onCopyAll && totalCount > 0 && <CopyAllButton onCopy={onCopyAll} />}
           </div>
           <div className="flex items-center gap-1">
             {scope && onScopeChange && (
@@ -290,7 +259,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
 
       {/* List */}
       <OverlayScrollArea className="flex-1 min-h-0">
-        <div ref={listRef} className="p-2 flex flex-col gap-1.5">
+        <div ref={listRef} className="p-2 flex flex-col gap-2">
         {totalCount === 0 ? (
           <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
             <p className="text-caption text-muted-foreground/60">
@@ -304,58 +273,28 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
           <>
             {messageGroups.map((group) => {
               const groupSortedAnnotations = [...group.annotations].sort((a, b) => a.createdA - b.createdA);
-              const groupThreaded = threadReplies(groupSortedAnnotations);
-              const groupThreadRootTs = resolveThreadRootTimestamps(groupSortedAnnotations);
-              const groupEntries = [
-                ...groupThreaded.map(({ annotation, isReply }) => ({
-                  ts: annotation.createdA,
-                  threadTs: groupThreadRootTs.get(annotation.id) ?? annotation.createdA,
-                  annotation,
-                  isReply,
-                })),
-              ].sort((a, b) => {
-                if (a.threadTs !== b.threadTs) return a.threadTs - b.threadTs;
-                return a.ts - b.ts;
-              });
 
-              if (groupEntries.length === 0) return null;
+              if (groupSortedAnnotations.length === 0) return null;
 
               const relTime = formatRelativeTime(group.timestamp, now);
               return (
-                <div key={group.messageId} data-message-group={group.messageId} className="flex flex-col gap-1.5">
+                <div key={group.messageId} data-message-group={group.messageId} className="flex flex-col gap-2">
                   <div className="flex items-center justify-between gap-2 px-1 pt-2 pb-0.5 text-micro font-semibold text-muted-foreground">
                     <span className="truncate">{railPreview(group.text)}</span>
                     {relTime && (
                       <span className="shrink-0 text-micro text-muted-foreground/60">{relTime}</span>
                     )}
                   </div>
-                  {groupEntries.map((entry) => (
-                      entry.isReply ? (
-                        <div
-                          key={entry.annotation.id}
-                          data-annotation-reply="true"
-                          className="ml-3 border-l-2 border-border/40 pl-1.5"
-                        >
-                          <AnnotationCard
-                            annotation={entry.annotation}
-                            isSelected={selectedId === entry.annotation.id}
-                            onSelect={() => onSelectAnnotation(entry.annotation.id, group.messageId)}
-                            onDelete={() => onDeleteAnnotation(entry.annotation.id)}
-                            onOpen={onOpenAnnotation ? () => onOpenAnnotation(entry.annotation.id, group.messageId) : undefined}
-                            readOnly={!group.isCurrent}
-                          />
-                        </div>
-                      ) : (
-                        <AnnotationCard
-                          key={entry.annotation.id}
-                          annotation={entry.annotation}
-                          isSelected={selectedId === entry.annotation.id}
-                          onSelect={() => onSelectAnnotation(entry.annotation.id, group.messageId)}
-                          onDelete={() => onDeleteAnnotation(entry.annotation.id)}
-                          onOpen={onOpenAnnotation ? () => onOpenAnnotation(entry.annotation.id, group.messageId) : undefined}
-                          readOnly={!group.isCurrent}
-                        />
-                      )
+                  {groupSortedAnnotations.map((annotation) => (
+                    <AnnotationCard
+                      key={annotation.id}
+                      annotation={annotation}
+                      isSelected={selectedId === annotation.id}
+                      onSelect={() => onSelectAnnotation(annotation.id, group.messageId)}
+                      onDelete={() => onDeleteAnnotation(annotation.id)}
+                      onOpen={onOpenAnnotation ? () => onOpenAnnotation(annotation.id, group.messageId) : undefined}
+                      readOnly={!group.isCurrent}
+                    />
                   ))}
                 </div>
               );
@@ -363,31 +302,15 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
           </>
         ) : (
           <>
-            {timelineEntries.map(entry => (
-                entry.isReply ? (
-                  <div
-                    key={entry.annotation.id}
-                    data-annotation-reply="true"
-                    className="ml-3 border-l-2 border-border/40 pl-1.5"
-                  >
-                    <AnnotationCard
-                      annotation={entry.annotation}
-                      isSelected={selectedId === entry.annotation.id}
-                      onSelect={() => onSelectAnnotation(entry.annotation.id)}
-                      onDelete={() => onDeleteAnnotation(entry.annotation.id)}
-                      onOpen={onOpenAnnotation ? () => onOpenAnnotation(entry.annotation.id) : undefined}
-                    />
-                  </div>
-                ) : (
-                <AnnotationCard
-                  key={entry.annotation.id}
-                  annotation={entry.annotation}
-                  isSelected={selectedId === entry.annotation.id}
-                  onSelect={() => onSelectAnnotation(entry.annotation.id)}
-                  onDelete={() => onDeleteAnnotation(entry.annotation.id)}
-                  onOpen={onOpenAnnotation ? () => onOpenAnnotation(entry.annotation.id) : undefined}
-                />
-                )
+            {sortedAnnotations.map((annotation) => (
+              <AnnotationCard
+                key={annotation.id}
+                annotation={annotation}
+                isSelected={selectedId === annotation.id}
+                onSelect={() => onSelectAnnotation(annotation.id)}
+                onDelete={() => onDeleteAnnotation(annotation.id)}
+                onOpen={onOpenAnnotation ? () => onOpenAnnotation(annotation.id) : undefined}
+              />
             ))}
           </>
         )}
@@ -456,8 +379,9 @@ const AnnotationCard: React.FC<{
         }
       }}
       className={cn(
-        'group w-full cursor-pointer rounded-lg px-3 py-2.5 text-left transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-        isSelected ? 'bg-fl-surface-1 shadow-fl-surface-1' : 'hover:bg-hover',
+        // Raised one surface step above the panel, and one more when selected.
+        'group w-full cursor-pointer rounded-lg px-3 py-2.5 text-left transition-[background-color,box-shadow] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+        isSelected ? 'bg-surface-3 shadow-surface-3' : 'bg-surface-2 shadow-surface-2',
       )}
     >
       {/* Header: type word + chips, time on the right */}
@@ -480,13 +404,15 @@ const AnnotationCard: React.FC<{
         </p>
       ) : (
         <>
-          {/* Quote — the annotated text, behind the composer's quote bar */}
-          <div className="mb-1.5 flex gap-2">
-            <span aria-hidden="true" className="w-0.5 shrink-0 self-stretch rounded-full bg-muted-foreground/35" />
-            <p className="line-clamp-2 whitespace-pre-wrap text-caption text-muted-foreground">
-              {annotation.originalText}
-            </p>
-          </div>
+          {/* Quote — the annotated text, in a recessed chip */}
+          <p
+            className={cn(
+              'mb-1.5 line-clamp-2 whitespace-pre-wrap rounded-md bg-surface-4 px-2 py-1 text-caption text-muted-foreground',
+              annotation.type === AnnotationType.DELETION && 'line-through decoration-destructive/60',
+            )}
+          >
+            {annotation.originalText}
+          </p>
 
           {/* Comment/Replacement Text */}
           {annotation.type !== AnnotationType.DELETION && annotation.text && (

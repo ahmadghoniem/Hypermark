@@ -18,7 +18,6 @@
 import React from 'react';
 import { PlanDiffBadge } from './plan-diff/PlanDiffBadge';
 import type { PlanDiffStats } from '../utils/planDiffEngine';
-import { hostnameOrFallback } from '@/shared/project';
 import { fileName as pathFileName } from '../utils/displayPath';
 
 import { ArrowLeft, GitBranch01 } from '@untitledui/icons';
@@ -44,8 +43,6 @@ export interface DocBadgesProps {
   planDiffBaselineTooltip?: string;
   showDemoBadge?: boolean;
   linkedDocInfo?: LinkedDocBadgeInfo | null;
-  /** Source attribution for HTML/URL annotations (e.g. "https://..." or "index.html") */
-  sourceInfo?: string;
 }
 
 export const DocBadges: React.FC<DocBadgesProps> = ({
@@ -59,7 +56,6 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
   planDiffBaselineTooltip,
   showDemoBadge,
   linkedDocInfo,
-  sourceInfo,
 }) => {
   const isRow = layout === 'row';
   const isHorizontal = layout !== 'column';
@@ -69,7 +65,7 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
   // linkedDocInfo-gated — see the header comment.
   const anything = isRow
     ? hasPreviousVersion && planDiffStats
-    : repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo || sourceInfo;
+    : repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo;
   if (!anything) return null;
 
   // Row layout: single horizontal line. Column layout: stacked rows.
@@ -100,19 +96,6 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
               <span className="truncate">{repoInfo.branch}</span>
             </span>
           )}
-        </div>
-      )}
-
-      {sourceInfo && !linkedDocInfo && !isRow && (
-        <div className="flex items-center gap-1">
-          <span
-            className="px-1.5 py-0.5 bg-muted/30 rounded-sm truncate max-w-50"
-            title={sourceInfo}
-          >
-            {/^https?:\/\//i.test(sourceInfo)
-              ? hostnameOrFallback(sourceInfo)
-              : sourceInfo}
-          </span>
         </div>
       )}
 

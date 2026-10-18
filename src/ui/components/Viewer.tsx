@@ -3,7 +3,7 @@ import { AnnotationType, type Block, type Annotation, type ImageAttachment } fro
 import { applyHighlight, codeBlockClassName, onCodeHighlightSwap } from '../utils/codeHighlight';
 import { paintCodeBlockMark } from '../utils/codeBlockMark';
 import { useFenceTheme } from '../hooks/useFenceTheme';
-import { computeListIndices, groupBlocks, type Frontmatter } from '../utils/parser';
+import { computeListIndices, groupBlocks, type Frontmatter, type FrontmatterValue } from '../utils/parser';
 import { buildHeadingSlugMap } from '../utils/slugify';
 import { BlockRenderer } from './BlockRenderer';
 import { CodeBlock } from './blocks/CodeBlock';
@@ -18,6 +18,7 @@ import { MermaidBlock } from './MermaidBlock';
 import { isGraphvizLanguage, isMermaidLanguage } from './diagramLanguages';
 import { useQuickLabels } from '../hooks/useQuickLabels';
 import { DocBadges, type LinkedDocBadgeInfo } from './DocBadges';
+import { PlanDiffSwitch, hasPlanDiffChanges } from './plan-diff/PlanDiffSwitch';
 import { BlockOutline } from './BlockOutline';
 import { TabHint } from './TabHint';
 import { useSelectionWidening } from '../hooks/useSelectionWidening';
@@ -48,16 +49,15 @@ export interface ViewerProps {
   isPlanDiffActive?: boolean;
   onPlanDiffToggle?: () => void;
   hasPreviousVersion?: boolean;
-  /** Baseline suffix + tooltip for the plan-diff badge (see DocBadges) —
-   *  annotate/folder sessions pass "since last review"; plan review omits. */
-  planDiffBaselineLabel?: string;
+  /** What the diff is against, for the "Show changes" switch's tooltip —
+   *  annotate/folder sessions pass "Changes since you last reviewed this file". */
   planDiffBaselineTooltip?: string;
+  /** The diff's base version, e.g. "v2"; the switch's tooltip adds "vs v2". */
+  planDiffBaseVersionLabel?: string;
   /** Show amber "Demo" badge (portal mode, no shared content loaded) */
   showDemoBadge?: boolean;
   /** Max width in px for the plan card; null removes the cap entirely. */
   maxWidth?: number | null;
-  /** Source attribution for HTML/URL annotations (e.g. URL or filename) */
-  sourceInfo?: string;
   // Checkbox toggle props
   onToggleCheckbox?: (blockId: string, checked: boolean) => void;
   checkboxOverrides?: Map<string, boolean>;
@@ -75,6 +75,76 @@ export interface ViewerHandle {
   closeComposer: () => boolean;
 }
 
+// Named type guard so both taken and fallthrough branches narrow.
+function isFrontmatterMap(value: FrontmatterValue): value is { [key: string]: FrontmatterValue } {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Renders a single frontmatter field or recursive sub-structure.
+ */
+const FrontmatterRow: React.FC<{ field: string; value: FrontmatterValue }> = ({ field, value }) => {
+  if (isFrontmatterMap(value)) {
+    const subEntries = Object.entries(value);
+    return (
+      <div className="flex flex-col gap-1.5">
+        <span className="font-semibold text-muted-foreground">{field}:</span>
+        <div className="pl-4 grid gap-1.5">
+          {subEntries.map(([k, v]) => (
+            <FrontmatterRow key={k} field={k} value={v} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (Array.isArray(value)) {
+    const isArrayOfMaps = value.some((v) => typeof v === 'object' && v !== null);
+    if (isArrayOfMaps) {
+      return (
+        <div className="flex flex-col gap-1.5">
+          <span className="font-semibold text-muted-foreground">{field}:</span>
+          <div className="pl-4 grid gap-2">
+            {value.map((item, i) => (
+              <div key={i} className="p-2 bg-muted/40 border border-border/40 rounded-sm grid gap-1.5">
+                {isFrontmatterMap(item) ? (
+                  Object.entries(item).map(([k, v]) => (
+                    <FrontmatterRow key={k} field={k} value={v} />
+                  ))
+                ) : (
+                  <span className="text-foreground">{typeof item === 'string' ? item : String(item)}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex gap-2">
+        <span className="font-semibold text-muted-foreground min-w-20">{field}:</span>
+        <span className="text-foreground">
+          <span className="flex flex-wrap gap-1">
+            {value.map((v, i) => (
+              <span key={i} className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-sm text-caption">
+                {typeof v === 'string' ? v : String(v)}
+              </span>
+            ))}
+          </span>
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-2">
+      <span className="font-semibold text-muted-foreground min-w-20">{field}:</span>
+      <span className="text-foreground">{value}</span>
+    </div>
+  );
+};
+
 /**
  * Renders YAML frontmatter as a styled metadata card.
  */
@@ -86,22 +156,7 @@ const FrontmatterCard: React.FC<{ frontmatter: Frontmatter }> = ({ frontmatter }
     <div className="mt-4 mb-6 p-4 bg-muted/30 border border-border/50 rounded-lg">
       <div className="grid gap-2 text-body">
         {entries.map(([key, value]) => (
-          <div key={key} className="flex gap-2">
-            <span className="font-semibold text-muted-foreground min-w-20">{key}:</span>
-            <span className="text-foreground">
-              {Array.isArray(value) ? (
-                <span className="flex flex-wrap gap-1">
-                  {value.map((v, i) => (
-                    <span key={i} className="px-1.5 py-0.5 bg-primary/10 text-primary rounded-sm text-caption">
-                      {v}
-                    </span>
-                  ))}
-                </span>
-              ) : (
-                value
-              )}
-            </span>
-          </div>
+          <FrontmatterRow key={key} field={key} value={value} />
         ))}
       </div>
     </div>
@@ -127,14 +182,13 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   isPlanDiffActive,
   onPlanDiffToggle,
   hasPreviousVersion,
-  planDiffBaselineLabel,
   planDiffBaselineTooltip,
+  planDiffBaseVersionLabel,
   showDemoBadge,
   maxWidth,
   onOpenLinkedDoc,
   linkedDocInfo,
   imageBaseDir,
-  sourceInfo,
   onToggleCheckbox,
   checkboxOverrides,
   onComposerOpen,
@@ -172,7 +226,9 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     ro.observe(el);
     window.addEventListener('resize', measure);
     return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
-  }, [repoInfo, hasPreviousVersion, showDemoBadge, linkedDocInfo, sourceInfo, planDiffStats]);
+  }, [repoInfo, hasPreviousVersion, showDemoBadge, linkedDocInfo, planDiffStats]);
+  // The "Show changes" switch at the card's top right, when there is a diff.
+  const showDiffSwitch = !!onPlanDiffToggle && !!hasPreviousVersion && hasPlanDiffChanges(planDiffStats);
 
   // Per-doc heading slug map with dedup — computed once per blocks array so
   // anchor ids stay stable across re-renders and duplicate heading texts get
@@ -472,21 +528,23 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
           WebkitTouchCallout: 'none',
         } as React.CSSProperties}
       >
-        {(repoInfo || hasPreviousVersion || showDemoBadge || linkedDocInfo || sourceInfo) && (
-          <div ref={docBadgesRef} className="absolute top-3 md:top-4 left-0">
+        {(repoInfo || showDiffSwitch || showDemoBadge || linkedDocInfo) && (
+          <div ref={docBadgesRef} className="absolute top-3 md:top-4 inset-x-0 flex items-start justify-between gap-3">
             <DocBadges
               layout="column"
               repoInfo={repoInfo}
-              planDiffStats={planDiffStats}
-              isPlanDiffActive={isPlanDiffActive}
-              hasPreviousVersion={hasPreviousVersion}
-              onPlanDiffToggle={onPlanDiffToggle}
-              planDiffBaselineLabel={planDiffBaselineLabel}
-              planDiffBaselineTooltip={planDiffBaselineTooltip}
               showDemoBadge={showDemoBadge}
               linkedDocInfo={linkedDocInfo}
-              sourceInfo={sourceInfo}
             />
+            {showDiffSwitch && planDiffStats && (
+              <PlanDiffSwitch
+                stats={planDiffStats}
+                checked={isPlanDiffActive ?? false}
+                onToggle={onPlanDiffToggle!}
+                baselineTooltip={planDiffBaselineTooltip}
+                baseVersionLabel={planDiffBaseVersionLabel}
+              />
+            )}
           </div>
         )}
 
@@ -509,7 +567,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
                       onOpenLinkedDoc={onOpenLinkedDoc}
                       onToggleCheckbox={onToggleCheckbox}
                       checkboxOverrides={checkboxOverrides}
-                      githubRepo={repoInfo?.display}
                       headingAnchorId={headingSlugMap.get(block.id)}
                       onNavigateAnchor={scrollToAnchor}
                     />
@@ -528,7 +585,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               imageBaseDir={imageBaseDir}
               onImageClick={(src, alt) => setLightbox({ src, alt })}
               onOpenLinkedDoc={onOpenLinkedDoc}
-              githubRepo={repoInfo?.display}
               onNavigateAnchor={scrollToAnchor}
               onHover={(element) => {
                 if (tableHoverTimeoutRef.current) {
@@ -553,7 +609,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
           ) : group.block.type === 'code' ? (
             <CodeBlock key={group.block.id} block={group.block} />
           ) : (
-            <BlockRenderer imageBaseDir={imageBaseDir} onImageClick={(src, alt) => setLightbox({ src, alt })} key={group.block.id} block={group.block} onOpenLinkedDoc={onOpenLinkedDoc} onNavigateAnchor={scrollToAnchor} onToggleCheckbox={onToggleCheckbox} checkboxOverrides={checkboxOverrides} githubRepo={repoInfo?.display} headingAnchorId={headingSlugMap.get(group.block.id)} />
+            <BlockRenderer imageBaseDir={imageBaseDir} onImageClick={(src, alt) => setLightbox({ src, alt })} key={group.block.id} block={group.block} onOpenLinkedDoc={onOpenLinkedDoc} onNavigateAnchor={scrollToAnchor} onToggleCheckbox={onToggleCheckbox} checkboxOverrides={checkboxOverrides} headingAnchorId={headingSlugMap.get(group.block.id)} />
           )
         )}
 
@@ -602,7 +658,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
             imageBaseDir={imageBaseDir}
             onImageClick={(src, alt) => setLightbox({ src, alt })}
             onOpenLinkedDoc={onOpenLinkedDoc}
-            githubRepo={repoInfo?.display}
             onNavigateAnchor={scrollToAnchor}
           />
         )}

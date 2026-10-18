@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowUp, XClose } from '@untitledui/icons';
+import { ArrowUp, StopSquare, XClose } from '@untitledui/icons';
 import { Button } from '@/ui/fluid/components/button';
+import { ThinkingIndicator } from '@/ui/fluid/components/thinking-indicator';
 import { Tooltip } from '@/ui/fluid/components/tooltip';
 import type { SideChatThread } from '../hooks/useSideChat';
 import { AutoGrowBox } from './AutoGrowBox';
@@ -10,6 +11,8 @@ const TIP = 'border border-border bg-popover text-foreground shadow-md';
 interface SideChatCardProps {
   thread: SideChatThread;
   onSend: (question: string) => void;
+  /** Stops the answer being written; the text so far stays. */
+  onStop: () => void;
   onClose: () => void;
   /** Sits left of the message rail, which shows at lg and up. */
   clearRail?: boolean;
@@ -22,14 +25,18 @@ interface SideChatCardProps {
  * 8px off the bottom, shrinking to fit a short host. Escape inside it
  * closes it. The thread is never part of the feedback.
  */
-export const SideChatCard: React.FC<SideChatCardProps> = ({ thread, onSend, onClose, clearRail = false }) => {
+export const SideChatCard: React.FC<SideChatCardProps> = ({ thread, onSend, onStop, onClose, clearRail = false }) => {
   const { quote, messages, pending, error } = thread;
   const [draft, setDraft] = useState('');
   const threadRef = useRef<HTMLDivElement>(null);
+  const replyRef = useRef<HTMLTextAreaElement>(null);
+  const last = messages[messages.length - 1];
+  // The thinking indicator shows until the first chunk of the answer arrives.
+  const thinking = pending && last?.role !== 'assistant';
 
   useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages.length, pending, error]);
+  }, [messages.length, last?.text, pending, error]);
 
   const send = () => {
     const text = draft.trim();
@@ -50,7 +57,7 @@ export const SideChatCard: React.FC<SideChatCardProps> = ({ thread, onSend, onCl
           onClose();
         }
       }}
-      className={`absolute right-4 bottom-2 z-popover flex h-112 max-h-[calc(100%-1rem)] min-h-60 w-96 max-w-[calc(100%-2rem)] flex-col rounded-xl bg-popover shadow-[var(--fl-shadow-2),0_25px_50px_-12px_rgb(0_0_0/0.25)] ${
+      className={`absolute right-4 bottom-2 z-popover flex h-112 max-h-[calc(100%-1rem)] min-h-60 w-96 max-w-[calc(100%-2rem)] flex-col rounded-xl bg-popover shadow-[var(--shadow-3),0_6px_18px_0_rgb(0_0_0/0.12)] ${
         clearRail ? 'lg:right-18 lg:max-w-[calc(100%-5.5rem)]' : ''
       }`}
     >
@@ -63,7 +70,7 @@ export const SideChatCard: React.FC<SideChatCardProps> = ({ thread, onSend, onCl
         </Tooltip>
       </div>
 
-      <div ref={threadRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 pb-3">
+      <div ref={threadRef} className="scroll-fade-top flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 pb-3">
         {messages.map((m, i) => (m.role === 'user' ? (
           <div key={i} className="max-w-[85%] self-end whitespace-pre-wrap rounded-lg bg-muted/60 px-2.5 py-1.5 text-body text-foreground">
             {m.text}
@@ -71,14 +78,23 @@ export const SideChatCard: React.FC<SideChatCardProps> = ({ thread, onSend, onCl
         ) : (
           <div key={i} className="whitespace-pre-wrap text-body text-foreground/90">{m.text}</div>
         )))}
-        {pending && <div role="status" className="animate-pulse text-caption text-muted-foreground">Thinking…</div>}
+        {thinking && <ThinkingIndicator size="compact" className="text-muted-foreground" />}
         {error && !pending && <div role="alert" className="text-caption text-destructive">{error}</div>}
       </div>
 
       <div className="p-2 pt-0">
-        <div className="flex flex-col rounded-lg border border-border p-1.5 pl-2.5">
+        {/* A press anywhere in the box but its buttons types into the reply. */}
+        <div
+          className="flex cursor-text flex-col rounded-lg border border-border p-1.5 pl-2.5"
+          onMouseDown={(e) => {
+            if (e.target === replyRef.current || (e.target as Element).closest('button')) return;
+            e.preventDefault();
+            replyRef.current?.focus();
+          }}
+        >
           <AutoGrowBox value={draft}>
             <textarea
+              ref={replyRef}
               autoFocus
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -91,11 +107,19 @@ export const SideChatCard: React.FC<SideChatCardProps> = ({ thread, onSend, onCl
               style={{ fieldSizing: 'content' } as React.CSSProperties}
             />
           </AutoGrowBox>
-          <Tooltip content={<span className="flex items-center gap-2">Send<span className="text-muted-foreground">Enter</span></span>} side="top" className={TIP}>
-            <Button variant="primary" size="icon-sm" aria-label="Send" className="self-end" onClick={send} disabled={!draft.trim() || pending}>
-              <ArrowUp size={19} className="size-4.75!" />
-            </Button>
-          </Tooltip>
+          {pending ? (
+            <Tooltip content="Stop" side="top" className={TIP}>
+              <Button variant="secondary" size="icon-sm" aria-label="Stop" className="self-end" onClick={onStop}>
+                <StopSquare className="size-3.5" />
+              </Button>
+            </Tooltip>
+          ) : (
+            <Tooltip content={<span className="flex items-center gap-2">Send<span className="text-muted-foreground">Enter</span></span>} side="top" className={TIP}>
+              <Button variant="primary" size="icon-sm" aria-label="Send" className="self-end" onClick={send} disabled={!draft.trim()}>
+                <ArrowUp size={19} className="size-4.75!" />
+              </Button>
+            </Tooltip>
+          )}
         </div>
       </div>
     </div>

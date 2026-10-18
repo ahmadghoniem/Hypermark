@@ -45,10 +45,10 @@ function flattenToc(items: TocItem[]): TocItem[] {
 // is a soft neutral surface tint (not a loud primary fill).
 function itemClasses(level: number, isActive: boolean): string {
   return isActive
-    ? 'bg-surface-1 text-foreground'
+    ? 'bg-active text-foreground'
     : level <= 1
-      ? 'text-foreground/80 hover:bg-surface-1/70'
-      : 'text-muted-foreground hover:bg-surface-1/70';
+      ? 'text-foreground/80 hover:bg-hover'
+      : 'text-muted-foreground hover:bg-hover';
 }
 
 export function TableOfContents({

@@ -20,6 +20,8 @@ export function useSideChat() {
   const [openKey, setOpenKey] = useState<string | null>(null);
   const threadsRef = useRef(threads);
   threadsRef.current = threads;
+  // The answer being streamed per thread, so Stop can end it.
+  const streams = useRef(new Map<string, AbortController>());
 
   const update = useCallback((key: string, fn: (t: SideChatThread) => SideChatThread) => {
     setThreads((prev) => {
@@ -40,19 +42,30 @@ export function useSideChat() {
       pending: true,
       error: null,
     }));
-    askSideQuestion({ question, quote, thread: history }).then(
-      (reply) => update(key, (t) => ({
-        ...t,
-        messages: [...t.messages, { role: 'assistant', text: reply }],
-        pending: false,
-      })),
+    // The answer shows as it streams: the first chunk adds the assistant
+    // message and later ones replace its text. `pending` stays on until the end.
+    const setAnswer = (text: string) => update(key, (t) => {
+      const last = t.messages[t.messages.length - 1];
+      const before = last?.role === 'assistant' ? t.messages.slice(0, -1) : t.messages;
+      return { ...t, messages: [...before, { role: 'assistant', text }] };
+    });
+    const abort = new AbortController();
+    streams.current.set(key, abort);
+    askSideQuestion({ question, quote, thread: history }, setAnswer, abort.signal).then(
+      (reply) => {
+        // Stopped before any text: the question stays, with no answer.
+        if (reply) setAnswer(reply);
+        update(key, (t) => ({ ...t, pending: false }));
+      },
       (err: unknown) => update(key, (t) => ({
         ...t,
         pending: false,
         error: err instanceof Error ? err.message : 'Something went wrong',
       })),
-    );
+    ).finally(() => streams.current.delete(key));
   }, [update]);
+
+  const stop = useCallback((key: string) => streams.current.get(key)?.abort(), []);
 
   const ask = useCallback((key: string, quote: string, question: string) => {
     setOpenKey(key);
@@ -62,5 +75,5 @@ export function useSideChat() {
   const close = useCallback(() => setOpenKey(null), []);
 
   const thread = openKey ? threads[openKey] ?? null : null;
-  return { openKey, thread, ask, send, close };
+  return { openKey, thread, ask, send, stop, close };
 }

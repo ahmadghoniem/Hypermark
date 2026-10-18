@@ -19,9 +19,6 @@
   --accent-foreground: #1e1e2e;
 
   /* Surfaces */
-  --surface-0: #181825;
-  --surface-1: #313244;
-  --surface-2: #45475a;
 
   /* Sidebar / Tree */
   --sidebar: #181825;
@@ -88,9 +85,6 @@
   --accent-foreground: #eff1f5;
 
   /* Surfaces */
-  --surface-0: #e6e9ef;
-  --surface-1: #ccd0da;
-  --surface-2: #bcc0cc;
 
   /* Sidebar / Tree */
   --sidebar: #e6e9ef;

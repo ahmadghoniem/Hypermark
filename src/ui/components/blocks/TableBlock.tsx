@@ -10,7 +10,6 @@ interface TableBlockProps {
   onNavigateAnchor?: (hash: string) => void;
   imageBaseDir?: string;
   onImageClick?: (src: string, alt: string) => void;
-  githubRepo?: string;
 }
 
 // Parse pipe-delimited markdown table content into headers + rows.
@@ -84,7 +83,6 @@ export const TableBlock: React.FC<TableBlockProps> = ({
   onNavigateAnchor,
   imageBaseDir,
   onImageClick,
-  githubRepo,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const { headers, rows } = parseTableContent(block.content);
@@ -112,7 +110,6 @@ export const TableBlock: React.FC<TableBlockProps> = ({
                   text={header}
                   onOpenLinkedDoc={onOpenLinkedDoc}
                   onNavigateAnchor={onNavigateAnchor}
-                  githubRepo={githubRepo}
                 />
               </th>
             ))}
@@ -129,7 +126,6 @@ export const TableBlock: React.FC<TableBlockProps> = ({
                     text={cell}
                     onOpenLinkedDoc={onOpenLinkedDoc}
                     onNavigateAnchor={onNavigateAnchor}
-                    githubRepo={githubRepo}
                   />
                 </td>
               ))}

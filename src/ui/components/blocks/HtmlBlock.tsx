@@ -14,7 +14,7 @@ interface HtmlBlockProps {
 // behave the same as their markdown counterparts:
 // - Relative image paths route through /api/image?path=... so they load from
 //   the plan's directory, not the hypermark server root.
-// - Relative .md / .mdx / .txt / .html links open in the linked-doc overlay when
+// - Relative .md / .mdx / .txt links open in the linked-doc overlay when
 //   onOpenLinkedDoc is provided (same as [[wiki-links]] and [label](./x.md)).
 // Absolute http(s) URLs and mailto: are left untouched.
 function rewriteRelativeRefs(

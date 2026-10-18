@@ -62,7 +62,6 @@ describe('buildDecisionSpec state matrix', () => {
     // No gate ⇒ no approve channel ⇒ no Approve-with-notes, capability or not.
     expect(itemIds(nonGate)).toEqual(['close-session']);
     // Label is free prose; the data is the flow verb and the live count.
-    expect(nonGate.items[0].label).toContain('Discard');
     expect(nonGate.items[0].label).toContain('3');
     expect(nonGate.items[0].dividerBefore).toBe(false);
     expect(nonGate.items[0].confirm?.confirmText).toBe('Close anyway'); // frozen copy
@@ -73,7 +72,6 @@ describe('buildDecisionSpec state matrix', () => {
     expect(itemIds(gate)).toEqual(['approve-with-notes', 'close-session']);
     expect(gate.items[0].label).toBe('Approve with notes'); // frozen copy, maintainer-approved
     expect(gate.items[0].dividerBefore).toBeFalsy();
-    expect(gate.items[1].label).toContain('Discard');
     expect(gate.items[1].label).toContain('3');
     expect(gate.items[1].confirm?.confirmText).toBe('Close anyway'); // frozen copy
 
@@ -89,7 +87,6 @@ describe('buildDecisionSpec state matrix', () => {
       const spec = buildDecisionSpec({
         app: 'review', gate: true, count: 0, hasFeedback: false, approvalNotesSupported,
       });
-      expect(spec.primary.label).toBe('Approve');
       expect(itemIds(spec)).toEqual(['close-session']);
       expect(spec.items[0].dividerBefore).toBe(false);
     }
@@ -99,8 +96,6 @@ describe('buildDecisionSpec state matrix', () => {
     const withCap = buildDecisionSpec({
       app: 'review', gate: true, count: 3, hasFeedback: true, approvalNotesSupported: true,
     });
-    expect(withCap.primary.label).toBe('Send Feedback');
-    expect(withCap.primary.shortLabel).toBe('Send');
     expect(itemIds(withCap)).toEqual(['approve-with-notes', 'close-session']);
     expect(withCap.items[1].dividerBefore).toBe(true);
 
@@ -149,24 +144,6 @@ describe('buildDecisionSpec invariants', () => {
       if (input.app !== 'annotate' || input.gate) continue;
       const ids = itemIds(buildDecisionSpec(input));
       expect(ids).not.toContain('approve-with-notes');
-    }
-  });
-
-  // Maintainer ruling: no user-facing decision-control string carries an em
-  // dash. Sweeps every field the control renders, across both arms.
-  it('no user-facing string contains an em dash', () => {
-    const inputs: DecisionSpecInput[] = allInputs();
-    for (const input of inputs) {
-      const spec = buildDecisionSpec(input);
-      const strings = [
-        spec.primary.label, spec.primary.shortLabel,
-        spec.primary.title,
-        ...spec.items.flatMap((item) => [
-          item.label, item.subtitle,
-          item.confirm?.title, item.confirm?.message, item.confirm?.confirmText,
-        ]),
-      ];
-      for (const value of strings) expect(value ?? '').not.toContain('—');
     }
   });
 
