@@ -14,7 +14,7 @@ export const NATIVE_SUBJECTS = [
 export const RELEASE_WORKSPACES = [""];
 
 export const SBOM_SENTINELS = [
-  "@joplin/turndown-plugin-gfm",
+  "dompurify",
   "@pierre/diffs",
   "marked",
 ];
