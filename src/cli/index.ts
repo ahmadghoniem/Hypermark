@@ -75,6 +75,7 @@ import {
   findSessionLogsForCwd,
   getRecentRenderedMessages,
   describeClaudeSessionResolutionFailure,
+  readSessionForResume,
   resolveClaudeSessionLog,
   type RenderedMessage,
 } from "./session-log";
@@ -490,7 +491,7 @@ if (args[0] === "sessions") {
 
   const rawFilePath = args[1];
   if (!rawFilePath) {
-    exitAnnotateStartupFailure("Usage: hypermark annotate <file.md | file.txt | file.html> [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]");
+    exitAnnotateStartupFailure("Usage: hypermark annotate <file.md | file.txt> [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]");
   }
 
   // Use HYPERMARK_CWD if set (original working directory before script cd'd)
@@ -585,8 +586,6 @@ if (args[0] === "sessions") {
     markdown,
     absolutePath,
     annotateMode,
-    sourceInfo,
-    sourceConverted,
   } = resolution;
 
   const annotateProject = (await detectProjectName()) ?? "_unknown";
@@ -597,8 +596,6 @@ if (args[0] === "sessions") {
     filePath: absolutePath,
     origin: detectedOrigin,
     mode: annotateMode,
-    sourceInfo,
-    sourceConverted,
     gate: gateFlag,
     approvalNotesSupported: supportsAnnotateApprovalNotes({
       gate: gateFlag,
@@ -651,6 +648,8 @@ if (args[0] === "sessions") {
   const RECENT_MESSAGES_LIMIT = 25;
   let lastMessage: RenderedMessage | null = null;
   let recentMessages: RenderedMessage[] = [];
+  // The log the message came from; the side chat resumes its session.
+  let messageLogPath: string | null = null;
 
   if (stdinFlag) {
     const text = (await Bun.stdin.text()).trim();
@@ -685,6 +684,7 @@ if (args[0] === "sessions") {
         if (recent.length > 0) {
           recentMessages = recent;
           lastMessage = recent[0];
+          messageLogPath = logPath;
           return;
         }
       }
@@ -739,6 +739,7 @@ if (args[0] === "sessions") {
     }),
     htmlContent: planHtmlContent,
     recentMessages: pickerMessages,
+    sideChat: messageLogPath ? readSessionForResume(messageLogPath) ?? undefined : undefined,
     parentWatch: true,
     onReady: async (url, port) => {
       handleAnnotateServerReady(url, port);

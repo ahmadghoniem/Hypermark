@@ -11,7 +11,7 @@
  * path — CLI target resolution, the folder file browser, `/api/doc`
  * (relative/wiki-link navigation between sibling docs), the 2MB size cap and
  * the per-file version history — and are rendered as MARKDOWN (frontmatter
- * stripped), never as HTML.
+ * stripped).
  *
  * The extension predicates themselves live in `@/shared/annotatable`,
  * which is browser-safe and zero-dep and therefore cannot read a config file.
@@ -22,10 +22,8 @@
  */
 
 import {
-	buildAnnotatableDocRegex,
 	buildAnnotatableExtensionsHint,
 	buildAnnotatableTextRegex,
-	isAnnotatableDocPath as isAnnotatableDocPathWith,
 	isAnnotatableTextPath as isAnnotatableTextPathWith,
 	normalizeMarkdownExtensions,
 } from "./annotatable";
@@ -65,11 +63,6 @@ export function getAnnotatableTextRegex(): RegExp {
 	return buildAnnotatableTextRegex(getExtraMarkdownExtensions());
 }
 
-/** Plain-text + raw-HTML matcher including the configured extras. */
-export function getAnnotatableDocRegex(): RegExp {
-	return buildAnnotatableDocRegex(getExtraMarkdownExtensions());
-}
-
 /** Accepted-set hint for error messages, including the configured extras. */
 export function getAnnotatableExtensionsHint(): string {
 	return buildAnnotatableExtensionsHint(getExtraMarkdownExtensions());
@@ -82,11 +75,6 @@ export function getAnnotatableExtensionsHint(): string {
  */
 export function isAnnotatableTextPath(input: string): boolean {
 	return isAnnotatableTextPathWith(input, getExtraMarkdownExtensions());
-}
-
-/** True when annotate can open `input` at all, honoring the configured extras. */
-export function isAnnotatableDocPath(input: string): boolean {
-	return isAnnotatableDocPathWith(input, getExtraMarkdownExtensions());
 }
 
 

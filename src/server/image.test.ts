@@ -6,6 +6,7 @@
 
 import { describe, expect, test } from "bun:test";
 import { tmpdir } from "node:os";
+import { isAbsolute } from "node:path";
 import { validateImagePath, validateUploadExtension, UPLOAD_DIR } from "./image";
 
 describe("UPLOAD_DIR", () => {
@@ -39,7 +40,7 @@ describe("validateImagePath", () => {
 
   test("resolves path", () => {
     const result = validateImagePath("relative/image.png");
-    expect(result.resolved).toMatch(/^\//); // absolute on POSIX
+    expect(isAbsolute(result.resolved)).toBe(true);
   });
 });
 

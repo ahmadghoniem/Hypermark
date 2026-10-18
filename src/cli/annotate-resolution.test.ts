@@ -65,12 +65,12 @@ describe("resolveAnnotateTarget", () => {
     }
   });
 
-  test("converts an HTML file to markdown", async () => {
-    const converted = await resolve("docs/page.html");
-    expect(converted.ok).toBe(true);
-    if (converted.ok) {
-      expect(converted.markdown).toBe("hi");
-      expect(converted.sourceConverted).toBe(true);
+  test("refuses an HTML file as unsupported", async () => {
+    const html = await resolve("docs/page.html");
+    expect(html.ok).toBe(false);
+    if (!html.ok) {
+      expect(html.notFound).toBe(false);
+      expect(html.message).toContain("File type not supported: .html");
     }
   });
 

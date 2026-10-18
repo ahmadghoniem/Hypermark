@@ -154,7 +154,6 @@ export interface FeedbackAnnotationRecord {
   blockId?: string;
   diffContext?: string;
   severity?: string;
-  inReplyTo?: string;
   images?: number;
 }
 
@@ -276,8 +275,6 @@ function normalizeAnnotation(raw: unknown): FeedbackAnnotationRecord {
   if (diffContext) record.diffContext = diffContext;
   const severity = asString(a.severity);
   if (severity) record.severity = severity;
-  const inReplyTo = asString(a.inReplyTo);
-  if (inReplyTo) record.inReplyTo = inReplyTo;
   if (Array.isArray(a.images) && a.images.length > 0) record.images = a.images.length;
   return record;
 }

@@ -880,3 +880,38 @@ export function getRecentRenderedMessages(
     return [];
   }
 }
+
+/**
+ * The session a log belongs to, for resuming it: the id is the file name, the
+ * cwd is the first one the log records (Claude Code finds the session from
+ * the project folder of that directory), and the model is the one that wrote
+ * the last assistant message. Null when no entry has a cwd.
+ */
+export function readSessionForResume(
+  logPath: string,
+): { sessionId: string; cwd: string; model?: string } | null {
+  let text: string;
+  try {
+    text = readFileSync(logPath, "utf-8");
+  } catch {
+    return null;
+  }
+  let cwd: string | null = null;
+  let model: string | undefined;
+  for (const line of text.split("\n")) {
+    const hasCwd = !cwd && line.includes('"cwd"');
+    const hasModel = line.includes('"type":"assistant"') && line.includes('"model"');
+    if (!hasCwd && !hasModel) continue;
+    try {
+      const entry = JSON.parse(line) as { cwd?: unknown; type?: unknown; message?: { model?: unknown } };
+      if (hasCwd && typeof entry.cwd === "string" && entry.cwd) cwd = entry.cwd;
+      const m = entry.type === "assistant" ? entry.message?.model : undefined;
+      // Claude Code logs its own notices as "<synthetic>".
+      if (typeof m === "string" && m && !m.startsWith("<")) model = m;
+    } catch {
+      // A partly written last line; keep looking.
+    }
+  }
+  if (!cwd) return null;
+  return { sessionId: basename(logPath, ".jsonl"), cwd, ...(model ? { model } : {}) };
+}

@@ -17,7 +17,6 @@ beforeAll(() => {
   mkdirSync(join(root, "notes/deep"), { recursive: true });
   writeFileSync(join(root, "plan.md"), "# Plan");
   writeFileSync(join(root, "docs/spec.md"), "# Spec");
-  writeFileSync(join(root, "docs/page.html"), "<p>hi</p>");
   writeFileSync(join(root, "notes/deep/nested.md"), "# Nested");
   // Same basename twice for the ambiguous case.
   writeFileSync(join(root, "docs/dup.md"), "# A");
@@ -27,7 +26,7 @@ beforeAll(() => {
   // Exists so that a wrongly split quoted token ("my notes.md" -> "notes.md")
   // would resolve if token boundaries were not preserved.
   writeFileSync(join(root, "notes.md"), "# Notes");
-  // Wider plain-text set (guards ANNOTATABLE_DOC_REGEX breadth, which the
+  // Wider plain-text set (guards ANNOTATABLE_TEXT_REGEX breadth, which the
   // probe's no-walk cheapness for word tokens relies on).
   writeFileSync(join(root, "notes.txt"), "notes");
   writeFileSync(join(root, "config.yaml"), "a: 1");
@@ -50,10 +49,6 @@ describe("probeAnnotateToken", () => {
     expect(probe("https://example.com/page")).toBeNull();
     expect(probe("docs")).toBeNull();
     expect(probe("docs/")).toBeNull();
-  });
-
-  test("resolves HTML files to absolute paths", () => {
-    expect(probe("docs/page.html")).toBe(join(root, "docs/page.html"));
   });
 
   test("resolves documents, including fuzzy basename matches", () => {
@@ -180,7 +175,7 @@ describe("message builders", () => {
       words: ["the", "aim", "doc"],
     });
     expect(message).toContain("the aim doc");
-    expect(message).toContain("hypermark annotate <file.md | file.txt | file.html>");
+    expect(message).toContain("hypermark annotate <file.md | file.txt>");
     expect(message).not.toContain("If you are an agent");
   });
 

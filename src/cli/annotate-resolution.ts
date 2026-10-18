@@ -3,9 +3,8 @@
  *
  * Extracted from the annotate branch of index.ts so the resolution pipeline
  * can be re-run once by the tolerant token fallback (#1182) and unit tested.
- * The behavior of a single resolution pass is unchanged: the same branch
- * order (HTML, document), the same messages, and the same progress lines,
- * emitted through `log` at the same points as before.
+ * A single resolution pass refuses URLs and folders, then resolves a
+ * document, emitting progress lines through `log`.
  *
  * Failures are returned instead of exiting; the caller maps them onto the
  * existing exit behavior. `notFound` is true only for the "the input named
@@ -17,7 +16,6 @@
 import { existsSync, statSync } from "fs";
 import path from "path";
 import { resolveAtReference, stripAtPrefix } from "@/shared/at-reference";
-import { htmlToMarkdown } from "@/shared/html-to-markdown";
 import {
   buildAnnotatableExtensionsHint,
 } from "@/shared/annotatable";
@@ -33,8 +31,6 @@ interface AnnotateResolutionSuccess {
   markdown: string;
   absolutePath: string;
   annotateMode: "annotate";
-  sourceInfo?: string;
-  sourceConverted: boolean;
 }
 
 interface AnnotateResolutionFailure {
@@ -49,7 +45,7 @@ export type AnnotateResolutionResult =
   | AnnotateResolutionFailure;
 
 /** Message returned when the token looks like a URL or names a directory:
- * only local files (`.md`, `.mdx`, `.txt`, `.html`) can be annotated. */
+ * only local text files (`.md`, `.mdx`, `.txt`, …) can be annotated. */
 export const ANNOTATE_TAKES_FILE_PATH_MESSAGE = "hypermark annotate takes a file path";
 
 export async function resolveAnnotateTarget(options: {
@@ -101,27 +97,6 @@ export async function resolveAnnotateTarget(options: {
       ok: false,
       notFound: false,
       message: ANNOTATE_TAKES_FILE_PATH_MESSAGE,
-    };
-  }
-
-  // HTML check with the same literal-@ fallback semantics.
-  const htmlCandidate = resolveAtReference(rawFilePath, (c) => {
-    const abs = resolveUserPath(c, projectRoot);
-    return /\.html?$/i.test(abs) && existsSync(abs);
-  });
-
-  if (htmlCandidate !== null) {
-    const resolvedArg = resolveUserPath(htmlCandidate, projectRoot);
-    const htmlFile = Bun.file(resolvedArg);
-    const html = await htmlFile.text();
-    log(`Converted: ${resolvedArg}`);
-    return {
-      ok: true,
-      markdown: htmlToMarkdown(html),
-      absolutePath: resolvedArg,
-      annotateMode: "annotate",
-      sourceInfo: path.basename(resolvedArg),
-      sourceConverted: true,
     };
   }
 
@@ -180,6 +155,5 @@ export async function resolveAnnotateTarget(options: {
     markdown,
     absolutePath,
     annotateMode: "annotate",
-    sourceConverted: false,
   };
 }

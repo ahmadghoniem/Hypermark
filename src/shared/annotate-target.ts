@@ -32,7 +32,7 @@ export interface AnnotateTokenCandidate {
   /** The whitespace-delimited token the user typed. */
   token: string;
   /**
-   * What the token resolved to: an absolute path for HTML files and document
+   * What the token resolved to: an absolute path for existing files and document
    * matches, the token itself for ambiguous document names. Feeding this
    * back into the host pipeline on a single match keeps callers without fuzzy
    * resolution consistent with the probe's answer.
@@ -60,8 +60,8 @@ export type AnnotateTokenProbe = (token: string) => string | null;
  * token: open it, or fail with a target-specific error ("Ambiguous
  * filename", "File type not supported", "File too large")?
  *
- * Mirrors the CLI resolution branch order: HTML file, then document
- * resolution (strip-first with the literal-`@` fallback for
+ * Mirrors the CLI resolution order: document resolution (strip-first with
+ * the literal-`@` fallback for
  * scoped-package-style names), then bare existence (existing-but-unsupported
  * targets belong to the pipeline so its specific errors keep surfacing
  * verbatim). Returns the value to feed the pipeline, or null. An ambiguous
@@ -79,12 +79,6 @@ export function probeAnnotateToken(
   if (!token) return null;
 
   const unwrapped = stripAtPrefix(token);
-
-  const html = resolveAtReference(token, (candidate) => {
-    const abs = resolveUserPath(candidate, projectRoot);
-    return /\.html?$/i.test(abs) && existsSync(abs);
-  });
-  if (html !== null) return resolveUserPath(html, projectRoot);
 
   let doc = resolveMarkdownFile(unwrapped, projectRoot);
   if (doc.kind === "not_found" && unwrapped !== token) {
@@ -150,7 +144,7 @@ export function selectAnnotateTokenTarget(
   return { kind: "none", words };
 }
 
-export const ANNOTATE_USAGE_TARGET = "<file.md | file.txt | file.html>";
+export const ANNOTATE_USAGE_TARGET = "<file.md | file.txt>";
 
 /**
  * Tier-2 error: several tokens each name an existing target. Never guess;

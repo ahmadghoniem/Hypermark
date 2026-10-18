@@ -24,6 +24,7 @@ import {
   resolveClaudeSessionLog,
   resolveSessionLogByAncestorPids,
   resolveSessionLogByCwdScan,
+  readSessionForResume,
   type SessionLogEntry,
 } from "./session-log";
 import { chmodSync, mkdirSync, writeFileSync, rmSync, utimesSync } from "node:fs";
@@ -1861,5 +1862,34 @@ describe("describeClaudeSessionResolutionFailure", () => {
     } finally {
       cleanup();
     }
+  });
+});
+
+describe("readSessionForResume", () => {
+  test("takes the id from the file name, the first cwd, and the model of the last assistant message", () => {
+    const dir = join(tmpdir(), `hypermark-resume-test-${process.pid}`);
+    mkdirSync(dir, { recursive: true });
+    const logPath = join(dir, "1f2e3d4c-session.jsonl");
+    try {
+      writeFileSync(logPath, [
+        JSON.stringify({ type: "summary", summary: "x" }),
+        JSON.stringify({ type: "user", cwd: "/work/project", message: { role: "user", content: "hi" } }),
+        JSON.stringify({ type: "assistant", message: { role: "assistant", model: "claude-haiku-5-5", content: [] } }),
+        JSON.stringify({ type: "user", cwd: "/elsewhere", message: { role: "user", content: "later" } }),
+        JSON.stringify({ type: "assistant", message: { role: "assistant", model: "claude-opus-5-5", content: [] } }),
+        JSON.stringify({ type: "assistant", message: { role: "assistant", model: "<synthetic>", content: [] } }),
+      ].join("\n"));
+      expect(readSessionForResume(logPath)).toEqual({
+        sessionId: "1f2e3d4c-session",
+        cwd: "/work/project",
+        model: "claude-opus-5-5",
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("returns null for a missing file", () => {
+    expect(readSessionForResume(join(tmpdir(), "hypermark-no-such-log.jsonl"))).toBeNull();
   });
 });

@@ -178,6 +178,10 @@ function initRepo(initialBranch = "main"): string {
   git(repoDir, ["branch", "-M", initialBranch]);
   git(repoDir, ["config", "user.email", "review-core@example.com"]);
   git(repoDir, ["config", "user.name", "Review Core"]);
+  // Keep the user's global line-ending settings out: with an eol conversion in
+  // effect, git reads blobs from the object database instead of the worktree.
+  git(repoDir, ["config", "core.autocrlf", "false"]);
+  git(repoDir, ["config", "core.attributesfile", join(repoDir, ".git", "no-global-attributes")]);
 
   writeFileSync(join(repoDir, "tracked.txt"), "before\n", "utf-8");
   git(repoDir, ["add", "tracked.txt"]);
@@ -536,7 +540,8 @@ describe("review-core", () => {
     expect(isBinaryPatchFile(overLimit.patch, "tracked.txt")).toBe(true);
   }, 20_000);
 
-  test("omits oversized staged adds, deletes, edits, and renames with literal pathspecs", async () => {
+  // Windows does not allow `*` or `?` in file names.
+  test.skipIf(process.platform === "win32")("omits oversized staged adds, deletes, edits, and renames with literal pathspecs", async () => {
     const repoDir = initRepo();
     const baseRuntime = makeRuntime(repoDir);
     const gitCalls: string[][] = [];
@@ -674,7 +679,7 @@ describe("review-core", () => {
     );
     git(repoDir, ["add", ".gitattributes", "small.txt", "large.txt"]);
     git(repoDir, ["commit", "-m", "configure textconv"]);
-    git(repoDir, ["config", "diff.rendered.textconv", textconv]);
+    git(repoDir, ["config", "diff.rendered.textconv", JSON.stringify(textconv.replaceAll("\\", "/"))]);
 
     writeFileSync(join(repoDir, "small.txt"), "small after\n", "utf-8");
     writeFileSync(

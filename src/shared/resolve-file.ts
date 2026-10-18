@@ -12,12 +12,9 @@
 import { homedir } from "os";
 import { isAbsolute, join, resolve, win32 } from "path";
 import { existsSync, readdirSync, type Dirent } from "fs";
-import { readdir } from "node:fs/promises";
 
 import { buildAnnotatableTextRegex } from "./annotatable";
 import { getExtraMarkdownExtensions } from "./markdown-extensions";
-import { CODE_FILE_REGEX as CODE_FILE_BASENAME_REGEX } from "./code-file";
-export { CODE_FILE_REGEX, isCodeFilePath } from "./code-file";
 export { MAX_ANNOTATABLE_FILE_BYTES } from "./annotatable";
 /**
  * Extension predicates re-exported here are the CONFIG-AWARE ones (#1307):
@@ -28,11 +25,9 @@ export { MAX_ANNOTATABLE_FILE_BYTES } from "./annotatable";
  */
 export {
 	getAnnotatableTextRegex,
-	getAnnotatableDocRegex,
 	getAnnotatableExtensionsHint,
 	getExtraMarkdownExtensions,
 	isAnnotatableTextPath,
-	isAnnotatableDocPath,
 } from "./markdown-extensions";
 
 const WINDOWS_DRIVE_PATH_PATTERNS = [
@@ -51,22 +46,11 @@ const IGNORED_DIRS = [
 	".trash/",
 ];
 
-const CODE_IGNORED_DIRS = [
-	...IGNORED_DIRS,
-	".turbo/",
-	".cache/",
-	"target/",
-	"vendor/",
-	"coverage/",
-	".venv/",
-	".pytest_cache/",
-];
-
 const DEFAULT_FILE_BROWSER_MAX_FILES = 5_000;
 
 /**
- * Return the shared file-traversal budget used by resolution, cache warming,
- * and file-browser discovery. Invalid or non-positive overrides fall back to
+ * Return the shared file-traversal budget used by resolution and file-browser
+ * discovery. Invalid or non-positive overrides fall back to
  * the default.
  */
 export function getFileBrowserMaxFiles(): number {
@@ -299,173 +283,6 @@ function walkMarkdownFiles(
 	} catch {
 		/* fail soft for markdown — preserves existing behavior */
 	}
-}
-
-// --- Code-file resolution (async, cached) ---
-
-const FILE_LIST_CACHE_TTL_MS = 30_000;
-const fileListCache = new Map<
-	string,
-	{ promise: Promise<string[] | null>; startedAt: number }
->();
-
-function fileListCacheKey(projectRoot: string, kind: string): string {
-	return `${projectRoot}|${kind}`;
-}
-
-async function walkCodeFiles(
-	dir: string,
-	root: string,
-	results: string[],
-	state: FileWalkState,
-): Promise<void> {
-	if (state.visitedFiles >= state.limit) return;
-	const entries = await readdir(dir, { withFileTypes: true });
-	for (const entry of entries) {
-		if (state.visitedFiles >= state.limit) return;
-		if (entry.isDirectory()) {
-			if (CODE_IGNORED_DIRS.some((d) => d === entry.name + "/")) continue;
-			try {
-				await walkCodeFiles(join(dir, entry.name), root, results, state);
-			} catch {
-				/* skip dirs we can't read */
-			}
-		} else if (entry.isFile()) {
-			state.visitedFiles += 1;
-			if (CODE_FILE_BASENAME_REGEX.test(entry.name)) {
-				const relative = join(dir, entry.name)
-					.slice(root.length + 1)
-					.replace(/\\/g, "/");
-				results.push(relative);
-			}
-		}
-	}
-}
-
-async function startCodeWalk(projectRoot: string): Promise<string[] | null> {
-	try {
-		const results: string[] = [];
-		await walkCodeFiles(projectRoot, projectRoot, results, {
-			visitedFiles: 0,
-			limit: getFileBrowserMaxFiles(),
-		});
-		return results;
-	} catch {
-		return null;
-	}
-}
-
-/**
- * Trigger (or return the in-flight) walk of `projectRoot` for code files.
- * Cached for `FILE_LIST_CACHE_TTL_MS`. Storing a Promise (not a value) makes
- * concurrent callers piggyback on the same walk — first arrival wins.
- *
- * Returns `null` (wrapped in Promise) when the walk fails (perms, etc).
- */
-export function warmFileListCache(
-	projectRoot: string,
-	kind: "code",
-): Promise<string[] | null> {
-	const key = fileListCacheKey(projectRoot, kind);
-	const entry = fileListCache.get(key);
-	if (entry && Date.now() - entry.startedAt < FILE_LIST_CACHE_TTL_MS) {
-		return entry.promise;
-	}
-	const promise = startCodeWalk(projectRoot);
-	fileListCache.set(key, { promise, startedAt: Date.now() });
-	return promise;
-}
-
-/**
- * Resolve a code-file path within a project root.
- *
- * Strategies:
- *   1. Absolute path → use as-is.
- *   2. Exact relative from project root.
- *   3. If `baseDir` provided, literal `<baseDir>/<input>` existence check —
- *      lets out-of-tree linked docs resolve their own relative references
- *      (e.g. `../script.ts` in `~/notes/foo.md` finds `~/script.ts`).
- *   4. Case-insensitive suffix match against the cached file list:
- *      - bare basename input → match any file with that basename;
- *      - input with `/` → match files whose path equals or ends with `/<input>`
- *        on a segment boundary (so `editor/App.tsx` matches `packages/editor/App.tsx`
- *        but not `myeditor/App.tsx`).
- *
- * `..` segments in the input are honored: only `./` is stripped before suffix
- * matching. `../foo.ts` without a `baseDir` correctly falls through to
- * not_found rather than fabricating a match against `foo.ts` somewhere in cwd.
- */
-export async function resolveCodeFile(
-	input: string,
-	projectRoot: string,
-	baseDir?: string,
-): Promise<ResolveResult> {
-	const originalInput = input.trim();
-	const unquotedInput = stripWrappingQuotes(originalInput);
-	const normalizedInput = normalizeUserPathInput(unquotedInput);
-	const searchInput = normalizeSeparators(normalizedInput);
-
-	if (!searchInput) {
-		return { kind: "not_found", input: originalInput };
-	}
-
-	if (isAbsoluteNormalizedUserPath(normalizedInput)) {
-		const absolutePath = resolveAbsolutePath(normalizedInput);
-		if (fileExists(absolutePath)) {
-			return { kind: "found", path: absolutePath };
-		}
-		return { kind: "not_found", input: originalInput };
-	}
-
-	const fromRoot = resolve(projectRoot, searchInput);
-	if (isWithinProjectRoot(fromRoot, projectRoot) && fileExists(fromRoot)) {
-		return { kind: "found", path: fromRoot };
-	}
-
-	if (baseDir) {
-		const fromBase = resolve(baseDir, searchInput);
-		if (fileExists(fromBase)) {
-			return { kind: "found", path: fromBase };
-		}
-	}
-
-	const fileList = await warmFileListCache(projectRoot, "code");
-	if (fileList === null) {
-		return { kind: "unavailable", input: originalInput };
-	}
-
-	// Strip leading `./` so suffix matching works on inputs like
-	// `./editor/App.tsx` — file list entries never carry that segment.
-	// `../` is intentionally NOT stripped: `..` is meaningful (escape parent),
-	// not noise. If we can't honor it via baseDir, the input has no
-	// suffix-match equivalent in the in-tree file list.
-	const cleanedInput = searchInput.replace(/^(?:\.\/)+/, "");
-	if (!cleanedInput || cleanedInput.startsWith("../")) {
-		return { kind: "not_found", input: originalInput };
-	}
-	const target = cleanedInput.toLowerCase();
-	const isBareFilename = !cleanedInput.includes("/");
-	const matches: string[] = [];
-
-	for (const f of fileList) {
-		const fl = f.toLowerCase();
-		if (isBareFilename) {
-			const base = fl.split("/").pop();
-			if (base === target) matches.push(resolve(projectRoot, f));
-		} else {
-			if (fl === target || fl.endsWith("/" + target)) {
-				matches.push(resolve(projectRoot, f));
-			}
-		}
-	}
-
-	if (matches.length === 1) {
-		return { kind: "found", path: matches[0] };
-	}
-	if (matches.length > 1) {
-		return { kind: "ambiguous", input: originalInput, matches };
-	}
-	return { kind: "not_found", input: originalInput };
 }
 
 /**

@@ -15,11 +15,11 @@ import { rejectNonLoopbackHost } from "./host-guard";
 import { getRepoInfo } from "./repo";
 import type { Origin } from "@/shared/agents";
 import { handleImage, handleUpload, removeUnsentUploads, handleDraftSave, handleDraftLoad, handleDraftDelete, handleApiNotFound, handleFavicon, readDraftGenerationFromBody, readDraftGenerationFromUrl } from "./shared-handlers";
-import { handleDoc, resolveAllowedDocPath } from "./reference-handlers";
+import { handleDoc } from "./reference-handlers";
 import { getExtraMarkdownExtensions, resolveUserPath } from "@/shared/resolve-file";
 import { contentHash, deleteDraft } from "@/shared/draft";
-import { getPlanVersion, getVersionCount, listVersions } from "@/shared/storage";
-import { computeAnnotateHistory, deriveAnnotateHistorySlug, persistAnnotateSubmission, type AnnotateHistoryResult } from "@/shared/annotate-history";
+import { getPlanVersion, listVersions } from "@/shared/storage";
+import { computeAnnotateHistory, persistAnnotateSubmission, type AnnotateHistoryResult } from "@/shared/annotate-history";
 import { getAnnotateReferenceRootPaths } from "@/shared/annotate-reference-roots-node";
 import {
   ANNOTATE_CLIENT_LEASE_GRACE_MS,
@@ -32,6 +32,7 @@ import {
 import { createAnnotateDecisionSettler } from "@/shared/annotate-decision";
 import { SESSION_STREAM_PATH } from "@/shared/session-stream";
 import { createSessionStreamBroadcaster } from "./session-stream";
+import { handleSideChat, type SideChatSession } from "./side-chat";
 import { startParentWatch, type ParentWatcher } from "./parent-watch";
 import { saveConfig, getServerConfig, loadConfig, resolveAnnotateHistory, resolveFeedbackHistory } from "./config";
 import { appendFeedbackRecord, type FeedbackDecision, type FeedbackSurface } from "@/shared/feedback-archive";
@@ -62,11 +63,8 @@ export interface AnnotateServerOptions {
    * and matches the legacy "last message" behavior.
    */
   recentMessages?: { messageId: string; text: string; timestamp?: string }[];
-  /** Source attribution: original filename (e.g. "index.html") */
-  sourceInfo?: string;
-  /** True when `markdown` was produced by Turndown (HTML) —
-   *  feedback line numbers won't match the original source. */
-  sourceConverted?: boolean;
+  /** The Claude Code session side questions resume; without it they answer 501. */
+  sideChat?: SideChatSession;
   /** Enable review-gate UX: adds an Approve button alongside Close/Send Annotations */
   gate?: boolean;
   /** Whether this transport can deliver feedback attached to an approval. */
@@ -169,8 +167,7 @@ export async function startAnnotateServer(
     origin,
     mode = "annotate",
     recentMessages,
-    sourceInfo,
-    sourceConverted,
+    sideChat,
     gate = false,
     approvalNotesSupported = false,
     clientLeaseTestOverrides,
@@ -396,8 +393,6 @@ export async function startAnnotateServer(
               origin,
               mode,
               filePath,
-              sourceInfo,
-              sourceConverted: sourceConverted ?? false,
               gate,
               approvalNotesSupported,
               clientLease: { enabled: true as const, reconnectGraceMs: clientLeaseGraceMs },
@@ -420,33 +415,11 @@ export async function startAnnotateServer(
           }
 
           // API: fetch a specific version of the annotated file (version diff base picker)
-          //
-          // Folder sessions pass `?path=` (optionally `&base=`) to identify which
-          // file's history to read, resolved and containment-checked exactly like
-          // /api/doc; the slug is always derived server-side from that resolved
-          // path — a client-supplied slug is never accepted, since getHistoryDir
-          // joins it into a filesystem path unsanitized. Without `path`, behavior
-          // is unchanged: the single session's own history is used.
           if (url.pathname === "/api/plan/version" && req.method === "GET") {
-            const pathParam = url.searchParams.get("path");
-            let slug: string;
-            if (pathParam !== null) {
-              const resolved = resolveAllowedDocPath(pathParam, url.searchParams.get("base"), {
-                rootPaths: getReferenceRootPaths(),
-              });
-              if (resolved.kind === "denied") {
-                return Response.json({ error: "Access denied: path is outside project root" }, { status: 403 });
-              }
-              slug = deriveAnnotateHistorySlug(resolved.path);
-              if (getVersionCount(annotateProjectName, slug) === 0) {
-                return Response.json({ error: "No version history" }, { status: 404 });
-              }
-            } else {
-              if (!annotateHistory) {
-                return Response.json({ error: "No version history" }, { status: 404 });
-              }
-              slug = annotateHistory.slug;
+            if (!annotateHistory) {
+              return Response.json({ error: "No version history" }, { status: 404 });
             }
+            const slug = annotateHistory.slug;
             const vParam = url.searchParams.get("v");
             const v = vParam ? parseInt(vParam, 10) : NaN;
             if (isNaN(v) || v < 1) {
@@ -460,24 +433,7 @@ export async function startAnnotateServer(
           }
 
           // API: list all stored versions of the annotated file (Version Browser)
-          // Same `?path=`/`&base=` parameterization as /api/plan/version above.
           if (url.pathname === "/api/plan/versions" && req.method === "GET") {
-            const pathParam = url.searchParams.get("path");
-            if (pathParam !== null) {
-              const resolved = resolveAllowedDocPath(pathParam, url.searchParams.get("base"), {
-                rootPaths: getReferenceRootPaths(),
-              });
-              if (resolved.kind === "denied") {
-                return Response.json({ error: "Access denied: path is outside project root" }, { status: 403 });
-              }
-              const slug = deriveAnnotateHistorySlug(resolved.path);
-              const versions = listVersions(annotateProjectName, slug);
-              return Response.json({
-                project: annotateProjectName,
-                slug: versions.length > 0 ? slug : null,
-                versions,
-              });
-            }
             if (!annotateHistory) {
               return Response.json({ project: annotateProjectName, slug: null, versions: [] });
             }
@@ -503,9 +459,9 @@ export async function startAnnotateServer(
             }
           }
 
-          // API: Side chat (/btw). The forked read-only agent is not built yet.
+          // API: Side chat (/btw)
           if (url.pathname === "/api/side-chat" && req.method === "POST") {
-            return Response.json({ error: "Side chat isn't connected yet" }, { status: 501 });
+            return handleSideChat(req, sideChat);
           }
 
           // API: Serve images (local paths or temp uploads)

@@ -9,11 +9,10 @@ import {
 	resolveMarkdownFile,
 	resolveUserPath,
 	isWithinProjectRoot,
-	getAnnotatableDocRegex,
+	getAnnotatableTextRegex,
 	MAX_ANNOTATABLE_FILE_BYTES,
 } from "@/shared/resolve-file";
 import { realpathSync } from "node:fs";
-import { htmlToMarkdown } from "@/shared/html-to-markdown";
 
 // --- Route handlers ---
 
@@ -150,7 +149,7 @@ export async function handleDoc(req: Request, options: HandleDocOptions = {}): P
 	// (used by annotate mode to resolve paths relative to the source file).
 	const base = url.searchParams.get("base");
 	const resolvedBase = getTrustedBaseDir(base, allowedRoots);
-	const docExtensions = getAnnotatableDocRegex();
+	const docExtensions = getAnnotatableTextRegex();
 	if (
 		resolvedBase &&
 		!isAbsoluteUserPath(requestedPath) &&
@@ -169,34 +168,12 @@ export async function handleDoc(req: Request, options: HandleDocOptions = {}): P
 				if (file.size > MAX_ANNOTATABLE_FILE_BYTES) {
 					return Response.json({ error: "File too large (max 2MB)" }, { status: 413 });
 				}
-				const raw = await file.text();
-				const isHtml = /\.html?$/i.test(requestedPath);
-				const markdown = isHtml ? htmlToMarkdown(raw) : raw;
-				return Response.json({ markdown, filepath: fromBase, isConverted: isHtml });
+				const markdown = await file.text();
+				return Response.json({ markdown, filepath: fromBase });
 			}
 		} catch {
 			/* fall through to standard resolution */
 		}
-	}
-
-	// HTML files: resolve directly (not via resolveMarkdownFile which only handles .md/.mdx)
-	const projectRoot = allowedRoots[0];
-	if (/\.html?$/i.test(requestedPath)) {
-		const resolvedHtml = resolveUserPath(requestedPath, resolvedBase || projectRoot);
-		if (
-			!isWithinAllowedRoots(resolvedHtml, allowedRoots) ||
-			!isRealPathWithinAllowedRoots(resolvedHtml, allowedRoots)
-		) {
-			return accessDenied();
-		}
-		try {
-			const file = Bun.file(resolvedHtml);
-			if (await file.exists()) {
-				const markdown = htmlToMarkdown(await file.text());
-				return Response.json({ markdown, filepath: resolvedHtml, isConverted: true });
-			}
-		} catch { /* fall through */ }
-		return Response.json({ error: `File not found: ${requestedPath}` }, { status: 404 });
 	}
 
 	if (isAbsoluteUserPath(requestedPath) && !isWithinAllowedRoots(resolveUserPath(requestedPath), allowedRoots)) {
