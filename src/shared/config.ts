@@ -84,31 +84,6 @@ export interface HypermarkConfig {
   theme?: ThemeConfig;
   prompts?: PromptConfig;
   /**
-   * Enable `gh attestation verify` during CLI installation/upgrade.
-   * Read by scripts/install.sh|ps1|cmd on every run (not by any runtime code).
-   * When true, the installer runs build-provenance verification after the
-   * SHA256 checksum check; requires `gh` CLI installed and authenticated
-   * (`gh auth login`). OS-level opt-in only — no UI surface. Default: false.
-   */
-  verifyAttestation?: boolean;
-  /**
-   * Installer opt-out for the skills / slash-command checkout. Read by
-   * scripts/install.sh|ps1|cmd on every run (not by any runtime code).
-   * When true, the installer fetches nothing and writes nothing to the
-   * Claude Code or ~/.agents skill scopes, reports the skip honestly, and
-   * never removes a skill a previous install already wrote. Overridden by
-   * the HYPERMARK_SKIP_SKILLS_INSTALL env var, which is in turn overridden
-   * by the --skip-skills flag. Default: off.
-   *
-   * The per-agent entries this object used to carry went with the removed
-   * integrations. It stays an object
-   * rather than a bare boolean so an existing config.json carrying those
-   * keys still parses; unknown keys are simply not read.
-   */
-  skipInstall?: {
-    skills?: boolean;
-  };
-  /**
    * Save per-file version history when annotating local files. Powers the
    * annotate version diff ("what changed since I last looked"). NOTE: this
    * writes a copy of each annotated file's content under

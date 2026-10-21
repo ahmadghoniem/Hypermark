@@ -1,16 +1,12 @@
 /**
  * Sidebar Hook
  *
- * Manages sidebar state: open/close and active tab.
- * Generic over tab type — used by both the plan editor (left sidebar)
- * and the review editor (right sidebar).
+ * Manages sidebar state: open/close and active tab (review editor, right sidebar).
  */
 
 import { useState, useCallback } from "react";
 
-export type SidebarTab = "toc" | "versions";
-
-export interface UseSidebarReturn<T extends string = SidebarTab> {
+export interface UseSidebarReturn<T extends string> {
   isOpen: boolean;
   activeTab: T;
   open: (tab?: T) => void;
@@ -24,9 +20,9 @@ export interface UseSidebarReturn<T extends string = SidebarTab> {
   toggleTab: (tab: T) => void;
 }
 
-export function useSidebar<T extends string = SidebarTab>(initialOpen: boolean, defaultTab?: T): UseSidebarReturn<T> {
+export function useSidebar<T extends string>(initialOpen: boolean, defaultTab: T): UseSidebarReturn<T> {
   const [isOpen, setIsOpen] = useState(initialOpen);
-  const [activeTab, setActiveTab] = useState<T>((defaultTab ?? "toc") as T);
+  const [activeTab, setActiveTab] = useState<T>(defaultTab);
 
   const open = useCallback((tab?: T) => {
     setIsOpen(true);

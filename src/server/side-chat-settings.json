@@ -1,0 +1,5 @@
+{
+  "hooks": {
+    "PreToolUse": [{ "matcher": "*", "hooks": [{ "type": "command", "command": "\"$HYPERMARK_BUN\" \"$HYPERMARK_SIDE_CHAT_HOOK\" || exit 2" }] }]
+  }
+}

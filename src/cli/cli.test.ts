@@ -10,10 +10,8 @@ import {
   isInteractiveNoArgInvocation,
   isSubcommandHelpInvocation,
   isTopLevelHelpInvocation,
-  isUninstallConfirmationAccepted,
   isVersionInvocation,
   parseStrictAnnotateOptions,
-  parseUninstallOptions,
 } from "./cli";
 import {
   findClosestSubcommand,
@@ -37,7 +35,6 @@ describe("CLI top-level help", () => {
     expect(output).toContain("hypermark review [--git]");
     expect(output).toContain("hypermark annotate <file.md | file.txt> [--gate]");
     expect(output).toContain("hypermark annotate-last [--stdin]");
-    expect(output).toContain("hypermark uninstall [--purge] [--yes]");
     expect(output).toContain("Run 'hypermark <command> --help' for command-specific usage.");
   });
 });
@@ -78,7 +75,6 @@ describe("CLI subcommand help", () => {
     for (const sub of [
       "annotate",
       "sessions",
-      "uninstall",
     ]) {
       expect(isSubcommandHelpInvocation([sub, "--help"])).toBe(sub);
     }
@@ -102,57 +98,8 @@ describe("CLI subcommand help", () => {
       "--require-approval",
     );
     expect(formatSubcommandHelp("sessions")).toContain("--open [N]");
-    expect(formatSubcommandHelp("uninstall")).toContain(
-      "Local plans, history, drafts",
-    );
-    expect(formatSubcommandHelp("uninstall")).toContain(
-      "not stored on a Hypermark server",
-    );
     // unknown key falls back to top-level help
     expect(formatSubcommandHelp("nope")).toBe(formatTopLevelHelp());
-  });
-});
-
-describe("uninstall CLI options", () => {
-  test("defaults to preserving data and requiring confirmation", () => {
-    expect(parseUninstallOptions([])).toEqual({
-      purge: false,
-      yes: false,
-      dryRun: false,
-    });
-  });
-
-  test("parses purge, automation, and preview flags", () => {
-    expect(
-      parseUninstallOptions(["--dry-run", "--purge", "-y"]),
-    ).toEqual({
-      purge: true,
-      yes: true,
-      dryRun: true,
-    });
-  });
-
-  test("rejects unknown and duplicate options", () => {
-    expect(() => parseUninstallOptions(["--force"])).toThrow(
-      "Unknown uninstall option",
-    );
-    expect(() => parseUninstallOptions(["--purge", "--purge"])).toThrow(
-      "--purge may only be specified once",
-    );
-    expect(() => parseUninstallOptions(["--yes", "-y"])).toThrow(
-      "--yes/-y may only be specified once",
-    );
-    expect(() => parseUninstallOptions(["--dry-run", "--dry-run"])).toThrow(
-      "--dry-run may only be specified once",
-    );
-  });
-
-  test("uses a stronger confirmation for purge", () => {
-    expect(isUninstallConfirmationAccepted("yes", false)).toBe(true);
-    expect(isUninstallConfirmationAccepted("Y", false)).toBe(true);
-    expect(isUninstallConfirmationAccepted("", false)).toBe(false);
-    expect(isUninstallConfirmationAccepted("yes", true)).toBe(false);
-    expect(isUninstallConfirmationAccepted(" PURGE ", true)).toBe(true);
   });
 });
 
@@ -307,7 +254,6 @@ describe("interactive no-arg invocation", () => {
     expect(output).toContain("does nothing in an interactive terminal");
     expect(output).toContain("hypermark review");
     expect(output).toContain("hypermark sessions");
-    expect(output).toContain("hypermark uninstall");
     expect(output).toContain("Run 'hypermark --help' for top-level usage.");
   });
 });
@@ -329,7 +275,7 @@ describe("unknown subcommand error", () => {
     test("suggests the nearest documented command", () => {
       expect(findClosestSubcommand("annotatte")).toBe("annotate");
       expect(findClosestSubcommand("revieww")).toBe("review");
-      expect(findClosestSubcommand("uninstal")).toBe("uninstall");
+      expect(findClosestSubcommand("sesions")).toBe("sessions");
       expect(findClosestSubcommand("annot")).toBe("annotate");
       expect(findClosestSubcommand("a")).toBeNull();
       expect(findClosestSubcommand("xyzzy")).toBeNull();

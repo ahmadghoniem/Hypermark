@@ -9,13 +9,11 @@ import { BlockRenderer } from './BlockRenderer';
 import { CodeBlock } from './blocks/CodeBlock';
 import { TableBlock } from './blocks/TableBlock';
 import { TableToolbar } from './blocks/TableToolbar';
-import { TablePopout } from './blocks/TablePopout';
 
 import { CommentPopover } from './CommentPopover';
 import { ImageLightbox } from './ImageLightbox';
-import { GraphvizBlock } from './GraphvizBlock';
 import { MermaidBlock } from './MermaidBlock';
-import { isGraphvizLanguage, isMermaidLanguage } from './diagramLanguages';
+import { isMermaidLanguage } from './diagramLanguages';
 import { useQuickLabels } from '../hooks/useQuickLabels';
 import { DocBadges, type LinkedDocBadgeInfo } from './DocBadges';
 import { PlanDiffSwitch, hasPlanDiffChanges } from './plan-diff/PlanDiffSwitch';
@@ -61,10 +59,12 @@ export interface ViewerProps {
   // Checkbox toggle props
   onToggleCheckbox?: (blockId: string, checked: boolean) => void;
   checkboxOverrides?: Map<string, boolean>;
-  /** Turns on `/btw` in the composer. Called with the question and the highlighted text. */
+  /** Turns on `/sidechat` in the composer. Called with the question and the highlighted text. */
   onAskSideQuestion?: (question: string, quote: string) => void;
   /** Called when the viewer opens a composer for a new selection. */
   onComposerOpen?: () => void;
+  /** Called with whether the selection composer is open, each time that changes. */
+  onComposerOpenChange?: (open: boolean) => void;
 }
 
 export interface ViewerHandle {
@@ -192,6 +192,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   onToggleCheckbox,
   checkboxOverrides,
   onComposerOpen,
+  onComposerOpenChange,
   onAskSideQuestion,
 }, ref) => {
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
@@ -238,7 +239,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   const [hoveredTable, setHoveredTable] = useState<{ block: Block; element: HTMLElement } | null>(null);
   const [isTableToolbarExiting, setIsTableToolbarExiting] = useState(false);
   const tableHoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [popoutTable, setPopoutTable] = useState<Block | null>(null);
   // Viewer-specific comment popover state (code blocks)
   const [viewerCommentPopover, setViewerCommentPopover] = useState<{
     anchorEl: HTMLElement;
@@ -464,6 +464,11 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     composerDirtyRef.current = false;
     if (composerOpen) onComposerOpenRef.current?.();
   }, [composerOpen, hookCommentPopover, viewerCommentPopover]);
+  const onComposerOpenChangeRef = useRef(onComposerOpenChange);
+  onComposerOpenChangeRef.current = onComposerOpenChange;
+  useEffect(() => {
+    onComposerOpenChangeRef.current?.(composerOpen);
+  }, [composerOpen]);
 
   // Imperative handle — delegates to hook, extends removeHighlight for code blocks
   useImperativeHandle(ref, () => ({
@@ -576,8 +581,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
             })()
           ) : group.block.type === 'code' && isMermaidLanguage(group.block.language) ? (
             <MermaidBlock key={group.block.id} block={group.block} />
-          ) : group.block.type === 'code' && isGraphvizLanguage(group.block.language) ? (
-            <GraphvizBlock key={group.block.id} block={group.block} />
           ) : group.block.type === 'table' ? (
             <TableBlock
               key={group.block.id}
@@ -619,15 +622,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
             element={hoveredTable.element}
             markdown={hoveredTable.block.content}
             isExiting={isTableToolbarExiting}
-            onExpand={() => {
-              setPopoutTable(hoveredTable.block);
-              setHoveredTable(null);
-              setIsTableToolbarExiting(false);
-              if (tableHoverTimeoutRef.current) {
-                clearTimeout(tableHoverTimeoutRef.current);
-                tableHoverTimeoutRef.current = null;
-              }
-            }}
             onMouseEnter={() => {
               if (tableHoverTimeoutRef.current) {
                 clearTimeout(tableHoverTimeoutRef.current);
@@ -644,21 +638,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
                 }, 150);
               }, 100);
             }}
-          />
-        )}
-
-        {/* Table popout dialog — portaled into containerRef so annotations */}
-        {/* can walk into its text nodes the same way they do the inline table. */}
-        {popoutTable && (
-          <TablePopout
-            block={popoutTable}
-            open={!!popoutTable}
-            onClose={() => setPopoutTable(null)}
-            container={containerRef.current}
-            imageBaseDir={imageBaseDir}
-            onImageClick={(src, alt) => setLightbox({ src, alt })}
-            onOpenLinkedDoc={onOpenLinkedDoc}
-            onNavigateAnchor={scrollToAnchor}
           />
         )}
 

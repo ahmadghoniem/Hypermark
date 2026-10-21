@@ -60,7 +60,7 @@ If successful, you'll see `dist/annotate/index.html` created.
 **Shared components** (used by both annotate and review UIs):
 
 - Location: `src/ui/components/`
-- Examples: `TableOfContents.tsx`, `AnnotationToolbar.tsx`, `Viewer.tsx`
+- Examples: `AnnotationToolbar.tsx`, `CommentPopover.tsx`, `Viewer.tsx`
 
 **Annotate editor** (markdown/HTML annotation UI):
 
@@ -75,7 +75,7 @@ If successful, you'll see `dist/annotate/index.html` created.
 **Utilities and hooks**:
 
 - Location: `src/ui/utils/`, `src/ui/hooks/`
-- Examples: `parser.ts`, `useActiveSection.ts`, `annotationHelpers.ts`
+- Examples: `parser.ts`, `useSidebar.ts`, `annotationHelpers.ts`
 
 ### Development Servers (Hot Reload)
 

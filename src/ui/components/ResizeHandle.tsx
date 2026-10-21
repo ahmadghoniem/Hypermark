@@ -1,7 +1,5 @@
 import React from 'react';
-import { createPortal } from 'react-dom';
 import type { ResizeHandleProps as BaseProps } from '../hooks/useResizablePanel';
-import { ChevronLeft, ChevronRight } from '@untitledui/icons';
 
 interface Props extends BaseProps {
   className?: string;
@@ -16,12 +14,6 @@ interface Props extends BaseProps {
   trackClassName?: string;
   /** Suppress the hover color-change on the track entirely (no pop-in). */
   hideHoverTrack?: boolean;
-  /** Cursor-following hint shown while hovering the handle (hidden mid-drag). */
-  tooltip?: React.ReactNode;
-  /** When provided, renders a hover-reveal collapse button centered on the
-   *  handle (prototype's gutter affordance). Chevron direction follows `side`:
-   *  a left sidebar collapses leftward, a right sidebar rightward. */
-  onCollapse?: () => void;
   /**
    * Which panel this handle resizes, not which side of the boundary it's on.
    *
@@ -51,13 +43,8 @@ export const ResizeHandle: React.FC<Props> = ({
   className,
   trackClassName,
   hideHoverTrack,
-  tooltip,
   side,
-  onCollapse,
 }) => {
-  const [tip, setTip] = React.useState<{ x: number; y: number } | null>(null);
-  const showTip = tooltip != null && tip != null && !isDragging;
-
   return (
     <div
       className={`relative w-0 cursor-col-resize shrink-0 group${className ? ` ${className}` : ''}`}
@@ -83,38 +70,7 @@ export const ResizeHandle: React.FC<Props> = ({
         style={style}
         onPointerDown={onPointerDown}
         onDoubleClick={onDoubleClick}
-        onPointerMove={tooltip != null && !isDragging ? (e) => setTip({ x: e.clientX, y: e.clientY }) : undefined}
-        onPointerLeave={tooltip != null ? () => setTip(null) : undefined}
       />
-      {/* Cursor-following hint. pointer-events-none so it never blocks the drag;
-          portaled to body so the zero-width parent doesn't clip it. */}
-      {showTip && typeof document !== 'undefined' && createPortal(
-        <div
-          style={{ position: 'fixed', left: tip.x + 14, top: tip.y + 16, zIndex: 100 }}
-          className="pointer-events-none whitespace-nowrap rounded-md bg-surface-4 px-2 py-1 text-caption text-foreground shadow-md ring-1 ring-border/60"
-        >
-          {tooltip}
-        </div>,
-        document.body,
-      )}
-      {/* Hover-reveal collapse button, centered on the handle. stopPropagation on
-          pointerdown so clicking it never starts a drag. Hidden mid-drag. */}
-      {onCollapse && !isDragging && (
-        <button
-          type="button"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            onCollapse();
-          }}
-          title="Collapse sidebar"
-          aria-label="Collapse sidebar"
-          data-collapse={side}
-          className="absolute top-1/2 left-1/2 z-20 flex h-6 w-4 -translate-1/2  items-center justify-center before:absolute before:-inset-2 before:content-[''] rounded-sm bg-surface-3 text-muted-foreground/60 opacity-0 ring-1 ring-border/40 transition-opacity hover:text-foreground group-hover:opacity-100 group-hover/sidebar:opacity-100"
-        >
-          {side === 'right' ? <ChevronRight className="size-3" /> : <ChevronLeft className="size-3" />}
-        </button>
-      )}
     </div>
   );
 };

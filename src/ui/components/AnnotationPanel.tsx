@@ -46,8 +46,8 @@ const PanelTip: React.FC<{ label: string; children: React.ReactElement }> = ({ l
   </Tooltip>
 );
 
-/** Bottom-right card actions: copy always, edit and delete unless read-only.
- *  Edit opens the annotation's composer. */
+/** The card's footer: the actions on the right, always shown: copy always,
+ *  edit and delete unless read-only. Edit opens the annotation's composer. */
 const CardActions: React.FC<{
   copyText: string;
   onEdit?: () => void;
@@ -56,7 +56,7 @@ const CardActions: React.FC<{
   const [copied, setCopied] = useState(false);
   const copyLabel = copied ? 'Copied' : 'Copy annotation';
   return (
-    <div className="-mb-1.5 mt-0.5 flex items-center justify-end opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+    <div className="-mb-1.5 mt-0.5 flex items-center justify-end">
       <PanelTip label={copyLabel}>
         <Button
           variant="ghost"
@@ -195,8 +195,8 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
     <aside
       data-annotation-panel="true"
       data-plan-sidebar="right"
-      className={`bg-surface-1 flex flex-col shrink-0 ${
-        mobilePanel ? 'fixed top-12 bottom-0 right-0 z-panel w-full max-w-sm shadow-2xl' : ''
+      className={`bg-surface-2 flex flex-col shrink-0 ${
+        mobilePanel ? 'fixed top-12 bottom-0 right-0 z-panel w-full max-w-sm shadow-2xl' : 'border-l border-border/50'
       }`}
       style={mobilePanel ? undefined : { width: width ?? 288 }}
     >
@@ -379,9 +379,10 @@ const AnnotationCard: React.FC<{
         }
       }}
       className={cn(
-        // Raised one surface step above the panel, and one more when selected.
-        'group w-full cursor-pointer rounded-lg px-3 py-2.5 text-left transition-[background-color,box-shadow] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-        isSelected ? 'bg-surface-3 shadow-surface-3' : 'bg-surface-2 shadow-surface-2',
+        // An element on the panel: surface 3 at rest, 4 hovered, 5 selected.
+        // Named so the buttons inside, each its own `group`, don't take the card's hover.
+        'group/card w-full cursor-pointer rounded-lg px-3 py-2.5 text-left transition-[background-color,box-shadow] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+        isSelected ? 'bg-surface-5 shadow-surface-3' : 'bg-surface-3 shadow-surface-2 hover:bg-surface-4',
       )}
     >
       {/* Header: type word + chips, time on the right */}
@@ -399,24 +400,27 @@ const AnnotationCard: React.FC<{
 
       {/* Global Comment - show text directly */}
       {isGlobal ? (
-        <p className="whitespace-pre-wrap text-body text-foreground/90">
+        <p className="whitespace-pre-wrap wrap-anywhere text-body text-foreground/90">
           {annotation.text}
         </p>
       ) : (
         <>
-          {/* Quote — the annotated text, in a recessed chip */}
-          <p
-            className={cn(
-              'mb-1.5 line-clamp-2 whitespace-pre-wrap rounded-md bg-surface-4 px-2 py-1 text-caption text-muted-foreground',
-              annotation.type === AnnotationType.DELETION && 'line-through decoration-destructive/60',
-            )}
-          >
-            {annotation.originalText}
-          </p>
+          {/* Quote — the annotated text, behind the composer's quote bar */}
+          <div className="mb-1.5 flex gap-2">
+            <span aria-hidden="true" className="w-0.5 shrink-0 self-stretch rounded-full bg-muted-foreground/35" />
+            <p
+              className={cn(
+                'line-clamp-2 min-w-0 flex-1 whitespace-pre-wrap wrap-anywhere text-caption text-muted-foreground',
+                annotation.type === AnnotationType.DELETION && 'line-through decoration-destructive/60',
+              )}
+            >
+              {annotation.originalText}
+            </p>
+          </div>
 
           {/* Comment/Replacement Text */}
           {annotation.type !== AnnotationType.DELETION && annotation.text && (
-            <p className="whitespace-pre-wrap text-body text-foreground/90">
+            <p className="whitespace-pre-wrap wrap-anywhere text-body text-foreground/90">
               {annotation.text}
             </p>
           )}

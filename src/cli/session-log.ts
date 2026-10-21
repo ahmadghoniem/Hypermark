@@ -21,23 +21,12 @@ import {
   accessSync,
   constants as fsConstants,
 } from "node:fs";
-import { join, dirname, basename } from "node:path";
+import { join, basename } from "node:path";
 import { homedir } from "node:os";
-import { createDefaultGetParentPid } from "@/server";
 
 const claudeConfigDir =
   process.env.CLAUDE_CONFIG_DIR || join(homedir(), ".claude");
-const DEFAULT_SESSIONS_DIR = join(claudeConfigDir, "sessions");
 const DEFAULT_PROJECTS_DIR = join(claudeConfigDir, "projects");
-
-/**
- * Normalize a cwd for comparison. On Windows, filesystems are case-insensitive
- * and processes can report drive letters in either case, so we lowercase and
- * fold slashes.
- */
-export function normalizeCwdForCompare(cwd: string): string {
-  return cwd.replace(/\//g, "\\").toLowerCase();
-}
 
 // --- Types ---
 
@@ -70,471 +59,73 @@ export interface RenderedMessage {
   lineNumbers: number[];
   /** Timestamp from the entry (ISO 8601), if available */
   timestamp?: string;
+  /** A compaction comes between this message and the next newer one. */
+  compactedAfter?: boolean;
+  /** The rail leaves this message out (see `isHiddenMessage`). */
+  hidden?: boolean;
 }
 
-// --- Session File Discovery ---
+/** The entry Claude Code writes where `/compact` (or auto-compact) cut the conversation. */
+function isCompactBoundary(entry: SessionLogEntry | undefined): boolean {
+  return entry?.type === "system" && entry.subtype === "compact_boundary";
+}
+
+// --- Session Resolution ---
 
 /**
  * Derive the project slug from a working directory path.
  * Claude Code replaces every character outside [a-zA-Z0-9-] with `-`.
- * On Windows it also lowercases drive letters (C: → c-).
  */
 export function projectSlugFromCwd(cwd: string): string {
   return cwd.replace(/[^a-zA-Z0-9-]/g, "-");
 }
 
-/**
- * Find all .jsonl session log files in a project directory,
- * sorted by modification time (most recent first).
- * Returns empty array if no session logs exist.
- */
-function findSessionLogs(projectDir: string): string[] {
-  let files: string[];
-  try {
-    files = readdirSync(projectDir).filter((f) => f.endsWith(".jsonl"));
-  } catch {
-    return [];
-  }
+/** Why no log was found for a session id. */
+export type ClaudeSessionLogMissReason =
+  /** Not a plain file name. */
+  | "invalid-id"
+  /** No project folder holds `<id>.jsonl`. */
+  | "missing"
+  /** More than one project folder holds it, and the cwd's folder doesn't. */
+  | "duplicate"
+  /** The file exists but can't be read. */
+  | "unreadable";
 
-  if (files.length === 0) return [];
-
-  const withMtime: { path: string; mtime: number }[] = [];
-  for (const f of files) {
-    const full = join(projectDir, f);
-    try {
-      withMtime.push({ path: full, mtime: statSync(full).mtimeMs });
-    } catch {
-      // File disappeared between readdir and stat — skip
-    }
-  }
-
-  return withMtime
-    .sort((a, b) => b.mtime - a.mtime)
-    .map((f) => f.path);
-}
-
-/**
- * Find session log candidates for a given working directory.
- * Returns all .jsonl paths sorted by mtime (most recent first).
- *
- * Scans the projects directory for the on-disk directory name matching the cwd
- * slug (preferring an exact match, falling back to a case-insensitive match
- * to handle Windows drive-letter casing differences) so returned paths reflect
- * the actual on-disk casing rather than the caller's.
- * Falls back to `join(projectsDir, slug)` directly if reading `projectsDir` fails.
- */
-export function findSessionLogsForCwd(cwd: string, projectsDirOverride?: string): string[] {
-  const slug = projectSlugFromCwd(cwd);
-  const projectsDir = projectsDirOverride ?? DEFAULT_PROJECTS_DIR;
-
-  let matchedDirName: string | null = null;
-  try {
-    const entries = readdirSync(projectsDir);
-    const slugLower = slug.toLowerCase();
-    let caseInsensitiveMatch: string | null = null;
-    for (const entry of entries) {
-      if (entry === slug) {
-        matchedDirName = entry;
-        break;
-      }
-      if (caseInsensitiveMatch === null && entry.toLowerCase() === slugLower) {
-        caseInsensitiveMatch = entry;
-      }
-    }
-    matchedDirName = matchedDirName ?? caseInsensitiveMatch;
-  } catch {
-    // If readdirSync(projectsDir) throws (directory absent), fall back to slug directly
-  }
-
-  const projectDir = join(projectsDir, matchedDirName ?? slug);
-  return findSessionLogs(projectDir);
-}
-
-// --- Session Metadata Resolution ---
-
-/**
- * Claude Code writes per-process session metadata to:
- *   ~/.claude/sessions/<pid>.json
- *
- * Each file contains:
- *   { pid, sessionId, cwd, startedAt }
- *
- * This lets us deterministically resolve the correct session log
- * when the shell CWD has diverged from the session's project directory
- * (e.g. after the user runs `cd` during a session).
- */
-
-interface SessionMetadata {
-  pid: number;
-  sessionId: string;
-  cwd: string;
-  startedAt: number;
-}
+type ClaudeSessionLogLookup =
+  | { status: "found"; logPath: string }
+  | { status: "miss"; reason: ClaudeSessionLogMissReason };
 
 export type ClaudeSessionLogResolution =
   | { status: "unavailable" }
-  | { status: "blocked"; source: "cwd-metadata" }
-  | {
-      status: "identified";
-      sessionId: string;
-      logPath: string | null;
-      source: "ancestor-pid" | "cwd-metadata";
-    };
-
-/** An ancestor-PID resolution, plus the PID whose metadata matched (Claude Code's). */
-type AncestorPidResolution =
-  | ClaudeSessionLogResolution
-  | (ClaudeSessionLogResolution & { status: "identified"; ancestorPid: number });
+  | { status: "identified"; sessionId: string; logPath: string }
+  | { status: "identified"; sessionId: string; logPath: null; reason: ClaudeSessionLogMissReason };
 
 export interface ClaudeSessionLogResolutionOptions {
-  startPid?: number;
+  /**
+   * The invoking session's id. Defaults to `CLAUDE_CODE_SESSION_ID`, which
+   * Claude Code (2.1.132+) sets on every shell it spawns to the session
+   * current at that moment, so it follows /resume, /clear and /cd. The log's
+   * file name is this id.
+   */
+  sessionId?: string;
+  /** The session's working directory, whose project folder is checked first. */
   cwd?: string;
-  sessionsDir?: string;
   projectsDir?: string;
-  getParentPid?: (pid: number) => number | null;
-  maxHops?: number;
-  /** Called before a metadata read is retried (test seam). */
-  beforeMetadataRetry?: (path: string) => void;
-}
-
-function parseSessionMetadata(value: unknown): SessionMetadata | null {
-  if (!value || typeof value !== "object") return null;
-  const meta = value as Record<string, unknown>;
-  if (
-    typeof meta.pid !== "number" ||
-    !Number.isFinite(meta.pid) ||
-    typeof meta.sessionId !== "string" ||
-    !meta.sessionId ||
-    typeof meta.cwd !== "string" ||
-    !meta.cwd ||
-    typeof meta.startedAt !== "number" ||
-    !Number.isFinite(meta.startedAt)
-  ) {
-    return null;
-  }
-  return {
-    pid: meta.pid,
-    sessionId: meta.sessionId,
-    cwd: meta.cwd,
-    startedAt: meta.startedAt,
-  };
-}
-
-type SessionMetadataReadResult =
-  | { status: "absent" }
-  | { status: "invalid" }
-  | { status: "valid"; metadata: SessionMetadata };
-
-// Claude rewrites its metadata file in place, so a read can land mid-write.
-const SESSION_METADATA_RETRY_MS = 50;
-
-function sleepSync(ms: number): void {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-}
-
-/** Read `<pid>.json`, retrying once if it is unreadable or malformed. */
-function readSessionMetadata(
-  pid: number,
-  sessionsDir: string,
-  beforeRetry?: (path: string) => void,
-): SessionMetadataReadResult {
-  const first = readSessionMetadataOnce(pid, sessionsDir);
-  if (first.status !== "invalid") return first;
-  beforeRetry?.(join(sessionsDir, `${pid}.json`));
-  sleepSync(SESSION_METADATA_RETRY_MS);
-  return readSessionMetadataOnce(pid, sessionsDir);
-}
-
-function readSessionMetadataOnce(
-  pid: number,
-  sessionsDir: string,
-): SessionMetadataReadResult {
-  const metaPath = join(sessionsDir, `${pid}.json`);
-  let content: string;
-  try {
-    content = readFileSync(metaPath, "utf-8");
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code === "ENOENT"
-      ? { status: "absent" }
-      : { status: "invalid" };
-  }
-  try {
-    const metadata = parseSessionMetadata(JSON.parse(content));
-    return metadata
-      ? { status: "valid", metadata }
-      : { status: "invalid" };
-  } catch {
-    return { status: "invalid" };
-  }
 }
 
 /**
- * Walk up the process tree from `startPid`, collecting PIDs until we hit
- * init (PID 1), a cycle, or `maxHops` is reached.
- *
- * Why: when hypermark is spawned by a slash command's `!` bang, the direct
- * parent is a bash subshell — not Claude Code. Claude's `sessions/<pid>.json`
- * lives a few hops up. We can't assume `process.ppid` is the right PID.
- */
-export function getAncestorPids(
-  startPid: number,
-  maxHops: number,
-  getParent: (pid: number) => number | null
-): number[] {
-  if (!startPid || startPid <= 1) return [];
-  const chain: number[] = [];
-  const seen = new Set<number>();
-  let pid: number | null = startPid;
-  while (chain.length < maxHops && pid !== null && pid > 1 && !seen.has(pid)) {
-    chain.push(pid);
-    seen.add(pid);
-    pid = getParent(pid);
-  }
-  return chain;
-}
-
-type SessionRegistrationStatus = "registered" | "unregistered" | "unknown";
-
-/**
- * Check whether a sessionId is referenced by any metadata file in the sessions
- * dir. Distinguishes "ghost" sessions (created by /clear but never registered
- * in metadata) from legitimate concurrent sessions (which have their own PID's
- * metadata file). "unknown" when a metadata file stays unparsable: it could be
- * a sibling caught mid-rewrite, so it must not be read as "unregistered".
- */
-function resolveSessionRegistration(
-  sessionId: string,
-  sessionsDir: string,
-  beforeRetry?: (path: string) => void,
-): SessionRegistrationStatus {
-  let files: string[];
-  try {
-    files = readdirSync(sessionsDir).filter((f) => f.endsWith(".json"));
-  } catch {
-    return "unknown";
-  }
-
-  for (const f of files) {
-    const path = join(sessionsDir, f);
-    let content: string;
-    try {
-      content = readFileSync(path, "utf-8");
-    } catch {
-      // Unreadable metadata cannot be attributed to a session.
-      continue;
-    }
-    let value: unknown;
-    try {
-      value = JSON.parse(content);
-    } catch {
-      // Likely caught mid-rewrite. If it stays unparsable it could belong to
-      // the sibling, so keep the session's own transcript rather than risk
-      // returning another live session's conversation.
-      beforeRetry?.(path);
-      sleepSync(SESSION_METADATA_RETRY_MS);
-      try {
-        value = JSON.parse(readFileSync(path, "utf-8"));
-      } catch {
-        return "unknown";
-      }
-    }
-    // Match on the id alone so a record with other invalid fields still
-    // counts as registering its session.
-    if (
-      value &&
-      typeof value === "object" &&
-      (value as Record<string, unknown>).sessionId === sessionId
-    ) {
-      return "registered";
-    }
-  }
-
-  return "unregistered";
-}
-
-/** A session log resolved by walking ancestor PIDs, with the PID it matched on. */
-export interface AncestorSessionMatch {
-  logPath: string;
-  /** The ancestor PID whose `~/.claude/sessions/<pid>.json` metadata matched — this is Claude Code's PID. */
-  ancestorPid: number;
-}
-
-/**
- * Resolve a session by walking up the PID chain, checking
- * `~/.claude/sessions/<pid>.json` at each hop for session metadata.
- *
- * The session id is looked up across project folders, because a session
- * continued from another directory (or a moved worktree) keeps writing its
- * original log. When the exact log has a newer sibling, an unregistered
- * sibling is a "ghost" session created by /clear and wins; a registered one
- * is a concurrent session and doesn't.
- *
- * A metadata file that stays malformed after a retry ends the walk as
- * "unavailable", so the cwd scan decides rather than an unrelated outer
- * session further up the tree.
- */
-function resolveSessionLogByAncestorPidsDetailed(
-  opts: ClaudeSessionLogResolutionOptions = {},
-): AncestorPidResolution {
-  const startPid = opts.startPid ?? process.ppid;
-  if (!startPid) return { status: "unavailable" };
-  const sessionsDir = opts.sessionsDir ?? DEFAULT_SESSIONS_DIR;
-  // Fresh closure per call: each resolver invocation gets its own snapshot,
-  // so the process table can't go stale between unrelated lookups.
-  const getParent = opts.getParentPid ?? createDefaultGetParentPid();
-  const maxHops = opts.maxHops ?? 8;
-
-  const pids = getAncestorPids(startPid, maxHops, getParent);
-  for (const pid of pids) {
-    const metadata = readSessionMetadata(pid, sessionsDir, opts.beforeMetadataRetry);
-    if (metadata.status === "absent") continue;
-    if (metadata.status === "invalid") return { status: "unavailable" };
-    const meta = metadata.metadata;
-
-    const identified = (sessionId: string, logPath: string | null): AncestorPidResolution => ({
-      status: "identified",
-      sessionId,
-      logPath,
-      source: "ancestor-pid",
-      ancestorPid: pid,
-    });
-
-    const match = findClaudeSessionLogById(meta.sessionId, opts.projectsDir);
-    if (!match) return identified(meta.sessionId, null);
-    const preciseMatch = identified(meta.sessionId, match);
-
-    // Check for stale metadata: if a newer sibling log has no registered
-    // metadata, it's a ghost session from /clear — prefer it.
-    const candidates = findSessionLogs(dirname(match));
-    let matchMtime: number;
-    try {
-      matchMtime = statSync(match).mtimeMs;
-    } catch {
-      return preciseMatch;
-    }
-    for (const candidate of candidates) {
-      if (candidate === match) break;
-      try {
-        if (statSync(candidate).mtimeMs <= matchMtime) break;
-        const candidateSessionId = basename(candidate, ".jsonl");
-        const registration = resolveSessionRegistration(
-          candidateSessionId,
-          sessionsDir,
-          opts.beforeMetadataRetry,
-        );
-        if (registration === "unknown") return preciseMatch;
-        if (registration === "unregistered") return identified(candidateSessionId, candidate);
-      } catch {
-        return preciseMatch;
-      }
-    }
-
-    return preciseMatch;
-  }
-  return { status: "unavailable" };
-}
-
-/**
- * The ancestor-PID resolution as a log path plus Claude Code's PID (which the
- * parent watcher, src/server/parent-watch.ts, uses to detect when that Claude
- * Code process exits). Null when no ancestor's metadata leads to a log.
- */
-export function resolveSessionLogByAncestorPids(
-  opts: ClaudeSessionLogResolutionOptions = {},
-): AncestorSessionMatch | null {
-  const resolution = resolveSessionLogByAncestorPidsDetailed(opts);
-  return resolution.status === "identified" && resolution.logPath && "ancestorPid" in resolution
-    ? { logPath: resolution.logPath, ancestorPid: resolution.ancestorPid }
-    : null;
-}
-
-/**
- * Resolve a session by scanning all `~/.claude/sessions/*.json` metadata
- * files, filtering to those whose `cwd` matches, and picking the session with
- * the most recent `startedAt`.
- *
- * Better than "newest jsonl mtime in the project dir" because it uses
- * session-level metadata rather than file modification time, which can be
- * touched by unrelated processes or resumed sessions.
- *
- * A session with no transcript yet (opened, no messages) is skipped so it
- * can't shadow the active session in the same directory. A matching-cwd record
- * that is malformed blocks the scan, and a transcript that can't be resolved
- * unambiguously stops it.
- */
-function resolveSessionLogByCwdScanDetailed(
-  opts: ClaudeSessionLogResolutionOptions = {},
-): ClaudeSessionLogResolution {
-  const cwd = opts.cwd ?? process.cwd();
-  const sessionsDir = opts.sessionsDir ?? DEFAULT_SESSIONS_DIR;
-
-  let files: string[];
-  try {
-    files = readdirSync(sessionsDir).filter((f) => f.endsWith(".json"));
-  } catch {
-    return { status: "unavailable" };
-  }
-
-  const normalizedTarget = normalizeCwdForCompare(cwd);
-  const candidates: SessionMetadata[] = [];
-  for (const f of files) {
-    let value: unknown;
-    try {
-      value = JSON.parse(readFileSync(join(sessionsDir, f), "utf-8"));
-    } catch {
-      // Cannot associate unreadable or malformed metadata with this cwd.
-      continue;
-    }
-    if (!value || typeof value !== "object") continue;
-    const rawCwd = (value as Record<string, unknown>).cwd;
-    if (
-      typeof rawCwd !== "string" ||
-      normalizeCwdForCompare(rawCwd) !== normalizedTarget
-    ) {
-      continue;
-    }
-    const meta = parseSessionMetadata(value);
-    if (!meta) return { status: "blocked", source: "cwd-metadata" };
-    candidates.push(meta);
-  }
-
-  candidates.sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0));
-
-  for (const meta of candidates) {
-    const lookup = lookupClaudeSessionLogById(meta.sessionId, opts.projectsDir);
-    if (lookup.status === "missing") continue;
-    return {
-      status: "identified",
-      sessionId: meta.sessionId,
-      logPath: lookup.status === "found" ? lookup.logPath : null,
-      source: "cwd-metadata",
-    };
-  }
-  return { status: "unavailable" };
-}
-
-export function resolveSessionLogByCwdScan(
-  opts: ClaudeSessionLogResolutionOptions = {},
-): string | null {
-  const resolution = resolveSessionLogByCwdScanDetailed(opts);
-  return resolution.status === "identified" ? resolution.logPath : null;
-}
-
-/**
- * Identify the invoking Claude session: ancestor-PID metadata first, then the
- * cwd scan. "unavailable" means no metadata identifies a session, the only
- * case where the caller should fall back to guessing by file time.
+ * Identify the invoking Claude session from `CLAUDE_CODE_SESSION_ID` and find
+ * its log.
  */
 export function resolveClaudeSessionLog(
   opts: ClaudeSessionLogResolutionOptions = {},
 ): ClaudeSessionLogResolution {
-  const ancestor = resolveSessionLogByAncestorPidsDetailed(opts);
-  if (ancestor.status === "identified" && "ancestorPid" in ancestor) {
-    const { ancestorPid: _pid, ...resolution } = ancestor;
-    return resolution;
-  }
-  if (ancestor.status !== "unavailable") return ancestor;
-  return resolveSessionLogByCwdScanDetailed(opts);
+  const sessionId = opts.sessionId ?? process.env.CLAUDE_CODE_SESSION_ID;
+  if (!sessionId) return { status: "unavailable" };
+  const lookup = lookupClaudeSessionLog(sessionId, opts);
+  return lookup.status === "found"
+    ? { status: "identified", sessionId, logPath: lookup.logPath }
+    : { status: "identified", sessionId, logPath: null, reason: lookup.reason };
 }
 
 /**
@@ -544,108 +135,88 @@ export function resolveClaudeSessionLog(
 export function describeClaudeSessionResolutionFailure(
   resolution: ClaudeSessionLogResolution,
 ): string | null {
-  if (resolution.status === "blocked") {
-    return "Claude session metadata for this directory could not be used, so the current session is ambiguous. Try again in a moment.";
+  if (resolution.status === "unavailable") {
+    return "CLAUDE_CODE_SESSION_ID is not set: run this from Claude Code 2.1.132 or later, or pass the message with --stdin.";
   }
-  if (resolution.status === "identified" && !resolution.logPath) {
-    return `No unique readable transcript found for Claude session ${resolution.sessionId} (a new session has none until its first message).`;
+  if (resolution.logPath) return null;
+  const id = resolution.sessionId;
+  switch (resolution.reason) {
+    case "invalid-id":
+      return `CLAUDE_CODE_SESSION_ID is not a valid session id: ${id}.`;
+    case "missing":
+      return `No transcript found for Claude session ${id} under ${DEFAULT_PROJECTS_DIR} (check CLAUDE_CONFIG_DIR).`;
+    case "duplicate":
+      return `More than one project folder holds a transcript for Claude session ${id}, so it is ambiguous.`;
+    case "unreadable":
+      return `The transcript for Claude session ${id} can't be read.`;
   }
-  return null;
 }
 
-type ClaudeSessionLogLookup =
-  | { status: "found"; logPath: string }
-  | { status: "missing" }
-  // Invalid id, unreadable file, or the id exists under more than one folder.
-  | { status: "unknown" };
+/** Stat `<dir>/<sessionId>.jsonl`: a readable file, absent, or unreadable. */
+function probeLog(path: string): "found" | "absent" | "unreadable" {
+  try {
+    if (!statSync(path).isFile()) return "absent";
+    accessSync(path, fsConstants.R_OK);
+    return "found";
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    return code === "ENOENT" || code === "ENOTDIR" ? "absent" : "unreadable";
+  }
+}
 
-function lookupClaudeSessionLogById(
+/**
+ * Find `<sessionId>.jsonl`. The cwd's project folder is checked first: /cd
+ * moves the log there, so that is where it almost always is, and a hit there
+ * is the session's live log. Otherwise every project folder is checked (a
+ * session resumed from another directory keeps writing its original log, and
+ * a long path's folder name is shortened), and only a unique file counts.
+ */
+function lookupClaudeSessionLog(
   sessionId: string,
-  projectsDirOverride?: string,
+  opts: ClaudeSessionLogResolutionOptions,
 ): ClaudeSessionLogLookup {
   if (
-    typeof sessionId !== "string" ||
     !sessionId ||
     sessionId.includes("/") ||
     sessionId.includes("\\") ||
     sessionId.includes("\0") ||
     basename(sessionId) !== sessionId
   ) {
-    return { status: "unknown" };
+    return { status: "miss", reason: "invalid-id" };
   }
 
-  const projectsDir = projectsDirOverride ?? DEFAULT_PROJECTS_DIR;
+  const projectsDir = opts.projectsDir ?? DEFAULT_PROJECTS_DIR;
+  const fileName = `${sessionId}.jsonl`;
+  const cwdSlug = projectSlugFromCwd(opts.cwd ?? process.env.HYPERMARK_CWD ?? process.cwd());
+
+  // The file system decides case: Windows and macOS match a differently-cased
+  // drive letter or folder, Linux doesn't need to.
+  const cwdLog = join(projectsDir, cwdSlug, fileName);
+  const cwdProbe = probeLog(cwdLog);
+  if (cwdProbe === "found") return { status: "found", logPath: cwdLog };
+  if (cwdProbe === "unreadable") return { status: "miss", reason: "unreadable" };
+
   let projectDirs: string[];
   try {
     projectDirs = readdirSync(projectsDir, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name);
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code === "ENOENT"
-      ? { status: "missing" }
-      : { status: "unknown" };
+  } catch {
+    return { status: "miss", reason: "missing" };
   }
 
   const matches: string[] = [];
   for (const projectDir of projectDirs) {
-    const candidate = join(projectsDir, projectDir, `${sessionId}.jsonl`);
-    try {
-      if (statSync(candidate).isFile()) {
-        accessSync(candidate, fsConstants.R_OK);
-        matches.push(candidate);
-      }
-    } catch (error) {
-      const code = (error as NodeJS.ErrnoException).code;
-      if (code !== "ENOENT" && code !== "ENOTDIR") return { status: "unknown" };
-    }
-    if (matches.length > 1) return { status: "unknown" };
+    const candidate = join(projectsDir, projectDir, fileName);
+    const probe = probeLog(candidate);
+    if (probe === "unreadable") return { status: "miss", reason: "unreadable" };
+    if (probe === "found") matches.push(candidate);
+    if (matches.length > 1) return { status: "miss", reason: "duplicate" };
   }
 
   return matches[0]
     ? { status: "found", logPath: matches[0] }
-    : { status: "missing" };
-}
-
-/**
- * Find `{sessionId}.jsonl` in any project folder. The file name is the session
- * id, so a hit can only be that session's log. Null unless exactly one
- * project folder holds a readable file by that name.
- */
-export function findClaudeSessionLogById(
-  sessionId: string,
-  projectsDirOverride?: string,
-): string | null {
-  const lookup = lookupClaudeSessionLogById(sessionId, projectsDirOverride);
-  return lookup.status === "found" ? lookup.logPath : null;
-}
-
-/** Alias of findClaudeSessionLogById. */
-export const findSessionLogById = findClaudeSessionLogById;
-
-/**
- * Walk up the directory tree from `cwd` trying each ancestor as a project slug.
- * Returns session logs from the first ancestor that has any, sorted by mtime.
- *
- * Used as a fallback when session metadata resolution (PPID) is unavailable.
- * Stops at the filesystem root to avoid infinite loops.
- */
-export function findSessionLogsByAncestorWalk(
-  cwd: string,
-  projectsDirOverride?: string
-): string[] {
-  let dir = dirname(cwd);
-  if (dir === cwd) return [];
-
-  while (true) {
-    const logs = findSessionLogsForCwd(dir, projectsDirOverride);
-    if (logs.length > 0) return logs;
-
-    const parent = dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
-  }
-
-  return [];
+    : { status: "miss", reason: "missing" };
 }
 
 // --- Log Parsing ---
@@ -730,6 +301,11 @@ function extractTextBlocks(entry: SessionLogEntry): string[] {
  * (`last-prompt`, `ai-title`, `mode`, `file-history-snapshot`) carry no ids and
  * are frequently written last.
  *
+ * A compaction boundary has no `parentUuid`; the walk continues through its
+ * `logicalParentUuid` (the last message before the compaction), so the branch
+ * holds the messages from before every compaction too. A boundary whose
+ * `logicalParentUuid` is missing from the log ends the walk there.
+ *
  * Returns a set of indices into `entries`, so callers keep reporting real file
  * positions. Returns null when the chain can't be trusted — no ids at all, or a
  * walk that dead-ends instead of reaching the root — so callers can fall back
@@ -760,9 +336,15 @@ export function resolveActiveBranchIndices(
     }
     branch.add(cursor);
 
-    const parentUuid = entries[cursor]?.parentUuid;
+    const entry = entries[cursor];
+    const parentUuid = entry?.parentUuid;
     if (parentUuid === null || parentUuid === undefined) {
-      return branch;
+      const logicalParentIndex = isCompactBoundary(entry) && typeof entry?.logicalParentUuid === "string"
+        ? indexByUuid.get(entry.logicalParentUuid)
+        : undefined;
+      if (logicalParentIndex === undefined) return branch;
+      cursor = logicalParentIndex;
+      continue;
     }
     if (typeof parentUuid !== "string") {
       return null;
@@ -773,6 +355,50 @@ export function resolveActiveBranchIndices(
     }
     cursor = parentIndex;
   }
+}
+
+/** Lines Claude Code itself shows in place of an answer. */
+const SYSTEM_LINE = /^(API Error\b|You've hit your|You're out of extra usage|Your organization has disabled|No response requested\.?$|Prompt is too long|Request timed out|Credit balance is too low|Invalid API key|Claude AI usage limit reached|\[Request interrupted)/i;
+/** A heading, list item, quote, code fence or table row on any line. */
+const STRUCTURED = /^\s*(#{1,6}\s|[-*+]\s|\d+\.\s|>|```|\|)/m;
+
+/**
+ * A message the rail leaves out:
+ * - a system line ("API Error: …", usage limits, "[Request interrupted…");
+ * - one unstructured paragraph of at most 200 characters;
+ * - a status note, when `automatic` (the reply to a monitor, task
+ *   notification, skill or compaction summary, or a line written mid-turn):
+ *   at most two unstructured paragraphs and 450 characters.
+ *
+ * Measured on 5,498 local messages, this hides 97% of the short unstructured
+ * ones; the short answers it keeps are replies to the user's own prompts.
+ */
+export function isHiddenMessage(text: string, automatic: boolean): boolean {
+  const trimmed = text.trim();
+  if (SYSTEM_LINE.test(trimmed)) return true;
+  if (STRUCTURED.test(trimmed)) return false;
+  const paragraphs = trimmed.split(/\n\s*\n/).filter((p) => p.trim()).length;
+  if (paragraphs <= 1 && trimmed.length <= 200) return true;
+  return automatic && paragraphs <= 2 && trimmed.length <= 450;
+}
+
+/**
+ * Whether a user entry started a turn, and how: `"human"` for the user's own
+ * prompt (or slash command), `"automatic"` for a monitor or task
+ * notification, a skill body, a compaction summary or an auto-continuation.
+ * Null for tool results and system reminders, which don't start a turn.
+ */
+function turnTrigger(entry: SessionLogEntry): "human" | "automatic" | null {
+  if (entry.type !== "user") return null;
+  const content = entry.message?.content;
+  if (Array.isArray(content) && content.some((b) => b.type === "tool_result")) return null;
+  if (entry.isMeta === true || entry.isCompactSummary === true) return "automatic";
+  const origin = entry.origin as { kind?: unknown } | undefined;
+  if (typeof origin?.kind === "string" && origin.kind !== "human") return "automatic";
+  const text = getVisibleTextBlocks(content).join("\n").trimStart();
+  if (text.startsWith("<task-notification>")) return "automatic";
+  if (text.startsWith("<system-reminder>") || text.startsWith("<system-notification>")) return null;
+  return "human";
 }
 
 /**
@@ -786,80 +412,115 @@ export function resolveActiveBranchIndices(
  * a `/rewind` orphaned. Without it, entries are read in file order, which after
  * a rewind includes messages no longer in the conversation.
  *
+ * A compaction boundary in range sets `compactedAfter` on the newest message
+ * before it. Each message carries `hidden` per `isHiddenMessage`; with
+ * `limitCountsShown`, hidden messages don't count toward `limit`.
+ *
  * Chunks of a single API message (same message.id) are concatenated.
  */
 export function extractRecentRenderedMessages(
   entries: SessionLogEntry[],
   beforeIndex: number,
   limit: number,
-  opts: { branchIndices?: Set<number> | null } = {},
+  opts: { branchIndices?: Set<number> | null; limitCountsShown?: boolean } = {},
 ): RenderedMessage[] {
   if (limit <= 0) return [];
-  const { branchIndices } = opts;
+  const { branchIndices, limitCountsShown } = opts;
 
   // Map preserves insertion order — we walk backward, so first key inserted is
   // newest. Each bucket collects the chunks of one API message (same message.id).
-  const buckets = new Map<
-    string,
-    { chunks: { texts: string[]; lineNum: number }[]; timestamp?: string }
-  >();
+  type Bucket = {
+    chunks: { texts: string[]; lineNum: number }[];
+    timestamp?: string;
+    compactedAfter?: boolean;
+    automatic?: boolean;
+  };
+  const buckets = new Map<string, Bucket>();
+  // Set on passing a boundary, taken by the next (older) message.
+  let pendingCompaction = false;
+  // Messages whose turn's first user entry hasn't been passed yet.
+  let awaitingTrigger: Bucket[] = [];
+  // Messages that also called a tool: written mid-turn.
+  const toolUseIds = new Set<string>();
 
   for (let i = beforeIndex - 1; i >= 0; i--) {
     const entry = entries[i];
     if (!entry) continue;
     if (branchIndices && !branchIndices.has(i)) continue;
 
+    if (isCompactBoundary(entry)) {
+      pendingCompaction = true;
+      continue;
+    }
     if (entry.type === "progress" || entry.type === "system") continue;
     if (entry.type === "file-history-snapshot") continue;
     if (entry.type === "queue-operation") continue;
+    if (entry.type === "user") {
+      const trigger = turnTrigger(entry);
+      if (trigger) {
+        for (const b of awaitingTrigger) b.automatic = trigger === "automatic";
+        awaitingTrigger = [];
+      }
+      continue;
+    }
     if (entry.type !== "assistant") continue;
 
-    const texts = extractTextBlocks(entry);
-    if (texts.length === 0) continue;
     const msgId = entry.message?.id;
     if (!msgId) continue;
+    const content = entry.message?.content;
+    if (Array.isArray(content) && content.some((b) => b.type === "tool_use")) toolUseIds.add(msgId);
+    const texts = extractTextBlocks(entry);
+    if (texts.length === 0) continue;
 
     let bucket = buckets.get(msgId);
     if (!bucket) {
-      if (buckets.size >= limit) continue;
+      // Without `limitCountsShown` the cap applies here; with it, hidden is
+      // only known once the turn's trigger is passed, so it applies below.
+      if (!limitCountsShown && buckets.size >= limit) continue;
       const ts = typeof entry.timestamp === "string" ? entry.timestamp : undefined;
-      bucket = { chunks: [], timestamp: ts };
+      bucket = { chunks: [], timestamp: ts, ...(pendingCompaction ? { compactedAfter: true } : {}) };
+      pendingCompaction = false;
       buckets.set(msgId, bucket);
+      awaitingTrigger.push(bucket);
     }
     bucket.chunks.push({ texts, lineNum: i + 1 });
   }
 
-  return Array.from(buckets, ([messageId, b]) => {
+  const messages: RenderedMessage[] = [];
+  let shown = 0;
+  for (const [messageId, b] of buckets) {
     // Walked backward, so reverse to restore chronological order within a message
     const chrono = b.chunks.slice().reverse();
-    return {
+    const text = chrono.flatMap((e) => e.texts).join("\n");
+    const hidden = isHiddenMessage(text, b.automatic === true || toolUseIds.has(messageId));
+    if (limitCountsShown && !hidden && shown >= limit) break;
+    if (!hidden) shown++;
+    messages.push({
       messageId,
-      text: chrono.flatMap((e) => e.texts).join("\n"),
+      text,
       lineNumbers: chrono.map((e) => e.lineNum),
       timestamp: b.timestamp,
-    };
-  });
+      ...(b.compactedAfter ? { compactedAfter: true } : {}),
+      ...(hidden ? { hidden: true } : {}),
+    });
+  }
+  return messages;
 }
 
 /**
  * High-level: read up to `limit` recent assistant messages from a session log.
  *
  * `activeBranchOnly` restricts the read to the live conversation branch, so a
- * `/rewind` doesn't surface orphaned messages. Only meaningful for transcripts
- * that carry `uuid`/`parentUuid` (Claude Code); an untrustworthy or absent
- * chain silently degrades to a plain file-order read.
- *
- * A `/compact` boundary is also a tree root (`parentUuid: null`), so right
- * after a compaction the active branch may contain no assistant messages at
- * all. An empty filtered result falls back to the file-order read: callers
- * treat "no messages" as "wrong log file" and would walk off to an older
- * session, which is strictly worse than offering the pre-compaction messages
- * the user just watched scroll by.
+ * `/rewind` doesn't surface orphaned messages, and follows the branch back
+ * past compactions. Only meaningful for transcripts that carry
+ * `uuid`/`parentUuid` (Claude Code); an untrustworthy or absent chain silently
+ * degrades to a plain file-order read. `limitCountsShown` leaves hidden
+ * messages out of the count.
  */
 export function getRecentRenderedMessages(
   logPath: string,
   limit: number,
-  opts: { activeBranchOnly?: boolean } = {},
+  opts: { activeBranchOnly?: boolean; limitCountsShown?: boolean } = {},
 ): RenderedMessage[] {
   try {
     const content = readFileSync(logPath, "utf-8");
@@ -867,15 +528,10 @@ export function getRecentRenderedMessages(
     const branchIndices = opts.activeBranchOnly
       ? resolveActiveBranchIndices(entries)
       : null;
-    const messages = extractRecentRenderedMessages(entries, entries.length, limit, {
+    return extractRecentRenderedMessages(entries, entries.length, limit, {
       branchIndices,
+      limitCountsShown: opts.limitCountsShown,
     });
-    if (messages.length === 0 && branchIndices) {
-      // Fail open, never fail empty: an empty active branch (fresh /compact)
-      // must not make this log look like the wrong file.
-      return extractRecentRenderedMessages(entries, entries.length, limit);
-    }
-    return messages;
   } catch {
     return [];
   }

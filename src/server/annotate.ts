@@ -62,7 +62,7 @@ export interface AnnotateServerOptions {
    * can choose which message to annotate; index 0 is the default selection
    * and matches the legacy "last message" behavior.
    */
-  recentMessages?: { messageId: string; text: string; timestamp?: string }[];
+  recentMessages?: { messageId: string; text: string; timestamp?: string; compactedAfter?: boolean; hidden?: boolean }[];
   /** The Claude Code session side questions resume; without it they answer 501. */
   sideChat?: SideChatSession;
   /** Enable review-gate UX: adds an Approve button alongside Close/Send Annotations */
@@ -459,7 +459,7 @@ export async function startAnnotateServer(
             }
           }
 
-          // API: Side chat (/btw)
+          // API: Side chat (/sidechat)
           if (url.pathname === "/api/side-chat" && req.method === "POST") {
             return handleSideChat(req, sideChat);
           }

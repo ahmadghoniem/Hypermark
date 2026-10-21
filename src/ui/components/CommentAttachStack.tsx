@@ -65,14 +65,14 @@ export const CommentAttachStack: React.FC<CommentAttachStackProps> = ({
       role="group"
       aria-label={`${chips.length} attached image${chips.length === 1 ? '' : 's'}`}
       data-comment-attach-stack="true"
-      className={`flex flex-wrap items-center gap-1.5 ${className}`}
+      className={`flex flex-wrap items-center gap-1 ${className}`}
     >
       {chips.map((chip) => {
         const [base, ext] = splitName(chip.name);
         const failed = chip.kind === 'pending' && !!chip.item.error;
         const label = (
           <>
-            <Image01 size={14} className="shrink-0 text-muted-foreground" />
+            <Image01 size={12} className="shrink-0 text-muted-foreground" />
             <span className="flex min-w-0">
               <span className="truncate">{base}</span>
               <span className="shrink-0">{ext}</span>
@@ -82,7 +82,7 @@ export const CommentAttachStack: React.FC<CommentAttachStackProps> = ({
         return (
           <span
             key={chip.key}
-            className={`inline-flex h-6.5 min-w-0 max-w-48 select-none items-center gap-1.5 rounded-md bg-muted/60 pl-2 ${onRemove ? 'pr-1' : 'pr-2'} text-caption transition-colors has-[[data-chip-view]:hover]:bg-foreground/10 ${
+            className={`inline-flex h-5.5 min-w-0 max-w-44 select-none items-center gap-0.5 rounded-sm bg-muted/60 pl-1.5 ${onRemove ? 'pr-0.5' : 'pr-1.5'} text-caption transition-colors has-[[data-chip-view]:hover]:bg-foreground/10 ${
               failed ? 'text-destructive' : 'text-foreground/90'
             } ${chip.kind === 'pending' && !failed ? 'opacity-70' : ''}`}
           >
@@ -95,7 +95,7 @@ export const CommentAttachStack: React.FC<CommentAttachStackProps> = ({
                   e.stopPropagation();
                   setPreview({ path: chip.path, name: chip.name });
                 }}
-                className="flex min-w-0 cursor-pointer items-center gap-1.5 rounded-sm"
+                className="flex min-w-0 cursor-pointer items-center gap-1 rounded-xs"
               >
                 {label}
               </button>
@@ -106,7 +106,7 @@ export const CommentAttachStack: React.FC<CommentAttachStackProps> = ({
                 className={COMPOSER_TOOLTIP}
                 contentClassName="z-popover-hint"
               >
-                <span className="flex min-w-0 items-center gap-1.5">{label}</span>
+                <span className="flex min-w-0 items-center gap-1">{label}</span>
               </Tooltip>
             )}
             {onRemove && (
@@ -115,7 +115,7 @@ export const CommentAttachStack: React.FC<CommentAttachStackProps> = ({
                   type="button"
                   aria-label={`Remove ${chip.name}`}
                   onClick={() => remove(chip)}
-                  className="grid size-4.5 shrink-0 place-items-center rounded-sm text-muted-foreground transition-colors hover:text-foreground"
+                  className="grid size-4.5 shrink-0 cursor-pointer place-items-center rounded-xs text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
                 >
                   <XClose size={12} />
                 </button>

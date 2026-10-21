@@ -112,7 +112,6 @@ function orderFilesBySections(files: DiffFile[], sections?: SinceBaseSections | 
 }
 
 /** Hint shown following the cursor while hovering a sidebar/panel resize handle. */
-const RESIZE_HANDLE_TOOLTIP = 'Click to close · Drag to resize';
 
 type ReviewHistoryAction = {
   kind: 'code';
@@ -424,15 +423,11 @@ const ReviewAppInner: React.FC = () => {
   const panelResize = useResizablePanel({
     storageKey: 'hypermark-review-panel-width',
     onSnapClose: () => reviewSidebar.close(),
-    // Single click on the handle (no drag) collapses it.
-    onClick: () => reviewSidebar.close(),
   });
   const fileTreeResize = useResizablePanel({
     storageKey: 'hypermark-filetree-width',
     defaultWidth: 256, minWidth: 160, maxWidth: 400, side: 'left',
     onSnapClose: () => setIsFileTreeOpen(false),
-    // Single click on the handle (no drag) collapses it.
-    onClick: () => setIsFileTreeOpen(false),
   });
   const isResizing = panelResize.isDragging || fileTreeResize.isDragging;
 
@@ -1530,8 +1525,6 @@ const ReviewAppInner: React.FC = () => {
       className="z-10"
       side="left"
       hideHoverTrack
-      tooltip={RESIZE_HANDLE_TOOLTIP}
-      onCollapse={() => setIsFileTreeOpen(false)}
     />
   );
 
@@ -1814,7 +1807,7 @@ const ReviewAppInner: React.FC = () => {
           {/* Resize Handle + Sidebar */}
           {reviewSidebar.isOpen && (
             <div className="contents group/sidebar">
-                              <ResizeHandle {...panelResize.handleProps} className="z-10" side="right" hideHoverTrack tooltip={RESIZE_HANDLE_TOOLTIP} onCollapse={() => reviewSidebar.close()} />
+                              <ResizeHandle {...panelResize.handleProps} className="z-10" side="right" hideHoverTrack />
               
               <ReviewSidebar
                 annotations={allAnnotations}

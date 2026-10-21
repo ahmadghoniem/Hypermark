@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { render as renderDiagram } from 'pele';
 import type { Block } from '../types';
 import { normalizeMermaidSvgMarkup } from './mermaidSvg';
+import { extractDiagramMath, renderDiagramWithMath } from './mermaidMath';
 
 interface ViewBox {
   x: number;
@@ -160,21 +161,41 @@ const MermaidBlockImpl: React.FC<{ block: Block }> = ({ block }) => {
 
   // Pele renders synchronously. Text is measured in the page's font, which
   // the `.pele` rule in theme.css also draws the labels in. Pele escapes
-  // label text and filters links and styles.
+  // label text and filters links and styles. A diagram with `$$` math in its
+  // labels waits for KaTeX and its fonts, then typesets the math in place.
   useEffect(() => {
-    try {
-      const { svg: renderedSvg } = renderDiagram(block.content, {
-        idPrefix: `mermaid-${block.id}-`,
-        fontFamily: getComputedStyle(document.body).fontFamily,
-      });
+    let cancelled = false;
+    const show = (renderedSvg: string) => {
       const normalizedSvg = normalizeMermaidSvgMarkup(renderedSvg);
       naturalBoundsRef.current = parseViewBoxFromMarkup(normalizedSvg);
       setSvg(normalizedSvg);
       setError(null);
-    } catch (err) {
+    };
+    const fail = (err: unknown) => {
       setError(err instanceof Error ? err.message : 'Failed to render diagram');
       setSvg('');
+    };
+    const options = {
+      idPrefix: `mermaid-${block.id}-`,
+      fontFamily: getComputedStyle(document.body).fontFamily,
+    };
+
+    const math = extractDiagramMath(block.content);
+    if (math.tex.length === 0) {
+      try {
+        show(renderDiagram(block.content, options).svg);
+      } catch (err) {
+        fail(err);
+      }
+      return;
     }
+    renderDiagramWithMath(math, options).then(
+      (renderedSvg) => { if (!cancelled) show(renderedSvg); },
+      (err: unknown) => { if (!cancelled) fail(err); },
+    );
+    return () => {
+      cancelled = true;
+    };
   }, [block.content, block.id]);
 
   // Reset zoom and pan when content changes
@@ -487,7 +508,7 @@ const MermaidBlockImpl: React.FC<{ block: Block }> = ({ block }) => {
   );
 
   const inlineSource = (
-    <pre className="rounded-lg text-[13px] overflow-x-auto bg-muted/50 border border-border/30 p-4">
+    <pre className="rounded-sm text-[13px] overflow-x-auto bg-surface-2 border border-border/30 p-4">
       <code className="pn-code font-mono language-mermaid">{block.content}</code>
     </pre>
   );

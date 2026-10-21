@@ -345,26 +345,6 @@ flowchart LR
     WS <--> WSS
 \`\`\`
 
-### Service Dependencies (Graphviz)
-
-\`\`\`graphviz
-digraph CollaborationStack {
-  rankdir=LR;
-  node [shape=box, style="rounded"];
-
-  Browser [label="Client Browser"];
-  API [label="WebSocket API"];
-  OT [label="OT Engine"];
-  Redis [label="Presence Cache"];
-  Postgres [label="PostgreSQL"];
-
-  Browser -> API;
-  API -> OT;
-  OT -> Redis;
-  OT -> Postgres;
-}
-\`\`\`
-
 ---
 
 ## Phase 4: File Changes

@@ -1,57 +1,12 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 const HELP_FLAGS = new Set(["--help", "-h"]);
 
 export interface ParsedStrictAnnotateOptions {
   requireApproval: boolean;
   resultFile?: string;
   remainingArgs: string[];
-}
-
-export interface ParsedUninstallOptions {
-  purge: boolean;
-  yes: boolean;
-  dryRun: boolean;
-}
-
-/**
- * Parse the deliberately small, non-overlapping uninstall flag surface.
- */
-export function parseUninstallOptions(
-  args: readonly string[],
-): ParsedUninstallOptions {
-  let purge = false;
-  let yes = false;
-  let dryRun = false;
-
-  for (const arg of args) {
-    if (arg === "--purge") {
-      if (purge) throw new Error("--purge may only be specified once");
-      purge = true;
-    } else if (arg === "--yes" || arg === "-y") {
-      if (yes) throw new Error("--yes/-y may only be specified once");
-      yes = true;
-    } else if (arg === "--dry-run") {
-      if (dryRun) throw new Error("--dry-run may only be specified once");
-      dryRun = true;
-    } else {
-      throw new Error(`Unknown uninstall option: ${arg}`);
-    }
-  }
-
-  return { purge, yes, dryRun };
-}
-
-/**
- * Normal uninstall accepts y/yes. Purge intentionally requires an exact,
- * explicit word so an accidental return key cannot destroy local data.
- */
-export function isUninstallConfirmationAccepted(
-  answer: string,
-  purge: boolean,
-): boolean {
-  const normalized = answer.trim().toLowerCase();
-  return purge
-    ? normalized === "purge"
-    : normalized === "y" || normalized === "yes";
 }
 
 export function parseStrictAnnotateOptions(
@@ -120,10 +75,10 @@ export function isVersionInvocation(args: string[]): boolean {
   return args[0] === "--version" || args[0] === "-v";
 }
 
-declare const __CLI_VERSION__: string;
-
+/** The checkout's `package.json` version; hypermark always runs from source. */
 export function formatVersion(): string {
-  return `hypermark ${typeof __CLI_VERSION__ !== "undefined" ? __CLI_VERSION__ : "dev"}`;
+  const { version } = JSON.parse(readFileSync(join(import.meta.dir, "../../package.json"), "utf8")) as { version: string };
+  return `hypermark ${version}`;
 }
 
 export function isInteractiveNoArgInvocation(
@@ -143,7 +98,6 @@ export function formatTopLevelHelp(): string {
     "  hypermark annotate-last [--stdin] [--gate] [--json] [--hook]",
     "  hypermark last",
     "  hypermark sessions",
-    "  hypermark uninstall [--purge] [--yes] [--dry-run]",
     "",
     "Run 'hypermark <command> --help' for command-specific usage.",
   ].join("\n");
@@ -213,21 +167,6 @@ export const SUBCOMMAND_HELP: Record<string, string> = {
     "                with 'all'. Use when a session's Claude Code process was",
     "                closed in a way the parent watcher didn't catch.",
   ].join("\n"),
-  uninstall: [
-    "Usage:",
-    "  hypermark uninstall [--purge] [--yes | -y] [--dry-run]",
-    "",
-    "Remove Hypermark-installed components. Local plans, history, drafts,",
-    "settings, and other Hypermark data are preserved by default.",
-    "",
-    "Options:",
-    "  --purge       Also permanently delete known local Hypermark data",
-    "  --yes, -y     Skip the interactive confirmation (required without a TTY)",
-    "  --dry-run     Preview recognized removal work without changing anything",
-    "",
-    "Purge data is local-only: it is not stored on a Hypermark server and",
-    "cannot be recovered after purge. Unrecognized custom files are preserved.",
-  ].join("\n"),
 };
 
 // Aliases share another subcommand's help text.
@@ -263,7 +202,6 @@ export function formatInteractiveNoArgClarification(): string {
     "  hypermark annotate <file.md | file.txt>",
     "  hypermark last",
     "  hypermark sessions",
-    "  hypermark uninstall",
     "",
     "Run 'hypermark --help' for top-level usage.",
   ].join("\n");

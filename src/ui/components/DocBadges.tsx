@@ -82,14 +82,14 @@ export const DocBadges: React.FC<DocBadgesProps> = ({
       {repoInfo && !linkedDocInfo && !isRow && (
         <div className="flex items-center gap-1.5">
           <span
-            className="px-1.5 py-0.5 bg-muted/50 rounded-sm truncate max-w-35"
+            className="px-1.5 py-0.5 bg-muted/50 rounded-sm truncate max-w-64"
             title={repoInfo.display}
           >
             {repoInfo.display}
           </span>
           {repoInfo.branch && (
             <span
-              className="px-1.5 py-0.5 bg-muted/30 rounded-sm max-w-30 flex items-center gap-1 overflow-hidden"
+              className="px-1.5 py-0.5 bg-muted/30 rounded-sm max-w-48 flex items-center gap-1 overflow-hidden"
               title={repoInfo.branch}
             >
               <GitBranch01 className="size-2.5 shrink-0" />

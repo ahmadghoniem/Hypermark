@@ -31,11 +31,10 @@ describe('shortcut surfaces', () => {
     }
   });
 
-  test('annotate is plan plus its sidebar, never less', () => {
+  test('annotate carries every plan scope', () => {
     const planIds = new Set(planShortcutRegistry.map((scope) => scope.id));
     const annotateIds = new Set(annotateShortcutRegistry.map((scope) => scope.id));
     for (const id of planIds) expect(annotateIds.has(id)).toBe(true);
-    expect(annotateIds.has('annotate-sidebar')).toBe(true);
   });
 
   test('review carries the chrome scope the panel used to hand-type', () => {

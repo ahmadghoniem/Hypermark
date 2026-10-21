@@ -650,17 +650,6 @@ html:not(.transitions-ready) * {
   text-underline-offset: 2px;
 }
 
-/* While the table popout dialog is mounted, drop chrome that would
-   otherwise paint over the dialog behind it. :has() observes the dialog's
-   presence directly — no JS, no state sync. When the dialog unmounts the
-   selector stops matching and everything returns to natural stacking. */
-body:has([data-popout="true"]) [data-annotation-panel="true"],
-body:has([data-popout="true"]) [data-sticky-header-lane="true"],
-body:has([data-popout="true"]) [data-app-header="true"],
-body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
-  z-index: -1;
-}
-
 /* GitHub-style alerts: > [!NOTE] / [!TIP] / [!WARNING] / [!CAUTION] / [!IMPORTANT] */
 .alert-note      { border-left-color: #0969da; }
 .alert-note      .alert-title { color: #0969da; }
@@ -729,15 +718,15 @@ body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
 :where(:has(> code[data-sel-start]), :has(> code[data-sel-end])) {
   --hl-lh: 1lh;
 }
-/* A mark at the chip's edge covers the chip's padding (px-1.5) on that side,
+/* A mark at the chip's edge covers the chip's padding (px-1) on that side,
    so it joins the highlighted text outside the chip. */
 :not(pre) > code .annotation-highlight[data-chip-start] {
-  margin-left: -0.375rem;
-  padding-left: 0.375rem;
+  margin-left: -0.25rem;
+  padding-left: 0.25rem;
 }
 :not(pre) > code .annotation-highlight[data-chip-end] {
-  margin-right: -0.375rem;
-  padding-right: 0.375rem;
+  margin-right: -0.25rem;
+  padding-right: 0.25rem;
 }
 /* A drag across a chip's edge paints that edge's padding in the selection
    color (tagged by useAnnotationHighlighter), over the full line box like the
@@ -754,7 +743,7 @@ body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
   position: absolute;
   top: auto;
   height: var(--hl-lh);
-  width: 0.375rem;
+  width: 0.25rem;
   background: var(--selection);
   pointer-events: none;
 }

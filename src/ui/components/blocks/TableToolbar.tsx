@@ -3,28 +3,26 @@ import { createPortal } from 'react-dom';
 import { buildCsv } from './TableBlock';
 import { copyTextToClipboard } from '../../utils/clipboard';
 
-import { Check, Copy01, Maximize01 } from '@untitledui/icons';
+import { Check, Copy01 } from '@untitledui/icons';
 interface TableToolbarProps {
   element: HTMLElement;
   markdown: string;
   isExiting?: boolean;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
-  onExpand?: () => void;
 }
 
 // Floats above a table on hover. Mirrors AnnotationToolbar's positioning +
 // portal + entry/exit animation pattern so hover-triggered block toolbars
-// all look and move the same way. Content is table-specific (copy markdown
-// for now; CSV text button and expand icon planned). When a third use case
-// appears we should factor the positioning shell into a shared hook.
+// all look and move the same way. Content is table-specific: copy as
+// markdown and copy as CSV. When a third use case appears we should factor
+// the positioning shell into a shared hook.
 export const TableToolbar: React.FC<TableToolbarProps> = ({
   element,
   markdown,
   isExiting = false,
   onMouseEnter,
   onMouseLeave,
-  onExpand,
 }) => {
   const [position, setPosition] = useState<{ top: number; right: number } | null>(null);
   const [copiedMd, setCopiedMd] = useState(false);
@@ -119,15 +117,6 @@ export const TableToolbar: React.FC<TableToolbarProps> = ({
         >
           {copiedCsv ? '✓' : 'CSV'}
         </button>
-        {onExpand && (
-          <button
-            onClick={onExpand}
-            title="Expand table"
-            className="p-1 rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          >
-            <ExpandIcon />
-          </button>
-        )}
       </div>
     </div>,
     document.body,
@@ -140,8 +129,4 @@ const CopyIcon = () => (
 
 const CheckIcon = () => (
   <Check className="size-4" strokeWidth={2.5} />
-);
-
-const ExpandIcon = () => (
-  <Maximize01 className="size-4" />
 );

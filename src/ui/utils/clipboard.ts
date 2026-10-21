@@ -32,10 +32,6 @@ function copyTextWithFallback(text: string, focusOwner?: HTMLElement): boolean {
   if (!copied) {
     const textarea = document.createElement('textarea');
     textarea.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
-    // Marker so focus-sensitive surfaces (PopoutDialog's focus-out close
-    // guard) can recognize the transient fallback textarea and not treat the
-    // focus shift as leaving the dialog.
-    textarea.setAttribute('data-clipboard-fallback', 'true');
     textarea.value = text;
     document.body.appendChild(textarea);
     textarea.select();

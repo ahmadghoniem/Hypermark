@@ -40,12 +40,48 @@ export function railPreview(text: string, max = 90): string {
 }
 
 /**
- * A message the rail can hide: one line with no line breaks, at most `max`
- * characters ("Approved.", "API Error: …").
+ * Ids of the shown messages that come first after a compaction. `messages` is
+ * oldest first. When the message after a compaction is hidden, the next shown
+ * one takes the mark. A compaction needs a shown message on both sides: the
+ * mark sits between two ticks, so the rail never starts or ends with one.
  */
-export function isShortMessage(text: string, max = 200): boolean {
-  const trimmed = text.trim();
-  return !trimmed.includes('\n') && trimmed.length <= max;
+export function compactionMarkIds(
+  messages: readonly { messageId: string; compactedAfter?: boolean }[],
+  isShown: (messageId: string) => boolean,
+): Set<string> {
+  const ids = new Set<string>();
+  let shownBefore = false;
+  let pending = false;
+  for (const message of messages) {
+    if (isShown(message.messageId)) {
+      if (pending) ids.add(message.messageId);
+      pending = false;
+      shownBefore = true;
+    }
+    if (message.compactedAfter && shownBefore) pending = true;
+  }
+  return ids;
+}
+
+/**
+ * Ids of the shown messages that come last before a compaction: the message
+ * shown just before each mark from `compactionMarkIds`. A hidden message the
+ * compaction followed passes it back to the shown one before it, so the end
+ * of the document and the rail agree on where the compaction falls.
+ */
+export function compactionEndIds(
+  messages: readonly { messageId: string; compactedAfter?: boolean }[],
+  isShown: (messageId: string) => boolean,
+): Set<string> {
+  const marks = compactionMarkIds(messages, isShown);
+  const ids = new Set<string>();
+  let previous: string | null = null;
+  for (const message of messages) {
+    if (!isShown(message.messageId)) continue;
+    if (previous && marks.has(message.messageId)) ids.add(previous);
+    previous = message.messageId;
+  }
+  return ids;
 }
 
 /** "just now", "5m ago", "3h ago", "2d ago"; null for a missing or invalid time. */

@@ -20,16 +20,14 @@ import { ThemeProvider } from '@/ui/components/ThemeProvider';
 import { FluidRoot } from '@/ui/fluid/components/fluid-root';
 import { TooltipProvider } from '@/ui/components/Tooltip';
 import { StickyHeaderLane } from '@/ui/components/StickyHeaderLane';
-import { useActiveSection } from '@/ui/hooks/useActiveSection';
 import { configStore } from '@/ui/config';
 import { CompletionOverlay } from '@/ui/components/CompletionOverlay';
-import { getUIPreferences, setShowShortMessages } from '@/ui/utils/uiPreferences';
+import { getUIPreferences } from '@/ui/utils/uiPreferences';
 import { OverlayScrollArea } from '@/ui/components/OverlayScrollArea';
 import { ScrollViewportProvider } from '@/ui/hooks/useScrollViewport';
 import { useOverlayViewport } from '@/ui/hooks/useOverlayViewport';
 import { useIsMobile } from '@/ui/hooks/useIsMobile';
 import { useViewportEnvironment } from '@/ui/hooks/useViewportEnvironment';
-import type { SidebarTab } from '@/ui/hooks/useSidebar';
 import { usePlanDiff, type VersionInfo, type VersionEntry } from '@/ui/hooks/usePlanDiff';
 import { useLinkedDoc, type LinkedDocSessionState } from '@/ui/hooks/useLinkedDoc';
 import { useAnnotationDraft } from '@/ui/hooks/useAnnotationDraft';
@@ -45,6 +43,8 @@ import { MessageRail, type PickerMessage } from '@/ui/components/MessageRail';
  *  scrollbar is drawn or not so the rail never moves between messages. */
 const MESSAGE_RAIL_INSET = 24;
 import { PlanDiffCard } from '@/ui/components/plan-diff/PlanDiffCard';
+import { CompactionSquiggle } from '@/ui/components/CompactionSquiggle';
+import { compactionEndIds } from '@/ui/utils/messageRail';
 import { CommentPopover } from '@/ui/components/CommentPopover';
 import { SideChatCard } from '@/ui/components/SideChatCard';
 import { useSideChat } from '@/ui/hooks/useSideChat';
@@ -56,7 +56,6 @@ import { useQuickLabels } from '@/ui/hooks/useQuickLabels';
 import { DEMO_PLAN_CONTENT as DEFAULT_DEMO_PLAN_CONTENT } from './demoPlan';
 import { DIFF_DEMO_PLAN_CONTENT } from './demoPlanDiffDemo';
 import {
-  useAnnotateSidebarShortcuts,
   useHistoryShortcuts,
 } from '@/ui/shortcuts';
 import {
@@ -79,7 +78,6 @@ import {
   type CheckboxToggleMutation,
 } from './hooks/useCheckboxOverrides';
 import {
-  usePlanDiffNavigationAutoExit,
   usePlanDiffViewAutoExit,
 } from './hooks/usePlanDiffViewAutoExit';
 import { AppHeader } from './components/AppHeader';
@@ -231,11 +229,6 @@ const AppInner: React.FC = () => {
   // drawer only: it opens when a comment is selected and closes on its own X.
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
   const [uiPrefs] = useState(() => getUIPreferences());
-  const [showShortMessages, setShowShortMessagesState] = useState(uiPrefs.showShortMessages);
-  const handleShowShortMessagesChange = useCallback((show: boolean) => {
-    setShowShortMessagesState(show);
-    setShowShortMessages(show);
-  }, []);
 
   const planAreaRef = useRef<HTMLDivElement>(null);
   // Anchor of the global comment composer: the + in the annotations panel.
@@ -250,6 +243,10 @@ const AppInner: React.FC = () => {
   const clearedEditRef = useRef<string | null>(null);
   // Whether the global comment composer holds a draft.
   const globalDirtyRef = useRef(false);
+  const [selectionComposerOpen, setSelectionComposerOpen] = useState(false);
+  // Send, Approve and Close wait while any composer is open, so a draft is
+  // never sent or dropped along with the session.
+  const composerOpen = selectionComposerOpen || globalComposerAnchor !== null || editComposer !== null;
   const [isApiMode, setIsApiMode] = useState(false);
   const [origin, setOrigin] = useState<Origin | null>(null);
   // Legacy, read-only: the toolbar Images action and the
@@ -265,6 +262,11 @@ const AppInner: React.FC = () => {
   const [annotateSource, setAnnotateSource] = useState<'file' | 'message' | null>(null);
   const [recentMessages, setRecentMessages] = useState<PickerMessage[]>([]);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  // Messages the squiggle goes under, counted over the messages the rail shows.
+  const compactionEnds = useMemo(() => {
+    const hidden = new Set(recentMessages.filter((m) => m.hidden && m.messageId !== selectedMessageId).map((m) => m.messageId));
+    return compactionEndIds([...recentMessages].reverse(), (id) => !hidden.has(id));
+  }, [recentMessages, selectedMessageId]);
   const [annotationScope, setAnnotationScope] = useState<AnnotationScope>('this');
   const [pendingAnnotationSelection, setPendingAnnotationSelection] = useState<string | null>(null);
   const messageStateCacheRef = useRef<Map<string, MessageAnnotationState>>(new Map());
@@ -372,21 +374,6 @@ const AppInner: React.FC = () => {
     handleViewportReady(mainViewportRef.current);
   }, [handleViewportReady]);
 
-  // Sidebar (shared TOC + Version Browser). It is a permanent column on
-  // desktop — neither collapsible nor resizable — so the only state left is
-  // which of the two panes it shows.
-  const [sidebarTab, setSidebarTab] = useState<SidebarTab>('toc');
-
-  const openSidebarTab = useCallback((tab?: SidebarTab) => {
-    setSidebarTab(tab ?? 'toc');
-  }, []);
-
-  /** Show `tab`, or fall back to the contents when it is already showing. */
-  const toggleSidebarTab = useCallback((tab: SidebarTab) => {
-    setSidebarTab((current) => (current === tab ? 'toc' : tab));
-  }, []);
-
-
   // Clear diff view on Escape key. defaultPrevented respects the
   // one-Escape-one-rung contract: an Escape consumed by a popover
   // (useDismissablePopover) or another owned surface must not also exit
@@ -402,9 +389,6 @@ const AppInner: React.FC = () => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isPlanDiffActive]);
 
-  // useLinkedDoc shows the relevant desktop pane after activating a file.
-  const linkedDocSidebar = useMemo(() => ({ open: openSidebarTab }), [openSidebarTab]);
-
   const handleBeforeDocumentNavigation = useCallback(() => {
     annotationHistory.clear();
   }, [annotationHistory]);
@@ -413,7 +397,7 @@ const AppInner: React.FC = () => {
   const linkedDocHook = useLinkedDoc({
     markdown, annotations, selectedAnnotationId, globalAttachments,
     setMarkdown, setAnnotations, setSelectedAnnotationId, setGlobalAttachments,
-    viewerRef, sidebar: linkedDocSidebar, sourceFilePath,
+    viewerRef, sourceFilePath,
     onBeforeNavigate: handleBeforeDocumentNavigation,
   });
 
@@ -438,10 +422,6 @@ const AppInner: React.FC = () => {
     planDiff.hasPreviousVersion,
     exitPlanDiffView,
   );
-  usePlanDiffNavigationAutoExit(
-    sidebarTab === 'toc',
-    exitPlanDiffView,
-  );
   const handleSelectBaseVersion = useCallback((version: number) => {
     return planDiff.selectBaseVersion(version);
   }, [planDiff.selectBaseVersion]);
@@ -459,28 +439,6 @@ const AppInner: React.FC = () => {
   useEffect(() => {
     annotationHistory.clear();
   }, [annotationHistory]);
-  // Shared gate for the chrome-level keyboard commands (sidebars, focus mode):
-  // never while a dialog, an overlay, a submission, or a text field owns the
-  // keystroke. Annotate-only commands layer their own conditions on top.
-  const canHandleDocumentChromeShortcut = useCallback((event: KeyboardEvent) => {
-    if (event.defaultPrevented) return false;
-    if (document.querySelector('[data-hypermark-confirm-dialog="true"]')) return false;
-    if (submitted || isSubmitting || isExiting) return false;
-
-    const target = event.target as HTMLElement | null;
-    const tag = target?.tagName;
-    return tag !== 'INPUT' && tag !== 'TEXTAREA' && !target?.isContentEditable;
-  }, [
-    submitted,
-    isSubmitting,
-    isExiting,
-  ]);
-
-  const canHandleAnnotateSidebarShortcut = useCallback(
-    (event: KeyboardEvent) => canHandleDocumentChromeShortcut(event),
-    [canHandleDocumentChromeShortcut],
-  );
-
   const canHandleAnnotationHistoryShortcut = useCallback((event: KeyboardEvent) => {
     if (event.defaultPrevented || submitted || isSubmitting || isExiting) return false;
     if (isNativeHistoryOwner(event)) return false;
@@ -500,15 +458,6 @@ const AppInner: React.FC = () => {
     },
   });
 
-
-  useAnnotateSidebarShortcuts({
-    handlers: {
-      toggleContents: {
-        when: canHandleAnnotateSidebarShortcut,
-        handle: () => toggleSidebarTab('toc'),
-      },
-    },
-  });
 
   const buildCurrentMessageState = React.useCallback((): MessageAnnotationState | null => {
     if (annotateSource !== 'message' || !selectedMessageId) return null;
@@ -676,10 +625,6 @@ const AppInner: React.FC = () => {
     : annotateSource === 'message' && selectedMessageId
       ? `msg:${selectedMessageId}`
       : 'plan';
-
-  // Track active section for TOC highlighting
-  const headingCount = useMemo(() => blocks.filter(b => b.type === 'heading').length, [blocks]);
-  const activeSection = useActiveSection(planAreaRef, headingCount, scrollViewport);
 
   const allAnnotations = annotations;
 
@@ -1000,6 +945,9 @@ const AppInner: React.FC = () => {
       // Don't intercept if already submitted, submitting, or exiting
       if (submitted || isSubmitting || isExiting) return;
 
+      // An open composer holds the decision until it is saved or closed.
+      if (composerOpen) return;
+
       // Don't intercept in demo/share mode (no API)
       if (!isApiMode) return;
 
@@ -1020,7 +968,7 @@ const AppInner: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     submitted, isSubmitting, isExiting, isApiMode, linkedDocHook.isActive, annotations.length,
-    annotateSource, origin,
+    annotateSource, origin, composerOpen,
   ]);
 
   const handleAddAnnotation = (ann: Annotation) => {
@@ -1229,11 +1177,6 @@ const AppInner: React.FC = () => {
     setGlobalComposerAnchor(anchorEl);
   };
 
-  const handleTocNavigate = (blockId: string) => {
-    // Navigation handled by TableOfContents component
-    // This is just a placeholder for future custom logic
-  };
-
   const agentName = useMemo(() => getAgentName(origin), [origin]);
 
   // Header handlers ref — stores latest handler references so the stable
@@ -1260,12 +1203,14 @@ const AppInner: React.FC = () => {
   // gate mode's empty primary is Approve on /api/approve.
   const submitPrimaryDecision = useCallback(() => {
     if (isSubmitting || isExiting) return; // double-submit guard while in flight
+    if (composerOpen) return;
     if (gate && !hasFeedbackToSend) {
       void headerHandlersRef.current.handleAnnotateApprove();
       return;
     }
     void headerHandlersRef.current.handleAnnotateFeedback();
   }, [
+    composerOpen,
     gate,
     hasFeedbackToSend,
     isExiting,
@@ -1274,6 +1219,7 @@ const AppInner: React.FC = () => {
   submitPrimaryDecisionRef.current = submitPrimaryDecision;
 
   const runAnnotateDecisionAction = useCallback((id: DecisionActionId) => {
+    if (composerOpen) return;
     const action = resolveAnnotateDecisionAction(id);
     switch (action.kind) {
       case 'primary':
@@ -1289,7 +1235,7 @@ const AppInner: React.FC = () => {
         return;
       }
     }
-  }, [isExiting, isSubmitting, submitPrimaryDecision, submitted]);
+  }, [composerOpen, isExiting, isSubmitting, submitPrimaryDecision, submitted]);
 
   const annotateDecisionSpec = useMemo(() => buildDecisionSpec({
     app: 'annotate',
@@ -1319,17 +1265,14 @@ const AppInner: React.FC = () => {
     spec: annotateDecisionSpec,
     handlers: annotateDecisionHandlers,
     closeTitle: annotateCloseTitle,
-  }), [annotateCloseTitle, annotateDecisionHandlers, annotateDecisionSpec]);
+    disabledReason: composerOpen ? 'Save or close the open comment first' : undefined,
+  }), [annotateCloseTitle, annotateDecisionHandlers, annotateDecisionSpec, composerOpen]);
 
   // Reading column. One width, dialled: the document is centred with a
-  // gutter on each side, and the left gutter holds the table of contents.
+  // gutter on each side, and the left gutter holds the versions sidebar.
   // 880px at the 14px body is 63em — the measure GitHub renders markdown in at
   // 16px/1012px, reproduced at our smaller type size.
   const planMaxWidth = 880;
-  const handleNavigatorTabChange = (tab: SidebarTab) => {
-    toggleSidebarTab(tab);
-  };
-
   const handleNavigatorDiffActivate = () => {
     handleActivatePlanDiff();
   };
@@ -1367,18 +1310,9 @@ const AppInner: React.FC = () => {
   }, [isMessageScopeEligible, getMessageStatesWithCurrent, selectedMessageId, recentMessages, allAnnotations]);
 
   const renderPlanSidebar = () => {
+    if (activeDiffVersionInfo === null || activeDiffVersionInfo.totalVersions <= 1) return null;
     return (
       <SidebarContainer
-        activeTab={sidebarTab}
-        onTabChange={handleNavigatorTabChange}
-        showContentsTab
-        blocks={blocks}
-        activeSection={activeSection}
-        onTocNavigate={handleTocNavigate}
-        linkedDocFilepath={linkedDocHook.filepath}
-        onLinkedDocBack={linkedDocHook.isActive ? handleLinkedDocBack : undefined}
-        backLabel={backLabel}
-        showVersionsTab={activeDiffVersionInfo !== null && activeDiffVersionInfo.totalVersions > 1}
         versionInfo={activeDiffVersionInfo}
         versions={planDiff.versions}
         selectedBaseVersion={planDiff.diffBaseVersion}
@@ -1460,9 +1394,8 @@ const AppInner: React.FC = () => {
 
         {/* The provider is render-transparent (context only, no DOM), so it can
             open here without changing the shell's element structure or order.
-            It has to: the navigator renders the SAME TableOfContents as
-            the desktop rail, and a TOC outside this provider resolves a null
-            viewport, which makes every "jump to heading" tap a silent no-op. */}
+            Viewer, StickyHeaderLane and BlockOutline read the scroll viewport
+            from it. */}
         <ScrollViewportProvider viewport={scrollViewport}>
 
 
@@ -1481,7 +1414,7 @@ const AppInner: React.FC = () => {
 
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden relative z-0">
-          {/* Left Sidebar: the permanent contents rail (TOC or Version Browser) */}
+          {/* Left Sidebar: the Version Browser, shown when the plan has more than one version */}
           {renderPlanSidebar()}
 
           {/* Document Area. The wrapper is the rail's anchor: its width is the
@@ -1554,6 +1487,7 @@ const AppInner: React.FC = () => {
                   selectedAnnotationId={selectedAnnotationId}
                   onAskSideQuestion={handleAskSideQuestion}
                   onComposerOpen={closeEditComposer}
+                  onComposerOpenChange={setSelectionComposerOpen}
                   repoInfo={repoInfo}
                   planDiffStats={planDiff.diffStats}
                   isPlanDiffActive={isPlanDiffActive}
@@ -1580,6 +1514,10 @@ const AppInner: React.FC = () => {
                   checkboxOverrides={checkbox.overrides}
                 />
               </div>
+              {annotateSource === 'message' && !linkedDocHook.isActive
+                && selectedMessageId && compactionEnds.has(selectedMessageId) && (
+                <CompactionSquiggle maxWidth={planMaxWidth} />
+              )}
             </div>
           </OverlayScrollArea>
           {annotateSource === 'message' && recentMessages.length > 1 && (
@@ -1593,13 +1531,11 @@ const AppInner: React.FC = () => {
                   selectedMessageId={selectedMessageId}
                   onSelect={handleSelectMessage}
                   annotationCounts={activeMessageAnnotationCounts}
-                  showShort={showShortMessages}
-                  onShowShortChange={handleShowShortMessagesChange}
                 />
               </div>
             </div>
           )}
-          {/* The /btw card sits in the document's corner so it never covers the panel. */}
+          {/* The /sidechat card sits in the document's corner so it never covers the panel. */}
           {sideChat.thread && sideChat.openKey && (
             <SideChatCard
               key={sideChat.openKey}
@@ -1678,7 +1614,7 @@ const AppInner: React.FC = () => {
               editAnnotation(editComposer.annotation.id, { text: label.text, images: undefined });
               setEditComposer(null);
             }}
-            // `/btw` replaced the comment in the box, so the side question
+            // `/sidechat` replaced the comment in the box, so the side question
             // takes the annotation's place.
             onAsk={editComposer.annotation.type === AnnotationType.GLOBAL_COMMENT ? undefined : (question) => {
               handleAskSideQuestion(question, editComposer.annotation.originalText);

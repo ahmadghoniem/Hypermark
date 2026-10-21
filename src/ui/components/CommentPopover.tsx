@@ -42,7 +42,7 @@ interface CommentPopoverProps {
    *  saves the label and closes the composer. Ignored for global comments. */
   quickLabels?: readonly QuickLabel[];
   onQuickLabel?: (label: QuickLabel) => void;
-  /** Turns on `/btw`: typing `/` completes to `/btw `, and sending text that
+  /** Turns on `/sidechat`: typing `/` completes to `/sidechat `, and sending text that
    *  starts with it (or Alt+Enter) calls this with the question and clears the
    *  field instead of adding a comment. */
   onAsk?: (question: string) => void;
@@ -199,13 +199,13 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 
   const showQuickLabels = !isGlobal && !!onQuickLabel && (quickLabels?.length ?? 0) > 0 && cleared;
   const trimmedText = text.trim();
-  const btw = !!onAsk && /^\/btw(\s|$)/i.test(trimmedText);
+  const btw = !!onAsk && /^\/sidechat(\s|$)/i.test(trimmedText);
   // The command at the start of the field, drawn in the accent color.
-  const command = onAsk ? /^(\s*)(\/btw)(?=\s|$)/i.exec(text) : null;
+  const command = onAsk ? /^(\s*)(\/sidechat)(?=\s|$)/i.exec(text) : null;
   const [fieldScroll, setFieldScroll] = useState(0);
   // "/" completes to the side-question command the way text completes to a label.
   const completions = onAsk && text.startsWith('/')
-    ? ['/btw ']
+    ? ['/sidechat ']
     : showQuickLabels && quickLabels ? quickLabels.map((l) => l.text) : [];
   const suggestion = caretAtEnd ? suggestionFor(text, completions) : null;
   const trackCaret = (el: HTMLTextAreaElement) =>
@@ -450,7 +450,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     }
     if (e.key === 'Enter' && e.altKey && onAsk && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      ask(trimmedText.replace(/^\/btw\s*/i, ''));
+      ask(trimmedText.replace(/^\/sidechat\s*/i, ''));
       return;
     }
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
@@ -705,7 +705,7 @@ const ComposerTextarea: React.FC<ComposerTextareaProps> = ({
       placeholder={placeholder}
       aria-label="Comment"
       aria-describedby={describedBy}
-      className={`relative block w-full bg-transparent placeholder:text-muted-foreground resize-none focus:outline-none overflow-y-auto ${hideText ? 'text-transparent caret-foreground' : ''} ${TEXT} ${sizeClassName}`}
+      className={`relative block w-full bg-transparent placeholder:text-muted-foreground resize-none focus:outline-none overflow-y-auto caret-foreground ${hideText ? 'text-transparent' : ''} ${TEXT} ${sizeClassName}`}
       style={boxStyle}
     />
   );
@@ -726,7 +726,7 @@ const ComposerCommandText: React.FC<{
   <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
     <div className={`whitespace-pre-wrap wrap-break-word text-foreground ${textClassName}`} style={{ transform: `translateY(${-scrollTop}px)` }}>
       {lead}
-      <span className="text-primary">{command}</span>
+      <span className="text-[color-mix(in_oklab,var(--primary)_65%,var(--foreground))]">{command}</span>
       {text.slice(lead.length + command.length)}
     </div>
   </div>

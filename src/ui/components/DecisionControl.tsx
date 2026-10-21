@@ -40,6 +40,8 @@ export interface DecisionControlProps {
   busy: boolean;
   /** Spinner on the primary only. */
   isLoading: boolean;
+  /** Disables both segments like `busy`, and shows this on hover. */
+  disabledReason?: string;
   labelBreakpoint?: 'md' | 'lg';
   /** Confirm surface override; defaults to the ui ConfirmDialog. */
   confirmDialog?: React.ComponentType<ConfirmDialogProps>;
@@ -145,11 +147,13 @@ export const DecisionNoteField: React.FC<DecisionNoteFieldProps> = ({
 export const DecisionControl: React.FC<DecisionControlProps> = ({
   spec,
   handlers,
-  busy,
+  busy: inFlight,
   isLoading,
+  disabledReason,
   labelBreakpoint = 'md',
   confirmDialog,
 }) => {
+  const busy = inFlight || disabledReason !== undefined;
   const rootRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const caretRef = useRef<HTMLButtonElement>(null);
@@ -260,7 +264,7 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
         size="xs"
         onClick={() => handlers.primary?.()}
         disabled={busy}
-        title={spec.primary.title}
+        title={disabledReason ?? spec.primary.title}
         data-decision-primary="true"
         iconLeft={
           isLoading
@@ -299,7 +303,8 @@ export const DecisionControl: React.FC<DecisionControlProps> = ({
   );
 
   return (
-    <div ref={rootRef} className="relative inline-flex">
+    // A disabled button gets no hover events, so the wrapper carries the reason.
+    <div ref={rootRef} className="relative inline-flex" title={disabledReason}>
       {primaryButton}
 
       {/* Right segment — the caret. */}

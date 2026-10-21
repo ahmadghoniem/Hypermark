@@ -43,15 +43,27 @@
 }
 
 :root {
-  /* surfaces */
-  --surface-1: #FAFAFA;
-  --surface-2: #FCFCFC;
-  --surface-3: #FFFFFF;
-  --surface-4: #FFFFFF;
-  --surface-5: #FFFFFF;
-  --surface-6: #FFFFFF;
-  --surface-7: #FFFFFF;
-  --surface-8: #FFFFFF;
+  /* Surfaces: the theme's background stepped toward its foreground, so each
+     theme keeps its tint. Each level has one use, after the first eight steps
+     of Radix's scale (radix-ui.com/colors/docs/palette-composition/understanding-the-scale),
+     with step sizes close to Radix's grey:
+       1  app background: the document, the header
+       2  subtle background: the side panels, code blocks
+       3  an element at rest: panel cards, inline code, chips
+       4  that element hovered
+       5  that element pressed or selected
+       6  subtle borders and separators
+       7  element borders
+       8  hovered element borders
+     Floating layers (the composer, popovers, menus) stay on --popover. */
+  --surface-1: var(--background);
+  --surface-2: color-mix(in oklab, var(--background), var(--foreground) 1.5%);
+  --surface-3: color-mix(in oklab, var(--background), var(--foreground) 4.5%);
+  --surface-4: color-mix(in oklab, var(--background), var(--foreground) 7.5%);
+  --surface-5: color-mix(in oklab, var(--background), var(--foreground) 10.5%);
+  --surface-6: color-mix(in oklab, var(--background), var(--foreground) 13.5%);
+  --surface-7: color-mix(in oklab, var(--background), var(--foreground) 18%);
+  --surface-8: color-mix(in oklab, var(--background), var(--foreground) 25%);
   --shadow-color: rgb(0 0 0 / 0.06);
   --shadow-1: 0 0 0 1px var(--shadow-color);
   --shadow-2: 0 0 0 1px var(--shadow-color), 0 1px 1px -0.5px var(--shadow-color);
@@ -98,15 +110,15 @@
 }
 
 :root:not(.light) {
-  /* surfaces */
-  --surface-1: #171717;
-  --surface-2: #1E1E1E;
-  --surface-3: #252525;
-  --surface-4: #2C2C2C;
-  --surface-5: #333333;
-  --surface-6: #3A3A3A;
-  --surface-7: #414141;
-  --surface-8: #484848;
+  /* surfaces: the same uses as in light, with Radix's dark grey steps */
+  --surface-1: var(--background);
+  --surface-2: color-mix(in oklab, var(--background), var(--foreground) 4.5%);
+  --surface-3: color-mix(in oklab, var(--background), var(--foreground) 9%);
+  --surface-4: color-mix(in oklab, var(--background), var(--foreground) 13%);
+  --surface-5: color-mix(in oklab, var(--background), var(--foreground) 17%);
+  --surface-6: color-mix(in oklab, var(--background), var(--foreground) 21.5%);
+  --surface-7: color-mix(in oklab, var(--background), var(--foreground) 28%);
+  --surface-8: color-mix(in oklab, var(--background), var(--foreground) 40%);
   --dm-hi-base: rgba(255,255,255,0.01);
   --dm-hi-mid: rgba(255,255,255,0.02);
   --dm-hi-high: rgba(255,255,255,0.04);
@@ -186,19 +198,19 @@ html.transitioning *, html.transitioning *::before, html.transitioning *::after 
     --sf-start: 1;
   }
   to {
-    --sf-start: 0;
+    --sf-start: 0.3;
   }
 }
 @keyframes sf-reveal-end {
   from {
-    --sf-end: 0;
+    --sf-end: 0.3;
   }
   to {
     --sf-end: 1;
   }
 }
 .scroll-fade, .scroll-fade-x {
-  --scroll-fade-size: 48px;
+  --scroll-fade-size: 32px;
 }
 @keyframes sf-divider-start {
   from {

@@ -81,10 +81,10 @@ const tsx = {
 
 export default defineConfig([
   {
-    // src/ui/fluid (Fluid Functionalism) and src/annotate/gallery/rare (rare-ui,
-    // canvas only) are vendored source, kept as upstream wrote it; a component
-    // is cleaned up when it replaces one of ours.
-    ignores: ["**/node_modules/**", "**/dist/**", "**/*.test.*", "src/ui/fluid/**", "src/annotate/gallery/rare/**"],
+    // src/ui/fluid (Fluid Functionalism) is vendored source, kept as upstream
+    // wrote it apart from changes marked "Hypermark:"; a component is cleaned up
+    // when it replaces one of ours.
+    ignores: ["**/node_modules/**", "**/dist/**", "**/*.test.*", "src/ui/fluid/**"],
   },
   {
     // The react-hooks disable comments look unused because those rules do not

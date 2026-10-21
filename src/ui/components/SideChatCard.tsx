@@ -19,7 +19,7 @@ interface SideChatCardProps {
 }
 
 /**
- * The /btw side conversation about a highlight: a card in the bottom right
+ * The /sidechat side conversation about a highlight: a card in the bottom right
  * corner of the host, which must be positioned (the annotate app puts it in
  * the document area, left of the panel). 384px wide and 448px tall,
  * 8px off the bottom, shrinking to fit a short host. Escape inside it
@@ -62,7 +62,10 @@ export const SideChatCard: React.FC<SideChatCardProps> = ({ thread, onSend, onSt
       }`}
     >
       <div className="flex shrink-0 items-start gap-1 p-1.5 pl-3">
-        <p className="mt-1 line-clamp-2 min-w-0 flex-1 border-l-2 border-border pl-2 text-caption text-muted-foreground">{quote}</p>
+        <div className="mt-1 flex min-w-0 flex-1 gap-2">
+          <span aria-hidden="true" className="w-0.5 shrink-0 self-stretch rounded-full bg-muted-foreground/35" />
+          <p className="line-clamp-2 min-w-0 flex-1 text-caption text-muted-foreground">{quote}</p>
+        </div>
         <Tooltip content={<span className="flex items-center gap-2">Close<span className="text-muted-foreground">Esc</span></span>} side="top" className={TIP}>
           <Button variant="ghost" size="icon-sm" aria-label="Close side question" onClick={onClose}>
             <XClose />

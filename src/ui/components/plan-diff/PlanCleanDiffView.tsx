@@ -643,7 +643,7 @@ const SimpleCodeBlock: React.FC<{ block: Block }> = ({ block }) => {
 
   return (
     <div className="relative group my-plan-wide">
-      <pre className="bg-muted/50 border border-border/30 rounded-lg overflow-x-auto">
+      <pre className="bg-surface-2 border border-border/30 rounded-sm overflow-x-auto">
         <code ref={codeRef} className={codeBlockClassName(block.language)}>
           {block.content}
         </code>
@@ -744,7 +744,7 @@ const InlineMarkdown: React.FC<{ text: string }> = ({ text }) => {
       parts.push(
         <code
           key={key++}
-          className="px-1.5 py-0.5 rounded-sm bg-muted text-sm font-mono"
+          className="px-1 py-px rounded-xs bg-surface-3 text-sm font-mono"
         >
           {match[1]}
         </code>

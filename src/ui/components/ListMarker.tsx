@@ -52,7 +52,7 @@ export const ListMarker: React.FC<ListMarkerProps> = ({
       aria-checked={interactive ? checked : undefined}
     >
       {showNumeral && (
-        <span className="text-primary/60 tabular-nums text-right" style={{ minWidth: '1.5rem' }}>
+        <span className="text-sm/relaxed text-primary/60 tabular-nums text-right" style={{ minWidth: '1.5rem' }}>
           {orderedIndex}.
         </span>
       )}

@@ -7,8 +7,11 @@ import { InlineMarkdown } from '../InlineMarkdown';
 // have loaded.
 import { BlockRenderer } from '../BlockRenderer';
 
-/** The quote's look. Shared by both render paths so they cannot drift. */
-export const BLOCKQUOTE_CLASS_NAME = 'border-l-2 border-primary/50 pl-4 my-4 text-muted-foreground italic';
+/**
+ * The quote's look, a rounded bar like the composer's quote row. Shared by
+ * both render paths so they cannot drift.
+ */
+export const BLOCKQUOTE_CLASS_NAME = 'relative pl-4 my-4 text-muted-foreground italic before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:rounded-full before:bg-muted-foreground/35';
 
 /**
  * Spacing and tone for a quote whose content has block structure. A

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { isGraphvizLanguage, isMermaidLanguage } from './diagramLanguages';
+import { isMermaidLanguage } from './diagramLanguages';
 
 describe('diagramLanguages', () => {
   test('matches mermaid fences case-insensitively', () => {
@@ -7,14 +7,5 @@ describe('diagramLanguages', () => {
     expect(isMermaidLanguage('Mermaid')).toBe(true);
     expect(isMermaidLanguage('mermaid align=center')).toBe(true);
     expect(isMermaidLanguage('graphviz')).toBe(false);
-  });
-
-  test('matches supported graphviz aliases case-insensitively', () => {
-    expect(isGraphvizLanguage('graphviz')).toBe(true);
-    expect(isGraphvizLanguage('dot')).toBe(true);
-    expect(isGraphvizLanguage('GV')).toBe(true);
-    expect(isGraphvizLanguage('dot rankdir=LR')).toBe(true);
-    expect(isGraphvizLanguage('mermaid')).toBe(false);
-    expect(isGraphvizLanguage(undefined)).toBe(false);
   });
 });

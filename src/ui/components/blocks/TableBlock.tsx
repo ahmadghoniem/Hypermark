@@ -45,34 +45,12 @@ const csvEscape = (value: string): string => {
   return value;
 };
 
-// Build RFC 4180 CSV from pre-parsed headers + rows. The popout uses this
-// directly with TanStack's visible (filter + sort applied) rows.
-export const buildCsvFromRows = (headers: string[], rows: string[][]): string => {
-  const lines = [headers, ...rows].map((row) => row.map(csvEscape).join(','));
-  return lines.join('\n');
-};
-
-// Rebuild a pipe-delimited markdown table from pre-parsed headers + rows.
-// Inverse of parseTableContent. Whitespace normalized (one space per cell
-// padding). The popout uses this for copy-as-markdown when filter or sort
-// might change what the user sees.
-// parseTableContent unescapes `\|` → `|`, so cells may hold literal pipes.
-// Re-escape on the way out — otherwise the serialized table sprouts extra
-// columns wherever a cell had a pipe.
-const mdCellEscape = (value: string): string => value.replace(/\|/g, '\\|');
-
-export const buildMarkdownTable = (headers: string[], rows: string[][]): string => {
-  const headerLine = `| ${headers.map(mdCellEscape).join(' | ')} |`;
-  const separator = `| ${headers.map(() => '---').join(' | ')} |`;
-  const bodyLines = rows.map((row) => `| ${row.map(mdCellEscape).join(' | ')} |`);
-  return [headerLine, separator, ...bodyLines].join('\n');
-};
-
 // Convert the markdown table's pipe-delimited source into RFC 4180 CSV.
-// The hover toolbar uses this on the raw block content (no filter state).
+// The hover toolbar uses this on the raw block content.
 export const buildCsv = (markdown: string): string => {
   const { headers, rows } = parseTableContent(markdown);
-  return buildCsvFromRows(headers, rows);
+  const lines = [headers, ...rows].map((row) => row.map(csvEscape).join(','));
+  return lines.join('\n');
 };
 
 export const TableBlock: React.FC<TableBlockProps> = ({

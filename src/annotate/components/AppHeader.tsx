@@ -25,6 +25,8 @@ interface AppHeaderProps {
     spec: DecisionSpec;
     handlers: Record<DecisionActionId, DecisionHandler>;
     closeTitle: string;
+    /** Set while the decision has to wait; both segments are disabled and show it on hover. */
+    disabledReason?: string;
   };
 }
 
@@ -54,6 +56,7 @@ export const AppHeader = React.memo<AppHeaderProps>(({
                 handlers={annotateDecision.handlers}
                 busy={isSubmitting || isExiting}
                 isLoading={isSubmitting}
+                disabledReason={annotateDecision.disabledReason}
               />
             )}
 

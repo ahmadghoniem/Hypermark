@@ -13,21 +13,15 @@ import {
   isHumanPrompt,
   extractRecentRenderedMessages,
   getRecentRenderedMessages,
+  isHiddenMessage,
   resolveActiveBranchIndices,
-  projectSlugFromCwd,
-  findSessionLogsByAncestorWalk,
-  findSessionLogsForCwd,
-  getAncestorPids,
-  normalizeCwdForCompare,
   describeClaudeSessionResolutionFailure,
-  findClaudeSessionLogById,
+  projectSlugFromCwd,
   resolveClaudeSessionLog,
-  resolveSessionLogByAncestorPids,
-  resolveSessionLogByCwdScan,
   readSessionForResume,
   type SessionLogEntry,
 } from "./session-log";
-import { chmodSync, mkdirSync, writeFileSync, rmSync, utimesSync } from "node:fs";
+import { chmodSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -493,71 +487,214 @@ describe("extractRecentRenderedMessages — after a rewind", () => {
   });
 });
 
-describe("getRecentRenderedMessages — after a /compact", () => {
-  // A compact boundary is written with `parentUuid: null`, so it is a tree
-  // root: the active branch stops there and pre-compaction entries are cut.
-  const compactedLog = () => {
-    const preCompact = linkChain([
-      userPrompt("early question"),
-      assistantText("msg_pre", "Pre-compaction answer"),
-    ]);
-    const boundary = JSON.stringify({
+describe("getRecentRenderedMessages — across compactions", () => {
+  // A compact boundary is a new root (`parentUuid: null`) whose
+  // `logicalParentUuid` is the last entry before the compaction.
+  const boundary = (uuid: string, logicalParentUuid: string | null) =>
+    JSON.stringify({
       type: "system",
       subtype: "compact_boundary",
-      uuid: "u-compact",
+      uuid,
       parentUuid: null,
+      ...(logicalParentUuid ? { logicalParentUuid } : {}),
     });
-    const postPrompt = JSON.stringify({
+  const summary = (uuid: string, parentUuid: string) =>
+    JSON.stringify({
       type: "user",
-      message: { role: "user", content: "/hypermark-last" },
-      uuid: "u-after",
-      parentUuid: "u-compact",
+      isCompactSummary: true,
+      message: { role: "user", content: "Summary of the conversation so far" },
+      uuid,
+      parentUuid,
     });
-    return [...preCompact, boundary, postPrompt].join("\n");
-  };
+  const turns = (ids: string[], parentUuid: string | null) =>
+    linkChain(ids.flatMap((id) => [userPrompt(`ask ${id}`), assistantText(id, `Answer ${id}`)]), parentUuid);
 
-  test("the active branch stops at the compact boundary", () => {
-    const entries = parseSessionLog(compactedLog());
-    expect(resolveActiveBranchIndices(entries)).toEqual(new Set([2, 3]));
-  });
+  /**
+   * Segments of answers with a compaction between each pair. `brokenLink`
+   * points every boundary at an entry that isn't in the log.
+   */
+  function compactedLog(segments: string[][], opts: { brokenLink?: boolean } = {}): string {
+    const lines: string[] = [];
+    let parent: string | null = null;
+    segments.forEach((ids, n) => {
+      if (n > 0) {
+        lines.push(boundary(`u-compact-${n}`, opts.brokenLink ? "u-not-in-log" : parent));
+        lines.push(summary(`u-summary-${n}`, `u-compact-${n}`));
+        parent = `u-summary-${n}`;
+      }
+      const chain = turns(ids, parent);
+      lines.push(...chain);
+      if (chain.length > 0) parent = tailUuid(chain);
+    });
+    return lines.join("\n");
+  }
 
-  test("an empty active branch falls back to the file-order read", () => {
-    // Right after a compaction the branch holds no assistant messages. An
-    // empty result must not escape: callers treat it as "wrong log file" and
-    // walk off to an older session. Fail open to the file-order read instead.
-    const dir = join(tmpdir(), `hypermark-compact-test-${process.pid}`);
-    mkdirSync(dir, { recursive: true });
-    const logPath = join(dir, "session.jsonl");
-    try {
-      writeFileSync(logPath, compactedLog());
-      const result = getRecentRenderedMessages(logPath, 25, {
-        activeBranchOnly: true,
-      });
-      expect(result.map((m) => m.messageId)).toEqual(["msg_pre"]);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  test("a post-compaction assistant message is preferred once one exists", () => {
-    // Once the compacted conversation has its own assistant message, the
-    // branch read stands on its own and the pre-compaction orphan stays out.
-    const log = [
-      compactedLog(),
-      linkChain([assistantText("msg_post", "Post-compaction answer")], "u-after").join("\n"),
-    ].join("\n");
-    const dir = join(tmpdir(), `hypermark-compact-test2-${process.pid}`);
+  function read(log: string, limit = 20) {
+    const dir = join(tmpdir(), `hypermark-compact-${process.pid}-${crypto.randomUUID()}`);
     mkdirSync(dir, { recursive: true });
     const logPath = join(dir, "session.jsonl");
     try {
       writeFileSync(logPath, log);
-      const result = getRecentRenderedMessages(logPath, 25, {
-        activeBranchOnly: true,
-      });
-      expect(result.map((m) => m.messageId)).toEqual(["msg_post"]);
+      return getRecentRenderedMessages(logPath, limit, { activeBranchOnly: true })
+        .map((m) => (m.compactedAfter ? `${m.messageId}|` : m.messageId));
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  }
+
+  test("the active branch continues through a compact boundary", () => {
+    const entries = parseSessionLog(compactedLog([["a1"], ["b1"]]));
+    expect(resolveActiveBranchIndices(entries)).toEqual(new Set([0, 1, 2, 3, 4, 5]));
+  });
+
+  // `|` marks a message with a compaction after it.
+  test("lists the messages from before a compaction after the newer ones", () => {
+    expect(read(compactedLog([["a1", "a2"], ["b1"]]))).toEqual(["b1", "a2|", "a1"]);
+  });
+
+  test("right after a compaction, lists the messages from before it", () => {
+    expect(read(compactedLog([["a1", "a2"], []]))).toEqual(["a2|", "a1"]);
+  });
+
+  test("goes back through several compactions", () => {
+    expect(read(compactedLog([["a1"], ["b1"], ["c1"]]))).toEqual(["c1", "b1|", "a1|"]);
+  });
+
+  test("stops at the cap before reaching a compaction", () => {
+    expect(read(compactedLog([["a1"], ["b1", "b2", "b3"]]), 2)).toEqual(["b3", "b2"]);
+  });
+
+  test("stops at the cap partway through the messages before a compaction", () => {
+    expect(read(compactedLog([["a1", "a2", "a3"], ["b1"]]), 3)).toEqual(["b1", "a3|", "a2"]);
+  });
+
+  test("leaves out messages a /rewind discarded before the compaction", () => {
+    const kept = turns(["a_keep"], null);
+    const discarded = turns(["a_gone"], tailUuid(kept));
+    const resumed = turns(["a_resumed"], tailUuid(kept));
+    const log = [
+      ...kept,
+      ...discarded,
+      ...resumed,
+      boundary("u-compact", tailUuid(resumed)),
+      summary("u-summary", "u-compact"),
+      ...turns(["b1"], "u-summary"),
+    ].join("\n");
+    expect(read(log)).toEqual(["b1", "a_resumed|", "a_keep"]);
+  });
+
+  test("leaves out messages a /rewind discarded after the compaction", () => {
+    const before = turns(["a1"], null);
+    const kept = turns(["b_keep"], "u-summary");
+    const log = [
+      ...before,
+      boundary("u-compact", tailUuid(before)),
+      summary("u-summary", "u-compact"),
+      ...kept,
+      ...turns(["b_gone"], tailUuid(kept)),
+      ...turns(["b_new"], tailUuid(kept)),
+    ].join("\n");
+    expect(read(log)).toEqual(["b_new", "b_keep", "a1|"]);
+  });
+
+  test("stops at a compaction whose link back is missing", () => {
+    expect(read(compactedLog([["a1"], ["b1"]], { brokenLink: true }))).toEqual(["b1"]);
+    expect(read(compactedLog([["a1"], []], { brokenLink: true }))).toEqual([]);
+  });
+});
+
+describe("isHiddenMessage", () => {
+  const status = "The agent finished.\n\n" + "It found one issue in the parser. ".repeat(6);
+
+  test("hides system lines of any length", () => {
+    expect(isHiddenMessage("API Error: 529 overloaded", false)).toBe(true);
+    expect(isHiddenMessage("[Request interrupted by user]", false)).toBe(true);
+    expect(isHiddenMessage(`You've hit your limit. ${"x".repeat(300)}`, false)).toBe(true);
+  });
+
+  test("hides one unstructured paragraph up to 200 characters", () => {
+    expect(isHiddenMessage("  Approved.  ", false)).toBe(true);
+    expect(isHiddenMessage("Done.\nTests pass.", false)).toBe(true);
+    expect(isHiddenMessage("a".repeat(200), false)).toBe(true);
+    expect(isHiddenMessage("a".repeat(201), false)).toBe(false);
+    expect(isHiddenMessage("Done.\n\nTests pass.", false)).toBe(false);
+  });
+
+  test("keeps structured text", () => {
+    expect(isHiddenMessage("- one\n- two", false)).toBe(false);
+    expect(isHiddenMessage("## Done", true)).toBe(false);
+    expect(isHiddenMessage("```\nls\n```", true)).toBe(false);
+  });
+
+  test("hides automatic status notes up to two paragraphs and 450 characters", () => {
+    expect(isHiddenMessage(status, true)).toBe(true);
+    expect(isHiddenMessage(status, false)).toBe(false);
+    expect(isHiddenMessage(`${status}\n\nThird paragraph.`, true)).toBe(false);
+    expect(isHiddenMessage("a".repeat(300) + "\n\n" + "b".repeat(151), true)).toBe(false);
+  });
+});
+
+describe("extractRecentRenderedMessages — hidden messages", () => {
+  const status = "The monitor reports a finished run.\n\n" + "Everything matched the last baseline. ".repeat(5);
+  const notification = (text: string) =>
+    JSON.stringify({
+      type: "user",
+      origin: { kind: "task-notification" },
+      message: { role: "user", content: `<task-notification>${text}</task-notification>` },
+      uuid: crypto.randomUUID(),
+    });
+  // `~` marks a hidden message.
+  const readAll = (log: string, limit: number, limitCountsShown = false) => {
+    const entries = parseSessionLog(log);
+    return extractRecentRenderedMessages(entries, entries.length, limit, { limitCountsShown })
+      .map((m) => (m.hidden ? `${m.messageId}~` : m.messageId));
+  };
+
+  test("a status note is hidden after a notification, shown after the user's prompt", () => {
+    const log = buildLog(
+      userPrompt("check the run"),
+      assistantText("m_user", status),
+      notification("run finished"),
+      assistantText("m_monitor", status),
+    );
+    expect(readAll(log, 5)).toEqual(["m_monitor~", "m_user"]);
+  });
+
+  test("a status note written mid-turn is hidden", () => {
+    const log = buildLog(
+      userPrompt("fix it"),
+      assistantTextAndToolUse("m_mid", status, "Bash"),
+      userToolResult("toolu_x", "ok"),
+      assistantText("m_end", status),
+    );
+    expect(readAll(log, 5)).toEqual(["m_end", "m_mid~"]);
+  });
+
+  test("a skill body counts as automatic", () => {
+    const skill = JSON.stringify({
+      type: "user",
+      isMeta: true,
+      message: { role: "user", content: "Skill instructions" },
+      uuid: crypto.randomUUID(),
+    });
+    const log = buildLog(userPrompt("<command-name>/hypermark-last</command-name>"), skill, assistantText("m", status));
+    expect(readAll(log, 5)).toEqual(["m~"]);
+  });
+
+  test("with limitCountsShown, hidden messages don't use up the cap", () => {
+    const long = "A real answer.\n\nWith a second paragraph that makes it long enough to keep.";
+    const log = buildLog(
+      userPrompt("one"),
+      assistantText("a", long),
+      userPrompt("two"),
+      assistantText("b", long),
+      userPrompt("three"),
+      assistantText("c", "OK."),
+      userPrompt("four"),
+      assistantText("d", long),
+    );
+    expect(readAll(log, 2)).toEqual(["d", "c~"]);
+    expect(readAll(log, 2, true)).toEqual(["d", "c~", "b"]);
   });
 });
 
@@ -573,123 +710,18 @@ describe("parseSessionLog", () => {
   });
 });
 
-describe("findSessionLogsByAncestorWalk", () => {
-  test("returns empty array for root directory (no parents to walk)", () => {
-    const result = findSessionLogsByAncestorWalk("/");
-    expect(result).toEqual([]);
-  });
-
-  test("walks up to find parent directory session logs", () => {
-    const { projectsDir, cleanup } = makeTempDirs("ancestor-walk");
-    try {
-      const testId = `hypermark-test-${Date.now()}`;
-      const testDir = join(tmpdir(), testId, "sub", "deep");
-      const parentSlug = join(tmpdir(), testId).replace(/[^a-zA-Z0-9-]/g, "-");
-      const slugDir = join(projectsDir, parentSlug);
-      mkdirSync(slugDir, { recursive: true });
-      const fakeLog = join(slugDir, "fake-session.jsonl");
-      writeFileSync(fakeLog, '{"type":"assistant","message":{"id":"m1","content":[{"type":"text","text":"hello"}]}}\n');
-
-      const result = findSessionLogsByAncestorWalk(testDir, projectsDir);
-      expect(result.length).toBeGreaterThan(0);
-      expect(result[0]).toBe(fakeLog);
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("does not return results for the exact CWD (caller already tried it)", () => {
-    const { projectsDir, cleanup } = makeTempDirs("ancestor-exact");
-    try {
-      const testId = `hypermark-test-exact-${Date.now()}`;
-      const testDir = join(tmpdir(), testId);
-      const cwdSlug = testDir.replace(/[^a-zA-Z0-9-]/g, "-");
-      const slugDir = join(projectsDir, cwdSlug);
-      mkdirSync(slugDir, { recursive: true });
-      writeFileSync(
-        join(slugDir, "fake.jsonl"),
-        '{"type":"assistant","message":{"id":"m1","content":[{"type":"text","text":"hi"}]}}\n'
-      );
-
-      const result = findSessionLogsByAncestorWalk(testDir, projectsDir);
-      expect(result.every((p) => !p.includes(slugDir))).toBe(true);
-    } finally {
-      cleanup();
-    }
-  });
-});
-
-// --- Resolver Tests (new) ---
-
-describe("getAncestorPids", () => {
-  test("returns empty array for invalid startPid", () => {
-    expect(getAncestorPids(0, 5, () => null)).toEqual([]);
-    expect(getAncestorPids(1, 5, () => null)).toEqual([]);
-  });
-
-  test("returns startPid when there is no parent", () => {
-    expect(getAncestorPids(100, 5, () => null)).toEqual([100]);
-  });
-
-  test("walks up the PID chain until root", () => {
-    const parents: Record<number, number> = { 100: 200, 200: 300, 300: 1 };
-    expect(
-      getAncestorPids(100, 10, (p) => parents[p] ?? null)
-    ).toEqual([100, 200, 300]);
-  });
-
-  test("respects maxHops limit", () => {
-    const parents: Record<number, number> = { 100: 200, 200: 300, 300: 400 };
-    expect(
-      getAncestorPids(100, 2, (p) => parents[p] ?? null)
-    ).toEqual([100, 200]);
-  });
-
-  test("breaks on PID cycles", () => {
-    const parents: Record<number, number> = { 100: 200, 200: 100 };
-    const chain = getAncestorPids(100, 50, (p) => parents[p] ?? null);
-    expect(chain).toEqual([100, 200]);
-  });
-
-  test("breaks when getParent returns startPid (self-loop)", () => {
-    const chain = getAncestorPids(100, 50, () => 100);
-    expect(chain).toEqual([100]);
-  });
-});
-
-/** Build an isolated sessions + projects dir under tmpdir for a test. */
+/** Build an isolated projects dir under tmpdir for a test. */
 function makeTempDirs(label: string): {
-  sessionsDir: string;
   projectsDir: string;
   cleanup: () => void;
 } {
   const base = join(tmpdir(), `hypermark-resolver-${label}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
-  const sessionsDir = join(base, "sessions");
   const projectsDir = join(base, "projects");
-  mkdirSync(sessionsDir, { recursive: true });
   mkdirSync(projectsDir, { recursive: true });
   return {
-    sessionsDir,
     projectsDir,
     cleanup: () => rmSync(base, { recursive: true, force: true }),
   };
-}
-
-/** Write a session metadata file for a PID. */
-function writeSessionMeta(
-  sessionsDir: string,
-  pid: number,
-  meta: { sessionId: string; cwd: string; startedAt?: number }
-): void {
-  writeFileSync(
-    join(sessionsDir, `${pid}.json`),
-    JSON.stringify({
-      pid,
-      sessionId: meta.sessionId,
-      cwd: meta.cwd,
-      startedAt: meta.startedAt ?? Date.now(),
-    })
-  );
 }
 
 /** Create a session jsonl for a given cwd + sessionId. */
@@ -707,1161 +739,188 @@ function writeSessionLog(
   return path;
 }
 
-describe("resolveSessionLogByAncestorPids", () => {
-  test("returns null when no ancestor PID has session metadata", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("no-ancestor");
+
+describe("resolveClaudeSessionLog", () => {
+  /** Run with CLAUDE_CODE_SESSION_ID set to `value` (or unset), restoring it after. */
+  function withSessionEnv<T>(value: string | undefined, run: () => T): T {
+    const previous = process.env.CLAUDE_CODE_SESSION_ID;
+    if (value === undefined) delete process.env.CLAUDE_CODE_SESSION_ID;
+    else process.env.CLAUDE_CODE_SESSION_ID = value;
     try {
-      const result = resolveSessionLogByAncestorPids({
-        startPid: 100,
-        getParentPid: () => null,
-        sessionsDir,
+      return run();
+    } finally {
+      if (previous === undefined) delete process.env.CLAUDE_CODE_SESSION_ID;
+      else process.env.CLAUDE_CODE_SESSION_ID = previous;
+    }
+  }
+
+  test("reads CLAUDE_CODE_SESSION_ID by default", () => {
+    const { projectsDir, cleanup } = makeTempDirs("env-default");
+    try {
+      const cwd = "/tmp/env";
+      const logPath = writeSessionLog(projectsDir, cwd, "session-env");
+      expect(withSessionEnv("session-env", () => resolveClaudeSessionLog({ cwd, projectsDir }))).toEqual({
+        status: "identified",
+        sessionId: "session-env",
+        logPath,
+      });
+    } finally {
+      cleanup();
+    }
+  });
+
+  test("returns unavailable without a session id", () => {
+    expect(withSessionEnv(undefined, () => resolveClaudeSessionLog())).toEqual({ status: "unavailable" });
+  });
+
+  test("finds the log in the cwd's project folder (after /cd)", () => {
+    const { projectsDir, cleanup } = makeTempDirs("env-cwd");
+    try {
+      writeSessionLog(projectsDir, "/tmp/start", "session-start");
+      const logPath = writeSessionLog(projectsDir, "/tmp/moved", "session-a");
+      expect(resolveClaudeSessionLog({ sessionId: "session-a", cwd: "/tmp/moved", projectsDir })).toEqual({
+        status: "identified",
+        sessionId: "session-a",
+        logPath,
+      });
+    } finally {
+      cleanup();
+    }
+  });
+
+  test("takes the cwd folder's log over a copy in another folder", () => {
+    const { projectsDir, cleanup } = makeTempDirs("env-cwd-wins");
+    try {
+      writeSessionLog(projectsDir, "/tmp/other", "session-a");
+      const logPath = writeSessionLog(projectsDir, "/tmp/here", "session-a");
+      expect(resolveClaudeSessionLog({ sessionId: "session-a", cwd: "/tmp/here", projectsDir }))
+        .toMatchObject({ logPath });
+    } finally {
+      cleanup();
+    }
+  });
+
+  test("matches the cwd folder when the drive letter's case differs", () => {
+    if (process.platform !== "win32" && process.platform !== "darwin") return;
+    const { projectsDir, cleanup } = makeTempDirs("env-cwd-case");
+    try {
+      writeSessionLog(projectsDir, "C:\\Users\\Admin\\proj", "session-a");
+      const resolution = resolveClaudeSessionLog({
+        sessionId: "session-a",
+        cwd: "c:\\Users\\Admin\\proj",
         projectsDir,
       });
-      expect(result).toBeNull();
+      expect(resolution).toMatchObject({ status: "identified" });
+      expect(resolution.status === "identified" && resolution.logPath).toBeTruthy();
     } finally {
       cleanup();
     }
   });
 
-  test("finds session at direct parent (1 hop)", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("direct-parent");
+  test("finds a session resumed from another directory in its original folder", () => {
+    const { projectsDir, cleanup } = makeTempDirs("env-scan");
     try {
-      const cwd = "/tmp/fake-project-direct";
-      const sessionId = "abcd-1234";
-      writeSessionMeta(sessionsDir, 999, { sessionId, cwd });
-      const logPath = writeSessionLog(projectsDir, cwd, sessionId);
-
-      const result = resolveSessionLogByAncestorPids({
-        startPid: 999,
-        getParentPid: () => null,
-        sessionsDir,
-        projectsDir,
+      const logPath = writeSessionLog(projectsDir, "/tmp/launch", "session-a");
+      expect(resolveClaudeSessionLog({ sessionId: "session-a", cwd: "/tmp/elsewhere", projectsDir })).toEqual({
+        status: "identified",
+        sessionId: "session-a",
+        logPath,
       });
-      expect(result?.logPath).toBe(logPath);
     } finally {
       cleanup();
     }
   });
 
-  test("finds a session whose log sits under another project folder", () => {
-    // A session started in one directory and continued from another: the
-    // metadata cwd changes, the log stays in the original project folder.
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("moved-cwd");
+  test("accepts a dotted session id", () => {
+    const { projectsDir, cleanup } = makeTempDirs("env-dotted");
     try {
-      const sessionId = "moved-1234";
-      writeSessionMeta(sessionsDir, 999, { sessionId, cwd: "/tmp/now-here" });
-      writeSessionLog(projectsDir, "/tmp/now-here", "other-session");
-      const logPath = writeSessionLog(projectsDir, "/tmp/started-here", sessionId);
-
-      const result = resolveSessionLogByAncestorPids({
-        startPid: 999,
-        getParentPid: () => null,
-        sessionsDir,
-        projectsDir,
-      });
-      expect(result?.logPath).toBe(logPath);
+      const logPath = writeSessionLog(projectsDir, "/tmp/dotted", "session.v1");
+      expect(resolveClaudeSessionLog({ sessionId: "session.v1", cwd: "/tmp/dotted", projectsDir }))
+        .toMatchObject({ logPath });
     } finally {
       cleanup();
     }
   });
 
-  test("walks past bash subshell to find Claude Code ancestor", () => {
-    // Simulates: hypermark (ppid=500 = sh) → sh (ppid=400 = claude)
-    // Claude Code's session file is at pid 400, NOT 500.
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("walks-past");
-    try {
-      const cwd = "/tmp/fake-project-walk";
-      const sessionId = "walk-1234";
-      writeSessionMeta(sessionsDir, 400, { sessionId, cwd });
-      const logPath = writeSessionLog(projectsDir, cwd, sessionId);
-
-      const parents: Record<number, number> = { 500: 400, 400: 1 };
-      const result = resolveSessionLogByAncestorPids({
-        startPid: 500,
-        getParentPid: (p) => parents[p] ?? null,
-        sessionsDir,
-        projectsDir,
-      });
-      expect(result?.logPath).toBe(logPath);
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("skips metadata when matching jsonl does not exist", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("skip-missing");
-    try {
-      const cwd = "/tmp/fake-project-skip";
-      // Metadata exists but the log file does not
-      writeSessionMeta(sessionsDir, 400, { sessionId: "missing-id", cwd });
-
-      const result = resolveSessionLogByAncestorPids({
-        startPid: 400,
-        getParentPid: () => null,
-        sessionsDir,
-        projectsDir,
-      });
-      expect(result).toBeNull();
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("returns null when sessionsDir doesn't exist", () => {
-    const { projectsDir, cleanup } = makeTempDirs("no-sessions");
-    try {
-      const result = resolveSessionLogByAncestorPids({
-        startPid: 100,
-        getParentPid: () => null,
-        sessionsDir: "/nonexistent/sessions/dir/xyz",
-        projectsDir,
-      });
-      expect(result).toBeNull();
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("prefers newer ghost session over stale metadata match (after /clear)", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("ghost-clear");
-    try {
-      const cwd = "/tmp/fake-project-ghost";
-      const oldSessionId = "old-session-before-clear";
-      const newSessionId = "new-session-after-clear";
-
-      // Metadata still points to old session (stale after /clear)
-      writeSessionMeta(sessionsDir, 400, { sessionId: oldSessionId, cwd });
-
-      // Both logs exist; force mtime ordering via utimes
-      const { utimesSync } = require("node:fs");
-      const oldLog = writeSessionLog(projectsDir, cwd, oldSessionId, buildLog(
-        userPrompt("hello"),
-        assistantText("msg_old", "Doing well, thanks!")
-      ));
-      const past = new Date(Date.now() - 5000);
-      utimesSync(oldLog, past, past);
-
-      const newLog = writeSessionLog(projectsDir, cwd, newSessionId, buildLog(
-        userPrompt("Why is the sky blue?"),
-        assistantText("msg_new", "Rayleigh scattering")
-      ));
-
-      const result = resolveSessionLogByAncestorPids({
-        startPid: 400,
-        getParentPid: () => null,
-        sessionsDir,
-        projectsDir,
-      });
-
-      // Should prefer the ghost session (newer, unregistered)
-      expect(result?.logPath).toBe(newLog);
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("keeps PID-based result when newer log belongs to a concurrent session", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("concurrent");
-    try {
-      const cwd = "/tmp/fake-project-concurrent";
-      const sessionA = "session-terminal-1";
-      const sessionB = "session-terminal-2";
-
-      // Both sessions have their own metadata (different PIDs)
-      writeSessionMeta(sessionsDir, 400, { sessionId: sessionA, cwd });
-      writeSessionMeta(sessionsDir, 500, { sessionId: sessionB, cwd });
-
-      // Terminal 1's log (older)
-      const { utimesSync } = require("node:fs");
-      const logA = writeSessionLog(projectsDir, cwd, sessionA, buildLog(
-        userPrompt("hello from terminal 1"),
-        assistantText("msg_a", "Response in terminal 1")
-      ));
-      const past = new Date(Date.now() - 5000);
-      utimesSync(logA, past, past);
-
-      // Terminal 2's log (more recently modified)
-      const logB = writeSessionLog(projectsDir, cwd, sessionB, buildLog(
-        userPrompt("hello from terminal 2"),
-        assistantText("msg_b", "Response in terminal 2")
-      ));
-
-      // From terminal 1's process tree, should get terminal 1's log
-      const result = resolveSessionLogByAncestorPids({
-        startPid: 400,
-        getParentPid: () => null,
-        sessionsDir,
-        projectsDir,
-      });
-
-      // Should keep the PID-based result (session B is registered, not a ghost)
-      expect(result?.logPath).toBe(logA);
-    } finally {
-      cleanup();
-    }
-  });
-});
-
-describe("resolveSessionLogByCwdScan", () => {
-  test("returns null when sessionsDir is empty", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("empty");
-    try {
-      const result = resolveSessionLogByCwdScan({
-        cwd: "/tmp/any",
-        sessionsDir,
-        projectsDir,
-      });
-      expect(result).toBeNull();
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("returns null when no session metadata matches cwd", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("no-match");
-    try {
-      writeSessionMeta(sessionsDir, 100, {
-        sessionId: "other-id",
-        cwd: "/tmp/other-project",
-      });
-      const result = resolveSessionLogByCwdScan({
-        cwd: "/tmp/my-project",
-        sessionsDir,
-        projectsDir,
-      });
-      expect(result).toBeNull();
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("picks most recent startedAt when multiple sessions match cwd", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("pick-recent");
-    try {
-      const cwd = "/tmp/multi-project";
-      // Two concurrent sessions with the same cwd
-      writeSessionMeta(sessionsDir, 111, {
-        sessionId: "old-session",
-        cwd,
-        startedAt: 1_000,
-      });
-      writeSessionMeta(sessionsDir, 222, {
-        sessionId: "new-session",
-        cwd,
-        startedAt: 2_000,
-      });
-      writeSessionLog(projectsDir, cwd, "old-session");
-      const newLog = writeSessionLog(projectsDir, cwd, "new-session");
-
-      const result = resolveSessionLogByCwdScan({
-        cwd,
-        sessionsDir,
-        projectsDir,
-      });
-      expect(result).toBe(newLog);
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("falls through to older session if newest has no matching jsonl", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("fallthrough");
-    try {
-      const cwd = "/tmp/fallthrough-project";
-      writeSessionMeta(sessionsDir, 111, {
-        sessionId: "old-session",
-        cwd,
-        startedAt: 1_000,
-      });
-      writeSessionMeta(sessionsDir, 222, {
-        sessionId: "new-session-no-log",
-        cwd,
-        startedAt: 2_000,
-      });
-      const oldLog = writeSessionLog(projectsDir, cwd, "old-session");
-      // Note: no jsonl for new-session-no-log
-
-      const result = resolveSessionLogByCwdScan({
-        cwd,
-        sessionsDir,
-        projectsDir,
-      });
-      expect(result).toBe(oldLog);
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("ignores malformed session metadata files", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("malformed");
-    try {
-      const cwd = "/tmp/malformed-project";
-      writeFileSync(join(sessionsDir, "999.json"), "not valid json");
-      writeSessionMeta(sessionsDir, 111, { sessionId: "good", cwd });
-      const goodLog = writeSessionLog(projectsDir, cwd, "good");
-
-      const result = resolveSessionLogByCwdScan({
-        cwd,
-        sessionsDir,
-        projectsDir,
-      });
-      expect(result).toBe(goodLog);
-    } finally {
-      cleanup();
-    }
-  });
-});
-
-
-
-describe("normalizeCwdForCompare", () => {
-  // normalizeCwdForCompare branches on process.platform. Rather than mock the
-  // platform, assert the invariant that identical cwds always normalize equal,
-  // and that on the current platform the function is idempotent.
-  test("is idempotent", () => {
-    const cwd = process.platform === "win32"
-      ? "C:\\Users\\me\\project"
-      : "/home/me/project";
-    expect(normalizeCwdForCompare(normalizeCwdForCompare(cwd))).toBe(
-      normalizeCwdForCompare(cwd)
-    );
-  });
-
-  test("on Windows: case and slash differences are normalized", () => {
-    if (process.platform !== "win32") return;
-    expect(normalizeCwdForCompare("C:\\Users\\Admin\\Project"))
-      .toBe(normalizeCwdForCompare("c:/users/admin/project"));
-  });
-
-  test("on Unix: preserves exact string (case-sensitive)", () => {
-    if (process.platform === "win32") return;
-    expect(normalizeCwdForCompare("/home/me/Project"))
-      .not.toBe(normalizeCwdForCompare("/home/me/project"));
-  });
-});
-
-describe("resolveSessionLogByCwdScan (cross-platform cwd matching)", () => {
-  test("matches when Claude-stored cwd casing differs on Windows", () => {
-    if (process.platform !== "win32") return;
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("win-case");
-    try {
-      // Claude writes C:\Users\... but process.cwd() may return c:\users\...
-      const storedCwd = "C:\\Users\\Admin\\proj";
-      const queryCwd = "c:\\users\\admin\\proj";
-      writeSessionMeta(sessionsDir, 111, { sessionId: "s1", cwd: storedCwd });
-      const log = writeSessionLog(projectsDir, storedCwd, "s1");
-
-      const result = resolveSessionLogByCwdScan({
-        cwd: queryCwd,
-        sessionsDir,
-        projectsDir,
-      });
-      expect(result).toBe(log);
-    } finally {
-      cleanup();
-    }
-  });
-});
-
-describe("findSessionLogsForCwd", () => {
-  test("returns on-disk directory casing when cwd casing differs", () => {
-    const { projectsDir, cleanup } = makeTempDirs("disk-casing");
-    try {
-      const storedCwd = "C:\\Users\\Admin\\proj";
-      const queryCwd = "c:\\users\\admin\\proj";
-      const log = writeSessionLog(projectsDir, storedCwd, "s1");
-
-      const logs = findSessionLogsForCwd(queryCwd, projectsDir);
-      expect(logs).toEqual([log]);
-    } finally {
-      cleanup();
-    }
-  });
-});
-
-
-describe("findClaudeSessionLogById", () => {
-  test("finds a unique session log under a different project slug", () => {
-    const { projectsDir, cleanup } = makeTempDirs("session-id-cross-slug");
-    try {
-      const launchDir = join(projectsDir, "launch-slug");
-      mkdirSync(launchDir, { recursive: true });
-      const logPath = join(launchDir, "session-a.jsonl");
-      writeFileSync(logPath, "{}\n");
-
-      expect(findClaudeSessionLogById("session-a", projectsDir)).toBe(logPath);
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("accepts a dotted session id basename", () => {
-    const { projectsDir, cleanup } = makeTempDirs("session-id-dotted");
-    try {
-      const dir = join(projectsDir, "project-slug");
-      mkdirSync(dir, { recursive: true });
-      const logPath = join(dir, "session.v1.jsonl");
-      writeFileSync(logPath, "{}\n");
-
-      expect(findClaudeSessionLogById("session.v1", projectsDir)).toBe(logPath);
-    } finally {
-      cleanup();
-    }
-  });
-
-  test.each(["../escape", "", "bad\\session", "bad/session", "bad\0session"])(
+  test.each(["../escape", "bad\\session", "bad/session", "bad\0session"])(
     "rejects malformed session id %p",
     (sessionId) => {
-      const { projectsDir, cleanup } = makeTempDirs("session-id-malformed");
+      const { projectsDir, cleanup } = makeTempDirs("env-malformed");
       try {
-        expect(findClaudeSessionLogById(sessionId, projectsDir)).toBeNull();
+        expect(resolveClaudeSessionLog({ sessionId, cwd: "/tmp/x", projectsDir }))
+          .toMatchObject({ logPath: null, reason: "invalid-id" });
       } finally {
         cleanup();
       }
     },
   );
 
-  test("returns null when the session log is missing", () => {
-    const { projectsDir, cleanup } = makeTempDirs("session-id-missing");
+  test("reports a missing log", () => {
+    const { projectsDir, cleanup } = makeTempDirs("env-missing");
     try {
-      expect(findClaudeSessionLogById("missing-session", projectsDir)).toBeNull();
+      writeSessionLog(projectsDir, "/tmp/other", "session-other");
+      expect(resolveClaudeSessionLog({ sessionId: "session-missing", cwd: "/tmp/x", projectsDir })).toEqual({
+        status: "identified",
+        sessionId: "session-missing",
+        logPath: null,
+        reason: "missing",
+      });
     } finally {
       cleanup();
     }
   });
 
-  test("returns null when the matching session log is unreadable", () => {
-    if (process.platform === "win32") return;
-    const { projectsDir, cleanup } = makeTempDirs("session-id-unreadable");
+  test("refuses a log found in two folders other than the cwd's", () => {
+    const { projectsDir, cleanup } = makeTempDirs("env-duplicate");
     try {
-      const dir = join(projectsDir, "project-slug");
-      mkdirSync(dir, { recursive: true });
-      const logPath = join(dir, "unreadable-session.jsonl");
-      writeFileSync(logPath, "{}\n");
+      writeSessionLog(projectsDir, "/tmp/first", "session-a");
+      writeSessionLog(projectsDir, "/tmp/second", "session-a");
+      expect(resolveClaudeSessionLog({ sessionId: "session-a", cwd: "/tmp/x", projectsDir }))
+        .toMatchObject({ logPath: null, reason: "duplicate" });
+    } finally {
+      cleanup();
+    }
+  });
+
+  test("reports an unreadable log", () => {
+    if (process.platform === "win32") return;
+    const { projectsDir, cleanup } = makeTempDirs("env-unreadable");
+    try {
+      const logPath = writeSessionLog(projectsDir, "/tmp/locked", "session-a");
       chmodSync(logPath, 0o000);
-
-      expect(
-        findClaudeSessionLogById("unreadable-session", projectsDir),
-      ).toBeNull();
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("returns null when the session id appears under multiple project slugs", () => {
-    const { projectsDir, cleanup } = makeTempDirs("session-id-duplicate");
-    try {
-      for (const slug of ["first-slug", "second-slug"]) {
-        const dir = join(projectsDir, slug);
-        mkdirSync(dir, { recursive: true });
-        writeFileSync(join(dir, "duplicate-session.jsonl"), "{}\n");
-      }
-
-      expect(
-        findClaudeSessionLogById("duplicate-session", projectsDir),
-      ).toBeNull();
+      expect(resolveClaudeSessionLog({ sessionId: "session-a", cwd: "/tmp/locked", projectsDir }))
+        .toMatchObject({ logPath: null, reason: "unreadable" });
     } finally {
       cleanup();
     }
   });
 });
 
-describe("resolveClaudeSessionLog", () => {
-  test("fails closed on non-string ancestor metadata session id", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-ancestor-non-string-id");
-    try {
-      const cwd = "/tmp/non-string-ancestor";
-      writeFileSync(join(sessionsDir, "400.json"), JSON.stringify({
-        pid: 400,
-        sessionId: 123,
-        cwd,
-        startedAt: Date.now(),
-      }));
-
-      expect(() => resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).not.toThrow();
-      expect(resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).toEqual({ status: "blocked", source: "cwd-metadata" });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("fails closed on non-string cwd metadata session id", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-cwd-non-string-id");
-    try {
-      const cwd = "/tmp/non-string-cwd";
-      writeFileSync(join(sessionsDir, "400.json"), JSON.stringify({
-        pid: 400,
-        sessionId: { value: "session-a" },
-        cwd,
-        startedAt: Date.now(),
-      }));
-
-      expect(() => resolveClaudeSessionLog({
-        startPid: 999,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).not.toThrow();
-      expect(resolveClaudeSessionLog({
-        startPid: 999,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).toEqual({ status: "blocked", source: "cwd-metadata" });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("falls back to the cwd scan when ancestor metadata stays malformed", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-ancestor-malformed");
-    try {
-      const cwd = "/tmp/ancestor-malformed";
-      writeFileSync(join(sessionsDir, "400.json"), "not json");
-      writeSessionMeta(sessionsDir, 111, { sessionId: "session-a", cwd });
-      const logPath = writeSessionLog(projectsDir, cwd, "session-a");
-
-      expect(resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).toEqual({
-        status: "identified",
-        sessionId: "session-a",
-        logPath,
-        source: "cwd-metadata",
-      });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("falls back to the cwd scan when ancestor metadata stays unreadable", () => {
-    if (process.platform === "win32") return;
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-ancestor-unreadable");
-    try {
-      const cwd = "/tmp/ancestor-unreadable";
-      const metaPath = join(sessionsDir, "400.json");
-      writeFileSync(metaPath, JSON.stringify({
-        pid: 400,
-        sessionId: "session-a",
-        cwd,
-        startedAt: Date.now(),
-      }));
-      chmodSync(metaPath, 0o000);
-      writeSessionMeta(sessionsDir, 111, { sessionId: "session-b", cwd });
-      const logPath = writeSessionLog(projectsDir, cwd, "session-b");
-
-      expect(resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).toEqual({
-        status: "identified",
-        sessionId: "session-b",
-        logPath,
-        source: "cwd-metadata",
-      });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("does not walk past invalid ancestor metadata into an outer session", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-ancestor-invalid-outer");
-    try {
-      writeFileSync(join(sessionsDir, "400.json"), "{\"pid\": 400, \"sessi");
-      writeSessionMeta(sessionsDir, 300, {
-        sessionId: "outer-session",
-        cwd: "/tmp/outer-project",
-      });
-      writeSessionLog(projectsDir, "/tmp/outer-project", "outer-session");
-
-      expect(resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: (pid) => (pid === 400 ? 300 : null),
-        cwd: "/tmp/inner-project",
-        sessionsDir,
-        projectsDir,
-      })).toEqual({ status: "unavailable" });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("blocks matching-cwd metadata with invalid ordering", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-cwd-invalid-order");
-    try {
-      const cwd = "/tmp/cwd-invalid-order";
-      writeFileSync(join(sessionsDir, "400.json"), JSON.stringify({
-        pid: 400,
-        sessionId: "session-a",
-        cwd,
-        startedAt: "not-a-number",
-      }));
-
-      expect(resolveClaudeSessionLog({
-        startPid: 999,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).toEqual({ status: "blocked", source: "cwd-metadata" });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("ignores invalid metadata for another cwd", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-cwd-unrelated-invalid");
-    try {
-      writeFileSync(join(sessionsDir, "400.json"), JSON.stringify({
-        pid: "invalid",
-        sessionId: { value: "session-a" },
-        cwd: "/tmp/another-project",
-        startedAt: "invalid",
-      }));
-
-      expect(resolveClaudeSessionLog({
-        startPid: 999,
-        getParentPid: () => null,
-        cwd: "/tmp/target-project",
-        sessionsDir,
-        projectsDir,
-      })).toEqual({ status: "unavailable" });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("resolves ancestor metadata across project slugs", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-ancestor-cross-slug");
-    try {
-      const cwd = "/tmp/moved-worktree";
-      writeSessionMeta(sessionsDir, 400, { sessionId: "session-a", cwd });
-      const launchDir = join(projectsDir, "launch-slug");
-      mkdirSync(launchDir, { recursive: true });
-      const logPath = join(launchDir, "session-a.jsonl");
-      writeFileSync(logPath, "{}\n");
-
-      expect(resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).toEqual({
-        status: "identified",
-        sessionId: "session-a",
-        logPath,
-        source: "ancestor-pid",
-      });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("treats the newest cwd metadata record as authoritative", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-cwd-newest");
-    try {
-      const cwd = "/tmp/cwd-authoritative";
-      writeSessionMeta(sessionsDir, 111, {
-        sessionId: "old-session",
-        cwd,
-        startedAt: 1_000,
-      });
-      writeSessionMeta(sessionsDir, 222, {
-        sessionId: "new-session",
-        cwd,
-        startedAt: 2_000,
-      });
-      writeSessionLog(projectsDir, cwd, "old-session");
-      const newLog = writeSessionLog(projectsDir, cwd, "new-session");
-
-      expect(resolveClaudeSessionLog({
-        startPid: 999,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).toEqual({
-        status: "identified",
-        sessionId: "new-session",
-        logPath: newLog,
-        source: "cwd-metadata",
-      });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("skips a newer cwd session that has no transcript yet", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-cwd-missing");
-    try {
-      const cwd = "/tmp/cwd-missing";
-      writeSessionMeta(sessionsDir, 111, {
-        sessionId: "old-session",
-        cwd,
-        startedAt: 1_000,
-      });
-      writeSessionMeta(sessionsDir, 222, {
-        sessionId: "new-session-missing",
-        cwd,
-        startedAt: 2_000,
-      });
-      const oldLog = writeSessionLog(projectsDir, cwd, "old-session");
-      writeSessionLog(projectsDir, cwd, "unrelated-newer-session");
-
-      expect(resolveClaudeSessionLog({
-        startPid: 999,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).toEqual({
-        status: "identified",
-        sessionId: "old-session",
-        logPath: oldLog,
-        source: "cwd-metadata",
-      });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("stops at a newer cwd session whose transcript is ambiguous", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-cwd-ambiguous");
-    try {
-      const cwd = "/tmp/cwd-ambiguous";
-      writeSessionMeta(sessionsDir, 111, {
-        sessionId: "old-session",
-        cwd,
-        startedAt: 1_000,
-      });
-      writeSessionMeta(sessionsDir, 222, {
-        sessionId: "new-session",
-        cwd,
-        startedAt: 2_000,
-      });
-      writeSessionLog(projectsDir, cwd, "old-session");
-      writeSessionLog(projectsDir, "/tmp/slug-one", "new-session");
-      writeSessionLog(projectsDir, "/tmp/slug-two", "new-session");
-
-      expect(resolveClaudeSessionLog({
-        startPid: 999,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).toEqual({
-        status: "identified",
-        sessionId: "new-session",
-        logPath: null,
-        source: "cwd-metadata",
-      });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("keeps moved-worktree identity instead of selecting another slug", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-moved-worktree");
-    try {
-      const cwd = "/tmp/worktree-after-move";
-      writeSessionMeta(sessionsDir, 400, {
-        sessionId: "session-a",
-        cwd,
-      });
-
-      const launchDir = join(projectsDir, "launch-slug");
-      const otherDir = join(projectsDir, "other-slug");
-      mkdirSync(launchDir, { recursive: true });
-      mkdirSync(otherDir, { recursive: true });
-      const sessionA = join(launchDir, "session-a.jsonl");
-      const olderSibling = join(launchDir, "older-unregistered.jsonl");
-      const sessionX = join(otherDir, "session-x.jsonl");
-      writeFileSync(sessionA, "{}\n");
-      writeFileSync(olderSibling, "{}\n");
-      writeFileSync(sessionX, "{}\n");
-      const now = Date.now() / 1000;
-      utimesSync(olderSibling, now - 20, now - 20);
-      utimesSync(sessionA, now - 10, now - 10);
-      utimesSync(sessionX, now, now);
-
-      const options = {
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      };
-      expect(resolveClaudeSessionLog(options)).toEqual({
-        status: "identified",
-        sessionId: "session-a",
-        logPath: sessionA,
-        source: "ancestor-pid",
-      });
-
-      rmSync(sessionA);
-      expect(resolveClaudeSessionLog(options)).toEqual({
-        status: "identified",
-        sessionId: "session-a",
-        logPath: null,
-        source: "ancestor-pid",
-      });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("does not replace an exact match with a registered concurrent sibling", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-concurrent");
-    try {
-      const cwd = "/tmp/detailed-concurrent";
-      writeSessionMeta(sessionsDir, 400, { sessionId: "session-a", cwd });
-      writeSessionMeta(sessionsDir, 500, { sessionId: "session-b", cwd });
-      const sessionA = writeSessionLog(projectsDir, cwd, "session-a");
-      const sessionB = writeSessionLog(projectsDir, cwd, "session-b");
-      const now = Date.now() / 1000;
-      utimesSync(sessionA, now - 10, now - 10);
-      utimesSync(sessionB, now, now);
-
-      expect(resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).toEqual({
-        status: "identified",
-        sessionId: "session-a",
-        logPath: sessionA,
-        source: "ancestor-pid",
-      });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("selects a /clear ghost behind a newer registered concurrent sibling", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-clear-behind-concurrent");
-    try {
-      const cwd = "/tmp/detailed-clear-behind-concurrent";
-      writeSessionMeta(sessionsDir, 400, { sessionId: "session-a", cwd });
-      writeSessionMeta(sessionsDir, 500, { sessionId: "session-b", cwd });
-      const sessionA = writeSessionLog(projectsDir, cwd, "session-a");
-      const ghost = writeSessionLog(projectsDir, cwd, "session-ghost");
-      const sessionB = writeSessionLog(projectsDir, cwd, "session-b");
-      const now = Date.now() / 1000;
-      utimesSync(sessionA, now - 20, now - 20);
-      utimesSync(ghost, now - 10, now - 10);
-      utimesSync(sessionB, now, now);
-
-      expect(resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).toEqual({
-        status: "identified",
-        sessionId: "session-ghost",
-        logPath: ghost,
-        source: "ancestor-pid",
-      });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("preserves a newer same-directory unregistered /clear transcript", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-clear");
-    try {
-      const cwd = "/tmp/detailed-clear";
-      writeSessionMeta(sessionsDir, 400, { sessionId: "session-a", cwd });
-      const sessionA = writeSessionLog(projectsDir, cwd, "session-a");
-      const ghost = writeSessionLog(projectsDir, cwd, "session-after-clear");
-      const now = Date.now() / 1000;
-      utimesSync(sessionA, now - 10, now - 10);
-      utimesSync(ghost, now, now);
-
-      expect(resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).toEqual({
-        status: "identified",
-        sessionId: "session-after-clear",
-        logPath: ghost,
-        source: "ancestor-pid",
-      });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("does not treat an equal-mtime sibling as a /clear transcript", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-clear-equal-mtime");
-    try {
-      const cwd = "/tmp/detailed-clear-equal-mtime";
-      writeSessionMeta(sessionsDir, 400, { sessionId: "session-a", cwd });
-      const ghost = writeSessionLog(projectsDir, cwd, "000-session-after-clear");
-      const sessionA = writeSessionLog(projectsDir, cwd, "session-a");
-      const sameTime = Date.now() / 1000;
-      utimesSync(ghost, sameTime, sameTime);
-      utimesSync(sessionA, sameTime, sameTime);
-
-      expect(resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).toEqual({
-        status: "identified",
-        sessionId: "session-a",
-        logPath: sessionA,
-        source: "ancestor-pid",
-      });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("detects a /clear transcript despite unrelated metadata missing fields", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-clear-malformed");
-    try {
-      const cwd = "/tmp/detailed-clear-malformed";
-      writeSessionMeta(sessionsDir, 400, { sessionId: "session-a", cwd });
-      writeFileSync(join(sessionsDir, "600.json"), JSON.stringify({
-        pid: 600,
-        sessionId: "session-z",
-        cwd: "/tmp/elsewhere",
-      }));
-      const sessionA = writeSessionLog(projectsDir, cwd, "session-a");
-      const sibling = writeSessionLog(projectsDir, cwd, "session-b");
-      const now = Date.now() / 1000;
-      utimesSync(sessionA, now - 10, now - 10);
-      utimesSync(sibling, now, now);
-
-      expect(resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).toEqual({
-        status: "identified",
-        sessionId: "session-b",
-        logPath: sibling,
-        source: "ancestor-pid",
-      });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("keeps its own transcript when sibling metadata stays truncated", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-clear-truncated");
-    try {
-      const cwd = "/tmp/detailed-clear-truncated";
-      writeSessionMeta(sessionsDir, 400, { sessionId: "session-a", cwd });
-      writeFileSync(join(sessionsDir, "500.json"), '{"pid":500,"sessionId":"sess');
-      const sessionA = writeSessionLog(projectsDir, cwd, "session-a");
-      const sibling = writeSessionLog(projectsDir, cwd, "session-b");
-      const now = Date.now() / 1000;
-      utimesSync(sessionA, now - 10, now - 10);
-      utimesSync(sibling, now, now);
-
-      expect(resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).toEqual({
-        status: "identified",
-        sessionId: "session-a",
-        logPath: sessionA,
-        source: "ancestor-pid",
-      });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("detects a /clear transcript when truncated metadata is rewritten before the retry", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-clear-rewritten");
-    try {
-      const cwd = "/tmp/detailed-clear-rewritten";
-      writeSessionMeta(sessionsDir, 400, { sessionId: "session-a", cwd });
-      writeFileSync(join(sessionsDir, "600.json"), '{"pid":600,"sessionId":"sess');
-      const sessionA = writeSessionLog(projectsDir, cwd, "session-a");
-      const sibling = writeSessionLog(projectsDir, cwd, "session-b");
-      const now = Date.now() / 1000;
-      utimesSync(sessionA, now - 10, now - 10);
-      utimesSync(sibling, now, now);
-
-      expect(resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-        // The writer finishes while the reader waits to retry.
-        beforeMetadataRetry: () => writeSessionMeta(sessionsDir, 600, {
-          sessionId: "session-z",
-          cwd: "/tmp/elsewhere",
-        }),
-      })).toEqual({
-        status: "identified",
-        sessionId: "session-b",
-        logPath: sibling,
-        source: "ancestor-pid",
-      });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("keeps the precise match when a sibling's metadata names it but is otherwise invalid", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-clear-partial");
-    try {
-      const cwd = "/tmp/detailed-clear-partial";
-      writeSessionMeta(sessionsDir, 400, { sessionId: "session-a", cwd });
-      writeFileSync(join(sessionsDir, "500.json"), JSON.stringify({
-        pid: 500,
-        sessionId: "session-b",
-        cwd,
-      }));
-      const sessionA = writeSessionLog(projectsDir, cwd, "session-a");
-      const sibling = writeSessionLog(projectsDir, cwd, "session-b");
-      const now = Date.now() / 1000;
-      utimesSync(sessionA, now - 10, now - 10);
-      utimesSync(sibling, now, now);
-
-      expect(resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      })).toEqual({
-        status: "identified",
-        sessionId: "session-a",
-        logPath: sessionA,
-        source: "ancestor-pid",
-      });
-    } finally {
-      cleanup();
-    }
-  });
-
-  test("returns unavailable when no precise metadata identifies a session", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("detailed-unavailable");
-    try {
-      expect(resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd: "/tmp/no-metadata",
-        sessionsDir,
-        projectsDir,
-      })).toEqual({ status: "unavailable" });
-    } finally {
-      cleanup();
-    }
-  });
-});
 describe("describeClaudeSessionResolutionFailure", () => {
-  test("explains blocked metadata", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("describe-blocked");
-    try {
-      const cwd = "/tmp/describe-blocked";
-      writeFileSync(join(sessionsDir, "400.json"), JSON.stringify({
-        pid: 400,
-        sessionId: "session-a",
-        cwd,
-        startedAt: "not-a-number",
-      }));
-      const resolution = resolveClaudeSessionLog({
-        startPid: 999,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      });
-      expect(describeClaudeSessionResolutionFailure(resolution)).toContain(
-        "could not be used",
-      );
-    } finally {
-      cleanup();
-    }
+  test("explains a missing session id", () => {
+    expect(describeClaudeSessionResolutionFailure({ status: "unavailable" })).toContain(
+      "CLAUDE_CODE_SESSION_ID is not set",
+    );
   });
 
-  test("names the session whose transcript is missing", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("describe-missing");
-    try {
-      const cwd = "/tmp/describe-missing";
-      writeSessionMeta(sessionsDir, 400, { sessionId: "session-fresh", cwd });
-      const resolution = resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      });
-      expect(describeClaudeSessionResolutionFailure(resolution)).toContain(
-        "session-fresh",
-      );
-    } finally {
-      cleanup();
-    }
-  });
+  test.each(["invalid-id", "missing", "duplicate", "unreadable"] as const)(
+    "names the session for reason %p",
+    (reason) => {
+      expect(describeClaudeSessionResolutionFailure({
+        status: "identified",
+        sessionId: "session-fresh",
+        logPath: null,
+        reason,
+      })).toContain("session-fresh");
+    },
+  );
 
-  test("adds nothing when metadata is unavailable or the transcript exists", () => {
-    const { sessionsDir, projectsDir, cleanup } = makeTempDirs("describe-none");
-    try {
-      const cwd = "/tmp/describe-none";
-      expect(describeClaudeSessionResolutionFailure(resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      }))).toBeNull();
-
-      writeSessionMeta(sessionsDir, 400, { sessionId: "session-a", cwd });
-      writeSessionLog(projectsDir, cwd, "session-a");
-      expect(describeClaudeSessionResolutionFailure(resolveClaudeSessionLog({
-        startPid: 400,
-        getParentPid: () => null,
-        cwd,
-        sessionsDir,
-        projectsDir,
-      }))).toBeNull();
-    } finally {
-      cleanup();
-    }
+  test("adds nothing when the transcript exists", () => {
+    expect(describeClaudeSessionResolutionFailure({
+      status: "identified",
+      sessionId: "session-a",
+      logPath: "/tmp/session-a.jsonl",
+    })).toBeNull();
   });
 });
 

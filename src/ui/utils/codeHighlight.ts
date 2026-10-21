@@ -1,18 +1,10 @@
 /**
  * Syntax highlighting for markdown fences and suggestion snippets.
  *
- * There is exactly ONE highlighter in the app: the Shiki instance
- * `@pierre/diffs` already runs for the code-review diff pane
- * (`getSharedHighlighter`, driven by Shiki's JavaScript regex engine). Reusing
- * it rather than standing up a second one buys three things:
- *
- *   - Fences render in the SAME resolved theme as the diff pane, so a code
- *     block and a diff hunk finally agree about what "Kanagawa Wave" looks
- *     like. See `./syntaxTheme.ts`.
- *   - Zero added bundle weight. Pierre imports Shiki's full bundle, so every
- *     grammar and theme is already inlined; a separate fine-grained highlighter
- *     would have duplicated a subset of what is already there.
- *   - Every language Shiki bundles, not a hand-curated shortlist.
+ * One Shiki highlighter, on Shiki's JavaScript regex engine, loaded on first
+ * use. Grammars and themes attach lazily, one (lang, theme) pair at a time:
+ * every language Shiki bundles, Shiki's themes, and the `pierre-dark` /
+ * `pierre-light` themes from `@pierre/theme` (see `./syntaxTheme.ts`).
  *
  * The API is deliberately imperative (`applyHighlight(el, ...)`) because that is
  * exactly the shape the removed `hljs.highlightElement(el)` had. The annotation
@@ -24,7 +16,15 @@
  * There is no auto-detection anywhere in this module.
  */
 
-type PierreModule = typeof import('@pierre/diffs');
+import type { HighlighterGeneric, ThemeRegistration } from 'shiki';
+
+type Highlighter = HighlighterGeneric<string, string>;
+
+/** The themes `@pierre/theme` provides; Shiki doesn't bundle them. */
+const PIERRE_THEMES: Record<string, () => Promise<{ default: unknown }>> = {
+  'pierre-dark': () => import('@pierre/theme/pierre-dark'),
+  'pierre-light': () => import('@pierre/theme/pierre-light'),
+};
 
 /**
  * Structural class on every fenced-code `<code>` element.
@@ -47,8 +47,8 @@ const FONT_STYLE_BOLD = 2;
 const FONT_STYLE_UNDERLINE = 4;
 const FONT_STYLE_STRIKETHROUGH = 8;
 
-let pierre: PierreModule | undefined;
-let pierreLoad: Promise<PierreModule | undefined> | undefined;
+let highlighter: Highlighter | undefined;
+let highlighterLoad: Promise<Highlighter | undefined> | undefined;
 
 /** `${lang} ${theme}` pairs attached to the shared highlighter. */
 const ready = new Set<string>();
@@ -58,15 +58,29 @@ const inflight = new Map<string, Promise<boolean>>();
 
 const pairKey = (lang: string, theme: string) => `${lang} ${theme}`;
 
-function loadPierre(): Promise<PierreModule | undefined> {
-  pierreLoad ??= import('@pierre/diffs').then(
-    (mod) => {
-      pierre = mod;
-      return mod;
-    },
-    () => undefined,
-  );
-  return pierreLoad;
+function loadHighlighter(): Promise<Highlighter | undefined> {
+  highlighterLoad ??= import('shiki')
+    .then(({ createHighlighter, createJavaScriptRegexEngine }) =>
+      createHighlighter({ themes: [], langs: [], engine: createJavaScriptRegexEngine() }),
+    )
+    .then(
+      (instance) => {
+        highlighter = instance as Highlighter;
+        return highlighter;
+      },
+      () => undefined,
+    );
+  return highlighterLoad;
+}
+
+async function attachTheme(instance: Highlighter, theme: string): Promise<void> {
+  if (instance.getLoadedThemes().includes(theme)) return;
+  const pierreTheme = PIERRE_THEMES[theme];
+  if (pierreTheme) {
+    await instance.loadTheme((await pierreTheme()).default as ThemeRegistration);
+  } else {
+    await instance.loadTheme(theme as Parameters<Highlighter['loadTheme']>[0]);
+  }
 }
 
 function escapeHtml(value: string): string {
@@ -114,15 +128,7 @@ function tokenStyle(token: ThemedTokenish): string {
  * cached highlights.
  */
 export function highlightToHtml(code: string, lang: string, theme: string): string | null {
-  const mod = pierre;
-  if (!mod || !ready.has(pairKey(lang, theme))) return null;
-  const highlighter = mod.getHighlighterIfLoaded();
-  if (!highlighter) {
-    // The shared highlighter was disposed out from under us; everything we
-    // believed was attached is gone with it.
-    ready.clear();
-    return null;
-  }
+  if (!highlighter || !ready.has(pairKey(lang, theme))) return null;
   let lines: ThemedTokenish[][];
   try {
     lines = highlighter.codeToTokens(code, { lang, theme }).tokens as ThemedTokenish[][];
@@ -154,7 +160,7 @@ export function highlightToHtml(code: string, lang: string, theme: string): stri
 }
 
 /**
- * Attach `lang` + `theme` to the shared highlighter. Resolves `false` for
+ * Attach `lang` + `theme` to the highlighter. Resolves `false` for
  * grammars or themes Shiki does not know, which is a normal outcome for a fence
  * tagged with something made up: that block simply stays plain.
  */
@@ -165,14 +171,13 @@ export function ensureHighlight(lang: string, theme: string): Promise<boolean> {
   const existing = inflight.get(key);
   if (existing) return existing;
 
-  const load = loadPierre()
-    .then(async (mod) => {
-      if (!mod) return false;
-      await mod.getSharedHighlighter({
-        themes: [theme],
-        langs: [lang],
-        preferredHighlighter: 'shiki-js',
-      });
+  const load = loadHighlighter()
+    .then(async (instance) => {
+      if (!instance) return false;
+      await Promise.all([
+        instance.getLoadedLanguages().includes(lang) ? undefined : instance.loadLanguage(lang as Parameters<Highlighter['loadLanguage']>[0]),
+        attachTheme(instance, theme),
+      ]);
       ready.add(key);
       return true;
     })

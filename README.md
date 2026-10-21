@@ -91,7 +91,7 @@ hypermark sessions --open 1          # Reopen a session in the browser
 
 Hypermark does not collect usage telemetry or analytics. Documents, diffs, annotations, drafts, history, and configuration stay local by default.
 
-Each annotate and code-review app surface checks GitHub for the latest Hypermark release when it loads. This sends no document or review content and gives the Hypermark project owner no usage analytics, although GitHub receives an ordinary request. There is currently no opt-out setting. Local Git code review can also query the configured `origin` with `git ls-remote` to detect the default branch and a stale baseline; it does not send the local diff.
+Local Git code review can query the configured `origin` with `git ls-remote` to detect the default branch and a stale baseline; it does not send the local diff.
 
 There is no link sharing, no paste service and no hosted counterpart, so nothing is uploaded anywhere.
 
@@ -99,89 +99,31 @@ There is no link sharing, no paste service and no hosted counterpart, so nothing
 
 ## Install
 
-The installer puts the `hypermark` binary on your PATH and configures Claude Code's skills and slash commands:
+Hypermark runs from a checkout with [Bun](https://bun.sh); there are no release binaries.
 
 ```bash
-# macOS / Linux / WSL
-curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash
+git clone https://github.com/ahmadghoniem/Hypermark.git
+cd Hypermark
+bun install
+bun run build
 ```
 
-```powershell
-# Windows PowerShell
-irm https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.ps1 | iex
-```
-
-The installer downloads the binary from GitHub Releases. A full install also contacts GitHub for release resolution and the skills checkout. Pinning `--version` skips only GitHub API release resolution, not the release download.
-
-Want just the binary and nothing else? Pass `--minimal` (or export `HYPERMARK_MINIMAL=1`) to install only the `hypermark` binary to `~/.local/bin`, skipping every skill and slash command:
+Put a `hypermark` command on your PATH that runs the checkout's CLI. On macOS, Linux, WSL or Git Bash, an executable `~/.local/bin/hypermark`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash -s -- --minimal
+#!/usr/bin/env bash
+exec bun run "$HOME/Hypermark/src/cli/index.ts" "$@"
 ```
 
-Restart Claude Code afterwards. See `scripts/install.sh --help` for every installer flag.
+On Windows, a `hypermark.cmd` in a folder on PATH:
 
-### Uninstall
-
-The safe default removes recognized Hypermark-installed components and keeps
-your local history, drafts, and settings:
-
-```bash
-hypermark uninstall
+```bat
+@bun run "%USERPROFILE%\Hypermark\src\cli\index.ts" %*
 ```
 
-Use `--purge` for a full removal of known local Hypermark data as well:
+Then copy `skills/claude/*` and `skills/core/hypermark` into `~/.claude/skills/` and restart Claude Code. A change in the checkout is live on the next run; after a UI change, run `bun run build` again.
 
-```bash
-hypermark uninstall --purge
-```
-
-Purge requires typing `purge` at the prompt and explains that the data is
-local-only: it is not stored on a Hypermark server and cannot be recovered.
-For automation, pass `--yes` (or `-y`); non-interactive removal refuses to run
-without it. Use `--dry-run` to preview recognized work without making changes.
-If a broken or unavailable host prevents safe cleanup, the command names the
-blocking plugin manager or configuration, gives exact manual cleanup
-instructions, and stops before deleting the binary. Complete that cleanup and rerun uninstall.
-These mechanics keep the ordinary confirmation default-negative, make the
-irreversible outcome require a stronger explicit word, and still give package
-managers and scripts a conventional non-interactive flag.
-
-The command covers the conventional macOS, Linux, WSL, and Windows binary
-locations; the skills it installed under `~/.claude/skills` and `~/.agents/skills`; the
-Claude Code commands it replaced with skills; and the Claude Code plugin through the `claude` CLI. It
-removes nothing else — an existing Plannotator installation's data, skills,
-commands and agent homes are another product's files and are left untouched.
-Strict JSON updates preserve the file's indentation, line endings, and
-trailing-newline style. Custom
-or unrecognized files, separately installed optional skills, project-local
-integrations, and invalid configs are preserved
-(malformed host config is a fail-safe error). If cleanup reports an error,
-the CLI remains available for a safe retry, and its Windows PATH entry is
-retained or restored when possible. If PATH restoration itself fails, the
-output gives the full CLI path for retry and asks for manual PATH repair.
-For safety, purge refuses filesystem roots, the home directory, the shared
-temporary directory, symlinked data directories, and non-directory data paths.
-Existing paths are compared by filesystem identity, so case aliases, symlinks,
-hardlinks, and bind mounts cannot bypass the root/home/ancestor checks.
-That identity and every containment guard are revalidated after awaited host
-commands, immediately before the synchronous data-removal block; a replaced
-data directory is refused without touching either the old or replacement data.
-If your dedicated data directory is symlinked, point `HYPERMARK_DATA_DIR` at
-its resolved target and retry.
-
-<details>
-<summary>Pin a specific version</summary>
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash -s -- --version vX.Y.Z
-```
-
-```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.ps1))) -Version vX.Y.Z
-```
-
-</details>
+To remove Hypermark, delete the command, those skills, and `~/.hypermark` (history, drafts and settings).
 
 ### Try it
 
@@ -211,56 +153,6 @@ You run /hypermark-review
 
 ---
 
-## Security
-
-Every released binary ships with a SHA256 sidecar. [SLSA provenance](https://slsa.dev/) attestations are available from v0.17.2. The current release workflow also attaches a CycloneDX JSON SBOM, evaluates it with a fresh Grype database before anything is attested or published, and creates a GitHub/Sigstore SBOM attestation for the shipped binaries.
-
-The SBOM is intentionally labeled as a release-wide Syft inventory of the monorepo's locked build inputs and dependencies. It is not an exact per-binary runtime inventory: Bun standalone executables do not expose their bundled JavaScript package metadata to Syft. The SBOM verification commands are below.
-
-The release gate rejects scanner-side ignored matches and treats unknown applicability conservatively as runtime when evaluating CISA KEV and fixable Critical findings. Its explicit Grype configuration, complete JSON results, database status, and repository policy decision remain available as workflow evidence.
-
-To verify a released Linux x64 binary, its existing provenance, and the new SBOM evidence directly:
-
-```bash
-tag=vX.Y.Z
-version="${tag#v}"
-mkdir -p /tmp/hypermark-release-verify
-gh release download "$tag" --repo ahmadghoniem/Hypermark \
-  --pattern 'hypermark-linux-x64*' \
-  --pattern "hypermark-${version}-release-sbom.cdx.json*" \
-  --dir /tmp/hypermark-release-verify
-
-(cd /tmp/hypermark-release-verify && sha256sum --check hypermark-linux-x64.sha256)
-(cd /tmp/hypermark-release-verify && sha256sum --check "hypermark-${version}-release-sbom.cdx.json.sha256")
-
-gh attestation verify /tmp/hypermark-release-verify/hypermark-linux-x64 \
-  --repo ahmadghoniem/Hypermark --source-ref "refs/tags/$tag" \
-  --signer-workflow ahmadghoniem/Hypermark/.github/workflows/release.yml \
-  --predicate-type https://slsa.dev/provenance/v1
-
-gh attestation verify /tmp/hypermark-release-verify/hypermark-linux-x64 \
-  --repo ahmadghoniem/Hypermark --source-ref "refs/tags/$tag" \
-  --signer-workflow ahmadghoniem/Hypermark/.github/workflows/release.yml \
-  --predicate-type https://cyclonedx.org/bom
-```
-
-These are separate claims over the same artifact digest: provenance identifies its builder/source/workflow, while the CycloneDX predicate describes the release-wide inventory. The release runbook also canonicalizes the downloaded SBOM and attested predicate with `jq -S` and compares them.
-
-To verify on install:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/ahmadghoniem/Hypermark/main/scripts/install.sh | bash -s -- --verify-attestation
-```
-
-Requires the `gh` CLI, but no login: the installer fetches the attestation bundle from GitHub's public attestations API and verifies it with `gh attestation verify --bundle` (the extraction needs node, python3, or jq on PATH; gh's authenticated fetch is the fallback). Can also be set persistently in `~/.hypermark/config.json`:
-
-```json
-{ "verifyAttestation": true }
-```
-
-Installer verification remains opt-in and verifies SLSA build provenance; normal installation does not require `gh`.
-
----
 
 ## Configuration
 
@@ -301,14 +193,6 @@ bun run build          # build:review then build:annotate
 bun run build:review   # Code review editor
 bun run build:annotate # Single-file HTML for the annotate server
 ```
-
-Full binary build:
-
-```bash
-bun run build && \
-  bun build src/cli/index.ts --compile --outfile ~/.local/bin/hypermark
-```
-
 
 ---
 

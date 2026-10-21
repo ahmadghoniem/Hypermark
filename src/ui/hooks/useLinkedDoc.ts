@@ -9,7 +9,6 @@
 import { useState, useCallback, useRef } from "react";
 import type { Annotation, ImageAttachment } from "../types";
 import type { ViewerHandle } from "../components/Viewer";
-import type { SidebarTab } from "./useSidebar";
 
 export interface LinkedDocLoadData {
   markdown?: string;
@@ -30,7 +29,6 @@ export interface UseLinkedDocOptions {
   setSelectedAnnotationId: (id: string | null) => void;
   setGlobalAttachments: (att: ImageAttachment[]) => void;
   viewerRef: React.RefObject<ViewerHandle | null>;
-  sidebar: { open: (tab?: SidebarTab) => void };
   /** Absolute path of the primary document — enables getDocAnnotations() to include
    *  stashed original-file annotations when viewing a linked doc. */
   sourceFilePath?: string;
@@ -68,11 +66,10 @@ export interface UseLinkedDocReturn {
   /** Whether a fetch is in progress */
   isLoading: boolean;
   /** Open a linked document by path (saves plan state, fetches doc, swaps) */
-  open: (docPath: string, buildUrl?: (path: string) => string, targetTab?: SidebarTab) => Promise<void>;
+  open: (docPath: string, buildUrl?: (path: string) => string) => Promise<void>;
   /** Open an already-loaded linked document without refetching from disk */
   openLoaded: (
     doc: LinkedDocLoadData & { filepath: string },
-    targetTab?: SidebarTab,
   ) => void;
   /** Return to the plan (caches doc annotations, restores plan state) */
   back: () => void;
@@ -101,7 +98,6 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
     setSelectedAnnotationId,
     setGlobalAttachments,
     viewerRef,
-    sidebar,
     sourceFilePath,
     onBeforeNavigate,
   } = options;
@@ -178,7 +174,6 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
 
   const activateDocument = useCallback((
     data: LinkedDocLoadData & { filepath: string },
-    targetTab?: SidebarTab,
     options: { snapshotCurrent?: boolean } = {},
   ) => {
     const snapshotCurrent = options.snapshotCurrent ?? true;
@@ -245,7 +240,6 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
       markdown: nextMarkdown,
     });
     setError(null);
-    sidebar.open(targetTab ?? "toc");
 
     // Re-apply cached annotations after DOM settles
     if (cached?.annotations.length) {
@@ -265,7 +259,6 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
     setSelectedAnnotationId,
     setGlobalAttachments,
     viewerRef,
-    sidebar,
     sourceFilePath,
     onBeforeNavigate,
     back,
@@ -273,15 +266,14 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
 
   const openLoaded = useCallback((
     doc: LinkedDocLoadData & { filepath: string },
-    targetTab?: SidebarTab,
   ) => {
-    activateDocument(doc, targetTab, {
+    activateDocument(doc, {
       snapshotCurrent: true,
     });
   }, [activateDocument]);
 
   const open = useCallback(
-    async (docPath: string, buildUrl?: (path: string) => string, targetTab?: SidebarTab) => {
+    async (docPath: string, buildUrl?: (path: string) => string) => {
       onBeforeNavigate?.();
       setIsLoading(true);
       setError(null);
@@ -303,7 +295,7 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
           setError("Failed to load document");
           return;
         }
-        activateDocument({ ...data, filepath: data.filepath }, targetTab, { snapshotCurrent: false });
+        activateDocument({ ...data, filepath: data.filepath }, { snapshotCurrent: false });
       } catch {
         setError("Failed to connect to server");
       } finally {

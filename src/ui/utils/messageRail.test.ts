@@ -1,5 +1,48 @@
 import { describe, test, expect } from 'bun:test';
-import { createWheelStepper, formatRelativeTime, isShortMessage, railPreview, railTickWidth } from './messageRail';
+import { compactionEndIds, compactionMarkIds, createWheelStepper, formatRelativeTime, railPreview, railTickWidth } from './messageRail';
+
+describe('compactionMarkIds', () => {
+  const oldestFirst = [
+    { messageId: 'a1' },
+    { messageId: 'a2', compactedAfter: true },
+    { messageId: 'b1', compactedAfter: true },
+    { messageId: 'c1' },
+  ];
+  test('marks the first message after each compaction', () => {
+    expect(compactionMarkIds(oldestFirst, () => true)).toEqual(new Set(['b1', 'c1']));
+  });
+  test('a hidden first message passes its mark to the next shown one', () => {
+    expect(compactionMarkIds(oldestFirst, (id) => id !== 'b1')).toEqual(new Set(['c1']));
+  });
+  test('a compaction with no shown message after it has no mark', () => {
+    expect(compactionMarkIds(oldestFirst, (id) => id !== 'c1')).toEqual(new Set(['b1']));
+    expect(compactionMarkIds([{ messageId: 'a1', compactedAfter: true }], () => true)).toEqual(new Set());
+  });
+  test('a compaction with no shown message before it has no mark', () => {
+    expect(compactionMarkIds(oldestFirst, (id) => id !== 'a1' && id !== 'a2')).toEqual(new Set(['c1']));
+    expect(compactionMarkIds(oldestFirst, (id) => id === 'c1')).toEqual(new Set());
+  });
+});
+
+describe('compactionEndIds', () => {
+  const oldestFirst = [
+    { messageId: 'a1' },
+    { messageId: 'a2', compactedAfter: true },
+    { messageId: 'b1' },
+    { messageId: 'b2', compactedAfter: true },
+    { messageId: 'c1' },
+  ];
+  test('marks the last message before each compaction', () => {
+    expect(compactionEndIds(oldestFirst, () => true)).toEqual(new Set(['a2', 'b2']));
+  });
+  test('a hidden last message passes the end back to the shown one before it', () => {
+    expect(compactionEndIds(oldestFirst, (id) => id !== 'b2')).toEqual(new Set(['a2', 'b1']));
+  });
+  test('no end without a shown message on both sides', () => {
+    expect(compactionEndIds(oldestFirst, (id) => id !== 'c1')).toEqual(new Set(['a2']));
+    expect(compactionEndIds(oldestFirst, (id) => id !== 'a1' && id !== 'a2')).toEqual(new Set(['b2']));
+  });
+});
 
 describe('railTickWidth', () => {
   test('at rest the open message is longer', () => {
@@ -26,18 +69,6 @@ describe('railPreview', () => {
   });
   test('caps long lines', () => {
     expect(railPreview('a'.repeat(200), 10)).toBe('aaaaaaaaa…');
-  });
-});
-
-describe('isShortMessage', () => {
-  test('one line up to the cap', () => {
-    expect(isShortMessage('  Approved.  ')).toBe(true);
-    expect(isShortMessage('a'.repeat(200))).toBe(true);
-    expect(isShortMessage('a'.repeat(201))).toBe(false);
-  });
-  test('any line break makes it long', () => {
-    expect(isShortMessage('Done.\n\nTests pass.')).toBe(false);
-    expect(isShortMessage('Done.\n')).toBe(true);
   });
 });
 

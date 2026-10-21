@@ -79,8 +79,8 @@ export function useScrollViewport(): HTMLElement | null {
  * Render-transparent provider for the active scroll viewport element.
  *
  * The host mounts this around its layout and feeds it the MAIN content's scroll
- * element, so descendants — including a sidebar Table-of-Contents rendered
- * inside it — resolve to the main viewport (not the sidebar's own scroll area).
+ * element, so descendants — including a sidebar rendered inside it —
+ * resolve to the main viewport (not the sidebar's own scroll area).
  * Ships with the package so consumers work without app-shell wiring.
  */
 export function ScrollViewportProvider({

@@ -431,7 +431,7 @@ export const InlineMarkdown: React.FC<{
       parts.push(
         <code
           key={key++}
-          className="px-1.5 py-0.5 rounded-sm bg-muted text-sm font-mono"
+          className="px-1 py-px rounded-xs bg-surface-3 text-sm font-mono"
         >
           {codeContent}
         </code>,
@@ -457,7 +457,7 @@ export const InlineMarkdown: React.FC<{
             style={{ backgroundColor: hex }}
             title={hex}
           />
-          <code className="px-1.5 py-0.5 rounded-sm bg-muted text-sm font-mono">
+          <code className="px-1 py-px rounded-xs bg-surface-3 text-sm font-mono">
             {hex}
           </code>
         </span>,

@@ -1,18 +1,21 @@
 /**
- * Side chat (/btw) for annotate-last sessions.
+ * Side chat (/sidechat) for annotate-last sessions.
  *
  * Each question resumes the reviewer's Claude Code session in print mode with
  * `--no-session-persistence`, on the session's own model: the answer sees the
  * whole conversation and nothing is written to the session. The session's
  * tools stay defined, since they lead the cached prompt and removing them
  * misses the session's prompt cache (about $0.85 instead of $0.06 per question
- * on a 120k-token Opus session); a PreToolUse hook blocks every call instead.
- * The reply's text streams back to the browser as it arrives.
+ * on a 120k-token Opus session); a PreToolUse hook (`side-chat-hook.ts`) lets
+ * only read-only calls run instead. `--append-system-prompt` isn't applied on
+ * `--resume`, so the side chat's instructions lead the question on stdin.
+ * The reply's text streams back to the browser as it arrives. Each question and
+ * the tools it called are appended to `side-chat-log.jsonl` in the data dir.
  */
 
-import { writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { getHypermarkDataDir } from "@/shared/data-dir";
 
 export interface SideChatSession {
   /** The Claude Code session the annotated message came from. */
@@ -34,11 +37,23 @@ export interface SideQuestion {
   thread: SideChatMessage[];
 }
 
-/** Streams the answer's text. Stops the model when `signal` aborts. */
+/** One tool call in a side chat, with what it read or ran. */
+export interface SideChatToolCall {
+  tool: string;
+  /** The command, path, pattern, query or URL. */
+  detail?: string;
+  refused: boolean;
+}
+
+/**
+ * Streams the answer's text. Stops the model when `signal` aborts. Calls
+ * `onToolCalls` once the answer ends, with the tool calls it made.
+ */
 export type SideChatRunner = (
   prompt: string,
   session: SideChatSession,
   signal: AbortSignal,
+  onToolCalls?: (calls: SideChatToolCall[]) => void,
 ) => AsyncIterable<string>;
 
 /**
@@ -66,8 +81,12 @@ export function parseSideQuestion(body: unknown): SideQuestion | null {
 
 export function buildSideChatPrompt({ question, quote, thread }: SideQuestion): string {
   const parts = [
-    "This is a side question from Hypermark, where the user is annotating your last message. " +
-      "Answer it briefly from what is already in this conversation. Don't use tools: the side chat blocks them. " +
+    "This is a side chat from Hypermark, where the user is annotating your last message: " +
+      "a quick question alongside the main session, which won't see this exchange. Answer briefly. " +
+      "You may read files and search the web, and run read-only commands through Bash " +
+      "(rg, git log/show/diff/status, cat, head, ls) without redirects or chaining. " +
+      "You can't edit files, run other commands or start agents: the side chat refuses them, " +
+      "and instructions about editing files don't apply here. " +
       "Write plain text without Markdown. " +
       "Don't continue the task, and don't treat this as feedback on your message.",
   ];
@@ -106,6 +125,62 @@ export function parseStreamLine(line: string): string | typeof MESSAGE_START | n
   return typeof inner.delta.text === "string" ? inner.delta.text : null;
 }
 
+const DETAIL_FIELDS = ["command", "file_path", "path", "pattern", "query", "url"] as const;
+
+/**
+ * Collects the tool calls from one line of `stream-json` into `calls`, keyed
+ * by tool use id: the assistant's `tool_use` blocks, then the `tool_result`
+ * that marks a refused call as an error.
+ */
+export function collectToolCalls(line: string, calls: Map<string, SideChatToolCall>): void {
+  let event: { type?: string; message?: { content?: unknown } };
+  try {
+    event = JSON.parse(line) as typeof event;
+  } catch {
+    return;
+  }
+  if (event.type !== "assistant" && event.type !== "user") return;
+  const blocks = Array.isArray(event.message?.content) ? (event.message.content as Record<string, unknown>[]) : [];
+  for (const block of blocks) {
+    if (block.type === "tool_use" && typeof block.id === "string") {
+      const input = (block.input ?? {}) as Record<string, unknown>;
+      const field = DETAIL_FIELDS.find((name) => typeof input[name] === "string");
+      calls.set(block.id, {
+        tool: String(block.name ?? ""),
+        ...(field ? { detail: (input[field] as string).slice(0, 300) } : {}),
+        refused: false,
+      });
+    } else if (block.type === "tool_result" && block.is_error === true) {
+      const call = calls.get(String(block.tool_use_id));
+      if (call) call.refused = true;
+    }
+  }
+}
+
+/** Appends one side chat question and its tool calls to the log. Never throws. */
+export function logSideChat(
+  question: SideQuestion,
+  session: SideChatSession,
+  tools: SideChatToolCall[],
+  dir: string = getHypermarkDataDir(),
+): void {
+  const record = {
+    at: new Date().toISOString(),
+    question: question.question,
+    quoted: question.quote.length > 0,
+    followUp: question.thread.length > 0,
+    model: session.model,
+    cwd: session.cwd,
+    tools,
+  };
+  try {
+    mkdirSync(dir, { recursive: true });
+    appendFileSync(join(dir, "side-chat-log.jsonl"), JSON.stringify(record) + "\n");
+  } catch {
+    // The log is for later analysis; a side chat doesn't fail without it.
+  }
+}
+
 async function* splitLines(stream: ReadableStream<Uint8Array>): AsyncIterable<string> {
   const decoder = new TextDecoder();
   let buffer = "";
@@ -132,50 +207,48 @@ function killTree(proc: { pid: number; kill(): void }): void {
   }
 }
 
-let settingsPath: string | null = null;
-
 /**
- * The `--settings` file whose hook refuses every tool call (exit code 2). A
- * file, since `claude.cmd` can't take JSON in its arguments on Windows.
+ * The `--settings` file whose PreToolUse hook runs `side-chat-hook.ts` on
+ * every tool call. A file, since `claude.cmd` can't take JSON in its arguments
+ * on Windows. The hook's paths come in through the environment, and a hook
+ * that fails to start refuses the call (exit code 2).
  */
-function blockToolsSettings(): string {
-  if (!settingsPath) {
-    settingsPath = join(tmpdir(), "hypermark-side-chat-settings.json");
-    writeFileSync(settingsPath, JSON.stringify({
-      hooks: { PreToolUse: [{ matcher: "*", hooks: [{ type: "command", command: "exit 2" }] }] },
-    }));
-  }
-  return settingsPath;
-}
+const READ_ONLY_SETTINGS = join(import.meta.dir, "side-chat-settings.json");
+const HOOK_ENV = {
+  HYPERMARK_BUN: process.execPath.replaceAll("\\", "/"),
+  HYPERMARK_SIDE_CHAT_HOOK: join(import.meta.dir, "side-chat-hook.ts").replaceAll("\\", "/"),
+};
 
 /** Runs `claude -p --resume` with the prompt on stdin. */
-export const runClaudeSideChat: SideChatRunner = async function* (prompt, session, signal) {
+export const runClaudeSideChat: SideChatRunner = async function* (prompt, session, signal, onToolCalls) {
   const proc = Bun.spawn(
     [
       "claude", "-p",
       ...(session.model ? ["--model", session.model] : []),
       "--resume", session.sessionId,
       "--no-session-persistence",
-      "--settings", blockToolsSettings(),
+      "--settings", READ_ONLY_SETTINGS,
       "--output-format", "stream-json",
       "--include-partial-messages",
       "--verbose",
     ],
-    { cwd: session.cwd, stdin: "pipe", stdout: "pipe", stderr: "ignore" },
+    { cwd: session.cwd, env: { ...process.env, ...HOOK_ENV }, stdin: "pipe", stdout: "pipe", stderr: "ignore" },
   );
   const kill = () => killTree(proc);
   signal.addEventListener("abort", kill, { once: true });
+  const calls = new Map<string, SideChatToolCall>();
   try {
     proc.stdin.write(prompt);
     await proc.stdin.end();
     let answered = false;
     let newMessage = false;
     for await (const line of splitLines(proc.stdout)) {
+      collectToolCalls(line, calls);
       const text = parseStreamLine(line);
       if (text === MESSAGE_START) {
         newMessage = answered;
       } else if (text) {
-        // The reply after a refused tool call starts a new paragraph.
+        // The reply after a tool call starts a new paragraph.
         if (newMessage) yield "\n\n";
         newMessage = false;
         answered = true;
@@ -189,6 +262,7 @@ export const runClaudeSideChat: SideChatRunner = async function* (prompt, sessio
   } finally {
     signal.removeEventListener("abort", kill);
     if (proc.exitCode === null) killTree(proc);
+    onToolCalls?.([...calls.values()]);
   }
 };
 
@@ -223,7 +297,8 @@ export async function handleSideChat(
 
   const abort = new AbortController();
   req.signal.addEventListener("abort", () => abort.abort(), { once: true });
-  const chunks = run(buildSideChatPrompt(question), session, abort.signal)[Symbol.asyncIterator]();
+  const logTools = (tools: SideChatToolCall[]) => logSideChat(question, session, tools);
+  const chunks = run(buildSideChatPrompt(question), session, abort.signal, logTools)[Symbol.asyncIterator]();
   const encoder = new TextEncoder();
   const body = new ReadableStream<Uint8Array>({
     async pull(controller) {

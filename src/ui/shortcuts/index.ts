@@ -9,7 +9,6 @@ export { annotationToolbarShortcuts } from './plan-review/annotationToolbar.shor
 export { annotationPanelShortcuts } from './plan-review/annotationPanel.shortcuts';
 export { commentPopoverShortcuts } from './plan-review/commentPopover.shortcuts';
 export { viewerShortcuts } from './plan-review/viewer.shortcuts';
-export { annotateSidebarShortcuts, useAnnotateSidebarShortcuts } from './plan-review/sidebar.shortcuts';
 
 // code-review scopes
 export { reviewAnnotationToolbarShortcuts } from './code-review/annotationToolbar.shortcuts';

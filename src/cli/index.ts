@@ -24,10 +24,6 @@
  *    - `--clean` removes stale session files
  *    - `--kill [N|all]` terminates a session's process (see sessions.ts)
  *
- * 5. Uninstall (`hypermark uninstall`):
- *    - Removes recognized installer-owned components across supported hosts
- *    - Preserves local data by default; `--purge` removes known local data
- *
  * Global flags:
  *   --help             - Show top-level usage information
  *   --version, -v      - Print version and exit
@@ -62,17 +58,9 @@ import {
 import { supportsReviewApprovalNotes } from "./review-output";
 import { registerSession, unregisterSession, listSessions, killSession } from "@/server/sessions";
 import { openBrowser } from "@/server/browser";
-import {
-  createDefaultUninstallEnvironment,
-  formatPurgeWarning,
-  formatUninstallResult,
-  runHypermarkUninstall,
-} from "@/server/uninstall";
 import { detectProjectName } from "@/server/project";
 import { AGENT_CONFIG, type Origin } from "@/shared/agents";
 import {
-  findSessionLogsByAncestorWalk,
-  findSessionLogsForCwd,
   getRecentRenderedMessages,
   describeClaudeSessionResolutionFailure,
   readSessionForResume,
@@ -89,8 +77,6 @@ import {
   isTopLevelHelpInvocation,
   isVersionInvocation,
   parseStrictAnnotateOptions,
-  isUninstallConfirmationAccepted,
-  parseUninstallOptions,
 } from "./cli";
 import { exitOnUnknownSubcommand } from "./unknown-subcommand";
 import { completeAnnotateCommand } from "./annotate-command";
@@ -206,77 +192,6 @@ if (helpSubcommand) {
 }
 
 exitOnUnknownSubcommand(args);
-
-if (args[0] === "uninstall") {
-  let options: ReturnType<typeof parseUninstallOptions>;
-  try {
-    options = parseUninstallOptions(rawArgs.slice(1));
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
-    console.error("Run 'hypermark uninstall --help' for usage.");
-    process.exit(1);
-  }
-
-  const environment = createDefaultUninstallEnvironment();
-
-  if (!options.dryRun && !options.yes) {
-    if (process.stdin.isTTY !== true || process.stdout.isTTY !== true) {
-      console.error(
-        "Uninstall requires confirmation. Re-run with --yes in a non-interactive shell.",
-      );
-      process.exit(1);
-    }
-
-    if (options.purge) {
-      console.error(formatPurgeWarning(environment.dataDir));
-    } else {
-      console.error(
-        `Local Hypermark data in ${environment.dataDir} will be preserved.`,
-      );
-    }
-
-    const prompt = options.purge
-      ? "Type 'purge' to permanently uninstall and delete local data: "
-      : "Remove Hypermark-installed components? [y/N] ";
-    const readline = createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-    let answer = "";
-    try {
-      answer = await readline.question(prompt);
-    } finally {
-      readline.close();
-    }
-
-    if (!isUninstallConfirmationAccepted(answer, options.purge)) {
-      console.log("Uninstall cancelled.");
-      process.exit(0);
-    }
-  } else if (options.purge && !options.dryRun) {
-    console.error(formatPurgeWarning(environment.dataDir));
-  }
-
-  const result = await runHypermarkUninstall(
-    {
-      purge: options.purge,
-      dryRun: options.dryRun,
-    },
-    environment,
-  );
-  const formatted = formatUninstallResult(result);
-  if (formatted) console.log(formatted);
-
-  if (options.dryRun) {
-    console.log("Dry run complete; no changes were made.");
-  } else if (options.purge && result.ok) {
-    console.log(`Known local Hypermark data was purged from ${result.dataDir}.`);
-  } else if (!options.purge) {
-    console.log(`Local Hypermark data was preserved in ${result.dataDir}.`);
-  }
-
-  process.exit(result.ok ? 0 : 1);
-}
 
 if (isInteractiveNoArgInvocation(args, process.stdin.isTTY)) {
   console.log(formatInteractiveNoArgClarification());
@@ -634,7 +549,6 @@ if (args[0] === "sessions") {
   // ANNOTATE LAST MESSAGE MODE
   // ============================================
 
-  const projectRoot = process.env.HYPERMARK_CWD || process.cwd();
   const stdinIdx = args.indexOf("--stdin");
   const stdinFlag = stdinIdx !== -1;
   if (stdinFlag) args.splice(stdinIdx, 1);
@@ -643,9 +557,8 @@ if (args[0] === "sessions") {
   // one — defaults to the same selection as the legacy "last message"
   // behavior (index 0). Necessary because the newest transcript entry isn't
   // always the message the user intended to annotate (e.g., after /rewind).
-  // 25 covers long conversations worth of rewinds without flooding the
-  // picker; the list scrolls past this if more are shown.
-  const RECENT_MESSAGES_LIMIT = 25;
+  // The rail's reach back, across compactions, in messages it shows.
+  const RECENT_MESSAGES_LIMIT = 20;
   let lastMessage: RenderedMessage | null = null;
   let recentMessages: RenderedMessage[] = [];
   // The log the message came from; the side chat resumes its session.
@@ -657,48 +570,26 @@ if (args[0] === "sessions") {
       lastMessage = { messageId: "stdin", text, lineNumbers: [] };
     }
   } else {
-    // Claude Code path: resolve session log
-    //
-    // Prefer precise session metadata. Heuristic cwd/ancestor fallbacks are
-    // only safe when no metadata identifies the invoking session.
-
+    // Claude Code path: the session's log, from CLAUDE_CODE_SESSION_ID.
+    const resolution = resolveClaudeSessionLog();
     if (process.env.HYPERMARK_DEBUG) {
-      console.error(`[DEBUG] Project root: ${projectRoot}`);
-      console.error(`[DEBUG] PPID: ${process.ppid}`);
+      console.error(`[DEBUG] Session log: ${resolution.status === "identified" ? resolution.logPath ?? "(none)" : "(no session id)"}`);
     }
-
-    /** Try each log path, return the first that yields a message. */
-    function tryLogCandidates(label: string, getPaths: () => string[]): void {
-      if (lastMessage) return;
-      const paths = getPaths();
-      if (process.env.HYPERMARK_DEBUG) {
-        console.error(`[DEBUG] ${label}: ${paths.length ? paths.join(", ") : "(none)"}`);
+    if (resolution.status === "identified" && resolution.logPath) {
+      // Claude Code transcripts are trees: `/rewind` re-parents the next
+      // message rather than truncating, so a file-order read returns
+      // orphaned messages. Follow the id chain instead.
+      const recent = getRecentRenderedMessages(resolution.logPath, RECENT_MESSAGES_LIMIT, {
+        activeBranchOnly: true,
+        limitCountsShown: true,
+      });
+      if (recent.length > 0) {
+        recentMessages = recent;
+        // Open the newest message the rail shows, so switching away from a
+        // hidden one-liner doesn't drop it from the rail.
+        lastMessage = recent.find((m) => !m.hidden) ?? recent[0];
+        messageLogPath = resolution.logPath;
       }
-      for (const logPath of paths) {
-        // Claude Code transcripts are trees: `/rewind` re-parents the next
-        // message rather than truncating, so a file-order read returns
-        // orphaned messages. Follow the id chain instead.
-        const recent = getRecentRenderedMessages(logPath, RECENT_MESSAGES_LIMIT, {
-          activeBranchOnly: true,
-        });
-        if (recent.length > 0) {
-          recentMessages = recent;
-          lastMessage = recent[0];
-          messageLogPath = logPath;
-          return;
-        }
-      }
-    }
-
-    const resolution = resolveClaudeSessionLog({ cwd: projectRoot });
-    if (resolution.status === "identified") {
-      tryLogCandidates(
-        `Claude session metadata (${resolution.source})`,
-        () => resolution.logPath ? [resolution.logPath] : [],
-      );
-    } else if (resolution.status === "unavailable") {
-      tryLogCandidates("CWD slug match (mtime)", () => findSessionLogsForCwd(projectRoot));
-      tryLogCandidates("Directory ancestor walk", () => findSessionLogsByAncestorWalk(projectRoot));
     }
     if (!lastMessage) {
       const reason = describeClaudeSessionResolutionFailure(resolution);
@@ -723,7 +614,13 @@ if (args[0] === "sessions") {
   // Only ship the picker list when there's a choice to make. The client uses
   // its presence (length > 1) as the signal to render the picker UI.
   const pickerMessages = recentMessages.length > 1
-    ? recentMessages.map((m) => ({ messageId: m.messageId, text: m.text, timestamp: m.timestamp }))
+    ? recentMessages.map((m) => ({
+      messageId: m.messageId,
+      text: m.text,
+      timestamp: m.timestamp,
+      ...(m.compactedAfter ? { compactedAfter: true } : {}),
+      ...(m.hidden ? { hidden: true } : {}),
+    }))
     : undefined;
 
   const server = await startAnnotateServer({
@@ -731,6 +628,7 @@ if (args[0] === "sessions") {
     filePath: "last-message",
     origin: detectedOrigin,
     mode: "annotate-last",
+    project: annotateProject,
     gate: gateFlag,
     approvalNotesSupported: supportsAnnotateApprovalNotes({
       gate: gateFlag,

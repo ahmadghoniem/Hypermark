@@ -4,22 +4,23 @@ export interface PickerMessage {
   messageId: string;
   text: string;
   timestamp?: string;
+  /** A compaction comes between this message and the next newer one. */
+  compactedAfter?: boolean;
+  /** Short or status-only: the rail leaves it out unless it's open. */
+  hidden?: boolean;
 }
 import {
+  compactionMarkIds,
   createWheelStepper,
   formatRelativeTime,
-  isShortMessage,
   railPreview,
   railTickWidth,
 } from '../utils/messageRail';
 
-import { Eye, EyeOff, Terminal } from '@untitledui/icons';
-import { Button } from '../fluid/components/button';
-import { Tooltip } from '../fluid/components/tooltip';
+import { Terminal } from '@untitledui/icons';
 const RAIL_WIDTH = 36;
 const PITCH = 16;
 const TICK_SIZES = { open: 20, rest: 12, hoverMax: 32 };
-
 interface MessageRailProps {
   /** Recent assistant messages, newest first (as the server sends them). */
   messages: readonly PickerMessage[];
@@ -28,13 +29,6 @@ interface MessageRailProps {
   annotationCounts?: ReadonlyMap<string, number>;
   /** Display classes from the host, e.g. `hidden lg:flex`. Must set display. */
   className?: string;
-  /** Whether short messages are shown, as dimmed ticks. */
-  showShort?: boolean;
-  /**
-   * Turns on hiding short messages (see `isShortMessage`), with an eye
-   * under the ticks. Without it every message is shown as before.
-   */
-  onShowShortChange?: (show: boolean) => void;
 }
 
 /**
@@ -43,8 +37,10 @@ interface MessageRailProps {
  * the left, over the document; a click opens the message. Focus from a click
  * doesn't hold the card open, so it goes away once the pointer leaves. The
  * wheel over the rail opens the previous or next message, one per notch, and
- * the card follows it; the page doesn't scroll. One-line messages can be
- * hidden; the open message never is.
+ * the card glides along with it; the page doesn't scroll. Messages the server marks
+ * `hidden` (short or status-only) are left out, except the open one; with
+ * fewer than two ticks left the rail draws nothing. The first shown message
+ * after a compaction says so in its preview card and its label.
  */
 export const MessageRail: React.FC<MessageRailProps> = ({
   messages,
@@ -52,29 +48,23 @@ export const MessageRail: React.FC<MessageRailProps> = ({
   onSelect,
   annotationCounts,
   className = 'flex',
-  showShort = false,
-  onShowShortChange,
 }) => {
-  const ToggleIcon = showShort ? EyeOff : Eye;
-  const shortIds = useMemo(() => new Set(
-    onShowShortChange
-      ? messages.filter((m) => m.messageId !== selectedMessageId && isShortMessage(m.text)).map((m) => m.messageId)
-      : [],
-  ), [messages, selectedMessageId, onShowShortChange]);
-  const toggleLabel = showShort
-    ? 'Hide short messages'
-    : `Show ${shortIds.size} short message${shortIds.size === 1 ? '' : 's'}`;
   const ordered = useMemo(
-    () => [...messages].reverse().filter((m) => showShort || !shortIds.has(m.messageId)),
-    [messages, shortIds, showShort],
+    () => [...messages].reverse().filter((m) => m.messageId === selectedMessageId || !m.hidden),
+    [messages, selectedMessageId],
   );
+  const compactedIds = useMemo(() => {
+    const shown = new Set(ordered.map((m) => m.messageId));
+    return compactionMarkIds([...messages].reverse(), (id) => shown.has(id));
+  }, [messages, ordered]);
+  const drawn = ordered.length >= 2;
   const selectedIndex = ordered.findIndex((m) => m.messageId === selectedMessageId);
   const [pointerIndex, setPointerIndex] = useState<number | null>(null);
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const tickRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const navRef = useRef<HTMLElement>(null);
-  // What the wheel listener, attached once, steps from.
+  // What the wheel listener, attached once the rail is drawn, steps from.
   const latest = useRef({ ordered, selectedIndex, onSelect });
   useEffect(() => {
     latest.current = { ordered, selectedIndex, onSelect };
@@ -97,7 +87,7 @@ export const MessageRail: React.FC<MessageRailProps> = ({
     };
     nav.addEventListener('wheel', handleWheel, { passive: false });
     return () => nav.removeEventListener('wheel', handleWheel);
-  }, []);
+  }, [drawn]);
 
   const activeIndex = pointerIndex ?? focusIndex;
   const tabStop = focusIndex ?? (selectedIndex >= 0 ? selectedIndex : ordered.length - 1);
@@ -128,6 +118,8 @@ export const MessageRail: React.FC<MessageRailProps> = ({
   const activeCount = active ? annotationCounts?.get(active.messageId) ?? 0 : 0;
   const activeTime = active ? formatRelativeTime(active.timestamp, now) : null;
 
+  if (!drawn) return null;
+
   return (
     <nav
       ref={navRef}
@@ -141,8 +133,9 @@ export const MessageRail: React.FC<MessageRailProps> = ({
           const count = annotationCounts?.get(message.messageId) ?? 0;
           const selected = index === selectedIndex;
           const lit = index === activeIndex;
-          const dim = shortIds.has(message.messageId);
+          const compacted = compactedIds.has(message.messageId);
           const preview = railPreview(message.text);
+          const label = compacted ? `${preview}, after a compaction` : preview;
           return (
             <button
               key={message.messageId}
@@ -150,7 +143,7 @@ export const MessageRail: React.FC<MessageRailProps> = ({
               type="button"
               tabIndex={index === tabStop ? 0 : -1}
               aria-current={selected ? 'true' : undefined}
-              aria-label={count > 0 ? `${preview}, ${count} annotation${count === 1 ? '' : 's'}` : preview}
+              aria-label={count > 0 ? `${label}, ${count} annotation${count === 1 ? '' : 's'}` : label}
               onPointerEnter={() => setPointerIndex(index)}
               onFocus={(e) => setFocusIndex(e.currentTarget.matches(':focus-visible') ? index : null)}
               onBlur={() => setFocusIndex(null)}
@@ -165,7 +158,7 @@ export const MessageRail: React.FC<MessageRailProps> = ({
               <span
                 aria-hidden="true"
                 className={`block rounded-full transition-[width] duration-150 motion-reduce:transition-none ${
-                  selected ? 'bg-primary' : lit ? 'bg-foreground/90' : dim ? 'bg-muted-foreground/25' : 'bg-muted-foreground/60'
+                  selected ? 'bg-primary' : lit ? 'bg-foreground/90' : 'bg-muted-foreground/60'
                 }`}
                 style={{
                   width: railTickWidth(index, activeIndex, selectedIndex, TICK_SIZES),
@@ -179,7 +172,7 @@ export const MessageRail: React.FC<MessageRailProps> = ({
         {active && activeIndex !== null && (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute rounded-2xl border border-border bg-popover px-3.5 py-3 shadow-[0_12px_32px_-12px_rgb(0_0_0/0.8)]"
+            className="pointer-events-none absolute rounded-2xl border border-border bg-popover px-3.5 py-3 shadow-[0_12px_32px_-12px_rgb(0_0_0/0.8)] transition-[top] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
             style={{
               right: RAIL_WIDTH + 8,
               width: 288,
@@ -190,7 +183,9 @@ export const MessageRail: React.FC<MessageRailProps> = ({
               <span className="grid size-4.5 place-items-center rounded-full border border-border bg-muted text-muted-foreground">
                 <Terminal className="size-2.5" strokeWidth={2.5} />
               </span>
-              <span className="text-micro text-muted-foreground">Assistant</span>
+              <span className="text-micro text-muted-foreground">
+                Assistant{compactedIds.has(active.messageId) ? ' · after a compaction' : ''}
+              </span>
               <span className="ml-auto flex items-center gap-2 text-micro text-muted-foreground/60">
                 {activeCount > 0 && (
                   <span>{activeCount} annotation{activeCount === 1 ? '' : 's'}</span>
@@ -204,21 +199,6 @@ export const MessageRail: React.FC<MessageRailProps> = ({
           </div>
         )}
       </div>
-
-      {shortIds.size > 0 && (
-        <Tooltip side="left" content={toggleLabel}>
-          <Button
-            variant="ghost"
-            size="icon-compact"
-            aria-pressed={showShort}
-            aria-label={toggleLabel}
-            onClick={() => onShowShortChange?.(!showShort)}
-            className="mt-1 self-end"
-          >
-            <ToggleIcon />
-          </Button>
-        </Tooltip>
-      )}
     </nav>
   );
 };

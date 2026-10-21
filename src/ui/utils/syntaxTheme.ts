@@ -8,10 +8,8 @@
  * app. `usePierreTheme` re-exports both symbols, so the review editor's imports
  * are unchanged.
  *
- * Names on the right are resolved by `@pierre/diffs` — the `pierre-*` ones come
- * from `@pierre/theme`, the rest from `@shikijs/themes`. Both registries are
- * already bundled (Pierre pulls in Shiki's full bundle), so consuming them here
- * costs no additional bytes.
+ * Names on the right are Shiki themes: the `pierre-*` ones come from
+ * `@pierre/theme`, the rest from Shiki's bundled themes.
  */
 
 /**
