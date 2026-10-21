@@ -1,6 +1,6 @@
 # Working on `@hypermark/ui`
 
-Hypermark's shared document UI, used by the editor and review apps. See `README.md` for the folder layout.
+Hypermark's shared document UI, used by the annotate app. See `README.md` for the folder layout.
 
 Rules when editing here:
 

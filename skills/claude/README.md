@@ -13,11 +13,10 @@ one may be swapped for the other.
 
 ## What every launcher here must carry
 
-Each of `hypermark-annotate`, `hypermark-last`, and `hypermark-review`
-carries four things. Dropping any one of them changes the product:
+Each of `hypermark-annotate` and `hypermark-last` carries four things. Dropping any one of them changes the product:
 
 1. **`disable-model-invocation: true`** — the command is user-invoked only.
-   The model never decides to open a review session on its own.
+   The model never decides to open an annotate session on its own.
 2. **`allowed-tools: Bash(hypermark:*)`** — the injected run is pre-allowed,
    so `/hypermark-*` does not raise a permission prompt (the behavior the
    original slash commands had).

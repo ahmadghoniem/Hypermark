@@ -93,7 +93,6 @@ export function formatTopLevelHelp(): string {
     "Usage:",
     "  hypermark --help",
     "  hypermark --version, -v",
-    "  hypermark review [--git]",
     "  hypermark annotate <file.md | file.txt> [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]",
     "  hypermark annotate-last [--stdin] [--gate] [--json] [--hook]",
     "  hypermark last",
@@ -107,23 +106,9 @@ export function formatTopLevelHelp(): string {
 // (e.g. `last` → `annotate-last`) are resolved in formatSubcommandHelp().
 //
 // These exist so an agent (or human) probing `hypermark <sub> --help` gets
-// usage on stdout instead of accidentally launching the browser UI — running
-// `review --help` used to fall through to local review mode and open a tab.
+// usage on stdout instead of accidentally launching the browser UI.
 // Exported so the documented surface can be diffed against the real one.
 export const SUBCOMMAND_HELP: Record<string, string> = {
-  review: [
-    "Usage:",
-    "  hypermark review [--git]",
-    "",
-    "Review local VCS changes in the browser.",
-    "",
-    "Options:",
-    "  --git         Force git as the VCS (skip auto-detection)",
-    "",
-    "Examples:",
-    "  hypermark review",
-    "  hypermark review --git",
-  ].join("\n"),
   annotate: [
     "Usage:",
     "  hypermark annotate <file.md | file.txt> [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]",
@@ -198,7 +183,6 @@ export function formatInteractiveNoArgClarification(): string {
     "hypermark (without arguments) does nothing in an interactive terminal.",
     "",
     "Try:",
-    "  hypermark review",
     "  hypermark annotate <file.md | file.txt>",
     "  hypermark last",
     "  hypermark sessions",

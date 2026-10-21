@@ -14,6 +14,7 @@ import {
   resolveUseGlimpse,
   resolveAnnotateHistory,
   loadConfig,
+  mergePromptConfig,
   saveConfig,
   getServerConfig,
   resolveDefaultDiffType,
@@ -37,6 +38,18 @@ describe("resolveDefaultDiffType", () => {
 // config.json is hand-edited, so boolean settings often arrive as quoted
 // strings ("false" instead of false). Each boolean resolver must coerce those
 // instead of passing the raw string through to `=== false` checks downstream.
+describe("mergePromptConfig", () => {
+  test("merges the annotate section key by key", () => {
+    const merged = mergePromptConfig(
+      { annotate: { approved: "A" } },
+      { annotate: { fileFeedback: "F", approvedWithNotes: "N" } },
+    );
+    expect(merged?.annotate?.approved).toBe("A");
+    expect(merged?.annotate?.fileFeedback).toBe("F");
+    expect(merged?.annotate?.approvedWithNotes).toBe("N");
+  });
+});
+
 describe("config.json boolean coercion", () => {
   const cases: Array<{
     name: string;

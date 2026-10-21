@@ -2,7 +2,7 @@
 linker = "isolated"
 minimumReleaseAge = 86400  # 1 day in seconds
 # Pinned upstream editor packages this fork consumes directly; the release-age
-minimumReleaseAgeExcludes = ["@pierre/diffs", "@pierre/theme", "@pierre/theming"]
+minimumReleaseAgeExcludes = ["@pierre/theme", "@pierre/theming"]
 
 [test]
 preload = ["./tests/setup/temp-dir-sweep.ts", "./tests/setup/feedback-archive-off.ts"]

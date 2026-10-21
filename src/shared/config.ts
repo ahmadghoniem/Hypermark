@@ -35,18 +35,13 @@ interface PromptSectionConfig {
 }
 
 export interface PromptConfig {
-  review?: PromptSectionConfig & {
-    approved?: string;
-    approvedWithNotes?: string;
-    denied?: string;
-  };
   annotate?: PromptSectionConfig & {
     approved?: string;
     approvedWithNotes?: string;
   };
 }
 
-const PROMPT_SECTIONS = ["review", "annotate"] as const;
+const PROMPT_SECTIONS = ["annotate"] as const;
 
 export function mergePromptConfig(
   current?: PromptConfig,
@@ -92,7 +87,7 @@ export interface HypermarkConfig {
    */
   annotateHistory?: boolean;
   /**
-   * Durably archive every submitted review under ~/.hypermark/feedback/
+   * Durably archive every submission under ~/.hypermark/feedback/
    * (or HYPERMARK_DATA_DIR): one append-only JSONL record per submission
    * plus a markdown sidecar for the ones that carry content. NOTE: this
    * writes the user's own feedback text and the document/code excerpts it
@@ -431,7 +426,7 @@ export function resolveAnnotateHistory(config: HypermarkConfig): boolean {
  *
  * Deliberately a separate knob from annotateHistory: that one governs copying
  * ANNOTATED CONTENT into the data dir, this one governs keeping the user's own
- * SUBMISSIONS, and a code-review user must be able to control the second
+ * SUBMISSIONS, and a user must be able to control the second
  * without touching the first. Annotate surfaces honor both.
  */
 export function resolveFeedbackHistory(config: HypermarkConfig): boolean {

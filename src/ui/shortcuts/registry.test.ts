@@ -9,35 +9,10 @@ import type { ShortcutScopeDefinition } from './core';
  * rather than via a `use*Shortcuts({ handlers: { ... } })` hook registration.
  *
  * (Every shortcut action ID in shortcuts/index.ts must either
- * appear in a `handlers` object under packages/{editor,review-editor,ui} or in
+ * appear in a `handlers` object under src/{annotate,ui} or in
  * this HAND_WIRED allowlist pointing to its implementing file on disk.)
  */
 export const HAND_WIRED: Record<string, string> = {
-  // review-file-tree (FileTree.tsx:197–210)
-  'review-file-tree.nextFile': 'src/review/components/FileTree.tsx',
-  'review-file-tree.prevFile': 'src/review/components/FileTree.tsx',
-  'review-file-tree.firstFile': 'src/review/components/FileTree.tsx',
-  'review-file-tree.lastFile': 'src/review/components/FileTree.tsx',
-
-  // review-all-files-diff (AllFilesCodeView.tsx:1707–1760)
-  'review-all-files-diff.toggleCollapse': 'src/review/components/AllFilesCodeView.tsx',
-  'review-all-files-diff.undoCollapse': 'src/review/components/AllFilesCodeView.tsx',
-  'review-all-files-diff.addFileComment': 'src/review/components/AllFilesCodeView.tsx',
-  'review-all-files-diff.nextFile': 'src/review/components/AllFilesCodeView.tsx',
-  'review-all-files-diff.prevFile': 'src/review/components/AllFilesCodeView.tsx',
-
-  // review-annotation-toolbar (the review line composer is CommentPopover)
-  'review-annotation-toolbar.submitComment': 'src/ui/components/CommentPopover.tsx',
-  'review-annotation-toolbar.cancel': 'src/ui/components/CommentPopover.tsx',
-
-  // review-chrome (App.tsx: keydown handlers from CHROME constants)
-  'review-chrome.searchFiles': 'src/review/App.tsx',
-  'review-chrome.nextSearchMatch': 'src/review/App.tsx',
-  'review-chrome.copyFeedback': 'src/review/App.tsx',
-  'review-chrome.toggleFileTree': 'src/review/App.tsx',
-  'review-chrome.toggleSidebar': 'src/review/App.tsx',
-  'review-chrome.dismiss': 'src/review/App.tsx',
-
   // annotation-panel (AnnotationPanel.tsx:540–546)
   'annotation-panel.saveEdit': 'src/ui/components/AnnotationPanel.tsx',
   'annotation-panel.cancelEdit': 'src/ui/components/AnnotationPanel.tsx',
@@ -105,7 +80,7 @@ function findHandlerKeysInCode(code: string): Set<string> {
 
 function collectAllHandlerKeys(repoRoot: string): Set<string> {
   const handlerKeys = new Set<string>();
-  const targetDirs = ['src/annotate', 'src/review', 'src/ui'];
+  const targetDirs = ['src/annotate', 'src/ui'];
 
   function walk(dir: string) {
     if (!fs.existsSync(dir)) return;

@@ -2,9 +2,8 @@
  * Annotate Server
  *
  * Provides a server for annotating a local file (or the last agent
- * message). Follows the same patterns as the review server but serves
- * annotation-session content via /api/plan so the plan editor UI can
- * render it without separate app bundles.
+ * message). Serves annotation-session content via /api/plan so the plan
+ * editor UI can render it.
  *
  * Environment variables:
  *   HYPERMARK_PORT   - Fixed port or inclusive range (default: random)

@@ -1,13 +1,13 @@
 # Hypermark
 
-A browser UI for annotating documents and Claude's messages (`src/annotate`) and reviewing diffs (`src/review`); feedback goes back to Claude Code through the skills in `skills/`. One Bun package, React 19 + TypeScript + Tailwind v4, `@/` → `src/`.
+A browser UI for annotating documents and Claude's messages (`src/annotate`); feedback goes back to Claude Code through the skills in `skills/`. One Bun package, React 19 + TypeScript + Tailwind v4, `@/` → `src/`.
 
 ## Where things live
 
 | Area | Files |
 | --- | --- |
-| CLI entry, subcommands (`annotate`, `annotate-last`, `review`) | `src/cli/index.ts`, `src/cli/cli.ts`; last-message lookup in `src/cli/session-log.ts` |
-| HTTP servers behind each session | `src/server/` (`annotate.ts`, `review.ts`, `shared-handlers.ts`) |
+| CLI entry, subcommands (`annotate`, `annotate-last`, `sessions`) | `src/cli/index.ts`, `src/cli/cli.ts`; last-message lookup in `src/cli/session-log.ts` |
+| HTTP servers behind each session | `src/server/` (`annotate.ts`, `shared-handlers.ts`) |
 | Annotate app shell | `src/annotate/App.tsx` |
 | Composer (comment popover, quote row, quick labels, attachments) | `src/ui/components/CommentPopover.tsx`, `ComposerQuickLabels.tsx`, `CommentAttachStack.tsx` |
 | Highlights | `src/ui/hooks/useAnnotationHighlighter.ts` (wraps text in `<mark class="annotation-highlight">` via `@plannotator/web-highlighter`); styles in `src/ui/theme.css` |
@@ -29,7 +29,7 @@ A browser UI for annotating documents and Claude's messages (`src/annotate`) and
 ## Checks
 
 - `bun run typecheck` and `bun run typecheck:editors` (use these, `npx tsc` resolves to the wrong package).
-- `npx eslint src/ui src/annotate src/review --max-warnings 0`. The config covers only these folders and ignores `src/ui/fluid`; passing `src/server` errors.
+- `npx eslint src/ui src/annotate --max-warnings 0`. The config covers only these folders and ignores `src/ui/fluid`; passing `src/server` errors.
 - `bun test src/ui` for UI work; `bun test` for everything. Compare against `git stash` before blaming a change.
 - `bun run build` when the UI changed.
 

@@ -11,8 +11,7 @@ const variant = "^(.*:)?";
 const tailwindRules = {
   // Tailwind's own canonicalizer: size-4 over w-4 h-4, shrink-0 over flex-shrink-0,
   // data-foo: over data-[foo]:, scale steps over matching arbitrary px.
-  // Arbitrary font sizes are skipped: the review bundle redefines --text-xs as
-  // 13px, so rewriting text-[12px] to text-xs would change sizes there.
+  // Arbitrary font sizes are skipped.
   "better-tailwindcss/enforce-canonical-classes": ["warn", {
     rootFontSize: 16, collapse: true, logical: true, ignore: ["^(.*:)?text-\\[[0-9.]+(px|rem)\\]"],
   }],
@@ -92,19 +91,11 @@ export default defineConfig([
     linterOptions: { reportUnusedDisableDirectives: "off" },
   },
   {
-    // src/ui is compiled through the editor's stylesheet (and review's,
-    // which imports the same theme.css).
+    // src/ui is compiled through the editor's stylesheet.
     files: ["src/ui/**/*.{ts,tsx}", "src/annotate/**/*.{ts,tsx}"],
     ...tsx,
     plugins: { "better-tailwindcss": betterTailwind, "react-hooks": reactHooksStub },
     settings: { "better-tailwindcss": { cwd: "src/annotate", entryPoint: "index.css" } },
-    rules: tailwindRules,
-  },
-  {
-    files: ["src/review/**/*.{ts,tsx}"],
-    ...tsx,
-    plugins: { "better-tailwindcss": betterTailwind, "react-hooks": reactHooksStub },
-    settings: { "better-tailwindcss": { cwd: "src/review", entryPoint: "index.css" } },
     rules: tailwindRules,
   },
 ]);

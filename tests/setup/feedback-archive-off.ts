@@ -2,8 +2,8 @@
  * Test-suite default: the durable feedback archive is OFF.
  *
  * The archive is default-on in production and writes to the resolved data
- * directory at decision-settlement time. Most server tests boot a real plan,
- * review, or annotate server WITHOUT redirecting HYPERMARK_DATA_DIR (plan
+ * directory at decision-settlement time. Most server tests boot a real plan
+ * or annotate server WITHOUT redirecting HYPERMARK_DATA_DIR (plan
  * and annotate history already go to the real dir because storage.ts captures
  * its data directory at import time), so leaving the archive on would have
  * every one of those tests deposit records in the contributor's own

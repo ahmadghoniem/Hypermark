@@ -20,9 +20,8 @@ export default defineConfig({
   resolve: {
     dedupe: ['react', 'react-dom'],
     alias: {
-      // Drop the dead Oniguruma WASM (~622 KB base64). The plan editor reaches
-      // Pierre's shared highlighter through the fence
-      // highlighter. See scripts/shiki-wasm-stub.ts.
+      // Drop the dead Oniguruma WASM (~622 KB base64). The fence highlighter
+      // runs Shiki's JavaScript regex engine. See scripts/shiki-wasm-stub.ts.
       'shiki/wasm': path.resolve(__dirname, '../../scripts/shiki-wasm-stub.ts'),
       '@': path.resolve(__dirname, '..'),
     }

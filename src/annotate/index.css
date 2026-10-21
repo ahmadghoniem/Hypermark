@@ -16,9 +16,8 @@
 
 /* Code blocks.
  *
- * Token colours come from the active Shiki theme as inline styles (the same
- * theme the code-review diff pane resolves), so this rule only owns layout and
- * the block background. The old `.hljs-*` override stacks that existed to make
+ * Token colours come from the active Shiki theme as inline styles, so this
+ * rule only owns layout and the block background. The old `.hljs-*` override stacks that existed to make
  * highlight.js's hardcoded github-dark palette survive light mode are gone with
  * it: a light palette now resolves a light Shiki theme. */
 /* The background belongs to the <pre> (each block sets its own surface), not
@@ -33,7 +32,6 @@ pre code.pn-code {
   line-height: 1.6;
 }
 
-/* Annotation highlights moved to src/ui/theme.css (shared with the
-   code-review description annotations). */
+/* Annotation highlights live in src/ui/theme.css. */
 
 /* Plan Diff Styles also moved to src/ui/theme.css (imported above). */

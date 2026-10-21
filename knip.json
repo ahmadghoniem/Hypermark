@@ -5,15 +5,13 @@
       "entry": [
         "src/cli/index.ts",
         "src/annotate/index.tsx",
-        "src/review/index.tsx",
         "src/*/vite.config.ts",
         "src/annotate/dev-mock-api.ts",
         "scripts/shiki-wasm-stub.ts",
         "tests/setup/*.ts",
         "scripts/**/*.mjs",
         "scripts/dast/target.ts",
-        "**/*.test.{ts,tsx}",
-        "src/shared/**/*.test-d.ts"
+        "**/*.test.{ts,tsx}"
       ],
       "project": [
         "src/**/*.{ts,tsx,css}",

@@ -2,9 +2,7 @@
  * Eager math registration: fills the renderer slot in `./math` with KaTeX at
  * module evaluation, before any component renders.
  *
- * Every Hypermark entry (`src/annotate/App.tsx`, `src/review/App.tsx`;
- * the hook, review, and portal builds all flow from those two)
- * imports this module for its side effect, which is what keeps math typeset
+ * The Hypermark entry (`src/annotate/App.tsx`) imports this module for its side effect, which is what keeps math typeset
  * on the first commit exactly as it was with a static `katex` import. A host
  * that wants the same synchronous behavior imports it too:
  *

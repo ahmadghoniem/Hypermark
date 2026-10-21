@@ -2,8 +2,7 @@ import { defineShortcutScope } from './core';
 
 /**
  * The header decision control's note composer (shortcuts root, not
- * plan-review/ or code-review/: both apps mount the identical control with
- * identical semantics).
+ * plan-review/).
  *
  * Documents ONLY the chords the control actually implements — bindings must
  * match shipped behavior (`DecisionControl.tsx`). Enter is a newline in the

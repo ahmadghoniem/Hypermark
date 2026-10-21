@@ -1,12 +1,6 @@
 /**
- * Maps a Hypermark / Hypermark colour theme onto the Shiki theme that renders code in it.
- *
- * This used to live in `src/review/hooks/usePierreTheme.ts` and only
- * served the diff pane. It moved here so the plan/annotate editor's markdown
- * fences resolve the SAME theme the diff pane resolves, which is what makes a
- * fenced code block and a diff hunk finally look like they belong to the same
- * app. `usePierreTheme` re-exports both symbols, so the review editor's imports
- * are unchanged.
+ * Maps a Hypermark colour theme onto the Shiki theme that renders code
+ * fences in it.
  *
  * Names on the right are Shiki themes: the `pierre-*` ones come from
  * `@pierre/theme`, the rest from Shiki's bundled themes.
@@ -32,18 +26,14 @@ export const SHIKI_THEME_MAP: Record<string, { dark: string | null; light: strin
 };
 
 /**
- * `@pierre/diffs`' own `DEFAULT_THEMES`. Anything the map does not cover (the
- * Hypermark default palette, plus every palette with no counterpart in the
- * active mode) renders in these, which is exactly what the diff pane does when
- * `resolveSyntaxTheme` returns `undefined`.
+ * The fallback pair. Anything the map does not cover (every palette with no
+ * counterpart in the active mode) renders in these.
  */
 export const DEFAULT_SYNTAX_THEME = { dark: 'pierre-dark', light: 'pierre-light' } as const;
 
 /**
- * The theme pair to hand `@pierre/diffs`, or `undefined` to let it use its own
- * defaults. Returning `undefined` (rather than the default pair) is deliberate:
- * it keeps the diff pane's prop identity stable for palettes that never
- * customised it.
+ * The palette's own theme pair, or `undefined` when the palette has no
+ * counterpart in `mode` and the caller should use `DEFAULT_SYNTAX_THEME`.
  */
 export function resolveSyntaxTheme(
   colorTheme: string,
@@ -56,8 +46,7 @@ export function resolveSyntaxTheme(
 
 /**
  * The single concrete Shiki theme name for the palette currently on screen.
- * Markdown fences render one mode at a time, so unlike the diff pane (which
- * hands Pierre a dark/light pair and lets CSS pick) they want a resolved name.
+ * Markdown fences render one mode at a time, so they want a resolved name.
  * A mode-restricted palette in its unsupported half recovers to Pierre Light.
  */
 export function resolveFenceTheme(colorTheme: string, mode: 'dark' | 'light'): string {
