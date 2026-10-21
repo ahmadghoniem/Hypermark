@@ -29,42 +29,17 @@ carries four things. Dropping any one of them changes the product:
    handed the human's decision rather than being asked to go get it. Everything
    after `## Your task` interprets that output.
 
-All four were asserted by a `launcher-contract.test.ts` guard at this
-directory's root, along with the `core/` variants deliberately having neither
-the allowlist nor the injection. That guard is gone; the four properties are now
-maintained by hand, so read this section before editing a launcher.
+The `core/` variants have neither the allowlist nor the injection. Nothing
+checks these properties automatically, so check every launcher when you touch
+one. Command names are `/hypermark-*` and are renamed together.
 
-Command names are `/hypermark-*` and are renamed together;
-renaming them piecemeal is a bug. Nothing enforces this any more —
-check every launcher when you touch one.
+## The side chat is not a skill
 
-## Native `/btw` is not one of these
-
-`/btw` is a **native Claude Code command**. Hypermark ships no `/btw` skill,
-launcher, alias, or replacement, and does not change how it is transported.
-
-What it does: it asks a side question inside the current Claude Code
-conversation without that exchange polluting the main conversation's history.
-
-Its accepted limitation: **it has no tool access.** It answers from the conversation context it already
-has. It does not read new files, inspect a browser selection, or reach into a
-Hypermark review session. That is fine for on-the-fly questions and is the
-reason no custom skill can reproduce it — an ordinary skill cannot promise the
-native command's history isolation by asking the model to behave.
-
-Consequences for anyone working on this directory:
-
-- Do not add a fourth skill named `btw`, or any alias that shadows it.
-- Do not build a custom browser chat, a conversation rail, or an automatic
-  selection upload as a stand-in for it.
-- Do not promise that `/btw` inherits browser state, the reviewer's selection,
-  or a specific earlier conversation. A newly spawned Claude PTY that happens
-  to carry a cwd is not evidence of inherited conversation history. `/btw`
-  belongs to whichever Claude conversation the user runs it in, so it has to be
-  run in the intended one.
-
-Not verified here: `/btw`'s live behavior inside an interactive Claude Code
-session has not
-been exercised from this repository. Nothing in Hypermark installs, wraps, or
-configures it, so there is no Hypermark-side transport to check — but the
-end-to-end observation is still owed by whoever runs the interactive gate.
+The annotate-last browser session has its own side chat: `/sidechat` in the
+comment composer asks a question about the message without leaving the
+browser (`src/server/side-chat.ts`). It resumes the user's Claude Code session
+in print mode with `--no-session-persistence`, so the answer sees the whole
+conversation and nothing is written back to it; a hook lets only read-only
+tool calls run. It needs no launcher here. Claude Code's native `/btw` is
+separate, and Hypermark doesn't wrap or shadow it: don't add a skill named
+`btw`.

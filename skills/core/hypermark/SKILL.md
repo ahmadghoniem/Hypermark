@@ -5,7 +5,7 @@ description: "Reference for using the Hypermark CLI: code review, annotating fil
 
 # Hypermark CLI Reference
 
-Hypermark is a local, browser-based review layer for agent workflows: it opens diffs, documents, and your messages in an annotation UI, the human marks them up, and the structured feedback comes back to you on stdout. It installs as a single `hypermark` binary and every surface is launched explicitly from the CLI. A session runs on a random localhost port and blocks until the reviewer submits feedback, approves, or closes the tab.
+Hypermark is a local, browser-based review layer for agent workflows: it opens diffs, documents, and your messages in an annotation UI, the human marks them up, and the structured feedback comes back to you on stdout. It runs as the `hypermark` command and every surface is launched explicitly from the CLI. A session runs on a random localhost port and blocks until the reviewer submits feedback, approves, or closes the tab.
 
 This skill is the knowledge layer. The `hypermark-review`, `hypermark-annotate`, and `hypermark-last` skills are thin launchers for the three most common actions; use this reference when you need to pick the right command or flags yourself.
 
@@ -97,18 +97,10 @@ Do not print a commentary or status message immediately before running it: the c
 ## hypermark sessions
 
 ```bash
-hypermark sessions [--open [N]] [--clean]
+hypermark sessions [--open [N]] [--clean] [--kill [N|all]]
 ```
 
-Lists active Hypermark server sessions. `--open` reopens session N (default 1) in the browser, useful when a tab was closed mid-review. `--clean` drops stale entries.
-
-## Other subcommands
-
-```bash
-hypermark uninstall [--purge] [--yes] [--dry-run]
-```
-
-- `uninstall` removes Hypermark-installed components (`--purge` also deletes local data; `--yes` is required without a TTY; `--dry-run` previews).
+Lists active Hypermark server sessions. `--open` reopens session N (default 1) in the browser, useful when a tab was closed mid-review. `--clean` drops stale entries. `--kill` ends session N (default 1), or every session with `all`, when its Claude Code process closed without the watcher noticing.
 
 ## Environment variables that change behavior
 
