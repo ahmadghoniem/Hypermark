@@ -430,57 +430,6 @@ html:not(.transitions-ready) * {
   border-radius: 0; /* fluid.css rounds every focused element, which clipped the selection's corners */
 }
 
-/* Shared file tree styling used by review and annotation sidebars. */
-.file-tree-item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.8125rem; /* 13px — file rows felt small vs. the rest of the app */
-  cursor: pointer;
-  color: var(--muted-foreground);
-}
-
-.file-tree-item:hover {
-  background: var(--muted);
-  color: var(--foreground);
-}
-
-.file-tree-item:disabled {
-  cursor: default;
-}
-
-.file-tree-item:disabled:hover {
-  background: transparent;
-}
-
-.file-tree-item.active {
-  background: oklch(from var(--primary) l c h / 0.3);
-  color: var(--primary);
-}
-
-.file-tree-item.has-annotations {
-  background: oklch(from var(--primary) l c h / 0.08);
-}
-
-.file-tree-item.has-annotations:hover {
-  background: var(--muted);
-}
-
-.file-tree-item.active.has-annotations {
-  background: oklch(from var(--primary) l c h / 0.3);
-}
-
-.file-tree-item .additions {
-  color: var(--success);
-}
-
-.file-tree-item .deletions {
-  color: var(--destructive);
-}
-
-
 /* Word-level diff markers inside modified plan-diff blocks. Emitted as
    <ins>/<del> by PlanCleanDiffView's inline renderer; keep the decoration
    compact across line wraps via box-decoration-break: clone. */
@@ -699,9 +648,7 @@ body:has([data-popout="true"]) [data-sidebar-tabs="true"] {
 .directive-danger, .directive-caution { background: color-mix(in srgb, #ef4444 10%, transparent); border-color: color-mix(in srgb, #ef4444 40%, transparent); }
 .directive-danger .directive-title, .directive-caution .directive-title { color: #ef4444; }
 
-/* Annotation highlights — shared by the plan editor and the code-review
-   description annotations. (Moved here from src/annotate/index.css so both
-   surfaces render web-highlighter marks identically.)
+/* Annotation highlights for the plan editor.
    Styled like the Web Highlights extension: an opaque yellow fill on the
    font's content area only (no padding), so wrapped lines show a gap between
    them, with black text on it in both themes. Every highlight is yellow,

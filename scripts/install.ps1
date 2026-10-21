@@ -548,7 +548,7 @@ if (-not (Test-Path $extrasMigration)) {
 # re-runs. -Reconfigure re-opens the wizard; -NonInteractive forces silence;
 # redirected/CI runs never prompt. Flags win over everything.
 $prefsFile = Join-Path $configDir "install-prefs"
-$coreSkillNames = @("hypermark-review", "hypermark-annotate", "hypermark-last")
+$coreSkillNames = @("hypermark-annotate", "hypermark-last")
 
 $savedInvocable = ""
 if (Test-Path $prefsFile) {
@@ -815,7 +815,7 @@ try {
             # existing target dir) so re-runs replace rather than nest.
             if ((Test-Path "skills\claude") -and (Get-ChildItem "skills\claude" -ErrorAction SilentlyContinue)) {
                 New-Item -ItemType Directory -Force -Path $claudeSkillsDir | Out-Null
-                foreach ($skill in @("hypermark-review", "hypermark-annotate", "hypermark-last")) {
+                foreach ($skill in @("hypermark-annotate", "hypermark-last")) {
                     Copy-SkillIfPresent "skills\claude\$skill" $claudeSkillsDir
                 }
                 # The hypermark knowledge skill (CLI reference) has no
@@ -828,7 +828,7 @@ try {
             }
             if ((Test-Path "skills\core") -and (Get-ChildItem "skills\core" -ErrorAction SilentlyContinue)) {
                 New-Item -ItemType Directory -Force -Path $agentsSkillsDir | Out-Null
-                foreach ($skill in @("hypermark-review", "hypermark-annotate", "hypermark-last")) {
+                foreach ($skill in @("hypermark-annotate", "hypermark-last")) {
                     Copy-SkillIfPresent "skills\core\$skill" $agentsSkillsDir
                 }
                 Copy-SkillIfPresent "skills\core\hypermark" $agentsSkillsDir
@@ -863,7 +863,7 @@ if ($checkoutFailed) {
 # command file only once its replacement skill is actually on disk - running
 # AFTER the install above guarantees a failed or skipped skill install never
 # leaves users with neither the command nor the skill.
-foreach ($cmd in @("hypermark-review", "hypermark-annotate", "hypermark-last")) {
+foreach ($cmd in @("hypermark-annotate", "hypermark-last")) {
     # A skills opt-out installed no replacement this run, so it removes
     # nothing either - skip means do-not-write, never remove.
     if ($skipSkillsResolved) { continue }
@@ -918,9 +918,9 @@ if ($skipSkillsResolved) {
 Write-Host "=========================================="
 Write-Host ""
 if ($skipSkillsResolved) {
-    Write-Host "Skills were skipped ($skipSkillsSource), so the /hypermark-review,"
-    Write-Host "/hypermark-annotate, and /hypermark-last commands are NOT installed."
+    Write-Host "Skills were skipped ($skipSkillsSource), so the /hypermark-annotate"
+    Write-Host "and /hypermark-last commands are NOT installed."
     Write-Host "Re-run the installer without the opt-out to add them."
 } else {
-    Write-Host "The /hypermark-review, /hypermark-annotate, and /hypermark-last commands are ready to use after you restart Claude Code!"
+    Write-Host "The /hypermark-annotate and /hypermark-last commands are ready to use after you restart Claude Code!"
 }

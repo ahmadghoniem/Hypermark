@@ -70,7 +70,7 @@ Options:
   --skip-attestation     Force-skip provenance verification even if enabled
                          via env var or ~/.hypermark/config.json.
   --model-invocable <l>  Comma-separated skill names to make model-invocable
-                         (e.g. hypermark-review,hypermark-last), or
+                         (e.g. hypermark-annotate,hypermark-last), or
                          "none". Skills are user-invoked-only by default.
   --minimal              Install only the hypermark binary (aliased
                          --binary-only). Skips every
@@ -787,7 +787,7 @@ fi
 # --reconfigure re-opens the wizard; --non-interactive forces silence; piped
 # CI runs without a terminal never prompt. CLI flags win over everything.
 PREFS_FILE="$_config_dir/install-prefs"
-CORE_SKILL_NAMES="hypermark-review hypermark-annotate hypermark-last"
+CORE_SKILL_NAMES="hypermark-annotate hypermark-last"
 
 saved_invocable=""
 if [ -f "$PREFS_FILE" ]; then
@@ -1083,7 +1083,6 @@ checkout_failed=0
     # are sourced separately rather than sharing one body.
     if [ -d "skills/claude" ] && [ -n "$(ls -A skills/claude 2>/dev/null)" ]; then
         mkdir -p "$CLAUDE_SKILLS_DIR"
-        copy_skill_if_present skills/claude/hypermark-review "$CLAUDE_SKILLS_DIR"
         copy_skill_if_present skills/claude/hypermark-annotate "$CLAUDE_SKILLS_DIR"
         copy_skill_if_present skills/claude/hypermark-last "$CLAUDE_SKILLS_DIR"
         # The hypermark knowledge skill (CLI reference) has no Claude-only
@@ -1096,7 +1095,6 @@ checkout_failed=0
     fi
     if [ -d "skills/core" ] && [ -n "$(ls -A skills/core 2>/dev/null)" ]; then
         mkdir -p "$AGENTS_SKILLS_DIR"
-        copy_skill_if_present skills/core/hypermark-review "$AGENTS_SKILLS_DIR"
         copy_skill_if_present skills/core/hypermark-annotate "$AGENTS_SKILLS_DIR"
         copy_skill_if_present skills/core/hypermark-last "$AGENTS_SKILLS_DIR"
         copy_skill_if_present skills/core/hypermark "$AGENTS_SKILLS_DIR"
@@ -1120,7 +1118,7 @@ fi
 # AFTER the install above guarantees a failed or skipped skill install never
 # leaves users with neither the command nor the skill.
 CLAUDE_COMMANDS_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/commands"
-for cmd in hypermark-review hypermark-annotate hypermark-last; do
+for cmd in hypermark-annotate hypermark-last; do
     # A skills opt-out installed no replacement this run, so it removes
     # nothing either — skip means do-not-write, never remove.
     if [ "$skip_skills" -eq 1 ]; then
@@ -1170,9 +1168,9 @@ fi
 echo "=========================================="
 echo ""
 if [ "$skip_skills" -eq 1 ]; then
-    echo "Skills were skipped (${skip_skills_source}), so the /hypermark-review,"
-    echo "/hypermark-annotate, and /hypermark-last commands are NOT installed."
+    echo "Skills were skipped (${skip_skills_source}), so the /hypermark-annotate"
+    echo "and /hypermark-last commands are NOT installed."
     echo "Re-run the installer without the opt-out to add them."
 else
-    echo "The /hypermark-review, /hypermark-annotate, and /hypermark-last commands are ready to use after you restart Claude Code!"
+    echo "The /hypermark-annotate and /hypermark-last commands are ready to use after you restart Claude Code!"
 fi

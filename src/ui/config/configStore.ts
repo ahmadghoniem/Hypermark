@@ -211,7 +211,7 @@ class ConfigStore {
 
   private scheduleServerSync(): void {
     // The debounce loses writes when the page goes away within 300ms — and
-    // review/plan sessions end abruptly (approve/feedback shuts the server
+    // annotate sessions end abruptly (approve/feedback shuts the server
     // down right after a settings change). A lost write leaves the cookie and
     // ~/.hypermark/config.json disagreeing; on the next session init() then
     // "restores" the stale server value over the cookie. Flush on pagehide so

@@ -15,7 +15,7 @@ export const RELEASE_WORKSPACES = [""];
 
 export const SBOM_SENTINELS = [
   "dompurify",
-  "@pierre/diffs",
+  "shiki",
   "marked",
 ];
 

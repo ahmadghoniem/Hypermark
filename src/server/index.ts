@@ -1,8 +1,8 @@
 /**
  * Hypermark Shared Server
  *
- * Re-exports shared server utilities. The interactive servers live in
- * ./annotate.ts and ./review.ts.
+ * Re-exports shared server utilities. The interactive server lives in
+ * ./annotate.ts.
  *
  * Environment variables:
  *   HYPERMARK_PORT   - Fixed port or inclusive range (default: random)

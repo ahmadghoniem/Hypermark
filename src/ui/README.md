@@ -1,6 +1,6 @@
 # @hypermark/ui
 
-Hypermark's shared document UI: markdown rendering, themes, the annotation editor, settings, comments, and layout. It is used by `src/annotate` and `src/review`. It is private and not published.
+Hypermark's shared document UI: markdown rendering, themes, the annotation editor, settings, comments, and layout. It is used by `src/annotate`. It is private and not published.
 
 ## Folders
 

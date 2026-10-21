@@ -34,11 +34,10 @@ bun install
 The project structure:
 
 - **`src/cli/`** - `hypermark` CLI implementation
-- **`src/server/`** - Server implementation (annotate/review servers)
+- **`src/server/`** - Server implementation (annotate server)
 - **`src/shared/`** - Shared code and types
 - **`src/ui/`** - Reusable React components, hooks, utilities
 - **`src/annotate/`** - Annotate application logic
-- **`src/review/`** - Code review application logic
 - **`skills/`** - Agent skills (Claude launchers, core, extra)
 
 ### First Build Test
@@ -57,7 +56,7 @@ If successful, you'll see `dist/annotate/index.html` created.
 
 ### Making UI Changes
 
-**Shared components** (used by both annotate and review UIs):
+**Shared components** (used by the annotate UI):
 
 - Location: `src/ui/components/`
 - Examples: `TableOfContents.tsx`, `AnnotationToolbar.tsx`, `Viewer.tsx`
@@ -66,11 +65,6 @@ If successful, you'll see `dist/annotate/index.html` created.
 
 - Location: `src/annotate/App.tsx`
 - Main application logic for annotate sessions
-
-**Code review editor** (code review UI):
-
-- Location: `src/review/App.tsx`
-- Main application logic for code review
 
 **Utilities and hooks**:
 
@@ -85,10 +79,6 @@ For rapid iteration, use development servers with hot reload:
 # Annotate UI (most common)
 bun run dev:annotate
 # Opens http://localhost:5173
-
-# Code review UI
-bun run dev:review
-# Opens http://localhost:5174
 ```
 
 **Note:** Development servers run standalone, without the CLI server. Changes appear instantly without rebuild.
@@ -102,13 +92,9 @@ When you're ready to test through the `hypermark` CLI:
 bun run build:annotate
 # Output: dist/annotate/index.html
 
-# Build code review UI
-bun run build:review
-# Output: dist/review/index.html
-
 # Build everything
 bun run build
-# Runs build:review && build:annotate
+# Runs build:annotate
 ```
 
 ---
@@ -117,14 +103,11 @@ bun run build
 
 ### Running a Real Session
 
-After a build, run the CLI from source against a fixture or a repo:
+After a build, run the CLI from source against a fixture:
 
 ```bash
 # Annotate UI
 bun run src/cli/index.ts annotate tests/test-fixtures/<fixture>.md
-
-# Code review UI (inside any git repo)
-bun run src/cli/index.ts review
 ```
 
 ### Manual Testing Workflow
@@ -281,7 +264,7 @@ Build failed with X errors
 
 ## Decision Control Manual Checklist
 
-Not CI. Every annotate surface and the review header share one adaptive split control
+Not CI. Every annotate surface shares one adaptive split control
 (`DecisionControl`): a positive primary (`All good` / `Approve` / `Send Feedback · n`) plus a caret
 menu with the alternate decisions and the in-place note composer. Run each flow in both states —
 zero annotations and n annotations — on desktop.
@@ -297,13 +280,6 @@ zero annotations and n annotations — on desktop.
    decision. `Approve with a note…` / `Approve with notes` appear only when the session
    advertises approval-notes support.
 3. **Annotate last message** (`hypermark last`). Same control, same states.
-4. **Review, agent mode** (`hypermark review`). `Approve` at zero, `Send Feedback · n` after
-   annotating. With the composer open, `Escape` returns to the menu
-   and does NOT collapse the file tree or close the sidebar; a second `Escape` closes the menu;
-   a third runs the app's own ladder.
-5. **Sidebar general comment** (review). "+ General comment" is reachable at zero annotations
-   (empty state) and from the General section header; creating one flips the header control to
-   `Send Feedback · 1`.
 
 ## Need Help?
 

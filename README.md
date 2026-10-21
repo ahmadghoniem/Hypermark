@@ -6,8 +6,8 @@
 
 <p align="center">
   <strong>Everything you need to annotate and stay in the loop with your agents</strong><br/>
-  <strong>Annotate Documents • Annotate Claude's Messages • Review Code</strong><br/>
-  <sub>Annotate markdown and HTML documents, mark up Claude's messages, and review code diffs in the browser. Send feedback to Claude Code.</sub>
+  <strong>Annotate Documents • Annotate Claude's Messages</strong><br/>
+  <sub>Annotate markdown and HTML documents and mark up Claude's messages in the browser. Send feedback to Claude Code.</sub>
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 
 Hypermark is a local, browser-based review surface for Claude Code.
 
-**It plugs directly into Claude Code** through its skills. You open a document, Claude's last message, or your current diff in the browser, mark it up, comment, and send feedback directly to the agent for it to act on it.
+**It plugs directly into Claude Code** through its skills. You open a document or Claude's last message in the browser, mark it up, comment, and send feedback directly to the agent for it to act on it.
 
 <table>
 <tr>
@@ -40,20 +40,6 @@ Annotate specs, markdown, messages, and html, then send the feedback to your age
 <td width="60%">
 
 <img src=".github/assets/annotate.webp" alt="Annotate UI with inline annotations" width="100%" />
-
-</td>
-</tr>
-<tr>
-<td width="40%" valign="middle">
-
-### Code Review
-
-Review local changes. Comment on diffs. Your comments go back to the agent.
-
-</td>
-<td width="60%">
-
-<img src=".github/assets/review.webp" alt="Code review with file tree and side-by-side diff" width="100%" />
 
 </td>
 </tr>
@@ -72,12 +58,6 @@ Review local changes. Comment on diffs. Your comments go back to the agent.
 
 Need a realistic document to try? Any markdown file works — try one of your own specs.
 
-### Code review
-
-```
-/hypermark-review                    # Review uncommitted changes
-```
-
 ### CLI
 
 ```
@@ -89,9 +69,9 @@ hypermark sessions --open 1          # Reopen a session in the browser
 
 ## Privacy and network behavior
 
-Hypermark does not collect usage telemetry or analytics. Documents, diffs, annotations, drafts, history, and configuration stay local by default.
+Hypermark does not collect usage telemetry or analytics. Documents, annotations, drafts, history, and configuration stay local by default.
 
-Each annotate and code-review app surface checks GitHub for the latest Hypermark release when it loads. This sends no document or review content and gives the Hypermark project owner no usage analytics, although GitHub receives an ordinary request. There is currently no opt-out setting. Local Git code review can also query the configured `origin` with `git ls-remote` to detect the default branch and a stale baseline; it does not send the local diff.
+The annotate app checks GitHub for the latest Hypermark release when it loads. This sends no document or annotation content and gives the Hypermark project owner no usage analytics, although GitHub receives an ordinary request. There is currently no opt-out setting.
 
 There is no link sharing, no paste service and no hosted counterpart, so nothing is uploaded anywhere.
 
@@ -189,7 +169,6 @@ The fastest way to see what Hypermark does is to invoke it yourself, right now, 
 
 ```
 /hypermark-last                   # annotate the agent's last reply
-/hypermark-review                 # review your current diff
 /hypermark-annotate notes.md      # annotate a local document
 ```
 
@@ -198,15 +177,14 @@ The fastest way to see what Hypermark does is to invoke it yourself, right now, 
 
 ## How it works
 
-### Code review
+### Annotate
 
 ```
-You run /hypermark-review
-  -> git diff captures changes
-  -> Browser opens with diff viewer
-  -> Annotate lines
+You run /hypermark-annotate <file> or /hypermark-last
+  -> Browser opens with the document or message
+  -> Select text and comment
   -> Send feedback: returned to agent session
-  -> Approve: "LGTM" sent
+  -> Close without annotations: nothing sent
 ```
 
 ---
@@ -291,14 +269,12 @@ export HYPERMARK_DATA_DIR=~/.local/share/hypermark
 bun install
 
 bun run dev:annotate   # Annotate server
-bun run dev:review     # Code review editor
 ```
 
 ### Build
 
 ```bash
-bun run build          # build:review then build:annotate
-bun run build:review   # Code review editor
+bun run build          # same as build:annotate
 bun run build:annotate # Single-file HTML for the annotate server
 ```
 

@@ -8,7 +8,6 @@ import { saveConfig } from "./config";
 // Use a distinct module key so unrelated mock.module() tests cannot replace
 // the real server.
 import { startAnnotateServer as startBunAnnotateServer } from "./annotate.ts?api-404-guard";
-import { startReviewServer as startBunReviewServer } from "./review";
 
 const SPA_HTML = "<!doctype html><html><body>SPA fallback</body></html>";
 let dataDirPath = "";
@@ -26,17 +25,6 @@ interface ServerCase {
 }
 
 const serverCases = [
-  {
-    name: "Bun review",
-    knownApiPath: "/api/diff",
-    start: () =>
-      startBunReviewServer({
-        rawPatch: "",
-        gitRef: "HEAD",
-        origin: "claude-code",
-        htmlContent: SPA_HTML,
-      }),
-  },
   {
     name: "Bun annotate",
     knownApiPath: "/api/plan",

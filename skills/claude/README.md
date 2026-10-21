@@ -13,11 +13,10 @@ one may be swapped for the other.
 
 ## What every launcher here must carry
 
-Each of `hypermark-annotate`, `hypermark-last`, and `hypermark-review`
-carries four things. Dropping any one of them changes the product:
+Each of `hypermark-annotate` and `hypermark-last` carries four things. Dropping any one of them changes the product:
 
 1. **`disable-model-invocation: true`** — the command is user-invoked only.
-   The model never decides to open a review session on its own.
+   The model never decides to open an annotate session on its own.
 2. **`allowed-tools: Bash(hypermark:*)`** — the injected run is pre-allowed,
    so `/hypermark-*` does not raise a permission prompt (the behavior the
    original slash commands had).
@@ -48,13 +47,13 @@ conversation without that exchange polluting the main conversation's history.
 
 Its accepted limitation: **it has no tool access.** It answers from the conversation context it already
 has. It does not read new files, inspect a browser selection, or reach into a
-Hypermark review session. That is fine for on-the-fly questions and is the
+Hypermark annotate session. That is fine for on-the-fly questions and is the
 reason no custom skill can reproduce it — an ordinary skill cannot promise the
 native command's history isolation by asking the model to behave.
 
 Consequences for anyone working on this directory:
 
-- Do not add a fourth skill named `btw`, or any alias that shadows it.
+- Do not add a skill named `btw`, or any alias that shadows it.
 - Do not build a custom browser chat, a conversation rail, or an automatic
   selection upload as a stand-in for it.
 - Do not promise that `/btw` inherits browser state, the reviewer's selection,

@@ -11,12 +11,6 @@ export { commentPopoverShortcuts } from './plan-review/commentPopover.shortcuts'
 export { viewerShortcuts } from './plan-review/viewer.shortcuts';
 export { annotateSidebarShortcuts, useAnnotateSidebarShortcuts } from './plan-review/sidebar.shortcuts';
 
-// code-review scopes
-export { reviewAnnotationToolbarShortcuts } from './code-review/annotationToolbar.shortcuts';
-export { reviewFileTreeShortcuts } from './code-review/fileTree.shortcuts';
-export { reviewAllFilesDiffShortcuts } from './code-review/allFilesDiff.shortcuts';
-export { reviewChromeShortcuts } from './code-review/reviewChrome.shortcuts';
-
 // surface registries (which scopes make up each app)
 export * from './surfaces';
 

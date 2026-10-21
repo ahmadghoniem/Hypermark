@@ -97,7 +97,6 @@ jobs:
 
       - name: Build UI
         run: |
-          bun run build:review
           bun run build:annotate
 
       - name: Compile binaries (cross-compile all targets)
@@ -217,15 +216,11 @@ jobs:
             echo "OK: ${label} responded on :${port}${endpoint}"
           }
 
-          # 2. review: exercises server startup, bundled HTML, git diff, and HTTP.
-          smoke_test_server "hypermark review" 19500 "/api/diff" \
-            "$BINARY" review
-
-          # 3. annotate: exercises annotate server startup with a real file.
+          # 2. annotate: exercises annotate server startup with a real file.
           smoke_test_server "hypermark annotate" 19501 "/api/plan" \
             "$BINARY" annotate README.md
 
-          # 4. #1249 regression: env vars must load even when a cwd ancestor
+          # 3. #1249 regression: env vars must load even when a cwd ancestor
           # is unreadable (the OS-sandbox case: the project dir is granted but
           # an ancestor is not). Bun <= 1.3.11 loaded an EMPTY process.env
           # there, silently ignoring every HYPERMARK_* variable. The server
@@ -315,10 +310,7 @@ jobs:
             Write-Host "OK: $Label responded on :$Port$Endpoint"
           }
 
-          # 2. review: exercises server startup, bundled HTML, git diff, and HTTP.
-          Test-HypermarkServer "hypermark review" "19500" "/api/diff" @("review")
-
-          # 3. annotate: exercises annotate server startup with a real file.
+          # 2. annotate: exercises annotate server startup with a real file.
           Test-HypermarkServer "hypermark annotate" "19501" "/api/plan" @("annotate", "README.md")
 
       - name: Smoke-test uninstall lifecycle

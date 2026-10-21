@@ -716,7 +716,7 @@ REM Skills + command stubs install (requires git)
 REM
 REM Claude Code commands are deprecated in favor of skills. Core skills
 REM installed to %%USERPROFILE%%\.claude\skills are user-invocable by directory
-REM name (/hypermark-review etc.), so no command files are written anymore.
+REM name (/hypermark-annotate etc.), so no command files are written anymore.
 REM
 REM Install matrix (all copies verbatim, copy-if-present so older-tag pinned
 REM installs never fail when a source dir is absent):
@@ -905,7 +905,7 @@ if "!CLONE_OK!"=="1" (
     REM interchangeable. Replace on each run.
     if exist "skills\claude" (
         if not exist "!CLAUDE_SKILLS_DIR!" mkdir "!CLAUDE_SKILLS_DIR!"
-        for %%S in (hypermark-review hypermark-annotate hypermark-last) do (
+        for %%S in (hypermark-annotate hypermark-last) do (
             if exist "skills\claude\%%S" (
                 if exist "!CLAUDE_SKILLS_DIR!\%%S" rmdir /s /q "!CLAUDE_SKILLS_DIR!\%%S" >nul 2>&1
                 xcopy /s /i /y /q "skills\claude\%%S" "!CLAUDE_SKILLS_DIR!\%%S\" >nul 2>&1
@@ -921,7 +921,7 @@ if "!CLONE_OK!"=="1" (
     )
     if exist "skills\core" (
         if not exist "!AGENTS_SKILLS_DIR!" mkdir "!AGENTS_SKILLS_DIR!"
-        for %%S in (hypermark-review hypermark-annotate hypermark-last hypermark) do (
+        for %%S in (hypermark-annotate hypermark-last hypermark) do (
             if exist "skills\core\%%S" (
                 REM Replace rather than merge so files removed upstream don't linger.
                 if exist "!AGENTS_SKILLS_DIR!\%%S" rmdir /s /q "!AGENTS_SKILLS_DIR!\%%S" >nul 2>&1
@@ -959,7 +959,7 @@ REM AFTER the install above guarantees a failed or skipped skill install never
 REM leaves users with neither the command nor the skill.
 REM A skills opt-out installed no replacement this run, so it removes nothing
 REM either - skip means do-not-write, never remove.
-for %%C in (hypermark-review hypermark-annotate hypermark-last) do (
+for %%C in (hypermark-annotate hypermark-last) do (
     if "!SKIP_SKILLS!"=="0" if exist "!CLAUDE_SKILLS_DIR!\%%C" if exist "!CLAUDE_COMMANDS_DIR!\%%C.md" (
         del /q "!CLAUDE_COMMANDS_DIR!\%%C.md" >nul 2>&1
         echo Removed deprecated Claude command !CLAUDE_COMMANDS_DIR!\%%C.md ^(replaced by the %%C skill^)
@@ -999,11 +999,11 @@ echo.
 REM Never claim the /hypermark-* skills are ready when nothing was installed -
 REM that false banner is exactly what the skills-checkout guard exists to prevent.
 if "!SKIP_SKILLS!"=="1" (
-    echo Skills were skipped ^(!SKIP_SKILLS_SOURCE!^), so the /hypermark-review,
-    echo /hypermark-annotate, and /hypermark-last skills are NOT installed.
+    echo Skills were skipped ^(!SKIP_SKILLS_SOURCE!^), so the /hypermark-annotate
+    echo and /hypermark-last skills are NOT installed.
     echo Re-run the installer without the opt-out to add them.
 ) else (
-    echo The /hypermark-review, /hypermark-annotate, and /hypermark-last skills are ready to use!
+    echo The /hypermark-annotate and /hypermark-last skills are ready to use!
 )
 
 echo.
@@ -1056,10 +1056,9 @@ if "!WANT_INVOCABLE!"=="no" (
     set "INVOCABLE_CHOICE=none"
     goto :eof
 )
-set "SKILL_COUNT=3"
-set "SKILL_1=hypermark-review"
-set "SKILL_2=hypermark-annotate"
-set "SKILL_3=hypermark-last"
+set "SKILL_COUNT=2"
+set "SKILL_1=hypermark-annotate"
+set "SKILL_2=hypermark-last"
 REM Preselect previously chosen skills. NOTE: no pipes here - each side of a
 REM cmd pipe runs in a child without delayed expansion, so !vars! would pass
 REM through literally. A substring-replace containment test avoids that trap.

@@ -26,7 +26,7 @@ describe("CLI top-level help", () => {
     expect(isTopLevelHelpInvocation(["--help"])).toBe(true);
     expect(isTopLevelHelpInvocation(["-h"])).toBe(true);
     expect(isTopLevelHelpInvocation([])).toBe(false);
-    expect(isTopLevelHelpInvocation(["review", "--help"])).toBe(false);
+    expect(isTopLevelHelpInvocation(["annotate", "--help"])).toBe(false);
   });
 
   test("renders concise top-level usage", () => {
@@ -34,7 +34,7 @@ describe("CLI top-level help", () => {
 
     expect(output).toContain("hypermark --help");
     expect(output).toContain("hypermark --version, -v");
-    expect(output).toContain("hypermark review [--git]");
+    expect(output).not.toContain("hypermark review");
     expect(output).toContain("hypermark annotate <file.md | file.txt> [--gate]");
     expect(output).toContain("hypermark annotate-last [--stdin]");
     expect(output).toContain("hypermark uninstall [--purge] [--yes]");
@@ -51,18 +51,22 @@ describe("CLI subcommand help", () => {
     expect(hasHelpFlag([])).toBe(false);
   });
 
-  test("recognizes `review --help` as a subcommand help invocation", () => {
-    expect(isSubcommandHelpInvocation(["review", "--help"])).toBe("review");
-    expect(isSubcommandHelpInvocation(["review", "-h"])).toBe("review");
+  test("recognizes `annotate --help` as a subcommand help invocation", () => {
+    expect(isSubcommandHelpInvocation(["annotate", "--help"])).toBe("annotate");
+    expect(isSubcommandHelpInvocation(["sessions", "-h"])).toBe("sessions");
     // help flag may appear after other args (agents probe in various ways)
     expect(isSubcommandHelpInvocation(["annotate", "file.md", "--help"])).toBe(
       "annotate",
     );
   });
 
-  test("does not treat a real review invocation as help", () => {
-    expect(isSubcommandHelpInvocation(["review"])).toBeNull();
-    expect(isSubcommandHelpInvocation(["review", "--git"])).toBeNull();
+  test("does not treat a real invocation as help", () => {
+    expect(isSubcommandHelpInvocation(["sessions"])).toBeNull();
+    expect(isSubcommandHelpInvocation(["annotate", "plan.md"])).toBeNull();
+  });
+
+  test("no longer offers review help", () => {
+    expect(isSubcommandHelpInvocation(["review", "--help"])).toBeNull();
   });
 
   test("resolves the `last` alias to annotate-last help", () => {
@@ -91,10 +95,6 @@ describe("CLI subcommand help", () => {
   });
 
   test("renders subcommand-specific usage", () => {
-    expect(formatSubcommandHelp("review")).toContain(
-      "hypermark review [--git]",
-    );
-    expect(formatSubcommandHelp("review")).toContain("--git");
     expect(formatSubcommandHelp("annotate")).not.toContain("--markdown");
     expect(formatSubcommandHelp("annotate")).toContain("--require-approval");
     expect(formatSubcommandHelp("annotate")).toContain("--result-file <path>");
@@ -227,7 +227,7 @@ describe("strict annotate CLI options", () => {
 
   test("requires annotate --gate --json without --hook", () => {
     for (const args of [
-      ["review", "--gate", "--json", "--require-approval"],
+      ["sessions", "--gate", "--json", "--require-approval"],
       ["annotate-last", "--gate", "--json", "--require-approval"],
       ["annotate", "plan.md", "--json", "--require-approval"],
       ["annotate", "plan.md", "--gate", "--require-approval"],
@@ -284,7 +284,7 @@ describe("CLI --version", () => {
     expect(isVersionInvocation(["--version"])).toBe(true);
     expect(isVersionInvocation(["-v"])).toBe(true);
     expect(isVersionInvocation([])).toBe(false);
-    expect(isVersionInvocation(["review"])).toBe(false);
+    expect(isVersionInvocation(["sessions"])).toBe(false);
   });
 
   test("formats version string", () => {
@@ -298,14 +298,14 @@ describe("interactive no-arg invocation", () => {
     expect(isInteractiveNoArgInvocation([], true)).toBe(true);
     expect(isInteractiveNoArgInvocation([], false)).toBe(false);
     expect(isInteractiveNoArgInvocation([], undefined)).toBe(false);
-    expect(isInteractiveNoArgInvocation(["review"], true)).toBe(false);
+    expect(isInteractiveNoArgInvocation(["sessions"], true)).toBe(false);
   });
 
   test("renders clarification for interactive users", () => {
     const output = formatInteractiveNoArgClarification();
 
     expect(output).toContain("does nothing in an interactive terminal");
-    expect(output).toContain("hypermark review");
+    expect(output).toContain("hypermark annotate");
     expect(output).toContain("hypermark sessions");
     expect(output).toContain("hypermark uninstall");
     expect(output).toContain("Run 'hypermark --help' for top-level usage.");
@@ -318,7 +318,7 @@ describe("unknown subcommand error", () => {
       expect(findUnknownSubcommand([])).toBeNull();
       expect(findUnknownSubcommand(["--help"])).toBeNull();
       expect(findUnknownSubcommand(["-v"])).toBeNull();
-      expect(findUnknownSubcommand(["review", "--nonsense"])).toBeNull();
+      expect(findUnknownSubcommand(["sessions", "--nonsense"])).toBeNull();
     });
 
     test("reports the offending token", () => {
@@ -328,7 +328,7 @@ describe("unknown subcommand error", () => {
 
     test("suggests the nearest documented command", () => {
       expect(findClosestSubcommand("annotatte")).toBe("annotate");
-      expect(findClosestSubcommand("revieww")).toBe("review");
+      expect(findClosestSubcommand("sesions")).toBe("sessions");
       expect(findClosestSubcommand("uninstal")).toBe("uninstall");
       expect(findClosestSubcommand("annot")).toBe("annotate");
       expect(findClosestSubcommand("a")).toBeNull();
@@ -344,11 +344,11 @@ describe("unknown subcommand error", () => {
     });
 
     test("a typo'd subcommand exits instead of blocking on an open stdin", async () => {
-      // The spawned CLI imports ../dist/{index,review}.html at module load.
+      // The spawned CLI imports the built index.html at module load.
       // Dev machines always have them built, but CI's test job does not build
       // the apps, so drop empty placeholders for any missing artifact and
       // remove exactly what this test created afterwards. The guard under test
-      // exits before either page is ever served, so content is irrelevant.
+      // exits before the page is ever served, so content is irrelevant.
       const distDir = resolve(import.meta.dir, "../dist");
       const created: string[] = [];
       let createdDir = false;
@@ -356,7 +356,7 @@ describe("unknown subcommand error", () => {
         mkdirSync(distDir, { recursive: true });
         createdDir = true;
       }
-      for (const name of ["index.html", "review.html"]) {
+      for (const name of ["index.html"]) {
         const file = resolve(distDir, name);
         if (!existsSync(file)) {
           writeFileSync(file, "<!doctype html>");

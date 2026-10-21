@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { AnnotationType, type Annotation, type CodeAnnotation, type ImageAttachment } from '../types';
+import { AnnotationType, type Annotation, type ImageAttachment } from '../types';
 import {
   normalizeAttachmentImage,
   normalizeAttachmentImages,
@@ -8,7 +8,6 @@ import {
   normalizeDraftPayload,
 } from './attachmentNormalization';
 import { exportAnnotations, parseMarkdownToBlocks } from './parser';
-import { exportReviewFeedback } from '../../review/utils/exportFeedback';
 import { applyCollectionMutation, type CollectionMutation } from './undoHistory';
 
 describe('attachmentNormalization', () => {
@@ -389,64 +388,6 @@ describe('attachmentNormalization', () => {
       expect(exported).toContain('Feedback on: "Some paragraph"');
       expect(exported).toContain('> Check this diagram');
       expect(exported).toContain('**Attached images:**\n- [Detail] `/uploads/detail.png`');
-    });
-
-    test('exportFeedback formats attached images across code review scopes', () => {
-      const codeAnns: CodeAnnotation[] = [
-        {
-          id: 'code-ann-1',
-          type: 'comment',
-          scope: 'line',
-          filePath: 'src/index.ts',
-          lineStart: 10,
-          lineEnd: 12,
-          side: 'new',
-          text: 'Refactor this section',
-          createdAt: 1000,
-          images: [{ path: '/review/line-img.png', name: 'Line Context' }],
-        },
-        {
-          id: 'code-ann-2',
-          type: 'comment',
-          scope: 'file',
-          filePath: 'src/index.ts',
-          lineStart: 0,
-          lineEnd: 0,
-          side: 'new',
-          text: 'Overall file structure feedback',
-          createdAt: 2000,
-          images: [{ path: '/review/file-img.png', name: 'File Structure' }],
-        },
-        {
-          id: 'code-ann-3',
-          type: 'comment',
-          scope: 'general',
-          filePath: '',
-          lineStart: 0,
-          lineEnd: 0,
-          side: 'new',
-          text: 'General review comment',
-          createdAt: 3000,
-          images: [{ path: '/review/general-img.png', name: 'Overview' }],
-        },
-      ];
-
-      const feedback = exportReviewFeedback(codeAnns);
-
-      // Line annotation
-      expect(feedback).toContain('### Lines 10-12 (new)');
-      expect(feedback).toContain('Refactor this section');
-      expect(feedback).toContain('**Attached images:**\n- [Line Context] `/review/line-img.png`');
-
-      // File annotation
-      expect(feedback).toContain('### File Comment');
-      expect(feedback).toContain('Overall file structure feedback');
-      expect(feedback).toContain('**Attached images:**\n- [File Structure] `/review/file-img.png`');
-
-      // General annotation
-      expect(feedback).toContain('## General');
-      expect(feedback).toContain('General review comment');
-      expect(feedback).toContain('**Attached images:**\n- [Overview] `/review/general-img.png`');
     });
   });
 });

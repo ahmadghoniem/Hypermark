@@ -61,7 +61,7 @@ export interface DiffResult {
   diffText: string;
 }
 
-// Code Review Types
+// Code annotation types
 export type CodeAnnotationType = 'comment';
 // 'general' is a review-level comment tied to no file and no line. For 'general'
 // (and the file-less case) filePath is "" and lineStart/lineEnd are 0 — consumers
@@ -76,7 +76,7 @@ export interface CodeAnnotation {
   filePath: string;
   lineStart: number;
   lineEnd: number;
-  side: 'old' | 'new'; // Maps to 'deletions' | 'additions' in @pierre/diffs
+  side: 'old' | 'new';
   text?: string;
   images?: ImageAttachment[];
   charStart?: number; // Character offset within lineStart (token-level selection)
@@ -92,44 +92,6 @@ export interface CodeAnnotation {
   commitSha?: string;
   /** The commit's one-line subject, captured for readable export labels. */
   commitSubject?: string;
-}
-
-/** Token-level metadata passed from selection to annotation creation. */
-export interface TokenAnnotationMeta {
-  charStart: number;
-  charEnd: number;
-  tokenText: string;
-}
-
-/** Severity display styles — shared between agent detail panel and inline diff annotations. */
-export const SEVERITY_STYLES: Record<string, { dot: string; label: string }> = {
-  important: { dot: 'bg-destructive', label: 'Important' },
-  nit: { dot: 'bg-amber-500', label: 'Nit' },
-  pre_existing: { dot: 'bg-muted-foreground', label: 'Pre-existing' },
-};
-
-// For @pierre/diffs integration
-export interface DiffAnnotationMetadata {
-  annotationId: string;
-  type: CodeAnnotationType;
-  text?: string;
-  severity?: 'important' | 'nit' | 'pre_existing';
-  reasoning?: string;
-  // Shared comment-meta fields (so the inline diff card shows the same meta
-  // row — time, badges — as the sidebar and file-banner cards).
-  createdAt?: number;
-  /** Precomputed clipboard text (location prefix + body + reasoning) so the
-   *  inline copy action matches the sidebar/banner — the inline card only has
-   *  the projected metadata, not the full annotation. */
-  copyText?: string;
-}
-
-export interface SelectedLineRange {
-  start: number;
-  end: number;
-  /** Optional to match @pierre/diffs, which omits it for single-side views. */
-  side?: 'deletions' | 'additions';
-  endSide?: 'deletions' | 'additions';
 }
 
 export interface VaultNode {

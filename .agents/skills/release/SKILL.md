@@ -115,15 +115,14 @@ Bump `"version"` in the root `package.json`. Confirm the current version matches
 
 ## Phase 3: Build
 
-Run builds in dependency order:
+Run the build:
 
 ```bash
-bun run build:review    # 1. Code review editor (standalone Vite build)
-bun run build:annotate  # 2. Annotate editor
+bun run build:annotate  # Annotate editor
 ```
 
 
-Verify all builds succeed before proceeding.
+Verify the build succeeds before proceeding.
 
 
 ## Phase 4: Commit, Tag, and Release
@@ -208,7 +207,6 @@ Verify all builds succeed before proceeding.
 Before tagging, verify:
 - [ ] All version files bumped consistently
 - [ ] Release notes drafted and reviewed
-- [ ] `bun run build:review` succeeded
 - [ ] `bun run build:annotate` succeeded
 - [ ] Version bump committed
 - [ ] No stale build artifacts (clean builds, no cache issues — run `bun install` first if dependencies changed)

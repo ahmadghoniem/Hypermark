@@ -29,6 +29,8 @@ import {
 } from "node:path";
 import { getHypermarkDataDir } from "@/shared/data-dir";
 
+// hypermark-review is no longer installed; it stays listed so uninstall still
+// removes the copy an earlier version installed.
 const CORE_SKILLS = [
   "hypermark-review",
   "hypermark-annotate",

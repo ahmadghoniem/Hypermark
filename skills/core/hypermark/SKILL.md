@@ -1,27 +1,26 @@
 ---
 name: hypermark
-description: "Reference for using the Hypermark CLI: code review, annotating files, and annotating the last assistant message. Invoke when asked to use Hypermark for anything not covered by a more specific hypermark-* skill."
+description: "Reference for using the Hypermark CLI: annotating files and annotating the last assistant message. Invoke when asked to use Hypermark for anything not covered by a more specific hypermark-* skill."
 ---
 
 # Hypermark CLI Reference
 
-Hypermark is a local, browser-based review layer for agent workflows: it opens diffs, documents, and your messages in an annotation UI, the human marks them up, and the structured feedback comes back to you on stdout. It installs as a single `hypermark` binary and every surface is launched explicitly from the CLI. A session runs on a random localhost port and blocks until the reviewer submits feedback, approves, or closes the tab.
+Hypermark is a local, browser-based review layer for agent workflows: it opens documents and your messages in an annotation UI, the human marks them up, and the structured feedback comes back to you on stdout. It installs as a single `hypermark` binary and every surface is launched explicitly from the CLI. A session runs on a random localhost port and blocks until the reviewer submits feedback, approves, or closes the tab.
 
-This skill is the knowledge layer. The `hypermark-review`, `hypermark-annotate`, and `hypermark-last` skills are thin launchers for the three most common actions; use this reference when you need to pick the right command or flags yourself.
+This skill is the knowledge layer. The `hypermark-annotate` and `hypermark-last` skills are thin launchers for the two most common actions; use this reference when you need to pick the right command or flags yourself.
 
 ## Choose the command
 
 | The user wants | Run |
 | --- | --- |
 | Review and explicitly approve a spec/document saved as a file | `hypermark annotate <file> --gate --json` |
-| Review current code changes | `hypermark review` |
 | Annotate a markdown, text, or config file | `hypermark annotate <file>` |
 | Annotate your latest assistant message | `hypermark last` |
 | Reopen or list live sessions | `hypermark sessions` |
 
 ## Session model
 
-Every review or annotate command starts a local web server, opens the browser, and blocks until the human decides. That can take minutes. Launch it with a long (or no) command timeout, or in the background, then read stdout when the process exits. Do not kill the process to "finish" a review; a session that ends without a decision reads as no feedback.
+Every annotate command starts a local web server, opens the browser, and blocks until the human decides. That can take minutes. Launch it with a long (or no) command timeout, or in the background, then read stdout when the process exits. Do not kill the process to "finish" a review; a session that ends without a decision reads as no feedback.
 
 The stdout contract is the whole interface:
 
@@ -30,17 +29,6 @@ The stdout contract is the whole interface:
 - `--hook`: hook-native output for real PostToolUse/Stop hook contexts only. Approve/close emits nothing (hook passes); annotations emit `{"decision":"block","reason":"..."}`. `--hook` implies the gate UI. Never use it for a normal interactive invocation.
 
 `hypermark <command> --help` prints usage without launching anything.
-
-## hypermark review
-
-```bash
-hypermark review [--git]
-```
-
-Reviews local VCS changes. Feedback and annotations come back on stdout when the reviewer submits; an approval comes back as an LGTM-style message.
-
-- VCS is Git. `--git` forces plain Git (skipping auto-detection).
-- The default diff is "everything a PR would show now": merge-base of the trunk vs the working tree plus untracked files. The reviewer can switch diff types in the UI; you do not control that from the CLI.
 
 ## hypermark annotate
 
@@ -55,7 +43,7 @@ Plain `annotate` is feedback-only: it shows **Close** but no **Approve** button.
 Targets:
 
 - Markdown and text files: `.md`, `.mdx`, `.txt`.
-- Plain-text config and data files, rendered as text: `.yaml`, `.yml`, `.json`, `.jsonc`, `.json5`, `.toml`, `.ini`, `.cfg`, `.conf`, `.properties`, `.csv`, `.tsv`, `.log`, `.xml`, `.env.example`. `.env` itself is deliberately refused (it commonly holds secrets, and annotate history copies file contents). Source-code files belong to `hypermark review`, not annotate. HTML files and URLs are refused.
+- Plain-text config and data files, rendered as text: `.yaml`, `.yml`, `.json`, `.jsonc`, `.json5`, `.toml`, `.ini`, `.cfg`, `.conf`, `.properties`, `.csv`, `.tsv`, `.log`, `.xml`, `.env.example`. `.env` itself is deliberately refused (it commonly holds secrets, and annotate history copies file contents). Source-code files are not annotate targets. HTML files and URLs are refused.
 
 Single files are capped at 2MB. Files are read from disk at stable project paths; keep the reviewed source where it lives.
 
@@ -123,5 +111,5 @@ hypermark uninstall [--purge] [--yes] [--dry-run]
 - Do not parse or scrape the browser UI's HTML; the CLI's stdout is the whole contract.
 - Do not use `--hook` outside a real hook context; use `--json` when you need structured output.
 - Do not guess flags. Run `hypermark <command> --help` when unsure; unknown dashed tokens make annotate fail on purpose.
-- Do not point `hypermark annotate` at source-code files or `.env` files; code goes through `hypermark review`, and `.env` is refused.
+- Do not point `hypermark annotate` at source-code files or `.env` files; both are refused.
 - Do not start a strict gate (`--require-approval`) unless a human is actually there to review; the session blocks until they act.

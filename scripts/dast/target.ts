@@ -15,7 +15,7 @@ if (process.env.HYPERMARK_DAST_ISOLATED !== "1") {
 
 // These are defense-in-depth defaults for the test target. The Docker network
 // is the primary outbound boundary; the application is also configured so an
-// accidentally reached feature cannot invoke agents, persist review data,
+// accidentally reached feature cannot invoke agents, persist feedback data,
 // open a browser, or install optional runtimes.
 Object.assign(process.env, {
   HYPERMARK_PORT: String(APP_PORT),

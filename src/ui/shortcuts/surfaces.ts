@@ -9,11 +9,6 @@ import { annotateSidebarShortcuts } from './plan-review/sidebar.shortcuts';
 import { commentPopoverShortcuts } from './plan-review/commentPopover.shortcuts';
 import { viewerShortcuts } from './plan-review/viewer.shortcuts';
 
-import { reviewAllFilesDiffShortcuts } from './code-review/allFilesDiff.shortcuts';
-import { reviewAnnotationToolbarShortcuts } from './code-review/annotationToolbar.shortcuts';
-import { reviewChromeShortcuts } from './code-review/reviewChrome.shortcuts';
-import { reviewFileTreeShortcuts } from './code-review/fileTree.shortcuts';
-
 /**
  * Which scopes make up each app, so one place can answer "what are the
  * shortcuts here?".
@@ -48,21 +43,9 @@ export const annotateShortcutRegistry: ShortcutRegistry = createShortcutRegistry
   annotateSidebarShortcuts,
 ]);
 
-/** Code review: diffs, files, and the review decision. */
-export const reviewShortcutRegistry: ShortcutRegistry = createShortcutRegistry([
-  decisionControlShortcuts,
-  historyShortcuts,
-  reviewChromeShortcuts,
-  reviewFileTreeShortcuts,
-  reviewAllFilesDiffShortcuts,
-  reviewAnnotationToolbarShortcuts,
-]);
-
-export type ShortcutSurfaceMode = 'annotate' | 'review';
+export type ShortcutSurfaceMode = 'annotate';
 
 /** The registry backing one app's help panel. */
-export function getShortcutRegistryForMode(mode: ShortcutSurfaceMode): ShortcutRegistry {
-  if (mode === 'review') return reviewShortcutRegistry;
-  if (mode === 'annotate') return annotateShortcutRegistry;
+export function getShortcutRegistryForMode(_mode: ShortcutSurfaceMode): ShortcutRegistry {
   return annotateShortcutRegistry;
 }

@@ -129,8 +129,7 @@ export async function resolveAnnotateTarget(options: {
         notFound: false,
         message:
           `File type not supported: ${ext}\n` +
-          `Supported types: ${buildAnnotatableExtensionsHint(extraMarkdownExtensions)}\n` +
-          `For code review, use: hypermark review [file]`,
+          `Supported types: ${buildAnnotatableExtensionsHint(extraMarkdownExtensions)}`,
       };
     }
     return {

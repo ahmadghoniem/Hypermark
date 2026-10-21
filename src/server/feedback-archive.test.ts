@@ -2,17 +2,13 @@
  * Durable feedback archive — server wiring (Bun runtime).
  *
  * Regressions guarded here:
- *  - "review feedback lost": /api/feedback used to delete the draft, settle the
+ *  - "feedback lost": /api/feedback used to delete the draft, settle the
  *    decision promise, and persist nothing, so a submission made after the
- *    invoking agent timed out existed nowhere (the pre-#678 failure mode,
- *    recurring on code review).
- *  - "archive failure loses the review": a failed archive write must keep the
- *    draft as the recovery copy and must never fail the reviewer's submit.
+ *    invoking agent timed out existed nowhere.
  *  - "opt-out ignored": HYPERMARK_FEEDBACK_HISTORY / feedbackHistory must
  *    stop every write.
  *  - "stateless annotate broken": HYPERMARK_ANNOTATE_HISTORY=0 must still
  *    mean "annotate sessions write nothing to the data dir".
- *  - dismissals are recorded as decision-only lines.
  *
  * Every test sandboxes the archive under a temp HYPERMARK_DATA_DIR set
  * inside the test body.
@@ -22,7 +18,6 @@ import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:tes
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { startReviewServer } from "./review";
 import { startAnnotateServer } from "./annotate";
 import {
   appendFeedbackRecord,
@@ -117,177 +112,21 @@ afterAll(() => {
   }
 });
 
-describe("code review submissions are archived", () => {
-  async function startReview(options: Parameters<typeof startReviewServer>[0] extends infer T ? Partial<T> : never = {}) {
-    return startReviewServer({
-      rawPatch: "diff --git a/src/parse.ts b/src/parse.ts\n@@ -1 +1 @@\n-a\n+b\n",
-      gitRef: "HEAD",
+describe("annotate submissions are archived", () => {
+  function startUrlSession() {
+    return startAnnotateServer({
+      markdown: "# Fetched page\n\nBody\n",
+      filePath: "https://example.com/some/page",
       htmlContent: MINIMAL_HTML,
-      origin: "claude-code",
-      ...options,
-    } as Parameters<typeof startReviewServer>[0]);
+      project: URL_ANNOTATE_PROJECT,
+    });
   }
 
-  test("feedback submit appends one parseable record with a sidecar, then deletes the draft", async () => {
-    const dataDir = useTempDataDir();
-    const server = await startReview();
-    try {
-      // The draft is the reviewer's other copy before submit.
-      await fetch(`${server.url}/api/draft`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ annotations: [{ id: "a1" }] }),
-      });
-
-      const response = await fetch(`${server.url}/api/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          approved: false,
-          feedback: "## Review\n\nparse() still drops the null case.",
-          annotations: [
-            { id: "a1", type: "comment", text: "null case", filePath: "src/parse.ts", lineStart: 1, lineEnd: 1, side: "new" },
-          ],
-        }),
-      });
-      expect(response.status).toBe(200);
-
-      const records = readOnlyIndex(dataDir);
-      expect(records.length).toBe(1);
-      expect(records[0].surface).toBe("review");
-      expect(records[0].decision).toBe("feedback");
-      expect(records[0].origin).toBe("claude-code");
-      expect(records[0].feedback).toContain("parse() still drops the null case.");
-      expect(records[0].annotations?.[0].file).toBe("src/parse.ts");
-      // Diff identity travels with the record; the patch bytes do not.
-      expect(records[0].target?.review?.gitRef).toBe("HEAD");
-      expect(records[0].target?.review?.changedFiles).toBe(1);
-      expect(sidecarBody(dataDir, records[0])).toContain("parse() still drops the null case.");
-
-      // The record exists, so the draft may go.
-      expect((await fetch(`${server.url}/api/draft`)).status).toBe(404);
-    } finally {
-      server.stop();
-    }
-  });
-
-  test("a bare approval is recorded as an lgtm decision-only line", async () => {
-    const dataDir = useTempDataDir();
-    const server = await startReview();
-    try {
-      const response = await fetch(`${server.url}/api/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ approved: true, feedback: "", annotations: [] }),
-      });
-      expect(response.status).toBe(200);
-      const records = readOnlyIndex(dataDir);
-      expect(records.length).toBe(1);
-      expect(records[0].decision).toBe("lgtm");
-      expect(records[0].recordFile).toBeUndefined();
-    } finally {
-      server.stop();
-    }
-  });
-
-  test("closing a review without feedback records a dismissal", async () => {
-    const dataDir = useTempDataDir();
-    const server = await startReview();
-    try {
-      expect((await fetch(`${server.url}/api/exit`, { method: "POST" })).status).toBe(200);
-      const records = readOnlyIndex(dataDir);
-      expect(records.length).toBe(1);
-      expect(records[0].decision).toBe("dismissed");
-      expect(records[0].recordFile).toBeUndefined();
-    } finally {
-      server.stop();
-    }
-  });
-
-  test("changedFiles counts a rename once", async () => {
-    // Regression: extractChangedFiles unions the a/ and b/ sides (it exists to
-    // resolve any path a reader mentions), so reusing it here reported a
-    // two-file review for a one-file rename.
-    const dataDir = useTempDataDir();
-    const server = await startReview({
-      rawPatch:
-        "diff --git a/src/old.ts b/src/new.ts\nsimilarity index 92%\nrename from src/old.ts\nrename to src/new.ts\n",
-    });
-    try {
-      const response = await fetch(`${server.url}/api/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback: "Rename looks right.", annotations: [] }),
-      });
-      expect(response.status).toBe(200);
-      expect(readOnlyIndex(dataDir)[0].target?.review?.changedFiles).toBe(1);
-    } finally {
-      server.stop();
-    }
-  });
-
-  test("a malformed feedback body degrades to legacy behavior, never a 500", async () => {
-    // /api/feedback does not type-validate its body; the archive hook must not
-    // turn a junk value into a 500 the reviewer cannot recover from.
-    const dataDir = useTempDataDir();
-    const server = await startReview();
-    try {
-      const response = await fetch(`${server.url}/api/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback: 42, annotations: "nope" }),
-      });
-      expect(response.status).toBe(200);
-      const records = readOnlyIndex(dataDir);
-      expect(records.length).toBe(1);
-      expect(records[0].feedback).toBeUndefined();
-      expect(records[0].counts.annotations).toBe(0);
-    } finally {
-      server.stop();
-    }
-  });
-
-  test("a failed archive write keeps the draft and still answers the reviewer with 200", async () => {
-    const dataDir = useTempDataDir();
-    // Block the review project's archive directory by planting a FILE where
-    // the directory must go.
-    mkdirSync(feedbackDir(dataDir), { recursive: true });
-    writeFileSync(join(feedbackDir(dataDir), "widgets"), "blocked", "utf-8");
-
-    const server = await startReview({ project: "widgets" });
-    try {
-      await fetch(`${server.url}/api/draft`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ annotations: [{ id: "a1" }] }),
-      });
-
-      const response = await fetch(`${server.url}/api/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback: "Do not lose this.", annotations: [{ id: "a1" }] }),
-      });
-      // The submit succeeds for the user...
-      expect(response.status).toBe(200);
-      // ...and the draft survives as the recovery copy.
-      const draft = await fetch(`${server.url}/api/draft`);
-      expect(draft.status).toBe(200);
-      expect(JSON.stringify(await draft.json())).toContain("a1");
-    } finally {
-      server.stop();
-    }
-  });
-
-  test("HYPERMARK_FEEDBACK_HISTORY=0 writes nothing and keeps the legacy draft behavior", async () => {
+  test("HYPERMARK_FEEDBACK_HISTORY=0 writes nothing", async () => {
     const dataDir = useTempDataDir();
     process.env.HYPERMARK_FEEDBACK_HISTORY = "0";
-    const server = await startReview();
+    const server = await startUrlSession();
     try {
-      await fetch(`${server.url}/api/draft`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ annotations: [{ id: "a1" }] }),
-      });
       const response = await fetch(`${server.url}/api/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -295,7 +134,6 @@ describe("code review submissions are archived", () => {
       });
       expect(response.status).toBe(200);
       expect(existsSync(feedbackDir(dataDir))).toBe(false);
-      expect((await fetch(`${server.url}/api/draft`)).status).toBe(404);
     } finally {
       server.stop();
     }
@@ -305,7 +143,7 @@ describe("code review submissions are archived", () => {
     const dataDir = useTempDataDir();
     delete process.env.HYPERMARK_FEEDBACK_HISTORY; // config must decide
     writeFileSync(join(dataDir, "config.json"), JSON.stringify({ feedbackHistory: false }), "utf-8");
-    const server = await startReview();
+    const server = await startUrlSession();
     try {
       const response = await fetch(`${server.url}/api/feedback`, {
         method: "POST",
@@ -318,9 +156,7 @@ describe("code review submissions are archived", () => {
       server.stop();
     }
   });
-});
 
-describe("annotate submissions are archived", () => {
   test("a URL session — which writes no history — still records the submission", async () => {
     // Behavior change by design: URL / annotate-last / folder
     // submissions leave a durable record for the first time.

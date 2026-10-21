@@ -1,30 +1,25 @@
 /**
  * Hypermark CLI for Claude Code
  *
- * Supports five modes:
+ * Supports four modes:
  *
- * 1. Code Review (`hypermark review`, `hypermark review --git`):
- *    - Triggered by /review slash command
- *    - Runs git diff, opens review UI
- *    - Outputs feedback to stdout (captured by slash command)
- *
- * 2. Annotate (`hypermark annotate <file.md | file.txt>`):
+ * 1. Annotate (`hypermark annotate <file.md | file.txt>`):
  *    - Triggered by /hypermark-annotate slash command
  *    - Opens any markdown file in the annotation UI
  *    - Outputs structured feedback to stdout
  *
- * 3. Annotate Last (`hypermark annotate-last`, `hypermark last`):
+ * 2. Annotate Last (`hypermark annotate-last`, `hypermark last`):
  *    - Triggered by /hypermark-last slash command
  *    - Annotates the most recent assistant response in the annotation UI
  *    - Outputs structured feedback to stdout
  *
- * 4. Sessions (`hypermark sessions`):
+ * 3. Sessions (`hypermark sessions`):
  *    - Lists active Hypermark server sessions
  *    - `--open [N]` reopens a session in the browser
  *    - `--clean` removes stale session files
  *    - `--kill [N|all]` terminates a session's process (see sessions.ts)
  *
- * 5. Uninstall (`hypermark uninstall`):
+ * 4. Uninstall (`hypermark uninstall`):
  *    - Removes recognized installer-owned components across supported hosts
  *    - Preserves local data by default; `--purge` removes known local data
  *
@@ -38,16 +33,9 @@
  */
 
 import {
-  startReviewServer,
-  handleReviewServerReady,
-} from "@/server/review";
-import {
   startAnnotateServer,
   handleAnnotateServerReady,
 } from "@/server/annotate";
-import { type DiffType, detectManagedVcs, prepareLocalReviewDiff } from "@/server/vcs";
-import { loadConfig, resolveDefaultDiffType } from "@/shared/config";
-import { parseReviewArgs } from "@/shared/review-args";
 import {
   buildAmbiguousAnnotateArgsMessage,
   buildUnresolvedAnnotateArgsMessage,
@@ -55,11 +43,6 @@ import {
   selectAnnotateTokenTarget,
 } from "@/shared/annotate-target";
 import { resolveAnnotateTarget } from "./annotate-resolution";
-import {
-  composeReviewApprovedMessage,
-  getReviewDeniedSuffix,
-} from "@/shared/prompts";
-import { supportsReviewApprovalNotes } from "./review-output";
 import { registerSession, unregisterSession, listSessions, killSession } from "@/server/sessions";
 import { openBrowser } from "@/server/browser";
 import {
@@ -112,10 +95,6 @@ import {
 // @ts-ignore - Bun import attribute for text
 import planHtml from "../../dist/annotate/index.html" with { type: "text" };
 const planHtmlContent = planHtml as unknown as string;
-
-// @ts-ignore - Bun import attribute for text
-import reviewHtml from "../../dist/review/index.html" with { type: "text" };
-const reviewHtmlContent = reviewHtml as unknown as string;
 
 // Check for subcommand
 const rawArgs = process.argv.slice(2);
@@ -196,8 +175,8 @@ if (isTopLevelHelpInvocation(args)) {
 }
 
 // Per-subcommand help must be handled before the subcommand branches below —
-// otherwise `hypermark review --help` (commonly run by agents probing the
-// CLI) falls through to local review mode and launches the browser UI,
+// otherwise `hypermark annotate --help` (commonly run by agents probing the
+// CLI) falls through to annotate mode and launches the browser UI,
 // spawning a stray tab whose close injects a bogus "no feedback" signal.
 const helpSubcommand = isSubcommandHelpInvocation(args);
 if (helpSubcommand) {
@@ -291,7 +270,7 @@ process.on("exit", () => unregisterSession());
 // `once` keeps a second Ctrl-C as a
 // force-quit escape hatch if cleanup ever hangs. SIGHUP is deliberately NOT
 // routed here: installing any SIGHUP listener overrides the ignored
-// disposition `nohup` depends on, so a plain `nohup hypermark review &`
+// disposition `nohup` depends on, so a plain `nohup hypermark last &`
 // must end up with no listener and survive terminal close.
 process.once("SIGINT", () => process.exit(130));
 process.once("SIGTERM", () => process.exit(143));
@@ -377,98 +356,6 @@ if (args[0] === "sessions") {
     const age = Math.round((Date.now() - new Date(s.startedAt).getTime()) / 60000);
     const ageStr = age < 60 ? `${age}m` : `${Math.floor(age / 60)}h ${age % 60}m`;
     console.error(`  #${i + 1}  ${s.mode.padEnd(9)} ${s.project.padEnd(20)} ${s.url.padEnd(28)} ${ageStr} ago`);
-  }
-  process.exit(0);
-
-} else if (args[0] === "review") {
-  // ============================================
-  // CODE REVIEW MODE
-  // ============================================
-
-  const reviewArgs = parseReviewArgs(args.slice(1));
-
-  let rawPatch: string;
-  let gitRef: string;
-  let diffError: string | undefined;
-  let initialFingerprint: string | undefined;
-  let gitContext: Awaited<ReturnType<typeof prepareLocalReviewDiff>>["gitContext"] | undefined;
-  let initialDiffType: DiffType | undefined;
-
-  const config = loadConfig();
-  const managedVcs = await detectManagedVcs(process.cwd(), reviewArgs.vcsType);
-  const forcedVcs = !!reviewArgs.vcsType && reviewArgs.vcsType !== "auto";
-
-  if (managedVcs || forcedVcs) {
-    const diffResult = await prepareLocalReviewDiff({
-      vcsType: reviewArgs.vcsType,
-      configuredDiffType: resolveDefaultDiffType(config),
-      hideWhitespace: config.diffOptions?.hideWhitespace ?? false,
-    });
-    gitContext = diffResult.gitContext;
-    initialDiffType = diffResult.diffType;
-    rawPatch = diffResult.rawPatch;
-    gitRef = diffResult.gitRef;
-    diffError = diffResult.error;
-    initialFingerprint = diffResult.fingerprint;
-  } else {
-    console.error("Not in a Git repo.");
-    process.exit(1);
-  }
-
-  const reviewProject = (await detectProjectName()) ?? "_unknown";
-
-  // Start review server (even if empty - user can switch diff types in local mode)
-  const server = await startReviewServer({
-    rawPatch,
-    gitRef,
-    error: diffError,
-    origin: detectedOrigin,
-    project: reviewProject,
-    diffType: gitContext ? (initialDiffType ?? "unstaged") : undefined,
-    gitContext,
-    initialFingerprint,
-    // The approved branch below prints result.feedback after the prompt, so
-    // this CLI's origins may see approve-carrying menu items.
-    approvalNotesSupported: supportsReviewApprovalNotes(detectedOrigin),
-    htmlContent: reviewHtmlContent,
-    parentWatch: true,
-    onReady: async (url, port) => {
-      handleReviewServerReady(url, port);
-    },
-  });
-
-  registerSession({
-    pid: process.pid,
-    port: server.port,
-    url: server.url,
-    mode: "review",
-    project: reviewProject,
-    startedAt: new Date().toISOString(),
-    label: `review-${reviewProject}`,
-  });
-
-  // Wait for user feedback
-  const result = await server.waitForDecision();
-
-  // Give browser time to receive response and update UI
-  await Bun.sleep(1500);
-
-  // Cleanup
-  server.stop();
-
-  // Output feedback (captured by slash command)
-  if (result.exit) {
-    console.log("Review session closed without feedback.");
-  } else if (result.approved) {
-    // A bare approval prints the approved prompt; an approval carrying reviewer notes prints
-    // the approved-with-notes framing (non-blocking guidance) instead.
-    console.log(composeReviewApprovedMessage(detectedOrigin, result.feedback));
-  } else {
-    console.log(result.feedback);
-    // Append the verification-only suffix whenever the reviewer sent annotations to act on.
-    if (result.annotations.length > 0) {
-      console.log(getReviewDeniedSuffix(detectedOrigin));
-    }
   }
   process.exit(0);
 

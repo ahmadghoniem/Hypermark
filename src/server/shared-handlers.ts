@@ -1,5 +1,5 @@
 /**
- * Shared route handlers used by plan, review, and annotate servers.
+ * Shared route handlers used by the annotate server.
  *
  * Eliminates duplication of /api/image, /api/upload, /api/draft, unmatched API
  * responses, and the server-ready handler across all three server files.
