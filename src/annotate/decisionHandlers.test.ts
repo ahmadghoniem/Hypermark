@@ -21,7 +21,7 @@ function annotateInputs(): DecisionSpecInput[] {
     for (const hasFeedback of [false, true])
       for (const approvalNotesSupported of [false, true])
         for (const count of [0, 1, 3])
-          inputs.push({ app: "annotate", gate, count, hasFeedback, approvalNotesSupported });
+          inputs.push({ gate, count, hasFeedback, approvalNotesSupported });
   return inputs;
 }
 

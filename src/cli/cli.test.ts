@@ -32,7 +32,6 @@ describe("CLI top-level help", () => {
 
     expect(output).toContain("hypermark --help");
     expect(output).toContain("hypermark --version, -v");
-    expect(output).not.toContain("hypermark review");
     expect(output).toContain("hypermark annotate <file.md | file.txt> [--gate]");
     expect(output).toContain("hypermark annotate-last [--stdin]");
     expect(output).toContain("Run 'hypermark <command> --help' for command-specific usage.");
@@ -60,10 +59,6 @@ describe("CLI subcommand help", () => {
   test("does not treat a real invocation as help", () => {
     expect(isSubcommandHelpInvocation(["sessions"])).toBeNull();
     expect(isSubcommandHelpInvocation(["annotate", "plan.md"])).toBeNull();
-  });
-
-  test("no longer offers review help", () => {
-    expect(isSubcommandHelpInvocation(["review", "--help"])).toBeNull();
   });
 
   test("resolves the `last` alias to annotate-last help", () => {

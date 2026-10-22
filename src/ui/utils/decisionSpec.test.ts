@@ -8,12 +8,11 @@ import {
 /** Every input combination the spec can receive, for the invariant sweeps. */
 function allInputs(): DecisionSpecInput[] {
   const inputs: DecisionSpecInput[] = [];
-  for (const app of ['annotate', 'review'] as const)
-    for (const gate of [false, true])
-      for (const hasFeedback of [false, true])
-        for (const approvalNotesSupported of [false, true])
-          for (const count of [0, 1, 3])
-            inputs.push({ app, gate, count, hasFeedback, approvalNotesSupported });
+  for (const gate of [false, true])
+    for (const hasFeedback of [false, true])
+      for (const approvalNotesSupported of [false, true])
+        for (const count of [0, 1, 3])
+          inputs.push({ gate, count, hasFeedback, approvalNotesSupported });
   return inputs;
 }
 
@@ -26,7 +25,7 @@ describe('buildDecisionSpec state matrix', () => {
   // expected primary and the expected ordered menu.
   it('annotate, no feedback, no gate → All good + Close only', () => {
     const spec = buildDecisionSpec({
-      app: 'annotate', gate: false, count: 0, hasFeedback: false, approvalNotesSupported: false,
+      gate: false, count: 0, hasFeedback: false, approvalNotesSupported: false,
     });
     expect(spec.primary.label).toBe('All good'); // frozen copy, maintainer-approved
     // Maintainer ruling (post-demo): All good without a gate is NOT an approval —
@@ -39,14 +38,14 @@ describe('buildDecisionSpec state matrix', () => {
 
   it('annotate, no feedback, gate → Approve + Close, capability or not', () => {
     const withCap = buildDecisionSpec({
-      app: 'annotate', gate: true, count: 0, hasFeedback: false, approvalNotesSupported: true,
+      gate: true, count: 0, hasFeedback: false, approvalNotesSupported: true,
     });
     expect(withCap.primary.label).toBe('Approve'); // frozen copy, maintainer-approved
     expect(withCap.primary.tone).toBe('success');
     expect(itemIds(withCap)).toEqual(['close-session']);
 
     const withoutCap = buildDecisionSpec({
-      app: 'annotate', gate: true, count: 0, hasFeedback: false, approvalNotesSupported: false,
+      gate: true, count: 0, hasFeedback: false, approvalNotesSupported: false,
     });
     expect(itemIds(withoutCap)).toEqual(['close-session']);
     expect(withoutCap.items[0].dividerBefore).toBe(false);
@@ -54,7 +53,7 @@ describe('buildDecisionSpec state matrix', () => {
 
   it('annotate, feedback (n) → Send Feedback + (approve-with-notes)/close', () => {
     const nonGate = buildDecisionSpec({
-      app: 'annotate', gate: false, count: 3, hasFeedback: true, approvalNotesSupported: true,
+      gate: false, count: 3, hasFeedback: true, approvalNotesSupported: true,
     });
     expect(nonGate.primary.label).toBe('Send Feedback'); // frozen copy, maintainer-approved
     expect(nonGate.primary.tone).toBe('primary');
@@ -67,7 +66,7 @@ describe('buildDecisionSpec state matrix', () => {
     expect(nonGate.items[0].confirm?.confirmText).toBe('Close anyway'); // frozen copy
 
     const gate = buildDecisionSpec({
-      app: 'annotate', gate: true, count: 3, hasFeedback: true, approvalNotesSupported: true,
+      gate: true, count: 3, hasFeedback: true, approvalNotesSupported: true,
     });
     expect(itemIds(gate)).toEqual(['approve-with-notes', 'close-session']);
     expect(gate.items[0].label).toBe('Approve with notes'); // frozen copy, maintainer-approved
@@ -76,35 +75,11 @@ describe('buildDecisionSpec state matrix', () => {
     expect(gate.items[1].confirm?.confirmText).toBe('Close anyway'); // frozen copy
 
     const gateNoCap = buildDecisionSpec({
-      app: 'annotate', gate: true, count: 3, hasFeedback: true, approvalNotesSupported: false,
+      gate: true, count: 3, hasFeedback: true, approvalNotesSupported: false,
     });
     expect(itemIds(gateNoCap)).toEqual(['close-session']);
   });
 
-
-  it('review, no feedback → Approve + Close, capability or not', () => {
-    for (const approvalNotesSupported of [false, true]) {
-      const spec = buildDecisionSpec({
-        app: 'review', gate: true, count: 0, hasFeedback: false, approvalNotesSupported,
-      });
-      expect(itemIds(spec)).toEqual(['close-session']);
-      expect(spec.items[0].dividerBefore).toBe(false);
-    }
-  });
-
-  it('review, feedback (n) → Send Feedback + (approve-with-notes)/close', () => {
-    const withCap = buildDecisionSpec({
-      app: 'review', gate: true, count: 3, hasFeedback: true, approvalNotesSupported: true,
-    });
-    expect(itemIds(withCap)).toEqual(['approve-with-notes', 'close-session']);
-    expect(withCap.items[1].dividerBefore).toBe(true);
-
-    const withoutCap = buildDecisionSpec({
-      app: 'review', gate: true, count: 3, hasFeedback: true, approvalNotesSupported: false,
-    });
-    expect(itemIds(withoutCap)).toEqual(['close-session']);
-    expect(withoutCap.items[0].dividerBefore).toBe(false);
-  });
 });
 
 describe('buildDecisionSpec invariants', () => {
@@ -141,7 +116,7 @@ describe('buildDecisionSpec invariants', () => {
   // annotate state, capability advert or not.
   it('non-gate annotate never emits an approve-carrying item', () => {
     for (const input of allInputs()) {
-      if (input.app !== 'annotate' || input.gate) continue;
+      if (input.gate) continue;
       const ids = itemIds(buildDecisionSpec(input));
       expect(ids).not.toContain('approve-with-notes');
     }
@@ -175,7 +150,7 @@ describe('buildDecisionSpec invariants', () => {
   // Guards a stale count in the label after an annotation is deleted.
   it('interpolates the live count into the pill and the close copy', () => {
     const zero = buildDecisionSpec({
-      app: 'annotate', gate: false, count: 0, hasFeedback: true, approvalNotesSupported: false,
+      gate: false, count: 0, hasFeedback: true, approvalNotesSupported: false,
     });
     expect(zero.primary.count).toBeUndefined();
     // Nothing to lose at zero — the close item drops the count copy entirely.
@@ -186,19 +161,19 @@ describe('buildDecisionSpec invariants', () => {
     // offers approve-with-notes on capable approval flows, with zero-form
     // copy — the subtitle must never claim an annotation count of 0.
     const zeroGate = buildDecisionSpec({
-      app: 'annotate', gate: true, count: 0, hasFeedback: true, approvalNotesSupported: true,
+      gate: true, count: 0, hasFeedback: true, approvalNotesSupported: true,
     });
     expect(itemIds(zeroGate)).toEqual(['approve-with-notes', 'close-session']);
     const approveWithNotes = zeroGate.items.find((item) => item.id === 'approve-with-notes')!;
     expect(approveWithNotes.subtitle).not.toContain('0');
     // Without the capability the cell keeps no approve-carrying item.
     const zeroGateNoCap = buildDecisionSpec({
-      app: 'annotate', gate: true, count: 0, hasFeedback: true, approvalNotesSupported: false,
+      gate: true, count: 0, hasFeedback: true, approvalNotesSupported: false,
     });
     expect(itemIds(zeroGateNoCap)).toEqual(['close-session']);
 
     const three = buildDecisionSpec({
-      app: 'review', gate: true, count: 3, hasFeedback: true, approvalNotesSupported: true,
+      gate: true, count: 3, hasFeedback: true, approvalNotesSupported: true,
     });
     expect(three.primary.count).toBe(3);
     const close = three.items.find((item) => item.id === 'close-session')!;
@@ -206,7 +181,7 @@ describe('buildDecisionSpec invariants', () => {
     expect(close.confirm!.title).toContain('3');
 
     const one = buildDecisionSpec({
-      app: 'annotate', gate: false, count: 1, hasFeedback: true, approvalNotesSupported: false,
+      gate: false, count: 1, hasFeedback: true, approvalNotesSupported: false,
     });
     const closeOne = one.items.find((item) => item.id === 'close-session')!;
     // The singular form is the data here, not the sentence around it.

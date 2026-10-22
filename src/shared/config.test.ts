@@ -17,19 +17,10 @@ import {
   mergePromptConfig,
   saveConfig,
   getServerConfig,
-  resolveDefaultDiffType,
   __setConfigLockTimingsForTest,
   __setConfigSaveMergeWindowHookForTest,
 } from "./config";
 import type { HypermarkConfig } from "./config";
-
-describe("resolveDefaultDiffType", () => {
-  test("accepts local-vs-remote as a persisted review default", () => {
-    expect(resolveDefaultDiffType({
-      diffOptions: { defaultDiffType: "local-vs-remote" },
-    })).toBe("local-vs-remote");
-  });
-});
 
 
 
@@ -199,12 +190,12 @@ describe("saveConfig write serialization", () => {
 
   test("concurrent saves in one process all land", async () => {
     await Promise.all([
-      (async () => saveConfig({ diffOptions: { diffStyle: "unified" } }))(),
+      (async () => saveConfig({ theme: { mode: "light" } }))(),
       (async () => saveConfig({ glimpse: true }))(),
       (async () => saveConfig({ favicon: "classic" }))(),
     ]);
     const cfg = loadConfig();
-    expect(cfg.diffOptions?.diffStyle).toBe("unified");
+    expect(cfg.theme?.mode).toBe("light");
     expect(cfg.glimpse).toBe(true);
     expect(cfg.favicon).toBe("classic");
   });

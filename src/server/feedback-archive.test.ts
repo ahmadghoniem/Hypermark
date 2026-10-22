@@ -21,8 +21,6 @@ import { join, resolve } from "node:path";
 import { startAnnotateServer } from "./annotate";
 import {
   appendFeedbackRecord,
-  countChangedFiles,
-  deriveFeedbackProject,
   normalizeFeedbackProject,
   parseFeedbackIndex,
   type FeedbackRecord,
@@ -292,12 +290,12 @@ describe("feedback archive module", () => {
       const indexPath = appendFeedbackRecord({
         project: PROJECT,
         origin: "claude-code",
-        surface: "review",
+        surface: "annotate",
         decision: "feedback",
-        target: { review: { diffType: "since-base", base: "origin/main", gitRef: "abc1234" } },
+        target: { filePath: "/work/plan.md" },
         feedback: "Please handle the null case in parse().",
         annotations: [
-          { id: "a1", type: "COMMENT", text: "null case", filePath: "src/parse.ts", lineStart: 12, lineEnd: 12, side: "new" },
+          { id: "a1", type: "COMMENT", text: "null case", originalText: "parse()", blockId: "b3" },
         ],
       });
       expect(indexPath).not.toBeNull();
@@ -307,39 +305,17 @@ describe("feedback archive module", () => {
       const record = records[0];
       expect(record.v).toBe(1);
       expect(record.client).toBe("hypermark");
-      expect(record.surface).toBe("review");
+      expect(record.surface).toBe("annotate");
       expect(record.decision).toBe("feedback");
       expect(record.feedback).toContain("null case in parse()");
       expect(record.counts).toEqual({ annotations: 1, images: 0 });
-      expect(record.annotations?.[0]).toMatchObject({ file: "src/parse.ts", lineStart: 12, side: "new" });
+      expect(record.annotations?.[0]).toMatchObject({ originalText: "parse()", blockId: "b3" });
 
       // The sidecar the index names must exist and carry the same feedback.
       expect(record.recordFile).toBeTruthy();
       const sidecar = readFileSync(join(projectDir(dataDir), record.recordFile!), "utf-8");
       expect(sidecar).toContain("Please handle the null case in parse().");
-      expect(sidecar).toContain("since-base");
-    });
-
-    test("a review-level general comment records its scope; a line comment stays scope-free", () => {
-      // Regression (maintainer ruling on open question 2): without `scope` in
-      // the normalizer's copied-field allowlist, a review-level general comment
-      // archives byte-identically to a line comment with sentinel 0/0 lines and
-      // "which comments were review-level?" is unanswerable from the index.
-      const dataDir = useTempDataDir();
-      appendFeedbackRecord({
-        project: PROJECT,
-        surface: "review",
-        decision: "feedback",
-        feedback: "one general, one line",
-        annotations: [
-          { id: "g1", type: "comment", scope: "general", filePath: "", lineStart: 0, lineEnd: 0, text: "overall: split this PR" },
-          { id: "l1", type: "comment", filePath: "src/parse.ts", lineStart: 3, lineEnd: 3, text: "null case" },
-        ],
-      });
-      const record = readIndex(dataDir)[0];
-      expect(record.annotations?.find((a) => a.id === "g1")?.scope).toBe("general");
-      // Absent scope stays absent (the pre-scope default), not defaulted-in.
-      expect(record.annotations?.find((a) => a.id === "l1")?.scope).toBeUndefined();
+      expect(sidecar).toContain("- File: /work/plan.md");
     });
 
     test("a bare decision is a decision-only line with no sidecar", () => {
@@ -351,36 +327,6 @@ describe("feedback archive module", () => {
       expect(record.recordFile).toBeUndefined();
       expect(record.counts.annotations).toBe(0);
       expect(existsSync(join(projectDir(dataDir), "records"))).toBe(false);
-    });
-
-    test("a review record carries diff identity and size metadata, never the patch bytes", () => {
-      // Disk-growth regression: guide history stores full patches and had to be
-      // flagged loudly in the docs. A feedback record must stay text-sized.
-      const dataDir = useTempDataDir();
-      const patch = "diff --git a/big.ts b/big.ts\n" + "+x\n".repeat(50_000);
-      appendFeedbackRecord({
-        project: PROJECT,
-        surface: "review",
-        decision: "feedback",
-        target: {
-          review: {
-            vcsType: "git",
-            diffType: "since-base",
-            base: "origin/main",
-            gitRef: "deadbee",
-            snapshotId: "snap-1",
-            changedFiles: 1,
-            patchBytes: patch.length,
-          },
-        },
-        feedback: "Too big to review in one pass.",
-      });
-      const raw = readFileSync(join(projectDir(dataDir), "index.jsonl"), "utf-8");
-      expect(raw).not.toContain("diff --git");
-      expect(raw.length).toBeLessThan(2000);
-      const record = readIndex(dataDir)[0];
-      expect(record.target?.review?.snapshotId).toBe("snap-1");
-      expect(record.target?.review?.patchBytes).toBe(patch.length);
     });
   });
 
@@ -416,21 +362,21 @@ describe("feedback archive module", () => {
 
     test("a torn last line is skipped, and the records before it still read", () => {
       const dataDir = useTempDataDir();
-      appendFeedbackRecord({ project: PROJECT, surface: "review", decision: "lgtm" });
+      appendFeedbackRecord({ project: PROJECT, surface: "annotate", decision: "approved" });
       const indexPath = join(projectDir(dataDir), "index.jsonl");
       writeFileSync(indexPath, readFileSync(indexPath, "utf-8") + '{"v":1,"ts":"2026', "utf-8");
       const records = parseFeedbackIndex(readFileSync(indexPath, "utf-8"));
       expect(records.length).toBe(1);
-      expect(records[0].decision).toBe("lgtm");
+      expect(records[0].decision).toBe("approved");
     });
 
     test("sidecars written in the same millisecond never overwrite each other", () => {
       // The stamp is per-millisecond, so two fast submissions collide; losing
-      // one would lose a submitted review.
+      // one would lose a submission.
       const dataDir = useTempDataDir();
       const now = new Date("2026-08-31T14:22:07.511Z");
-      appendFeedbackRecord({ project: PROJECT, surface: "review", decision: "feedback", feedback: "first", now });
-      appendFeedbackRecord({ project: PROJECT, surface: "review", decision: "feedback", feedback: "second", now });
+      appendFeedbackRecord({ project: PROJECT, surface: "annotate", decision: "feedback", feedback: "first", now });
+      appendFeedbackRecord({ project: PROJECT, surface: "annotate", decision: "feedback", feedback: "second", now });
       const recordsDir = join(projectDir(dataDir), "records");
       const files = readdirSync(recordsDir).sort();
       expect(files.length).toBe(2);
@@ -451,7 +397,7 @@ describe("feedback archive module", () => {
       writeFileSync(blocker, "not a directory", "utf-8");
       process.env.HYPERMARK_DATA_DIR = join(blocker, "nested");
       expect(() =>
-        expect(appendFeedbackRecord({ project: PROJECT, surface: "review", decision: "feedback", feedback: "x" })).toBeNull(),
+        expect(appendFeedbackRecord({ project: PROJECT, surface: "annotate", decision: "feedback", feedback: "x" })).toBeNull(),
       ).not.toThrow();
     });
   });
@@ -463,7 +409,7 @@ describe("feedback archive module", () => {
       // parsed sidecar filenames would silently drop every line another tool
       // wrote. Fields are added and never repurposed, so tolerance is the rule.
       const dataDir = useTempDataDir();
-      appendFeedbackRecord({ project: PROJECT, surface: "review", decision: "lgtm" });
+      appendFeedbackRecord({ project: PROJECT, surface: "annotate", decision: "approved" });
       const indexPath = join(projectDir(dataDir), "index.jsonl");
       const foreign = {
         v: 1,
@@ -492,32 +438,12 @@ describe("feedback archive module", () => {
     });
   });
 
-  describe("feedback archive: changed-file counting", () => {
-    test("a rename counts once, a delete counts once, an empty patch counts zero", () => {
-      // Regression: UNION-ing the a/ and b/ sides would make a one-file rename look
-      // like a two-file review in the record's size metadata.
-      const rename =
-        "diff --git a/src/old.ts b/src/new.ts\nsimilarity index 92%\nrename from src/old.ts\nrename to src/new.ts\n";
-      expect(countChangedFiles(rename)).toBe(1);
-
-      const deletion =
-        "diff --git a/src/gone.ts b/src/gone.ts\ndeleted file mode 100644\n--- a/src/gone.ts\n+++ /dev/null\n";
-      expect(countChangedFiles(deletion)).toBe(1);
-
-      expect(countChangedFiles(`${rename}${deletion}`)).toBe(2);
-      expect(countChangedFiles("")).toBe(0);
-      expect(countChangedFiles(null)).toBe(0);
-    });
-  });
-
   describe("feedback archive: project bucketing", () => {
     test("the project segment matches the history/ convention and cannot escape the archive", () => {
       expect(normalizeFeedbackProject("hypermark")).toBe("hypermark");
       expect(normalizeFeedbackProject("_unknown")).toBe("_unknown");
       expect(normalizeFeedbackProject(null)).toBe("_unknown");
       expect(normalizeFeedbackProject("../../etc")).toBe("etc");
-      expect(deriveFeedbackProject("/Users/x/code/hypermark")).toBe("hypermark");
-      expect(deriveFeedbackProject(undefined)).toBe("_unknown");
     });
   });
 });

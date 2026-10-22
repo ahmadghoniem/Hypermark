@@ -9,14 +9,13 @@
  * Labels, subtitles and confirm strings are the approved prototype's
  * (DESIGN_final-proposal.html `spec()`), authoritative over any older branch
  * or mock copy — except where a later maintainer ruling supersedes it: the
- * menu has no note composers, since a global comment (annotate) or a general
- * comment (review) sent with the feedback does the same, and no user-facing
- * string uses an em dash.
+ * menu has no note composers, since a global comment sent with the feedback
+ * does the same, and no user-facing string uses an em dash.
  */
 
 export type DecisionActionId =
   | 'primary'              // the left segment
-  | 'approve-with-notes'   // review + gate-annotate; capability-gated
+  | 'approve-with-notes'   // gate annotate; capability-gated
   | 'close-session';       // "Close session" — dismisses, sends nothing
 
 export type DecisionTone = 'success' | 'primary' | 'neutral' | 'destructive';
@@ -53,8 +52,7 @@ export interface DecisionSpec {
 }
 
 export interface DecisionSpecInput {
-  app: 'annotate' | 'review';
-  /** Annotate: `gate`. Review: always true — review's primary decision IS approval. */
+  /** `--gate`: the primary decision is approval. */
   gate: boolean;
   /** The count rendered in the pill and interpolated into labels. */
   count: number;
@@ -74,10 +72,10 @@ function annotationNoun(count: number): string {
 
 /**
  * The empty state: no feedback to send, the primary is the positive finish.
- * `approvalFlow` (gate annotate, or review) makes it `Approve`; plain annotate
- * gets `All good`. Either way the menu holds only Close session: changes are
- * requested by annotating (or adding a global or general comment) and
- * sending, which turns the primary into Send Feedback.
+ * `approvalFlow` (gate annotate) makes it `Approve`; plain annotate gets
+ * `All good`. Either way the menu holds only Close session: changes are
+ * requested by annotating (or adding a global comment) and sending, which
+ * turns the primary into Send Feedback.
  */
 function buildEmptySpec(input: DecisionSpecInput, approvalFlow: boolean): DecisionSpec {
   if (!approvalFlow) {
@@ -89,7 +87,7 @@ function buildEmptySpec(input: DecisionSpecInput, approvalFlow: boolean): Decisi
         title: 'Finish with no feedback',
         // Maintainer ruling (post-demo): All good without a gate is a positive
         // finish, NOT an approval — no success tone, no check icon, so it
-        // can never be mistaken for the gate/review Approve.
+        // can never be mistaken for the gate's Approve.
         tone: 'neutral',
       },
       items: [buildCloseItem(input.count, false)],
@@ -184,8 +182,7 @@ function buildCloseItem(count: number, dividerBefore: boolean): DecisionMenuItem
 }
 
 export function buildDecisionSpec(input: DecisionSpecInput): DecisionSpec {
-  // Review's primary positive decision IS approval, gate flag or not.
-  const approvalFlow = input.app === 'review' || input.gate;
+  const approvalFlow = input.gate;
   return input.hasFeedback
     ? buildFeedbackSpec(input, approvalFlow)
     : buildEmptySpec(input, approvalFlow);

@@ -84,7 +84,7 @@ describe('theme pair setting', () => {
     // Nothing to say about the theme leaves the cookie/default alone.
     expect(SETTINGS.themePair.fromServer({})).toBeUndefined();
     expect(SETTINGS.themePair.fromServer({ theme: {} })).toBeUndefined();
-    expect(SETTINGS.themePair.fromServer({ diffOptions: { diffStyle: 'unified' } })).toBeUndefined();
+    expect(SETTINGS.themePair.fromServer({ favicon: 'classic' })).toBeUndefined();
   });
 });
 
@@ -115,20 +115,16 @@ describe('config store seeding', () => {
 
   // A write queued before the server config arrives would otherwise flush
   // AFTER it and push the superseded value back into config.json.
-  test('init() retracts queued writes for the keys it just overrode', async () => {
+  test('init() retracts a queued write for a key it just overrode', async () => {
     installStorage();
     const store = new ConfigStoreForTest();
     const synced: Record<string, unknown>[] = [];
     store.setServerSync(payload => { synced.push(payload); });
 
     store.set('themePair', { mode: 'dark', light: DEFAULT_COLOR_THEME, dark: DEFAULT_COLOR_THEME });
-    store.set('diffStyle', 'unified');
     store.init({ theme: { mode: 'system', light: 'github', dark: 'tokyo-night' } });
     await new Promise<void>(resolve => setTimeout(resolve, 350));
 
-    // The theme write is gone; the untouched setting still syncs.
-    const merged = Object.assign({}, ...synced) as Record<string, unknown>;
-    expect(merged.theme).toBeUndefined();
-    expect(merged.diffOptions).toEqual({ diffStyle: 'unified' });
+    expect(synced).toEqual([]);
   });
 });

@@ -21,9 +21,9 @@ import {
   realpathSync,
 } from "fs";
 
-import type { DefaultDiffType, DiffLineBgIntensity, DiffOptions, ThemeConfig } from '@/shared/config-types';
+import type { ThemeConfig } from '@/shared/config-types';
 import { isFaviconStyle, type FaviconStyle } from './favicon';
-export type { DefaultDiffType, DiffLineBgIntensity, DiffOptions, ThemeConfig, FaviconStyle };
+export type { ThemeConfig, FaviconStyle };
 
 export type PromptSectionOverrides = Record<string, string | undefined>;
 
@@ -69,7 +69,6 @@ export function mergePromptConfig(
 }
 
 export interface HypermarkConfig {
-  diffOptions?: DiffOptions;
   /**
    * Appearance: which mode, plus the palette assigned to each half of the
    * light/dark pair. Written by the UI through POST /api/config, so a choice
@@ -324,9 +323,6 @@ export function saveConfig(partial: Partial<HypermarkConfig>): void {
 
     const current = loadConfig();
     configSaveMergeWindowHook?.();
-    const mergedDiffOptions = (current.diffOptions || partial.diffOptions)
-      ? { ...current.diffOptions, ...partial.diffOptions }
-      : undefined;
     const mergedTheme = (current.theme || partial.theme)
       ? { ...current.theme, ...partial.theme }
       : undefined;
@@ -334,7 +330,6 @@ export function saveConfig(partial: Partial<HypermarkConfig>): void {
     const merged = {
       ...current,
       ...partial,
-      diffOptions: mergedDiffOptions,
       theme: mergedTheme,
       prompts: mergedPrompts,
     };
@@ -351,27 +346,14 @@ export function saveConfig(partial: Partial<HypermarkConfig>): void {
  * Reads config.json fresh each call so the response reflects the latest file on disk.
  */
 export function getServerConfig(): {
-  diffOptions?: DiffOptions;
   theme?: ThemeConfig;
   favicon?: FaviconStyle;
 } {
   const cfg = loadConfig();
   return {
-    diffOptions: cfg.diffOptions,
     ...(cfg.theme !== undefined && { theme: cfg.theme }),
     ...(isFaviconStyle(cfg.favicon) && { favicon: cfg.favicon }),
   };
-}
-
-/**
- * Read the user's preferred default diff type from config, falling back to
- * 'since-base' (the composite "what would GitHub show" view). Users with an
- * explicit defaultDiffType keep their choice.
- */
-export function resolveDefaultDiffType(cfg?: HypermarkConfig): DefaultDiffType {
-  const v = cfg?.diffOptions?.defaultDiffType as string | undefined;
-  if (v === 'branch') return 'merge-base';
-  return v === 'since-base' || v === 'local-vs-remote' || v === 'uncommitted' || v === 'unstaged' || v === 'staged' || v === 'merge-base' || v === 'all' ? v : 'since-base';
 }
 
 /**

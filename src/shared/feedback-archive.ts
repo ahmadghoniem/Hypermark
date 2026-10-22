@@ -1,11 +1,7 @@
 /**
- * Feedback Archive — durable local storage of every submitted review.
- *
- * Hypermark's decision paths hand the user's feedback to the invoking agent
- * and then forget it: code review persisted nothing at all, plan decisions
- * were written nowhere durable, and the annotate surfaces only kept the #678
- * record for single local files. This module is the one place all of those
- * write a durable, analyzable record of what the user actually submitted.
+ * Feedback Archive — durable local storage of every submitted annotation
+ * session: the one place Hypermark writes a durable, analyzable record of
+ * what the user actually submitted.
  *
  * Layout (per project, mirroring the `history/` project convention):
  *
@@ -45,7 +41,7 @@
 import { appendFileSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { getHypermarkDataDir } from "./data-dir";
-import { extractDirName, extractRepoName, sanitizeTag } from "./project";
+import { sanitizeTag } from "./project";
 
 /** Schema version carried on every line. Bump only on a breaking shape change. */
 export const FEEDBACK_RECORD_VERSION = 1;
@@ -61,7 +57,6 @@ export const FEEDBACK_RECORD_VERSION = 1;
 export const FEEDBACK_RECORD_CLIENT = "hypermark";
 
 export type FeedbackSurface =
-  | "review"
   | "annotate"
   | "annotate-url"
   | "annotate-last";
@@ -71,25 +66,7 @@ export type FeedbackDecision =
   | "approved-with-notes"
   | "denied"
   | "feedback"
-  | "lgtm"
   | "dismissed";
-
-/** Identity of the reviewed changeset. Deliberately NOT the patch bytes: the
- *  refs plus the snapshot id are enough to regenerate the diff from the repo,
- *  and guide history already showed what uncapped patch copies cost on disk. */
-export interface FeedbackReviewTarget {
-  vcsType?: string;
-  diffType?: string;
-  base?: string;
-  gitRef?: string;
-  snapshotId?: string;
-  /**
-   * The review's working directory at submit time.
-   */
-  cwd?: string;
-  changedFiles?: number;
-  patchBytes?: number;
-}
 
 export interface FeedbackTarget {
   /** Plan history slug (plan surface). */
@@ -116,7 +93,7 @@ export interface FeedbackTarget {
   url?: string;
   /**
    * Provenance for surfaces whose subject is an AGENT SESSION rather than a
-   * file or a diff: annotate-last and the other message-shaped surfaces, where
+   * file: annotate-last and the other message-shaped surfaces, where
    * "what was reviewed" is a transcript, not a path.
    *
    * Declared in v1 so the field name is reserved across every client sharing
@@ -131,7 +108,6 @@ export interface FeedbackTarget {
     /** Path or id of the transcript the reviewed message came from. */
     transcript?: string;
   };
-  review?: FeedbackReviewTarget;
 }
 
 /** One submitted annotation, shallow-normalized. Unknown shapes never throw:
@@ -142,15 +118,6 @@ export interface FeedbackAnnotationRecord {
   text?: string;
   originalText?: string;
   file?: string;
-  lineStart?: number;
-  lineEnd?: number;
-  side?: string;
-  /** Code-annotation scope ("general" | "file" | "line"). Absent means a
-   *  line comment (the pre-scope default) — recorded so a review-level
-   *  general comment stays distinguishable from a line comment in the index
-   *  (maintainer ruling on open question 2; additive per the field contract
-   *  above). */
-  scope?: string;
   blockId?: string;
   diffContext?: string;
   severity?: string;
@@ -203,24 +170,13 @@ export interface FeedbackArchiveInput {
  * `history/` keys by whatever `detectProjectName()` returned (already
  * sanitizeTag'd) or the literal `_unknown`, and the archive matches it so both
  * stores bucket the same session identically. Every other value is
- * sanitizeTag'd, which is also what keeps a caller-derived name (the review
- * server reads it off the repo path) from ever escaping the archive directory.
+ * sanitizeTag'd, which is also what keeps a caller-derived name from ever
+ * escaping the archive directory.
  */
 export function normalizeFeedbackProject(project: string | null | undefined): string {
   if (!project) return "_unknown";
   if (project === "_unknown") return project;
   return sanitizeTag(project) ?? "_unknown";
-}
-
-/**
- * Best-effort project name for a server that has a working directory but no
- * detected project (the review server). Mirrors `detectProjectName`'s fallback
- * chain without shelling out to git: the review cwd is already the repo root
- * for every local VCS provider.
- */
-export function deriveFeedbackProject(cwd: string | undefined): string {
-  if (!cwd) return "_unknown";
-  return extractDirName(cwd) ?? extractRepoName(cwd) ?? "_unknown";
 }
 
 function feedbackProjectDir(project: string): string {
@@ -236,17 +192,7 @@ function asString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
-function asNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
-/**
- * Shallow-normalize one submitted annotation.
- *
- * Markdown annotations (annotate) and code annotations (review) are
- * different shapes; both are read leniently and the union of their known
- * fields is recorded.
- */
+/** Shallow-normalize one submitted annotation, read leniently. */
 function normalizeAnnotation(raw: unknown): FeedbackAnnotationRecord {
   if (typeof raw !== "object" || raw === null) return {};
   const a = raw as Record<string, unknown>;
@@ -261,14 +207,6 @@ function normalizeAnnotation(raw: unknown): FeedbackAnnotationRecord {
   if (originalText) record.originalText = originalText;
   const file = asString(a.filePath) ?? asString(a.file);
   if (file) record.file = file;
-  const lineStart = asNumber(a.lineStart);
-  if (lineStart !== undefined) record.lineStart = lineStart;
-  const lineEnd = asNumber(a.lineEnd);
-  if (lineEnd !== undefined) record.lineEnd = lineEnd;
-  const side = asString(a.side);
-  if (side) record.side = side;
-  const scope = asString(a.scope);
-  if (scope) record.scope = scope;
   const blockId = asString(a.blockId);
   if (blockId) record.blockId = blockId;
   const diffContext = asString(a.diffContext);
@@ -280,7 +218,6 @@ function normalizeAnnotation(raw: unknown): FeedbackAnnotationRecord {
 }
 
 const SURFACE_TITLES: Record<FeedbackSurface, string> = {
-  review: "Code review feedback",
   annotate: "Annotate feedback",
   "annotate-url": "Annotate feedback (URL)",
   "annotate-last": "Annotate feedback (agent message)",
@@ -306,14 +243,6 @@ export function renderFeedbackRecordMarkdown(record: FeedbackRecord): string {
     );
   }
   if (target?.planVersionFile) lines.push(`- Plan version file: ${target.planVersionFile}`);
-  const review = target?.review;
-  if (review) {
-    const bits = [review.diffType, review.base ? `base ${review.base}` : null, review.gitRef ? `ref ${review.gitRef}` : null]
-      .filter(Boolean)
-      .join(", ");
-    if (bits) lines.push(`- Diff: ${bits}`);
-    if (review.cwd) lines.push(`- Repository: ${review.cwd}`);
-  }
   lines.push(
     `- Annotations: ${record.counts.annotations}`,
   );
@@ -451,21 +380,4 @@ export function parseFeedbackIndex(contents: string): FeedbackRecord[] {
     }
   }
   return records;
-}
-
-/**
- * Count the files a patch touches, for the record's `changedFiles` metadata.
- *
- * Scans the `b/` side of `diff --git` headers so renames are counted once
- * rather than twice. The `diff --git` header always names a real path on both
- * sides (deletions do not put /dev/null there), so the b side alone is one
- * entry per file.
- */
-export function countChangedFiles(patch: string | null | undefined): number {
-  if (!patch) return 0;
-  const files = new Set<string>();
-  const re = /^diff --git a\/(.+?) b\/(.+)$/gm;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(patch)) !== null) files.add(match[2]);
-  return files.size;
 }
