@@ -26,7 +26,8 @@ export function isNoOpBrowserSentinel(value: string | undefined): boolean {
  * Open a URL in the browser
  *
  * Uses HYPERMARK_BROWSER env var if set, otherwise uses the system default.
- * Set it to an executable path, e.g. "C:\\Program Files\\Mozilla Firefox\\firefox.exe".
+ * Set it to an executable path (e.g. "C:\\Program Files\\Mozilla Firefox\\firefox.exe"),
+ * or on macOS an app name (e.g. "Firefox").
  *
  * Fails silently if browser can't be opened
  */
@@ -130,12 +131,23 @@ export async function openBrowser(
       }
     }
 
+    const platform = process.platform;
     if (hypermarkBrowser) {
-      await $`cmd.exe /c start "" ${hypermarkBrowser} ${url}`.quiet();
+      if (platform === "win32") {
+        await $`cmd.exe /c start "" ${hypermarkBrowser} ${url}`.quiet();
+      } else if (platform === "darwin") {
+        await $`open -a ${hypermarkBrowser} ${url}`.quiet();
+      } else {
+        await $`${hypermarkBrowser} ${url}`.quiet();
+      }
     } else if (browser) {
       await $`${browser} ${url}`.quiet();
-    } else {
+    } else if (platform === "win32") {
       await $`cmd.exe /c start ${url}`.quiet();
+    } else if (platform === "darwin") {
+      await $`open ${url}`.quiet();
+    } else {
+      await $`xdg-open ${url}`.quiet();
     }
     return true;
   } catch {
