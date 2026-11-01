@@ -7,13 +7,15 @@ A browser UI for annotating documents and Claude's messages (`src/annotate`); fe
 | Area | Files |
 | --- | --- |
 | CLI entry, subcommands (`annotate`, `annotate-last`, `sessions`) | `src/cli/index.ts`, `src/cli/cli.ts`; last-message lookup in `src/cli/session-log.ts` |
-| HTTP servers behind each session | `src/server/` (`annotate.ts`, `shared-handlers.ts`) |
+| HTTP servers behind each session | `src/server/` (`annotate.ts`, `shared-handlers.ts`); browser opening (Windows, macOS, Linux) in `browser.ts` |
+| Side chat (questions to the session's Claude Code, read-only tools) | `src/server/side-chat.ts`, `side-chat-hook.ts`; UI in `src/ui/components/SideChatCard.tsx`, `src/ui/hooks/useSideChat.ts` |
+| Skills | `skills/claude/` (`hypermark-annotate`, `hypermark-last`: run the CLI before the model reads the prompt), `skills/core/hypermark` (CLI reference); all three are linked into `~/.claude/skills` (directory junctions to this checkout), so an edit here is live on the next run. See `skills/claude/README.md` |
 | Annotate app shell | `src/annotate/App.tsx` |
 | Composer (comment popover, quote row, quick labels, attachments) | `src/ui/components/CommentPopover.tsx`, `ComposerQuickLabels.tsx`, `CommentAttachStack.tsx` |
 | Highlights | `src/ui/hooks/useAnnotationHighlighter.ts` (wraps text in `<mark class="annotation-highlight">` via `@plannotator/web-highlighter`); styles in `src/ui/theme.css` |
 | Right-side annotation panel | `src/ui/components/AnnotationPanel.tsx` |
 | Message rail (ticks + preview card) | `src/ui/components/MessageRail.tsx`, `src/ui/utils/messageRail.ts` |
-| Markdown rendering | `src/ui/components/Viewer.tsx`, `BlockRenderer.tsx`, `blocks/` |
+| Markdown rendering | `src/ui/components/Viewer.tsx`, `BlockRenderer.tsx`, `blocks/`; code highlighting (Shiki, Pierre themes) in `src/ui/utils/codeHighlight.ts` |
 | Theme tokens | `src/ui/theme.css`, `src/ui/themes/`; applied by `ThemeProvider` |
 | Fluid Functionalism components (vendored, MIT) | `src/ui/fluid/` |
 | Component canvas (local only, gitignored) | `src/annotate/gallery/`, served at `/canvas.html` |
@@ -39,8 +41,8 @@ A browser UI for annotating documents and Claude's messages (`src/annotate`); fe
 - Commit only when the user asks; leave changes uncommitted otherwise.
 - Commit messages: `area: what changed`, lowercase, self-contained, with no spec numbers or pointers to planning docs.
 - Icons: Untitled UI (`@untitledui/icons`).
-- Type: chrome text uses Fluid's roles (`text-title`, `text-subtitle`, `text-body`, `text-caption`, `text-micro`) and three weights (normal, `font-semibold` = 550, `font-bold`). The rendered document (`BlockRenderer`, `InlineMarkdown`, plan diff, tables) keeps `text-sm` … `text-2xl` and the plan rhythm.
-- Fluid components: `src/ui/fluid` stays as upstream wrote it; clean a component up when it replaces one of ours. Its `surface-N` / `shadow-surface-N` levels (`--surface-N`, `--shadow-N` in `fluid.css`) are the only surface tokens; the themes don't define their own. `shadcn add @fluid/...` overwrites the vendored files (including the `disablePointerDismissal` pass-through in `dialog.tsx`) and adds CSS variables to `fluid.css`: run it with `--diff` first.
+- Type: chrome text uses Fluid's roles (`text-title`, `text-subtitle`, `text-body`, `text-caption`, `text-micro`) and three weights (normal, `font-semibold` = 550, `font-bold`). The rendered document (`BlockRenderer`, `InlineMarkdown`, tables) keeps `text-sm` … `text-2xl` and the document rhythm (`text-doc`, `my-doc`).
+- Fluid components: `src/ui/fluid` stays as upstream wrote it; clean a component up when it replaces one of ours. Its `surface-N` / `shadow-surface-N` levels (`--surface-N`, `--shadow-N` in `fluid.css`) are the only surface tokens; the themes don't define their own. They are mixed from the theme's `--card` (the page and header color) toward `--foreground`: 1 page, 2 panel and code blocks, 3 cards and inline code, 4 hover, 5 selected, 6–8 borders. `shadcn add @fluid/...` overwrites the vendored files (including the `disablePointerDismissal` pass-through in `dialog.tsx`) and adds CSS variables to `fluid.css`: run it with `--diff` first.
 - Theme colors exist only under the `theme-*` class `ThemeProvider` puts on `<html>`; a page rendered without it comes out white with black text. Dark is the default (`:root:not(.light)`).
 - `Annotation.createdA` in `src/ui/types.ts` is the real field name.
 

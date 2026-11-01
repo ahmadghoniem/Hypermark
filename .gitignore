@@ -88,6 +88,8 @@ security-results/
 .e2e/summary.md
 .e2e/logs/
 .e2e/videos/
+.e2e/proof/
+.e2e/bugbash/
 
 # Component canvas: local design work, kept out of the repo
 /src/annotate/canvas.html

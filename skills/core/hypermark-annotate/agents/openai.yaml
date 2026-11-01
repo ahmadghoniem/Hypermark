@@ -1,5 +1,0 @@
-interface:
-  display_name: "Hypermark Annotate"
-  short_description: "Annotate a markdown file in Hypermark."
-policy:
-  allow_implicit_invocation: false

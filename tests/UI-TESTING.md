@@ -38,7 +38,7 @@ The project structure:
 - **`src/shared/`** - Shared code and types
 - **`src/ui/`** - Reusable React components, hooks, utilities
 - **`src/annotate/`** - Annotate application logic
-- **`skills/`** - Agent skills (Claude launchers, core, extra)
+- **`skills/`** - Skills (the Claude Code launchers and the CLI reference)
 
 ### First Build Test
 
@@ -59,7 +59,7 @@ If successful, you'll see `dist/annotate/index.html` created.
 **Shared components** (used by the annotate UI):
 
 - Location: `src/ui/components/`
-- Examples: `AnnotationToolbar.tsx`, `CommentPopover.tsx`, `Viewer.tsx`
+- Examples: `CommentPopover.tsx`, `Viewer.tsx`
 
 **Annotate editor** (markdown/HTML annotation UI):
 
@@ -69,7 +69,7 @@ If successful, you'll see `dist/annotate/index.html` created.
 **Utilities and hooks**:
 
 - Location: `src/ui/utils/`, `src/ui/hooks/`
-- Examples: `parser.ts`, `useSidebar.ts`, `annotationHelpers.ts`
+- Examples: `parser.ts`, `useAnnotationDraft.ts`
 
 ### Development Servers (Hot Reload)
 
@@ -78,7 +78,7 @@ For rapid iteration, use development servers with hot reload:
 ```bash
 # Annotate UI (most common)
 bun run dev:annotate
-# Opens http://localhost:5173
+# Opens http://localhost:3000
 ```
 
 **Note:** Development servers run standalone, without the CLI server. Changes appear instantly without rebuild.
@@ -164,7 +164,7 @@ Open DevTools to inspect and debug:
 **Error:**
 
 ```
-Error: listen EADDRINUSE: address already in use :::5173
+Error: listen EADDRINUSE: address already in use :::3000
 ```
 
 **Solution:** Kill the process using that port
@@ -172,13 +172,13 @@ Error: listen EADDRINUSE: address already in use :::5173
 **macOS/Linux:**
 
 ```bash
-lsof -ti:5173 | xargs kill -9
+lsof -ti:3000 | xargs kill -9
 ```
 
 **Windows:**
 
 ```powershell
-netstat -ano | findstr :5173
+netstat -ano | findstr :3000
 taskkill /PID <pid> /F
 ```
 
@@ -246,7 +246,7 @@ Build failed with X errors
 
 - Check terminal where `bun` is running
 - Server prints requests and errors
-- Hook output shows approve/deny decisions
+- The CLI prints the feedback (or the dismissal) when the session ends
 
 **Browser logs:**
 
@@ -257,7 +257,7 @@ Build failed with X errors
 **Test script output:**
 
 - Test scripts print to terminal
-- Shows build output, server startup, and hook decisions
+- Shows build output, server startup, and the session result
 - Use `echo` statements to add debug output to scripts
 
 ---
@@ -265,21 +265,15 @@ Build failed with X errors
 ## Decision Control Manual Checklist
 
 Not CI. Every annotate surface shares one adaptive split control
-(`DecisionControl`): a positive primary (`All good` / `Approve` / `Send Feedback · n`) plus a caret
-menu with the alternate decisions and the in-place note composer. Run each flow in both states —
-zero annotations and n annotations — on desktop.
+(`DecisionControl`): an X (`Close session`) then the primary (`All good` / `Send Feedback · n`).
+Run each flow in both states — zero annotations and n annotations — on desktop.
 
 1. **Annotate, single file** (`hypermark annotate notes.md`). At zero the primary reads `All good`;
-   clicking it submits the "no feedback" record and the terminal prints it. Caret →
-   `Done with a note…` opens the composer in place: `Enter` inserts a newline, `Mod+Enter`
-   submits, `Escape` steps back to the menu keeping the draft. Add an annotation: the primary
-   flips to `Send Feedback · 1`.
-2. **Annotate, gate mode** (`hypermark annotate notes.md --gate --json`). The zero-state
-   primary is `Approve` and posts `/api/approve` (stdout records `"approved"`; with
-   `--require-approval` only approval exits `0`); `Request changes…` records an annotated
-   decision. `Approve with a note…` / `Approve with notes` appear only when the session
-   advertises approval-notes support.
-3. **Annotate last message** (`hypermark last`). Same control, same states.
+   clicking it posts `/api/feedback` with no annotations and the terminal prints the result.
+   The X (`Close session`) posts `/api/exit` and sends nothing. Add an annotation: the
+   primary flips to `Send Feedback · 1` and the X turns red (`Discard 1 and close`), asking
+   for confirmation first.
+2. **Annotate last message** (`hypermark last`). Same control, same states.
 
 ## Need Help?
 

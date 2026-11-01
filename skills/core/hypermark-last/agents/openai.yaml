@@ -1,5 +1,0 @@
-interface:
-  display_name: "Hypermark Last"
-  short_description: "Annotate the latest assistant message in Hypermark."
-policy:
-  allow_implicit_invocation: false

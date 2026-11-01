@@ -1,15 +1,14 @@
 # Claude launcher skills
 
 This directory is the **source of truth for the executing Claude Code
-launchers**. The same three skill names also exist under
-[`../core`](../core), but the two bodies are not interchangeable and neither
-one may be swapped for the other.
+launchers**. Both are linked into `~/.claude/skills` (symlinks, or directory
+junctions on Windows), next to the CLI reference, so an edit here is live on
+the next run. The root README has the commands.
 
-| Directory | What it is | Who installs it |
-| --- | --- | --- |
-| `skills/claude/*` | Executing templates: Claude Code runs the CLI itself, before the model reads the prompt | `~/.claude/skills` |
-| `skills/core/*` | Prose the model follows using its own shell | `~/.agents/skills` (shared-agent scope) |
-| `skills/core/hypermark` | CLI reference / knowledge skill; no injection form, so it is single-sourced into **both** scopes | both |
+| Directory | What it is |
+| --- | --- |
+| `skills/claude/*` | Executing templates: Claude Code runs the CLI itself, before the model reads the prompt |
+| `skills/core/hypermark` | CLI reference / knowledge skill, with no injection form |
 
 ## What every launcher here must carry
 
@@ -28,9 +27,8 @@ Each of `hypermark-annotate` and `hypermark-last` carries four things. Dropping 
    handed the human's decision rather than being asked to go get it. Everything
    after `## Your task` interprets that output.
 
-The `core/` variants have neither the allowlist nor the injection. Nothing
-checks these properties automatically, so check every launcher when you touch
-one. Command names are `/hypermark-*` and are renamed together.
+Nothing checks these properties automatically, so check every launcher when
+you touch one. Command names are `/hypermark-*` and are renamed together.
 
 ## The side chat is not a skill
 

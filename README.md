@@ -7,7 +7,7 @@
 <p align="center">
   <strong>Everything you need to annotate and stay in the loop with your agents</strong><br/>
   <strong>Annotate Documents • Annotate Claude's Messages</strong><br/>
-  <sub>Annotate markdown and HTML documents and mark up Claude's messages in the browser. Send feedback to Claude Code.</sub>
+  <sub>Annotate markdown and text documents and mark up Claude's messages in the browser. Send feedback to Claude Code.</sub>
 </p>
 
 <p align="center">
@@ -34,7 +34,7 @@ Hypermark is a local, browser-based review surface for Claude Code.
 
 ### Annotate documents and agent messages
 
-Annotate specs, markdown, messages, and html, then send the feedback to your agent.
+Annotate markdown and text files and Claude's messages, then send the feedback to Claude Code.
 
 </td>
 <td width="60%">
@@ -52,7 +52,7 @@ Annotate specs, markdown, messages, and html, then send the feedback to your age
 
 ```
 /hypermark-annotate README.md                  # Local markdown file
-/hypermark-annotate report.html                # Local HTML file
+/hypermark-annotate notes.txt                  # Local text file
 /hypermark-last                                # Annotate the agent's last message
 ```
 
@@ -69,7 +69,7 @@ hypermark sessions --open 1          # Reopen a session in the browser
 
 ## Privacy and network behavior
 
-Hypermark does not collect usage telemetry or analytics. Documents, annotations, drafts, history, and configuration stay local by default.
+Hypermark does not collect usage telemetry or analytics. Documents, annotations, drafts, feedback history, and configuration stay local by default.
 
 
 There is no link sharing, no paste service and no hosted counterpart, so nothing is uploaded anywhere.
@@ -100,9 +100,27 @@ On Windows, a `hypermark.cmd` in a folder on PATH:
 @bun run "%USERPROFILE%\Hypermark\src\cli\index.ts" %*
 ```
 
-Then copy `skills/claude/*` and `skills/core/hypermark` into `~/.claude/skills/` and restart Claude Code. A change in the checkout is live on the next run; after a UI change, run `bun run build` again.
+Then link the three skills into `~/.claude/skills/` and restart Claude Code. On macOS, Linux or WSL:
 
-To remove Hypermark, delete the command, those skills, and `~/.hypermark` (history, drafts and settings).
+```bash
+mkdir -p ~/.claude/skills
+ln -s ~/Hypermark/skills/core/hypermark ~/.claude/skills/hypermark
+ln -s ~/Hypermark/skills/claude/hypermark-annotate ~/.claude/skills/hypermark-annotate
+ln -s ~/Hypermark/skills/claude/hypermark-last ~/.claude/skills/hypermark-last
+```
+
+On Windows, directory junctions from PowerShell:
+
+```powershell
+$s = "$env:USERPROFILE\.claude\skills"; $r = "$env:USERPROFILE\Hypermark\skills"
+New-Item -ItemType Junction -Path "$s\hypermark" -Target "$r\core\hypermark"
+New-Item -ItemType Junction -Path "$s\hypermark-annotate" -Target "$r\claude\hypermark-annotate"
+New-Item -ItemType Junction -Path "$s\hypermark-last" -Target "$r\claude\hypermark-last"
+```
+
+A change in the checkout, skills included, is live on the next run; after a UI change, run `bun run build` again.
+
+To remove Hypermark, delete the command, the three skill links, and `~/.hypermark` (feedback history, drafts and settings). Remove a link, not its contents: `rm ~/.claude/skills/hypermark` (no `-r`), or `(Get-Item "$env:USERPROFILE\.claude\skills\hypermark").Delete()` in PowerShell.
 
 ### Try it
 
@@ -139,8 +157,7 @@ Settings are saved in cookies (not localStorage) because each invocation runs on
 |---|---|
 | `HYPERMARK_PORT` | Fixed port (default: random) |
 | `HYPERMARK_BROWSER` | Custom browser to open Hypermark in |
-| `HYPERMARK_ORIGIN` | Override agent detection. Only `claude-code` is installed by this fork |
-| `HYPERMARK_DATA_DIR` | Base directory for Hypermark-managed files (history, drafts, `config.json`). Default: `~/.hypermark`; if that directory doesn't exist and `$XDG_DATA_HOME` is set to an absolute path, `$XDG_DATA_HOME/hypermark` is used instead |
+| `HYPERMARK_DATA_DIR` | Base directory for Hypermark-managed files (feedback history, drafts, `config.json`). Default: `~/.hypermark`; if that directory doesn't exist and `$XDG_DATA_HOME` is set to an absolute path, `$XDG_DATA_HOME/hypermark` is used instead |
 
 Hypermark-managed files live under `~/.hypermark` by default. It is a fresh
 root: an existing `~/.plannotator` is never read, copied, moved or deleted, so
