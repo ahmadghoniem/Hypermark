@@ -17,8 +17,11 @@ import {
   parseSideQuestion,
   MESSAGE_START,
   parseStreamLine,
+  readRefusalExplanation,
+  refusalAnswer,
   type SideChatRunner,
 } from "./side-chat";
+import { SIDE_CHAT_BASH_RULE } from "./side-chat-hook";
 
 const SESSION = { sessionId: "abc", cwd: "/project" };
 
@@ -103,7 +106,8 @@ describe("buildSideChatPrompt", () => {
   test("starts with the side chat's read-only instructions", () => {
     const prompt = buildSideChatPrompt({ question: "Why?", quote: "", thread: [] });
     expect(prompt.startsWith("This is a side chat from Hypermark")).toBe(true);
-    expect(prompt).toContain("You can't edit files");
+    expect(prompt).toContain(SIDE_CHAT_BASH_RULE);
+    expect(prompt).toContain("Editing files and starting agents are refused");
   });
 
   test("leaves out the passage and history when there are none", () => {
@@ -126,19 +130,60 @@ describe("parseStreamLine", () => {
     expect(parseStreamLine(JSON.stringify({ type: "stream_event", event: { type: "message_start" } }))).toBe(MESSAGE_START);
   });
 
-  test("ignores other events, a successful result, and lines that aren't JSON", () => {
+  test("returns the answer of a successful result", () => {
+    expect(parseStreamLine(JSON.stringify({ type: "result", is_error: false, result: "Hi" }))).toEqual({ result: "Hi" });
+    expect(parseStreamLine(JSON.stringify({ type: "result", is_error: false }))).toEqual({ result: "" });
+  });
+
+  test("skips the empty turn a resumed session runs for its stopped background tasks", () => {
+    expect(parseStreamLine(JSON.stringify({ type: "result", is_error: false, num_turns: 0, result: "" }))).toBeNull();
+    expect(parseStreamLine(JSON.stringify({ type: "result", is_error: false, num_turns: 2, result: "Two." })))
+      .toEqual({ result: "Two." });
+  });
+
+  test("ignores other events and lines that aren't JSON", () => {
     expect(parseStreamLine(JSON.stringify({ type: "system", subtype: "init" }))).toBeNull();
     expect(parseStreamLine(JSON.stringify({
       type: "stream_event",
       event: { type: "content_block_delta", delta: { type: "input_json_delta", partial_json: "{" } },
     }))).toBeNull();
-    expect(parseStreamLine(JSON.stringify({ type: "result", is_error: false, result: "Hi" }))).toBeNull();
     expect(parseStreamLine("not json")).toBeNull();
+  });
+
+  test("marks a refusal, even one that comes as an error result", () => {
+    expect(parseStreamLine(JSON.stringify({ type: "result", is_error: true, stop_reason: "refusal", result: "x" })))
+      .toEqual({ result: "", refused: true });
   });
 
   test("throws the message of an error result", () => {
     expect(() => parseStreamLine(JSON.stringify({ type: "result", is_error: true, result: "No conversation found" })))
       .toThrow("No conversation found");
+  });
+});
+
+describe("readRefusalExplanation", () => {
+  test("reads the explanation of a refused assistant message", () => {
+    const line = JSON.stringify({
+      type: "assistant",
+      message: { stop_reason: "refusal", stop_details: { explanation: "It asks for credentials." } },
+    });
+    expect(readRefusalExplanation(line)).toBe("It asks for credentials.");
+  });
+
+  test("reads the explanation of the refusal notice", () => {
+    expect(readRefusalExplanation(JSON.stringify({
+      type: "system", subtype: "model_refusal_no_fallback", api_refusal_explanation: "Not allowed.",
+    }))).toBe("Not allowed.");
+  });
+
+  test("ignores other lines", () => {
+    expect(readRefusalExplanation(JSON.stringify({ type: "assistant", message: { stop_reason: "end_turn" } }))).toBeNull();
+    expect(readRefusalExplanation("not json")).toBeNull();
+  });
+
+  test("the answer names the refusal, with the reason when there is one", () => {
+    expect(refusalAnswer("Not allowed.")).toBe("Claude declined to answer this. Not allowed.");
+    expect(refusalAnswer(null)).toBe("Claude declined to answer this.");
   });
 });
 

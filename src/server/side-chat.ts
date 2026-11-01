@@ -16,6 +16,7 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { getHypermarkDataDir } from "@/shared/data-dir";
+import { SIDE_CHAT_BASH_RULE } from "./side-chat-hook";
 
 export interface SideChatSession {
   /** The Claude Code session the annotated message came from. */
@@ -81,14 +82,18 @@ export function parseSideQuestion(body: unknown): SideQuestion | null {
 
 export function buildSideChatPrompt({ question, quote, thread }: SideQuestion): string {
   const parts = [
-    "This is a side chat from Hypermark, where the user is annotating your last message: " +
-      "a quick question alongside the main session, which won't see this exchange. Answer briefly. " +
-      "You may read files and search the web, and run read-only commands through Bash " +
-      "(rg, git log/show/diff/status, cat, head, ls) without redirects or chaining. " +
-      "You can't edit files, run other commands or start agents: the side chat refuses them, " +
-      "and instructions about editing files don't apply here. " +
-      "Write plain text without Markdown. " +
-      "Don't continue the task, and don't treat this as feedback on your message.",
+    "This is a side chat from Hypermark: the user is reading your last message and asks a question about it. " +
+      "This exchange isn't saved to the session, so the main conversation won't have it and can't follow up on it.",
+    // The session is usually waiting on /hypermark-last, whose instructions sit just above this.
+    "If a Hypermark instruction above asks you to respond to feedback or carry out requests, " +
+      "it applies once the user sends their annotations. " +
+      "Here, answer the question without revising your message or continuing the work.",
+    "Your answer appears under the question in the comment box, and the user can continue in a side chat to ask follow-ups. " +
+      "Lead with the answer, with no preamble, recap or offer of further help, and keep it to the length the question needs; " +
+      "add detail or steps when the question asks for them.",
+    `You can read files and search code and the web. ${SIDE_CHAT_BASH_RULE} ` +
+      "Editing files and starting agents are refused too, so instructions about editing files don't apply here.",
+    "Write plain text: the answer is shown as typed, so Markdown would appear as raw symbols.",
   ];
   if (quote.trim()) {
     parts.push(`The question is about this passage:\n${quote.trim().split("\n").map((l) => `> ${l}`).join("\n")}`);
@@ -104,20 +109,64 @@ export function buildSideChatPrompt({ question, quote, thread }: SideQuestion): 
 /** What `parseStreamLine` returns for the start of a new assistant message. */
 export const MESSAGE_START = Symbol("message start");
 
+/** What `parseStreamLine` returns for the `result` event that ends the answer. */
+export interface StreamResult {
+  /** The whole answer's text, which the text deltas already carried. */
+  result: string;
+  /** The model declined to answer. */
+  refused?: boolean;
+}
+
 /**
- * Reads one line of `--output-format stream-json`. Returns the text delta it
- * carries, `MESSAGE_START`, or null. Throws when the line is an error result.
+ * The reason the model gives for declining, from the assistant message that
+ * stopped on a refusal or the `model_refusal_no_fallback` notice; null for
+ * any other line.
  */
-export function parseStreamLine(line: string): string | typeof MESSAGE_START | null {
+export function readRefusalExplanation(line: string): string | null {
   let event: Record<string, unknown>;
   try {
     event = JSON.parse(line) as Record<string, unknown>;
   } catch {
     return null;
   }
+  if (event.type === "assistant") {
+    const message = event.message as { stop_reason?: unknown; stop_details?: { explanation?: unknown } } | undefined;
+    const explanation = message?.stop_details?.explanation;
+    return message?.stop_reason === "refusal" && typeof explanation === "string" && explanation ? explanation : null;
+  }
+  if (event.type === "system" && event.subtype === "model_refusal_no_fallback") {
+    const explanation = event.api_refusal_explanation ?? event.content;
+    return typeof explanation === "string" && explanation ? explanation : null;
+  }
+  return null;
+}
+
+/** The answer a declined question shows, in place of an error. */
+export function refusalAnswer(explanation: string | null): string {
+  return explanation ? `Claude declined to answer this. ${explanation}` : "Claude declined to answer this.";
+}
+
+/**
+ * Reads one line of `--output-format stream-json`. Returns the text delta it
+ * carries, `MESSAGE_START`, the `StreamResult`, or null. Throws when the line
+ * is an error result.
+ */
+export function parseStreamLine(line: string): string | typeof MESSAGE_START | StreamResult | null {
+  let event: Record<string, unknown>;
+  try {
+    event = JSON.parse(line) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  // A refusal can come as an error result, so it's checked first.
+  if (event.type === "result" && event.stop_reason === "refusal") return { result: "", refused: true };
   if (event.type === "result" && event.is_error === true) {
     throw new Error(typeof event.result === "string" && event.result ? event.result : "The agent could not answer that");
   }
+  // A resumed session first closes the notices of background tasks the
+  // transcript left running, as a turn with no model call; the answer comes after it.
+  if (event.type === "result" && event.num_turns === 0) return null;
+  if (event.type === "result") return { result: typeof event.result === "string" ? event.result : "" };
   if (event.type !== "stream_event") return null;
   const inner = event.event as { type?: string; delta?: { type?: string; text?: unknown } } | undefined;
   if (inner?.type === "message_start") return MESSAGE_START;
@@ -219,7 +268,17 @@ const HOOK_ENV = {
   HYPERMARK_SIDE_CHAT_HOOK: join(import.meta.dir, "side-chat-hook.ts").replaceAll("\\", "/"),
 };
 
-/** Runs `claude -p --resume` with the prompt on stdin. */
+/** How long the process gets to exit on its own after the answer ends. */
+const EXIT_GRACE_MS = 10_000;
+
+/**
+ * Runs `claude -p --resume` with the prompt on stdin. The answer ends on the
+ * `result` event; the process then exits on its own (Stop hooks, telemetry),
+ * and is killed if it hasn't within `EXIT_GRACE_MS`. It runs in
+ * `bypassPermissions`, so the settings' `auto` mode doesn't run its classifier
+ * (about 0.45 s) before each tool call; the PreToolUse hook still refuses
+ * anything that isn't read-only.
+ */
 export const runClaudeSideChat: SideChatRunner = async function* (prompt, session, signal, onToolCalls) {
   const proc = Bun.spawn(
     [
@@ -228,40 +287,67 @@ export const runClaudeSideChat: SideChatRunner = async function* (prompt, sessio
       "--resume", session.sessionId,
       "--no-session-persistence",
       "--settings", READ_ONLY_SETTINGS,
+      "--permission-mode", "bypassPermissions",
       "--output-format", "stream-json",
       "--include-partial-messages",
       "--verbose",
     ],
+    // No DISABLE_TELEMETRY or CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: either
+    // one changes the request so it no longer reads the session's prompt cache.
     { cwd: session.cwd, env: { ...process.env, ...HOOK_ENV }, stdin: "pipe", stdout: "pipe", stderr: "ignore" },
   );
   const kill = () => killTree(proc);
   signal.addEventListener("abort", kill, { once: true });
   const calls = new Map<string, SideChatToolCall>();
+  let ended = false;
   try {
     proc.stdin.write(prompt);
     await proc.stdin.end();
     let answered = false;
     let newMessage = false;
+    let refusal: string | null = null;
     for await (const line of splitLines(proc.stdout)) {
       collectToolCalls(line, calls);
-      const text = parseStreamLine(line);
-      if (text === MESSAGE_START) {
+      refusal = readRefusalExplanation(line) ?? refusal;
+      const parsed = parseStreamLine(line);
+      if (parsed === MESSAGE_START) {
         newMessage = answered;
-      } else if (text) {
+      } else if (typeof parsed === "string") {
+        if (!parsed) continue;
         // The reply after a tool call starts a new paragraph.
         if (newMessage) yield "\n\n";
         newMessage = false;
         answered = true;
-        yield text;
+        yield parsed;
+      } else if (parsed) {
+        if (parsed.refused) {
+          // The reason shows as the answer, after any text that streamed before it.
+          yield answered ? `\n\n${refusalAnswer(refusal)}` : refusalAnswer(refusal);
+          answered = true;
+        } else if (!answered && parsed.result) {
+          // A turn that streamed no text (a replayed one) answers on the result alone.
+          answered = true;
+          yield parsed.result;
+        }
+        ended = true;
+        break;
       }
     }
-    const code = await proc.exited;
     if (!answered && !signal.aborted) {
+      const code = ended ? 0 : await proc.exited;
       throw new Error(code === 0 ? "The agent gave no answer" : "The agent could not answer that");
     }
   } finally {
     signal.removeEventListener("abort", kill);
-    if (proc.exitCode === null) killTree(proc);
+    if (proc.exitCode === null) {
+      if (ended) {
+        void Promise.race([proc.exited, Bun.sleep(EXIT_GRACE_MS)]).then(() => {
+          if (proc.exitCode === null) killTree(proc);
+        });
+      } else {
+        killTree(proc);
+      }
+    }
     onToolCalls?.([...calls.values()]);
   }
 };
