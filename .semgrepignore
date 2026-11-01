@@ -1,2 +1,0 @@
-# Semgrep also honors the repository's normal generated/output exclusions.
-:include .gitignore

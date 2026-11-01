@@ -13,7 +13,7 @@ body:
     attributes:
       label: Hypermark version
       description: Paste the output of `hypermark --version`
-      placeholder: hypermark 0.24.1
+      placeholder: hypermark 0.1.0
     validations:
       required: true
   - type: dropdown
@@ -33,7 +33,6 @@ body:
       options:
         - Annotate
         - Install / CLI
-        - VS Code extension
         - Other
     validations:
       required: true
