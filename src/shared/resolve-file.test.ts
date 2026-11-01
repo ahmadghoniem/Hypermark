@@ -91,7 +91,7 @@ describe("bounded file traversal", () => {
 	});
 });
 
-describe("explicit parent-relative markdown paths (#1085)", () => {
+describe("explicit parent-relative markdown paths", () => {
 	test("resolves a ../ path that escapes the project root", () => {
 		const parent = mkdtempSync(join(tmpdir(), "hypermark-md-parent-"));
 		try {
@@ -151,7 +151,7 @@ describe("explicit parent-relative markdown paths (#1085)", () => {
 	});
 });
 
-describe("annotatable plain-text files (#1029)", () => {
+describe("annotatable plain-text files", () => {
 	test("resolves an exact relative .yaml path", () => {
 		const cwd = mkdtempSync(join(tmpdir(), "hypermark-annotatable-yaml-"));
 		try {
@@ -233,7 +233,7 @@ describe("annotatable plain-text files (#1029)", () => {
 		}
 	});
 
-	// #1307: `markdownExtensions` in config.json must make an extension
+	// `markdownExtensions` in config.json must make an extension
 	// resolvable everywhere .md is. The list is threaded in explicitly here so
 	// the test never touches the user's real config.json.
 	test("configured extra extensions resolve like markdown, and only when configured", () => {

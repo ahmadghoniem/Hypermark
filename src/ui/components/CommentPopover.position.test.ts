@@ -5,6 +5,13 @@ const bounds = (height: number) => ({ top: 0, left: 0, right: 1200, bottom: heig
 const anchor = (top: number, bottom: number) => ({ top, bottom, left: 500, right: 600, width: 100 });
 
 describe('computeCommentPopoverPosition', () => {
+  test('end alignment puts the right edge at the anchor, clamped to the window', () => {
+    const rect = { top: 100, bottom: 120, left: 800, right: 820, width: 20 };
+    expect(computeCommentPopoverPosition(rect, bounds(900), 'end').left).toBe(820 - 320);
+    const nearLeft = { ...rect, left: 40, right: 60 };
+    expect(computeCommentPopoverPosition(nearLeft, bounds(900), 'end').left).toBe(0);
+  });
+
   test('opens below the anchor when there is room', () => {
     const pos = computeCommentPopoverPosition(anchor(100, 120), bounds(900));
     expect(pos.flipAbove).toBe(false);

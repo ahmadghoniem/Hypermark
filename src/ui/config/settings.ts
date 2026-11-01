@@ -61,9 +61,8 @@ export const SETTINGS = {
    * Cookies: `hypermark-theme` (mode) joined by
    * `hypermark-light-theme` / `hypermark-dark-theme`.
    *
-   * Server: round-trips through `theme` in ~/.hypermark/config.json exactly
-   * like `diffOptions` does, so the choice survives the random port each hook
-   * invocation runs on.
+   * Server: round-trips through `theme` in ~/.hypermark/config.json, so the
+   * choice survives the random port each session runs on.
    */
   themePair: {
     defaultValue: () => getDefaultThemePair(),

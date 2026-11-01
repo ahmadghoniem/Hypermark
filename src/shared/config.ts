@@ -25,78 +25,25 @@ import type { ThemeConfig } from '@/shared/config-types';
 import { isFaviconStyle, type FaviconStyle } from './favicon';
 export type { ThemeConfig, FaviconStyle };
 
-export type PromptSectionOverrides = Record<string, string | undefined>;
-
-export type PromptRuntime = "claude-code";
-
-interface PromptSectionConfig {
-  [key: string]: string | Partial<Record<PromptRuntime, PromptSectionOverrides>> | undefined;
-  runtimes?: Partial<Record<PromptRuntime, PromptSectionOverrides>>;
-}
-
-export interface PromptConfig {
-  annotate?: PromptSectionConfig & {
-    approved?: string;
-    approvedWithNotes?: string;
-  };
-}
-
-const PROMPT_SECTIONS = ["annotate"] as const;
-
-export function mergePromptConfig(
-  current?: PromptConfig,
-  partial?: PromptConfig,
-): PromptConfig | undefined {
-  if (!current && !partial) return undefined;
-
-  const result: Record<string, any> = { ...current, ...partial };
-
-  for (const section of PROMPT_SECTIONS) {
-    const cur = current?.[section];
-    const par = partial?.[section];
-    if (cur || par) {
-      result[section] = {
-        ...cur,
-        ...par,
-        runtimes: (cur?.runtimes || par?.runtimes)
-          ? { ...cur?.runtimes, ...par?.runtimes }
-          : undefined,
-      };
-    }
-  }
-
-  return result as PromptConfig;
-}
-
 export interface HypermarkConfig {
   /**
    * Appearance: which mode, plus the palette assigned to each half of the
    * light/dark pair. Written by the UI through POST /api/config, so a choice
-   * made in one session is picked up by the next one (each hook invocation
+   * made in one session is picked up by the next one (each session
    * runs on its own random port).
    */
   theme?: ThemeConfig;
-  prompts?: PromptConfig;
-  /**
-   * Save per-file version history when annotating local files. Powers the
-   * annotate version diff ("what changed since I last looked"). NOTE: this
-   * writes a copy of each annotated file's content under
-   * ~/.hypermark/history/ (or HYPERMARK_DATA_DIR). Set to false to keep
-   * annotate sessions fully stateless. Default: true.
-   */
-  annotateHistory?: boolean;
   /**
    * Durably archive every submission under ~/.hypermark/feedback/
    * (or HYPERMARK_DATA_DIR): one append-only JSONL record per submission
    * plus a markdown sidecar for the ones that carry content. NOTE: this
    * writes the user's own feedback text and the document/code excerpts it
    * quotes to disk, and nothing prunes the directory. Set to false to never
-   * write. Default: true. Annotate-surface records additionally honor
-   * `annotateHistory`, so the stateless-annotate promise is unchanged.
+   * write. Default: true.
    */
   feedbackHistory?: boolean;
   /**
-   * Extra file extensions annotate treats as markdown (#1307), e.g.
+   * Extra file extensions annotate treats as markdown, e.g.
    * [".livemd"] for Livebook notebooks. Listed extensions are accepted
    * everywhere .md is accepted on the annotate path and render as markdown.
    * Entries must start with a dot and carry no path separators or globs;
@@ -150,8 +97,8 @@ export function loadConfig(): HypermarkConfig {
 // --- config.json write serialization ----------------------------------------
 //
 // saveConfig is a read-merge-write, and one data dir is routinely shared by
-// several Hypermark processes (an annotate session and a review session at
-// once is ordinary). Two of them settling a POST /api/config in the same
+// several Hypermark processes (two annotate sessions at once is ordinary).
+// Two of them settling a POST /api/config in the same
 // window both read the pre-change file, both merge onto it, and the second
 // write silently drops the first writer's key while both callers are told the
 // save succeeded. An advisory lockfile makes the read-merge-write a critical
@@ -326,12 +273,10 @@ export function saveConfig(partial: Partial<HypermarkConfig>): void {
     const mergedTheme = (current.theme || partial.theme)
       ? { ...current.theme, ...partial.theme }
       : undefined;
-    const mergedPrompts = mergePromptConfig(current.prompts, partial.prompts);
     const merged = {
       ...current,
       ...partial,
       theme: mergedTheme,
-      prompts: mergedPrompts,
     };
     writeConfigAtomic(getConfigPath(), JSON.stringify(merged, null, 2) + "\n");
   } catch (e) {
@@ -387,29 +332,10 @@ export function resolveUseGlimpse(config: HypermarkConfig): boolean {
 }
 
 /**
- * Resolve whether annotate mode saves per-file version history.
- *
- * Priority (highest wins):
- *   HYPERMARK_ANNOTATE_HISTORY env var  →  config.annotateHistory  →  default true
- */
-export function resolveAnnotateHistory(config: HypermarkConfig): boolean {
-  const envVal = process.env.HYPERMARK_ANNOTATE_HISTORY;
-  if (envVal !== undefined) {
-    return envVal === "1" || envVal.toLowerCase() === "true";
-  }
-  return coerceConfigBoolean(config.annotateHistory, true);
-}
-
-/**
  * Resolve whether submitted feedback is archived under feedback/.
  *
  * Priority (highest wins):
  *   HYPERMARK_FEEDBACK_HISTORY env var  →  config.feedbackHistory  →  default true
- *
- * Deliberately a separate knob from annotateHistory: that one governs copying
- * ANNOTATED CONTENT into the data dir, this one governs keeping the user's own
- * SUBMISSIONS, and a user must be able to control the second
- * without touching the first. Annotate surfaces honor both.
  */
 export function resolveFeedbackHistory(config: HypermarkConfig): boolean {
   const envVal = process.env.HYPERMARK_FEEDBACK_HISTORY;

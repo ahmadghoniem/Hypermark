@@ -1,5 +1,5 @@
 /**
- * Tolerant annotate target selection (#1182).
+ * Tolerant annotate target selection.
  *
  * Slash-command hosts forward raw user arguments to `hypermark annotate`
  * verbatim. On Claude Code the skill runs the CLI through a bash-substitution
@@ -24,7 +24,7 @@
  * probes true resolves on the re-run.
  */
 
-import { existsSync, statSync } from "node:fs";
+import { statSync } from "node:fs";
 import { resolveAtReference, stripAtPrefix } from "./at-reference";
 import { resolveMarkdownFile, resolveUserPath } from "./resolve-file";
 
@@ -162,31 +162,19 @@ export function buildAmbiguousAnnotateArgsMessage(
 
 /**
  * Tier-3 message: nothing in the arguments names an existing target. Echoes
- * the words tried and, when `agentHandoff` is set (CLI surfaces whose output
- * lands in an agent's context), asks the reading agent to interpret the
- * request and re-run with a concrete target, preserving the given flags.
+ * the words tried and asks the reading agent (the output lands in Claude
+ * Code's context) to work out the file and re-run with a concrete target.
  */
-export function buildUnresolvedAnnotateArgsMessage(options: {
-  words: string[];
-  flags?: string[];
-  agentHandoff?: boolean;
-}): string {
-  const { words, flags = [], agentHandoff = false } = options;
-  const flagSuffix = flags.length > 0 ? ` ${flags.join(" ")}` : "";
-  const lines = [
+export function buildUnresolvedAnnotateArgsMessage(words: string[]): string {
+  return [
     "Could not resolve the arguments below to a file; nothing in them matches an existing path:",
     "",
     `  ${words.join(" ")}`,
     "",
-    `The annotate command needs a concrete target: hypermark annotate ${ANNOTATE_USAGE_TARGET}${flagSuffix}`,
-  ];
-  if (agentHandoff) {
-    lines.push(
-      "",
-      "If you are an agent reading this: the arguments look like a natural-language description of what to annotate. Work out from the conversation which file the user means, then run the command yourself with that concrete target:",
-      "",
-      `  hypermark annotate <path>${flagSuffix}`,
-    );
-  }
-  return lines.join("\n");
+    `The annotate command needs a concrete target: hypermark annotate ${ANNOTATE_USAGE_TARGET}`,
+    "",
+    "If you are an agent reading this: the arguments look like a natural-language description of what to annotate. Work out from the conversation which file the user means, then run the command yourself with that concrete target:",
+    "",
+    "  hypermark annotate <path>",
+  ].join("\n");
 }

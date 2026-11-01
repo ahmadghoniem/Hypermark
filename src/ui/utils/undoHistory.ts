@@ -144,7 +144,7 @@ export function hasActiveHistoryOverlay(root: ParentNode): boolean {
 /** Minimal imperative highlight surface used by annotation-history replay. */
 export interface HistoryHighlightTarget<TItem extends { readonly id: string }> {
   removeHighlight: (id: string) => void;
-  applySharedAnnotations: (items: TItem[]) => void;
+  applyAnnotations: (items: TItem[]) => void;
 }
 
 /**
@@ -157,6 +157,6 @@ export function syncHistoryHighlight<TItem extends { readonly id: string }>(
   visible: boolean,
 ): void {
   if (!target) return;
-  if (visible) target.applySharedAnnotations([item]);
+  if (visible) target.applyAnnotations([item]);
   else target.removeHighlight(item.id);
 }

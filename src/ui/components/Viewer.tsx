@@ -15,8 +15,7 @@ import { ImageLightbox } from './ImageLightbox';
 import { MermaidBlock } from './MermaidBlock';
 import { isMermaidLanguage } from './diagramLanguages';
 import { useQuickLabels } from '../hooks/useQuickLabels';
-import { DocBadges, type LinkedDocBadgeInfo } from './DocBadges';
-import { PlanDiffSwitch, hasPlanDiffChanges } from './plan-diff/PlanDiffSwitch';
+import { DocBadges } from './DocBadges';
 import { BlockOutline } from './BlockOutline';
 import { TabHint } from './TabHint';
 import { useSelectionWidening } from '../hooks/useSelectionWidening';
@@ -32,29 +31,16 @@ import { decodeAnchorHash } from '../utils/anchors';
 /** Public properties for the Markdown document Viewer. */
 export interface ViewerProps {
   blocks: Block[];
-  markdown: string;
   frontmatter?: Frontmatter | null;
   annotations: Annotation[];
   onAddAnnotation: (ann: Annotation) => void;
   onSelectAnnotation: (id: string | null) => void;
   selectedAnnotationId: string | null;
   repoInfo?: { display: string; branch?: string; host?: string } | null;
-  onOpenLinkedDoc?: (path: string) => void;
   imageBaseDir?: string;
-  linkedDocInfo?: LinkedDocBadgeInfo | null;
-  // Plan diff props
-  planDiffStats?: { additions: number; deletions: number; modifications: number } | null;
-  isPlanDiffActive?: boolean;
-  onPlanDiffToggle?: () => void;
-  hasPreviousVersion?: boolean;
-  /** What the diff is against, for the "Show changes" switch's tooltip —
-   *  annotate/folder sessions pass "Changes since you last reviewed this file". */
-  planDiffBaselineTooltip?: string;
-  /** The diff's base version, e.g. "v2"; the switch's tooltip adds "vs v2". */
-  planDiffBaseVersionLabel?: string;
   /** Show amber "Demo" badge (portal mode, no shared content loaded) */
   showDemoBadge?: boolean;
-  /** Max width in px for the plan card; null removes the cap entirely. */
+  /** Max width in px for the document card; null removes the cap entirely. */
   maxWidth?: number | null;
   // Checkbox toggle props
   onToggleCheckbox?: (blockId: string, checked: boolean) => void;
@@ -70,7 +56,7 @@ export interface ViewerProps {
 export interface ViewerHandle {
   removeHighlight: (id: string) => void;
   clearAllHighlights: () => void;
-  applySharedAnnotations: (annotations: Annotation[]) => void;
+  applyAnnotations: (annotations: Annotation[]) => void;
   /** Closes the viewer's composer unless it holds a draft. Returns false when it stays open. */
   closeComposer: () => boolean;
 }
@@ -171,23 +157,14 @@ const FrontmatterCard: React.FC<{ frontmatter: Frontmatter }> = ({ frontmatter }
  */
 export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   blocks,
-  markdown,
   frontmatter,
   annotations,
   onAddAnnotation,
   onSelectAnnotation,
   selectedAnnotationId,
   repoInfo,
-  planDiffStats,
-  isPlanDiffActive,
-  onPlanDiffToggle,
-  hasPreviousVersion,
-  planDiffBaselineTooltip,
-  planDiffBaseVersionLabel,
   showDemoBadge,
   maxWidth,
-  onOpenLinkedDoc,
-  linkedDocInfo,
   imageBaseDir,
   onToggleCheckbox,
   checkboxOverrides,
@@ -207,9 +184,9 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
   // The element that actually scrolls; shared by the sticky-header observer
   // and the reticle geometry.
   const scrollViewport = useScrollViewport();
-  // The badge cluster (repo chips / diff badge) is absolutely positioned in the
-  // card's top padding. One row fits; a second row (diff badge) or mobile
-  // wrapping outgrows the padding and lands on the document's first heading.
+  // The badge cluster (repo chips / demo badge) is absolutely positioned in the
+  // card's top padding. One row fits; a second row or mobile wrapping
+  // outgrows the padding and lands on the document's first heading.
   // Measure the cluster and insert exactly the clearance it needs (0 when it fits).
   const docBadgesRef = useRef<HTMLDivElement | null>(null);
   const [badgeClearance, setBadgeClearance] = useState(0);
@@ -227,9 +204,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     ro.observe(el);
     window.addEventListener('resize', measure);
     return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
-  }, [repoInfo, hasPreviousVersion, showDemoBadge, linkedDocInfo, planDiffStats]);
-  // The "Show changes" switch at the card's top right, when there is a diff.
-  const showDiffSwitch = !!onPlanDiffToggle && !!hasPreviousVersion && hasPlanDiffChanges(planDiffStats);
+  }, [repoInfo, showDemoBadge]);
 
   // Per-doc heading slug map with dedup — computed once per blocks array so
   // anchor ids stay stable across re-renders and duplicate heading texts get
@@ -351,7 +326,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
     // annotating the same block twice does.
     const owner = annotationsRef.current.filter((a) =>
       a.type !== AnnotationType.GLOBAL_COMMENT
-      && !a.diffContext
       && a.originalText === codeText
       && (a.blockId === blockId || !a.blockId)
       && !removedAnnotationIdsRef.current.has(a.id)
@@ -377,7 +351,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
 
   const widening = useSelectionWidening({
     containerRef,
-    enabled: !hookCommentPopover && !viewerCommentPopover && !(isPlanDiffActive ?? false),
+    enabled: !hookCommentPopover && !viewerCommentPopover,
     onSelectRange: highlightRange,
     onCodeBlockClick: handlePinpointCodeBlockClick,
   });
@@ -497,7 +471,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
       hookRemoveHighlight(id);
     },
     clearAllHighlights,
-    applySharedAnnotations: applyAnnotations,
+    applyAnnotations,
     closeComposer: () => {
       if (composerDirtyRef.current) return false;
       if (hookCommentPopover) hookCommentClose();
@@ -533,23 +507,12 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
           WebkitTouchCallout: 'none',
         } as React.CSSProperties}
       >
-        {(repoInfo || showDiffSwitch || showDemoBadge || linkedDocInfo) && (
+        {(repoInfo || showDemoBadge) && (
           <div ref={docBadgesRef} className="absolute top-3 md:top-4 inset-x-0 flex items-start justify-between gap-3">
             <DocBadges
-              layout="column"
               repoInfo={repoInfo}
               showDemoBadge={showDemoBadge}
-              linkedDocInfo={linkedDocInfo}
             />
-            {showDiffSwitch && planDiffStats && (
-              <PlanDiffSwitch
-                stats={planDiffStats}
-                checked={isPlanDiffActive ?? false}
-                onToggle={onPlanDiffToggle!}
-                baselineTooltip={planDiffBaselineTooltip}
-                baseVersionLabel={planDiffBaseVersionLabel}
-              />
-            )}
           </div>
         )}
 
@@ -569,7 +532,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
                       key={block.id}
                       block={block}
                       orderedIndex={indices[i]}
-                      onOpenLinkedDoc={onOpenLinkedDoc}
                       onToggleCheckbox={onToggleCheckbox}
                       checkboxOverrides={checkboxOverrides}
                       headingAnchorId={headingSlugMap.get(block.id)}
@@ -587,7 +549,6 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
               block={group.block}
               imageBaseDir={imageBaseDir}
               onImageClick={(src, alt) => setLightbox({ src, alt })}
-              onOpenLinkedDoc={onOpenLinkedDoc}
               onNavigateAnchor={scrollToAnchor}
               onHover={(element) => {
                 if (tableHoverTimeoutRef.current) {
@@ -612,7 +573,7 @@ export const Viewer = forwardRef<ViewerHandle, ViewerProps>(({
           ) : group.block.type === 'code' ? (
             <CodeBlock key={group.block.id} block={group.block} />
           ) : (
-            <BlockRenderer imageBaseDir={imageBaseDir} onImageClick={(src, alt) => setLightbox({ src, alt })} key={group.block.id} block={group.block} onOpenLinkedDoc={onOpenLinkedDoc} onNavigateAnchor={scrollToAnchor} onToggleCheckbox={onToggleCheckbox} checkboxOverrides={checkboxOverrides} headingAnchorId={headingSlugMap.get(group.block.id)} />
+            <BlockRenderer imageBaseDir={imageBaseDir} onImageClick={(src, alt) => setLightbox({ src, alt })} key={group.block.id} block={group.block} onNavigateAnchor={scrollToAnchor} onToggleCheckbox={onToggleCheckbox} checkboxOverrides={checkboxOverrides} headingAnchorId={headingSlugMap.get(group.block.id)} />
           )
         )}
 

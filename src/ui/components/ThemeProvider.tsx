@@ -6,7 +6,6 @@ import { faviconDataUrl } from '@/shared/favicon';
 import {
   BUILT_IN_THEMES,
   DEFAULT_COLOR_THEME,
-  getUnsupportedMode,
   resolvePairTheme,
   resolveThemeMode,
   seedThemePair,
@@ -28,18 +27,11 @@ type ThemeProviderState = {
   resolvedMode: 'dark' | 'light';
   // Color theme (the palette the current mode renders — pair[preferredMode])
   colorTheme: string;
-  setColorTheme: (theme: string) => void;
   // The pair itself: one palette per half, assignable independently
   lightTheme: string;
   darkTheme: string;
   setHalfTheme: (half: ThemeHalf, theme: string) => void;
   availableThemes: ThemeInfo[];
-  /**
-   * Whether this provider owns the document's favicon. Published so the Settings
-   * UI can hide the favicon control on hosts that did not opt in: a knob that
-   * changes nothing is worse than no knob.
-   */
-  manageFavicon: boolean;
 };
 
 const ThemeProviderContext = createContext<ThemeProviderState>({
@@ -48,12 +40,10 @@ const ThemeProviderContext = createContext<ThemeProviderState>({
   preferredMode: 'dark',
   resolvedMode: 'dark',
   colorTheme: 'hypermark',
-  setColorTheme: () => null,
   lightTheme: 'hypermark',
   darkTheme: 'hypermark',
   setHalfTheme: () => null,
   availableThemes: BUILT_IN_THEMES,
-  manageFavicon: false,
 });
 
 /** Sync theme classes on <html> without stripping non-theme classes (e.g. transitions-ready). */
@@ -82,18 +72,6 @@ interface ThemeProviderProps {
   children: React.ReactNode;
   defaultTheme?: Mode;
   defaultColorTheme?: string;
-  /**
-   * Opt in to letting this provider own `<link rel="icon">` on the document.
-   *
-   * OFF by default, and deliberately so: `@hypermark/ui` is installed into
-   * host applications with their own branding, and a mounted provider must not
-   * silently replace a host page's favicon with Hypermark's. Hypermark's own
-   * apps pass `manageFavicon`; hosts opt in only if they want the same feature.
-   *
-   * The value also gates the Settings favicon control (see ThemeTab), so a host
-   * that leaves it off never renders a switch that would do nothing.
-   */
-  manageFavicon?: boolean;
 }
 
 /** Tags <html> on Windows so theme.css can hide Chromium's scrollbar stepper arrows. */
@@ -113,7 +91,6 @@ export function ThemeProvider({
   // override this, but a cookie-less visit must land on the same palette an
   // unusable saved value recovers to, or first paint and recovery disagree.
   defaultColorTheme = DEFAULT_COLOR_THEME,
-  manageFavicon = false,
 }: ThemeProviderProps) {
   // Resolve the pair this provider starts on: what the user persisted, else these props.
   // The config store is a singleton that may already have resolved a default of
@@ -131,7 +108,6 @@ export function ThemeProvider({
   const pair = pendingSeed.current ?? storePair;
   const mode = pair.mode;
   useEffect(() => {
-    if (!manageFavicon) return;
     if (typeof document === 'undefined') return;
     let link = document.head.querySelector<HTMLLinkElement>('link[rel="icon"]');
     if (!link) {
@@ -143,7 +119,7 @@ export function ThemeProvider({
     link.type = 'image/svg+xml';
     link.removeAttribute('sizes');
     link.href = faviconDataUrl();
-  }, [manageFavicon]);
+  }, []);
 
   // Hand the resolved pair to the store as a SEED, not a user choice: seeding
   // writes memory + cookies only. Routing it through set() would queue a
@@ -165,11 +141,6 @@ export function ThemeProvider({
     mode === 'system' ? (systemIsLight ? 'light' : 'dark') : mode;
   const colorTheme = resolvePairTheme(pair, preferredMode);
   const resolvedMode = resolveThemeMode(colorTheme, preferredMode);
-
-  // Read by the legacy setColorTheme, which must target the half on screen
-  // without re-creating its callback on every mode change.
-  const preferredModeRef = useRef(preferredMode);
-  preferredModeRef.current = preferredMode;
 
   // [P3 fix] Apply theme class synchronously during initialization to prevent
   // flash of unstyled content. CSS tokens live under .theme-* selectors, so
@@ -217,28 +188,6 @@ export function ThemeProvider({
     configStore.set('themePair', { ...configStore.get('themePair'), [half]: newTheme });
   }, []);
 
-  /**
-   * Legacy single-palette API, kept for published consumers. It assigns exactly
-   * ONE half and changes nothing else:
-   *
-   *  - a palette that renders both modes goes to the half currently on screen,
-   *    leaving the other half's assignment alone;
-   *  - a mode-restricted palette goes to the half it supports without touching
-   *    the mode, because render-time resolution (`resolveThemeMode`) already
-   *    keeps a System user on a palette that can be drawn.
-   *
-   * Persistence stays cookie-only unless a host installed a serverSync
-   * transport, matching the side effects this API had before the pair existed.
-   */
-  const setColorTheme = useCallback((newTheme: string) => {
-    const current = configStore.get('themePair');
-    const unsupported = getUnsupportedMode(newTheme);
-    const half: ThemeHalf = unsupported
-      ? (unsupported === 'light' ? 'dark' : 'light')
-      : preferredModeRef.current;
-    configStore.setLocal('themePair', { ...current, [half]: newTheme });
-  }, []);
-
   useEffect(() => {
     writeThemePairCookies(pair);
   }, [pair]);
@@ -249,13 +198,11 @@ export function ThemeProvider({
     preferredMode,
     resolvedMode,
     colorTheme,
-    setColorTheme,
     lightTheme: pair.light,
     darkTheme: pair.dark,
     setHalfTheme,
     availableThemes: BUILT_IN_THEMES,
-    manageFavicon,
-  }), [mode, preferredMode, resolvedMode, colorTheme, pair.light, pair.dark, setMode, setColorTheme, setHalfTheme, manageFavicon]);
+  }), [mode, preferredMode, resolvedMode, colorTheme, pair.light, pair.dark, setMode, setHalfTheme]);
 
   return (
     <ThemeProviderContext.Provider value={value}>

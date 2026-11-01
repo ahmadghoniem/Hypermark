@@ -30,18 +30,8 @@
   --sidebar-border: #1d1f23;
   --sidebar-ring: #528bff;
 
-  /* Diff Bridge */
-  --diffs-bg: #282c34;
-  --diffs-fg: #abb2bf;
-  --diffs-dark-bg: #282c34;
-  --diffs-light-bg: #ffffff;
-  --diffs-dark: #abb2bf;
-  --diffs-light: #0a0a0a;
-
   /* Syntax */
   --code-bg: #2c313a;
-
-  /* Terminal / ANSI */
 
   /* Focus */
   --ring: #528bff;

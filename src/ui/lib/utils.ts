@@ -6,11 +6,11 @@ import { extendTailwindMerge } from "tailwind-merge";
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
-      "font-size": [{ text: ["display", "title", "subtitle", "body", "caption", "micro", "plan"] }],
+      "font-size": [{ text: ["display", "title", "subtitle", "body", "caption", "micro", "doc"] }],
       z: [{ z: ["chrome", "resize", "panel-scrim", "panel", "menu", "popover", "popover-hint", "dialog", "overlay"] }],
-      m: [{ m: ["plan", "plan-wide", "plan-rule"] }],
-      my: [{ my: ["plan", "plan-wide", "plan-rule"] }],
-      mb: [{ mb: ["plan", "plan-wide", "plan-rule"] }],
+      m: [{ m: ["doc", "doc-wide", "doc-rule"] }],
+      my: [{ my: ["doc", "doc-wide", "doc-rule"] }],
+      mb: [{ mb: ["doc", "doc-wide", "doc-rule"] }],
     },
   },
 });

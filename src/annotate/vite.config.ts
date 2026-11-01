@@ -3,7 +3,6 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 import tailwindcss from '@tailwindcss/vite';
-import pkg from '../../package.json';
 import { devMockApi } from './dev-mock-api';
 import { katexWoff2Only } from '../../scripts/katex-woff2-only';
 
@@ -12,9 +11,6 @@ export default defineConfig({
   server: {
     port: 3000,
     host: '0.0.0.0',
-  },
-  define: {
-    __APP_VERSION__: JSON.stringify(pkg.version),
   },
   plugins: [react(), tailwindcss(), katexWoff2Only(), devMockApi(), viteSingleFile()],
   resolve: {

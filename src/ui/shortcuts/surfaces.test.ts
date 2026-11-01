@@ -1,9 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { listRegistryShortcutSections, validateShortcutRegistry } from './core';
 import {
-  annotateShortcutRegistry,
   getShortcutRegistryForMode,
-  planShortcutRegistry,
   type ShortcutSurfaceMode,
 } from './surfaces';
 
@@ -28,11 +26,5 @@ describe('shortcut surfaces', () => {
         }
       }
     }
-  });
-
-  test('annotate carries every plan scope', () => {
-    const planIds = new Set(planShortcutRegistry.map((scope) => scope.id));
-    const annotateIds = new Set(annotateShortcutRegistry.map((scope) => scope.id));
-    for (const id of planIds) expect(annotateIds.has(id)).toBe(true);
   });
 });

@@ -85,19 +85,7 @@ Same thing for https://en.wikipedia.org/wiki/Plan_(drawing). Works fine when wra
 
 **Impact:** whenever someone links Wikipedia or any URL with balanced parentheses in the path. Less common than the others, but noticeable when it hits.
 
-## 7. Plan diff view loses alert, directive, and details semantics
-
-When the first version of a plan is denied and the author resubmits, the reviewer flips to diff mode to see what changed. Right now the diff renderer falls back to plain text for the three new block types in v0.19 — alerts, directives, and raw HTML blocks — so the reviewer sees structure-less content exactly in the mode where visual cues matter most.
-
-Example of what gets flattened in diff mode:
-
-- `> [!WARNING]` blocks render as a normal italic quote, losing the color and icon
-- `:::danger` blocks disappear entirely (no matching case in the diff renderer)
-- `<details>` sections render as literal `<details>` / `<summary>` tags
-
-**Impact:** only the deny / resubmit flow. Not ideal, but the diff is still navigable — it just doesn't preserve the new semantic formatting.
-
-## 8. Relative non-document links inside raw HTML fall through
+## 7. Relative non-document links inside raw HTML fall through
 
 The HTML block rewrites relative image paths (`<img src="./logo.png">`) and relative markdown/html document links (`<a href="./notes.md">`) to route correctly through the server. Other file types fall through without rewriting.
 
@@ -112,7 +100,7 @@ Both of those resolve against the Hypermark server origin instead of the source 
 
 **Impact:** unusual — users paste README sections with PDF / data / image links that aren't `.md` or `.html`. Low volume but confusing when it hits.
 
-## 9. Copy-as-markdown corrupts tables with pipes in cells
+## 8. Copy-as-markdown corrupts tables with pipes in cells
 
 The table hover toolbar and popout both offer "copy as markdown". When any cell contains a literal `|` (common in tables listing regex patterns, shell commands, or boolean "or"), the copied output is silently wrong — the pipe isn't re-escaped, so the pasted table has extra columns where those pipes were.
 
@@ -140,7 +128,6 @@ Now hover that table, click copy, paste it into any markdown doc — the "Patter
 | 4. HTML external links | Fix now | v0.19.1 | Force `target` + `rel` in `rewriteRelativeRefs` |
 | 5. Duplicate heading anchors | Fix now | v0.19.1 | Dedup counter per doc |
 | 6. URL bracket trim | Follow-up | v0.20 | Balanced-paren matching |
-| 7. Diff view block variants | Follow-up | v0.20 | Extend `SimpleBlockRenderer` |
-| 8. Relative HTML asset links | Follow-up | v0.20 | Rewrite any relative href, not just docs |
+| 7. Relative HTML asset links | Follow-up | v0.20 | Rewrite any relative href, not just docs |
 
 Review when ready. @alice for the v0.19.1 scope, @bob for the v0.20 backlog ordering.

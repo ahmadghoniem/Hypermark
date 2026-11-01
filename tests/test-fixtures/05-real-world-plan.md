@@ -29,7 +29,7 @@ lines in the Hypermark renderer.
 
 ### 3. Sync to Diff View
 
-- The `PlanCleanDiffView` has its own `InlineMarkdown` implementation that
+- The `CleanDiffView` has its own `InlineMarkdown` implementation that
   needs the same hard break pattern added for consistency
 
 ### 4. Test Coverage
@@ -48,7 +48,7 @@ lines in the Hypermark renderer.
 |------|--------|
 | `packages/ui/utils/parser.ts` | Continuation merge logic |
 | `packages/ui/components/Viewer.tsx` | Hard break in InlineMarkdown |
-| `packages/ui/components/plan-diff/PlanCleanDiffView.tsx` | Hard break sync |
+| `packages/ui/components/version-diff/CleanDiffView.tsx` | Hard break sync |
 | `packages/ui/utils/parser.test.ts` | New test suite |
 
 ## Risk Assessment

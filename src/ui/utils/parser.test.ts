@@ -950,7 +950,7 @@ describe("parseMarkdownToBlocks — blockquotes", () => {
       "> Thanks for reporting this. It works:",
       ">",
       "> ```",
-      "> omp plugin install @plannotator/pi-extension",
+      "> bun add -g hypermark",
       "> ```",
       ">",
       "> Then restart OMP.",
@@ -961,7 +961,7 @@ describe("parseMarkdownToBlocks — blockquotes", () => {
     expect(blocks[0].startLine).toBe(1);
     expect(quoteBody(blocks[0])).toEqual([
       ["paragraph", "Thanks for reporting this. It works:"],
-      ["code", "omp plugin install @plannotator/pi-extension"],
+      ["code", "bun add -g hypermark"],
       ["paragraph", "Then restart OMP."],
     ]);
   });
@@ -1988,13 +1988,6 @@ describe("exportAnnotations — line labels", () => {
     const anns = [{ blockId: "global", type: "GLOBAL_COMMENT", text: "overall feedback", originalText: "", startOffset: 0 }];
     const output = exportAnnotations(blocks, anns);
     expect(output).not.toMatch(/\(line/);
-  });
-
-  test("diff-context annotation shows label instead of line number", () => {
-    const anns = [{ blockId: blocks[0].id, type: "COMMENT", text: "change", originalText: "Heading", startOffset: 0, diffContext: "added" }];
-    const output = exportAnnotations(blocks, anns);
-    expect(output).not.toMatch(/\(line/);
-    expect(output).toContain("[In diff content]");
   });
 
   test("math block line labels cover source fences", () => {

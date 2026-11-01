@@ -376,7 +376,7 @@ describe('attachmentNormalization', () => {
       const exported = exportAnnotations(blocks, normalizedAnns, []);
 
       // Image under GLOBAL_COMMENT
-      expect(exported).toContain('General feedback about the plan');
+      expect(exported).toContain('General feedback about the file');
       expect(exported).toContain('**Attached images:**\n- [Architecture] `/uploads/plan-arch.png`');
       // Crucial: image-only GLOBAL_COMMENT without text must not output `> undefined`
       expect(exported).not.toContain('> undefined');

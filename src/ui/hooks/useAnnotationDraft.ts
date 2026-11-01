@@ -10,7 +10,7 @@
  */
 
 import { useEffect, useCallback, useRef } from 'react';
-import type { Annotation, CodeAnnotation, ImageAttachment } from '../types';
+import type { Annotation, ImageAttachment } from '../types';
 import { fromShareable, parseShareableImages } from '../utils/annotationSerialization';
 import type { ShareableAnnotation } from '../utils/annotationSerialization';
 import { normalizeDocumentAnnotations } from '../utils/attachmentNormalization';
@@ -26,7 +26,7 @@ export const DEBOUNCE_MS = 500;
  *  - `remove(generation)` is a generation-gated TOMBSTONE: the server rejects
  *    any later `save` whose `draftGeneration` is <= the deleted generation.
  *    The hook pre-increments `draftGeneration` and exposes it through
- *    `getDraftGeneration()` so approve/deny/feedback/exit send it and the
+ *    `getDraftGeneration()` so feedback/exit send it and the
  *    server deletes the draft with the right generation.
  *  - `load` returns the raw stored body (or null) plus the generation the
  *    server reports when there is NO draft (read from the 404 body) so the
@@ -78,10 +78,15 @@ export function getDraftTransport(): DraftTransport {
   return draftTransport;
 }
 
+/** Each message's annotations in annotate-last, keyed by message id. */
+export type MessageDrafts = Record<string, { annotations: Annotation[]; globalAttachments: ImageAttachment[] }>;
+
 /** New format: full objects. */
 interface DraftData {
+  /** The annotations on screen when saved. */
   annotations: Annotation[];
-  codeAnnotations?: CodeAnnotation[];
+  /** In annotate-last with several messages, every message's annotations. */
+  messages?: MessageDrafts;
   /** Legacy field, read-only: images no longer write here —
       `normalizeDocumentAnnotations` folds any stored top-level images into a
       GLOBAL_COMMENT inside `annotations` on load, so this stays populated
@@ -102,12 +107,18 @@ interface MissingDraftData {
 interface LegacyDraftData {
   a: ShareableAnnotation[];
   g?: unknown[];
-  d?: (string | null)[];
   ts: number;
 }
 
 function isLegacyDraft(data: unknown): data is LegacyDraftData {
   return !!data && typeof data === 'object' && 'a' in data && Array.isArray((data as LegacyDraftData).a);
+}
+
+function countMessageDrafts(messages: MessageDrafts): number {
+  return Object.values(messages).reduce(
+    (sum, m) => sum + (m.annotations?.length ?? 0) + (m.globalAttachments?.length ?? 0),
+    0,
+  );
 }
 
 export function readDraftGeneration(value: unknown): number | null {
@@ -127,14 +138,14 @@ export function formatTimeAgo(ts: number): string {
 
 interface UseAnnotationDraftOptions {
   annotations: Annotation[];
-  codeAnnotations?: CodeAnnotation[];
   /** Legacy field, always empty now: nothing
       writes new top-level attachments any more, so this is only threaded
       through to keep the save payload's shape stable for old readers. */
   globalAttachments: ImageAttachment[];
   isApiMode: boolean;
-  isSharedSession: boolean;
   submitted: boolean;
+  /** Read at save time; when set, the draft stores every message's annotations. */
+  getMessageDrafts?: () => MessageDrafts;
   onDraftLoaded?: (
     draft: RestoredDraft,
     meta: { count: number; timeAgo: string },
@@ -143,11 +154,11 @@ interface UseAnnotationDraftOptions {
 
 export interface RestoredDraft {
   annotations: Annotation[];
-  codeAnnotations: CodeAnnotation[];
   /** Always empty — restore-time normalization already folded any legacy
       top-level images into a GLOBAL_COMMENT inside `annotations`. Field kept
       for callers that still destructure it. */
   globalAttachments: ImageAttachment[];
+  messages?: MessageDrafts;
 }
 
 interface UseAnnotationDraftResult {
@@ -163,13 +174,14 @@ interface UseAnnotationDraftResult {
 
 export function useAnnotationDraft({
   annotations,
-  codeAnnotations = [],
   globalAttachments,
   isApiMode,
-  isSharedSession,
   submitted,
+  getMessageDrafts,
   onDraftLoaded,
 }: UseAnnotationDraftOptions): UseAnnotationDraftResult {
+  const getMessageDraftsRef = useRef(getMessageDrafts);
+  getMessageDraftsRef.current = getMessageDrafts;
   // Read through a ref: callers pass an inline arrow, and a callback dependency
   // would re-run the load effect on every render, restoring (and toasting) again.
   const onDraftLoadedRef = useRef(onDraftLoaded);
@@ -181,15 +193,15 @@ export function useAnnotationDraft({
 
   // Latest-values ref so the stable scheduleDraftSave reads current data when
   // the debounce fires, without re-creating callbacks per keystroke.
-  const latestRef = useRef({ annotations, codeAnnotations, globalAttachments });
-  latestRef.current = { annotations, codeAnnotations, globalAttachments };
-  const canPersist = isApiMode && !isSharedSession && !submitted;
+  const latestRef = useRef({ annotations, globalAttachments });
+  latestRef.current = { annotations, globalAttachments };
+  const canPersist = isApiMode && !submitted;
   const canPersistRef = useRef(canPersist);
   canPersistRef.current = canPersist;
 
   // Load draft on mount
   useEffect(() => {
-    if (!isApiMode || isSharedSession) return;
+    if (!isApiMode) return;
 
     getDraftTransport().load()
       .then(({ data, generation }) => {
@@ -205,12 +217,12 @@ export function useAnnotationDraft({
         }
 
         let restoredAnnotations: Annotation[];
-        let restoredCodeAnnotations: CodeAnnotation[] = [];
         let restoredGlobal: ImageAttachment[];
+        let restoredMessages: MessageDrafts | undefined;
 
         if (isLegacyDraft(data)) {
           // Old tuple format — deserialize via fromShareable
-          restoredAnnotations = data.a.length > 0 ? fromShareable(data.a, data.d) : [];
+          restoredAnnotations = data.a.length > 0 ? fromShareable(data.a) : [];
           restoredGlobal = data.g ? (parseShareableImages(data.g as Parameters<typeof parseShareableImages>[0]) ?? []) : [];
         } else if (Array.isArray(data.annotations)) {
           // New direct-object format
@@ -219,16 +231,8 @@ export function useAnnotationDraft({
             draftGenerationRef.current = Math.max(draftGenerationRef.current, generation);
           }
           restoredAnnotations = data.annotations;
-          restoredCodeAnnotations = Array.isArray(data.codeAnnotations) ? data.codeAnnotations : [];
           restoredGlobal = Array.isArray(data.globalAttachments) ? data.globalAttachments : [];
-        } else if (Array.isArray((data as DraftData).codeAnnotations) && (data as DraftData).codeAnnotations!.length > 0) {
-          const generation = readDraftGeneration((data as DraftData).draftGeneration);
-          if (generation !== null) {
-            draftGenerationRef.current = Math.max(draftGenerationRef.current, generation);
-          }
-          restoredAnnotations = [];
-          restoredCodeAnnotations = (data as DraftData).codeAnnotations!;
-          restoredGlobal = Array.isArray((data as DraftData).globalAttachments) ? (data as DraftData).globalAttachments : [];
+          if (data.messages && typeof data.messages === 'object') restoredMessages = data.messages;
         } else {
           hasMountedRef.current = true;
           return;
@@ -250,13 +254,15 @@ export function useAnnotationDraft({
           restoredGlobal = normalized.globalAttachments;
         }
 
-        const totalCount = restoredAnnotations.length + restoredCodeAnnotations.length + restoredGlobal.length;
+        const totalCount = restoredMessages
+          ? countMessageDrafts(restoredMessages)
+          : restoredAnnotations.length + restoredGlobal.length;
 
         if (totalCount > 0) {
           const restoredDraftData: RestoredDraft = {
             annotations: restoredAnnotations,
-            codeAnnotations: restoredCodeAnnotations,
             globalAttachments: restoredGlobal,
+            ...(restoredMessages ? { messages: restoredMessages } : {}),
           };
           draftDataRef.current = restoredDraftData;
           onDraftLoadedRef.current?.(restoredDraftData, {
@@ -269,16 +275,20 @@ export function useAnnotationDraft({
       .catch(() => {
         hasMountedRef.current = true;
       });
-  }, [isApiMode, isSharedSession]);
+  }, [isApiMode]);
 
   const persistNow = useCallback((keepalive: boolean) => {
     // Re-check: the session may have been submitted while the debounce was
     // pending — a save landing after submit would resurrect a draft the
-    // server just deleted, ghosting it into the next session for this plan.
+    // server just deleted, ghosting it into the next session for this document.
     if (!canPersistRef.current) return;
-    const { annotations, codeAnnotations, globalAttachments } = latestRef.current;
+    const { annotations, globalAttachments } = latestRef.current;
+    const messages = getMessageDraftsRef.current?.();
+    const empty = messages
+      ? countMessageDrafts(messages) === 0
+      : annotations.length === 0 && globalAttachments.length === 0;
 
-    if (annotations.length === 0 && codeAnnotations.length === 0 && globalAttachments.length === 0) {
+    if (empty) {
       // Everything was cleared (last annotation removed).
       // A stale draft left on disk would offer back content the user
       // explicitly threw away.
@@ -292,8 +302,8 @@ export function useAnnotationDraft({
     draftGenerationRef.current = draftGeneration;
     const payload: DraftData = {
       annotations,
-      codeAnnotations,
       globalAttachments,
+      ...(messages ? { messages } : {}),
       draftGeneration,
       ts: Date.now(),
     };
@@ -355,10 +365,10 @@ export function useAnnotationDraft({
   // attempt finishes and flips the gate back open, we should not recreate a
   // draft that was just deleted unless the user actually changes feedback again.
   useEffect(() => {
-    if (!isApiMode || isSharedSession || submitted) return;
+    if (!isApiMode || submitted) return;
     if (!hasMountedRef.current) return;
     scheduleDraftSave();
-  }, [annotations, codeAnnotations, globalAttachments, isApiMode, isSharedSession, scheduleDraftSave]);
+  }, [annotations, globalAttachments, isApiMode, scheduleDraftSave]);
 
   // Clear any pending save on unmount.
   useEffect(() => {
@@ -379,7 +389,7 @@ export function useAnnotationDraft({
     const data = draftDataRef.current;
     draftDataRef.current = null;
 
-    if (!data) return { annotations: [], codeAnnotations: [], globalAttachments: [] };
+    if (!data) return { annotations: [], globalAttachments: [] };
 
     return data;
   }, []);

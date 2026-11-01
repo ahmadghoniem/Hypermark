@@ -3,65 +3,6 @@ import { join } from "node:path";
 
 const HELP_FLAGS = new Set(["--help", "-h"]);
 
-export interface ParsedStrictAnnotateOptions {
-  requireApproval: boolean;
-  resultFile?: string;
-  remainingArgs: string[];
-}
-
-export function parseStrictAnnotateOptions(
-  args: string[],
-): ParsedStrictAnnotateOptions {
-  let requireApproval = false;
-  let resultFile: string | undefined;
-  const remainingArgs: string[] = [];
-
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = args[index];
-    if (arg === "--require-approval") {
-      if (requireApproval) {
-        throw new Error("--require-approval may only be specified once");
-      }
-      requireApproval = true;
-      continue;
-    }
-    if (arg === "--result-file") {
-      if (resultFile !== undefined) {
-        throw new Error("--result-file may only be specified once");
-      }
-      const value = args[index + 1];
-      if (!value || value.startsWith("--")) {
-        throw new Error("Missing value for --result-file");
-      }
-      resultFile = value;
-      index += 1;
-      continue;
-    }
-    remainingArgs.push(arg);
-  }
-
-  if (!requireApproval && resultFile === undefined) {
-    return { requireApproval: false, remainingArgs };
-  }
-  if (remainingArgs[0] !== "annotate") {
-    throw new Error(
-      "--require-approval and --result-file are only valid with annotate",
-    );
-  }
-  if (!remainingArgs.includes("--gate") || !remainingArgs.includes("--json")) {
-    throw new Error(
-      "--require-approval and --result-file require --gate --json",
-    );
-  }
-  if (remainingArgs.includes("--hook")) {
-    throw new Error(
-      "--require-approval and --result-file cannot be used with --hook",
-    );
-  }
-
-  return { requireApproval, resultFile, remainingArgs };
-}
-
 /** True when any token is a help flag (`--help` / `-h`). */
 export function hasHelpFlag(args: string[]): boolean {
   return args.some((arg) => HELP_FLAGS.has(arg));
@@ -93,8 +34,8 @@ export function formatTopLevelHelp(): string {
     "Usage:",
     "  hypermark --help",
     "  hypermark --version, -v",
-    "  hypermark annotate <file.md | file.txt> [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]",
-    "  hypermark annotate-last [--stdin] [--gate] [--json] [--hook]",
+    "  hypermark annotate <file.md | file.txt>",
+    "  hypermark annotate-last [--stdin]",
     "  hypermark last",
     "  hypermark sessions",
     "",
@@ -111,32 +52,19 @@ export function formatTopLevelHelp(): string {
 export const SUBCOMMAND_HELP: Record<string, string> = {
   annotate: [
     "Usage:",
-    "  hypermark annotate <file.md | file.txt> [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]",
+    "  hypermark annotate <file.md | file.txt>",
     "",
-    "Open a markdown/text/HTML file in the annotation UI.",
-    "",
-    "Options:",
-    "  --gate        Add an Approve button (review-gate UX)",
-    "  --json        Emit a structured decision JSON on stdout",
-    "  --hook        Emit hook-native JSON (block/pass) for PostToolUse/Stop hooks",
-    "  --require-approval",
-    "                Exit 1 unless the reviewer approves (requires --gate --json;",
-    "                usage/startup errors exit 2)",
-    "  --result-file <path>",
-    "                Atomically publish the stdout JSON (requires --gate --json)",
+    "Open a markdown or text file in the annotation UI.",
   ].join("\n"),
   "annotate-last": [
     "Usage:",
-    "  hypermark annotate-last [--stdin] [--gate] [--json] [--hook]",
-    "  hypermark last [--stdin] [--gate] [--json] [--hook]",
+    "  hypermark annotate-last [--stdin]",
+    "  hypermark last [--stdin]",
     "",
     "Annotate the last assistant message from the current agent session.",
     "",
     "Options:",
     "  --stdin       Read the message content from stdin instead of session logs",
-    "  --gate        Add an Approve button (review-gate UX)",
-    "  --json        Emit a structured decision JSON on stdout",
-    "  --hook        Emit hook-native JSON (block/pass) for PostToolUse/Stop hooks",
   ].join("\n"),
   sessions: [
     "Usage:",

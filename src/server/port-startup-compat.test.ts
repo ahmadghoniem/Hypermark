@@ -24,7 +24,7 @@ describe("Bun startup port compatibility", () => {
     const server = await startAnnotateServer({
       markdown: "# Port compatibility",
       filePath: "test.md",
-      origin: "claude-code",
+
       htmlContent: "<!doctype html><html><body>plan</body></html>",
       onReady: (url, port) => {
         ready = { url, port };
@@ -60,7 +60,7 @@ describe("Bun startup port compatibility", () => {
     const server = await startAnnotateServer({
       markdown: "# Fixed port compatibility",
       filePath: "test.md",
-      origin: "claude-code",
+
       htmlContent: "<!doctype html><html><body>plan</body></html>",
       onReady: (url, port) => {
         ready = { url, port };
@@ -87,7 +87,7 @@ describe("Bun startup port compatibility", () => {
     await expect(startAnnotateServer({
       markdown: "# Ready failure cleanup",
       filePath: "test.md",
-      origin: "claude-code",
+
       htmlContent: "<!doctype html><html><body>plan</body></html>",
       onReady: async () => {
         await Promise.resolve();

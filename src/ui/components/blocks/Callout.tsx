@@ -8,7 +8,6 @@ interface CalloutProps {
   containerClassName: string;
   blockType: 'alert' | 'directive';
   kindAttribute: string;
-  onOpenLinkedDoc?: (path: string) => void;
   imageBaseDir?: string;
   onImageClick?: (src: string, alt: string) => void;
   onNavigateAnchor?: (hash: string) => void;
@@ -21,7 +20,6 @@ export const Callout: React.FC<CalloutProps> = ({
   containerClassName,
   blockType,
   kindAttribute,
-  onOpenLinkedDoc,
   imageBaseDir,
   onImageClick,
   onNavigateAnchor,
@@ -42,11 +40,10 @@ export const Callout: React.FC<CalloutProps> = ({
         body,
         // Callout inherits text color from the container (directive tint per
         // kind). Only pass size/leading classes, not a text-foreground value.
-        paragraphClassName: 'text-plan',
-        listClassName: 'text-plan',
+        paragraphClassName: 'text-doc',
+        listClassName: 'text-doc',
         imageBaseDir,
         onImageClick,
-        onOpenLinkedDoc,
         onNavigateAnchor,
       })}
     </div>

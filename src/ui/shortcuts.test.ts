@@ -89,7 +89,7 @@ describe('shortcuts', () => {
       id: 'test-actions',
       title: 'Test Actions',
       shortcuts: {
-        submitPlan: {
+        submitFeedback: {
           description: 'Submit',
           bindings: ['Mod+Enter'],
           section: 'Actions',
@@ -106,12 +106,12 @@ describe('shortcuts', () => {
     const event = { key: 'Enter', ctrlKey: true, metaKey: false, shiftKey: false, altKey: false } as KeyboardEvent;
 
     const handled = dispatchShortcutEvent(registry[0], {
-      submitPlan: () => calls.push('submitPlan'),
+      submitFeedback: () => calls.push('submitFeedback'),
       quickSave: () => calls.push('quickSave'),
     }, event);
 
     expect(handled).toBe(true);
-    expect(calls).toEqual(['submitPlan']);
+    expect(calls).toEqual(['submitFeedback']);
   });
 
   it('supports guarded handlers and continues after a failed guard', () => {

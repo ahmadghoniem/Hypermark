@@ -5,55 +5,13 @@ import type {
 } from "@/ui/types";
 import {
   exportAnnotations,
-  exportLinkedDocAnnotations,
   exportMessageAnnotations,
-  parseMarkdownToBlocks,
-  type LinkedDocAnnotationEntry,
   type MessageAnnotationEntry,
 } from "@/ui/utils/parser";
-import { shouldStripFrontmatter } from "@/shared/annotatable";
 
-export interface AnnotateApprovalBodyInput {
-  supported: boolean;
-  draftGeneration: number;
-  feedback: string;
-  annotations: unknown[];
-  /** Which message the notes are about (annotate-last picker). */
-  selectedMessageId?: string;
-  /** "messages" when the notes span more than one selected message. */
-  feedbackScope?: "message" | "messages";
-}
-
-/**
- * The zero-feedback payload sentence. Every existing CLI consumer's plain-mode
- * output and the strict-gate exit codes depend on this exact byte sequence,
- * and the approval framing below reuses it so "Done with a
- * note…" can never read as a change request.
- */
-export const ANNOTATE_NO_FEEDBACK_SENTENCE =
-  "User reviewed the document and has no feedback.";
-
-export function buildAnnotateApprovalBody(
-  input: AnnotateApprovalBodyInput,
-): {
-  draftGeneration: number;
-  feedback?: string;
-  annotations?: unknown[];
-  selectedMessageId?: string;
-  feedbackScope?: "message" | "messages";
-} {
-  if (!input.supported) {
-    return { draftGeneration: input.draftGeneration };
-  }
-  return {
-    draftGeneration: input.draftGeneration,
-    feedback: input.feedback,
-    annotations: input.annotations,
-    // Notes must anchor to the same message Send Feedback would target.
-    ...(input.selectedMessageId ? { selectedMessageId: input.selectedMessageId } : {}),
-    ...(input.feedbackScope ? { feedbackScope: input.feedbackScope } : {}),
-  };
-}
+/** What All good sends when there is nothing to send. The launcher skills match its wording. */
+const noFeedbackSentence = (subject: string) =>
+  `User reviewed the ${subject} and has no feedback.`;
 
 export interface CompleteAnnotateFeedbackInput {
   blocks: Block[];
@@ -63,18 +21,9 @@ export interface CompleteAnnotateFeedbackInput {
       reaches export — kept only so `exportAnnotations` still decodes an old
       caller that hasn't gone through the restore-time normalizer. */
   globalAttachments: ImageAttachment[];
-  linkedDocuments: Map<string, LinkedDocAnnotationEntry>;
   title: string;
   subject: string;
   messageEntries?: MessageAnnotationEntry[];
-  /**
-   * Positive-finish framing. Non-gated annotate has no approve channel —
-   * every outcome is one feedback string — so this prefixes the zero-state
-   * sentence before the annotation sections (idempotent when the text already
-   * is the sentence). The only caller is the non-gated discard path, which
-   * frames its positive finish over the annotations.
-   */
-  approvalFraming?: boolean;
 }
 
 export function buildCompleteAnnotateFeedback(
@@ -84,49 +33,16 @@ export function buildCompleteAnnotateFeedback(
 
   if (input.messageEntries) {
     annotationsText = exportMessageAnnotations(input.messageEntries);
+  } else if (input.annotations.length === 0 && input.globalAttachments.length === 0) {
+    annotationsText = noFeedbackSentence(input.subject);
   } else {
-    const hasLinkedAnnotations = Array.from(input.linkedDocuments.values()).some(
-      (entry) => entry.annotations.length > 0 || entry.globalAttachments.length > 0,
+    annotationsText = exportAnnotations(
+      input.blocks,
+      input.annotations,
+      input.globalAttachments,
+      input.title,
+      input.subject,
     );
-    const hasDocumentAnnotations =
-      input.annotations.length > 0 || input.globalAttachments.length > 0;
-
-    if (!hasDocumentAnnotations && !hasLinkedAnnotations) {
-      annotationsText = ANNOTATE_NO_FEEDBACK_SENTENCE;
-    } else {
-      annotationsText = hasDocumentAnnotations
-        ? exportAnnotations(
-            input.blocks,
-            input.annotations,
-            input.globalAttachments,
-            input.title,
-            input.subject,
-          )
-        : "";
-
-      if (hasLinkedAnnotations) {
-        const enriched = new Map<string, LinkedDocAnnotationEntry>();
-        for (const [filepath, entry] of input.linkedDocuments) {
-          // Parse each linked doc exactly the way it was rendered: plain-text
-          // sources (.yaml/.json/.toml/…) keep a leading `---` as real content,
-          // so stripping it here would shift every block id and mis-label the
-          // exported line numbers.
-          enriched.set(filepath, entry.markdown
-            ? {
-                ...entry,
-                blocks: parseMarkdownToBlocks(entry.markdown, {
-                  frontmatter: shouldStripFrontmatter(filepath),
-                }),
-              }
-            : entry);
-        }
-        annotationsText += exportLinkedDocAnnotations(enriched);
-      }
-    }
-  }
-
-  if (input.approvalFraming && annotationsText !== ANNOTATE_NO_FEEDBACK_SENTENCE) {
-    annotationsText = `${ANNOTATE_NO_FEEDBACK_SENTENCE}\n\n${annotationsText}`;
   }
 
   return annotationsText;

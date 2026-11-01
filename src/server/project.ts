@@ -1,7 +1,8 @@
 /**
  * Project Detection Utility
  *
- * Detects the current project name for tagging plans.
+ * Detects the current project name for keying the feedback archive and the
+ * session registry.
  * Priority: git repo name > directory name > null
  *
  * Pure string functions re-exported from @hypermark/shared/project.

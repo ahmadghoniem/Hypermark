@@ -1,5 +1,5 @@
 /**
- * Configured extra markdown extensions (#1307).
+ * Configured extra markdown extensions.
  *
  * A user can teach annotate about additional plain-text document extensions
  * (for example `.livemd`, Livebook notebooks) with `markdownExtensions` in
@@ -8,10 +8,8 @@
  *   { "markdownExtensions": [".livemd"] }
  *
  * Listed extensions are accepted everywhere `.md` is accepted on the annotate
- * path — CLI target resolution, the folder file browser, `/api/doc`
- * (relative/wiki-link navigation between sibling docs), the 2MB size cap and
- * the per-file version history — and are rendered as MARKDOWN (frontmatter
- * stripped).
+ * path (CLI target resolution and the 2MB size cap) and are rendered as
+ * MARKDOWN (frontmatter stripped).
  *
  * The extension predicates themselves live in `@/shared/annotatable`,
  * which is browser-safe and zero-dep and therefore cannot read a config file.
@@ -23,7 +21,6 @@
 
 import {
 	buildAnnotatableExtensionsHint,
-	buildAnnotatableTextRegex,
 	isAnnotatableTextPath as isAnnotatableTextPathWith,
 	normalizeMarkdownExtensions,
 } from "./annotatable";
@@ -56,11 +53,6 @@ export function getExtraMarkdownExtensions(config?: HypermarkConfig): string[] {
 /** Drop the memo so the next read re-reads `config.json`. Tests only. */
 export function resetMarkdownExtensionsCache(): void {
 	cached = null;
-}
-
-/** Plain-text (markdown-rendered) matcher including the configured extras. */
-export function getAnnotatableTextRegex(): RegExp {
-	return buildAnnotatableTextRegex(getExtraMarkdownExtensions());
 }
 
 /** Accepted-set hint for error messages, including the configured extras. */

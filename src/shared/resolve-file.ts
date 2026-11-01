@@ -6,7 +6,7 @@
  * 2. Case-insensitive relative path search within project root
  * 3. Case-insensitive bare filename search within project root
  *
- * Used by both the CLI (`hypermark annotate`) and the `/api/doc` endpoint.
+ * Used by the CLI (`hypermark annotate`).
  */
 
 import { homedir } from "os";
@@ -17,14 +17,13 @@ import { buildAnnotatableTextRegex } from "./annotatable";
 import { getExtraMarkdownExtensions } from "./markdown-extensions";
 export { MAX_ANNOTATABLE_FILE_BYTES } from "./annotatable";
 /**
- * Extension predicates re-exported here are the CONFIG-AWARE ones (#1307):
+ * Extension predicates re-exported here are the CONFIG-AWARE ones:
  * they honor the user's `markdownExtensions` on top of the built-in set. The
- * pure built-in constants stay in @hypermark/core/annotatable for browser
+ * pure built-in constants stay in src/shared/annotatable.ts for browser
  * code; server code must go through these so a configured `.livemd` is
  * accepted everywhere `.md` is.
  */
 export {
-	getAnnotatableTextRegex,
 	getAnnotatableExtensionsHint,
 	getExtraMarkdownExtensions,
 	isAnnotatableTextPath,
@@ -166,7 +165,7 @@ function normalizeComparablePath(input: string): string {
 	return stripTrailingSlashes(normalizeSeparators(resolveUserPath(input)));
 }
 
-export function isWithinProjectRoot(candidate: string, projectRoot: string): boolean {
+function isWithinProjectRoot(candidate: string, projectRoot: string): boolean {
 	const normalizedCandidate = normalizeComparablePath(candidate);
 	const normalizedProjectRoot = normalizeComparablePath(projectRoot);
 	return (
@@ -196,10 +195,9 @@ function resolveAbsolutePath(
 
 /**
  * The set of files single-file annotate resolution accepts. Wider than
- * markdown proper (#1029): any unambiguously plain-text format renders the
+ * markdown proper: any unambiguously plain-text format renders the
  * way .txt does, plus the user's configured extra markdown extensions
- * (#1307). HTML is excluded — it has its own resolution branch at the call
- * sites.
+ *. HTML is refused.
  */
 function isSearchableMarkdownPath(input: string, extra: readonly string[]): boolean {
 	return buildAnnotatableTextRegex(extra).test(input.trim());
@@ -366,7 +364,7 @@ function resolveMarkdownFileCore(
  * @param input - User-provided path (absolute, relative, or bare filename)
  * @param projectRoot - Project root directory to search within
  * @param options.extraMarkdownExtensions - Configured extra markdown
- *   extensions (#1307). Defaults to the process-wide set resolved from
+ *   extensions. Defaults to the process-wide set resolved from
  *   `config.json`; pass an explicit list to resolve against a specific one.
  */
 export function resolveMarkdownFile(

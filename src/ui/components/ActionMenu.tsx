@@ -53,7 +53,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
 
 interface ActionMenuItemProps {
   onClick: () => void;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   label: string;
   subtitle?: string;
   /** ARIA menu semantics for hosts that render a real `role="menu"` popover
@@ -87,8 +87,4 @@ export const ActionMenuItem: React.FC<ActionMenuItemProps> = ({
       <span className="flex-1">{label}</span>
     )}
   </button>
-);
-
-export const ActionMenuDivider: React.FC = () => (
-  <div className="my-1 border-t border-border" />
 );

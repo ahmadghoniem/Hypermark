@@ -9,7 +9,6 @@ const NON_ANNOTATABLE_SELECTOR = [
   '[contenteditable]:not([contenteditable="false"])',
   '[data-pinpoint-ignore]',
   '.select-none',
-  '.annotation-toolbar',
   '.katex',
 ].join(',');
 

@@ -2,10 +2,10 @@
  * Editor-side client-lease helper.
  *
  * The annotate server advertises a last-client abandonment lease (see
- * src/shared/annotate-client-lease.ts) via `/api/plan`'s `clientLease`
- * field for local direct structured annotate gates. When enabled, this tab
+ * src/shared/annotate-client-lease.ts) via `/api/document`'s `clientLease`
+ * field. When enabled, this tab
  * opens a single EventSource against the shared stream path so the server
- * can detect the tab going away and dismiss the pending gate after a grace
+ * can detect the tab going away and dismiss the pending session after a grace
  * period — no pagehide/beforeunload/sendBeacon involved; presence is
  * inferred purely from the open connection.
  */

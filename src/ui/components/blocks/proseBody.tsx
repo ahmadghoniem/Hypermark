@@ -15,16 +15,14 @@ export function renderProseBody(args: {
   listClassName?: string;
   imageBaseDir?: string;
   onImageClick?: (src: string, alt: string) => void;
-  onOpenLinkedDoc?: (path: string) => void;
   onNavigateAnchor?: (hash: string) => void;
 }): React.ReactNode {
   const {
     body,
-    paragraphClassName = 'text-plan text-foreground/90',
-    listClassName = 'text-plan text-foreground/90',
+    paragraphClassName = 'text-doc text-foreground/90',
+    listClassName = 'text-doc text-foreground/90',
     imageBaseDir,
     onImageClick,
-    onOpenLinkedDoc,
     onNavigateAnchor,
   } = args;
 
@@ -33,7 +31,6 @@ export function renderProseBody(args: {
       imageBaseDir={imageBaseDir}
       onImageClick={onImageClick}
       text={text}
-      onOpenLinkedDoc={onOpenLinkedDoc}
       onNavigateAnchor={onNavigateAnchor}
     />
   );

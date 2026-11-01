@@ -10,7 +10,7 @@
  *       absolute path
  *   4.  Default: ~/.hypermark
  *
- * This allows users to relocate all data (plans, history, drafts, config,
+ * This allows users to relocate all data (feedback, drafts, config,
  * hooks, sessions, debug logs, IPC registry, etc.) via a single variable —
  * useful for XDG-style home directory cleanliness on Unix systems.
  *

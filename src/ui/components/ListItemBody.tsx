@@ -2,15 +2,13 @@ import React from 'react';
 import { ListMarker } from './ListMarker';
 
 /**
- * Shared list-item body: the marker plus the item's text content. Used by the
- * main Viewer (BlockRenderer) and the plan-diff clean view (both the inline
- * modified-block render and SimpleBlockRenderer).
+ * List-item body: the marker plus the item's text content, used by
+ * BlockRenderer.
  *
- * Callers own the surrounding row element so each surface keeps its own
- * concerns (indent, data attributes, hover-prop spread, diff wrapper classes).
- * This component owns the parts that must stay identical: marker selection and
+ * The caller owns the surrounding row element (indent, data attributes,
+ * hover-prop spread). This component owns marker selection and
  * the single-paragraph `<span>` vs multi-paragraph `<div><p>...</p></div>`
- * split, so a fix to either never has to be repeated per surface.
+ * split.
  */
 interface ListItemBodyProps {
   level: number;

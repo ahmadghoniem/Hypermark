@@ -613,7 +613,7 @@ describe("isHiddenMessage", () => {
   });
 
   test("hides one unstructured paragraph up to 200 characters", () => {
-    expect(isHiddenMessage("  Approved.  ", false)).toBe(true);
+    expect(isHiddenMessage("  No feedback.  ", false)).toBe(true);
     expect(isHiddenMessage("Done.\nTests pass.", false)).toBe(true);
     expect(isHiddenMessage("a".repeat(200), false)).toBe(true);
     expect(isHiddenMessage("a".repeat(201), false)).toBe(false);

@@ -2,7 +2,7 @@
  * One-shot settlement for an annotate session's decision.
  *
  * An annotate session has several independent decision producers: any connected
- * tab can approve, send feedback, or close, and the client lease can expire on
+ * tab can send feedback or close, and the client lease can expire on
  * its own (see annotate-client-lease.ts). The awaited promise already ignores a
  * second resolve, which silently hides the problem: a late producer still runs
  * its side effects (deleting the reviewer's draft) and still answers `ok`, so a

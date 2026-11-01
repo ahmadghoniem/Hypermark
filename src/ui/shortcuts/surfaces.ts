@@ -1,12 +1,10 @@
 import { createShortcutRegistry, type ShortcutRegistry } from './core';
-import { decisionControlShortcuts } from './decisionControl.shortcuts';
 import { historyShortcuts } from './history.shortcuts';
 
-import { annotationModeShortcuts } from './plan-review/annotationMode.shortcuts';
-import { annotationPanelShortcuts } from './plan-review/annotationPanel.shortcuts';
-import { annotationToolbarShortcuts } from './plan-review/annotationToolbar.shortcuts';
-import { commentPopoverShortcuts } from './plan-review/commentPopover.shortcuts';
-import { viewerShortcuts } from './plan-review/viewer.shortcuts';
+import { annotationModeShortcuts } from './document/annotationMode.shortcuts';
+import { annotationPanelShortcuts } from './document/annotationPanel.shortcuts';
+import { commentPopoverShortcuts } from './document/commentPopover.shortcuts';
+import { viewerShortcuts } from './document/viewer.shortcuts';
 
 /**
  * Which scopes make up each app, so one place can answer "what are the
@@ -25,20 +23,13 @@ import { viewerShortcuts } from './plan-review/viewer.shortcuts';
  * listed on more than one surface but never twice on the same one.
  */
 
-/** Plan review: reading a proposed plan and deciding on it. */
-export const planShortcutRegistry: ShortcutRegistry = createShortcutRegistry([
-  decisionControlShortcuts,
+/** Annotate: reading a document or message and marking it up. */
+export const annotateShortcutRegistry: ShortcutRegistry = createShortcutRegistry([
   historyShortcuts,
   annotationModeShortcuts,
-  annotationToolbarShortcuts,
   annotationPanelShortcuts,
   commentPopoverShortcuts,
   viewerShortcuts,
-]);
-
-/** Annotate: the same document surface as plan review. */
-export const annotateShortcutRegistry: ShortcutRegistry = createShortcutRegistry([
-  ...planShortcutRegistry,
 ]);
 
 export type ShortcutSurfaceMode = 'annotate';

@@ -2,9 +2,8 @@ import React from 'react';
 
 import { CheckCircle, Circle } from '@untitledui/icons';
 /**
- * Shared list-item marker used by both the main Viewer and the plan-diff
- * clean view. Renders the appropriate glyph(s) for a list item given its
- * level, ordered flag, display index, and checkbox state.
+ * List-item marker for the Viewer. Renders the appropriate glyph(s) for a
+ * list item given its level, ordered flag, display index, and checkbox state.
  *
  * Rendering rules:
  *   - Ordered items render `${orderedIndex}.` with tabular-nums so digit
@@ -15,7 +14,7 @@ import { CheckCircle, Circle } from '@untitledui/icons';
  *   - Plain bullets fall back to `•` / `◦` / `▪` by level.
  *
  * Interactivity is opt-in: the Viewer passes `interactive` + `onToggle`
- * for click-to-toggle checkboxes; the diff view leaves both undefined.
+ * for click-to-toggle checkboxes.
  */
 interface ListMarkerProps {
   level: number;

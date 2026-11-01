@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Keyboard01, Sliders01 } from '@untitledui/icons';
+import { Keyboard01 } from '@untitledui/icons';
 /**
  * Icons for the header's own controls.
  *
@@ -14,8 +14,4 @@ export interface HeaderIconProps {
 
 export const ShortcutsIcon: React.FC<HeaderIconProps> = ({ className = 'size-3.5' }) => (
   <Keyboard01 className={className} />
-);
-
-export const OptionsIcon: React.FC<HeaderIconProps> = ({ className = 'size-3.5' }) => (
-  <Sliders01 className={className} />
 );

@@ -86,17 +86,3 @@ Tabular numerals + 1.5rem min-width should keep 9 → 10 from jittering.
 ## 6. Single-line blockquote (baseline)
 
 > Just one line. Should still render inside a blockquote box.
-
-## Diff-view test (manual, separate run)
-
-The diff renderer lives in `PlanCleanDiffView` and only appears when a prior
-version of the plan is saved. To exercise the diff view specifically:
-
-1. Serve this fixture once through the plan review flow (`hypermark` plan mode
-   with a hook invocation), then deny + resubmit a modified copy that changes
-   one of the numbered items above.
-2. Open the diff view via the `+N/-M` badge.
-3. Verify that numbered items in the diff render as `1.`, `2.`, ... and NOT as
-   `•` / `◦` / `▪`. Before this fix the diff view silently flattened all
-   ordered lists to bullets because `PlanCleanDiffView.SimpleBlockRenderer`
-   had its own hardcoded marker logic.

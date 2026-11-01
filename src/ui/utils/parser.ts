@@ -1,4 +1,4 @@
-import type { Block, Annotation, CodeAnnotation, ImageAttachment } from '../types';
+import type { Block, Annotation, ImageAttachment } from '../types';
 
 /**
  * Parsed YAML frontmatter value: scalar string, array, or nested map.
@@ -341,7 +341,7 @@ export interface ParseMarkdownOptions {
    * Strip a leading `--- ... ---` pair as frontmatter (default true).
    * Pass false for non-markdown plain-text sources (.yaml/.json/.txt/…)
    * where the delimiters are real content — a multi-document YAML starts
-   * with them (see shouldStripFrontmatter in @hypermark/core/annotatable).
+   * with them (see shouldStripFrontmatter in src/shared/annotatable.ts).
    */
   frontmatter?: boolean;
 }
@@ -608,7 +608,7 @@ const resolveRefsInLine = (
 /**
  * Resolve CommonMark link reference definitions and reference links into inline
  * `[text](url)` links, so the shared inline renderer draws them instead of
- * showing raw `[text][id]` and `[id]: url` text (issue #923). Definitions and
+ * showing raw `[text][id]` and `[id]: url` text. Definitions and
  * references inside fenced code blocks, raw HTML blocks, and inline code spans
  * are left untouched. A definition-shaped line is only ever blanked when its
  * label was actually consumed by a resolved reference outside a protected
@@ -1234,10 +1234,9 @@ const blockEndLine = (block: Block): number => {
 };
 
 /** Resolve the source-line label for a single annotation.
- *  Returns null for global comments, diff-view annotations, or missing blocks. */
+ *  Returns null for global comments or missing blocks. */
 const lineLabelForAnnotation = (blocks: Block[], ann: any): string | null => {
   if (!ann.blockId || ann.type === 'GLOBAL_COMMENT') return null;
-  if (typeof ann.blockId === 'string' && ann.blockId.startsWith('diff-block-')) return null;
   const block = blocks.find(b => b.id === ann.blockId);
   if (!block || typeof block.startLine !== 'number') return null;
   const end = blockEndLine(block);
@@ -1249,8 +1248,10 @@ export const exportAnnotations = (
   blocks: Block[],
   annotations: any[],
   globalAttachments: ImageAttachment[] = [],
-  title: string = 'Plan Feedback',
-  subject: string = 'plan',
+  title: string = 'File Feedback',
+  subject: string = 'file',
+  /** Heading level of the title; items go one level below. An empty title is left out. */
+  headingDepth: number = 1,
 ): string => {
   if (annotations.length === 0 && globalAttachments.length === 0) {
     return 'No changes detected.';
@@ -1264,7 +1265,8 @@ export const exportAnnotations = (
     return a.startOffset - b.startOffset;
   });
 
-  let output = `# ${title}\n\n`;
+  let output = title ? `${'#'.repeat(headingDepth)} ${title}\n\n` : '';
+  const itemHeading = '#'.repeat(headingDepth + 1);
 
   // A standalone "Reference Images" section is no longer
   // emitted here. Legacy top-level `globalAttachments` are decoded (see
@@ -1279,15 +1281,10 @@ export const exportAnnotations = (
   }
 
   sortedAnns.forEach((ann, index) => {
-    output += `## ${index + 1}. `;
+    output += `${itemHeading} ${index + 1}. `;
 
-    // Add diff context label if annotation was created in diff view
-    if (ann.diffContext) {
-      output += `[In diff content] `;
-    } else {
-      const lineLabel = lineLabelForAnnotation(blocks, ann);
-      if (lineLabel) output += `(${lineLabel}) `;
-    }
+    const lineLabel = lineLabelForAnnotation(blocks, ann);
+    if (lineLabel) output += `(${lineLabel}) `;
 
     switch (ann.type) {
       case 'DELETION':
@@ -1327,110 +1324,6 @@ export const exportAnnotations = (
   return output;
 };
 
-export interface LinkedDocAnnotationEntry {
-  annotations: Annotation[];
-  globalAttachments: ImageAttachment[];
-  markdown?: string;
-  blocks?: Block[];
-}
-
-export const exportLinkedDocAnnotations = (
-  docAnnotations: Map<string, LinkedDocAnnotationEntry>
-): string => {
-  let output = `\n# Linked Document Feedback\n\nThe following feedback is on documents referenced in the plan.\n\n`;
-
-  for (const [filepath, { annotations, globalAttachments, blocks: docBlocks }] of docAnnotations) {
-    if (annotations.length === 0 && globalAttachments.length === 0) continue;
-
-    output += `## ${filepath}\n\n`;
-
-    // No standalone "Reference Images" section — legacy
-    // top-level images are decoded into a GLOBAL_COMMENT annotation and
-    // appear under "Attached images" with that comment below.
-
-    // Sort annotations by block and offset
-    const sortedAnns = [...annotations].sort((a, b) => {
-      if (a.blockId !== b.blockId) return a.blockId.localeCompare(b.blockId);
-      return a.startOffset - b.startOffset;
-    });
-
-    output += `I've reviewed this document and have ${annotations.length} piece${annotations.length !== 1 ? 's' : ''} of feedback:\n\n`;
-
-    sortedAnns.forEach((ann, index) => {
-      output += `### ${index + 1}. `;
-
-      const lineLabel = docBlocks ? lineLabelForAnnotation(docBlocks, ann) : null;
-      if (lineLabel) output += `(${lineLabel}) `;
-
-      switch (ann.type) {
-        case 'DELETION':
-          output += `Remove this\n`;
-          output += `\`\`\`\n${ann.originalText}\n\`\`\`\n`;
-          output += `> I don't want this in the document.\n`;
-          break;
-
-        case 'COMMENT':
-          output += `Feedback on: "${ann.originalText}"\n`;
-          if (ann.text) {
-            output += `> ${ann.text}\n`;
-          }
-          break;
-
-        case 'GLOBAL_COMMENT':
-          output += `General feedback about the document\n`;
-          if (ann.text) {
-            output += `> ${ann.text}\n`;
-          }
-          break;
-      }
-
-      if (ann.images && ann.images.length > 0) {
-        output += `**Attached images:**\n`;
-        ann.images.forEach((img: ImageAttachment) => {
-          output += `- [${img.name}] \`${img.path}\`\n`;
-        });
-      }
-
-      output += '\n';
-    });
-  }
-
-  output += `---\n`;
-  return output;
-};
-
-export const exportCodeFileAnnotations = (annotations: CodeAnnotation[]): string => {
-  if (annotations.length === 0) return '';
-
-  let output = `\n# Code File Feedback\n\nThe following feedback is on code files referenced from the reviewed document.\n\n`;
-  const sorted = [...annotations].sort((a, b) => {
-    if (a.filePath !== b.filePath) return a.filePath.localeCompare(b.filePath);
-    if (a.lineStart !== b.lineStart) return a.lineStart - b.lineStart;
-    return a.createdAt - b.createdAt;
-  });
-
-  sorted.forEach((ann, index) => {
-    const lineRange = ann.lineStart === ann.lineEnd
-      ? `line ${ann.lineStart}`
-      : `lines ${ann.lineStart}-${ann.lineEnd}`;
-
-    output += `## ${index + 1}. ${ann.filePath} (${lineRange})\n`;
-    if (ann.text) {
-      output += `> ${ann.text}\n`;
-    }
-    if (ann.images && ann.images.length > 0) {
-      output += `**Attached images:**\n`;
-      ann.images.forEach((img) => {
-        output += `- [${img.name}] \`${img.path}\`\n`;
-      });
-    }
-    output += '\n';
-  });
-
-  output += `---\n`;
-  return output;
-};
-
 export interface MessageAnnotationEntry {
   messageId: string;
   text: string;
@@ -1438,8 +1331,6 @@ export interface MessageAnnotationEntry {
   annotations: Annotation[];
   globalAttachments: ImageAttachment[];
   blocks?: Block[];
-  linkedDocs?: Map<string, LinkedDocAnnotationEntry>;
-  codeAnnotations?: CodeAnnotation[];
 }
 
 const MESSAGE_EXCERPT_MAX_CHARS = 1200;
@@ -1457,20 +1348,9 @@ const fencedBlock = (text: string, language = ''): string => {
 };
 
 export const exportMessageAnnotations = (entries: MessageAnnotationEntry[]): string => {
-  const nonEmpty = entries.filter((entry) => {
-    const linkedDocCount = entry.linkedDocs
-      ? Array.from(entry.linkedDocs.values()).reduce(
-          (sum, doc) => sum + doc.annotations.length + doc.globalAttachments.length,
-          0
-        )
-      : 0;
-    return (
-      entry.annotations.length > 0 ||
-      entry.globalAttachments.length > 0 ||
-      (entry.codeAnnotations?.length ?? 0) > 0 ||
-      linkedDocCount > 0
-    );
-  });
+  const nonEmpty = entries.filter(
+    (entry) => entry.annotations.length > 0 || entry.globalAttachments.length > 0,
+  );
 
   if (nonEmpty.length === 0) {
     return 'User reviewed the messages and has no feedback.';
@@ -1485,31 +1365,15 @@ export const exportMessageAnnotations = (entries: MessageAnnotationEntry[]): str
     output += fencedBlock(excerptMessageText(entry.text), 'markdown');
     output += '\n';
 
-    if (entry.annotations.length > 0 || entry.globalAttachments.length > 0) {
-      output += exportAnnotations(
-        entry.blocks ?? parseMarkdownToBlocks(entry.text),
-        entry.annotations,
-        entry.globalAttachments,
-        `Feedback for Message ${index + 1}`,
-        'message',
-      );
-      output += '\n';
-    }
-
-    const hasLinkedDocFeedback = entry.linkedDocs
-      ? Array.from(entry.linkedDocs.values()).some(
-          (doc) => doc.annotations.length > 0 || doc.globalAttachments.length > 0
-        )
-      : false;
-    if (entry.linkedDocs && hasLinkedDocFeedback) {
-      output += exportLinkedDocAnnotations(entry.linkedDocs);
-      output += '\n';
-    }
-
-    if (entry.codeAnnotations?.length) {
-      output += exportCodeFileAnnotations(entry.codeAnnotations);
-      output += '\n';
-    }
+    output += exportAnnotations(
+      entry.blocks ?? parseMarkdownToBlocks(entry.text),
+      entry.annotations,
+      entry.globalAttachments,
+      '',
+      'message',
+      2,
+    );
+    output += '\n';
   });
 
   return output.trimEnd();

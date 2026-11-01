@@ -42,7 +42,6 @@ import { resolveAnnotateTarget } from "./annotate-resolution";
 import { registerSession, unregisterSession, listSessions, killSession } from "@/server/sessions";
 import { openBrowser } from "@/server/browser";
 import { detectProjectName } from "@/server/project";
-import { AGENT_CONFIG, type Origin } from "@/shared/agents";
 import {
   getRecentRenderedMessages,
   describeClaudeSessionResolutionFailure,
@@ -59,50 +58,18 @@ import {
   isSubcommandHelpInvocation,
   isTopLevelHelpInvocation,
   isVersionInvocation,
-  parseStrictAnnotateOptions,
 } from "./cli";
 import { exitOnUnknownSubcommand } from "./unknown-subcommand";
-import { completeAnnotateCommand } from "./annotate-command";
-import {
-  annotateStartupFailureExitCode,
-  isStrictAnnotateInvocation,
-  assertResultPathAvailable,
-  resolveResultFilePath,
-  STRICT_GATE_ERROR_EXIT_CODE,
-} from "./strict-annotate-result";
 import path from "path";
-import { createInterface } from "node:readline/promises";
-import {
-  createAnnotateOutcomeEmitter,
-  supportsAnnotateApprovalNotes,
-} from "./annotate-output";
+import { emitAnnotateOutcome } from "./annotate-output";
 
 // Embed the built HTML at compile time
 // @ts-ignore - Bun import attribute for text
-import planHtml from "../../dist/annotate/index.html" with { type: "text" };
-const planHtmlContent = planHtml as unknown as string;
+import annotateHtml from "../../dist/annotate/index.html" with { type: "text" };
+const annotateHtmlContent = annotateHtml as unknown as string;
 
 // Check for subcommand
-const rawArgs = process.argv.slice(2);
-let parsedStrictAnnotateOptions;
-try {
-  parsedStrictAnnotateOptions = parseStrictAnnotateOptions(
-    rawArgs,
-  );
-} catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
-  // Usage error: the gate was misconfigured, not a reviewer decision.
-  process.exit(STRICT_GATE_ERROR_EXIT_CODE);
-}
-const args = parsedStrictAnnotateOptions.remainingArgs;
-const requireApprovalFlag =
-  parsedStrictAnnotateOptions.requireApproval;
-const resultFile = parsedStrictAnnotateOptions.resultFile
-  ? resolveResultFilePath(
-      parsedStrictAnnotateOptions.resultFile,
-      process.env.HYPERMARK_CWD || process.cwd(),
-    )
-  : undefined;
+const args = process.argv.slice(2);
 
 // Global flag: --browser <name>
 const browserIdx = args.indexOf("--browser");
@@ -110,45 +77,6 @@ if (browserIdx !== -1 && args[browserIdx + 1]) {
   process.env.HYPERMARK_BROWSER = args[browserIdx + 1];
   args.splice(browserIdx, 2);
 }
-
-// Annotate review-gate flags: --gate adds an Approve button, --json
-// switches stdout to structured decision output, --hook emits hook-native
-// JSON that works directly with Claude Code PostToolUse/Stop
-// hook protocols.
-const gateIdx = args.indexOf("--gate");
-let gateFlag = gateIdx !== -1;
-if (gateFlag) args.splice(gateIdx, 1);
-const jsonIdx = args.indexOf("--json");
-const jsonFlag = jsonIdx !== -1;
-if (jsonFlag) args.splice(jsonIdx, 1);
-const hookIdx = args.indexOf("--hook");
-const hookFlag = hookIdx !== -1;
-if (hookFlag) args.splice(hookIdx, 1);
-if (hookFlag) gateFlag = true;
-// Retired HTML flags: HTML always converts to markdown now. Strip them so an
-// old invocation is not read as a file token.
-for (const retired of ["--render-html", "--markdown"]) {
-  const idx = args.indexOf(retired);
-  if (idx !== -1) args.splice(idx, 1);
-}
-
-// Stdout matrix for annotate / annotate-last.
-//
-// --hook (recommended for hooks):
-//   Approve/Close → empty stdout (hook passes, agent proceeds).
-//   Annotate → {"decision":"block","reason":"<feedback>"} (hook blocks).
-//   Works with Claude Code hook protocols.
-//
-// --json (structured decisions for wrapper scripts):
-//   Emits {"decision":"approved|dismissed|annotated","feedback":"..."}.
-//
-// Plaintext (default):
-//   Close → empty. Approve → "The user approved." Annotate → feedback.
-//
-const emitAnnotateOutcome = createAnnotateOutcomeEmitter({
-  hook: hookFlag,
-  json: jsonFlag,
-});
 
 if (isVersionInvocation(args)) {
   console.log(formatVersion());
@@ -189,13 +117,6 @@ process.on("exit", () => unregisterSession());
 // must end up with no listener and survive terminal close.
 process.once("SIGINT", () => process.exit(130));
 process.once("SIGTERM", () => process.exit(143));
-
-// Detect calling agent. This fork ships Claude Code only; HYPERMARK_ORIGIN is
-// still honored (validated against AGENT_CONFIG) so an archived record can be
-// replayed under its recorded origin.
-const originOverride = process.env.HYPERMARK_ORIGIN as Origin | undefined;
-const detectedOrigin: Origin =
-  (originOverride && originOverride in AGENT_CONFIG) ? originOverride : "claude-code";
 
 if (args[0] === "sessions") {
   // ============================================
@@ -279,48 +200,22 @@ if (args[0] === "sessions") {
   // ANNOTATE MODE
   // ============================================
 
-  // Startup failures below fire after flag parsing, so under a strict flag they
-  // must not exit 1 — that code means "the reviewer requested changes".
   function exitAnnotateStartupFailure(message: string): never {
     console.error(message);
-    process.exit(
-      annotateStartupFailureExitCode({
-        requireApproval: requireApprovalFlag,
-        resultFile,
-      }),
-    );
+    process.exit(1);
   }
 
   const rawFilePath = args[1];
   if (!rawFilePath) {
-    exitAnnotateStartupFailure("Usage: hypermark annotate <file.md | file.txt> [--gate] [--json] [--hook] [--require-approval] [--result-file <path>]");
+    exitAnnotateStartupFailure("Usage: hypermark annotate <file.md | file.txt>");
   }
 
   // Use HYPERMARK_CWD if set (original working directory before script cd'd)
   const projectRoot = process.env.HYPERMARK_CWD || process.cwd();
 
-  if (resultFile) {
-    try {
-      await assertResultPathAvailable(resultFile);
-    } catch (error) {
-      console.error(error instanceof Error ? error.message : String(error));
-      // Startup validation error: the gate could not start.
-      process.exit(STRICT_GATE_ERROR_EXIT_CODE);
-    }
-  }
-
-  // Strict invocations keep the exact legacy contract: args[1] is the target,
-  // a typo'd path stays a startup failure (exit 2), and stdout carries only
-  // the decision record. The tolerant token fallback below never runs. Same
-  // predicate as the exit-code path, so the two cannot drift.
-  const strictAnnotate = isStrictAnnotateInvocation({
-    requireApproval: requireApprovalFlag,
-    resultFile,
-  });
-
-  // Tolerant argument handling (#1182): slash-command hosts forward raw user
-  // words verbatim, so a non-strict invocation with several tokens probes
-  // each one instead of blindly taking args[1]. Exactly one token naming an
+  // Tolerant argument handling: slash-command hosts forward raw user
+  // words verbatim, so an invocation with several tokens probes each one
+  // instead of blindly taking args[1]. Exactly one token naming an
   // existing target proceeds with it; several is an error naming every
   // candidate (never guess); two or more unresolvable words become a handoff
   // for the agent reading this output. Single-token invocations run the
@@ -329,7 +224,7 @@ if (args[0] === "sessions") {
   // disable tolerance entirely so a typo'd flag errors the way it always
   // did instead of being silently skipped.
   const targetTokens = args.slice(1);
-  const tolerantMultiToken = !strictAnnotate && targetTokens.length > 1;
+  const tolerantMultiToken = targetTokens.length > 1;
   const annotateProbe = (token: string) => probeAnnotateToken(token, projectRoot);
 
   let resolution: Awaited<ReturnType<typeof resolveAnnotateTarget>> | null =
@@ -350,19 +245,8 @@ if (args[0] === "sessions") {
     } else if (selection.kind === "multiple") {
       exitAnnotateStartupFailure(buildAmbiguousAnnotateArgsMessage(selection.candidates));
     } else if (selection.kind === "none" && selection.words.length > 1) {
-      // No flags are handed off: transport flags (--gate/--json/--hook)
-      // describe this invocation's plumbing, and suggesting them would tell
-      // an agent to start a blocking interactive gate from a plain re-run.
-      const message = buildUnresolvedAnnotateArgsMessage({
-        words: selection.words,
-        agentHandoff: true,
-      });
-      if (jsonFlag || hookFlag) {
-        // Machine-readable stdout stays reserved for decision records;
-        // stderr is forwarded on failure.
-        exitAnnotateStartupFailure(message);
-      }
-      // Plain mode: a non-zero exit from Claude Code's bash-substitution
+      const message = buildUnresolvedAnnotateArgsMessage(selection.words);
+      // A non-zero exit from Claude Code's bash-substitution
       // skill prefix aborts the prompt before the model runs, so the handoff
       // must land on stdout with exit 0 to reach the agent at all.
       console.log(message);
@@ -384,28 +268,17 @@ if (args[0] === "sessions") {
     exitAnnotateStartupFailure(resolution.message);
   }
 
-  const {
-    markdown,
-    absolutePath,
-    annotateMode,
-  } = resolution;
+  const { markdown, absolutePath } = resolution;
 
   const annotateProject = (await detectProjectName()) ?? "_unknown";
 
-  // Start the annotate server (reuses plan editor HTML)
+  // Start the annotate server
   const server = await startAnnotateServer({
     markdown,
     filePath: absolutePath,
-    origin: detectedOrigin,
-    mode: annotateMode,
-    gate: gateFlag,
-    approvalNotesSupported: supportsAnnotateApprovalNotes({
-      gate: gateFlag,
-      json: jsonFlag,
-      hook: hookFlag,
-    }),
+    mode: "annotate",
     project: annotateProject,
-    htmlContent: planHtmlContent,
+    htmlContent: annotateHtmlContent,
     parentWatch: true,
     onReady: async (url, port) => {
       handleAnnotateServerReady(url, port);
@@ -422,14 +295,11 @@ if (args[0] === "sessions") {
     label: `annotate-${path.basename(absolutePath)}`,
   });
 
-  await completeAnnotateCommand({
-    waitForDecision: server.waitForDecision,
-    settleAfterDecision: () => Bun.sleep(1500),
-    stopServer: server.stop,
-    requireApproval: requireApprovalFlag,
-    resultFile,
-    emitLegacyOutcome: emitAnnotateOutcome,
-  });
+  const result = await server.waitForDecision();
+  await Bun.sleep(1500);
+  server.stop();
+  emitAnnotateOutcome(result);
+  process.exit(0);
 
 } else if (args[0] === "annotate-last" || args[0] === "last") {
   // ============================================
@@ -513,17 +383,12 @@ if (args[0] === "sessions") {
   const server = await startAnnotateServer({
     markdown: annotatedMessage.text,
     filePath: "last-message",
-    origin: detectedOrigin,
     mode: "annotate-last",
     project: annotateProject,
-    gate: gateFlag,
-    approvalNotesSupported: supportsAnnotateApprovalNotes({
-      gate: gateFlag,
-      json: jsonFlag,
-      hook: hookFlag,
-    }),
-    htmlContent: planHtmlContent,
+    htmlContent: annotateHtmlContent,
     recentMessages: pickerMessages,
+    selectedMessageId: annotatedMessage.messageId,
+    draftId: messageLogPath,
     sideChat: messageLogPath ? readSessionForResume(messageLogPath) ?? undefined : undefined,
     parentWatch: true,
     onReady: async (url, port) => {
@@ -551,11 +416,6 @@ if (args[0] === "sessions") {
   process.exit(0);
 
 } else {
-  // No subcommand. A stale hook registration from an old plugin install pipes
-  // JSON on stdin; exit silently so it stays harmless.
-  if (!process.stdin.isTTY) {
-    process.exit(0);
-  }
   console.log(formatTopLevelHelp());
   process.exit(0);
 }

@@ -1,8 +1,7 @@
 /**
  * End-to-end exit-code and stream contract for `hypermark annotate`
- * argument handling (#1182), exercised through a real process spawn of the
- * CLI entry so the strict-gate bypass and the tolerant tiers are covered as
- * wired, not as helpers.
+ * argument handling, exercised through a real process spawn of the
+ * CLI entry so the tolerant tiers are covered as wired, not as helpers.
  *
  * The CLI entry imports the built single-file HTML from ../dist at module
  * load. Every case here fails or hands off before a server would start, so
@@ -96,43 +95,6 @@ describe("annotate CLI single-token failures stay legacy", () => {
     expect(result.stdout).toBe("");
   });
 
-  test("same with --gate (non-strict): still exit 1, no handoff prose", () => {
-    const result = runAnnotate(["nope.md", "--gate"]);
-    expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain("File not found: nope.md");
-    expect(result.stdout).toBe("");
-  });
-});
-
-describe("annotate CLI strict gate bypasses tolerance", () => {
-  test("--require-approval with natural-language args exits 2, stdout empty", () => {
-    const result = runAnnotate([
-      "the",
-      "aim",
-      "doc",
-      "--gate",
-      "--json",
-      "--require-approval",
-    ]);
-    expect(result.exitCode).toBe(2);
-    expect(result.stderr).toContain("File not found: the");
-    expect(result.stdout).toBe("");
-  });
-
-  test("--result-file with natural-language args exits 2, stdout empty", () => {
-    const result = runAnnotate([
-      "the",
-      "aim",
-      "doc",
-      "--gate",
-      "--json",
-      "--result-file",
-      join("out", "result.json"),
-    ]);
-    expect(result.exitCode).toBe(2);
-    expect(result.stderr).toContain("File not found: the");
-    expect(result.stdout).toBe("");
-  });
 });
 
 describe("annotate CLI tolerant tiers", () => {

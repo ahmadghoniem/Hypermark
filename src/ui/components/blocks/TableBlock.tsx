@@ -6,7 +6,6 @@ interface TableBlockProps {
   block: Block;
   onHover?: (element: HTMLElement) => void;
   onLeave?: () => void;
-  onOpenLinkedDoc?: (path: string) => void;
   onNavigateAnchor?: (hash: string) => void;
   imageBaseDir?: string;
   onImageClick?: (src: string, alt: string) => void;
@@ -57,7 +56,6 @@ export const TableBlock: React.FC<TableBlockProps> = ({
   block,
   onHover,
   onLeave,
-  onOpenLinkedDoc,
   onNavigateAnchor,
   imageBaseDir,
   onImageClick,
@@ -72,7 +70,7 @@ export const TableBlock: React.FC<TableBlockProps> = ({
   return (
     <div
       ref={containerRef}
-      className="my-plan overflow-x-auto"
+      className="my-doc overflow-x-auto"
       data-block-id={block.id}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={onLeave}
@@ -86,7 +84,6 @@ export const TableBlock: React.FC<TableBlockProps> = ({
                   imageBaseDir={imageBaseDir}
                   onImageClick={onImageClick}
                   text={header}
-                  onOpenLinkedDoc={onOpenLinkedDoc}
                   onNavigateAnchor={onNavigateAnchor}
                 />
               </th>
@@ -102,7 +99,6 @@ export const TableBlock: React.FC<TableBlockProps> = ({
                     imageBaseDir={imageBaseDir}
                     onImageClick={onImageClick}
                     text={cell}
-                    onOpenLinkedDoc={onOpenLinkedDoc}
                     onNavigateAnchor={onNavigateAnchor}
                   />
                 </td>

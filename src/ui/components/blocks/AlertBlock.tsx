@@ -7,7 +7,6 @@ interface AlertBlockProps {
   blockId: string;
   kind: AlertKind;
   body: string;
-  onOpenLinkedDoc?: (path: string) => void;
   imageBaseDir?: string;
   onImageClick?: (src: string, alt: string) => void;
   onNavigateAnchor?: (hash: string) => void;
@@ -35,11 +34,11 @@ const Icon: React.FC<{ kind: AlertKind }> = ({ kind }) => {
 };
 
 export const AlertBlock: React.FC<AlertBlockProps> = ({
-  blockId, kind, body, onOpenLinkedDoc, imageBaseDir, onImageClick, onNavigateAnchor,
+  blockId, kind, body, imageBaseDir, onImageClick, onNavigateAnchor,
 }) => {
   return (
     <div
-      className={`alert alert-${kind} my-plan pl-4 pr-3 py-2 border-l-[3px]`}
+      className={`alert alert-${kind} my-doc pl-4 pr-3 py-2 border-l-[3px]`}
       data-block-id={blockId}
       data-block-type="alert"
       data-alert-kind={kind}
@@ -48,7 +47,7 @@ export const AlertBlock: React.FC<AlertBlockProps> = ({
         <Icon kind={kind} />
         <span>{TITLE[kind]}</span>
       </div>
-      {renderProseBody({ body, imageBaseDir, onImageClick, onOpenLinkedDoc, onNavigateAnchor })}
+      {renderProseBody({ body, imageBaseDir, onImageClick, onNavigateAnchor })}
     </div>
   );
 };

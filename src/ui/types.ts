@@ -26,7 +26,6 @@ export interface Annotation {
   originalText: string; // The text that was selected
   createdA: number;
   images?: ImageAttachment[]; // Attached images with human-readable names
-  diffContext?: 'added' | 'removed' | 'modified'; // set when annotation created in plan diff view
   mathTargets?: Array<{
     blockId: string;
     tex: string;
@@ -53,50 +52,4 @@ export interface Block {
   order: number; // Sorting order
   startLine: number; // 1-based line number in source
   sourceLineCount?: number; // Number of source lines consumed when it differs from content lines
-}
-
-export interface DiffResult {
-  original: string;
-  modified: string;
-  diffText: string;
-}
-
-// Code annotation types
-export type CodeAnnotationType = 'comment';
-// 'general' is a review-level comment tied to no file and no line. For 'general'
-// (and the file-less case) filePath is "" and lineStart/lineEnd are 0 — consumers
-// must branch on scope, never read those sentinels as a real path or row.
-export type CodeAnnotationScope = 'line' | 'file' | 'general';
-
-
-export interface CodeAnnotation {
-  id: string;
-  type: CodeAnnotationType;
-  scope?: CodeAnnotationScope; // Defaults to 'line' for backward compatibility
-  filePath: string;
-  lineStart: number;
-  lineEnd: number;
-  side: 'old' | 'new';
-  text?: string;
-  images?: ImageAttachment[];
-  charStart?: number; // Character offset within lineStart (token-level selection)
-  charEnd?: number; // Character offset within lineEnd (token-level selection)
-  tokenText?: string; // Selected token/span text (token-level selection)
-  createdAt: number;
-  severity?: 'important' | 'nit' | 'pre_existing'; // Agent review severity (Claude)
-  reasoning?: string; // Validation chain — how the issue was confirmed (Claude)
-  /** Set when the annotation was created on a commit:<sha> diff (Commits
-   *  panel). Line numbers anchor to THAT commit's diff-vs-parent — the export
-   *  labels the annotation with its commit when sent from any other diff, so
-   *  the agent never reads historical line numbers against the current diff. */
-  commitSha?: string;
-  /** The commit's one-line subject, captured for readable export labels. */
-  commitSubject?: string;
-}
-
-export interface VaultNode {
-  name: string;
-  path: string; // relative path within vault
-  type: "file" | "folder";
-  children?: VaultNode[];
 }

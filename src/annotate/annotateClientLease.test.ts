@@ -51,7 +51,7 @@ describe('shouldConnectAnnotateClientLease', () => {
     ).toBe(false);
   });
 
-  test('does not connect when clientLease is unavailable (undefined/null, e.g. /api/plan fetch failed)', () => {
+  test('does not connect when clientLease is unavailable (undefined/null, e.g. /api/document fetch failed)', () => {
     expect(
       shouldConnectAnnotateClientLease({
         submitted: null,
@@ -67,7 +67,7 @@ describe('shouldConnectAnnotateClientLease', () => {
   });
 
   test('does not connect once a decision has already been submitted', () => {
-    for (const submitted of ['approved', 'denied', 'exited'] as const) {
+    for (const submitted of ['all-good', 'feedback-sent', 'exited'] as const) {
       expect(
         shouldConnectAnnotateClientLease({
             submitted,

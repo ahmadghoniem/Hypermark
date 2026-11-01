@@ -6,7 +6,7 @@ import {
 	shouldStripFrontmatter,
 } from "./annotatable";
 import {
-	getAnnotatableTextRegex,
+	isAnnotatableTextPath as isConfiguredTextPath,
 	getExtraMarkdownExtensions,
 	normalizeMarkdownExtensions,
 	resetMarkdownExtensionsCache,
@@ -137,7 +137,7 @@ describe("config-file integration (sandboxed data dir)", () => {
 			);
 			resetMarkdownExtensionsCache();
 			expect(getExtraMarkdownExtensions()).toEqual([".livemd"]);
-			expect(getAnnotatableTextRegex().test("notebooks/tour.livemd")).toBe(true);
+			expect(isConfiguredTextPath("notebooks/tour.livemd")).toBe(true);
 
 			// Memoized: a mid-session config edit must not change the accepted
 			// set until the next process (or an explicit reset).

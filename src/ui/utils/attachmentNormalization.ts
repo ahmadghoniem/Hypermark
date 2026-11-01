@@ -15,7 +15,7 @@
  *    preventing ghost draft resurrection).
  */
 
-import { AnnotationType, type Annotation, type CodeAnnotation, type ImageAttachment } from '../types';
+import { AnnotationType, type Annotation, type ImageAttachment } from '../types';
 import {
   fromShareable,
   parseShareableImages,
@@ -212,7 +212,6 @@ export function normalizeDocumentAnnotations({
 
 export interface NormalizedDraftResult {
   annotations: Annotation[];
-  codeAnnotations: CodeAnnotation[];
   globalAttachments: ImageAttachment[];
   draftGeneration?: number;
   ts?: number;
@@ -231,10 +230,10 @@ export interface NormalizedDraftResult {
 export function normalizeDraftPayload(data: unknown, docKey?: string): NormalizedDraftResult | null {
   if (!data || typeof data !== 'object') return null;
 
-  // Legacy draft: { a: ShareableAnnotation[], g?: ShareableImage[], d?: string[], ts: number }
+  // Legacy draft: { a: ShareableAnnotation[], g?: ShareableImage[], ts: number }
   if ('a' in data && Array.isArray((data as { a: unknown }).a)) {
-    const legacy = data as { a: ShareableAnnotation[]; g?: unknown[]; d?: (string | null)[]; ts?: number };
-    const decodedAnns = legacy.a.length > 0 ? fromShareable(legacy.a, legacy.d) : [];
+    const legacy = data as { a: ShareableAnnotation[]; g?: unknown[]; ts?: number };
+    const decodedAnns = legacy.a.length > 0 ? fromShareable(legacy.a) : [];
     const decodedGlobals = legacy.g ? (parseShareableImages(legacy.g as Parameters<typeof parseShareableImages>[0]) ?? []) : [];
 
     const { annotations } = normalizeDocumentAnnotations({
@@ -245,23 +244,20 @@ export function normalizeDraftPayload(data: unknown, docKey?: string): Normalize
 
     return {
       annotations,
-      codeAnnotations: [],
       globalAttachments: [],
       ts: legacy.ts,
     };
   }
 
-  // Modern draft: { annotations?: Annotation[], codeAnnotations?: CodeAnnotation[], globalAttachments?: ImageAttachment[], draftGeneration?: number, ts?: number }
+  // Modern draft: { annotations?: Annotation[], globalAttachments?: ImageAttachment[], draftGeneration?: number, ts?: number }
   const modern = data as {
     annotations?: Annotation[];
-    codeAnnotations?: CodeAnnotation[];
     globalAttachments?: unknown[];
     draftGeneration?: number;
     ts?: number;
   };
 
   const rawAnns = Array.isArray(modern.annotations) ? modern.annotations : [];
-  const rawCodeAnns = Array.isArray(modern.codeAnnotations) ? modern.codeAnnotations : [];
   const rawGlobals = Array.isArray(modern.globalAttachments) ? modern.globalAttachments : [];
 
   const { annotations } = normalizeDocumentAnnotations({
@@ -272,7 +268,6 @@ export function normalizeDraftPayload(data: unknown, docKey?: string): Normalize
 
   return {
     annotations,
-    codeAnnotations: rawCodeAnns,
     globalAttachments: [],
     ...(modern.draftGeneration !== undefined ? { draftGeneration: modern.draftGeneration } : {}),
     ...(modern.ts !== undefined ? { ts: modern.ts } : {}),

@@ -2,12 +2,11 @@
  * Session-ended SSE stream — server→client only announcement that the
  * Claude Code process which owns this tab's session has exited.
  *
- * Generalizes `ANNOTATE_CLIENT_LEASE_STREAM_PATH` (src/shared/
- * annotate-client-lease.ts) for the plan and review servers, which have no
- * client-lease of their own: that stream detects the *tab* going away, this
+ * Sits beside `ANNOTATE_CLIENT_LEASE_STREAM_PATH` (src/shared/
+ * annotate-client-lease.ts): that stream detects the *tab* going away, this
  * one detects the *parent Claude Code process* going away (see
  * src/server/parent-watch.ts). The annotate server opens both — the
- * lease dismisses its gate on tab abandonment, this stream tells any open
+ * lease dismisses the session on tab abandonment, this stream tells any open
  * tab that the session it belongs to is over.
  *
  * The client reads a real message payload here (`{ sessionEnded: true }`),
@@ -16,7 +15,7 @@
  * ready/heartbeat comment-only design beyond keeping the connection alive.
  */
 
-/** SSE route path shared by all three Bun servers and their browser clients. */
+/** SSE route path shared by the annotate server and its browser client. */
 export const SESSION_STREAM_PATH = "/api/session/stream";
 
 /** First byte written once a session stream is open. */

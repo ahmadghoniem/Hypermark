@@ -17,7 +17,6 @@ import { AnnotationType } from '../types';
 import {
   fromShareable,
   parseShareableImages,
-  type ShareableAnnotation,
   type ShareableImage,
 } from './annotationSerialization';
 
@@ -113,21 +112,5 @@ describe('fromShareable — legacy tuple annotations', () => {
       { path: '/data/c.png', name: 'C' },
       { path: '/data/d.png', name: 'd' },
     ]);
-  });
-
-  test('the parallel d array attaches diffContext by index', () => {
-    const data: ShareableAnnotation[] = [
-      ['C', 'quote a', 'comment a', null],
-      ['C', 'quote b', 'comment b', null],
-    ];
-    const restored = fromShareable(data, ['added', null]);
-
-    expect(restored[0]!.diffContext).toBe('added');
-    expect('diffContext' in restored[1]!).toBe(false);
-  });
-
-  test('an omitted d array leaves diffContext off', () => {
-    const [restored] = fromShareable([['C', 'quote', 'comment', null]]);
-    expect('diffContext' in restored!).toBe(false);
   });
 });

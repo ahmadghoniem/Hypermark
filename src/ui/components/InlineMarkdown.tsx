@@ -1,11 +1,9 @@
 import React, { useMemo } from "react";
 import { transformPlainText } from "../utils/inlineTransforms";
-import { hasLinkedDocExtension } from "../utils/markdownExtensions";
 import { getImageSrc } from "../utils/imageSrc";
 import { normalizeMathTex, renderMathToHtml } from "../utils/math";
 import { useMathRenderer } from "../hooks/useMathRenderer";
 
-import { File06 } from '@untitledui/icons';
 const DANGEROUS_PROTOCOL = /^\s*(javascript|data|vbscript|file)\s*:/i;
 function sanitizeLinkUrl(url: string): string | null {
   if (DANGEROUS_PROTOCOL.test(url)) return null;
@@ -68,7 +66,7 @@ export function trimUrlTail(url: string): string {
   };
   while (url.length > 0) {
     const last = url[url.length - 1];
-    if (!/[.,;:!?)\]}>"']/.test(last)) break;
+    if (!/[.,;:!?)\]}>"'*_~]/.test(last)) break;
     if (last === ')' && balanced(url, ')', '(')) break;
     if (last === ']' && balanced(url, ']', '[')) break;
     if (last === '}' && balanced(url, '}', '{')) break;
@@ -123,7 +121,7 @@ function emitPlainTextWithBareUrls(
           href={span.value}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-primary underline underline-offset-2 hover:text-primary/80"
+          className="doc-link text-primary underline-offset-3 hover:underline"
         >
           {span.value}
         </a>,
@@ -136,6 +134,16 @@ function emitPlainTextWithBareUrls(
   }
 }
 
+// Link text renders its code spans as chips. The rest stays literal, so a
+// URL used as the label does not nest a second anchor inside the link.
+function renderLinkLabel(text: string): React.ReactNode {
+  const pieces = text.split(/(`[^`]+`)/);
+  if (pieces.length === 1) return text;
+  return pieces.map((piece, i) => (i % 2 === 1
+    ? <code key={i} className="px-1 py-px rounded-xs bg-surface-3 text-sm font-mono">{piece.slice(1, -1)}</code>
+    : piece));
+}
+
 /**
  * Scanner that walks a text string and emits React nodes for inline markdown:
  * emphasis (**bold**, *italic*, _italic_, ***both***), `code`, ~~strikethrough~~,
@@ -146,27 +154,10 @@ function emitPlainTextWithBareUrls(
  */
 export const InlineMarkdown: React.FC<{
   text: string;
-  onOpenLinkedDoc?: (path: string) => void;
-  /**
-   * SYNCHRONOUS wiki-link resolution (host-backed, e.g. an in-memory cache).
-   * Called with the RAW stored target of a `[[target]]` / `[[target|label]]`
-   * wiki-link — before any path normalization (no `.md` appended), so opaque
-   * ids like `doc_01XYZ` arrive verbatim.
-   *
-   * Absent, or returning null/undefined → exactly today's rendering (stored
-   * label, live link). `label` → displayed instead of the stored label (the
-   * stored label is the fallback, the target the last resort). `status:
-   * 'deleted'` → a muted, non-interactive span (no anchor, no link icon,
-   * `onOpenLinkedDoc` is NOT wired) titled "Document deleted".
-   *
-   * Deliberately sync-only: no async variant, no loading states. Back it
-   * with a cache you keep hydrated.
-   */
-  resolveLinkedDoc?: (target: string) => { label?: string; status?: 'active' | 'deleted' } | null;
   onNavigateAnchor?: (hash: string) => void;
   imageBaseDir?: string;
   onImageClick?: (src: string, alt: string) => void;
-}> = ({ text, onOpenLinkedDoc, resolveLinkedDoc, onNavigateAnchor, imageBaseDir, onImageClick }) => {
+}> = ({ text, onNavigateAnchor, imageBaseDir, onImageClick }) => {
   const parts: React.ReactNode[] = [];
   let remaining = text;
   let key = 0;
@@ -262,7 +253,7 @@ export const InlineMarkdown: React.FC<{
               href={safe}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary underline underline-offset-2 hover:text-primary/80"
+              className="doc-link text-primary underline-offset-3 hover:underline"
             >
               {url}
             </a>,
@@ -284,7 +275,7 @@ export const InlineMarkdown: React.FC<{
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-primary underline underline-offset-2 hover:text-primary/80"
+          className="doc-link text-primary underline-offset-3 hover:underline"
         >
           {url}
         </a>,
@@ -300,7 +291,7 @@ export const InlineMarkdown: React.FC<{
         <a
           key={key++}
           href={`mailto:${email}`}
-          className="text-primary underline underline-offset-2 hover:text-primary/80"
+          className="doc-link text-primary underline-offset-3 hover:underline"
         >
           {email}
         </a>,
@@ -330,8 +321,6 @@ export const InlineMarkdown: React.FC<{
             imageBaseDir={imageBaseDir}
             onImageClick={onImageClick}
             text={match[1]}
-            onOpenLinkedDoc={onOpenLinkedDoc}
-            resolveLinkedDoc={resolveLinkedDoc}
             onNavigateAnchor={onNavigateAnchor}
           />
         </del>,
@@ -351,8 +340,6 @@ export const InlineMarkdown: React.FC<{
               imageBaseDir={imageBaseDir}
               onImageClick={onImageClick}
               text={match[1]}
-              onOpenLinkedDoc={onOpenLinkedDoc}
-              resolveLinkedDoc={resolveLinkedDoc}
               onNavigateAnchor={onNavigateAnchor}
             />
           </em>
@@ -372,8 +359,6 @@ export const InlineMarkdown: React.FC<{
             imageBaseDir={imageBaseDir}
             onImageClick={onImageClick}
             text={match[1]}
-            onOpenLinkedDoc={onOpenLinkedDoc}
-            resolveLinkedDoc={resolveLinkedDoc}
             onNavigateAnchor={onNavigateAnchor}
           />
         </strong>,
@@ -392,8 +377,6 @@ export const InlineMarkdown: React.FC<{
             imageBaseDir={imageBaseDir}
             onImageClick={onImageClick}
             text={match[1]}
-            onOpenLinkedDoc={onOpenLinkedDoc}
-            resolveLinkedDoc={resolveLinkedDoc}
             onNavigateAnchor={onNavigateAnchor}
           />
         </em>,
@@ -413,8 +396,6 @@ export const InlineMarkdown: React.FC<{
             imageBaseDir={imageBaseDir}
             onImageClick={onImageClick}
             text={match[1]}
-            onOpenLinkedDoc={onOpenLinkedDoc}
-            resolveLinkedDoc={resolveLinkedDoc}
             onNavigateAnchor={onNavigateAnchor}
           />
         </em>,
@@ -467,54 +448,16 @@ export const InlineMarkdown: React.FC<{
       continue;
     }
 
-    // Wikilinks: [[filename]] or [[filename|display text]]
+    // Wikilinks: [[filename]] or [[filename|display text]], shown as their
+    // label; there is nothing to open them in.
     match = remaining.match(/^\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/);
     if (match) {
-      const target = match[1].trim();
-      const storedLabel = match[2]?.trim();
-      // Host resolution gets the RAW target (pre-`.md` normalization): host
-      // targets are opaque doc ids, not paths. null → today's rendering.
-      const resolution = resolveLinkedDoc?.(target) ?? null;
-      const display = resolution?.label || storedLabel || target;
-      const targetPath = hasLinkedDocExtension(target)
-        ? target
-        : `${target}.md`;
-
-      if (resolution?.status === 'deleted') {
-        // Deleted doc: muted NON-link — no anchor, no pointer, no link icon —
-        // even when onOpenLinkedDoc is present.
-        parts.push(
-          <span
-            key={key++}
-            className="text-muted-foreground line-through decoration-muted-foreground/60"
-            title="Document deleted"
-          >
-            {display}
-          </span>,
-        );
-      } else if (onOpenLinkedDoc) {
-        parts.push(
-          <a
-            key={key++}
-            href={targetPath}
-            onClick={(e) => {
-              e.preventDefault();
-              onOpenLinkedDoc(targetPath);
-            }}
-            className="text-primary underline underline-offset-2 hover:text-primary/80 inline-flex items-center gap-1 cursor-pointer"
-            title={`Open: ${target}`}
-          >
-            {display}
-            <File06 className="size-3 opacity-50 shrink-0" />
-          </a>,
-        );
-      } else {
-        parts.push(
-          <span key={key++} className="text-primary">
-            {display}
-          </span>,
-        );
-      }
+      const display = match[2]?.trim() || match[1].trim();
+      parts.push(
+        <span key={key++} className="text-primary">
+          {display}
+        </span>,
+      );
       remaining = remaining.slice(match[0].length);
       previousChar = match[0][match[0].length - 1] || previousChar;
       continue;
@@ -581,24 +524,17 @@ export const InlineMarkdown: React.FC<{
     })();
     if (linkParsed) {
       const { linkText, linkUrl, consumed } = linkParsed;
+      const label = renderLinkLabel(linkText);
       const safeLinkUrl = sanitizeLinkUrl(linkUrl);
 
       // Dangerous protocol stripped — render as plain text, not a dead link
       if (safeLinkUrl === null) {
-        parts.push(<span key={key++}>{linkText}</span>);
+        parts.push(<span key={key++}>{label}</span>);
         remaining = remaining.slice(consumed);
         previousChar = ')';
         continue;
       }
 
-      // Local doc: .md / .mdx / .txt (plus configured extensions), optionally with #fragment.
-      // Fragment is stripped before handing to onOpenLinkedDoc (overlay has
-      // no anchor-scroll support today).
-      const isLocalDoc =
-        hasLinkedDocExtension(linkUrl, { allowFragment: true }) &&
-        !linkUrl.startsWith("http://") &&
-        !linkUrl.startsWith("https://");
-      const linkedDocPath = isLocalDoc ? linkUrl.replace(/#.*$/, '') : linkUrl;
       const isInPageAnchor = safeLinkUrl.startsWith('#');
 
       if (isInPageAnchor) {
@@ -610,42 +546,15 @@ export const InlineMarkdown: React.FC<{
               e.preventDefault();
               onNavigateAnchor(safeLinkUrl);
             } : undefined}
-            className="text-primary underline underline-offset-2 hover:text-primary/80"
+            className="doc-link text-primary underline-offset-3 hover:underline"
           >
-            {linkText}
-          </a>,
-        );
-      } else if (isLocalDoc && onOpenLinkedDoc) {
-        parts.push(
-          <a
-            key={key++}
-            href={safeLinkUrl}
-            onClick={(e) => {
-              e.preventDefault();
-              onOpenLinkedDoc(linkedDocPath);
-            }}
-            className="text-primary underline underline-offset-2 hover:text-primary/80 inline-flex items-center gap-1 cursor-pointer"
-            title={`Open: ${linkUrl}`}
-          >
-            {linkText}
-            <File06 className="size-3 opacity-50 shrink-0" />
-          </a>,
-        );
-      } else if (isLocalDoc) {
-        // No handler — render as plain link (e.g., in shared/portal views)
-        parts.push(
-          <a
-            key={key++}
-            href={safeLinkUrl}
-            className="text-primary underline underline-offset-2 hover:text-primary/80"
-          >
-            {linkText}
+            {label}
           </a>,
         );
       } else if (!/^[a-z][a-z0-9+.-]*:/i.test(safeLinkUrl)) {
-        // A relative link to anything else (a code file, a folder) has nothing
-        // to open here: files are viewed in the review app.
-        parts.push(<span key={key++}>{linkText}</span>);
+        // A relative link (another document, a code file, a folder) has
+        // nothing to open here, and following it would leave the session.
+        parts.push(<span key={key++}>{label}</span>);
       } else {
         parts.push(
           <a
@@ -653,9 +562,9 @@ export const InlineMarkdown: React.FC<{
             href={safeLinkUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-primary underline underline-offset-2 hover:text-primary/80"
+            className="doc-link text-primary underline-offset-3 hover:underline"
           >
-            {linkText}
+            {label}
           </a>,
         );
       }
@@ -673,8 +582,6 @@ export const InlineMarkdown: React.FC<{
           <InlineMarkdown
             key={key++}
             text={before}
-            onOpenLinkedDoc={onOpenLinkedDoc}
-            resolveLinkedDoc={resolveLinkedDoc}
             onNavigateAnchor={onNavigateAnchor}
             imageBaseDir={imageBaseDir}
             onImageClick={onImageClick}
@@ -693,13 +600,20 @@ export const InlineMarkdown: React.FC<{
     // patterns in the plain-text transforms. Bare URLs are instead
     // detected inline via emitPlainTextWithBareUrls() below.
     const nextSpecial = remaining.slice(1).search(/[\*_`\[!~\\<#@$]/);
-    const plainText = nextSpecial === -1 ? remaining : remaining.slice(0, nextSpecial + 1);
+    let end = nextSpecial === -1 ? remaining.length : nextSpecial + 1;
+    // A bare URL in the chunk keeps its #fragment, @, ~ and _ to its end.
+    const urlRe = /https?:\/\/[^\s<>"']+/g;
+    let urlMatch: RegExpExecArray | null;
+    while ((urlMatch = urlRe.exec(remaining)) !== null && urlMatch.index < end) {
+      end = Math.max(end, urlMatch.index + trimUrlTail(urlMatch[0]).length);
+    }
+    const plainText = remaining.slice(0, end);
     emitPlainTextWithBareUrls(plainText, previousChar, parts, () => key++);
     previousChar = plainText[plainText.length - 1] || previousChar;
-    if (nextSpecial === -1) {
+    if (end >= remaining.length) {
       break;
     }
-    remaining = remaining.slice(nextSpecial + 1);
+    remaining = remaining.slice(end);
   }
 
   return <>{parts}</>;

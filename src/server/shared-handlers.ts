@@ -1,12 +1,12 @@
 /**
  * Shared route handlers used by the annotate server.
  *
- * Eliminates duplication of /api/image, /api/upload, /api/draft, unmatched API
- * responses, and the server-ready handler across all three server files.
+ * /api/image, /api/upload, /api/draft, unmatched API responses, and the
+ * server-ready handler.
  */
 
-import { appendFileSync, existsSync, mkdirSync, unlinkSync } from "node:fs";
-import { basename, dirname } from "node:path";
+import { existsSync, mkdirSync, unlinkSync } from "node:fs";
+import { basename } from "node:path";
 import { openBrowser as openBrowserImpl } from "./browser";
 import { validateImagePath, validateUploadExtension, UPLOAD_DIR } from "./image";
 import { saveDraft, loadDraft, deleteDraft, getDraftGeneration } from "@/shared/draft";
@@ -30,7 +30,7 @@ export function readDraftGenerationFromBody(body: unknown): number | undefined {
   return normalizeDraftGeneration((body as { draftGeneration?: unknown }).draftGeneration);
 }
 
-/** Serve images from local paths or temp uploads. Used by all 3 servers. */
+/** Serve images from local paths or temp uploads */
 export async function handleImage(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const imagePath = url.searchParams.get("path");
@@ -65,7 +65,7 @@ export async function handleImage(req: Request): Promise<Response> {
   }
 }
 
-/** Upload image to temp dir, return path. Used by all 3 servers. */
+/** Upload image to temp dir, return path */
 export async function handleUpload(req: Request, sessionUploads?: Set<string>): Promise<Response> {
   try {
     const formData = await req.formData();
@@ -105,7 +105,7 @@ export function removeUnsentUploads(sessionUploads: Iterable<string>, sent: stri
   }
 }
 
-/** Save annotation draft. Used by all 3 servers. */
+/** Save annotation draft */
 export async function handleDraftSave(req: Request, contentKey: string): Promise<Response> {
   try {
     const body = await req.json();
@@ -118,7 +118,7 @@ export async function handleDraftSave(req: Request, contentKey: string): Promise
   }
 }
 
-/** Load annotation draft. Used by all 3 servers. */
+/** Load annotation draft */
 export function handleDraftLoad(contentKey: string): Response {
   const draft = loadDraft(contentKey);
   if (!draft) {
@@ -131,7 +131,7 @@ export function handleDraftLoad(contentKey: string): Response {
   return Response.json(draft);
 }
 
-/** Delete annotation draft. Used by all 3 servers. */
+/** Delete annotation draft */
 export function handleDraftDelete(contentKey: string, req?: Request): Response {
   deleteDraft(contentKey, req ? readDraftGenerationFromUrl(req) : undefined);
   return Response.json({ ok: true });
@@ -143,7 +143,7 @@ export function handleApiNotFound(path: string): Response {
 }
 
 /**
- * Serve the app favicon. Used by all 3 servers.
+ * Serve the app favicon.
  *
  * Classic (dark-navy P tile SVG) is the sole offered favicon. The response is
  * SVG with no-cache so a browser tab reflects the correct icon on every load.
@@ -155,19 +155,8 @@ export function handleFavicon(): Response {
 }
 
 interface ServerReadyOptions {
-  readyFile?: string;
   skipBrowserOpen?: boolean;
   openBrowser?: typeof openBrowserImpl;
-}
-
-export interface ServerReadyMetadata {
-  url: string;
-  port: number;
-}
-
-export function writeServerReadyMetadata(readyFile: string, metadata: ServerReadyMetadata): void {
-  mkdirSync(dirname(readyFile), { recursive: true });
-  appendFileSync(readyFile, `${JSON.stringify(metadata)}\n`, "utf8");
 }
 
 /** Attempt to open the browser for the session URL. */
@@ -176,16 +165,6 @@ export async function handleServerReady(
   port: number,
   options: ServerReadyOptions = {},
 ): Promise<void> {
-  const readyFile = options.readyFile ?? process.env.HYPERMARK_READY_FILE;
-  if (readyFile) {
-    try {
-      writeServerReadyMetadata(readyFile, { url, port });
-    } catch (error) {
-      if (options.readyFile) throw error;
-      // Best effort: host plugins use this side channel to open the browser.
-    }
-  }
-
   const skipBrowserOpen = options.skipBrowserOpen ?? process.env.HYPERMARK_SKIP_BROWSER_OPEN === "1";
   if (skipBrowserOpen) return;
 

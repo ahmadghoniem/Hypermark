@@ -43,7 +43,6 @@ describe("resolveAnnotateTarget", () => {
     if (result.ok) {
       expect(result.absolutePath).toBe(join(root, "plan.md"));
       expect(result.markdown).toBe("# Plan body");
-      expect(result.annotateMode).toBe("annotate");
     }
   });
 
@@ -74,7 +73,7 @@ describe("resolveAnnotateTarget", () => {
     }
   });
 
-  // #1307: an extension listed in config.json's `markdownExtensions` must be
+  // An extension listed in config.json's `markdownExtensions` must be
   // accepted everywhere .md is — single file and reading.
   test("a configured extra extension opens as a document", async () => {
     const configured = { extraMarkdownExtensions: [".livemd"] };
@@ -84,7 +83,6 @@ describe("resolveAnnotateTarget", () => {
     if (file.ok) {
       expect(file.absolutePath).toBe(join(root, "notebooks/tour.livemd"));
       expect(file.markdown).toBe("# Livebook tour");
-      expect(file.annotateMode).toBe("annotate");
     }
   });
 

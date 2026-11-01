@@ -4,14 +4,12 @@
  * Boots the real annotate server and exercises route wiring over HTTP.
  */
 
-import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "os";
-import { join, resolve } from "path";
+import { join } from "path";
 import { runGuardedShutdown, startAnnotateServer } from "./annotate";
-import { getServerConfig, loadConfig } from "./config";
-import { deriveAnnotateHistorySlug } from "@/shared/annotate-history";
-import { getHypermarkDataDir } from "@/shared/data-dir";
+import { getServerConfig, loadConfig } from "@/shared/config";
 
 const MINIMAL_HTML = "<html><body>Hypermark</body></html>";
 
@@ -98,157 +96,6 @@ describe("annotate server: /api/config favicon persistence", () => {
   });
 });
 
-describe("annotate server: approval notes", () => {
-  let savedPort: string | undefined;
-
-  beforeEach(() => {
-    savedPort = process.env.HYPERMARK_PORT;
-    delete process.env.HYPERMARK_PORT;
-  });
-
-  afterEach(() => {
-    if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
-    else process.env.HYPERMARK_PORT = savedPort;
-  });
-
-  test("returns the explicit approval-notes capability", async () => {
-    for (const approvalNotesSupported of [true, false]) {
-      const server = await startAnnotateServer({
-        markdown: "# Test",
-        filePath: join(tmpdir(), "approval-capability.md"),
-        htmlContent: MINIMAL_HTML,
-        approvalNotesSupported,
-      });
-
-      try {
-        const response = await fetch(`${server.url}/api/plan`);
-        const plan = await response.json() as { approvalNotesSupported?: boolean };
-        expect(plan.approvalNotesSupported).toBe(approvalNotesSupported);
-      } finally {
-        server.stop();
-      }
-    }
-  });
-
-  test("preserves feedback and annotations on approval", async () => {
-    const server = await startAnnotateServer({
-      markdown: "# Test",
-      filePath: join(tmpdir(), "approval-notes.md"),
-      htmlContent: MINIMAL_HTML,
-      approvalNotesSupported: true,
-    });
-
-    try {
-      const response = await fetch(`${server.url}/api/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          feedback: "Keep the retry bounded.",
-          annotations: [{ id: "a1" }],
-          draftGeneration: 3,
-        }),
-      });
-
-      expect(response.status).toBe(200);
-      expect(await server.waitForDecision()).toEqual({
-        approved: true,
-        feedback: "Keep the retry bounded.",
-        annotations: [{ id: "a1" }],
-      });
-    } finally {
-      server.stop();
-    }
-  });
-
-  // Approve-with-notes must anchor exactly where Send Feedback would. Dropping
-  // the message scope made the notes land on the last message rather than the
-  // one the reviewer picked in a multi-message annotate-last session.
-  test("forwards the message scope on approval", async () => {
-    const server = await startAnnotateServer({
-      markdown: "# Test",
-      filePath: join(tmpdir(), "approval-message-scope.md"),
-      htmlContent: MINIMAL_HTML,
-      approvalNotesSupported: true,
-    });
-
-    try {
-      const response = await fetch(`${server.url}/api/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          feedback: "Scope this to the picked message.",
-          annotations: [],
-          selectedMessageId: "message-2",
-          feedbackScope: "messages",
-        }),
-      });
-
-      expect(response.status).toBe(200);
-      expect(await server.waitForDecision()).toEqual({
-        approved: true,
-        feedback: "Scope this to the picked message.",
-        annotations: [],
-        selectedMessageId: "message-2",
-        feedbackScope: "messages",
-      });
-    } finally {
-      server.stop();
-    }
-  });
-
-  test("keeps bodyless approval compatible", async () => {
-    const server = await startAnnotateServer({
-      markdown: "# Test",
-      filePath: join(tmpdir(), "approval-bodyless.md"),
-      htmlContent: MINIMAL_HTML,
-    });
-
-    try {
-      const response = await fetch(`${server.url}/api/approve`, { method: "POST" });
-      expect(response.status).toBe(200);
-      expect(await server.waitForDecision()).toEqual({
-        approved: true,
-        feedback: "",
-        annotations: [],
-      });
-    } finally {
-      server.stop();
-    }
-  });
-
-  test("rejects malformed or wrong-type approval bodies without resolving", async () => {
-    const server = await startAnnotateServer({
-      markdown: "# Test",
-      filePath: join(tmpdir(), "approval-invalid.md"),
-      htmlContent: MINIMAL_HTML,
-    });
-
-    try {
-      const decision = server.waitForDecision();
-      const malformed = await fetch(`${server.url}/api/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "{",
-      });
-      expect(malformed.status).toBe(400);
-      expect(await Promise.race([decision.then(() => "resolved"), Bun.sleep(25).then(() => "pending")])).toBe("pending");
-
-      const wrongType = await fetch(`${server.url}/api/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback: 42, annotations: [] }),
-      });
-      expect(wrongType.status).toBe(400);
-      expect(await Promise.race([decision.then(() => "resolved"), Bun.sleep(25).then(() => "pending")])).toBe("pending");
-
-      await fetch(`${server.url}/api/approve`, { method: "POST" });
-      expect(await decision).toEqual({ approved: true, feedback: "", annotations: [] });
-    } finally {
-      server.stop();
-    }
-  });
-});
-
 describe("annotate server: client lease", () => {
   let savedPort: string | undefined;
 
@@ -309,8 +156,6 @@ describe("annotate server: client lease", () => {
       markdown: "# Test",
       filePath: join(tmpdir(), "client-lease-expiry.md"),
       htmlContent: MINIMAL_HTML,
-      gate: true,
-      approvalNotesSupported: true,
       clientLeaseTestOverrides: { graceMs: 50 },
     });
 
@@ -336,8 +181,6 @@ describe("annotate server: client lease", () => {
       markdown: "# Test",
       filePath: join(tmpdir(), "client-lease-reconnect.md"),
       htmlContent: MINIMAL_HTML,
-      gate: true,
-      approvalNotesSupported: true,
       clientLeaseTestOverrides: { graceMs: 80 },
     });
 
@@ -364,40 +207,35 @@ describe("annotate server: client lease", () => {
     }
   });
 
-  test("an explicit approval wins over a later client-lease expiry", async () => {
+  test("an explicit decision wins over a later client-lease expiry", async () => {
     const server = await startAnnotateServer({
       markdown: "# Test",
       filePath: join(tmpdir(), "client-lease-explicit-decision.md"),
       htmlContent: MINIMAL_HTML,
-      gate: true,
-      approvalNotesSupported: true,
       clientLeaseTestOverrides: { graceMs: 60 },
     });
 
     try {
       const client = await connectClientLease(server.url);
 
-      const approve = await fetch(`${server.url}/api/approve`, {
+      const send = await fetch(`${server.url}/api/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ feedback: "Looks good.", annotations: [] }),
       });
-      expect(approve.status).toBe(200);
-      expect(await server.waitForDecision()).toEqual({
-        approved: true,
+      expect(send.status).toBe(200);
+      expect(await server.waitForDecision()).toMatchObject({
         feedback: "Looks good.",
         annotations: [],
       });
 
       // Disconnecting after the explicit decision must not overwrite it once
-      // the grace period elapses — the approval already cancelled tracking.
+      // the grace period elapses — the decision already cancelled tracking.
       await client.disconnect();
       await Bun.sleep(120);
-      expect(await server.waitForDecision()).toEqual({
-        approved: true,
-        feedback: "Looks good.",
-        annotations: [],
-      });
+      const settled = await server.waitForDecision();
+      expect(settled).toMatchObject({ feedback: "Looks good.", annotations: [] });
+      expect(settled.exit).toBeUndefined();
     } finally {
       server.stop();
     }
@@ -408,8 +246,6 @@ describe("annotate server: client lease", () => {
       markdown: "# Test",
       filePath: join(tmpdir(), "client-lease-late-decision.md"),
       htmlContent: MINIMAL_HTML,
-      gate: true,
-      approvalNotesSupported: true,
       clientLeaseTestOverrides: { graceMs: 30 },
     });
 
@@ -425,14 +261,6 @@ describe("annotate server: client lease", () => {
       // A tab that never saw the dismissal must not be told its decision was
       // applied: the caller already received `dismissed`.
       for (const [path, init] of [
-        [
-          "/api/approve",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ feedback: "Looks good.", annotations: [] }),
-          },
-        ],
         [
           "/api/feedback",
           {
@@ -462,8 +290,6 @@ describe("annotate server: client lease", () => {
       markdown: "# Test",
       filePath: join(tmpdir(), "client-lease-stop.md"),
       htmlContent: MINIMAL_HTML,
-      gate: true,
-      approvalNotesSupported: true,
     });
 
     const response = await fetch(`${server.url}/api/annotate/client-lease`);
@@ -480,313 +306,8 @@ describe("annotate server: client lease", () => {
   });
 });
 
-describe("annotate server: durable submit records (#678)", () => {
-  // The decision promise's consumer (the invoking CLI/agent) can time out
-  // before the reviewer submits; the submit then settled the promise with
-  // nobody listening, deleted the draft, and the feedback existed nowhere.
-  // These tests pin the fix: a durable record is written to
-  // history/{project}/{slug}/submissions/ BEFORE the draft is deleted, the
-  // annotate-history opt-out suppresses the record (stateless sessions keep
-  // legacy behavior), and a failed durable write keeps the draft behind as
-  // the recovery copy.
-  let savedPort: string | undefined;
-  let savedHistoryFlag: string | undefined;
-
-  beforeEach(() => {
-    savedPort = process.env.HYPERMARK_PORT;
-    savedHistoryFlag = process.env.HYPERMARK_ANNOTATE_HISTORY;
-    delete process.env.HYPERMARK_PORT;
-    // Force the toggle on unless a test explicitly flips it off — a real
-    // ~/.hypermark/config.json must never change the outcome.
-    process.env.HYPERMARK_ANNOTATE_HISTORY = "1";
-  });
-
-  afterEach(() => {
-    if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
-    else process.env.HYPERMARK_PORT = savedPort;
-    if (savedHistoryFlag === undefined) delete process.env.HYPERMARK_ANNOTATE_HISTORY;
-    else process.env.HYPERMARK_ANNOTATE_HISTORY = savedHistoryFlag;
-  });
-
-  // History lives in the real data dir (DATA_DIR is cached at module import),
-  // so each test uses a unique project namespace and afterAll removes it.
-  const mintedProjects: string[] = [];
-  function uniqueProject(label: string): string {
-    const project = `_annotate_submission_test_${label}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    mintedProjects.push(project);
-    return project;
-  }
-
-  afterAll(() => {
-    const historyDir = join(getHypermarkDataDir(), "history");
-    for (const project of mintedProjects) {
-      rmSync(join(historyDir, project), { recursive: true, force: true });
-    }
-  });
-
-  function submissionsDir(project: string, docPath: string): string {
-    return join(
-      getHypermarkDataDir(),
-      "history",
-      project,
-      deriveAnnotateHistorySlug(resolve(docPath)),
-      "submissions",
-    );
-  }
-
-  // The project name is baked into the markdown so every test gets a unique
-  // content-hashed draft key — drafts live in the real data dir and identical
-  // markdown across tests would collide on one draft file.
-  async function startServer(project: string, docPath: string) {
-    const markdown = `# Doc ${project}\n\nBody\n`;
-    writeFileSync(docPath, markdown, "utf-8");
-    return startAnnotateServer({
-      markdown,
-      filePath: docPath,
-      htmlContent: MINIMAL_HTML,
-      project,
-    });
-  }
-
-  test("feedback submit writes a durable record and only then deletes the draft", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "hypermark-submit-durable-"));
-    const docPath = join(dir, "doc.md");
-    const project = uniqueProject("feedback");
-    const server = await startServer(project, docPath);
-
-    try {
-      // Auto-saved draft exists before submit (the recovery copy).
-      const saved = await fetch(`${server.url}/api/draft`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ annotations: [{ id: "a1" }] }),
-      });
-      expect(saved.status).toBe(200);
-
-      const response = await fetch(`${server.url}/api/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          feedback: "## Feedback\n\nPlease fix X in the second paragraph.",
-          annotations: [{ id: "a1" }],
-        }),
-      });
-      expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ ok: true });
-
-      // Durable record: one markdown file next to the file's version history.
-      const recordDir = submissionsDir(project, docPath);
-      const records = readdirSync(recordDir).filter((f) => f.endsWith(".md"));
-      expect(records.length).toBe(1);
-      const content = readFileSync(join(recordDir, records[0]), "utf-8");
-      expect(content).toContain("Please fix X in the second paragraph.");
-      expect(content).toContain("- Decision: feedback");
-      expect(content).toContain(`- Source: ${resolve(docPath)}`);
-
-      // Draft is gone AFTER the record exists.
-      const draft = await fetch(`${server.url}/api/draft`);
-      expect(draft.status).toBe(404);
-    } finally {
-      server.stop();
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  test("approve with notes persists a record; a bare approve writes nothing", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "hypermark-submit-approve-"));
-
-    // Approve-with-notes carries user content -> record.
-    const notesDoc = join(dir, "notes.md");
-    const notesProject = uniqueProject("approve-notes");
-    const notesServer = await startServer(notesProject, notesDoc);
-    try {
-      const response = await fetch(`${notesServer.url}/api/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback: "LGTM, but rename the helper.", annotations: [] }),
-      });
-      expect(response.status).toBe(200);
-      const recordDir = submissionsDir(notesProject, notesDoc);
-      const records = readdirSync(recordDir).filter((f) => f.endsWith(".md"));
-      expect(records.length).toBe(1);
-      const content = readFileSync(join(recordDir, records[0]), "utf-8");
-      expect(content).toContain("LGTM, but rename the helper.");
-      expect(content).toContain("- Decision: approved (with notes)");
-    } finally {
-      notesServer.stop();
-    }
-
-    // Bare approve is contentless -> nothing to persist.
-    const bareDoc = join(dir, "bare.md");
-    const bareProject = uniqueProject("approve-bare");
-    const bareServer = await startServer(bareProject, bareDoc);
-    try {
-      const response = await fetch(`${bareServer.url}/api/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      expect(response.status).toBe(200);
-      expect(existsSync(submissionsDir(bareProject, bareDoc))).toBe(false);
-    } finally {
-      bareServer.stop();
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  test("annotateHistory disabled: no content is written and the draft is deleted (legacy behavior)", async () => {
-    process.env.HYPERMARK_ANNOTATE_HISTORY = "0";
-    const dir = mkdtempSync(join(tmpdir(), "hypermark-submit-optout-"));
-    const docPath = join(dir, "doc.md");
-    const project = uniqueProject("opt-out");
-    const server = await startServer(project, docPath);
-
-    try {
-      await fetch(`${server.url}/api/draft`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ annotations: [{ id: "a1" }] }),
-      });
-
-      const response = await fetch(`${server.url}/api/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback: "Secret excerpt", annotations: [{ id: "a1" }] }),
-      });
-      expect(response.status).toBe(200);
-
-      // The opt-out means "no annotate content in the data dir": no version
-      // snapshot AND no submission record — the project dir never appears.
-      expect(existsSync(join(getHypermarkDataDir(), "history", project))).toBe(false);
-      // Legacy behavior preserved: the draft is still deleted on submit.
-      const draft = await fetch(`${server.url}/api/draft`);
-      expect(draft.status).toBe(404);
-    } finally {
-      server.stop();
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  test("previously-stateless modes stay stateless: annotate-last and URL sessions write no record", async () => {
-    // Before #678 these modes never touched the data dir; the durable record
-    // must not widen the documented annotateHistory contract to them — their
-    // submissions quote agent messages or fetched pages.
-    const lastProject = uniqueProject("last-message");
-    const lastServer = await startAnnotateServer({
-      markdown: `# Agent message ${lastProject}\n\nQuoted agent output.\n`,
-      filePath: "last-message",
-      htmlContent: MINIMAL_HTML,
-      project: lastProject,
-      mode: "annotate-last",
-    });
-    try {
-      const response = await fetch(`${lastServer.url}/api/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback: "Quoting the agent: do Y instead.", annotations: [] }),
-      });
-      expect(response.status).toBe(200);
-      expect(existsSync(join(getHypermarkDataDir(), "history", lastProject))).toBe(false);
-    } finally {
-      lastServer.stop();
-    }
-
-    const urlProject = uniqueProject("url");
-    const urlServer = await startAnnotateServer({
-      markdown: `# Fetched page ${urlProject}\n\nPage content.\n`,
-      filePath: "https://example.com/some/page",
-      htmlContent: MINIMAL_HTML,
-      project: urlProject,
-    });
-    try {
-      const response = await fetch(`${urlServer.url}/api/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback: "The fetched page says Z.", annotations: [] }),
-      });
-      expect(response.status).toBe(200);
-      expect(existsSync(join(getHypermarkDataDir(), "history", urlProject))).toBe(false);
-    } finally {
-      urlServer.stop();
-    }
-  });
-
-  test("a malformed feedback body degrades to legacy behavior, never a 500", async () => {
-    // /api/feedback does no body type validation; pre-#678 a non-string
-    // feedback flowed through settle() untouched and returned 200. The
-    // durable-record guard must not turn that into a thrown 500.
-    const dir = mkdtempSync(join(tmpdir(), "hypermark-submit-malformed-"));
-    const docPath = join(dir, "doc.md");
-    const project = uniqueProject("malformed");
-    const server = await startServer(project, docPath);
-
-    try {
-      await fetch(`${server.url}/api/draft`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ annotations: [{ id: "a1" }] }),
-      });
-
-      const response = await fetch(`${server.url}/api/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback: 42, annotations: [] }),
-      });
-      expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ ok: true });
-      // Legacy behavior: draft deleted, no record (nothing persistable).
-      const draft = await fetch(`${server.url}/api/draft`);
-      expect(draft.status).toBe(404);
-      expect(existsSync(submissionsDir(project, docPath))).toBe(false);
-    } finally {
-      server.stop();
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-
-  test("a failed durable write keeps the draft as the recovery copy", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "hypermark-submit-unwritable-"));
-    const docPath = join(dir, "doc.md");
-    const project = uniqueProject("unwritable");
-    // Plant a FILE where the project's history directory must go: every
-    // mkdir under it fails, so both the startup snapshot and the submission
-    // write degrade. (afterAll's recursive+force rm removes the file too.)
-    const historyRoot = join(getHypermarkDataDir(), "history");
-    mkdirSync(historyRoot, { recursive: true });
-    writeFileSync(join(historyRoot, project), "not a directory", "utf-8");
-    const server = await startServer(project, docPath);
-
-    try {
-      await fetch(`${server.url}/api/draft`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ annotations: [{ id: "a1" }] }),
-      });
-
-      const response = await fetch(`${server.url}/api/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback: "Please fix X", annotations: [{ id: "a1" }] }),
-      });
-      // The decision itself still succeeds — persistence is an enhancement.
-      expect(response.status).toBe(200);
-
-      // But the draft survives: with no durable record written, it is the
-      // only remaining copy of the reviewer's work.
-      const draft = await fetch(`${server.url}/api/draft`);
-      expect(draft.status).toBe(200);
-
-      // Cleanup: don't leave this test's draft behind in the real data dir.
-      await fetch(`${server.url}/api/draft`, { method: "DELETE" });
-    } finally {
-      server.stop();
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-});
-
 describe("annotate server: guarded shutdown (runGuardedShutdown)", () => {
-  // Teardown is historically fragile (#1314); in a flat
+  // Teardown is historically fragile; in a flat
   // sequence a throw there would skip every disposal step after it. Each
   // step must run even when an earlier one throws, and the listener close
   // must run regardless.
@@ -822,5 +343,75 @@ describe("annotate server: guarded shutdown (runGuardedShutdown)", () => {
     );
     expect(ran).toEqual(["a", "b", "listener"]);
     expect(logged).toEqual([]);
+  });
+});
+
+describe("annotate server: annotate-last message selection and draft key", () => {
+  let savedPort: string | undefined;
+  let savedDataDir: string | undefined;
+  let tempDir: string;
+
+  beforeEach(() => {
+    savedPort = process.env.HYPERMARK_PORT;
+    savedDataDir = process.env.HYPERMARK_DATA_DIR;
+    delete process.env.HYPERMARK_PORT;
+    tempDir = mkdtempSync(join(tmpdir(), "hypermark-annotate-last-test-"));
+    process.env.HYPERMARK_DATA_DIR = tempDir;
+  });
+
+  afterEach(() => {
+    if (savedPort === undefined) delete process.env.HYPERMARK_PORT;
+    else process.env.HYPERMARK_PORT = savedPort;
+    if (savedDataDir === undefined) delete process.env.HYPERMARK_DATA_DIR;
+    else process.env.HYPERMARK_DATA_DIR = savedDataDir;
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  const recentMessages = [
+    { messageId: "hidden", text: "Annotation session closed.", hidden: true },
+    { messageId: "shown", text: "# A longer message" },
+  ];
+
+  test("/api/document names the message whose text is markdown", async () => {
+    const server = await startAnnotateServer({
+      markdown: "# A longer message",
+      filePath: "last-message",
+      mode: "annotate-last",
+      htmlContent: MINIMAL_HTML,
+      recentMessages,
+      selectedMessageId: "shown",
+    });
+    try {
+      const data = await (await fetch(`${server.url}/api/document`)).json() as { selectedMessageId?: string };
+      expect(data.selectedMessageId).toBe("shown");
+    } finally {
+      server.stop();
+    }
+  });
+
+  test("a draft keyed on draftId survives a new newest message", async () => {
+    const start = (markdown: string) => startAnnotateServer({
+      markdown,
+      filePath: "last-message",
+      mode: "annotate-last",
+      htmlContent: MINIMAL_HTML,
+      draftId: "/logs/session.jsonl",
+    });
+    const draft = { annotations: [], messages: { shown: { annotations: [{ id: "a1" }], globalAttachments: [] } }, draftGeneration: 1, ts: 1 };
+
+    const first = await start("# A longer message");
+    try {
+      await fetch(`${first.url}/api/draft`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(draft) });
+    } finally {
+      first.stop();
+    }
+
+    const second = await start("# A newer message");
+    try {
+      const loaded = await (await fetch(`${second.url}/api/draft`)).json() as typeof draft;
+      expect(loaded.messages.shown.annotations).toEqual([{ id: "a1" }]);
+    } finally {
+      second.stop();
+    }
   });
 });

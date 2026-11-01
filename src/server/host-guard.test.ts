@@ -42,9 +42,9 @@ describe("isLoopbackHost", () => {
 
 describe("rejectNonLoopbackHost", () => {
   test("passes a loopback request and 403s a foreign Host", () => {
-    expect(rejectNonLoopbackHost(new Request("http://localhost:4000/api/plan"))).toBeNull();
+    expect(rejectNonLoopbackHost(new Request("http://localhost:4000/api/document"))).toBeNull();
     const rejected = rejectNonLoopbackHost(
-      new Request("http://localhost:4000/api/plan", { headers: { host: "evil.example:4000" } }),
+      new Request("http://localhost:4000/api/document", { headers: { host: "evil.example:4000" } }),
     );
     expect(rejected?.status).toBe(403);
   });

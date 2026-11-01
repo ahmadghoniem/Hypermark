@@ -28,18 +28,8 @@
   --sidebar-border: #0a0a0a;
   --sidebar-ring: #009fff;
 
-  /* Diff Bridge */
-  --diffs-bg: #0a0a0a;
-  --diffs-fg: #fafafa;
-  --diffs-dark-bg: #0a0a0a;
-  --diffs-light-bg: #ffffff;
-  --diffs-dark: #fafafa;
-  --diffs-light: #0a0a0a;
-
   /* Syntax */
   --code-bg: #121212;
-
-  /* Terminal / ANSI */
 
   /* Focus */
   --ring: #009fff;
@@ -92,18 +82,8 @@
   --sidebar-border: #e5e5e5;
   --sidebar-ring: #009fff;
 
-  /* Diff Bridge */
-  --diffs-bg: #ffffff;
-  --diffs-fg: #0a0a0a;
-  --diffs-dark-bg: #0a0a0a;
-  --diffs-light-bg: #ffffff;
-  --diffs-dark: #fafafa;
-  --diffs-light: #0a0a0a;
-
   /* Syntax */
   --code-bg: #f5f5f5;
-
-  /* Terminal / ANSI */
 
   /* Focus */
   --ring: #009fff;

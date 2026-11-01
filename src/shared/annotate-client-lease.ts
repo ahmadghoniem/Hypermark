@@ -1,10 +1,10 @@
 /**
  * Annotate client-lease tracker — pure last-client abandonment detector.
  *
- * Local direct structured annotate gates (`hypermark annotate --gate --json`)
- * block a CLI/hook caller on `waitForDecision()`. If the browser tab that owns
- * the decision goes away without ever sending `/api/exit`/`/api/approve`
- * (closed tab, killed terminal) the gate would otherwise hang forever.
+ * An annotate session blocks the CLI caller on `waitForDecision()`. If the
+ * browser tab that owns the decision goes away without ever sending
+ * `/api/feedback`/`/api/exit` (closed tab, killed terminal) the session would
+ * otherwise hang forever.
  *
  * This tracker gives the server a safe, connection-based signal instead: it
  * counts concurrently connected SSE clients (normally exactly one — the tab's
@@ -61,8 +61,8 @@ export interface AnnotateClientLeaseTracker {
    */
   acquire: () => () => void;
   /**
-   * Permanently stop tracking — e.g. an explicit decision (approve/feedback/
-   * exit) already resolved the gate, so abandonment no longer matters. Safe
+   * Permanently stop tracking — e.g. an explicit decision (feedback/exit)
+   * already resolved the session, so abandonment no longer matters. Safe
    * to call repeatedly, and safe to call before any client ever connects.
    */
   cancel: () => void;

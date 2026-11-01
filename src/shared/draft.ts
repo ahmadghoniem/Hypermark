@@ -2,7 +2,7 @@
  * Draft Storage
  *
  * Persists annotation drafts to ~/.hypermark/drafts/ so they survive
- * server crashes. Each draft is keyed by a content hash of the plan/diff
+ * server crashes. Each draft is keyed by a content hash of the document
  * it was created against.
  *
  * Runtime-agnostic: uses only node:fs, node:path, node:os, node:crypto.

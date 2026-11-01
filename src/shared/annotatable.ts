@@ -1,6 +1,6 @@
 /**
  * Annotatable file-type predicates — the single source of truth for which
- * files the annotate flow accepts (#1029).
+ * files the annotate flow accepts.
  *
  * Annotate reads files as UTF-8 text and renders them exactly the way `.txt`
  * is rendered (plain text through the markdown pipeline), so any
@@ -12,9 +12,8 @@
  *   .conf .properties .csv .tsv .log .xml .env.example
  *
  * Deliberate exclusions:
- * - `.env` — commonly holds secrets, and annotate's per-file version history
- *   copies file contents into the data dir (`~/.hypermark/history/`).
- *   `.env.example` (the secret-free template convention) is accepted.
+ * - `.env` — commonly holds secrets. `.env.example` (the secret-free
+ *   template convention) is accepted.
  *   `.env` is also denylisted for the user-configurable extra extensions
  *   below, so no config value can register it.
  * - Source-code extensions (.ts, .py, …) — they would flood the annotate
@@ -22,7 +21,7 @@
  * - `.html`/`.htm` — annotate takes text documents; HTML pages and URLs
  *   are not opened. Both are denylisted for the extra extensions too.
  *
- * User-configurable extras (#1307): a user may register additional extensions
+ * User-configurable extras: a user may register additional extensions
  * (for example `.livemd`, Livebook notebooks) via `markdownExtensions` in
  * `~/.hypermark/config.json`. This module stays browser-safe and zero-dep,
  * so it never reads that config: the server resolves it once and threads the
@@ -41,8 +40,7 @@ export const ANNOTATABLE_TEXT_REGEX = new RegExp(`${BUILTIN_TEXT_PATTERN}$`, "i"
 /**
  * The dotenv family is denylisted as a family, not a single name: `.env`
  * itself, suffixed variants like `.prod.env`, and prefixed variants like
- * `.env.local` all commonly hold secrets, and annotate history copies file
- * contents into the data dir. (`.env.example` stays registerable only via
+ * `.env.local` all commonly hold secrets. (`.env.example` stays registerable only via
  * the built-in list, where it is a deliberate exception.) `.html`/`.htm` are
  * denied so a config value cannot open HTML pages.
  */
@@ -144,9 +142,8 @@ export function buildAnnotatableExtensionsHint(extra: readonly string[] = []): s
 
 /**
  * Size cap for files served/read as annotatable documents (2MB). Applies to the annotate
- * CLI single-file read and the /api/doc document branches in both runtimes:
- * a multi-GB `server.log` must produce a clear error, not OOM the server
- * (and get copied into annotate history). Configured extra extensions are
+ * CLI single-file read: a multi-GB `server.log` must produce a clear error, not OOM the server.
+ * Configured extra extensions are
  * capped exactly like `.md`.
  */
 export const MAX_ANNOTATABLE_FILE_BYTES = 2 * 1024 * 1024;
@@ -160,7 +157,7 @@ export const MAX_ANNOTATABLE_FILE_BYTES = 2 * 1024 * 1024;
  * starts with `---\napiVersion: …\n---` — so stripping there swallows the
  * first document. Strip only for markdown sources (.md/.mdx, plus any
  * configured extra extension, which is markdown by definition) and for
- * sources without a file path (plans and agent messages are always markdown).
+ * sources without a file path (agent messages are always markdown).
  */
 export function shouldStripFrontmatter(
 	path: string | null | undefined,

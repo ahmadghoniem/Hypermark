@@ -6,21 +6,19 @@ import { getImageSrc } from "../../utils/imageSrc";
 interface HtmlBlockProps {
   block: Block;
   imageBaseDir?: string;
-  onOpenLinkedDoc?: (path: string) => void;
   onNavigateAnchor?: (hash: string) => void;
 }
 
 // Walks the sanitized DOM and rewrites relative <img src> / <a href> so they
 // behave the same as their markdown counterparts:
 // - Relative image paths route through /api/image?path=... so they load from
-//   the plan's directory, not the hypermark server root.
-// - Relative .md / .mdx / .txt links open in the linked-doc overlay when
-//   onOpenLinkedDoc is provided (same as [[wiki-links]] and [label](./x.md)).
+//   the file's directory, not the hypermark server root.
+// - Other relative links lose their href, as [label](./x.md) renders as plain
+//   text: following one would leave the session.
 // Absolute http(s) URLs and mailto: are left untouched.
 function rewriteRelativeRefs(
   root: HTMLElement,
   imageBaseDir?: string,
-  onOpenLinkedDoc?: (path: string) => void,
   onNavigateAnchor?: (hash: string) => void,
 ): (() => void) {
   const cleanups: (() => void)[] = [];
@@ -56,14 +54,7 @@ function rewriteRelativeRefs(
       cleanups.push(() => a.removeEventListener('click', handler));
       return;
     }
-    if (onOpenLinkedDoc && /\.(mdx?|txt|html?)(#.*)?$/i.test(href)) {
-      const handler = (e: Event) => {
-        e.preventDefault();
-        onOpenLinkedDoc(href.replace(/#.*$/, ''));
-      };
-      a.addEventListener('click', handler);
-      cleanups.push(() => a.removeEventListener('click', handler));
-    }
+    a.removeAttribute('href');
   });
 
   return () => cleanups.forEach((fn) => fn());
@@ -75,7 +66,7 @@ function rewriteRelativeRefs(
 // re-set on every parent re-render would collapse any open <details> the
 // user just opened. Paired with React.memo below so the component itself
 // stops re-rendering unless the block content actually changes.
-const HtmlBlockImpl: React.FC<HtmlBlockProps> = ({ block, imageBaseDir, onOpenLinkedDoc, onNavigateAnchor }) => {
+const HtmlBlockImpl: React.FC<HtmlBlockProps> = ({ block, imageBaseDir, onNavigateAnchor }) => {
   const ref = useRef<HTMLDivElement>(null);
   const sanitized = React.useMemo(
     () => sanitizeBlockHtml(block.content),
@@ -86,15 +77,15 @@ const HtmlBlockImpl: React.FC<HtmlBlockProps> = ({ block, imageBaseDir, onOpenLi
     if (ref.current.innerHTML !== sanitized) {
       ref.current.innerHTML = sanitized;
     }
-    const cleanup = rewriteRelativeRefs(ref.current, imageBaseDir, onOpenLinkedDoc, onNavigateAnchor);
+    const cleanup = rewriteRelativeRefs(ref.current, imageBaseDir, onNavigateAnchor);
     return cleanup;
-  }, [sanitized, imageBaseDir, onOpenLinkedDoc, onNavigateAnchor]);
+  }, [sanitized, imageBaseDir, onNavigateAnchor]);
   return (
     <div
       ref={ref}
       data-block-id={block.id}
       data-block-type="html"
-      className="html-block my-plan text-plan text-foreground/90"
+      className="html-block my-doc text-doc text-foreground/90"
     />
   );
 };
@@ -104,6 +95,5 @@ export const HtmlBlock = React.memo(
     prev.block.id === next.block.id &&
     prev.block.content === next.block.content &&
     prev.imageBaseDir === next.imageBaseDir &&
-    prev.onOpenLinkedDoc === next.onOpenLinkedDoc &&
     prev.onNavigateAnchor === next.onNavigateAnchor,
 );

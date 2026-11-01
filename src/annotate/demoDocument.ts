@@ -1,4 +1,4 @@
-export const DEMO_PLAN_CONTENT = `# Implementation Plan: Real-time Collaboration
+export const DEMO_CONTENT = `# Implementation Plan: Real-time Collaboration
 
 ## Context
 

@@ -3,7 +3,6 @@ import {
   BUILT_IN_THEMES,
   DEFAULT_COLOR_THEME,
   DEFAULT_THEME_PAIR,
-  PALETTE_DESCRIPTORS,
   getUnsupportedMode,
   isKnownTheme,
   themeSupportsHalf,
@@ -11,9 +10,6 @@ import {
   normalizeThemePair,
   seedThemePair,
   resolvePairTheme,
-  resolveModeDescriptor,
-  resolveThemeDescriptor,
-  getTerminalTheme,
 } from './themeRegistry';
 
 describe('BUILT_IN_THEMES', () => {
@@ -200,178 +196,5 @@ describe('seedThemePair', () => {
       light: 'pierre',
       dark: 'pierre',
     });
-  });
-});
-
-describe('explicit palette descriptors (all 7 semantic groups)', () => {
-  const REQUIRED_GROUPS = [
-    'chrome',
-    'diffBridge',
-    'syntax',
-    'terminal',
-    'focus',
-    'selection',
-    'status',
-  ] as const;
-
-  test('every palette descriptor defines all seven semantic groups in dark mode', () => {
-    for (const [id, descriptor] of Object.entries(PALETTE_DESCRIPTORS)) {
-      expect(descriptor.modes.dark).toBeDefined();
-      for (const group of REQUIRED_GROUPS) {
-        expect(descriptor.modes.dark[group], `${id} dark.${group} must be defined`).toBeDefined();
-      }
-    }
-  });
-
-  test('both-mode palettes define all seven semantic groups in light mode', () => {
-    for (const id of ['pierre', 'hypermark', 'catppuccin', 'github'] as const) {
-      const descriptor = PALETTE_DESCRIPTORS[id];
-      expect(descriptor.modes.light).toBeDefined();
-      for (const group of REQUIRED_GROUPS) {
-        expect(descriptor.modes.light![group], `${id} light.${group} must be defined`).toBeDefined();
-      }
-    }
-  });
-
-  test('dark-only palettes do NOT define light mode in their descriptors', () => {
-    for (const id of ['ayu-dark', 'one-dark-pro', 'tokyo-night'] as const) {
-      const descriptor = PALETTE_DESCRIPTORS[id];
-      expect(descriptor.modes.light).toBeUndefined();
-    }
-  });
-
-  test('terminal ANSI palette defines all 16 colors + shell tokens', () => {
-    for (const descriptor of Object.values(PALETTE_DESCRIPTORS)) {
-      const term = descriptor.modes.dark.terminal;
-      expect(term.black).toBeTruthy();
-      expect(term.red).toBeTruthy();
-      expect(term.green).toBeTruthy();
-      expect(term.yellow).toBeTruthy();
-      expect(term.blue).toBeTruthy();
-      expect(term.magenta).toBeTruthy();
-      expect(term.cyan).toBeTruthy();
-      expect(term.white).toBeTruthy();
-      expect(term.brightBlack).toBeTruthy();
-      expect(term.brightRed).toBeTruthy();
-      expect(term.brightGreen).toBeTruthy();
-      expect(term.brightYellow).toBeTruthy();
-      expect(term.brightBlue).toBeTruthy();
-      expect(term.brightMagenta).toBeTruthy();
-      expect(term.brightCyan).toBeTruthy();
-      expect(term.brightWhite).toBeTruthy();
-      expect(term.background).toBeTruthy();
-      expect(term.foreground).toBeTruthy();
-      expect(term.cursor).toBeTruthy();
-      expect(term.selectionBackground).toBeTruthy();
-    }
-  });
-});
-
-describe('resolveModeDescriptor', () => {
-  test('resolves supported palette and mode directly', () => {
-    const catppuccinDark = resolveModeDescriptor('catppuccin', 'dark');
-    expect(catppuccinDark.paletteId).toBe('catppuccin');
-    expect(catppuccinDark.mode).toBe('dark');
-    expect(catppuccinDark.chrome.background).toBe('#1e1e2e');
-    expect(catppuccinDark.syntax.syntaxTheme).toBe('catppuccin-mocha');
-
-    const catppuccinLight = resolveModeDescriptor('catppuccin', 'light');
-    expect(catppuccinLight.paletteId).toBe('catppuccin');
-    expect(catppuccinLight.mode).toBe('light');
-    expect(catppuccinLight.chrome.background).toBe('#eff1f5');
-    expect(catppuccinLight.syntax.syntaxTheme).toBe('catppuccin-latte');
-  });
-
-  test('recovers dark-only palette in light mode to Pierre Light', () => {
-    for (const id of ['ayu-dark', 'one-dark-pro', 'tokyo-night']) {
-      const recovered = resolveModeDescriptor(id, 'light');
-      expect(recovered.paletteId).toBe('pierre');
-      expect(recovered.mode).toBe('light');
-      expect(recovered.chrome.background).toBe('#ffffff');
-      expect(recovered.syntax.syntaxTheme).toBe('pierre-light');
-    }
-  });
-
-  test('recovers unknown or removed palette to Pierre in the requested mode', () => {
-    const darkRec = resolveModeDescriptor('unknown-palette', 'dark');
-    expect(darkRec.paletteId).toBe('pierre');
-    expect(darkRec.mode).toBe('dark');
-    expect(darkRec.chrome.background).toBe('#0a0a0a');
-
-    const lightRec = resolveModeDescriptor('unknown-palette', 'light');
-    expect(lightRec.paletteId).toBe('pierre');
-    expect(lightRec.mode).toBe('light');
-    expect(lightRec.chrome.background).toBe('#ffffff');
-  });
-});
-
-describe('resolveThemeDescriptor (atomic resolution)', () => {
-  test('commits atomically for dark mode', () => {
-    const desc = resolveThemeDescriptor({ mode: 'dark', light: 'github', dark: 'ayu-dark' });
-    expect(desc.requestedMode).toBe('dark');
-    expect(desc.resolvedMode).toBe('dark');
-    expect(desc.colorTheme).toBe('ayu-dark');
-    expect(desc.paletteId).toBe('ayu-dark');
-    expect(desc.chrome.background).toBe('#10141c');
-    expect(desc.syntax.syntaxTheme).toBe('ayu-dark');
-    // Also exposes light and dark half descriptors atomically
-    expect(desc.light.paletteId).toBe('github');
-    expect(desc.light.mode).toBe('light');
-    expect(desc.dark.paletteId).toBe('ayu-dark');
-    expect(desc.dark.mode).toBe('dark');
-  });
-
-  test('commits atomically for light mode', () => {
-    const desc = resolveThemeDescriptor({ mode: 'light', light: 'catppuccin', dark: 'one-dark-pro' });
-    expect(desc.requestedMode).toBe('light');
-    expect(desc.resolvedMode).toBe('light');
-    expect(desc.colorTheme).toBe('catppuccin');
-    expect(desc.paletteId).toBe('catppuccin');
-    expect(desc.chrome.background).toBe('#eff1f5');
-    expect(desc.syntax.syntaxTheme).toBe('catppuccin-latte');
-  });
-
-  test('commits atomically for system mode following preferredMode', () => {
-    const descDark = resolveThemeDescriptor(
-      { mode: 'system', light: 'github', dark: 'catppuccin' },
-      'dark',
-    );
-    expect(descDark.requestedMode).toBe('system');
-    expect(descDark.resolvedMode).toBe('dark');
-    expect(descDark.colorTheme).toBe('catppuccin');
-
-    const descLight = resolveThemeDescriptor(
-      { mode: 'system', light: 'github', dark: 'catppuccin' },
-      'light',
-    );
-    expect(descLight.requestedMode).toBe('system');
-    expect(descLight.resolvedMode).toBe('light');
-    expect(descLight.colorTheme).toBe('github');
-  });
-
-  test('recovers corrupt preferences atomically without intermediate state', () => {
-    const desc = resolveThemeDescriptor({
-      mode: 'system',
-      light: 'corrupted-theme',
-      dark: 'another-corrupted',
-    }, 'dark');
-    expect(desc.pair).toEqual({
-      mode: 'system',
-      light: 'pierre',
-      dark: 'pierre',
-    });
-    expect(desc.colorTheme).toBe('pierre');
-    expect(desc.paletteId).toBe('pierre');
-    expect(desc.resolvedMode).toBe('dark');
-  });
-});
-
-describe('getTerminalTheme', () => {
-  test('extracts synchronous terminal tokens from descriptor', () => {
-    const desc = resolveThemeDescriptor({ mode: 'dark', light: 'pierre', dark: 'catppuccin' });
-    const term = getTerminalTheme(desc);
-    expect(term.background).toBe('#1e1e2e');
-    expect(term.cursor).toBe('#f5e0dc');
-    expect(term.selectionBackground).toBe('#585b70');
   });
 });

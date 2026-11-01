@@ -17,10 +17,6 @@ export const HAND_WIRED: Record<string, string> = {
   'annotation-panel.saveEdit': 'src/ui/components/AnnotationPanel.tsx',
   'annotation-panel.cancelEdit': 'src/ui/components/AnnotationPanel.tsx',
 
-  // annotation-toolbar (AnnotationToolbar.tsx)
-  'annotation-toolbar.typeToComment': 'src/ui/components/AnnotationToolbar.tsx',
-  'annotation-toolbar.close': 'src/ui/components/AnnotationToolbar.tsx',
-
   // viewer (Viewer.tsx)
   'viewer.copySelection': 'src/ui/components/Viewer.tsx',
   'viewer.closeLightbox': 'src/ui/components/Viewer.tsx',
@@ -28,10 +24,6 @@ export const HAND_WIRED: Record<string, string> = {
   // comment-popover (CommentPopover.tsx)
   'comment-popover.submit': 'src/ui/components/CommentPopover.tsx',
   'comment-popover.cancel': 'src/ui/components/CommentPopover.tsx',
-
-  // decision-control (DecisionControl.tsx)
-  'decision-control.submitNote': 'src/ui/components/DecisionControl.tsx',
-  'decision-control.closeNote': 'src/ui/components/DecisionControl.tsx',
 
   // annotation-mode Alt+drag (useAnnotationHighlighter.ts)
   'annotation-mode.strikeOnRelease': 'src/ui/hooks/useAnnotationHighlighter.ts',

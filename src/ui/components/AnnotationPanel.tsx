@@ -116,11 +116,7 @@ interface PanelProps {
   scope?: AnnotationScope;
   onScopeChange?: (scope: AnnotationScope) => void;
   messageGroups?: AnnotationMessageGroup[];
-  /** Explicit width, for hosts that size the panel themselves (the review
-   *  editor still drags its panel). Omitted, the `width` dial decides. */
-  width?: number | string;
   onClose?: () => void;
-  otherFileAnnotations?: { count: number; files: number };
   /** Shows a + next to the title that opens the global comment composer,
    *  anchored to the button. */
   onAddGlobalComment?: (anchorEl: HTMLElement) => void;
@@ -159,9 +155,7 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
   onDeleteAnnotation,
   onOpenAnnotation,
   selectedId,
-  width,
   onClose,
-  otherFileAnnotations,
   scope,
   onScopeChange,
   messageGroups,
@@ -194,11 +188,11 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
   const panel = (
     <aside
       data-annotation-panel="true"
-      data-plan-sidebar="right"
+      data-annotation-sidebar="right"
       className={`bg-surface-2 flex flex-col shrink-0 ${
         mobilePanel ? 'fixed top-12 bottom-0 right-0 z-panel w-full max-w-sm shadow-2xl' : 'border-l border-border/50'
       }`}
-      style={mobilePanel ? undefined : { width: width ?? 288 }}
+      style={mobilePanel ? undefined : { width: 288 }}
     >
       {/* Header */}
       <div>
@@ -250,11 +244,6 @@ export const AnnotationPanel: React.FC<PanelProps> = ({
             )}
           </div>
         </div>
-        {otherFileAnnotations && otherFileAnnotations.count > 0 && (
-          <p className="px-3 pb-2 text-micro text-muted-foreground">
-            +{otherFileAnnotations.count} in {otherFileAnnotations.files} other file{otherFileAnnotations.files === 1 ? '' : 's'}
-          </p>
-        )}
       </div>
 
       {/* List */}
@@ -388,11 +377,6 @@ const AnnotationCard: React.FC<{
       {/* Header: type word + chips, time on the right */}
       <div className="mb-1.5 flex items-center gap-1.5">
         <span className={cn('text-micro font-semibold', typeColor)}>{typeLabel}</span>
-        {annotation.diffContext && (
-          <span className="rounded-sm bg-active px-1.5 py-0.5 text-micro font-semibold text-muted-foreground">
-            diff
-          </span>
-        )}
         <span className="ml-auto shrink-0 text-micro text-muted-foreground/50">
           {formatTimestamp(annotation.createdA)}
         </span>

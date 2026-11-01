@@ -995,7 +995,6 @@ export function useAnnotationHighlighter({
     const highlighter = new Highlighter({
       $root: containerRef.current,
       exceptSelectors: [
-        '.annotation-toolbar',
         'button',
         '.math-annotatable',
         '.katex',

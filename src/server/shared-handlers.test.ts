@@ -6,35 +6,13 @@ import {
   handleFavicon,
   handleServerReady,
   removeUnsentUploads,
-  writeServerReadyMetadata,
 } from "./shared-handlers";
 import { CLASSIC_FAVICON_SVG } from "@/shared/favicon";
 
 
 
-describe("writeServerReadyMetadata", () => {
-  test("writes host-plugin ready metadata", () => {
-    const dir = mkdtempSync(join(tmpdir(), "hypermark-ready-"));
-    const readyFile = join(dir, "nested", "ready.jsonl");
-
-    try {
-      writeServerReadyMetadata(readyFile, {
-        url: "http://localhost:12345",
-        port: 12345,
-      });
-      const [line] = readFileSync(readyFile, "utf8").trim().split(/\r?\n/);
-      expect(JSON.parse(line)).toEqual({
-        url: "http://localhost:12345",
-        port: 12345,
-      });
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  });
-});
-
 describe("handleServerReady", () => {
-  test("does not open a browser when host-plugin mode handles it", async () => {
+  test("does not open a browser when skipBrowserOpen is set", async () => {
     let opened = false;
 
     await handleServerReady("http://localhost:12345", 12345, {
@@ -92,10 +70,8 @@ describe("handleServerReady", () => {
 
 /**
  * Deliberately a unit test on the handler rather than an HTTP round trip: this
- * file never calls global fetch, so it stays correct in either CI lane. The DOM
- * lanes in .github/workflows/test.yml list individual files and include no
- * server tests, but a server test that booted a server and fetched it would
- * break the moment someone added one (happy-dom replaces global fetch).
+ * file never calls global fetch, so it stays correct when happy-dom (which
+ * replaces global fetch) is loaded in the same run.
  */
 describe("handleFavicon", () => {
   test("serves the classic SVG, correctly typed", async () => {

@@ -1,11 +1,9 @@
 import React from 'react';
-import type { Origin } from '@/shared/agents';
 import { DecisionControl, type DecisionHandler } from '@/ui/components/DecisionControl';
 import type { DecisionActionId, DecisionSpec } from '@/ui/utils/decisionSpec';
 import { ThemeModeButton } from '@/ui/components/ThemeModeButton';
 import { QuickLabelsButton } from '@/ui/components/QuickLabelsSettings';
 import { KeyboardShortcutsButton } from '@/ui/components/KeyboardShortcutsDialog';
-import type { UIPreferences } from '@/ui/utils/uiPreferences';
 
 interface AppHeaderProps {
   /** Mobile document-scroll surfaces let Safari own the top edge and scroll
@@ -13,18 +11,16 @@ interface AppHeaderProps {
   sticky?: boolean;
   // Mode flags (stable after mount)
   isApiMode: boolean;
-  origin: Origin | null;
 
   // Dynamic state
   isSubmitting: boolean;
   isExiting: boolean;
-  /** The unified annotate decision control (spec + handlers + close title).
+  /** The unified annotate decision control (spec + handlers).
    *  App owns the spec derivation and every handler; the header only mounts
    *  the control beside the ghost Close. Absent outside annotate mode. */
   annotateDecision?: {
     spec: DecisionSpec;
     handlers: Record<DecisionActionId, DecisionHandler>;
-    closeTitle: string;
     /** Set while the decision has to wait; both segments are disabled and show it on hover. */
     disabledReason?: string;
   };
@@ -33,7 +29,6 @@ interface AppHeaderProps {
 export const AppHeader = React.memo<AppHeaderProps>(({
   sticky = true,
   isApiMode,
-  origin,
   isSubmitting,
   isExiting,
   annotateDecision,

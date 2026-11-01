@@ -12,11 +12,8 @@ interface TableToolbarProps {
   onMouseLeave?: () => void;
 }
 
-// Floats above a table on hover. Mirrors AnnotationToolbar's positioning +
-// portal + entry/exit animation pattern so hover-triggered block toolbars
-// all look and move the same way. Content is table-specific: copy as
-// markdown and copy as CSV. When a third use case appears we should factor
-// the positioning shell into a shared hook.
+// Floats above a table on hover, portalled, with an entry/exit animation.
+// Content is table-specific: copy as markdown and copy as CSV.
 export const TableToolbar: React.FC<TableToolbarProps> = ({
   element,
   markdown,

@@ -1,16 +1,11 @@
 import { SUBCOMMAND_HELP, SUBCOMMAND_HELP_ALIASES } from "./cli";
 
-const INTERNAL_SUBCOMMANDS = [] as const;
-
 const SUGGESTABLE_SUBCOMMANDS = [
   ...Object.keys(SUBCOMMAND_HELP),
   ...Object.keys(SUBCOMMAND_HELP_ALIASES),
 ];
 
-const KNOWN_SUBCOMMANDS: ReadonlySet<string> = new Set([
-  ...SUGGESTABLE_SUBCOMMANDS,
-  ...INTERNAL_SUBCOMMANDS,
-]);
+const KNOWN_SUBCOMMANDS: ReadonlySet<string> = new Set(SUGGESTABLE_SUBCOMMANDS);
 
 function levenshteinDistance(left: string, right: string): number {
   let previous = Array.from({ length: right.length + 1 }, (_, index) => index);

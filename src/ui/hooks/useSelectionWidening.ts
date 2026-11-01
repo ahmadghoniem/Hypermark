@@ -9,7 +9,7 @@ const TAB_MIN_GAP_MS = 150;
 /** Inputs for Tab selection within one rendered document. */
 export interface UseSelectionWideningOptions {
   containerRef: RefObject<HTMLElement | null>;
-  /** Off while a comment popover is open or the plan diff is shown. */
+  /** Off while a comment popover is open. */
   enabled: boolean;
   /** Submit a text range through the shared annotation pipeline. */
   onSelectRange: (range: Range) => void;

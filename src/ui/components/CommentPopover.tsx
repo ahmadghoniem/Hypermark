@@ -24,6 +24,9 @@ interface CommentPopoverProps {
   anchorEl?: HTMLElement;
   /** Static viewport rect to anchor near when no stable DOM element exists */
   anchorRect?: DOMRect;
+  /** `end` puts the composer's right edge at the anchor's right edge, so it
+   *  hangs down and to the left of the anchor, instead of centring it. */
+  align?: 'center' | 'end';
   /** Truncated selected text shown in header, or empty for global */
   contextText: string;
   /** Full highlighted text. Ctrl/Cmd+C copies it while nothing is selected in the text field. */
@@ -62,7 +65,9 @@ const highlightIdOf = (el: Element | null | undefined): string | null => {
     ?? null;
 };
 
-const MAX_POPOVER_WIDTH = 344;
+const MAX_POPOVER_WIDTH = 320;
+/** The most lines the field grows to before it scrolls inside. */
+const FIELD_LINES = 5;
 const GAP = 8;
 // The composer wants this much height on the side of the anchor it opens on.
 const MIN_POPOVER_SPACE = 280;
@@ -80,6 +85,7 @@ interface CommentPopoverPosition {
 export function computeCommentPopoverPosition(
   anchorRect: Pick<DOMRect, 'top' | 'right' | 'bottom' | 'left' | 'width'>,
   bounds: VisibleViewportBounds,
+  align: 'center' | 'end' = 'center',
 ): CommentPopoverPosition {
   const spaceBelow = Math.max(0, bounds.bottom - anchorRect.bottom - GAP);
   const spaceAbove = Math.max(0, anchorRect.top - bounds.top - GAP);
@@ -90,7 +96,7 @@ export function computeCommentPopoverPosition(
     ? anchorRect.top - GAP
     : anchorRect.bottom + GAP;
 
-  let left = anchorRect.left + anchorRect.width / 2 - width / 2;
+  let left = align === 'end' ? anchorRect.right - width : anchorRect.left + anchorRect.width / 2 - width / 2;
   left = Math.max(bounds.left, Math.min(left, bounds.right - width));
   let maxHeight = flipAbove ? spaceAbove : spaceBelow;
 
@@ -114,6 +120,7 @@ export function computeCommentPopoverPosition(
 export const CommentPopover: React.FC<CommentPopoverProps> = ({
   anchorEl,
   anchorRect,
+  align = 'center',
   contextText,
   copyText,
   isGlobal,
@@ -213,9 +220,10 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 
   // Editing: only a change from the saved comment counts as unsaved, and a
   // cleared one doesn't, since the host deletes the annotation on close.
+  // Leading and trailing whitespace isn't a change: it's trimmed on save.
   const savedImages = initialImagesRef.current ?? [];
   const isDirty = initialText.trim()
-    ? hasUnsavedContent && (text !== initialText
+    ? hasUnsavedContent && (trimmedText !== initialText.trim()
       || images.length !== savedImages.length
       || images.some((image, i) => image.path !== savedImages[i]?.path))
     : hasUnsavedContent;
@@ -274,7 +282,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     const update = () => {
       const rect = anchorEl?.getBoundingClientRect() ?? anchorRect;
       if (!rect) return;
-      setPosition(computeCommentPopoverPosition(rect, visibleBounds));
+      setPosition(computeCommentPopoverPosition(rect, visibleBounds, align));
     };
 
     update();
@@ -282,7 +290,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     return () => {
       window.removeEventListener('scroll', update, true);
     };
-  }, [anchorEl, anchorRect, visibleBounds, wasDragged]);
+  }, [align, anchorEl, anchorRect, visibleBounds, wasDragged]);
 
   // Surface a "jump back" arrow when an open popover scrolls out of view.
   // Re-measures whenever the popover repositions (position updates every scroll
@@ -426,7 +434,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
 
   const handleSubmit = useCallback(() => {
     if (btw) {
-      ask(trimmedText.slice(4).trim());
+      ask(trimmedText.replace(/^\/sidechat\s*/i, ''));
       return;
     }
     const canSubmitEmpty = allowEmptySubmit && initialText.trim().length > 0;
@@ -437,7 +445,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
         ? quickLabels?.find((l) => l.text.toLowerCase() === trimmedText.toLowerCase())
         : undefined;
       if (label && onQuickLabel) onQuickLabel(label);
-      else onSubmit(text, images.length > 0 ? images : undefined);
+      else onSubmit(trimmedText, images.length > 0 ? images : undefined);
       restoreOpeningFocus();
     }
   }, [btw, ask, trimmedText, text, images, onSubmit, onQuickLabel, quickLabels, showQuickLabels, allowEmptySubmit, initialText, hasUnsavedContent, restoreOpeningFocus]);
@@ -488,7 +496,10 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
     (allowEmptySubmit && initialText.trim().length > 0);
 
   const maxAllowedHeight = dragPosition ? visibleBounds.height : position?.maxHeight;
-  const popoverMaxHeightStyle = maxAllowedHeight != null ? `calc(${maxAllowedHeight}px - 8rem)` : undefined;
+  const linesMaxHeight = `calc(var(--lh-body) * ${FIELD_LINES})`;
+  const popoverMaxHeightStyle = maxAllowedHeight != null
+    ? `min(${linesMaxHeight}, calc(${maxAllowedHeight}px - 8rem))`
+    : linesMaxHeight;
 
   const sendLabel = btw
     ? 'Ask a side question'
@@ -547,7 +558,7 @@ export const CommentPopover: React.FC<CommentPopoverProps> = ({
               hideText={!!command}
               placeholder={completions.length > 0 ? undefined : isGlobal ? "What's your feedback overall?" : "What's your feedback?"}
               describedBy={suggestion ? SUGGESTION_ID : undefined}
-              sizeClassName="min-h-10 max-h-64"
+              sizeClassName="min-h-10"
               maxHeight={popoverMaxHeightStyle}
             />
             {suggestion && (

@@ -66,7 +66,7 @@
  * The app's chrome (panels, menus, popovers, buttons) uses Fluid
  * Functionalism's roles, display to micro, at Fluid's three weights: 400,
  * semibold (550) and bold (700). The rendered document keeps text-xs to
- * text-5xl below and the plan rhythm. The values match
+ * text-5xl below and the document rhythm. The values match
  * src/ui/fluid/lib/type-scale.ts, which the vendored components read through
  * the same --fs-* / --lh-* variables. */
 :root {
@@ -119,7 +119,7 @@
   --z-index-chrome: 50;       /* app header, document column, portaled menus and tooltips */
   --z-index-resize: 55;       /* sidebar resize handles, above the document column */
   --z-index-panel-scrim: 59;  /* backdrop behind the mobile annotation panel */
-  --z-index-panel: 60;        /* sticky header lane, mobile annotation panel */
+  --z-index-panel: 60;        /* message rail, mobile annotation panel */
   --z-index-menu: 70;         /* inline action menus */
   --z-index-popover: 100;     /* composer, toolbars, pickers, popovers */
   --z-index-popover-hint: 101; /* "composer is offscreen" pill over the composer layer */
@@ -127,22 +127,22 @@
   --z-index-overlay: 200;     /* fullscreen image, diagram and code previews */
 }
 
-/* Plan document rhythm, Typeset-style: three variables drive block text size,
+/* Document rhythm, Typeset-style: three variables drive block text size,
  * line height and the space between blocks. Override them on a container to
  * re-density everything inside.
  * @theme inline keeps the var() references in the utilities, so a scoped
  * override reaches the derived steps too. */
 :root {
-  --plan-size: 0.9375rem; /* 15px */
-  --plan-leading: 1.625;
-  --plan-flow: 1rem;
+  --doc-size: 0.9375rem; /* 15px */
+  --doc-leading: 1.625;
+  --doc-flow: 1rem;
 }
 @theme inline {
-  --text-plan: var(--plan-size);
-  --text-plan--line-height: var(--plan-leading);
-  --spacing-plan: var(--plan-flow);                       /* paragraphs, quotes, tables, callouts */
-  --spacing-plan-wide: calc(var(--plan-flow) * 1.25);     /* code, math, diagrams */
-  --spacing-plan-rule: calc(var(--plan-flow) * 2);        /* horizontal rules */
+  --text-doc: var(--doc-size);
+  --text-doc--line-height: var(--doc-leading);
+  --spacing-doc: var(--doc-flow);                       /* paragraphs, quotes, tables, callouts */
+  --spacing-doc-wide: calc(var(--doc-flow) * 1.25);     /* code, math, diagrams */
+  --spacing-doc-rule: calc(var(--doc-flow) * 2);        /* horizontal rules */
 }
 
 /* Base styles — apply regardless of theme */
@@ -202,10 +202,10 @@ body {
 }
 
 /* Safari extends the page canvas beneath its floating browser controls. The
- * plan document is a card-colored nested scroller, so leaving the outer canvas
+ * document is a card-colored nested scroller, so leaving the outer canvas
  * on `--background` produces an opaque dark band around those controls. Match
  * the browser canvas to the active surface while preserving the incumbent
- * background for grid, HTML, Review, loading, and non-editor consumers. */
+ * background for loading and non-editor consumers. */
 html:has([data-pn-browser-canvas="card"]),
 body:has([data-pn-browser-canvas="card"]) {
   background-color: var(--card);
@@ -216,10 +216,9 @@ body:has([data-pn-browser-canvas="background"]) {
   background-color: var(--background);
 }
 
-/* The application stage owns the top and lateral safe areas. Bottom-edge
- * surfaces opt into `.pn-safe-bottom` themselves so the home-indicator inset
- * is never counted twice. The ordered height declarations preserve desktop
- * behavior and old-browser support before the observer publishes a value. */
+/* The application stage owns the top and lateral safe areas. The ordered
+ * height declarations preserve desktop behavior and old-browser support
+ * before the observer publishes a value. */
 .pn-app-viewport {
   box-sizing: border-box;
   height: 100vh;
@@ -230,48 +229,11 @@ body:has([data-pn-browser-canvas="background"]) {
   padding-left: var(--pn-safe-left);
 }
 
-.pn-safe-top {
-  padding-top: var(--pn-safe-top);
-}
-
-.pn-safe-inline {
-  padding-right: var(--pn-safe-right);
-  padding-left: var(--pn-safe-left);
-}
-
-.pn-safe-bottom {
-  padding-bottom: var(--pn-safe-bottom);
-}
-
-.pn-viewport-bounded {
-  max-height: calc(
-    var(--pn-viewport-height, 100vh) - var(--pn-safe-top) - var(--pn-safe-bottom)
-  );
-}
-
-/* Portaled overlays cannot inherit the application root's safe-area padding.
- * This utility gives them the same observed visible stage without assuming
- * that the software keyboard is a rectangular bottom inset. */
-.pn-visible-viewport-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  box-sizing: border-box;
-  width: var(--pn-viewport-width, 100vw);
-  height: var(--pn-viewport-height, 100vh);
-  padding-top: max(1rem, var(--pn-safe-top));
-  padding-right: max(1rem, var(--pn-safe-right));
-  padding-bottom: max(1rem, var(--pn-safe-bottom));
-  padding-left: max(1rem, var(--pn-safe-left));
-}
-
 /* iOS zooms focused text controls below 16px. Scope the correction to
- * user-authored primary inputs so labels, counters, and diff text stay at the
- * established desktop scale. The mirror selector keeps skill-token glyphs
- * metrically identical to the transparent textarea above it. */
+ * user-authored primary inputs so labels and counters stay at the
+ * established desktop scale. */
 @media (pointer: coarse), (max-width: 639px) {
-  [data-pn-mobile-editable],
-  [data-pn-mobile-editable-mirror] {
+  [data-pn-mobile-editable] {
     font-size: 1rem !important;
   }
 }
@@ -430,109 +392,6 @@ html:not(.transitions-ready) * {
   border-radius: 0; /* fluid.css rounds every focused element, which clipped the selection's corners */
 }
 
-/* Word-level diff markers inside modified plan-diff blocks. Emitted as
-   <ins>/<del> by PlanCleanDiffView's inline renderer; keep the decoration
-   compact across line wraps via box-decoration-break: clone. */
-.plan-diff-word-added,
-.plan-diff-word-removed {
-  padding: 0 2px;
-  border-radius: 2px;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
-}
-.plan-diff-word-added {
-  background-color: color-mix(in oklab, var(--success) 20%, transparent);
-  text-decoration: none;
-  color: inherit;
-}
-.plan-diff-word-removed {
-  background-color: color-mix(in oklab, var(--destructive) 15%, transparent);
-  text-decoration: line-through;
-  text-decoration-color: color-mix(in oklab, var(--destructive) 60%, transparent);
-  opacity: 0.75;
-  color: inherit;
-}
-
-/* Inline code pills inside diff wrappers carry their own solid background
-   which would otherwise cover the green/red tint on the surrounding
-   <ins>/<del>. Override the pill background so added code pills read clearly
-   green and removed pills read clearly red-struck. */
-.plan-diff-word-added code {
-  background-color: color-mix(in oklab, var(--success) 25%, var(--muted));
-}
-.plan-diff-word-removed code {
-  background-color: color-mix(in oklab, var(--destructive) 20%, var(--muted));
-}
-
-/* ========================================
-   Plan Diff Styles
-   ======================================== */
-
-/* Clean diff view - added content */
-.plan-diff-added {
-  border-left: 3px solid var(--success);
-  background: oklch(from var(--success) l c h / 0.06);
-  padding-left: 0.75rem;
-  border-radius: 0 0.25rem 0.25rem 0;
-  margin: 0.25rem 0;
-}
-.light .plan-diff-added {
-  background: oklch(from var(--success) l c h / 0.06);
-}
-
-/* Clean diff view - removed content */
-.plan-diff-removed {
-  border-left: 3px solid var(--destructive);
-  background: oklch(from var(--destructive) l c h / 0.06);
-  padding-left: 0.75rem;
-  border-radius: 0 0.25rem 0.25rem 0;
-  margin: 0.25rem 0;
-}
-.light .plan-diff-removed {
-  background: oklch(from var(--destructive) l c h / 0.06);
-}
-
-/* Clean diff view - modified content (mix of additions and deletions in one
-   block, rendered inline via word-level diff).
-   Deliberate asymmetry with added/removed: add/remove are BLOCK-scope events
-   — the whole block matters, so a loud fill is the right signal. Modify is
-   a WORD-scope event — the words matter, and the inline red-struck /
-   green-highlighted word markers already grab attention. A block-level fill
-   would compete with that inline work; an amber gutter on a normal
-   background says "look inside, the change is in the text" while staying
-   consistent with the green/red/yellow diff convention. */
-.plan-diff-modified {
-  border-left: 3px solid oklch(from var(--warning) l c h / 0.75);
-  background: transparent;
-  padding-left: 0.75rem;
-  border-radius: 0 0.25rem 0.25rem 0;
-  margin: 0.25rem 0;
-}
-
-/* Clean diff view - unchanged (dimmed) */
-.plan-diff-unchanged {
-  /* handled via opacity in component */
-}
-
-/* Raw diff view - line styles */
-.plan-diff-line-added {
-  background: oklch(from var(--success) l c h / 0.15);
-  color: var(--success);
-}
-.plan-diff-line-removed {
-  background: oklch(from var(--destructive) l c h / 0.15);
-  color: var(--destructive);
-  opacity: 0.75;
-  text-decoration: line-through;
-  text-decoration-color: oklch(from var(--destructive) l c h / 0.4);
-}
-.light .plan-diff-line-added {
-  background: oklch(from var(--success) l c h / 0.12);
-}
-.light .plan-diff-line-removed {
-  background: oklch(from var(--destructive) l c h / 0.12);
-}
-
 /* Raw HTML blocks (CommonMark Type 6) rendered via dangerouslySetInnerHTML.
    Minimal typography so <details>, <blockquote>, nested lists etc. inherit
    sensible spacing without fighting the surrounding prose styles. */
@@ -637,7 +496,7 @@ html:not(.transitions-ready) * {
 .directive-danger, .directive-caution { background: color-mix(in srgb, #ef4444 10%, transparent); border-color: color-mix(in srgb, #ef4444 40%, transparent); }
 .directive-danger .directive-title, .directive-caution .directive-title { color: #ef4444; }
 
-/* Annotation highlights for the plan editor.
+/* Annotation highlights in the document.
    Styled like the Web Highlights extension: an opaque yellow fill on the
    font's content area only (no padding), so wrapped lines show a gap between
    them, with black text on it in both themes. Every highlight is yellow,
@@ -665,15 +524,24 @@ html:not(.transitions-ready) * {
 :where(:has(> code[data-sel-start]), :has(> code[data-sel-end])) {
   --hl-lh: 1lh;
 }
-/* A mark at the chip's edge covers the chip's padding (px-1) on that side,
-   so it joins the highlighted text outside the chip. */
+/* A mark inside an inline-code chip fills the chip's full height (its py-px
+   padding), so a highlighted chip is a yellow box the size of the chip. A
+   mark at the chip's edge also covers the chip's padding (px-1) on that side
+   and takes its rounded corners (rounded-xs). */
+:not(pre) > code .annotation-highlight {
+  padding-block: 1px;
+}
 :not(pre) > code .annotation-highlight[data-chip-start] {
   margin-left: -0.25rem;
   padding-left: 0.25rem;
+  border-top-left-radius: 0.125rem;
+  border-bottom-left-radius: 0.125rem;
 }
 :not(pre) > code .annotation-highlight[data-chip-end] {
   margin-right: -0.25rem;
   padding-right: 0.25rem;
+  border-top-right-radius: 0.125rem;
+  border-bottom-right-radius: 0.125rem;
 }
 /* A drag across a chip's edge paints that edge's padding in the selection
    color (tagged by useAnnotationHighlighter), over the full line box like the
@@ -703,12 +571,6 @@ html:not(.transitions-ready) * {
 [data-selection-widened] :not(pre) > code::before,
 [data-selection-widened] :not(pre) > code::after {
   display: none;
-}
-/* The chip's grey box is taller than the mark's fill, so it showed above and
-   below a fully highlighted chip. The chip drops its background while
-   covered; the monospace text still marks it as code. */
-:not(pre) > code:has(> .annotation-highlight[data-chip-start]):has(> .annotation-highlight[data-chip-end]) {
-  background: transparent;
 }
 /* Math annotations style the rendered formula element directly rather than
    wrapping text in a <mark>, so they need their own display handling. */
@@ -796,16 +658,11 @@ html:not(.transitions-ready) * {
    via [data-starting-style]/[data-ending-style] transitions — those attributes
    only exist during the enter/exit phases, so zeroing transitions here makes
    open/close instant without touching any other transition in the app. Base UI
-   detects the absence of a running transition and unmounts immediately.
-   The doubled .popover-enter selector out-specifies the app-level keyframe
-   rule without !important. */
+   detects the absence of a running transition and unmounts immediately. */
 @media (prefers-reduced-motion: reduce) {
   [data-starting-style],
   [data-ending-style] {
     transition: none;
-  }
-  .popover-enter.popover-enter {
-    animation: none;
   }
 }
 
@@ -837,4 +694,21 @@ html:not(.transitions-ready) * {
     animation-timeline: scroll(self);
     animation-range: 0 var(--scroll-fade-size);
   }
+}
+
+/* Links in the document, after Obsidian: the accent color, underlined on
+   hover only. An external link (it opens a new tab) ends in a small arrow. */
+.doc-link {
+  transition: color 120ms;
+}
+.doc-link[target='_blank']::after {
+  content: '';
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  margin-left: 0.15em;
+  vertical-align: 0.05em;
+  background-color: currentColor;
+  opacity: 0.6;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17 17 7M7 7h10v10'/%3E%3C/svg%3E") center / contain no-repeat;
 }

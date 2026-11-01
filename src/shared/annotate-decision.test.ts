@@ -6,9 +6,9 @@ describe("annotate decision settler", () => {
     const resolved: string[] = [];
     const decision = createAnnotateDecisionSettler<string>((d) => resolved.push(d));
 
-    expect(decision.settle("approved")).toBe(true);
+    expect(decision.settle("feedback")).toBe(true);
     expect(decision.isSettled()).toBe(true);
-    expect(resolved).toEqual(["approved"]);
+    expect(resolved).toEqual(["feedback"]);
   });
 
   test("a later producer loses and cannot resolve", () => {
@@ -17,7 +17,7 @@ describe("annotate decision settler", () => {
 
     decision.settle("dismissed");
 
-    expect(decision.settle("approved")).toBe(false);
+    expect(decision.settle("feedback")).toBe(false);
     expect(decision.settle("annotated")).toBe(false);
     expect(resolved).toEqual(["dismissed"]);
   });

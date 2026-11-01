@@ -12,9 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   resolveUseGlimpse,
-  resolveAnnotateHistory,
   loadConfig,
-  mergePromptConfig,
   saveConfig,
   getServerConfig,
   __setConfigLockTimingsForTest,
@@ -29,18 +27,6 @@ import type { HypermarkConfig } from "./config";
 // config.json is hand-edited, so boolean settings often arrive as quoted
 // strings ("false" instead of false). Each boolean resolver must coerce those
 // instead of passing the raw string through to `=== false` checks downstream.
-describe("mergePromptConfig", () => {
-  test("merges the annotate section key by key", () => {
-    const merged = mergePromptConfig(
-      { annotate: { approved: "A" } },
-      { annotate: { fileFeedback: "F", approvedWithNotes: "N" } },
-    );
-    expect(merged?.annotate?.approved).toBe("A");
-    expect(merged?.annotate?.fileFeedback).toBe("F");
-    expect(merged?.annotate?.approvedWithNotes).toBe("N");
-  });
-});
-
 describe("config.json boolean coercion", () => {
   const cases: Array<{
     name: string;
@@ -53,12 +39,6 @@ describe("config.json boolean coercion", () => {
       envVar: "HYPERMARK_GLIMPSE",
       key: "glimpse",
       resolve: resolveUseGlimpse,
-    },
-    {
-      name: "resolveAnnotateHistory",
-      envVar: "HYPERMARK_ANNOTATE_HISTORY",
-      key: "annotateHistory",
-      resolve: resolveAnnotateHistory,
     },
   ];
 
@@ -241,7 +221,7 @@ describe("saveConfig write serialization", () => {
   });
 
   test("two processes sharing a data dir do not drop each other's keys", async () => {
-    // The reported race: one annotate server and one review server settling
+    // The reported race: two annotate servers settling
     // POST /api/config at the same time. Ordering here is barrier-driven, not
     // sleep-driven: the holder announces the lock, the contender announces it
     // has started, and only then is the holder released.
@@ -260,7 +240,7 @@ if (holdUntil) {
     while (!existsSync(holdUntil)) { /* spin: saveConfig is synchronous */ }
   });
 }
-saveConfig({ prompts: { [key]: "v" } } as never);
+saveConfig({ [key]: "v" } as never);
 `,
     );
 
@@ -289,9 +269,9 @@ saveConfig({ prompts: { [key]: "v" } } as never);
     expect(await holder.exited).toBe(0);
     expect(await contender.exited).toBe(0);
 
-    const prompts = loadConfig().prompts as Record<string, unknown> | undefined;
-    expect(prompts?.holder).toBe("v");
-    expect(prompts?.contender).toBe("v");
+    const saved = loadConfig() as Record<string, unknown>;
+    expect(saved.holder).toBe("v");
+    expect(saved.contender).toBe("v");
   }, 20_000);
 });
 

@@ -50,12 +50,6 @@ export function addScrollViewportListener(
 }
 
 /** A document scroll uses the browser viewport as its IntersectionObserver root. */
-export function getScrollViewportIntersectionRoot(
-  viewport: HTMLElement,
-): Element | null {
-  return isDocumentScrollViewport(viewport) ? null : viewport;
-}
-
 /**
  * Provides the currently-active scroll viewport element to descendants.
  *

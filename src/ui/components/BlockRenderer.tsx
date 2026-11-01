@@ -12,7 +12,6 @@ import { MathBlock } from "./blocks/MathBlock";
 
 export const BlockRenderer: React.FC<{
   block: Block;
-  onOpenLinkedDoc?: (path: string) => void;
   imageBaseDir?: string;
   onImageClick?: (src: string, alt: string) => void;
   onToggleCheckbox?: (blockId: string, checked: boolean) => void;
@@ -20,7 +19,7 @@ export const BlockRenderer: React.FC<{
   orderedIndex?: number | null;
   headingAnchorId?: string;
   onNavigateAnchor?: (hash: string) => void;
-}> = ({ block, onOpenLinkedDoc, imageBaseDir, onImageClick, onToggleCheckbox, checkboxOverrides, orderedIndex, headingAnchorId, onNavigateAnchor }) => {
+}> = ({ block, imageBaseDir, onImageClick, onToggleCheckbox, checkboxOverrides, orderedIndex, headingAnchorId, onNavigateAnchor }) => {
   switch (block.type) {
     case 'heading': {
       const Tag = `h${block.level || 1}` as React.ElementType;
@@ -36,7 +35,7 @@ export const BlockRenderer: React.FC<{
           data-block-id={block.id}
           data-block-type="heading"
         >
-          <InlineMarkdown imageBaseDir={imageBaseDir} onImageClick={onImageClick} text={block.content} onOpenLinkedDoc={onOpenLinkedDoc} onNavigateAnchor={onNavigateAnchor} />
+          <InlineMarkdown imageBaseDir={imageBaseDir} onImageClick={onImageClick} text={block.content} onNavigateAnchor={onNavigateAnchor} />
         </Tag>
       );
     }
@@ -48,7 +47,6 @@ export const BlockRenderer: React.FC<{
             blockId={block.id}
             kind={block.alertKind}
             body={block.content}
-            onOpenLinkedDoc={onOpenLinkedDoc}
             imageBaseDir={imageBaseDir}
             onImageClick={onImageClick}
             onNavigateAnchor={onNavigateAnchor}
@@ -60,7 +58,6 @@ export const BlockRenderer: React.FC<{
       return (
         <BlockquoteBlock
           block={block}
-          onOpenLinkedDoc={onOpenLinkedDoc}
           imageBaseDir={imageBaseDir}
           onImageClick={onImageClick}
           onNavigateAnchor={onNavigateAnchor}
@@ -76,7 +73,7 @@ export const BlockRenderer: React.FC<{
         : block.checked;
       const isInteractive = isCheckbox && !!onToggleCheckbox;
       const textClass = `text-sm leading-relaxed ${isCheckbox && isChecked ? 'text-muted-foreground line-through' : 'text-foreground/90'}`;
-      const inlineProps = { imageBaseDir, onImageClick, onOpenLinkedDoc, onNavigateAnchor };
+      const inlineProps = { imageBaseDir, onImageClick, onNavigateAnchor };
       return (
         <div
           className="flex items-start gap-3 my-1.5"
@@ -107,7 +104,6 @@ export const BlockRenderer: React.FC<{
           block={block}
           imageBaseDir={imageBaseDir}
           onImageClick={onImageClick}
-          onOpenLinkedDoc={onOpenLinkedDoc}
           onNavigateAnchor={onNavigateAnchor}
         />
       );
@@ -116,10 +112,10 @@ export const BlockRenderer: React.FC<{
       return <MathBlock block={block} />;
 
     case 'hr':
-      return <hr className="border-border/30 my-plan-rule" data-block-id={block.id} />;
+      return <hr className="border-border/30 my-doc-rule" data-block-id={block.id} />;
 
     case 'html':
-      return <HtmlBlock block={block} imageBaseDir={imageBaseDir} onOpenLinkedDoc={onOpenLinkedDoc} onNavigateAnchor={onNavigateAnchor} />;
+      return <HtmlBlock block={block} imageBaseDir={imageBaseDir} onNavigateAnchor={onNavigateAnchor} />;
 
     case 'directive': {
       const kind = block.directiveKind || 'note';
@@ -128,10 +124,9 @@ export const BlockRenderer: React.FC<{
           blockId={block.id}
           kind={kind}
           body={block.content}
-          containerClassName={`directive directive-${kind} my-plan px-4 py-3 rounded-md border`}
+          containerClassName={`directive directive-${kind} my-doc px-4 py-3 rounded-md border`}
           blockType="directive"
           kindAttribute={kind}
-          onOpenLinkedDoc={onOpenLinkedDoc}
           imageBaseDir={imageBaseDir}
           onImageClick={onImageClick}
           onNavigateAnchor={onNavigateAnchor}
@@ -142,10 +137,10 @@ export const BlockRenderer: React.FC<{
     default:
       return (
         <p
-          className="mb-plan text-plan text-foreground/90"
+          className="mb-doc text-doc text-foreground/90"
           data-block-id={block.id}
         >
-          <InlineMarkdown imageBaseDir={imageBaseDir} onImageClick={onImageClick} text={block.content} onOpenLinkedDoc={onOpenLinkedDoc} onNavigateAnchor={onNavigateAnchor} />
+          <InlineMarkdown imageBaseDir={imageBaseDir} onImageClick={onImageClick} text={block.content} onNavigateAnchor={onNavigateAnchor} />
         </p>
       );
   }

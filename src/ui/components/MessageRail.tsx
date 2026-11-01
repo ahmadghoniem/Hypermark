@@ -172,19 +172,19 @@ export const MessageRail: React.FC<MessageRailProps> = ({
         {active && activeIndex !== null && (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute rounded-2xl border border-border bg-popover px-3.5 py-3 shadow-[0_12px_32px_-12px_rgb(0_0_0/0.8)] transition-[top] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
+            className="pointer-events-none absolute rounded-2xl border border-border bg-popover px-3.5 py-3 shadow-[0_12px_32px_-12px_rgb(0_0_0/0.2)] transition-[top] dark:shadow-[0_12px_32px_-12px_rgb(0_0_0/0.8)] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:transition-none"
             style={{
               right: RAIL_WIDTH + 8,
               width: 288,
               top: 6 + activeIndex * PITCH + PITCH / 2 - 34,
             }}
           >
-            <div className="mb-1.5 flex items-center gap-2">
+            <div className="mb-1.5 flex items-center gap-2 whitespace-nowrap">
               <span className="grid size-4.5 place-items-center rounded-full border border-border bg-muted text-muted-foreground">
                 <Terminal className="size-2.5" strokeWidth={2.5} />
               </span>
               <span className="text-micro text-muted-foreground">
-                Assistant{compactedIds.has(active.messageId) ? ' · after a compaction' : ''}
+                Assistant{compactedIds.has(active.messageId) ? ' · compacted' : ''}
               </span>
               <span className="ml-auto flex items-center gap-2 text-micro text-muted-foreground/60">
                 {activeCount > 0 && (

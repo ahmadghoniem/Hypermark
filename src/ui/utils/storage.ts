@@ -62,21 +62,21 @@ export function resetStorageBackend(): void {
 /**
  * Get a value from storage (default = cookies)
  */
-export function getItem(key: string): string | null {
+function getItem(key: string): string | null {
   return backend.getItem(key);
 }
 
 /**
  * Set a value in storage (default = cookies)
  */
-export function setItem(key: string, value: string): void {
+function setItem(key: string, value: string): void {
   backend.setItem(key, value);
 }
 
 /**
  * Remove a value from storage (default = cookies)
  */
-export function removeItem(key: string): void {
+function removeItem(key: string): void {
   backend.removeItem(key);
 }
 

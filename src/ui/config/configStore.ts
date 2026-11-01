@@ -106,7 +106,7 @@ class ConfigStore {
 
   /**
    * Apply server config overrides.
-   * Call once after fetching /api/plan or /api/diff.
+   * Call once after fetching /api/document.
    *
    * Server values take precedence over the cookie/default already resolved
    * by the constructor. Settings without a server value are left untouched.
@@ -148,19 +148,6 @@ class ConfigStore {
   seed<K extends SettingName>(key: K, value: SettingValue<K>): void {
     this.ensureLoaded();
     if (this.serverOverridden.has(key)) return;
-    const def = SETTINGS[key];
-    this.values.set(key, value);
-    def.toCookie(value as never);
-    this.notify();
-  }
-
-  /**
-   * Persist a user choice to memory + cookie, queuing the server write-back
-   * without queuing a server write-back. The legacy cookie-only APIs
-   * (ThemeProvider.setColorTheme) use this instead of set().
-   */
-  setLocal<K extends SettingName>(key: K, value: SettingValue<K>): void {
-    this.ensureLoaded();
     const def = SETTINGS[key];
     this.values.set(key, value);
     def.toCookie(value as never);
@@ -211,7 +198,7 @@ class ConfigStore {
 
   private scheduleServerSync(): void {
     // The debounce loses writes when the page goes away within 300ms — and
-    // annotate sessions end abruptly (approve/feedback shuts the server
+    // annotate sessions end abruptly (a submit shuts the server
     // down right after a settings change). A lost write leaves the cookie and
     // ~/.hypermark/config.json disagreeing; on the next session init() then
     // "restores" the stale server value over the cookie. Flush on pagehide so

@@ -119,7 +119,7 @@ Five flavors, matching Primer exactly:
 > Useful information that users should know, even when skimming content. Supports **bold**, `code`, and links like [the design doc](https://plannotator.ai/docs/alerts).
 
 > [!TIP]
-> Helpful advice. Try running `bun run dev:hook` with a fixture at `tests/test-fixtures/12-gfm-and-inline-extras.md` to see this whole doc render live.
+> Helpful advice. Try running `bun run src/cli/index.ts annotate tests/test-fixtures/12-gfm-and-inline-extras.md` to see this whole doc render live.
 
 > [!IMPORTANT]
 > Key information readers must know. Talk to @backnotprop before cherry-picking this into a point release — there's context in #538 that's not in the PR description.
@@ -201,11 +201,11 @@ Neither risk is theoretical — we hit both during prototyping. See #541's PR de
 
 ```bash
 # Unit tests
-bun test packages/ui
+bun test src/ui
 
 # Live render against this fixture
-bun run build:hook && \
-  bun run --cwd apps/hook server/index.ts annotate \
+bun run build:annotate && \
+  bun run src/cli/index.ts annotate \
   tests/test-fixtures/12-gfm-and-inline-extras.md
 
 # Regression check: every plan in test-fixtures/ must still render identically
@@ -223,8 +223,6 @@ bun test v1.3.11
 ✓ slugify.test.ts — 10 pass
 ✓ inlineTransforms.test.ts — 9 pass
 ✓ sanitizeHtml.test.ts — 7 pass
-✓ planDiffEngine.test.ts — 14 pass
-✓ sharing.test.ts — 11 pass
 ✓ diagramLanguages.test.ts — 6 pass
 
 149 pass

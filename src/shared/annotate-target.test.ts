@@ -170,22 +170,11 @@ describe("message builders", () => {
     expect(message).toContain("exactly one target");
   });
 
-  test("unresolved message echoes the words and usage", () => {
-    const message = buildUnresolvedAnnotateArgsMessage({
-      words: ["the", "aim", "doc"],
-    });
+  test("unresolved message echoes the words, the usage and the re-run instruction", () => {
+    const message = buildUnresolvedAnnotateArgsMessage(["the", "aim", "doc"]);
     expect(message).toContain("the aim doc");
     expect(message).toContain("hypermark annotate <file.md | file.txt>");
-    expect(message).not.toContain("If you are an agent");
-  });
-
-  test("agent handoff adds the re-run instruction and preserves flags", () => {
-    const message = buildUnresolvedAnnotateArgsMessage({
-      words: ["the", "aim", "doc"],
-      flags: ["--markdown"],
-      agentHandoff: true,
-    });
     expect(message).toContain("If you are an agent reading this");
-    expect(message).toContain("hypermark annotate <path> --markdown");
+    expect(message).toContain("hypermark annotate <path>");
   });
 });

@@ -314,7 +314,3 @@ export function matchesShortcutBinding(event: ShortcutKeyEvent, binding: string)
 export function matchesShortcutBindingGroup(event: ShortcutKeyEvent, group: string): boolean {
   return matchesShortcutBinding(event, group);
 }
-
-export function getMatchingShortcutBindingIndex(event: ShortcutKeyEvent, bindings: string[]): number {
-  return bindings.findIndex(binding => matchesShortcutBinding(event, binding));
-}

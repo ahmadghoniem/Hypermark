@@ -30,18 +30,8 @@
   --sidebar-border: oklch(0.35 0.02 260);
   --sidebar-ring: oklch(0.75 0.18 280);
 
-  /* Diff Bridge */
-  --diffs-bg: oklch(0.15 0.02 260);
-  --diffs-fg: oklch(0.90 0.01 260);
-  --diffs-dark-bg: oklch(0.15 0.02 260);
-  --diffs-light-bg: oklch(0.97 0.005 260);
-  --diffs-dark: oklch(0.90 0.01 260);
-  --diffs-light: oklch(0.18 0.02 260);
-
   /* Syntax */
   --code-bg: oklch(0.26 0.02 260);
-
-  /* Terminal / ANSI */
 
   /* Focus */
   --ring: oklch(0.75 0.18 280);
@@ -96,18 +86,8 @@
   --sidebar-border: oklch(0.88 0.01 260);
   --sidebar-ring: oklch(0.50 0.25 280);
 
-  /* Diff Bridge */
-  --diffs-bg: oklch(0.97 0.005 260);
-  --diffs-fg: oklch(0.18 0.02 260);
-  --diffs-dark-bg: oklch(0.15 0.02 260);
-  --diffs-light-bg: oklch(0.97 0.005 260);
-  --diffs-dark: oklch(0.90 0.01 260);
-  --diffs-light: oklch(0.18 0.02 260);
-
   /* Syntax */
   --code-bg: oklch(0.92 0.01 260);
-
-  /* Terminal / ANSI */
 
   /* Focus */
   --ring: oklch(0.50 0.25 280);

@@ -4,7 +4,7 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CLASSIC_FAVICON_SVG } from "../shared/favicon";
-import { saveConfig } from "./config";
+import { saveConfig } from "@/shared/config";
 // Use a distinct module key so unrelated mock.module() tests cannot replace
 // the real server.
 import { startAnnotateServer as startBunAnnotateServer } from "./annotate.ts?api-404-guard";
@@ -27,12 +27,11 @@ interface ServerCase {
 const serverCases = [
   {
     name: "Bun annotate",
-    knownApiPath: "/api/plan",
+    knownApiPath: "/api/document",
     start: () =>
       startBunAnnotateServer({
         markdown: "# Test Document",
         filePath: "test.md",
-        origin: "claude-code",
         htmlContent: SPA_HTML,
       }),
   },

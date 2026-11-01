@@ -2,9 +2,9 @@
  * Pure state→spec mapping for the unified header decision control.
  *
  * No React, no DOM, no imports — this is what keeps the state matrix testable
- * in the plain `bun test` lane and keeps "both apps and both states are data,
- * not forked components" true. `DecisionControl.tsx` renders whatever this
- * returns; the apps translate ids into handlers.
+ * in the plain `bun test` lane and keeps "both states are data, not forked
+ * components" true. `DecisionControl.tsx` renders whatever this returns; the
+ * app translates ids into handlers.
  *
  * Labels, subtitles and confirm strings are the approved prototype's
  * (DESIGN_final-proposal.html `spec()`), authoritative over any older branch
@@ -15,18 +15,17 @@
 
 export type DecisionActionId =
   | 'primary'              // the left segment
-  | 'approve-with-notes'   // gate annotate; capability-gated
   | 'close-session';       // "Close session" — dismisses, sends nothing
 
-export type DecisionTone = 'success' | 'primary' | 'neutral' | 'destructive';
+export type DecisionTone = 'primary' | 'neutral' | 'destructive';
 
 export interface DecisionPrimary {
   id: 'primary';
-  label: string;            // 'All good' | 'Approve' | 'Send Feedback'
+  label: string;            // 'All good' | 'Send Feedback'
   shortLabel?: string;      // 'Send' — the lg-breakpoint label
   title: string;            // tooltip / aria description
   tone: Exclude<DecisionTone, 'destructive'>;
-  icon?: 'check' | 'send';
+  icon?: 'send';
   count?: number;           // rendered as the inline pill; omitted when 0
 }
 
@@ -41,8 +40,6 @@ export interface DecisionMenuItem {
   label: string;
   subtitle: string;
   tone: DecisionTone;
-  icon?: 'check' | 'send';
-  dividerBefore?: boolean;
   confirm?: DecisionConfirm;     // present ⇒ the item raises one confirm
 }
 
@@ -52,18 +49,14 @@ export interface DecisionSpec {
 }
 
 export interface DecisionSpecInput {
-  /** `--gate`: the primary decision is approval. */
-  gate: boolean;
   /** The count rendered in the pill and interpolated into labels. */
   count: number;
   /**
    * Whether there is anything to send. Deliberately separate from `count`:
    * annotate counts attachments as
-   * feedback with count 0 (`hasFeedbackContent` in the annotate app).
+   * feedback with count 0 .
    */
   hasFeedback: boolean;
-  /** Does the runtime deliver feedback on approve? Gates every approve-carrying item. */
-  approvalNotesSupported: boolean;
 }
 
 function annotationNoun(count: number): string {
@@ -71,70 +64,25 @@ function annotationNoun(count: number): string {
 }
 
 /**
- * The empty state: no feedback to send, the primary is the positive finish.
- * `approvalFlow` (gate annotate) makes it `Approve`; plain annotate gets
- * `All good`. Either way the menu holds only Close session: changes are
- * requested by annotating (or adding a global comment) and sending, which
- * turns the primary into Send Feedback.
+ * The empty state: no feedback to send, the primary is `All good`. The menu
+ * holds only Close session: changes are requested by annotating (or adding a
+ * global comment), which turns the primary into Send Feedback.
  */
-function buildEmptySpec(input: DecisionSpecInput, approvalFlow: boolean): DecisionSpec {
-  if (!approvalFlow) {
-    return {
-      primary: {
-        id: 'primary',
-        // Frozen copy (maintainer-approved): 'All good'.
-        label: 'All good',
-        title: 'Finish with no feedback',
-        // Maintainer ruling (post-demo): All good without a gate is a positive
-        // finish, NOT an approval — no success tone, no check icon, so it
-        // can never be mistaken for the gate's Approve.
-        tone: 'neutral',
-      },
-      items: [buildCloseItem(input.count, false)],
-    };
-  }
-
+function buildEmptySpec(input: DecisionSpecInput): DecisionSpec {
   return {
     primary: {
       id: 'primary',
-      // Frozen copy (maintainer-approved): 'Approve'.
-      label: 'Approve',
-      title: 'Approve, no changes',
-      tone: 'success',
-      icon: 'check',
+      label: 'All good',
+      title: 'Finish with no feedback',
+      tone: 'neutral',
     },
-    items: [buildCloseItem(input.count, false)],
+    items: [buildCloseItem(input.count)],
   };
 }
 
-/**
- * The feedback state: something to send, the primary is `Send Feedback`.
- * Identical across apps.
- */
-function buildFeedbackSpec(input: DecisionSpecInput, approvalFlow: boolean): DecisionSpec {
+/** The feedback state: something to send, the primary is `Send Feedback`. */
+function buildFeedbackSpec(input: DecisionSpecInput): DecisionSpec {
   const { count } = input;
-  const noun = annotationNoun(count);
-  const items: DecisionMenuItem[] = [];
-
-  // Capability-gated only (F2 ruling, maintainer-confirmed): at count 0 the feedback is attachments, and a capable approve transport delivers those too,
-  // so the item stays offered with zero-form copy — no "0 annotations"
-  // language. Subtitles are free prose, NOT frozen.
-  if (approvalFlow && input.approvalNotesSupported) {
-    items.push({
-      id: 'approve-with-notes',
-      // Frozen copy (maintainer-approved): 'Approve with notes'.
-      label: 'Approve with notes',
-      subtitle:
-        count > 0
-          ? `${count} ${noun} as guidance`
-          : 'Edits as guidance',
-      tone: 'success',
-      icon: 'check',
-    });
-  }
-
-  items.push(buildCloseItem(count, items.length > 0));
-
   return {
     primary: {
       id: 'primary',
@@ -146,7 +94,7 @@ function buildFeedbackSpec(input: DecisionSpecInput, approvalFlow: boolean): Dec
       icon: 'send',
       count: count > 0 ? count : undefined,
     },
-    items,
+    items: [buildCloseItem(count)],
   };
 }
 
@@ -157,17 +105,15 @@ function buildFeedbackSpec(input: DecisionSpecInput, approvalFlow: boolean): Dec
  *
  * With annotations pending it keeps the confirm the old discard item carried,
  * because that is the only case where leaving costs the reviewer something.
- * The outcome is a dismissal either way — the agent is told the human left,
- * never that the work was approved.
+ * The outcome is a dismissal either way: the agent is told the human left.
  */
-function buildCloseItem(count: number, dividerBefore: boolean): DecisionMenuItem {
+function buildCloseItem(count: number): DecisionMenuItem {
   const noun = annotationNoun(count);
   return {
     id: 'close-session',
     label: count > 0 ? `Discard ${count} and close…` : 'Close session',
     subtitle: count > 0 ? 'Nothing is sent' : 'Sends nothing',
     tone: count > 0 ? 'destructive' : 'neutral',
-    dividerBefore,
     ...(count > 0
       ? {
           confirm: {
@@ -182,8 +128,5 @@ function buildCloseItem(count: number, dividerBefore: boolean): DecisionMenuItem
 }
 
 export function buildDecisionSpec(input: DecisionSpecInput): DecisionSpec {
-  const approvalFlow = input.gate;
-  return input.hasFeedback
-    ? buildFeedbackSpec(input, approvalFlow)
-    : buildEmptySpec(input, approvalFlow);
+  return input.hasFeedback ? buildFeedbackSpec(input) : buildEmptySpec(input);
 }

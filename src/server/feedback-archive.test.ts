@@ -7,15 +7,13 @@
  *    invoking agent timed out existed nowhere.
  *  - "opt-out ignored": HYPERMARK_FEEDBACK_HISTORY / feedbackHistory must
  *    stop every write.
- *  - "stateless annotate broken": HYPERMARK_ANNOTATE_HISTORY=0 must still
- *    mean "annotate sessions write nothing to the data dir".
  *
  * Every test sandboxes the archive under a temp HYPERMARK_DATA_DIR set
  * inside the test body.
  */
 
-import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { startAnnotateServer } from "./annotate";
@@ -25,23 +23,15 @@ import {
   parseFeedbackIndex,
   type FeedbackRecord,
 } from "@/shared/feedback-archive";
-import { getHypermarkDataDir } from "@/shared/data-dir";
 
 const MINIMAL_HTML = "<html><body>Hypermark</body></html>";
 
-// Annotate version history goes through storage.ts, whose data dir is fixed at
-// import time, so these sessions snapshot into the REAL data dir no matter what
-// HYPERMARK_DATA_DIR says here. Distinctive, test-owned project names keep
-// that out of any real project's bucket and let afterAll remove it whole.
 const FILE_ANNOTATE_PROJECT = "_feedback_archive_test_file";
-const STATELESS_ANNOTATE_PROJECT = "_feedback_archive_test_stateless";
-const URL_ANNOTATE_PROJECT = "_feedback_archive_test_url";
 
 const saved: Record<string, string | undefined> = {};
 const ENV_KEYS = [
   "HYPERMARK_DATA_DIR",
   "HYPERMARK_FEEDBACK_HISTORY",
-  "HYPERMARK_ANNOTATE_HISTORY",
   "HYPERMARK_PORT",
 ] as const;
 
@@ -82,7 +72,6 @@ beforeEach(() => {
   delete process.env.HYPERMARK_PORT;
   // A real ~/.hypermark/config.json must never decide these tests.
   process.env.HYPERMARK_FEEDBACK_HISTORY = "1";
-  process.env.HYPERMARK_ANNOTATE_HISTORY = "1";
 });
 
 afterEach(() => {
@@ -100,30 +89,20 @@ afterEach(() => {
   }
 });
 
-afterAll(() => {
-  // Remove the annotate history these tests deposited in the real data dir.
-  // Runs with the env already restored, so this resolves the same directory
-  // storage.ts wrote to.
-  const historyDir = join(getHypermarkDataDir(), "history");
-  for (const project of [FILE_ANNOTATE_PROJECT, STATELESS_ANNOTATE_PROJECT, URL_ANNOTATE_PROJECT]) {
-    rmSync(join(historyDir, project), { recursive: true, force: true });
-  }
-});
-
 describe("annotate submissions are archived", () => {
-  function startUrlSession() {
+  function startFileSession() {
     return startAnnotateServer({
-      markdown: "# Fetched page\n\nBody\n",
-      filePath: "https://example.com/some/page",
+      markdown: "# Doc\n\nBody\n",
+      filePath: "doc.md",
       htmlContent: MINIMAL_HTML,
-      project: URL_ANNOTATE_PROJECT,
+      project: FILE_ANNOTATE_PROJECT,
     });
   }
 
   test("HYPERMARK_FEEDBACK_HISTORY=0 writes nothing", async () => {
     const dataDir = useTempDataDir();
     process.env.HYPERMARK_FEEDBACK_HISTORY = "0";
-    const server = await startUrlSession();
+    const server = await startFileSession();
     try {
       const response = await fetch(`${server.url}/api/feedback`, {
         method: "POST",
@@ -141,7 +120,7 @@ describe("annotate submissions are archived", () => {
     const dataDir = useTempDataDir();
     delete process.env.HYPERMARK_FEEDBACK_HISTORY; // config must decide
     writeFileSync(join(dataDir, "config.json"), JSON.stringify({ feedbackHistory: false }), "utf-8");
-    const server = await startUrlSession();
+    const server = await startFileSession();
     try {
       const response = await fetch(`${server.url}/api/feedback`, {
         method: "POST",
@@ -150,62 +129,6 @@ describe("annotate submissions are archived", () => {
       });
       expect(response.status).toBe(200);
       expect(existsSync(feedbackDir(dataDir))).toBe(false);
-    } finally {
-      server.stop();
-    }
-  });
-
-  test("a URL session — which writes no history — still records the submission", async () => {
-    // Behavior change by design: URL / annotate-last / folder
-    // submissions leave a durable record for the first time.
-    const dataDir = useTempDataDir();
-    const server = await startAnnotateServer({
-      markdown: "# Fetched page\n\nBody\n",
-      filePath: "https://example.com/some/page",
-      htmlContent: MINIMAL_HTML,
-      project: URL_ANNOTATE_PROJECT,
-    });
-    try {
-      const response = await fetch(`${server.url}/api/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback: "The fetched page says Z.", annotations: [] }),
-      });
-      expect(response.status).toBe(200);
-      const records = readOnlyIndex(dataDir);
-      expect(records[0].surface).toBe("annotate-url");
-      expect(records[0].target?.url).toBe("https://example.com/some/page");
-      // The archive stores the submission, never a copy of the fetched page.
-      expect(existsSync(join(dataDir, "history"))).toBe(false);
-    } finally {
-      server.stop();
-    }
-  });
-
-  test("HYPERMARK_ANNOTATE_HISTORY=0 keeps annotate sessions fully stateless", async () => {
-    // The documented stateless-annotate promise: the opt-out means "no
-    // annotate writes to the data dir", and submitted feedback quotes the
-    // annotated content, so the archive must honor it too.
-    const dataDir = useTempDataDir();
-    process.env.HYPERMARK_ANNOTATE_HISTORY = "0";
-    const dir = makeTempDir("hypermark-feedback-annotate-");
-    const docPath = join(dir, "doc.md");
-    writeFileSync(docPath, "# Doc\n\nBody\n", "utf-8");
-    const server = await startAnnotateServer({
-      markdown: "# Doc\n\nBody\n",
-      filePath: docPath,
-      htmlContent: MINIMAL_HTML,
-      project: STATELESS_ANNOTATE_PROJECT,
-    });
-    try {
-      const response = await fetch(`${server.url}/api/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feedback: "Secret excerpt", annotations: [{ id: "a1" }] }),
-      });
-      expect(response.status).toBe(200);
-      expect(existsSync(feedbackDir(dataDir))).toBe(false);
-      expect(existsSync(join(dataDir, "history"))).toBe(false);
     } finally {
       server.stop();
     }
@@ -223,7 +146,7 @@ describe("annotate submissions are archived", () => {
       project: FILE_ANNOTATE_PROJECT,
     });
     try {
-      const response = await fetch(`${server.url}/api/approve`, {
+      const response = await fetch(`${server.url}/api/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ feedback: "LGTM, but rename the helper.", annotations: [] }),
@@ -231,7 +154,7 @@ describe("annotate submissions are archived", () => {
       expect(response.status).toBe(200);
       const records = readOnlyIndex(dataDir);
       expect(records[0].surface).toBe("annotate");
-      expect(records[0].decision).toBe("approved-with-notes");
+      expect(records[0].decision).toBe("feedback");
       expect(records[0].target?.filePath).toBe(resolve(docPath));
       expect(sidecarBody(dataDir, records[0])).toContain("rename the helper");
     } finally {
@@ -289,7 +212,6 @@ describe("feedback archive module", () => {
       const dataDir = useTempDataDir();
       const indexPath = appendFeedbackRecord({
         project: PROJECT,
-        origin: "claude-code",
         surface: "annotate",
         decision: "feedback",
         target: { filePath: "/work/plan.md" },
@@ -319,7 +241,7 @@ describe("feedback archive module", () => {
     });
 
     test("a bare decision is a decision-only line with no sidecar", () => {
-      // Approval and dismissal rates are the behavior data the archive exists
+      // Dismissal rates are the behavior data the archive exists
       // for; writing an empty markdown file for each would be noise.
       const dataDir = useTempDataDir();
       appendFeedbackRecord({ project: PROJECT, surface: "annotate", decision: "dismissed" });
@@ -333,14 +255,13 @@ describe("feedback archive module", () => {
   describe("feedback archive: append durability", () => {
     test("successive appends never rewrite earlier lines", () => {
       // Index corruption regression: the archive is a timeline, so a second
-      // decision on the same session must extend it, never replace it (the
-      // legacy plans/ snapshot overwrites by slug; the archive must not).
+      // decision on the same session must extend it, never replace it.
       const dataDir = useTempDataDir();
-      for (const decision of ["denied", "feedback", "approved"] as const) {
+      for (const decision of ["feedback", "feedback", "dismissed"] as const) {
         appendFeedbackRecord({ project: PROJECT, surface: "annotate", decision, feedback: `note ${decision}` });
       }
       const records = readIndex(dataDir);
-      expect(records.map((r) => r.decision)).toEqual(["denied", "feedback", "approved"]);
+      expect(records.map((r) => r.decision)).toEqual(["feedback", "feedback", "dismissed"]);
       expect(readdirSync(join(projectDir(dataDir), "records")).length).toBe(3);
     });
 
@@ -354,7 +275,7 @@ describe("feedback archive module", () => {
         decision: "feedback",
         feedback: "## Heading\n\n- one\n- two\n\n```js\nconst a = 1;\n```\n",
       });
-      appendFeedbackRecord({ project: PROJECT, surface: "annotate", decision: "approved" });
+      appendFeedbackRecord({ project: PROJECT, surface: "annotate", decision: "dismissed" });
       const raw = readFileSync(join(projectDir(dataDir), "index.jsonl"), "utf-8");
       expect(raw.trimEnd().split("\n").length).toBe(2);
       expect(readIndex(dataDir)[0].feedback).toContain("const a = 1;");
@@ -362,12 +283,12 @@ describe("feedback archive module", () => {
 
     test("a torn last line is skipped, and the records before it still read", () => {
       const dataDir = useTempDataDir();
-      appendFeedbackRecord({ project: PROJECT, surface: "annotate", decision: "approved" });
+      appendFeedbackRecord({ project: PROJECT, surface: "annotate", decision: "dismissed" });
       const indexPath = join(projectDir(dataDir), "index.jsonl");
       writeFileSync(indexPath, readFileSync(indexPath, "utf-8") + '{"v":1,"ts":"2026', "utf-8");
       const records = parseFeedbackIndex(readFileSync(indexPath, "utf-8"));
       expect(records.length).toBe(1);
-      expect(records[0].decision).toBe("approved");
+      expect(records[0].decision).toBe("dismissed");
     });
 
     test("sidecars written in the same millisecond never overwrite each other", () => {
@@ -402,39 +323,34 @@ describe("feedback archive module", () => {
     });
   });
 
-  describe("feedback archive: shared index", () => {
-    test("another client's lines survive our reader, unknown fields and all", () => {
-      // The index is shared: hypermark-tui appends to the same file. A reader
-      // that validated `client` against an enum, rejected unknown fields, or
-      // parsed sidecar filenames would silently drop every line another tool
-      // wrote. Fields are added and never repurposed, so tolerance is the rule.
+  describe("feedback archive: tolerant reader", () => {
+    test("a line from another client survives our reader, unknown fields and all", () => {
+      // A reader that validated `client` against an enum, rejected unknown
+      // fields, or parsed sidecar filenames would drop the line. Fields are
+      // added and never repurposed, so tolerance is the rule.
       const dataDir = useTempDataDir();
-      appendFeedbackRecord({ project: PROJECT, surface: "annotate", decision: "approved" });
+      appendFeedbackRecord({ project: PROJECT, surface: "annotate", decision: "dismissed" });
       const indexPath = join(projectDir(dataDir), "index.jsonl");
       const foreign = {
         v: 1,
         ts: "2026-09-01T09:00:00.000Z",
-        client: "hypermark-tui",
-        clientVersion: "0.3.1",
+        client: "other-client",
         project: PROJECT,
         surface: "annotate-last",
         decision: "feedback",
-        target: { agent: { host: "claude-code", session: "s-1", transcript: "/t/1.jsonl" } },
-        feedback: "from the terminal client",
+        feedback: "from another client",
         counts: { annotations: 0, images: 0 },
-        recordFile: "records/2026-09-01T09-00-00-000Z-annotate-last-feedback-hypermark-tui.md",
+        recordFile: "records/2026-09-01T09-00-00-000Z-annotate-last-feedback-other-client.md",
         somethingWeHaveNeverHeardOf: { nested: true },
       };
       writeFileSync(indexPath, readFileSync(indexPath, "utf-8") + JSON.stringify(foreign) + "\n", "utf-8");
 
       const records = readIndex(dataDir);
       expect(records.length).toBe(2);
-      expect(records.map((r) => r.client)).toEqual(["hypermark", "hypermark-tui"]);
-      // The suffixed sidecar name round-trips untouched: recordFile is a handle,
+      expect(records.map((r) => r.client)).toEqual(["hypermark", "other-client"]);
+      // The sidecar name round-trips untouched: recordFile is a handle,
       // never something to parse.
-      expect(records[1].recordFile).toEndWith("-hypermark-tui.md");
-      expect(records[1].target?.agent?.host).toBe("claude-code");
-      expect(records[1].clientVersion).toBe("0.3.1");
+      expect(records[1].recordFile).toEndWith("-other-client.md");
     });
   });
 

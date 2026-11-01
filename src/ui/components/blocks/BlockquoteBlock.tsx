@@ -55,11 +55,8 @@ const QuoteDepthContext = createContext(0);
 
 export interface BlockquoteBlockProps {
   block: Block;
-  onOpenLinkedDoc?: (path: string) => void;
-  onOpenCodeFile?: (path: string) => void;
   imageBaseDir?: string;
   onImageClick?: (src: string, alt: string) => void;
-  repoHost?: string;
   onNavigateAnchor?: (hash: string) => void;
 }
 
@@ -101,7 +98,7 @@ export const BlockquoteBlock: React.FC<BlockquoteBlockProps> = ({ block, ...inli
   return (
     <blockquote className={`${BLOCKQUOTE_CLASS_NAME} pn-quote-body`} data-block-id={block.id}>
       {/* React hoists this into <head> once for every quote. */}
-      <style href="plannotator-quote-body" precedence="default">{QUOTE_BODY_CSS}</style>
+      <style href="hypermark-quote-body" precedence="default">{QUOTE_BODY_CSS}</style>
       <QuoteDepthContext.Provider value={depth + 1}>
         <QuoteBody inner={inner} {...inlineProps} />
       </QuoteDepthContext.Provider>

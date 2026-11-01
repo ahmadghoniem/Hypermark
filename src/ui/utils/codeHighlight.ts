@@ -12,7 +12,7 @@
  * plain text afterwards, so keeping the DOM contract identical keeps that code
  * working untouched.
  *
- * Language-less fences are never highlighted and never guessed at — see #1212.
+ * Language-less fences are never highlighted and never guessed at.
  * There is no auto-detection anywhere in this module.
  */
 
@@ -250,7 +250,7 @@ export function applyHighlight(
   const seq = ++seqCounter;
   renderSeq.set(el, seq);
 
-  // #1212: a fence with no language stays plain. Never guess.
+  // A fence with no language stays plain. Never guess.
   if (!lang) {
     el.textContent = code;
     notifyHighlightSwap(el);

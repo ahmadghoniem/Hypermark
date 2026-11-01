@@ -1,5 +1,5 @@
 export interface RepoInfo {
-	/** Display string (e.g., "backnotprop/plannotator" or "my-project") */
+	/** Display string (e.g., "owner/repo" or "my-project") */
 	display: string;
 	/** Current git branch (if in a git repo) */
 	branch?: string;

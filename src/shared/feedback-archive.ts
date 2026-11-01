@@ -3,36 +3,28 @@
  * session: the one place Hypermark writes a durable, analyzable record of
  * what the user actually submitted.
  *
- * Layout (per project, mirroring the `history/` project convention):
+ * Layout (per project):
  *
  *   {DATA_DIR}/feedback/{project}/index.jsonl      append-only, authoritative
  *   {DATA_DIR}/feedback/{project}/records/…​.md      human-readable sidecar
  *
  * The JSONL line is self-contained: an analyzer never has to open a sidecar.
  * The sidecar exists because everything else in the data dir is markdown and
- * users grep it; it is written only for records that carry content (a bare
- * approval or a dismissal is a decision-only line).
+ * users grep it; it is written only for records that carry content (a
+ * dismissal is a decision-only line).
  *
- * SHARED INDEX, not a Hypermark-private store. Several tools that share this
- * data dir append to the SAME `feedback/{project}/index.jsonl`, distinguished
- * by the `client` field on every line rather than by separate files. Known
- * writers: `hypermark` (this module) and `hypermark-tui`, the Rust
- * terminal client; `herdr-annotate` is reserved for a possible future Lite
- * writer. A record's meaning is the same whoever wrote it, so an analyzer
- * reads one file, sorts by `ts`, and filters by `client` only when it actually
- * cares who submitted. Consequences worth respecting when changing this file:
- * the line shape is a cross-tool contract (fields are added, never
- * repurposed), other clients suffix their id onto their sidecar filenames
- * (`{stamp}-{surface}-{decision}-hypermark-tui.md`), and unknown fields must
- * be ignored rather than rejected.
+ * Every line carries a `client` field naming the tool that wrote it
+ * (`hypermark` here). Readers treat it as an open set, ignore unknown fields
+ * rather than reject them, and never parse a sidecar's filename: `recordFile`
+ * is the only handle. Fields are added, never repurposed.
  *
- * Contract, shared with `persistAnnotateSubmission` (#678):
+ * Contract, shared with `persistAnnotateSubmission`:
  *  - This module NEVER throws. Any failure is logged once and reported as
  *    `null`, so a full disk can never turn a reviewer's submit into a 500.
  *  - Callers append BEFORE deleting the reviewer's draft: a failed archive
  *    write leaves the draft behind as the recovery copy.
- *  - The data directory is resolved PER CALL (not captured at module load
- *    like storage.ts does), so a test can redirect HYPERMARK_DATA_DIR
+ *  - The data directory is resolved PER CALL (not captured at module
+ *    load), so a test can redirect HYPERMARK_DATA_DIR
  *    inside the test body — Bun runs every test file in one process, and a
  *    module-load capture cannot be redirected without import-order games.
  * Runtime-agnostic: node:fs / node:path only.
@@ -46,36 +38,20 @@ import { sanitizeTag } from "./project";
 /** Schema version carried on every line. Bump only on a breaking shape change. */
 export const FEEDBACK_RECORD_VERSION = 1;
 
-/**
- * Tool that authored the record, and the only thing separating writers in a
- * shared index: every client appends its own lines to the same
- * `feedback/{project}/index.jsonl` and stamps itself here. Known values today
- * are `hypermark` (this module) and `hypermark-tui`; `herdr-annotate` is
- * reserved. Readers must treat this as an open set, never an enum to validate
- * against.
- */
+/** Tool that authored the record. Readers treat it as an open set, never an enum to validate against. */
 export const FEEDBACK_RECORD_CLIENT = "hypermark";
 
 export type FeedbackSurface =
   | "annotate"
-  | "annotate-url"
   | "annotate-last";
 
+/** The decisions Hypermark writes. Other clients may write other values, so
+ *  readers must treat the field as an open set. */
 export type FeedbackDecision =
-  | "approved"
-  | "approved-with-notes"
-  | "denied"
   | "feedback"
   | "dismissed";
 
 export interface FeedbackTarget {
-  /** Plan history slug (plan surface). */
-  slug?: string;
-  /** Plan history version this decision was made on. */
-  planVersion?: number;
-  /** Absolute path of `history/{project}/{slug}/NNN.md` — join the record to
-   *  the exact plan text without duplicating it into the archive. */
-  planVersionFile?: string;
   /**
    * The annotate session's own target: the resolved file for a single-file
    * session, and the session's FOLDER for a folder session (not the document
@@ -84,30 +60,6 @@ export interface FeedbackTarget {
    * path is not part of it).
    */
   filePath?: string;
-  /**
-   * Annotated URL (URL sessions), stored in full
-   * including its query string, because that is the page that was reviewed.
-   * A URL carrying a token or other secret in its query is therefore written
-   * to disk; the archive opt-out is the control for that.
-   */
-  url?: string;
-  /**
-   * Provenance for surfaces whose subject is an AGENT SESSION rather than a
-   * file: annotate-last and the other message-shaped surfaces, where
-   * "what was reviewed" is a transcript, not a path.
-   *
-   * Declared in v1 so the field name is reserved across every client sharing
-   * the index (hypermark-tui populates it); this module does not write it
-   * yet. Readers must tolerate its absence.
-   */
-  agent?: {
-    /** Agent host that produced the session, e.g. "claude-code". */
-    host?: string;
-    /** Host-assigned session id. */
-    session?: string;
-    /** Path or id of the transcript the reviewed message came from. */
-    transcript?: string;
-  };
 }
 
 /** One submitted annotation, shallow-normalized. Unknown shapes never throw:
@@ -117,10 +69,7 @@ export interface FeedbackAnnotationRecord {
   type?: string;
   text?: string;
   originalText?: string;
-  file?: string;
   blockId?: string;
-  diffContext?: string;
-  severity?: string;
   images?: number;
 }
 
@@ -128,17 +77,7 @@ export interface FeedbackRecord {
   v: number;
   ts: string;
   client: string;
-  /**
-   * Version of the writing client, when it knows its own. Additive and
-   * optional: this module does not populate it (src/shared has no
-   * runtime-agnostic version constant, and reading package.json from a
-   * vendored module would be a new filesystem dependency for cosmetic data),
-   * but the field is named in v1 so clients that DO know their version write
-   * it under one agreed key instead of inventing three.
-   */
-  clientVersion?: string;
   project: string;
-  origin?: string;
   surface: FeedbackSurface;
   decision: FeedbackDecision;
   target?: FeedbackTarget;
@@ -150,9 +89,8 @@ export interface FeedbackRecord {
 }
 
 export interface FeedbackArchiveInput {
-  /** Project namespace, same convention as `history/{project}`. */
+  /** Project namespace: the git repo or directory name (see server/project.ts). */
   project: string;
-  origin?: string;
   surface: FeedbackSurface;
   decision: FeedbackDecision;
   target?: FeedbackTarget;
@@ -167,11 +105,9 @@ export interface FeedbackArchiveInput {
 /**
  * Derive the archive's project segment.
  *
- * `history/` keys by whatever `detectProjectName()` returned (already
- * sanitizeTag'd) or the literal `_unknown`, and the archive matches it so both
- * stores bucket the same session identically. Every other value is
- * sanitizeTag'd, which is also what keeps a caller-derived name from ever
- * escaping the archive directory.
+ * Takes whatever `detectProjectName()` returned (already sanitizeTag'd) or
+ * the literal `_unknown`. Every other value is sanitizeTag'd, which is also
+ * what keeps a caller-derived name from ever escaping the archive directory.
  */
 export function normalizeFeedbackProject(project: string | null | undefined): string {
   if (!project) return "_unknown";
@@ -203,23 +139,16 @@ function normalizeAnnotation(raw: unknown): FeedbackAnnotationRecord {
   if (type) record.type = type;
   const text = asString(a.text);
   if (text) record.text = text;
-  const originalText = asString(a.originalText) ?? asString(a.selectedText) ?? asString(a.tokenText);
+  const originalText = asString(a.originalText);
   if (originalText) record.originalText = originalText;
-  const file = asString(a.filePath) ?? asString(a.file);
-  if (file) record.file = file;
   const blockId = asString(a.blockId);
   if (blockId) record.blockId = blockId;
-  const diffContext = asString(a.diffContext);
-  if (diffContext) record.diffContext = diffContext;
-  const severity = asString(a.severity);
-  if (severity) record.severity = severity;
   if (Array.isArray(a.images) && a.images.length > 0) record.images = a.images.length;
   return record;
 }
 
 const SURFACE_TITLES: Record<FeedbackSurface, string> = {
   annotate: "Annotate feedback",
-  "annotate-url": "Annotate feedback (URL)",
   "annotate-last": "Annotate feedback (agent message)",
 };
 
@@ -233,16 +162,8 @@ export function renderFeedbackRecordMarkdown(record: FeedbackRecord): string {
   lines.push(`- Surface: ${record.surface}`);
   lines.push(`- Decision: ${record.decision}`);
   lines.push(`- Project: ${record.project}`);
-  if (record.origin) lines.push(`- Origin: ${record.origin}`);
   const target = record.target;
   if (target?.filePath) lines.push(`- File: ${target.filePath}`);
-  if (target?.url) lines.push(`- URL: ${target.url}`);
-  if (target?.slug) {
-    lines.push(
-      `- Plan: ${target.slug}${target.planVersion ? ` (version ${target.planVersion})` : ""}`,
-    );
-  }
-  if (target?.planVersionFile) lines.push(`- Plan version file: ${target.planVersionFile}`);
   lines.push(
     `- Annotations: ${record.counts.annotations}`,
   );
@@ -283,7 +204,6 @@ export function appendFeedbackRecord(input: FeedbackArchiveInput): string | null
       ts: now.toISOString(),
       client: FEEDBACK_RECORD_CLIENT,
       project,
-      ...(input.origin ? { origin: input.origin } : {}),
       surface: input.surface,
       decision: input.decision,
       ...(input.target ? { target: input.target } : {}),
@@ -298,12 +218,9 @@ export function appendFeedbackRecord(input: FeedbackArchiveInput): string | null
     if (hasContent) {
       const recordsDir = join(projectDir, "records");
       mkdirSync(recordsDir, { recursive: true });
-      // {stamp}-{surface}-{decision}[-N].md. Other clients writing into this
-      // shared archive suffix their own id (hypermark-tui writes
-      // `{stamp}-{surface}-{decision}-hypermark-tui.md`), which is why the
-      // records directory holds more shapes than this line produces and why
-      // nothing may parse a sidecar name: `recordFile` is the only handle, and
-      // any value it carries is valid.
+      // {stamp}-{surface}-{decision}[-N].md. Nothing may parse a sidecar
+      // name: `recordFile` is the only handle, and any value it carries is
+      // valid.
       const base = `${stamp(now)}-${input.surface}-${input.decision}`;
       let name = `${base}.md`;
       const body = renderFeedbackRecordMarkdown(record);

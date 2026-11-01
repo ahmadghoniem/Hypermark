@@ -2,7 +2,7 @@
  * Annotate target resolution for the direct CLI (`hypermark annotate`).
  *
  * Extracted from the annotate branch of index.ts so the resolution pipeline
- * can be re-run once by the tolerant token fallback (#1182) and unit tested.
+ * can be re-run once by the tolerant token fallback and unit tested.
  * A single resolution pass refuses URLs and folders, then resolves a
  * document, emitting progress lines through `log`.
  *
@@ -30,7 +30,6 @@ interface AnnotateResolutionSuccess {
   ok: true;
   markdown: string;
   absolutePath: string;
-  annotateMode: "annotate";
 }
 
 interface AnnotateResolutionFailure {
@@ -52,7 +51,7 @@ export async function resolveAnnotateTarget(options: {
   rawFilePath: string;
   projectRoot: string;
   /**
-   * Extra extensions the user registered as markdown (#1307). Defaults to the
+   * Extra extensions the user registered as markdown. Defaults to the
    * process-wide set resolved from config.json; passed explicitly by callers
    * that already hold a resolved list.
    */
@@ -153,6 +152,5 @@ export async function resolveAnnotateTarget(options: {
     ok: true,
     markdown,
     absolutePath,
-    annotateMode: "annotate",
   };
 }

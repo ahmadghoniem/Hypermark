@@ -1,7 +1,7 @@
 /**
  * Checkbox Overrides Hook
  *
- * Manages interactive checkbox toggling in the plan viewer. Each toggle creates
+ * Manages interactive checkbox toggling in the document viewer. Each toggle creates
  * a COMMENT annotation capturing the action and section context; toggling back
  * to the original state removes the override and deletes the annotation.
  */

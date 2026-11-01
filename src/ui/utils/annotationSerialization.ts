@@ -12,7 +12,7 @@
  * format. Accepted inputs:
  *  - `a`: `ShareableAnnotation[]` tuples — `['D', …]`, `['C', …]`, `['G', …]`,
  *    with the optional trailing `1` quick-label flag on comments, plus the
- *    parallel `d` (diffContext) and `s` (source) arrays.
+ *    parallel `s` (source) array.
  *  - `g` / per-annotation images: `ShareableImage[]`, where each entry is
  *    either a `[path, name]` tuple (newer) or a bare path string (oldest), for
  *    which the name is derived from the filename.
@@ -56,7 +56,7 @@ export function parseShareableImages(raw: ShareableImage[] | undefined): ImageAt
  * Note: blockId, offsets, and meta will need to be populated separately
  * by finding the text in the rendered document.
  */
-export function fromShareable(data: ShareableAnnotation[], diffContexts?: (string | null)[] | null): Annotation[] {
+export function fromShareable(data: ShareableAnnotation[]): Annotation[] {
   const typeMap: Record<string, AnnotationType> = {
     'D': AnnotationType.DELETION,
     'C': AnnotationType.COMMENT,
@@ -100,7 +100,6 @@ export function fromShareable(data: ShareableAnnotation[], diffContexts?: (strin
       originalText,
       createdA: Date.now() + index,  // Preserve order
       images: parseShareableImages(rawImages),
-      ...(diffContexts?.[index] ? { diffContext: diffContexts[index] as Annotation['diffContext'] } : {}),
       // startMeta/endMeta will be set by web-highlighter
     };
   });

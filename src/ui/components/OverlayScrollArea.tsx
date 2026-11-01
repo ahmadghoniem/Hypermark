@@ -31,7 +31,7 @@ export interface OverlayScrollAreaHandle {
 
 export interface OverlayScrollAreaProps
   extends Omit<React.HTMLAttributes<HTMLElement>, 'children'> {
-  /** Root element tag (default 'div'). Use 'main' for the primary plan viewport. */
+  /** Root element tag (default 'div'). Use 'main' for the primary document viewport. */
   element?: ElementType;
   children?: ReactNode;
   /** Fires with the scroll element on mount, and `null` on unmount. */

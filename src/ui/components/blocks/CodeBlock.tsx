@@ -31,7 +31,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ block }) => {
   const lineCount = block.content.split('\n').length;
 
   // Highlight on mount, on content/language change, and whenever the palette
-  // changes. Language-less fences stay plain text (#1212) — nothing is guessed.
+  // changes. Language-less fences stay plain text — nothing is guessed.
   useEffect(() => {
     if (codeRef.current) {
       codeRef.current.className = codeBlockClassName(block.language);
@@ -64,7 +64,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ block }) => {
 
   return (
     <div
-      className="my-plan-wide overflow-hidden rounded-[12px] border border-border/40 bg-surface-2"
+      className="my-doc-wide overflow-hidden rounded-[12px] border border-border/40 bg-surface-2"
       data-block-id={block.id}
     >
       <div data-pinpoint-ignore="" className="flex h-9 select-none items-center gap-0.5 pr-1 pl-3">
